@@ -1,0 +1,70 @@
+services:
+  oracle:
+    image: gvenzl/oracle-xe:21-slim-faststart
+    environment:
+      ORACLE_PASSWORD: swg
+      APP_USER: swg
+      APP_USER_PASSWORD: swg
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  swg-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    depends_on:
+      oracle:
+        condition: service_healthy
+    environment:
+      SWG_DB_HOST: oracle
+      SWG_DB_PORT: "1521"
+      SWG_DB_SERVICE: XEPDB1
+      SWG_DB_USER: swg
+      SWG_DB_PASSWORD: swg
+      SWG_DB_ADMIN_USER: system
+      SWG_DB_ADMIN_PASSWORD: swg
+      SWG_DB_DATAFILE_DIR: /opt/oracle/oradata/XE/XEPDB1
+      SWG_CLUSTER_NAME: swg
+      SWG_PUBLIC_ADDRESS: 127.0.0.1
+      SWG_SYNC_SOURCE: ${SWG_SYNC_SOURCE:-auto}
+      SWG_SOURCE_DIR: /swg-main-source
+      SWG_WORK_DIR: /swg-main
+      SWG_CLIENT_ASSETS_TRE: /client-assets/swgsource_3.0.tre
+    ports:
+      - "44450-44465:44450-44465/tcp"
+      - "44450-44465:44450-44465/udp"
+      - "5000-5001:5000-5001/tcp"
+      - "5000-5001:5000-5001/udp"
+    volumes:
+      - .:/swg-main-source:ro
+      - ../client-assets:/client-assets:ro
+      - swg-work:/swg-main
+    working_dir: /swg-main
+    command: ["run"]
+    tty: true
+    stdin_open: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          pgrep -f '[b]in/LoginServer' >/dev/null &&
+          pgrep -f '[b]in/TaskManager' >/dev/null &&
+          pgrep -f '[b]in/ConnectionServer' >/dev/null &&
+          pgrep -f '[b]in/SwgDatabaseServer' >/dev/null &&
+          pgrep -f '[b]in/SwgGameServer' >/dev/null
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 15m
+
+volumes:
+  oracle-data:
+  swg-work:

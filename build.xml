@@ -198,13 +198,14 @@
 	</target>
 
 	<target name="update_configs" description="updates the configuration files with the desired settings" if="firstrun">
-		<replace dir="${exe}" propertyFile="${basedir}/build.properties">
+		<replace dir="${exe}">
 			<include name="**/*.cfg"/>
-			<replacefilter token="CLUSTERNAME" property="cluster_name"/>
+			<replacefilter token="CLUSTERNAME" value="${cluster_name}"/>
 			<replacefilter token="HOSTIP" value="${ADDR4}"/>
-			<replacefilter token="DBUSERNAME" property="db_username"/>
+			<replacefilter token="DBUSERNAME" value="${db_username}"/>
 			<replacefilter token="DBSERVICE" value="${service_name}"/>
-			<replacefilter token="DBPASSWORD" property="db_password"/>
+			<replacefilter token="DBPASSWORD" value="${db_password}"/>
+			<replacefilter token="//127.0.0.1/swg" value="${service_name}"/>
 		</replace>
 		<antcall target="set_ubuntu_cfg"/>
 	</target>
