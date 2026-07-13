@@ -117,7 +117,10 @@ SWG_DB_ADMIN_PASSWORD="${SWG_DB_ADMIN_PASSWORD:-swg}"
 SWG_DB_DATAFILE_DIR="${SWG_DB_DATAFILE_DIR:-/opt/oracle/oradata/XE/XEPDB1}"
 SWG_CLUSTER_NAME="${SWG_CLUSTER_NAME:-swg}"
 SWG_PUBLIC_ADDRESS="${SWG_PUBLIC_ADDRESS:-127.0.0.1}"
+SWG_CENTRAL_LOGIN_SERVICE_PORT="${SWG_CENTRAL_LOGIN_SERVICE_PORT:-44452}"
+SWG_PUBLIC_CONNECTION_PING_PORT="${SWG_PUBLIC_CONNECTION_PING_PORT:-44462}"
 SWG_PUBLIC_CONNECTION_PORT="${SWG_PUBLIC_CONNECTION_PORT:-44463}"
+SWG_PRIVATE_CONNECTION_PORT="${SWG_PRIVATE_CONNECTION_PORT:-44464}"
 SWG_INTERNAL_ADDRESS="${SWG_INTERNAL_ADDRESS:-}"
 SWG_CLIENT_ASSETS_TRE="${SWG_CLIENT_ASSETS_TRE:-/client-assets/swgsource_3.0.tre}"
 SWG_START_CHAT="${SWG_START_CHAT:-true}"
@@ -211,20 +214,41 @@ SQL
 }
 
 set_cluster_public_address() {
-    if ! [[ "${SWG_PUBLIC_CONNECTION_PORT}" =~ ^[0-9]+$ ]] ||
-       [ "${SWG_PUBLIC_CONNECTION_PORT}" -lt 1 ] ||
-       [ "${SWG_PUBLIC_CONNECTION_PORT}" -gt 65535 ]; then
-        echo "Invalid SWG_PUBLIC_CONNECTION_PORT='${SWG_PUBLIC_CONNECTION_PORT}'; expected 1-65535." >&2
+    local port_name
+    local port_value
+
+    for port_name in SWG_CENTRAL_LOGIN_SERVICE_PORT SWG_PUBLIC_CONNECTION_PING_PORT SWG_PUBLIC_CONNECTION_PORT SWG_PRIVATE_CONNECTION_PORT; do
+        port_value="${!port_name}"
+        if ! [[ "${port_value}" =~ ^[0-9]+$ ]] ||
+           [ "${port_value}" -lt 1 ] ||
+           [ "${port_value}" -gt 65535 ]; then
+            echo "Invalid ${port_name}='${port_value}'; expected 1-65535." >&2
+            exit 1
+        fi
+    done
+
+    if [ "${SWG_PUBLIC_CONNECTION_PING_PORT}" = "${SWG_PUBLIC_CONNECTION_PORT}" ] ||
+       [ "${SWG_PUBLIC_CONNECTION_PING_PORT}" = "${SWG_PRIVATE_CONNECTION_PORT}" ] ||
+       [ "${SWG_PUBLIC_CONNECTION_PORT}" = "${SWG_PRIVATE_CONNECTION_PORT}" ]; then
+        echo "ConnectionServer ping, public, and private ports must be distinct." >&2
         exit 1
     fi
 
-    echo "Setting cluster '${SWG_CLUSTER_NAME}' public endpoint to ${SWG_PUBLIC_ADDRESS}:${SWG_PUBLIC_CONNECTION_PORT}..."
+    for port_name in SWG_PUBLIC_CONNECTION_PING_PORT SWG_PUBLIC_CONNECTION_PORT SWG_PRIVATE_CONNECTION_PORT; do
+        port_value="${!port_name}"
+        if (( (port_value >= 45450 && port_value <= 45461) || port_value == 45465 )); then
+            echo "Invalid ${port_name}='${port_value}'; 45450-45461 and 45465 are reserved by fixed Pre-CU Docker host mappings." >&2
+            exit 1
+        fi
+    done
+
+    echo "Setting cluster '${SWG_CLUSTER_NAME}' public address to ${SWG_PUBLIC_ADDRESS} and CentralServer login service port to ${SWG_CENTRAL_LOGIN_SERVICE_PORT}..."
 
     sqlplus_app <<SQL
 whenever sqlerror exit sql.sqlcode
 update cluster_list
 set address = '${SWG_PUBLIC_ADDRESS}',
-    port = ${SWG_PUBLIC_CONNECTION_PORT}
+    port = ${SWG_CENTRAL_LOGIN_SERVICE_PORT}
 where name = '${SWG_CLUSTER_NAME}';
 commit;
 exit
@@ -340,6 +364,8 @@ connectionServiceBindInterface=eth0
 planetServiceBindInterface=eth0
 commodityServerServiceBindInterface=eth0
 customerServicePort=61242
+loginServerPort=${SWG_CENTRAL_LOGIN_SERVICE_PORT}
+loginServicePort=${SWG_CENTRAL_LOGIN_SERVICE_PORT}
 
 [dbProcess]
 gameServiceBindInterface=eth0
@@ -359,6 +385,9 @@ gameServiceBindInterface=eth0
 chatServiceBindInterface=eth0
 customerServiceBindInterface=eth0
 altPublicBindAddress=${SWG_PUBLIC_ADDRESS}
+pingPort=${SWG_PUBLIC_CONNECTION_PING_PORT}
+clientServicePortPublic=${SWG_PUBLIC_CONNECTION_PORT}
+clientServicePortPrivate=${SWG_PRIVATE_CONNECTION_PORT}
 
 [CommodityServer]
 cmServerServiceBindInterface=eth0
@@ -366,6 +395,7 @@ databaseServerAddress=127.0.0.1
 
 [LoginServer]
 easyExternalAccess=true
+centralServicePort=${SWG_CENTRAL_LOGIN_SERVICE_PORT}
 
 [CustomerServiceServer]
 gameServiceBindInterface=eth0
