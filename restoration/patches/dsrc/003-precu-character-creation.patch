@@ -1,8 +1,51 @@
 diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
-index 9585b829e..ced00d7e1 100755
+index 9585b829e..23ac7cebc 100755
 --- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
 +++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
-@@ -1922,96 +1922,13 @@ public class base_player extends script.base_script
+@@ -374,10 +374,6 @@ public class base_player extends script.base_script
+         {
+             grantSkill(self, "class_trader");
+         }
+-        if ((!hasSkill(self, "expertise")) && (newCombatLevel == 10))
+-        {
+-            expertise.autoAllocateExpertiseByLevel(self, true);
+-        }
+         recomputeCommandSeries(self);
+         grantLevelSpecificRewards(self, newCombatLevel);
+         skill.sendlevelUpStatChangeSystemMessages(self, oldCombatLevel, newCombatLevel);
+@@ -496,11 +492,7 @@ public class base_player extends script.base_script
+         {
+             grantSkill(self, "class_trader");
+         }
+-        if (!hasSkill(self, "expertise"))
+-        {
+-            expertise.autoAllocateExpertiseByLevel(self, false);
+-        }
+         city.initCitizen(self);
+         respecNewEntertainerSkills(self);
+         respecNewCrafterSkills(self);
+         boolean setting = utils.checkConfigFlag("TestCenterPlayer", "ApplyTCMark");
+@@ -719,10 +711,17 @@ public class base_player extends script.base_script
+                 }
+             }
+         }
+-        if (!hasScript(self, "player.live_conversions"))
++        // The NGE live-conversion and Chronicles scripts do not belong on a
++        // Publish 14.1 player.  Retire persisted copies instead of reattaching
++        // them during every initialization.
++        if (hasScript(self, "player.live_conversions"))
+         {
+-            attachScript(self, "player.live_conversions");
++            detachScript(self, "player.live_conversions");
++        }
++        if (hasScript(self, "player.player_saga_quest"))
++        {
++            detachScript(self, "player.player_saga_quest");
+         }
+         if (!hasScript(self, "systems.skills.stealth.player_stealth"))
+         {
+             attachScript(self, "systems.skills.stealth.player_stealth");
+@@ -1922,96 +1921,13 @@ public class base_player extends script.base_script
              {
                  detachScript(self, "systems.respec.click_combat_respec");
              }
@@ -101,6 +144,56 @@ index 9585b829e..ced00d7e1 100755
              }
          }
          return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/player/live_conversions.java b/sku.0/sys.server/compiled/game/script/player/live_conversions.java
+index 19f46b0d2..6c3996053 100755
+--- a/sku.0/sys.server/compiled/game/script/player/live_conversions.java
++++ b/sku.0/sys.server/compiled/game/script/player/live_conversions.java
+@@ -34,13 +34,11 @@ public class live_conversions extends script.base_script
+     public static final String FORCE_RESPEC_OBJVAR = "configEnforcedRespecVersion";
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        runOncePerSessionConversions(self);
+-        runOncePerTravelConversions(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        runOncePerSessionConversions(self);
++        detachScript(self, "player.live_conversions");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnLogin(obj_id self) throws InterruptedException
+@@ -664,10 +662,6 @@ public class live_conversions extends script.base_script
+         {
+             attachScript(player, "player.player_instance");
+         }
+-        if (!hasScript(player, "player.player_saga_quest"))
+-        {
+-            attachScript(player, "player.player_saga_quest");
+-        }
+     }
+     public void updateResidencyLinks(obj_id player) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java b/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java
+index e25cfc226..4c271b6e7 100755
+--- a/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java
+@@ -10,12 +10,13 @@ public class player_saga_quest extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "handleChronicleProfessionGranted", null, 14, false);
++        // Chronicles is an NGE-only progression system.  Do not queue its
++        // profession grant while the native script attach is still in flight.
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "handleChronicleProfessionGranted", null, 9, false);
++        detachScript(self, "player.player_saga_quest");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnNewbieTutorialResponse(obj_id self, String action) throws InterruptedException
 diff --git a/sku.0/sys.server/compiled/game/script/systems/respec/click_combat_respec.java b/sku.0/sys.server/compiled/game/script/systems/respec/click_combat_respec.java
 index fcaaf8320..278f404fe 100755
 --- a/sku.0/sys.server/compiled/game/script/systems/respec/click_combat_respec.java

@@ -10,8 +10,55 @@
   },
   "tutorial": {
     "buildingTemplate": "object/building/general/newbie_hall.iff",
+    "sceneId": "tutorial",
     "startCell": "r1",
     "startObjVar": "newbie.startTutorial"
+  },
+  "roadmap": {
+    "clearValueExpression": "std::string()",
+    "forbiddenClientAccessors": [
+      "createMessage->getSkillTemplate()",
+      "createMessage->getWorkingSkill()"
+    ]
+  },
+  "ngeCreationResidue": {
+    "forbiddenBasePlayerMarkers": [
+      "expertise.autoAllocateExpertiseByLevel"
+    ],
+    "retiredScripts": [
+      "player.live_conversions",
+      "player.player_saga_quest"
+    ],
+    "chroniclesScript": "player.player_saga_quest",
+    "chroniclesStartingSkill": "class_chronicles_novice",
+    "chroniclesGrantHandler": "handleChronicleProfessionGranted",
+    "chroniclesLifecycle": {
+      "onAttachRequiredMarker": "return SCRIPT_CONTINUE;",
+      "onAttachForbiddenMarkers": [
+        "messageTo(",
+        "detachScript(",
+        "attachScript(",
+        "grantSkill("
+      ],
+      "onInitializeRequiredMarker": "detachScript(self, \"player.player_saga_quest\");"
+    },
+    "liveConversionsLifecycle": {
+      "onAttachRequiredMarker": "return SCRIPT_CONTINUE;",
+      "onAttachForbiddenMarkers": [
+        "runOncePerSessionConversions(",
+        "runOncePerTravelConversions(",
+        "detachScript(",
+        "attachScript("
+      ],
+      "onInitializeRequiredMarkers": [
+        "detachScript(self, \"player.live_conversions\");",
+        "return SCRIPT_CONTINUE;"
+      ],
+      "onInitializeForbiddenMarkers": [
+        "runOncePerSessionConversions(",
+        "runOncePerTravelConversions("
+      ]
+    }
   },
   "forbiddenDsrcMarkers": [
     "showMediator=ws_professiontemplateselect",
