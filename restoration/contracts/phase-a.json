@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "skillPointCap": 250,
+  "trainingSkill": {
+    "name": "combat_marksman_rifle_01",
+    "pointsRequired": 2,
+    "moneyRequired": 1000
+  },
+  "pointScenarios": [
+    {
+      "name": "fresh_character",
+      "heldSkills": [],
+      "expectedAvailable": 250
+    },
+    {
+      "name": "marksman_novice",
+      "heldSkills": [
+        "combat_marksman_novice"
+      ],
+      "expectedAvailable": 235
+    },
+    {
+      "name": "marksman_novice_rifle_01",
+      "heldSkills": [
+        "combat_marksman_novice",
+        "combat_marksman_rifle_01"
+      ],
+      "expectedAvailable": 233
+    }
+  ],
+  "sourceFiles": {
+    "skillScript": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "teacherScript": "dsrc/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java",
+    "commandCpp": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp"
+  },
+  "pointImplementation": {
+    "availableHelper": "getAvailableSkillPoints",
+    "costHelper": "getSkillPointCost",
+    "tableColumn": "POINTS_REQUIRED"
+  },
+  "commandAudit": {
+    "scopedSkills": [
+      "combat_marksman_rifle_01"
+    ],
+    "nonCommandPrefixes": [
+      "private_",
+      "cert_"
+    ]
+  },
+  "baselineBlockers": [
+    "phaseA.training.teachable-list",
+    "phaseA.training.money-derived",
+    "phaseA.training.points-derived",
+    "phaseA.surrender.command-table",
+    "phaseA.surrender.native-handler",
+    "phaseA.commands.combat_marksman_rifle_01.aimedShot"
+  ]
+}
