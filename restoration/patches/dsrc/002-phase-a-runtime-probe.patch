@@ -1,0 +1,172 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
+new file mode 100644
+index 000000000..cc7858ac0
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
+@@ -0,0 +1,166 @@
++package script.test;
++
++import script.obj_id;
++import script.library.skill;
++
++/**
++ * Trusted ServerConsole probe for the Pre-CU Phase-A skill lifecycle.
++ *
++ * This script has no attached-object entry points. It can only be reached by
++ * the existing CentralServer runScript console handler and deliberately sends
++ * surrender through the production command table and command queue. Every
++ * action is limited to the disposable Phase-A login fixture.
++ */
++public class precu_phase_a_runtime extends script.base_script
++{
++    private static final int RUNTIME_STATION_ID = 91001;
++
++    private static final String USAGE =
++        "usage: status|grant|revoke|purchase|queueSurrender <playerOid> <skill> [xpType] " +
++        "or grantXp <playerOid> <xpType> <amount>";
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        if (params == null)
++        {
++            return USAGE;
++        }
++
++        String trimmed = params.trim();
++        if (trimmed.length() == 0)
++        {
++            return USAGE;
++        }
++
++        String[] args = trimmed.split("\\s+");
++        if (args.length < 2)
++        {
++            return USAGE;
++        }
++
++        obj_id player;
++        try
++        {
++            player = obj_id.getObjId(Long.parseLong(args[1]));
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayerOid value=" + args[1];
++        }
++
++        String playerError = validatePlayer(player);
++        if (playerError != null)
++        {
++            return playerError;
++        }
++
++        String action = args[0];
++        if (action.equalsIgnoreCase("grantXp"))
++        {
++            if (args.length != 4)
++            {
++                return USAGE;
++            }
++
++            int amount;
++            try
++            {
++                amount = Integer.parseInt(args[3]);
++            }
++            catch (NumberFormatException exception)
++            {
++                return "error=invalidXpAmount value=" + args[3];
++            }
++
++            int result = grantExperiencePoints(player, args[2], amount);
++            return "action=grantXp oid=" + player + " xpType=" + args[2] +
++                " amount=" + amount + " result=" + result +
++                " xp=" + getExperiencePoints(player, args[2]) +
++                " cap=" + getExperienceCap(player, args[2]);
++        }
++
++        if (args.length < 3)
++        {
++            return USAGE;
++        }
++
++        String skillName = args[2];
++        if (action.equalsIgnoreCase("status"))
++        {
++            String xpType = args.length > 3 ? args[3] : null;
++            return buildStatus(player, skillName, xpType);
++        }
++        if (action.equalsIgnoreCase("grant"))
++        {
++            boolean result = grantSkill(player, skillName);
++            return "action=grant result=" + result + " " + buildStatus(player, skillName, null);
++        }
++        if (action.equalsIgnoreCase("revoke"))
++        {
++            revokeSkill(player, skillName);
++            return "action=revoke " + buildStatus(player, skillName, null);
++        }
++        if (action.equalsIgnoreCase("purchase"))
++        {
++            boolean result = skill.purchaseSkill(player, skillName);
++            return "action=purchase result=" + result + " " + buildStatus(player, skillName, null);
++        }
++        if (action.equalsIgnoreCase("queueSurrender"))
++        {
++            boolean queued = queueCommand(
++                player,
++                getStringCrc("surrenderskill"),
++                obj_id.NULL_ID,
++                skillName,
++                COMMAND_PRIORITY_IMMEDIATE);
++            return "action=queueSurrender queued=" + queued + " " + buildStatus(player, skillName, null);
++        }
++
++        return USAGE;
++    }
++
++    private String validatePlayer(obj_id player) throws InterruptedException
++    {
++        if (player == null || player == obj_id.NULL_ID)
++        {
++            return "error=invalidPlayer";
++        }
++        if (!player.isLoaded())
++        {
++            return "error=playerNotLoaded oid=" + player;
++        }
++        if (!player.isAuthoritative())
++        {
++            return "error=playerNotAuthoritative oid=" + player + " process=" + player.getProcessId();
++        }
++        if (!isPlayer(player))
++        {
++            return "error=objectIsNotPlayer oid=" + player;
++        }
++        if (getPlayerStationId(player) != RUNTIME_STATION_ID)
++        {
++            return "error=stationNotAllowed oid=" + player;
++        }
++        return null;
++    }
++
++    private String buildStatus(obj_id player, String skillName, String xpType) throws InterruptedException
++    {
++        String result = "oid=" + player +
++            " loaded=" + player.isLoaded() +
++            " authoritative=" + player.isAuthoritative() +
++            " connected=" + isPlayerConnected(player) +
++            " skill=" + skillName +
++            " hasSkill=" + hasSkill(player, skillName) +
++            " skillCost=" + skill.getSkillPointCost(skillName) +
++            " points=" + skill.getAvailableSkillPoints(player);
++
++        if (xpType != null && xpType.length() > 0)
++        {
++            result += " xpType=" + xpType +
++                " xp=" + getExperiencePoints(player, xpType) +
++                " cap=" + getExperienceCap(player, xpType);
++        }
++        return result;
++    }
++}

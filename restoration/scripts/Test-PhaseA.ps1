@@ -143,10 +143,12 @@ Add-PhaseCheck -Id "phaseA.training.table-costs" -Passed $trainingRowPassed -Det
 
 $skillScriptPath = Join-Path $source ([string]$contract.sourceFiles.skillScript)
 $teacherScriptPath = Join-Path $source ([string]$contract.sourceFiles.teacherScript)
+$runtimeProbePath = Join-Path $source ([string]$contract.sourceFiles.runtimeProbe)
 $commandCppPath = Join-Path $source ([string]$contract.sourceFiles.commandCpp)
 $playerObjectCppPath = Join-Path $source ([string]$contract.sourceFiles.playerObjectCpp)
 $skillScript = Get-Content -LiteralPath $skillScriptPath -Raw
 $teacherScript = Get-Content -LiteralPath $teacherScriptPath -Raw
+$runtimeProbe = if (Test-Path -LiteralPath $runtimeProbePath -PathType Leaf) { Get-Content -LiteralPath $runtimeProbePath -Raw } else { "" }
 $commandCpp = Get-Content -LiteralPath $commandCppPath -Raw
 $playerObjectCpp = Get-Content -LiteralPath $playerObjectCppPath -Raw
 
@@ -281,6 +283,23 @@ $surrenderNativeReady = (
     $schematicGuardReady
 )
 Add-PhaseCheck -Id "phaseA.surrender.native-handler" -Passed $surrenderNativeReady -Detail "actor-only native handler must reject protected/dependent skills, verify removal, clamp XP, and retain safe cleanup"
+
+$runtimeProbeReady = (
+    ($runtimeProbe -match "class\s+precu_phase_a_runtime\s+extends\s+script\.base_script") -and
+    ($runtimeProbe -match "public\s+String\s+executeProbe\s*\(\s*String\s+params\s*\)") -and
+    ($runtimeProbe -match "RUNTIME_STATION_ID\s*=\s*91001") -and
+    ($runtimeProbe -match "getPlayerStationId\s*\(\s*player\s*\)\s*!=\s*RUNTIME_STATION_ID") -and
+    ($runtimeProbe -match "skill\.purchaseSkill\s*\(") -and
+    ($runtimeProbe -match "getAvailableSkillPoints\s*\(") -and
+    ($runtimeProbe -match "getExperiencePoints\s*\(") -and
+    ($runtimeProbe -match "getExperienceCap\s*\(") -and
+    ($runtimeProbe -match 'getStringCrc\s*\(\s*"surrenderskill"\s*\)') -and
+    ($runtimeProbe -match "queueCommand\s*\(") -and
+    ($runtimeProbe -match "obj_id\.NULL_ID") -and
+    ($runtimeProbe -match "COMMAND_PRIORITY_IMMEDIATE") -and
+    ($runtimeProbe -notmatch "\bOnAttach\s*\(")
+)
+Add-PhaseCheck -Id "phaseA.runtime.console-probe" -Passed $runtimeProbeReady -Detail "trusted console probe must be fixture-bound, query state, and drive purchase/surrender through production services without an attached-object entry point"
 
 foreach ($scopeValue in @($contract.commandAudit.scopedSkills))
 {

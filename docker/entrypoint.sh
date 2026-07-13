@@ -117,6 +117,8 @@ SWG_DB_ADMIN_PASSWORD="${SWG_DB_ADMIN_PASSWORD:-swg}"
 SWG_DB_DATAFILE_DIR="${SWG_DB_DATAFILE_DIR:-/opt/oracle/oradata/XE/XEPDB1}"
 SWG_CLUSTER_NAME="${SWG_CLUSTER_NAME:-swg}"
 SWG_PUBLIC_ADDRESS="${SWG_PUBLIC_ADDRESS:-127.0.0.1}"
+SWG_PUBLIC_CONNECTION_PORT="${SWG_PUBLIC_CONNECTION_PORT:-44463}"
+SWG_INTERNAL_ADDRESS="${SWG_INTERNAL_ADDRESS:-}"
 SWG_CLIENT_ASSETS_TRE="${SWG_CLIENT_ASSETS_TRE:-/client-assets/swgsource_3.0.tre}"
 SWG_START_CHAT="${SWG_START_CHAT:-true}"
 SWG_ANT_INIT_TARGETS="${SWG_ANT_INIT_TARGETS:-clean update_configs create_database compile}"
@@ -126,9 +128,9 @@ SWG_STAGED_CLIENT_ASSETS_TRE=""
 connect_string="//${SWG_DB_HOST}:${SWG_DB_PORT}/${SWG_DB_SERVICE}"
 
 mark_git_safe() {
-    git config --global --add safe.directory /swg-main || true
+    git config --global --add safe.directory "${SWG_WORK_DIR}" || true
     for dir in dsrc exe serverdata src stationapi; do
-        git config --global --add safe.directory "/swg-main/${dir}" || true
+        git config --global --add safe.directory "${SWG_WORK_DIR}/${dir}" || true
     done
 }
 
@@ -209,11 +211,21 @@ SQL
 }
 
 set_cluster_public_address() {
-    echo "Setting cluster '${SWG_CLUSTER_NAME}' public address to ${SWG_PUBLIC_ADDRESS}..."
+    if ! [[ "${SWG_PUBLIC_CONNECTION_PORT}" =~ ^[0-9]+$ ]] ||
+       [ "${SWG_PUBLIC_CONNECTION_PORT}" -lt 1 ] ||
+       [ "${SWG_PUBLIC_CONNECTION_PORT}" -gt 65535 ]; then
+        echo "Invalid SWG_PUBLIC_CONNECTION_PORT='${SWG_PUBLIC_CONNECTION_PORT}'; expected 1-65535." >&2
+        exit 1
+    fi
+
+    echo "Setting cluster '${SWG_CLUSTER_NAME}' public endpoint to ${SWG_PUBLIC_ADDRESS}:${SWG_PUBLIC_CONNECTION_PORT}..."
 
     sqlplus_app <<SQL
 whenever sqlerror exit sql.sqlcode
-update cluster_list set address = '${SWG_PUBLIC_ADDRESS}' where name = '${SWG_CLUSTER_NAME}';
+update cluster_list
+set address = '${SWG_PUBLIC_ADDRESS}',
+    port = ${SWG_PUBLIC_CONNECTION_PORT}
+where name = '${SWG_CLUSTER_NAME}';
 commit;
 exit
 SQL
@@ -228,6 +240,23 @@ write_runtime_network_config() {
 [TaskManager]
 node0=${node_host}
 EOF
+}
+
+write_runtime_service_addresses() {
+    local node_address="${SWG_INTERNAL_ADDRESS}"
+
+    if [ -z "${node_address}" ]; then
+        node_address="$(hostname -i | awk '{ print $1 }')"
+    fi
+
+    if [ -z "${node_address}" ]; then
+        echo "Unable to determine the container's internal service address." >&2
+        exit 1
+    fi
+
+    echo "Setting internal SWG service address to ${node_address}..."
+    sed -i -E "s|^(loginServerAddress=).*|\\1${node_address}|" exe/linux/default.cfg
+    sed -i -E "s|^(centralServerAddress=).*|\\1${node_address}|" exe/linux/localOptions.cfg
 }
 
 ensure_runtime_symlinks() {
@@ -376,6 +405,7 @@ init_server() {
     ensure_runtime_symlinks
     write_runtime_network_config
     sync_runtime_config_files
+    write_runtime_service_addresses
     write_client_asset_tree_config
     write_local_properties false
     set_cluster_public_address
@@ -402,6 +432,7 @@ run_server() {
         run_ant update_configs
         write_runtime_network_config
         sync_runtime_config_files
+        write_runtime_service_addresses
         write_client_asset_tree_config
         set_cluster_public_address
     fi

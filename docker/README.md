@@ -59,3 +59,39 @@ docker compose down
 Generated `build/`, `data/`, `chat/`, localized config files, and
 `local.properties` live in the `swg-work` Docker volume. Source changes still
 belong in this checkout and are synced into the volume at container startup.
+
+## Isolated Pre-CU Runtime
+
+`docker-compose.precu.yml` defines a separate runtime for the Pre-CU effort.
+It does not share containers, ports, network, or named volumes with
+`docker-compose.yml`:
+
+```bash
+docker compose -f docker-compose.precu.yml build swg-precu
+docker compose -f docker-compose.precu.yml up -d
+docker compose -f docker-compose.precu.yml ps
+```
+
+The default bind mounts are the audited materialized source at
+`E:/SWG/SWGSource/Staging/swg-precu-runtime-source` and the sibling
+`pre-cu-reborn-assets` checkout. Override them with `SWG_PRECU_SOURCE_DIR` and
+`SWG_PRECU_ASSETS_DIR` when needed. The local client connects to login port
+`45453`; the externally advertised connection-server port is `45463`. Oracle
+is exposed to localhost only on `127.0.0.1:1522`, and customer-service ports
+are `5100-5101`.
+
+`swg-precu-runtime-source` is the stable local alias for the currently audited
+materialization. Update that alias, or override `SWG_PRECU_SOURCE_DIR`, only
+while the `swg-precu` game container is stopped; the materialized tree remains
+read-only inside the container.
+
+`SWG_PRECU_SYNC_SOURCE` defaults to `auto`: an empty work volume is populated,
+and explicit `init` or `build` commands resynchronize source, while ordinary
+restarts reuse the already compiled Linux volume. Set it to `true` for a forced
+exact resync or `false` only when deliberately operating on the current volume.
+
+For a remote client, set `SWG_PRECU_PUBLIC_ADDRESS` to the reachable host
+address. `SWG_PRECU_PUBLIC_CONNECTION_PORT` defaults to the mapped port
+`45463`. The entrypoint writes both values to `cluster_list` on every server
+start. Do not use `down -v` unless the dedicated `swg-precu-*` database and
+build volumes are intentionally being discarded.

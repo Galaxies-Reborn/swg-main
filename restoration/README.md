@@ -38,6 +38,17 @@ Create and validate the isolated implementation:
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-RestorationMaterializer.ps1 -SourceRoot <initialized-source-checkout> -StagingRoot <empty-staging-directory> -Apply
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PhaseA.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
 
+Validate the Publish 14.1 creation/login invariant:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CharacterCreation.ps1 -SourceRoot <materialized-staging-directory>
+
+This gate requires exactly the six retail starting-profession keys, safe
+PlayerObject-first setup and failure teardown, a deferred selected-skill
+handoff for the full tutorial, a verified immediate grant when the tutorial is
+skipped, the original `newbie_hall`/room-nine trainer flow, and absence of the
+NGE hangar, profession-template mediator, skip payload, and all-six-novice
+grant.
+
 The registered Phase-A overlays restore table-derived training and skill-point
 enforcement, add the surrender command/service, harden schematic revocation,
 and remove the scoped dangling aimedShot grant. No implementation is committed
