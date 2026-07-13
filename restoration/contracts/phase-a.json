@@ -31,12 +31,27 @@
   "sourceFiles": {
     "skillScript": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
     "teacherScript": "dsrc/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java",
-    "commandCpp": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp"
+    "commandCpp": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp",
+    "playerObjectCpp": "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
   },
   "pointImplementation": {
     "availableHelper": "getAvailableSkillPoints",
     "costHelper": "getSkillPointCost",
     "tableColumn": "POINTS_REQUIRED"
+  },
+  "trainerPolicy": {
+    "excludedPrefixes": [
+      "species_",
+      "force_rank",
+      "force_title",
+      "expertise",
+      "pilot_",
+      "social_language_hutt"
+    ],
+    "excludedExact": [
+      "social_language_lekku",
+      "demo_combat"
+    ]
   },
   "commandAudit": {
     "scopedSkills": [
@@ -47,8 +62,33 @@
       "cert_"
     ]
   },
+  "surrenderPolicy": {
+    "protectedPrefixes": [
+      "class_",
+      "common_",
+      "demo_",
+      "expertise",
+      "force_",
+      "internal_",
+      "outdoors_squadleader_",
+      "pilot_",
+      "social_language_",
+      "social_politician_",
+      "species_",
+      "swg_",
+      "utility_"
+    ],
+    "protectedFragments": [
+      "_prereq_"
+    ],
+    "protectedExact": [
+      "combat_bountyhunter_investigation_03"
+    ]
+  },
   "baselineBlockers": [
     "phaseA.training.teachable-list",
+    "phaseA.training.conversation-reachable",
+    "phaseA.training.species-policy",
     "phaseA.training.money-derived",
     "phaseA.training.points-derived",
     "phaseA.surrender.command-table",

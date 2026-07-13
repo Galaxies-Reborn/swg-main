@@ -74,7 +74,7 @@ function Get-JavaMethodWindow
         [string]$SignaturePattern
     )
 
-    $pattern = "(?s)$SignaturePattern.*?(?=\r?\n\s*public\s+static\s+|\z)"
+    $pattern = "(?s)$SignaturePattern.*?(?=\r?\n\s*(?:public|protected|private)\s+(?:static\s+)?|\z)"
     $match = [regex]::Match($Source, $pattern)
     if (-not $match.Success)
     {
@@ -144,17 +144,57 @@ Add-PhaseCheck -Id "phaseA.training.table-costs" -Passed $trainingRowPassed -Det
 $skillScriptPath = Join-Path $source ([string]$contract.sourceFiles.skillScript)
 $teacherScriptPath = Join-Path $source ([string]$contract.sourceFiles.teacherScript)
 $commandCppPath = Join-Path $source ([string]$contract.sourceFiles.commandCpp)
+$playerObjectCppPath = Join-Path $source ([string]$contract.sourceFiles.playerObjectCpp)
 $skillScript = Get-Content -LiteralPath $skillScriptPath -Raw
 $teacherScript = Get-Content -LiteralPath $teacherScriptPath -Raw
 $commandCpp = Get-Content -LiteralPath $commandCppPath -Raw
+$playerObjectCpp = Get-Content -LiteralPath $playerObjectCppPath -Raw
 
 $teachableWindow = Get-JavaMethodWindow -Source $skillScript -SignaturePattern "public\s+static\s+String\[\]\s+getTeachableSkills\s*\("
+$trainerExclusionsPresent = $true
+foreach ($excludedValue in @($contract.trainerPolicy.excludedPrefixes))
+{
+    $pattern = 'startsWith\s*\(\s*"' + [regex]::Escape([string]$excludedValue) + '"\s*\)'
+    if ($teachableWindow -notmatch $pattern)
+    {
+        $trainerExclusionsPresent = $false
+        break
+    }
+}
+foreach ($excludedValue in @($contract.trainerPolicy.excludedExact))
+{
+    $pattern = 'equals\s*\(\s*"' + [regex]::Escape([string]$excludedValue) + '"\s*\)'
+    if ($teachableWindow -notmatch $pattern)
+    {
+        $trainerExclusionsPresent = $false
+        break
+    }
+}
 $teachableImplemented = (
     ($teachableWindow.Length -gt 0) -and
-    ($teachableWindow -notmatch "\breturn\s+null\s*;") -and
-    ($teachableWindow -match "\b(deltaTeacherSkills|getTeacherSkills)\s*\(")
+    ($teachableWindow -match "\bdeltaTeacherSkills\s*\(") -and
+    ($teachableWindow -match "\bgetSkillPrerequisiteSkills\s*\(") -and
+    ($teachableWindow -match "\butils\.isSubset\s*\(") -and
+    ($teachableWindow -match [regex]::Escape("newbie.hasSkill")) -and
+    $trainerExclusionsPresent
 )
-Add-PhaseCheck -Id "phaseA.training.teachable-list" -Passed $teachableImplemented -Detail "getTeachableSkills must derive the trainer-minus-player list"
+Add-PhaseCheck -Id "phaseA.training.teachable-list" -Passed $teachableImplemented -Detail "trainer-minus-player skills must be filtered by prerequisites and protected training families"
+
+$statusWindow = Get-JavaMethodWindow -Source $teacherScript -SignaturePattern "public\s+boolean\s+checkSkillStatus\s*\("
+$conversationReachable = (
+    ($statusWindow -match [regex]::Escape("getAvailableSkillPoints")) -and
+    ($statusWindow -match "(?s)getAvailableSkillPoints\s*\(.*?return\s+true\s*;")
+)
+Add-PhaseCheck -Id "phaseA.training.conversation-reachable" -Passed $conversationReachable -Detail "ordinary qualified trainers must reach a true return with derived points available"
+
+$qualifiedWindow = Get-JavaMethodWindow -Source $skillScript -SignaturePattern "public\s+static\s+String\[\]\s+getQualifiedTeachableSkills\s*\("
+$speciesPolicyReady = (
+    ($qualifiedWindow -match "species\s*!=\s*null\s*&&\s*!species\.isEmpty\s*\(\s*\)") -and
+    ($qualifiedWindow -match [regex]::Escape("getPlayerSpeciesName")) -and
+    ($qualifiedWindow -match "!species\.getBoolean\s*\(") -and
+    ($qualifiedWindow -notmatch "assert\s+d\s*!=\s*null")
+)
+Add-PhaseCheck -Id "phaseA.training.species-policy" -Passed $speciesPolicyReady -Detail "species prerequisites must evaluate the player's species against the species dictionary"
 
 $moneyDerived = (
     ($teacherScript -match [regex]::Escape("MONEY_REQUIRED")) -and
@@ -180,16 +220,67 @@ Add-PhaseCheck -Id "phaseA.training.points-derived" -Passed $pointsDerived -Deta
 $surrenderRows = @($commands | Where-Object { $_.commandName -ieq "surrenderSkill" })
 $surrenderCommandReady = (
     ($surrenderRows.Count -eq 1) -and
+    ($surrenderRows[0].defaultPriority -ceq "immediate") -and
     ($surrenderRows[0].cppHook -ceq "surrenderSkill") -and
-    ([int]$surrenderRows[0].godLevel -eq 0)
+    ($surrenderRows[0].targetType -ceq "none") -and
+    ([string]::IsNullOrEmpty([string]$surrenderRows[0].stringId)) -and
+    ([int]$surrenderRows[0].visible -eq 1) -and
+    ([int]$surrenderRows[0].callOnTarget -eq 0) -and
+    ([int]$surrenderRows[0].disabled -eq 0) -and
+    ([int]$surrenderRows[0].godLevel -eq 0) -and
+    ([int]$surrenderRows[0].addToCombatQueue -eq 0) -and
+    ([int]$surrenderRows[0].toolbarOnly -eq 0) -and
+    ([int]$surrenderRows[0].fromServerOnly -eq 0)
 )
-Add-PhaseCheck -Id "phaseA.surrender.command-table" -Passed $surrenderCommandReady -Detail "surrenderSkill must be a separate player-safe cppHook at godLevel 0"
+Add-PhaseCheck -Id "phaseA.surrender.command-table" -Passed $surrenderCommandReady -Detail "surrenderSkill must retain the authentic client-visible, immediate, actor-routed command contract"
 
+$protectedPolicyPresent = $true
+foreach ($prefixValue in @($contract.surrenderPolicy.protectedPrefixes))
+{
+    if ($commandCpp.IndexOf(('"' + [string]$prefixValue + '"'), [System.StringComparison]::Ordinal) -lt 0)
+    {
+        $protectedPolicyPresent = $false
+        break
+    }
+}
+foreach ($fragmentValue in @($contract.surrenderPolicy.protectedFragments))
+{
+    $pattern = 'skillName\.find\s*\(\s*"' + [regex]::Escape([string]$fragmentValue) + '"\s*\)\s*!=\s*std::string::npos'
+    if ($commandCpp -notmatch $pattern)
+    {
+        $protectedPolicyPresent = $false
+        break
+    }
+}
+foreach ($exactValue in @($contract.surrenderPolicy.protectedExact))
+{
+    $pattern = 'skillName\s*==\s*"' + [regex]::Escape([string]$exactValue) + '"'
+    if ($commandCpp -notmatch $pattern)
+    {
+        $protectedPolicyPresent = $false
+        break
+    }
+}
+$surrenderHandlerMatch = [regex]::Match($commandCpp, "(?s)static\s+void\s+commandFuncSurrenderSkill\s*\(.*?(?=\r?\n//\s+-{5,})")
+$surrenderHandler = if ($surrenderHandlerMatch.Success) { $surrenderHandlerMatch.Value } else { "" }
+$ownershipCheckCount = [regex]::Matches($surrenderHandler, "hasSkill\s*\(\s*\*skill\s*\)").Count
+$schematicGuardReady = $playerObjectCpp -match "(?s)found\s*==\s*m_draftSchematics\.end\s*\(\s*\).*?return\s+false\s*;"
 $surrenderNativeReady = (
     ($commandCpp -match "\bcommandFuncSurrenderSkill\b") -and
-    ($commandCpp -match 'addCppFunction\s*\(\s*"surrenderSkill"\s*,\s*commandFuncSurrenderSkill\s*\)')
+    ($commandCpp -match 'addCppFunction\s*\(\s*"surrenderSkill"\s*,\s*commandFuncSurrenderSkill\s*\)') -and
+    ($surrenderHandler -match "getCreatureObject\s*\(\s*actor\s*\)") -and
+    ($surrenderHandler -notmatch "getCreatureObject\s*\(\s*target\s*\)") -and
+    ($surrenderHandler -match "isAuthoritative\s*\(") -and
+    ($ownershipCheckCount -ge 2) -and
+    ($surrenderHandler -match "dependsUponSkill\s*\(") -and
+    ($surrenderHandler -match "revokeSkill\s*\(\s*\*skill\s*\)") -and
+    ($commandCpp -match "findProfessionForSkill\s*\(") -and
+    ($commandCpp -match "getExperienceLimit\s*\(") -and
+    ($commandCpp -match "grantExperiencePoints\s*\(") -and
+    $protectedPolicyPresent -and
+    $schematicGuardReady
 )
-Add-PhaseCheck -Id "phaseA.surrender.native-handler" -Passed $surrenderNativeReady -Detail "native handler and CommandTable registration must both exist"
+Add-PhaseCheck -Id "phaseA.surrender.native-handler" -Passed $surrenderNativeReady -Detail "actor-only native handler must reject protected/dependent skills, verify removal, clamp XP, and retain safe cleanup"
 
 foreach ($scopeValue in @($contract.commandAudit.scopedSkills))
 {

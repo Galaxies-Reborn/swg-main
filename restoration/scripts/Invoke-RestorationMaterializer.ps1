@@ -88,9 +88,10 @@ if ([string]$headShotGate.status -ne "ready")
 Write-Host "Restoration materialization plan"
 Write-Host "  source:  $source"
 Write-Host "  staging: $stage"
+Write-Host "  clone:   complete superproject at $($manifest.target.baselineSuperprojectCommit)"
 foreach ($pin in @($manifest.gitlinks))
 {
-    Write-Host "  clone:   $($pin.name) at $($pin.commit)"
+    Write-Host "  pin:     $($pin.name) at $($pin.commit)"
 }
 Write-Host "  patches: $($patches.Count)"
 
@@ -105,15 +106,34 @@ if ($patches.Count -eq 0)
     throw "No overlay patches are registered. Refusing to create an unmodified stage."
 }
 
-if (-not (Test-Path -LiteralPath $stage))
+$stageParent = Split-Path -Parent $stage
+if (-not (Test-Path -LiteralPath $stageParent -PathType Container))
 {
-    New-Item -ItemType Directory -Path $stage | Out-Null
+    New-Item -ItemType Directory -Path $stageParent | Out-Null
 }
+
+Invoke-GitChecked -Repository $stageParent -Arguments @(
+    "clone",
+    "--shared",
+    "--no-checkout",
+    $source,
+    $stage
+) | Out-Null
+Invoke-GitChecked -Repository $stage -Arguments @(
+    "checkout",
+    "--detach",
+    [string]$manifest.target.baselineSuperprojectCommit
+) | Out-Null
+Invoke-GitChecked -Repository $stage -Arguments @(
+    "remote",
+    "remove",
+    "origin"
+) | Out-Null
 
 foreach ($pin in @($manifest.gitlinks))
 {
     $componentSource = Join-Path $source ([string]$pin.path)
-    $componentStage = Join-Path $stage ([string]$pin.name)
+    $componentStage = Join-Path $stage ([string]$pin.path)
     Invoke-GitChecked -Repository $stage -Arguments @(
         "clone",
         "--shared",
@@ -125,6 +145,11 @@ foreach ($pin in @($manifest.gitlinks))
         "checkout",
         "--detach",
         [string]$pin.commit
+    ) | Out-Null
+    Invoke-GitChecked -Repository $componentStage -Arguments @(
+        "remote",
+        "remove",
+        "origin"
     ) | Out-Null
 }
 

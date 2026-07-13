@@ -4,4 +4,5 @@ Store ordered, component-relative Git patches here. Use numeric names such as
 001-phase-a-surrender-command.patch. The materializer applies files by name to
 an isolated clone pinned by restoration/manifest.json.
 
-No Phase-A implementation patch is registered yet.
+Phase A is registered as `001-phase-a-surrender-service.patch`. It owns the
+actor-only surrender service, XP-cap repair, and schematic cleanup guard.
