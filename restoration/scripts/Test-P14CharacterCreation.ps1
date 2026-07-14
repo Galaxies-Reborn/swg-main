@@ -124,13 +124,14 @@ $biographyAt = $gameServer.IndexOf("BiographyManager::setBiography", [StringComp
 $tutorialSetupAt = $gameServer.IndexOf("NewbieTutorial::setupCharacterForTutorial(newCharacterObject)", [StringComparison]::Ordinal)
 $skipSetupAt = $gameServer.IndexOf("NewbieTutorial::setupCharacterToSkipTutorial(newCharacterObject)", [StringComparison]::Ordinal)
 $tutorialSceneSetter = "newCharacterObject->setSceneIdOnThisAndContents(NewbieTutorial::getSceneId());"
-$skipSceneSetter = "newCharacterObject->setSceneIdOnThisAndContents(createMessage->getPlanetName());"
 $tutorialSceneAt = $gameServer.IndexOf($tutorialSceneSetter, [StringComparison]::Ordinal)
-$skipSceneAt = $gameServer.IndexOf($skipSceneSetter, [StringComparison]::Ordinal)
+$skippedLocationAt = $gameServer.IndexOf("tr.setPosition_p(NewbieTutorial::getSkippedTutorialLocation());", [StringComparison]::Ordinal)
+$creationCoordinatesAt = $gameServer.IndexOf("tr.setPosition_p(createMessage->getCoordinates());", [StringComparison]::Ordinal)
+$directPlanetSceneAt = $gameServer.IndexOf("newCharacterObject->setSceneIdOnThisAndContents(createMessage->getPlanetName());", [StringComparison]::Ordinal)
 $addCharacterAt = $gameServer.IndexOf("AddCharacterMessage const acm", [StringComparison]::Ordinal)
 $characterPersistAt = $gameServer.IndexOf("newCharacterObject->persist()", [StringComparison]::Ordinal)
 $sceneSetterCount = [regex]::Matches($gameServer, [regex]::Escape("newCharacterObject->setSceneIdOnThisAndContents(")).Count
-$sceneBranchPattern = 'if\s*\(createMessage->getUseNewbieTutorial\(\)\)\s*newCharacterObject->setSceneIdOnThisAndContents\(NewbieTutorial::getSceneId\(\)\);\s*else\s*newCharacterObject->setSceneIdOnThisAndContents\(createMessage->getPlanetName\(\)\);'
+$tutorialChoicePattern = 'if\s*\(createMessage->getUseNewbieTutorial\(\)\)\s*NewbieTutorial::setupCharacterForTutorial\(newCharacterObject\);\s*else\s*NewbieTutorial::setupCharacterToSkipTutorial\(newCharacterObject\);'
 $clearValueExpression = [string]$contract.roadmap.clearValueExpression
 $skillTemplateClear = "play->setSkillTemplate($clearValueExpression, true);"
 $workingSkillClear = "play->setWorkingSkill($clearValueExpression, true);"
@@ -153,16 +154,19 @@ Assert-Contract -Condition ($creation.Contains("obj.grantSkill(*startingSkill)")
 Assert-Contract -Condition ($skipConditionalAt -ge 0 -and $skipConditionalAt -lt $grantAt -and $grantAt -lt $skipCleanupAt) -Name "p14.creation.skip-grant-clears-handoff"
 Assert-Contract -Condition (-not $gameServer.Contains("permanentlyDestroy(DeleteReasons::SetupFailed)")) -Name "p14.creation.transient-failure-teardown"
 
-Assert-Contract -Condition ([regex]::IsMatch($gameServer, $sceneBranchPattern)) -Name "p14.creation.scene-routed-by-tutorial-choice"
-Assert-Contract -Condition ($tutorialSceneAt -gt $tutorialSetupAt -and $tutorialSceneAt -gt $biographyAt -and $tutorialSceneAt -lt $addCharacterAt) -Name "p14.creation.tutorial-scene-before-database-handoff"
-Assert-Contract -Condition ($skipSceneAt -gt $skipSetupAt -and $skipSceneAt -gt $tutorialSceneAt -and $skipSceneAt -lt $addCharacterAt) -Name "p14.creation.skip-scene-before-database-handoff"
-Assert-Contract -Condition ($addCharacterAt -gt $skipSceneAt -and $characterPersistAt -gt $addCharacterAt) -Name "p14.creation.scene-before-character-persist"
-Assert-Contract -Condition ($sceneSetterCount -eq 2) -Name "p14.creation.no-unconditional-scene-overwrite"
+Assert-Contract -Condition ([regex]::IsMatch($gameServer, $tutorialChoicePattern)) -Name "p14.creation.onboarding-choice-recorded"
+Assert-Contract -Condition ($skippedLocationAt -gt $characterAt -and $skippedLocationAt -lt $skipSetupAt -and $creationCoordinatesAt -lt 0) -Name "p14.creation.skip-path-uses-shared-hall-location"
+Assert-Contract -Condition ($tutorialSceneAt -gt $tutorialSetupAt -and $tutorialSceneAt -gt $skipSetupAt -and $tutorialSceneAt -gt $biographyAt -and $tutorialSceneAt -lt $addCharacterAt) -Name "p14.creation.both-paths-use-tutorial-scene-before-database-handoff"
+Assert-Contract -Condition ($directPlanetSceneAt -lt 0) -Name "p14.creation.no-direct-world-scene-from-creation-message"
+Assert-Contract -Condition ($addCharacterAt -gt $tutorialSceneAt -and $characterPersistAt -gt $addCharacterAt) -Name "p14.creation.scene-before-character-persist"
+Assert-Contract -Condition ($sceneSetterCount -eq 1) -Name "p14.creation.single-authoritative-scene-write"
 
 Assert-Contract -Condition ($tutorialCpp.Contains([string]$contract.tutorial.buildingTemplate)) -Name "p14.tutorial.newbie-hall-template"
+Assert-Contract -Condition ($tutorialCpp.Contains([string]$contract.tutorial.skippedBuildingTemplate)) -Name "p14.tutorial.skipped-newbie-hall-template"
 Assert-Contract -Condition ($tutorialCpp.Contains("s_sceneId(`"$([string]$contract.tutorial.sceneId)`")")) -Name "p14.tutorial.scene-id"
 Assert-Contract -Condition ($tutorialCpp.Contains("s_startCellName(`"$([string]$contract.tutorial.startCell)`")")) -Name "p14.tutorial.room-one-start"
 Assert-Contract -Condition ($tutorialCpp.Contains([string]$contract.tutorial.startObjVar)) -Name "p14.tutorial.precu-state"
+Assert-Contract -Condition ($tutorialCpp.Contains([string]$contract.tutorial.skipStartObjVar)) -Name "p14.tutorial.skipped-precu-state"
 Assert-Contract -Condition (-not $tutorialCpp.Contains("npe_hangar_1.iff") -and -not $tutorialCpp.Contains("npe.phase_number")) -Name "p14.tutorial.no-nge-hangar-state"
 Assert-Contract -Condition ($skillScript.Contains("hasObjVar(target, `"newbie.hasSkill`")") -and $skillScript.Contains("!hasObjVar(target, `"newbie.trained`")")) -Name "p14.tutorial.selected-trainer-handoff"
 Assert-Contract -Condition ($skillTeacher.Contains("setObjVar(speaker, `"newbie.trained`", true)")) -Name "p14.tutorial.trainer-completion-state"

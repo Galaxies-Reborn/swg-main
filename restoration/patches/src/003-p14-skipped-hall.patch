@@ -1,0 +1,306 @@
+diff --git a/engine/server/library/serverGame/src/shared/core/GameServer.cpp b/engine/server/library/serverGame/src/shared/core/GameServer.cpp
+index 4a618e82..657c4cf3 100755
+--- a/engine/server/library/serverGame/src/shared/core/GameServer.cpp
++++ b/engine/server/library/serverGame/src/shared/core/GameServer.cpp
+@@ -4692,7 +4692,7 @@ void GameServer::handleCharacterCreateNameVerification(const VerifyNameResponse
+ 	else
+ 	{
+ 		Transform tr;
+-		tr.setPosition_p(createMessage->getCoordinates());
++		tr.setPosition_p(NewbieTutorial::getSkippedTutorialLocation());
+ 		newCharacterObject = safe_cast<TangibleObject *>(ServerWorld::createNewObject(templateName, tr, 0, false));
+ 	}
+ 
+@@ -4832,10 +4832,10 @@ void GameServer::handleCharacterCreateNameVerification(const VerifyNameResponse
+ 		BiographyManager::setBiography(newCharacterObject->getNetworkId(),createMessage->getBiography());
+ 	}
+ 
+-	if (createMessage->getUseNewbieTutorial())
+-		newCharacterObject->setSceneIdOnThisAndContents(NewbieTutorial::getSceneId());
+-	else
+-		newCharacterObject->setSceneIdOnThisAndContents(createMessage->getPlanetName());
++	// Both Publish 14 onboarding paths begin on the tutorial scene.  The
++	// unchecked path enters the shared skipped hall and chooses a world start
++	// through AvLoc2 instead of trusting the later creation-message location.
++	newCharacterObject->setSceneIdOnThisAndContents(NewbieTutorial::getSceneId());
+ 
+ 	// ----------------------------------------------------------------------
+ 	// Tell DB Process we're about to send it a character, then send it
+diff --git a/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp b/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp
+index 0f5368f8..b686ded4 100755
+--- a/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp
++++ b/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp
+@@ -16,6 +16,7 @@
+ #include "sharedFoundation/NetworkId.h"
+ #include "sharedGame/SharedBuildoutAreaManager.h"
+ #include "sharedFile/FileManifest.h"
++#include "sharedObject/CachedNetworkId.h"
+ #include "sharedFile/TreeFile.h"
+ #include "sharedLog/Log.h"
+ #include "sharedObject/Container.h"
+@@ -32,15 +33,21 @@ namespace NewbieTutorialNamespace
+ {
+ 	const std::string        s_sceneId("tutorial");
+ 	const std::string        s_tutorialTemplate("object/building/general/newbie_hall.iff");
++	const std::string        s_skippedTutorialTemplate("object/building/general/newbie_hall_skipped.iff");
+ 
+ 	const Vector             s_startCoords(0.0f, 0.0f, -3.0f);
+ 	const std::string        s_startCellName("r1");
++	const Vector             s_skippedTutorialLocation(0.0f, 0.0f, 400.0f);
++	const Vector             s_skippedTutorialStartCoords(27.5f, -4.2f, -159.2f);
++	const std::string        s_skippedTutorialStartCellName("r1");
++	CachedNetworkId          s_skippedTutorial;
+ 
+ 	const float              s_tutorialMapWidth(16384.0f);
+ 	const float              s_tutorialSpacing(512.0f);
+ 	const int                s_sqrtMaxTutorials(static_cast<int>(s_tutorialMapWidth/s_tutorialSpacing));
+ 
+ 	const std::string        s_tutorialObjVar("newbie.startTutorial");
++	const std::string        s_skippedTutorialObjVar("newbie.startSkippedTutorial");
+ 
+ 	const std::string        s_freeTrialPlanets [] = {"tutorial", "space_npe_falcon", "space_ord_mantell"};
+ 	const int                s_numFreeTrialPlanets = sizeof (s_freeTrialPlanets) / sizeof (s_freeTrialPlanets[0]);
+@@ -67,6 +74,13 @@ std::string const &NewbieTutorial::getTutorialTemplateName()
+ 
+ // ----------------------------------------------------------------------
+ 
++std::string const &NewbieTutorial::getSkippedTutorialTemplateName()
++{
++	return s_skippedTutorialTemplate;
++}
++
++// ----------------------------------------------------------------------
++
+ Vector NewbieTutorial::getTutorialLocation()
+ {
+ 	// Pick a random spot, keep them 512m apart, and don't let them get too close to either axis because we are
+@@ -76,12 +90,19 @@ Vector NewbieTutorial::getTutorialLocation()
+ 	{
+ 		x = s_tutorialSpacing*Random::random(s_sqrtMaxTutorials-1) - s_tutorialMapWidth/2.0f;
+ 		z = s_tutorialSpacing*Random::random(s_sqrtMaxTutorials-1) - s_tutorialMapWidth/2.0f;
+-	} while (std::abs(x) < 300.0f || std::abs(z) < 300.0f);
++	} while (std::abs(x) < 300.0f || std::abs(z) < 300.0f || (x == s_skippedTutorialLocation.x && z == s_skippedTutorialLocation.z));
+ 	return Vector(x, 0.0f, z);
+ }
+ 
+ // ----------------------------------------------------------------------
+ 
++Vector const &NewbieTutorial::getSkippedTutorialLocation()
++{
++	return s_skippedTutorialLocation;
++}
++
++// ----------------------------------------------------------------------
++
+ ServerObject *NewbieTutorial::createTutorial(Vector const &location)
+ {
+ 	FATAL(ServerWorld::getSceneId() != s_sceneId, ("Tried to create a character on a non-tutorial server."));
+@@ -100,6 +121,32 @@ ServerObject *NewbieTutorial::createTutorial(Vector const &location)
+ 
+ // ----------------------------------------------------------------------
+ 
++ServerObject *NewbieTutorial::getOrCreateSkippedTutorial()
++{
++	FATAL(ServerWorld::getSceneId() != s_sceneId, ("Tried to create the skipped tutorial hall on a non-tutorial server."));
++
++	ServerObject *skippedTutorial = dynamic_cast<ServerObject *>(s_skippedTutorial.getObject());
++	if (skippedTutorial)
++		return skippedTutorial;
++
++	Transform tr;
++	tr.setPosition_p(s_skippedTutorialLocation);
++	skippedTutorial = ServerWorld::createNewObject(
++		s_skippedTutorialTemplate,
++		tr,
++		0,
++		false);
++	if (skippedTutorial)
++	{
++		skippedTutorial->addToWorld();
++		s_skippedTutorial = CachedNetworkId(*skippedTutorial);
++	}
++
++	return skippedTutorial;
++}
++
++// ----------------------------------------------------------------------
++
+ Vector const &NewbieTutorial::getStartCoords()
+ {
+ 	return s_startCoords;
+@@ -114,10 +161,27 @@ std::string NewbieTutorial::getStartCellName()
+ 
+ // ----------------------------------------------------------------------
+ 
++Vector const &NewbieTutorial::getSkippedTutorialStartCoords()
++{
++	return s_skippedTutorialStartCoords;
++}
++
++// ----------------------------------------------------------------------
++
++std::string NewbieTutorial::getSkippedTutorialStartCellName()
++{
++	return s_skippedTutorialStartCellName;
++}
++
++// ----------------------------------------------------------------------
++
+ void NewbieTutorial::setupCharacterForTutorial(ServerObject* character)
+ {
+ 	if (character)
++	{
++		character->removeObjVarItem(s_skippedTutorialObjVar);
+ 		character->setObjVarItem(s_tutorialObjVar, 1);
++	}
+ }
+ 
+ // ----------------------------------------------------------------------
+@@ -125,7 +189,10 @@ void NewbieTutorial::setupCharacterForTutorial(ServerObject* character)
+ void NewbieTutorial::setupCharacterToSkipTutorial(ServerObject* character)
+ {
+ 	if (character)
++	{
+ 		character->removeObjVarItem(s_tutorialObjVar);
++		character->setObjVarItem(s_skippedTutorialObjVar, 1);
++	}
+ }
+ 
+ // ----------------------------------------------------------------------
+@@ -143,13 +210,16 @@ bool NewbieTutorial::shouldStartTutorial(const ServerObject* character)
+ 
+ // ----------------------------------------------------------------------
+ 
+-bool NewbieTutorial::isInTutorial(const ServerObject* character)
++bool NewbieTutorial::shouldStartSkippedTutorial(const ServerObject* character)
+ {
+-	if (character)
+-		if (character->getObjVars().hasItem(s_tutorialObjVar))
+-			return true;
++	return character && character->getObjVars().hasItem(s_skippedTutorialObjVar);
++}
+ 
+-	return false;
++// ----------------------------------------------------------------------
++
++bool NewbieTutorial::isInTutorial(const ServerObject* character)
++{
++	return shouldStartTutorial(character) || shouldStartSkippedTutorial(character);
+ }
+ 
+ // ----------------------------------------------------------------------
+diff --git a/engine/server/library/serverGame/src/shared/core/NewbieTutorial.h b/engine/server/library/serverGame/src/shared/core/NewbieTutorial.h
+index 86870724..0153b48b 100755
+--- a/engine/server/library/serverGame/src/shared/core/NewbieTutorial.h
++++ b/engine/server/library/serverGame/src/shared/core/NewbieTutorial.h
+@@ -26,14 +26,20 @@ public:
+ 	static std::string const &getSceneId();
+ 	static std::string const &getTutorialTemplateName();
+ 	static ServerObject *createTutorial(Vector const &location);
++	static std::string const &getSkippedTutorialTemplateName();
++	static ServerObject *getOrCreateSkippedTutorial();
+ 
+ 	static Vector const &getStartCoords();
+ 	static std::string getStartCellName();
+ 	static Vector getTutorialLocation();
++	static Vector const &getSkippedTutorialLocation();
++	static Vector const &getSkippedTutorialStartCoords();
++	static std::string getSkippedTutorialStartCellName();
+ 
+ 	static void setupCharacterForTutorial(ServerObject* character);
+ 	static void setupCharacterToSkipTutorial(ServerObject* character);
+ 	static bool shouldStartTutorial(const ServerObject* character);
++	static bool shouldStartSkippedTutorial(const ServerObject* character);
+ 
+ 	static bool isInTutorial(const ServerObject* character);
+ 	static bool isInTutorialArea(const ServerObject* character);
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+index 8e801159..dfcd62b2 100755
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+@@ -12894,6 +12894,7 @@ void CreatureObject::handleTutorialTransition()
+ 			// let the npe phase determine whether or not to do the tutorial
+ 			startTutorial = (NewbieTutorial::shouldStartTutorial(this));
+ 		}
++		bool const startSkippedTutorial = NewbieTutorial::shouldStartSkippedTutorial(this);
+ 
+ 		const std::string currentScene = ServerWorld::getSceneId();
+ 		if (NewbieTutorial::isInTutorialArea(this))
+@@ -12908,44 +12909,61 @@ void CreatureObject::handleTutorialTransition()
+ 			}
+ 		}
+ 
+-		if (startTutorial && currentScene == NewbieTutorial::getSceneId())
++		if ((startTutorial || startSkippedTutorial) && currentScene == NewbieTutorial::getSceneId())
+ 		{
+ 			// if we are in the tutorial scene, force a teleportFixup here so we can determine if we are in a container
+ 			handleTeleportFixup(false);
+ 
+ 			ServerObject const * container = safe_cast<ServerObject const *>(ContainerInterface::getContainedByObject(*this));
+ 
+-			// if they are on the tutorial planet, but not in a valid container, create a tutorial instance for them
++			// If they are on the tutorial planet but not in a valid container,
++			// place them in either their private full tutorial or the shared
++			// skipped-tutorial hall.
+ 			if (!container || !container->isAuthoritative() || isFromLogin)
+ 			{
+-				// the player should be in the tutorial and is in the right place, go ahead and place them
+-				NewbieTutorial::setupCharacterForTutorial(this);
+-				Vector newLocation = getPosition_w();
+-				if (newLocation == Vector(0,0,0))
++				Vector newLocation;
++				ServerObject *tutorial = 0;
++				std::string startCellName;
++				Vector startCoords;
++
++				if (startSkippedTutorial)
+ 				{
+-					LOG("npe", ("handleTutorialTransition setup tutorial at the origin for object %s\n", getNetworkId().getValueString().c_str()));
++					newLocation = NewbieTutorial::getSkippedTutorialLocation();
++					tutorial = NewbieTutorial::getOrCreateSkippedTutorial();
++					startCellName = NewbieTutorial::getSkippedTutorialStartCellName();
++					startCoords = NewbieTutorial::getSkippedTutorialStartCoords();
++				}
++				else
++				{
++					NewbieTutorial::setupCharacterForTutorial(this);
++					newLocation = getPosition_w();
++					if (newLocation == Vector(0,0,0))
++					{
++						LOG("npe", ("handleTutorialTransition setup tutorial at the origin for object %s\n", getNetworkId().getValueString().c_str()));
++					}
++					tutorial = NewbieTutorial::createTutorial(newLocation);
++					startCellName = NewbieTutorial::getStartCellName();
++					startCoords = NewbieTutorial::getStartCoords();
+ 				}
+-				ServerObject *tutorial = NewbieTutorial::createTutorial(newLocation);
+-
+-				FATAL(!tutorial, ("failed to create tutorial for player which already exists."));
+-				std::string startCellName = NewbieTutorial::getStartCellName();
+ 
+-				Vector startCoords = NewbieTutorial::getStartCoords();
++				FATAL(!tutorial, ("failed to create tutorial building for player."));
+ 				LOG("npe", ("handleTutorialTransition created newbie tutorial %s (%s authoritative) for %s (%s authoritative)\n", tutorial->getNetworkId().getValueString().c_str(), (tutorial->isAuthoritative()) ? "is" : "not", getNetworkId().getValueString().c_str(), (isAuthoritative()) ? "is" : "not"));
+ 
+ 				teleportObject(newLocation, tutorial->getNetworkId(), startCellName, startCoords, "", true);
+ 			}
+ 		}
+ 		else if (
+-				(startTutorial && isFromLogin)
+-			)
++				((startTutorial || startSkippedTutorial) && isFromLogin) &&
++				!(startSkippedTutorial && currentScene != NewbieTutorial::getSceneId() && getObjVars().hasItem("newbie.startingLocationTransferPending")))
+ 		{
+ 			// if the creature object is coming from login, and they should start the tutorial
+ 			// or if the player is on a free trial account, but is on a non-free trial planet or location (NOT GOOD!)
+ 			// warp them to the tutorial planet
+ 			LOG("npe", ("Warping player (%s) back to tutorial because they are coming from login (%i) or because they are on a free trial account (%i) and trying to get to a non-free trial planet (%s: %f %f %f)\n", getNetworkId().getValueString().c_str(), isFromLogin, (getClient() && getClient()->isFreeTrialAccount()), ServerWorld::getSceneId().c_str(), getPosition_w().x, getPosition_w().y, getPosition_w().z));
+-			NewbieTutorial::setupCharacterForTutorial(this);
+-			GameServer::getInstance().requestSceneWarp(CachedNetworkId(*this), NewbieTutorial::getSceneId(), NewbieTutorial::getTutorialLocation(), NetworkId::cms_invalid, Vector(0,0,0));
++			Vector const destination = startSkippedTutorial ? NewbieTutorial::getSkippedTutorialLocation() : NewbieTutorial::getTutorialLocation();
++			if (!startSkippedTutorial)
++				NewbieTutorial::setupCharacterForTutorial(this);
++			GameServer::getInstance().requestSceneWarp(CachedNetworkId(*this), NewbieTutorial::getSceneId(), destination, NetworkId::cms_invalid, Vector(0,0,0));
+ 		}
+ 	}
+ }

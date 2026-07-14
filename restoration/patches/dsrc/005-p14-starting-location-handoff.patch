@@ -1,0 +1,369 @@
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_hall_skipped.java b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_hall_skipped.java
+index 190176436..626ffc811 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_hall_skipped.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_hall_skipped.java
+@@ -52,17 +52,10 @@ public class newbie_hall_skipped extends script.theme_park.newbie_tutorial.tutor
+         }
+         obj_id room1 = getCellId(self, "r1");
+         obj_id yourCell = getContainedBy(item);
+-        if (room1 == yourCell)
+-        {
+-            attachScript(item, NEWBIE_SCRIPT_SKIPPED);
+-        }
+-        obj_id terminal = getObjIdObjVar(self, TRAVEL_TERMINAL);
+-        if (terminal != null)
+-        {
+-            dictionary params = new dictionary();
+-            params.put("player", item);
+-            messageTo(terminal, "warp_player_now", params, 0, false);
+-        }
+-        return SCRIPT_CONTINUE;
+-    }
+-}
++        if (room1 == yourCell)
++        {
++            attachScript(item, NEWBIE_SCRIPT_SKIPPED);
++        }
++        return SCRIPT_CONTINUE;
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_skipped.java b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_skipped.java
+index a90135959..388144eff 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_skipped.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_skipped.java
+@@ -7,9 +7,14 @@ import script.library.utils;
+ import script.location;
+ import script.obj_id;
+ 
+-public class newbie_skipped extends script.theme_park.newbie_tutorial.tutorial_base
+-{
+-    public newbie_skipped()
++public class newbie_skipped extends script.theme_park.newbie_tutorial.tutorial_base
++{
++    public static final String STARTING_LOCATION_SELECTION_OPEN = "newbie.startingLocationSelectionOpen";
++    public static final String STARTING_LOCATION_TRANSFER_PENDING = "newbie.startingLocationTransferPending";
++    public static final String STARTING_LOCATION_TRANSFER_NAME = "newbie.startingLocationTransferName";
++    public static final String STARTING_LOCATION_TRANSFER_POLLS = "newbie.startingLocationTransferPolls";
++    public static final int STARTING_LOCATION_TRANSFER_MAX_POLLS = 30;
++    public newbie_skipped()
+     {
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+@@ -65,9 +70,13 @@ public class newbie_skipped extends script.theme_park.newbie_tutorial.tutorial_b
+             {
+             }
+         }
+-        removeObjVar(self, "newbie");
+-        removeObjVar(self, "skipTutorial");
+-        removeObjVar(self, "banking_bankid");
++        removeObjVar(self, "newbie");
++        removeObjVar(self, "skipTutorial");
++        utils.removeScriptVar(self, STARTING_LOCATION_SELECTION_OPEN);
++        removeObjVar(self, STARTING_LOCATION_TRANSFER_PENDING);
++        removeObjVar(self, STARTING_LOCATION_TRANSFER_NAME);
++        removeObjVar(self, STARTING_LOCATION_TRANSFER_POLLS);
++        removeObjVar(self, "banking_bankid");
+         return SCRIPT_CONTINUE;
+     }
+     public int xferFailed(obj_id self, dictionary params) throws InterruptedException
+@@ -90,31 +99,81 @@ public class newbie_skipped extends script.theme_park.newbie_tutorial.tutorial_b
+     {
+         return SCRIPT_CONTINUE;
+     }
+-    public int newbieRequestStartingLocations(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        newbieTutorialSendStartingLocationsToPlayer(self, null);
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int newbieSelectStartingLocation(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        sendToStartLocation(self, params);
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int handleEndTutorial(obj_id self, dictionary params) throws InterruptedException
+-    {
+-        newbieTutorialEnableHudElement(self, "all", true, 0.0f);
+-        detachScript(self, "theme_park.newbie_tutorial.newbie_skipped");
+-        return SCRIPT_CONTINUE;
++    public int newbieRequestStartingLocations(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if ("tutorial".equals(getLocation(self).area) && utils.hasScriptVar(self, STARTING_LOCATION_SELECTION_OPEN) && !hasObjVar(self, STARTING_LOCATION_TRANSFER_PENDING))
++        {
++            // The travel terminal is the sole authority that opens this gate.
++            sendThoseStartLocs(self);
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int newbieSelectStartingLocation(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (hasObjVar(self, STARTING_LOCATION_TRANSFER_PENDING) || !utils.hasScriptVar(self, STARTING_LOCATION_SELECTION_OPEN))
++        {
++            newbieTutorialSendStartingLocationSelectionResult(self, params, false);
++            return SCRIPT_CONTINUE;
++        }
++        utils.removeScriptVar(self, STARTING_LOCATION_SELECTION_OPEN);
++        if (!sendToStartLocation(self, params))
++        {
++            utils.setScriptVar(self, STARTING_LOCATION_SELECTION_OPEN, true);
++            return SCRIPT_CONTINUE;
++        }
++        setObjVar(self, STARTING_LOCATION_TRANSFER_PENDING, true);
++        setObjVar(self, STARTING_LOCATION_TRANSFER_NAME, params);
++        setObjVar(self, STARTING_LOCATION_TRANSFER_POLLS, 0);
++        messageTo(self, "handleEndTutorial", null, 1.0f, false);
++        return SCRIPT_CONTINUE;
++    }
++    public int handleEndTutorial(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (!hasObjVar(self, STARTING_LOCATION_TRANSFER_PENDING))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        location loc = getLocation(self);
++        if (!loc.area.equals("tutorial"))
++        {
++            removeObjVar(self, "newbie.startSkippedTutorial");
++            newbieTutorialEnableHudElement(self, "all", true, 0.0f);
++            detachScript(self, "theme_park.newbie_tutorial.newbie_skipped");
++            return SCRIPT_CONTINUE;
++        }
++        int polls = getIntObjVar(self, STARTING_LOCATION_TRANSFER_POLLS);
++        if (polls >= STARTING_LOCATION_TRANSFER_MAX_POLLS)
++        {
++            String selection = getStringObjVar(self, STARTING_LOCATION_TRANSFER_NAME);
++            removeObjVar(self, STARTING_LOCATION_TRANSFER_PENDING);
++            removeObjVar(self, STARTING_LOCATION_TRANSFER_NAME);
++            removeObjVar(self, STARTING_LOCATION_TRANSFER_POLLS);
++            utils.setScriptVar(self, STARTING_LOCATION_SELECTION_OPEN, true);
++            newbieTutorialSendStartingLocationSelectionResult(self, selection, false);
++            sendThoseStartLocs(self);
++            return SCRIPT_CONTINUE;
++        }
++        setObjVar(self, STARTING_LOCATION_TRANSFER_POLLS, polls + 1);
++        messageTo(self, "handleEndTutorial", null, 1.0f, false);
++        return SCRIPT_CONTINUE;
+     }
+     public int OnLogin(obj_id self) throws InterruptedException
+     {
+         location loc = getLocation(self);
+         String area = loc.area;
+-        if (!area.equals("tutorial"))
+-        {
+-            newbieTutorialEnableHudElement(self, "all", true, 0.0f);
+-            detachScript(self, "theme_park.newbie_tutorial.newbie_skipped");
+-        }
+-        return SCRIPT_CONTINUE;
++        if (!area.equals("tutorial"))
++        {
++            removeObjVar(self, "newbie.startSkippedTutorial");
++            newbieTutorialEnableHudElement(self, "all", true, 0.0f);
++            detachScript(self, "theme_park.newbie_tutorial.newbie_skipped");
++        }
++        else if (hasObjVar(self, STARTING_LOCATION_TRANSFER_PENDING))
++        {
++            utils.removeScriptVar(self, STARTING_LOCATION_SELECTION_OPEN);
++            removeObjVar(self, STARTING_LOCATION_TRANSFER_PENDING);
++            removeObjVar(self, STARTING_LOCATION_TRANSFER_NAME);
++            removeObjVar(self, STARTING_LOCATION_TRANSFER_POLLS);
++        }
++        return SCRIPT_CONTINUE;
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/travel_terminal.java b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/travel_terminal.java
+index c4b335ae5..ecbc39a2c 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/travel_terminal.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/travel_terminal.java
+@@ -1,9 +1,8 @@
+ package script.theme_park.newbie_tutorial;
+ 
+-import script.*;
+-import script.library.groundquests;
+-import script.library.utils;
+-import script.library.weapons;
++import script.*;
++import script.library.utils;
++import script.library.weapons;
+ 
+ public class travel_terminal extends script.theme_park.newbie_tutorial.tutorial_base
+ {
+@@ -11,37 +10,10 @@ public class travel_terminal extends script.theme_park.newbie_tutorial.tutorial_
+     {
+     }
+     public static final string_id SID_USE_MENU = new string_id("sui", "use");
+-    public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+-    {
+-        int menuOption = mi.addRootMenu(menu_info_types.ITEM_USE, SID_USE_MENU);
+-        removeObjVar(player, "banking_bankid");
+-        removeStaticWaypoint(self);
+-        if (hasObjVar(self, "newbie.skipped"))
+-        {
+-            if (!hasScript(player, NEWBIE_SCRIPT_SKIPPED))
+-            {
+-                attachScript(player, NEWBIE_SCRIPT_SKIPPED);
+-            }
+-        }
+-        setLookAtTarget(player, null);
+-        transferBankToInventory(player);
+-        obj_id currentWeapon = getCurrentWeapon(player);
+-        if (hasObjVar(currentWeapon, "newbie.item"))
+-        {
+-            destroyObject(currentWeapon);
+-        }
+-        obj_id playerInv = utils.getInventoryContainer(player);
+-        obj_id[] contents = getContents(playerInv);
+-        for (obj_id content : contents) {
+-            if (isWeapon(content)) {
+-                String templateName = getTemplateName(content);
+-                obj_id weapon = weapons.createWeapon(templateName, playerInv, 0.75f);
+-                equip(weapon, player);
+-                destroyObject(content);
+-                break;
+-            }
+-        }
+-        return SCRIPT_CONTINUE;
++    public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
++    {
++        mi.addRootMenu(menu_info_types.ITEM_USE, SID_USE_MENU);
++        return SCRIPT_CONTINUE;
+     }
+     public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+     {
+@@ -93,30 +65,17 @@ public class travel_terminal extends script.theme_park.newbie_tutorial.tutorial_
+                 break;
+             }
+         }
+-        sendToMosEisley(player);
+-    }
+-    public void sendToMosEisley(obj_id player) throws InterruptedException
+-    {
+-        String planet = "tatooine";
+-        float locX = 3528.0f + rand(-2.5f, 2.5f);
+-        float locY = 5.0f;
+-        float locZ = -4804.0f + rand(-2.5f, 2.5f);
+-        setYaw(player, 180.0f);
+-        groundquests.completeQuest(player, "quest/c_newbie_hall_01");
+-        groundquests.completeQuest(player, "quest/c_newbie_hall_02");
+-        groundquests.completeQuest(player, "quest/c_newbie_hall_range01");
+-        groundquests.completeQuest(player, "quest/c_newbie_hall_range02");
+-        groundquests.completeQuest(player, "quest/c_newbie_hall_03");
+-        groundquests.completeQuest(player, "quest/c_newbie_hall_jedi");
+-        newbieTutorialRequest(player, "clientReady");
+-        attachScript(player, "theme_park.newbie_tutorial.new_player_ribbon");
+-        warpPlayer(player, planet, locX, locY, locZ, null, 0.0f, 0.0f, 0.0f);
+-        return;
+-    }
+-    public int warp_player_now(obj_id self, dictionary params) throws InterruptedException
+-    {
+-        obj_id player = params.getObjId("player");
+-        leaveTutorial(self, player);
+-        return SCRIPT_CONTINUE;
+-    }
+-}
++        if (hasObjVar(self, "newbie.skipped"))
++        {
++            if (!hasObjVar(player, newbie_skipped.STARTING_LOCATION_TRANSFER_PENDING))
++            {
++                utils.setScriptVar(player, newbie_skipped.STARTING_LOCATION_SELECTION_OPEN, true);
++                sendThoseStartLocs(player);
++            }
++        }
++        else
++        {
++            sendThoseStartLocs(player);
++        }
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/tutorial_base.java b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/tutorial_base.java
+index 2ad38e012..0c3f4c698 100755
+--- a/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/tutorial_base.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/tutorial_base.java
+@@ -853,53 +853,44 @@ public class tutorial_base extends script.base_script
+         utils.setScriptVar(player, "jtlNewbieStartLoc", origin);
+         utils.setScriptVar(player, "jtlNewbieTrainerLoc", destination);
+     }
+-    public void sendToStartLocation(obj_id self, String name) throws InterruptedException
+-    {
+-        boolean available = true;
+-        newbieTutorialSendStartingLocationSelectionResult(self, name, available);
+-        if (!available)
+-        {
+-            return;
+-        }
+-        float radius = dataTableGetFloat("datatables/creation/starting_locations.iff", name, "radius");
+-        float heading = dataTableGetFloat("datatables/creation/starting_locations.iff", name, "heading");
+-        location loc = getStartingLocationInfo(name);
+-        if (loc != null)
+-        {
+-            if (radius != 0.0f)
+-            {
+-                loc.x += rand(-radius, radius);
+-                loc.z += rand(-radius, radius);
+-            }
+-            if (heading != 0.0f)
+-            {
+-                setYaw(self, heading);
+-            }
+-            if (loc.cell != null && loc.cell != obj_id.NULL_ID)
+-            {
+-                warpPlayer(self, loc.area, 0.0f, 0.0f, 0.0f, loc.cell, loc.x, loc.y, loc.z);
+-            }
+-            else 
+-            {
+-                warpPlayer(self, loc.area, loc.x, loc.y, loc.z, null, 0.0f, 0.0f, 0.0f);
+-            }
+-        }
+-    }
++    public boolean sendToStartLocation(obj_id self, String name) throws InterruptedException
++    {
++        location currentLocation = getLocation(self);
++        location loc = null;
++        if (currentLocation != null && "tutorial".equals(currentLocation.area) && name != null && name.length() > 0 && isStartingLocationAvailable(name))
++        {
++            loc = getStartingLocationInfo(name);
++        }
++        if (loc == null)
++        {
++            newbieTutorialSendStartingLocationSelectionResult(self, name, false);
++            return false;
++        }
++        newbieTutorialSendStartingLocationSelectionResult(self, name, true);
++        float radius = dataTableGetFloat("datatables/creation/starting_locations.iff", name, "radius");
++        float heading = dataTableGetFloat("datatables/creation/starting_locations.iff", name, "heading");
++        if (radius != 0.0f)
++        {
++            loc.x += rand(-radius, radius);
++            loc.z += rand(-radius, radius);
++        }
++        if (heading != 0.0f)
++        {
++            setYaw(self, heading);
++        }
++        if (loc.cell != null && loc.cell != obj_id.NULL_ID)
++        {
++            warpPlayer(self, loc.area, 0.0f, 0.0f, 0.0f, loc.cell, loc.x, loc.y, loc.z);
++        }
++        else
++        {
++            warpPlayer(self, loc.area, loc.x, loc.y, loc.z, null, 0.0f, 0.0f, 0.0f);
++        }
++        return true;
++    }
+     public void sendThoseStartLocs(obj_id player) throws InterruptedException
+     {
+-        String limitStartingLocations = getConfigSetting("New_Player", "LimitStartingLocations");
+-        if (limitStartingLocations != null && limitStartingLocations.equals("true"))
+-        {
+-            String planet = "tatooine";
+-            float locX = 3528.0f + rand(-2.5f, 2.5f);
+-            float locY = 5.0f;
+-            float locZ = -4804.0f + rand(-2.5f, 2.5f);
+-            setYaw(player, 180.0f);
+-            newbieTutorialRequest(player, "clientReady");
+-            warpPlayer(player, planet, locX, locY, locZ, null, 0.0f, 0.0f, 0.0f);
+-            return;
+-        }
+-        String[] startLocs = getStartingLocations();
++        String[] startLocs = getStartingLocations();
+         newbieTutorialSendStartingLocationsToPlayer(player, startLocs);
+     }
+ }

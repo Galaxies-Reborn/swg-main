@@ -25,3 +25,9 @@ trainer handoff and its relog/exit fallbacks.
 groundquest grant from checked-tutorial startup. The original client-ready,
 `handleWelcome`, and room-by-room `NewbieTutorialRequest` protocol remains the
 authoritative Publish 14.1 flow.
+
+`005-p14-starting-location-handoff.patch` keeps unchecked characters in the
+shared hall until terminal use, sends the canonical availability list to the
+retained `/AvLoc2` client path, validates a one-shot selection, and retires the
+skipped state only after world transfer is observed. It removes the fixed Mos
+Eisley, NGE groundquest, ribbon, and automatic-arrival warp path.

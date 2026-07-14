@@ -46,6 +46,10 @@ Validate checked-tutorial startup independently:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14TutorialStartup.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the unchecked Publish 14 shared-hall and starting-location handoff:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StartingLocation.ps1 -SourceRoot <materialized-staging-directory>
+
 This gate requires exactly the six retail starting-profession keys, safe
 PlayerObject-first setup and failure teardown, a deferred selected-skill
 handoff for the full tutorial, a verified immediate grant when the tutorial is
@@ -55,8 +59,13 @@ grant.
 
 The tutorial-startup gate additionally requires checked characters to enter
 the original client-ready/`handleWelcome` room sequence without granting the
-later `c_newbie_hall_01` groundquest. It intentionally does not change the
-skipped-tutorial hall or starting-location selection flow.
+later `c_newbie_hall_01` groundquest. The separate starting-location gate
+requires unchecked characters to persist on the tutorial scene, enter the
+shared `newbie_hall_skipped` room one, and remain there across relog until the
+travel terminal opens the canonical location list. It rejects the fixed Mos
+Eisley/NGE groundquest path, validates the selected location before reporting
+success, and enforces an ephemeral one-shot selection gate whose
+`newbie.startSkippedTutorial` marker is retired only after a valid transfer.
 
 The registered Phase-A overlays restore table-derived training and skill-point
 enforcement, add the surrender command/service, harden schematic revocation,
