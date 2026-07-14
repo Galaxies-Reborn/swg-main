@@ -50,6 +50,10 @@ Validate the unchecked Publish 14 shared-hall and starting-location handoff:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StartingLocation.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the Publish 14 character-sheet server payload:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CharacterSheetServer.ps1 -SourceRoot <materialized-staging-directory>
+
 This gate requires exactly the six retail starting-profession keys, safe
 PlayerObject-first setup and failure teardown, a deferred selected-skill
 handoff for the full tutorial, a verified immediate grant when the tutorial is
@@ -66,6 +70,15 @@ travel terminal opens the canonical location list. It rejects the fixed Mos
 Eisley/NGE groundquest path, validates the selected location before reporting
 success, and enforces an ephemeral one-shot selection gate whose
 `newbie.startSkippedTutorial` marker is retired only after a valid transfer.
+
+The character-sheet server gate requires persisted PlayerObject birth and
+played-time values, a durable bind location with legacy facility fallback,
+the last bank-terminal planet with intentionally zero coordinates, the complete
+local and remote residence request/response path, and account lots remaining
+from the authoritative configured cap plus account adjustment in the original
+response-field order. Core3 is a semantic behavior reference for these fields;
+the implementation deliberately retains the SWGSource network-message envelope
+and does not claim Core3 wire-format equivalence.
 
 The registered Phase-A overlays restore table-derived training and skill-point
 enforcement, add the surrender command/service, harden schematic revocation,

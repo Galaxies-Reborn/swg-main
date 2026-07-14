@@ -19,3 +19,11 @@ routed into the Publish 14.1 `newbie_hall` instead of the NGE hangar.
 creation choices persist the tutorial scene, while the unchecked path uses a
 dedicated onboarding marker and a shared `newbie_hall_skipped` singleton at
 the Core3-locked tutorial coordinate before entering room `r1`.
+
+`004-p14-character-sheet-data.patch` restores the character-sheet producer's
+persisted birth date and played time, prefers the durable cloning bind
+location with a legacy facility fallback, keeps the last bank-terminal planet
+without inventing coordinates, reports the residence object's own scene, and
+sends account lots remaining from the authoritative configured cap plus the
+persisted per-account adjustment. It adapts Core3 field semantics to the
+retained SWGSource message envelope rather than claiming wire equivalence.

@@ -1,0 +1,107 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+index ad684a573641f2a23039c64e1b8e2086344fa881..37309e8417dd91b89affbb4d2d0ba261c9fe796e 100755
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -6036,29 +6036,35 @@ static void commandFuncRequestCharacterSheetInfo(Command const &, NetworkId cons
+ 		return;
+ 	}
+ 
+-	//TODO get the born and played times (once they're in the DB)
+-	int born = 0;
+-	int played = 0;
++	PlayerObject const * const player = PlayerCreatureController::getPlayerObject(creatureActor);
++	int const born = player ? player->getBornDate() : 0;
++	int const played = player ? static_cast<int>(player->getPlayedTime()) : 0;
+ 
+-	//get the bind location
++	// Get the persisted bind location. Fall back to the registered facility for
++	// characters created before the location objvar was populated.
+ 	Vector bindLoc;
+ 	std::string bindPlanet;
+-	NetworkId bindId;
+-	if (creatureActor->getObjVars().hasItem("bind.facility"))
++	DynamicVariableLocationData bindLocation;
++	if (creatureActor->getObjVars().getItem("bind.location", bindLocation))
+ 	{
+-		creatureActor->getObjVars().getItem("bind.facility", bindId);
++		bindLoc = bindLocation.pos;
++		bindPlanet = bindLocation.scene;
+ 	}
+-	if (bindId != NetworkId::cms_invalid)
++	else
+ 	{
+-		const ServerObject* const bindObject = ServerObject::getServerObject(bindId);
+-		if (bindObject != nullptr)
++		NetworkId bindId;
++		if (creatureActor->getObjVars().getItem("bind.facility", bindId) && bindId != NetworkId::cms_invalid)
+ 		{
+-			bindLoc = bindObject->getPosition_w();
+-			bindPlanet = bindObject->getSceneId();
++			const ServerObject* const bindObject = ServerObject::getServerObject(bindId);
++			if (bindObject != nullptr)
++			{
++				bindLoc = bindObject->getPosition_w();
++				bindPlanet = bindObject->getSceneId();
++			}
+ 		}
+ 	}
+ 
+-	//get the bankId
++	// banking_bankid records the last bank-terminal planet, but not coordinates.
+ 	Vector bankLoc(0, 0, 0);
+ 	std::string bankPlanet;
+ 	if (creatureActor->getObjVars().hasItem("banking_bankid"))
+@@ -6106,7 +6112,7 @@ static void commandFuncRequestCharacterSheetInfo(Command const &, NetworkId cons
+ 	if (resObject != nullptr)
+ 	{
+ 		resLoc = resObject->getPosition_w();
+-		resPlanet = ServerWorld::getSceneId();
++		resPlanet = resObject->getSceneId();
+ 	}
+ 	else if (houseNetworkId.isValid() && MessageToQueue::isInstalled())
+ 	{
+@@ -6125,13 +6131,14 @@ static void commandFuncRequestCharacterSheetInfo(Command const &, NetworkId cons
+ 		creatureActor->getObjVars().getItem("marriage.spouseName", spouseName);
+ 	}
+ 
+-	//get the number of used lots
++	// Get the number of lots still available to this account from the same
++	// configured cap and per-account adjustment used by structure placement.
+-	int lots = creatureActor->getMaxNumberOfLots();
++	int lots = ConfigServerGame::getMaxLotsPerAccount();
+ 
+-	PlayerObject const * const player = PlayerCreatureController::getPlayerObject(creatureActor);
+ 	if (player)
+ 	{
+-		int lotsUsed = player->getAccountNumLots();
++		lots += player->getAccountMaxLotsAdjustment();
++		int const lotsUsed = player->getAccountNumLots();
+ 		lots -= lotsUsed;
+ 	}
+ 
+diff --git a/engine/server/library/serverGame/src/shared/object/PlayerObject.h b/engine/server/library/serverGame/src/shared/object/PlayerObject.h
+index 566cd8edb27f06062ea9641e88020fc508a80931..d55d9a1124e56ce35ba418187b23521dc86874e5 100644
+--- a/engine/server/library/serverGame/src/shared/object/PlayerObject.h
++++ b/engine/server/library/serverGame/src/shared/object/PlayerObject.h
+@@ -239,6 +239,7 @@ public:
+ 	void                                setAllowEmptySlot(bool allow);
+ 
+ 	int                                 getAccountNumLots() const;
++	int                                 getAccountMaxLotsAdjustment() const;
+ 	void                                setAccountNumLotsOverLimitSpam();
+ 
+ 	CreatureObject *                    getCreatureObject();
+@@ -814,6 +815,13 @@ inline int PlayerObject::getAccountNumLots() const
+ 	return m_accountNumLots.get();
+ }
+ 
++// ----------------------------------------------------------------------
++
++inline int PlayerObject::getAccountMaxLotsAdjustment() const
++{
++	return m_accountMaxLotsAdjustment.get();
++}
++
+ // ----------------------------------------------------------------------
+ 
+ inline int PlayerObject::getMaxForcePower(void) const
