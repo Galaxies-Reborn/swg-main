@@ -39,8 +39,10 @@ foreach ($pin in @($sourcePins))
 
 $skillTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $commandTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+$schematicGroupTablePath = Join-Path $source ([string]$contract.sourceFiles.schematicGroupTable)
 $skills = @(Import-SwgTab -Path $skillTablePath)
 $commands = @(Import-SwgTab -Path $commandTablePath)
+$schematicGroups = @(Import-SwgTab -Path $schematicGroupTablePath)
 
 $script:checks = @()
 
@@ -284,10 +286,46 @@ $surrenderNativeReady = (
 )
 Add-PhaseCheck -Id "phaseA.surrender.native-handler" -Passed $surrenderNativeReady -Detail "actor-only native handler must reject protected/dependent skills, verify removal, clamp XP, and retain safe cleanup"
 
+$runtimeSlice = $contract.runtimeVerticalSlice
+$runtimeSkillName = [string]$runtimeSlice.skill
+$runtimeCommand = [string]$runtimeSlice.command
+$runtimeSkillModName = [string]$runtimeSlice.skillMod.name
+$runtimeSkillModDelta = [int]$runtimeSlice.skillMod.delta
+$runtimeSchematicGroup = [string]$runtimeSlice.schematicGroup
+$runtimeSchematic = [string]$runtimeSlice.schematic
+$runtimeRows = @($skills | Where-Object { $_.NAME -ceq $runtimeSkillName })
+$runtimePrerequisiteRows = @($skills | Where-Object { $_.NAME -ceq [string]$runtimeSlice.prerequisiteSkill })
+$runtimeSkillContractReady = $false
+if ($runtimeRows.Count -eq 1 -and $runtimePrerequisiteRows.Count -eq 1)
+{
+    $runtimeCommands = @(([string]$runtimeRows[0].COMMANDS).Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
+    $runtimeSkillMods = @(([string]$runtimeRows[0].SKILL_MODS).Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
+    $runtimeGrantedGroups = @(([string]$runtimeRows[0].SCHEMATICS_GRANTED).Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
+    $runtimeSkillContractReady = (
+        ([string]$runtimeRows[0].SKILLS_REQUIRED -ceq [string]$runtimeSlice.prerequisiteSkill) -and
+        ([string]$runtimeRows[0].XP_TYPE -ceq [string]$runtimeSlice.xpType) -and
+        ([int]$runtimeRows[0].POINTS_REQUIRED -eq [int]$runtimeSlice.skillPointCost) -and
+        ([int]$runtimePrerequisiteRows[0].XP_CAP -eq [int]$runtimeSlice.prerequisiteXpCap) -and
+        ([int]$runtimeRows[0].XP_CAP -eq [int]$runtimeSlice.trainedXpCap) -and
+        ($runtimeCommand -cin $runtimeCommands) -and
+        (("$runtimeSkillModName=$runtimeSkillModDelta") -cin $runtimeSkillMods) -and
+        ($runtimeSchematicGroup -cin $runtimeGrantedGroups)
+    )
+}
+$runtimeSchematicMappings = @(
+    $schematicGroups |
+        Where-Object {
+            ([string]$_.GroupId -ceq $runtimeSchematicGroup) -and
+            ([string]$_.SchematicName -ceq $runtimeSchematic)
+        }
+)
+$runtimeSkillContractReady = $runtimeSkillContractReady -and ($runtimeSchematicMappings.Count -eq 1)
+Add-PhaseCheck -Id "phaseA.runtime.crafting-contract" -Passed $runtimeSkillContractReady -Detail "Artisan engineering cost, prerequisite/trained XP caps, command, skill-mod delta, and concrete group-derived schematic must resolve from authoritative tables"
+
 $runtimeProbeReady = (
     ($runtimeProbe -match "class\s+precu_phase_a_runtime\s+extends\s+script\.base_script") -and
     ($runtimeProbe -match "public\s+String\s+executeProbe\s*\(\s*String\s+params\s*\)") -and
-    ($runtimeProbe -match "RUNTIME_STATION_ID\s*=\s*91001") -and
+    ($runtimeProbe -match ("RUNTIME_STATION_ID\s*=\s*" + [int]$runtimeSlice.stationId + "\s*;")) -and
     ($runtimeProbe -match "getPlayerStationId\s*\(\s*player\s*\)\s*!=\s*RUNTIME_STATION_ID") -and
     ($runtimeProbe -match "skill\.purchaseSkill\s*\(") -and
     ($runtimeProbe -match "getAvailableSkillPoints\s*\(") -and
@@ -297,9 +335,73 @@ $runtimeProbeReady = (
     ($runtimeProbe -match "queueCommand\s*\(") -and
     ($runtimeProbe -match "obj_id\.NULL_ID") -and
     ($runtimeProbe -match "COMMAND_PRIORITY_IMMEDIATE") -and
-    ($runtimeProbe -notmatch "\bOnAttach\s*\(")
+    ($runtimeProbe -notmatch "\bOnAttach\s*\(") -and
+    ($runtimeProbe -notmatch "public\s+(?:int|String)\s+On[A-Z][A-Za-z0-9_]*\s*\(")
 )
 Add-PhaseCheck -Id "phaseA.runtime.console-probe" -Passed $runtimeProbeReady -Detail "trusted console probe must be fixture-bound, query state, and drive purchase/surrender through production services without an attached-object entry point"
+
+$craftingProbeReady = (
+    ($runtimeProbe -match ('CRAFTING_SKILL\s*=\s*"' + [regex]::Escape($runtimeSkillName) + '"')) -and
+    ($runtimeProbe -match ('CRAFTING_XP_TYPE\s*=\s*"' + [regex]::Escape([string]$runtimeSlice.xpType) + '"')) -and
+    ($runtimeProbe -match ('CRAFTING_COMMAND\s*=\s*"' + [regex]::Escape($runtimeCommand) + '"')) -and
+    ($runtimeProbe -match ('CRAFTING_SKILL_MOD\s*=\s*"' + [regex]::Escape($runtimeSkillModName) + '"')) -and
+    ($runtimeProbe -match ('CRAFTING_SCHEMATIC_GROUP\s*=\s*"' + [regex]::Escape($runtimeSchematicGroup) + '"')) -and
+    ($runtimeProbe -match [regex]::Escape($runtimeSchematic)) -and
+    ($runtimeProbe -match "getCashBalance\s*\(\s*player\s*\)") -and
+    ($runtimeProbe -match "getBankBalance\s*\(\s*player\s*\)") -and
+    ($runtimeProbe -match "hasCommand\s*\(\s*player\s*,\s*CRAFTING_COMMAND\s*\)") -and
+    ($runtimeProbe -match "getSkillStatisticModifier\s*\(\s*player\s*,\s*CRAFTING_SKILL_MOD\s*\)") -and
+    ($runtimeProbe -match "hasSchematic\s*\(\s*player\s*,\s*CRAFTING_SCHEMATIC\s*\)")
+)
+Add-PhaseCheck -Id "phaseA.runtime.crafting-observability" -Passed $craftingProbeReady -Detail "fixture-bound status must expose credits plus an Artisan command, skill mod, and concrete draft schematic"
+
+$surrenderVerificationReady = (
+    ($runtimeProbe -match 'action\.equalsIgnoreCase\s*\(\s*"verifySurrender"\s*\)') -and
+    ($runtimeProbe -match 'action=queueSurrender queued=') -and
+    ($runtimeProbe -match 'verification="\s*\+\s*\(queued\s*\?\s*"pending"\s*:\s*"notQueued"\)') -and
+    ($runtimeProbe -match 'action=verifySurrender completion=') -and
+    ($runtimeProbe -match 'surrendered="\s*\+\s*surrendered') -and
+    ($runtimeProbe -match '\(surrendered\s*\?\s*"removed"\s*:\s*"stillOwned"\)')
+)
+Add-PhaseCheck -Id "phaseA.runtime.surrender-verification" -Passed $surrenderVerificationReady -Detail "queue acceptance must be pending until a later authoritative status proves the skill was removed"
+
+$runtimeSmokePath = Join-Path $restorationRoot ([string]$contract.runtimeSmokeScript)
+$runtimeSmoke = if (Test-Path -LiteralPath $runtimeSmokePath -PathType Leaf) { Get-Content -LiteralPath $runtimeSmokePath -Raw } else { "" }
+$runtimeSmokeReady = (
+    ($runtimeSmoke -match 'ContainerName\s*=\s*"swg-precu"') -and
+    ($runtimeSmoke -match '\[switch\]\$ExerciseSurrender') -and
+    ($runtimeSmoke -match 'game\s+tatooine\s+runScript') -and
+    ($runtimeSmoke -match "printf\s+'%-1024s'") -and
+    ($runtimeSmoke -match 'craftingStatus\s+\$PlayerOid') -and
+    ($runtimeSmoke -match 'queueSurrender\s+\$PlayerOid\s+\$engineeringSkill') -and
+    ($runtimeSmoke -match 'verifySurrender\s+\$PlayerOid\s+\$engineeringSkill') -and
+    ($runtimeSmoke -match 'Assert-Field\s+-Result\s+\$queued\s+-Name\s+"verification"\s+-Expected\s+"pending"') -and
+    ($runtimeSmoke -match 'Assert-Field\s+-Result\s+\$verified\s+-Name\s+"completion"\s+-Expected\s+"removed"') -and
+    ($runtimeSmoke -match 'Assert-Field\s+-Result\s+\$Result\s+-Name\s+"xpType"\s+-Expected\s+\$xpType') -and
+    ($runtimeSmoke -match '\$expectedEngineeringSkillCost\s*=\s*\[int\]\$runtimeContract\.skillPointCost') -and
+    ($runtimeSmoke -match '\$expectedPreEngineeringXpCap\s*=\s*\[int\]\$runtimeContract\.prerequisiteXpCap') -and
+    ($runtimeSmoke -match '\$expectedPostEngineeringXpCap\s*=\s*\[int\]\$runtimeContract\.trainedXpCap') -and
+    ($runtimeSmoke -match '\$expectedPointsAfterGrant\s*=\s*\$beforeEngineeringState\.Points\s*-\s*\$beforeEngineeringState\.SkillCost') -and
+    ($runtimeSmoke -match '\$afterGrantState\.Points\s+-ne\s+\$expectedPointsAfterGrant') -and
+    ($runtimeSmoke -match '\$beforeEngineeringState\.Cap\s+-ne\s+\$expectedPreEngineeringXpCap') -and
+    ($runtimeSmoke -match '\$afterGrantState\.Cap\s+-ne\s+\$expectedPostEngineeringXpCap') -and
+    ($runtimeSmoke -match '(?s)\$noviceMutationAttempted\s*=\s*\$true.*?Invoke-Probe\s+-Arguments\s+"grant\s+\$PlayerOid\s+\$noviceSkill"') -and
+    ($runtimeSmoke -match '(?s)\$engineeringMutationAttempted\s*=\s*\$true.*?Invoke-Probe\s+-Arguments\s+"grant\s+\$PlayerOid\s+\$engineeringSkill"') -and
+    ($runtimeSmoke -match 'Get-AuthoritativeSkillOwnership\s+-SkillName\s+\$SkillName') -and
+    ($runtimeSmoke -match '(?s)Get-AuthoritativeSkillOwnership\s+-SkillName\s+\$SkillName.*?Invoke-Probe\s+-Arguments\s+"revoke\s+\$PlayerOid\s+\$SkillName"') -and
+    ($runtimeSmoke -match '\$noviceMutationAttempted\s+-and\s+-not\s+\$noviceWasOwned') -and
+    ($runtimeSmoke -match '(?s)if\s*\(Get-AuthoritativeSkillOwnership\s+-SkillName\s+\$engineeringSkill\).*?throw\s+"Refusing to revoke temporary.*?Revoke-TemporarySkillIfOwned\s+-SkillName\s+\$noviceSkill') -and
+    ($runtimeSmoke -match '\$beforeEngineeringState\.HasCommand\s+-or\s+\$beforeEngineeringState\.HasSchematic') -and
+    ($runtimeSmoke -match 'Assert-CraftingCanaryStateEquals\s+-Actual\s+\$afterSurrenderState\s+-Expected\s+\$beforeEngineeringState') -and
+    ($runtimeSmoke -match 'Assert-CraftingCanaryStateEquals\s+-Actual\s+\$restoredState\s+-Expected\s+\$initialState') -and
+    ($runtimeSmoke -match '"HasSkill"[\s\S]+"HasCommand"[\s\S]+"HasSchematic"[\s\S]+"SkillCost"[\s\S]+"Points"[\s\S]+"Xp"[\s\S]+"Cap"[\s\S]+"SkillModValue"[\s\S]+"Cash"[\s\S]+"Bank"') -and
+    ($runtimeSmoke -match 'finally\s*\{') -and
+    ($runtimeSmoke -match 'Revoke-TemporarySkillIfOwned\s+-SkillName\s+\$engineeringSkill') -and
+    ($runtimeSmoke -match 'Revoke-TemporarySkillIfOwned\s+-SkillName\s+\$noviceSkill') -and
+    ($runtimeSmoke -match '\$cleanupFailure') -and
+    ($runtimeSmoke -notmatch 'Assert-Field[^\r\n]+-Name\s+"connected"')
+)
+Add-PhaseCheck -Id "phaseA.runtime.live-smoke" -Passed $runtimeSmokeReady -Detail "opt-in smoke must assert the canary point/cap transition, snapshot all exposed canary fields, guard prerequisite cleanup with dependent-skill absence, preserve original novice ownership, and never use connected as readiness"
 
 foreach ($scopeValue in @($contract.commandAudit.scopedSkills))
 {
