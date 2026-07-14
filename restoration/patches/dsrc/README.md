@@ -20,3 +20,8 @@ and skip-tutorial payload from the login path. It also removes the NGE-era
 all-novice grant so character creation can retain exactly the one Publish 14.1
 novice profession selected by the client while preserving the room-nine
 trainer handoff and its relog/exit fallbacks.
+
+`004-p14-tutorial-startup.patch` removes the later `c_newbie_hall_01`
+groundquest grant from checked-tutorial startup. The original client-ready,
+`handleWelcome`, and room-by-room `NewbieTutorialRequest` protocol remains the
+authoritative Publish 14.1 flow.

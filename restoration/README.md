@@ -42,12 +42,21 @@ Validate the Publish 14.1 creation/login invariant:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CharacterCreation.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate checked-tutorial startup independently:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14TutorialStartup.ps1 -SourceRoot <materialized-staging-directory>
+
 This gate requires exactly the six retail starting-profession keys, safe
 PlayerObject-first setup and failure teardown, a deferred selected-skill
 handoff for the full tutorial, a verified immediate grant when the tutorial is
 skipped, the original `newbie_hall`/room-nine trainer flow, and absence of the
 NGE hangar, profession-template mediator, skip payload, and all-six-novice
 grant.
+
+The tutorial-startup gate additionally requires checked characters to enter
+the original client-ready/`handleWelcome` room sequence without granting the
+later `c_newbie_hall_01` groundquest. It intentionally does not change the
+skipped-tutorial hall or starting-location selection flow.
 
 The registered Phase-A overlays restore table-derived training and skill-point
 enforcement, add the surrender command/service, harden schematic revocation,
