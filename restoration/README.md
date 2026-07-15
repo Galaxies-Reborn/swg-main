@@ -65,6 +65,11 @@ runtime:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NineAttributeRuntime.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the Publish 14.1 stat-migration tables, server-owned session, and
+tutorial-only commit boundary:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatMigration.ps1 -SourceRoot <materialized-staging-directory>
+
 This M3 seam restores atomic strict-positive Health/Action/Mind ability costs,
 the Core3-derived cost formula from authoritative Strength/Quickness/Focus,
 explicit primary target-pool
@@ -76,9 +81,9 @@ The companion nine-attribute slice restores the exact
 Health/Strength/Constitution/Action/Quickness/Stamina/Mind/Focus/Willpower
 order across templates, persistence, shared messages, creation tables, and
 client replication. Existing six-value creature state is deterministically
-migrated on authoritative load; new secondary cost governors use the neutral
-Publish 14 value 300, while the former maximum Constitution/Stamina/Willpower
-values are retained as regeneration governors.
+migrated on authoritative load; Strength, Quickness, and Focus are the live
+cost governors, while Constitution, Stamina, and Willpower are the live
+regeneration governors.
 
 Run the staged trainer purchase and persistence acceptance against only the
 disposable station `91001` fixture. `Observe` is the default and performs no
@@ -279,6 +284,13 @@ from the authoritative configured cap plus account adjustment in the original
 response-field order. Core3 is a semantic behavior reference for these fields;
 the implementation deliberately retains the SWGSource network-message envelope
 and does not claim Core3 wire-format equivalence.
+
+The stat-migration gate requires authentic Publish 14.1 racial limits, racial
+modifiers, and profession allocations plus all four retained command entry
+points. The server owns target initialization, bounds, and total validation.
+Tutorial allocations commit immediately only in `newbie_hall`; normal-world
+targets remain pending until the Image Designer transaction milestone restores
+its authoritative commit and persistence boundary.
 
 The registered Phase-A overlays restore table-derived training and skill-point
 enforcement, add the surrender command/service, harden schematic revocation,

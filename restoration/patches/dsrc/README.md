@@ -196,3 +196,8 @@ retires NGE combat-level stat grants and pool recalculation so attach,
 initialize, respec, and level-change paths cannot overwrite Publish 14 HAM;
 the retained compatibility recalculation may only heal pools to their
 existing authoritative maxima.
+
+`010-p14-stat-migration-tables.patch` replaces the temporary nine-attribute
+creation stubs with the decoded Publish 14.1 racial limits, racial modifiers,
+and starting-profession allocations. The corresponding retail IFF hashes and
+semantic canaries are locked by `contracts/p14-stat-migration.json`.

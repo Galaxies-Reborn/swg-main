@@ -41,3 +41,10 @@ attribute, remaps item-bonus names, migrates persisted six-value creatures on
 authoritative load, and derives pool regeneration from Constitution, Stamina,
 and Willpower using the Core3 formula. The combat-damage script callback is
 expanded atomically to the same nine-value order.
+
+`007-p14-stat-migration-session.patch` restores the four retained migration
+command handlers and a server-owned nine-target allocation session. Racial
+minimums, maximums, and totals are authoritative; client-supplied points-left
+is advisory. Valid tutorial allocations commit immediately in `newbie_hall`,
+while normal-world allocations remain pending for the separate Image Designer
+transaction milestone.
