@@ -8,16 +8,36 @@ Phase A is registered as `001-phase-a-training-and-surrender.patch`. It owns
 the table-derived trainer/skill-point path, the authentic surrenderSkill
 command row, and removal of the unresolved rifle-01 command grant.
 
-`002-phase-a-runtime-probe.patch` adds an inert ServerConsole-only Java probe
+`002-phase-a-runtime-probe.patch` adds a fixture-bound ServerConsole-only Java probe
 for repeatable live purchase, surrender, skill-point, XP-cap, credit, command,
 skill-mod, and draft-schematic assertions. Its fixed `craftingStatus` action
-observes the Artisan Engineering I command, `general_assembly` modifier, and a
-concrete schematic resolved from `craftArtisanToolGroupA`. Queue acceptance is
-reported only as `verification=pending`; use `verifySurrender` to observe the
-later authoritative removed state. The probe has no attached-object or
-player-facing entry point and enqueues surrender through the production command
-table. All actions are restricted to disposable test station `91001`; invoke
-its uniquely named `executeProbe` handler through CentralServer `runScript`.
+observes the complete novice-plus-Engineering I vector: both commands, all six
+summed modifiers, and all 35 concrete schematics dynamically resolved from the
+five authoritative groups. Queue acceptance is reported only as
+`verification=pending`; use `verifySurrender` to observe the later authoritative
+removed state. The probe has no attached-object or player-facing entry point
+and enqueues surrender through the production command table. All actions are
+restricted to disposable test station `91001`; invoke its uniquely named
+`executeProbe` handler through CentralServer `runScript`.
+
+The same probe now has a bounded trainer-payment canary. It discovers or
+validates every nearby candidate until a loaded, authoritative production
+skillteacher passes the complete contract, confirms that Engineering I
+is offered and qualified, enforces the table's 1,000-credit and 500-XP costs
+with no persuasion discount, then uses `money.requestPayment` and the trainer's
+real `attemptedPayment` callback. It explicitly emits `conversationUi=false`;
+this proves the stock payment/callback/purchase lifecycle without pretending a
+client dialogue response was clicked. Exact-cost administrative funding/drain
+and +/-500 crafting-XP setup actions exist only for the station fixture and are
+paired by the fail-safe persistence runner.
+The wider read-only `inspectTrainer` action reports the nearest loaded
+production Artisan trainer's scene, cell, coordinates, distance, qualification,
+and validation blocker without moving either object.
+
+For the separate visible-dialogue gate, `queueTrainerConversation` queues the
+production `npcConversationStart` command against that same validated trainer.
+It reports only `conversationUi=pending purchaseMutation=false`; a connected
+client must visibly confirm the dialogue mediator.
 
 `restoration/scripts/Invoke-PhaseARuntimeSmoke.ps1` queries that status without
 mutation by default. Its opt-in `-ExerciseSurrender` path refuses to touch an
@@ -29,17 +49,106 @@ surrender. It asserts the runtime-probed two-point cost, the current canary's
 selected command, selected concrete schematic, points, XP/cap, selected skill
 mod, cash, and bank before the slice, checks the same canary fields immediately
 after surrender, then checks their restoration after cleanup. Mutation intent
-is recorded before each grant so a lost response cannot bypass cleanup;
+is recorded before lifecycle establishment and each grant so a lost begin
+response cannot bypass cleanup. The post-cleanup status read owns the outcome:
+it safely retries only the exact attempted partial/complete marker and requires
+`none` with no attempt ID, committed ID, or baseline residue;
 `finally` re-queries authoritative ownership, confirms Engineering I is absent
 before revoking a temporary prerequisite novice, and never blindly revokes an
 originally-owned novice when output is missing or malformed.
 
-This is deliberately a focused lifecycle canary, not a complete inventory of
-every command, modifier, or schematic contributed by Artisan novice and
-Engineering I. The fixed probe exposes one Engineering command, one aggregated
-modifier, and one concrete schematic; "restored" therefore means equality for
-the explicitly observed fields, not proof of whole-player-object equivalence.
-The path is also not a trainer-credit purchase test.
+`restoration/scripts/Invoke-PhaseATrainerPersistence.ps1` is observation-only
+by default. Explicit Prepare/Conversation/Purchase/VerifyBoundary/Surrender
+phases preserve a strict, atomically replaced external JSON snapshot. The
+mutating modes acquire one container/player lock plus the snapshot's sibling
+lock before their first server read and hold both for the full invocation.
+The snapshot is schema v8, layered over the unchanged v6.4/protocol-64 server
+contract. Lifecycle establishment writes a durable 32-hex
+attempt ID first, records and verifies seven baseline fields, publishes and
+verifies `established`, and makes the active lifecycle ID the single final
+write. No mutation follows that commit write. Every mutation and asynchronous
+callback requires the exact complete record. Operation reservation mirrors
+that protocol with an ID-first `reserving` record containing
+lifecycle/trainer/skill/cost and full preimage, then publishes `reserved`. Its
+25 sequential writes are a normative, gap-free prefix: the Java rollback and
+clear paths both recompute every present value and presence implication
+immediately before deleting the root. An attempt-only marker is clearable only
+from its exact external checkpoint with no residual operation leaf, nonce, or
+gameplay drift; exact pre-dispatch partial/reserved records retain the same
+strict rule, and a failed hidden-prefix proof preserves the marker for
+investigation. Every complete or terminal marker must also contain a strictly
+positive durable `operation.updated` value before synchronization, callback
+acceptance, or destructive clear. The gap-free `reserving` prefix remains valid
+without `updated` only before that ordered write and only while every later leaf
+is absent.
+Dispatch state is sampled rather than synthesized. Tagged payment request,
+pay-pass, pay-fail, and trainer callbacks advance through one-shot durable
+states before any tally, message, money, or purchase side effect, while tagged
+covert deposit is quarantined as impossible for the bank-only canary. Each
+trainer callback requires exact `attemptedPayment` handler/pay-handler names
+and explicit code `0` or `1`; only the native pre-callback envelope may omit the
+code, and then only while stock `getReturnCode` is exactly `-1`. Each
+stage requires complete operation/lifecycle/preimage identity and exact
+bank-first cash, bank, and total-credit relations. The v6.4 protocol requires
+`player_money` and the trainer callback to prove the same full
+lifecycle-relative preimage and binds tagged player and trainer plus
+amount/total/skill/cost/lifecycle before any side effect. PRE, DEBIT, HELD, and
+REFUND are explicit authoritative vectors, including two commands, six skill
+mods, five dynamically enumerated schematic groups, and exactly 35 unique
+schematics. Purchase success starts from exact DEBIT and reaches HELD, but it
+terminalizes only after the player-owned named-account callback durably records
+`SUCCESS`; failed payment requires exact PRE. After a proved process transition,
+`purchaseApplying` plus HELD resumes accounting rather than inferring success.
+Pending accounting is replayable only from `accountingRequested`; an in-flight
+transfer remains ambiguous unless its durable callback outcome is `SUCCESS`.
+Failure outcomes written before their terminal state are retained as exact
+request/dispatch/pending crash cuts and are always fail-closed and non-clearable.
+DEBIT/no-grant at
+`paymentDispatching`, `paymentSucceededCallback`, or `purchaseApplying`
+reconstructs only the exact trainer `attemptedPayment` callback and never
+replays the debit path. Same-process inference, `paymentDispatching` plus PRE,
+and partial grants remain fail-closed. Refund attempts carry generation 1 or 2
+and deterministic operation-scoped keys. REFUND terminalizes without transfer;
+DEBIT may advance from initial failure to recovery exactly once, and only a
+`Claiming` cut can safely resume dispatch. Dispatching, pending, failed, stale,
+and consumed recovery DEBIT states other than that exact generation-1 gateway
+are quarantined against duplicate credit.
+The schema-v8 runner evaluates recoverable settled refund failures before the
+generic terminal path. It clone-normalizes and JSON-roundtrip-validates every
+authoritative operation checkpoint, including the seven protocol provenance
+leaves and exact immutable trainer/skill/cost identity. Recovery intent is saved
+before its RPC; success, timeout, and exception paths all attempt a fresh live
+read and save any correlated reachable state before returning or rethrowing the
+original error. Historical recovery source/process evidence survives the exact
+allowed advanced-state matrix while stale action targets are cleared. Confirmed
+purchase evidence is durably saved before `clearOperation`, so response loss
+after server marker deletion remains replayable from the external snapshot.
+Partial `reserving` recovery admits only the server write order's absent or
+neutral refund/accounting leaves, an incomplete marker, no boundary nonce, and
+an unchanged preimage; a missing attempt ID requires zero operation residue.
+The conversation trainer is reused for purchase. Unique persisted operation IDs
+and player/trainer callbacks make funding, draining, purchasing, and refunds
+terminal before a quiet settlement interval can pass. Relog proof requires an
+unchanged authoritative Tatooine `SwgGameServer` process-lifetime token plus a
+vanished volatile nonce; ordered restart proof requires a changed token plus
+its separately armed nonce disappearing. The runner derives the token from
+Linux boot ID, PID, and process start ticks, so a Java script reload cannot
+impersonate a restart.
+Surrender is unavailable until both boundaries pass and must restore every
+named command/mod/schematic identity without returning credits or XP. Cleanup
+refuses pending or uncorrelated operations and restores the original fixture
+after removing only the prerequisite it administratively added. It persists a
+`releasePending` checkpoint before lifecycle release, supports residue-free
+lost-response replay, and makes terminal Cleanup an immutable no-op. A lost
+terminal-clear response is accepted only with zero operation instrumentation,
+exact gameplay, and exact lifecycle/purchase-evidence lineage; marker-present
+validation remains strict over all persistent fields. The v7 snapshot retains
+immutable purchase evidence and explicit recovered-held,
+surrender-intent, surrendered, baseline-cleanup, and release stages so a
+response loss or process crash cannot erase purchase/surrender lineage. The
+materializer injects one composite SHA-256 into the runtime probe, both callback
+classes, and staged contract; the runner contract-locks that value and its own
+file hash.
 
 `003-precu-character-creation.patch` retires the NGE Choose Your Path mediator
 and skip-tutorial payload from the login path. It also removes the NGE-era

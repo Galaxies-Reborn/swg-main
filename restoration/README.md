@@ -54,6 +54,180 @@ Validate the Publish 14 character-sheet server payload:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CharacterSheetServer.ps1 -SourceRoot <materialized-staging-directory>
 
+Run the staged trainer purchase and persistence acceptance against only the
+disposable station `91001` fixture. `Observe` is the default and performs no
+mutation. The mutating phases require an explicit snapshot outside the source
+tree. The snapshot is created atomically before the first mutation and is
+checkpointed after each grant/transfer so interrupted work can be recovered
+with `Cleanup`:
+
+    # Observe reports the nearest loaded production Artisan trainer position/distance.
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-PhaseATrainerPersistence.ps1 -PlayerOid <fixture-oid>
+    # Move the client within eight metres of that trainer BEFORE running Prepare.
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-PhaseATrainerPersistence.ps1 -PlayerOid <fixture-oid> -Mode Prepare -SnapshotPath <evidence-json>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-PhaseATrainerPersistence.ps1 -PlayerOid <fixture-oid> -Mode Conversation -SnapshotPath <evidence-json>
+    # Inspect/capture the visible client dialogue; this phase cannot purchase.
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-PhaseATrainerPersistence.ps1 -PlayerOid <fixture-oid> -Mode Purchase -SnapshotPath <evidence-json>
+    # Relog, then prove the same authoritative Tatooine process plus a vanished volatile relog nonce.
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-PhaseATrainerPersistence.ps1 -PlayerOid <fixture-oid> -Mode VerifyBoundary -BoundaryKind Relog -SnapshotPath <evidence-json>
+    # Gracefully restart the isolated server, relog, then prove a changed process lifetime plus vanished restart nonce.
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-PhaseATrainerPersistence.ps1 -PlayerOid <fixture-oid> -Mode VerifyBoundary -BoundaryKind Restart -SnapshotPath <evidence-json>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-PhaseATrainerPersistence.ps1 -PlayerOid <fixture-oid> -Mode Surrender -SnapshotPath <evidence-json>
+
+`Purchase` does not fabricate a conversation response. It validates a nearby,
+loaded `npc.skillteacher.skillteacher`, its offered/qualified skill list,
+distance, table-derived 1,000-credit cost, 500-XP cost, and absence of a
+persuasion discount. It then enters the stock production
+`money.requestPayment(..., "attemptedPayment")` path. The trainer's real
+callback invokes `completeSkillPurchase`, then checkpoints a player-owned
+named-account request before the skill-training accounting transfer. Purchase
+success is not published until that transfer's success callback is durable;
+stock refund-on-purchase-failure behavior remains intact. The result explicitly
+records `conversationUi=false`; visible client dialogue remains a separate
+acceptance surface.
+
+Every asynchronous fixture transfer carries a unique persisted operation ID.
+The external snapshot checkpoints `checkpointed` first. The server then writes
+the same ID as an attempt anchor, publishes `reserving` with the complete
+lifecycle/trainer/skill/cost/preimage record, verifies it, and commits
+`reserved` before dispatch. An attempt-only crash residue is clearable only
+from the exact matching external checkpoint, with no other operation leaf,
+nonce, or gameplay drift; the same unchanged-preimage rule applies to exact
+`reserving`/`reserved` markers. The dispatch state is read back
+authoritatively; the runner never invents `queued` from an RPC return.
+
+The schema-v8 runner remains wire-compatible with the frozen v6.4/protocol-64
+server implementation. That protocol closes every tagged stock-money stage
+before its side effects. Every trainer callback carries both exact handler names and an
+explicit return code; a missing or unknown trainer code is quarantined before
+stock code can normalize it. The native player-money envelope accepts an absent
+code only while stock `getReturnCode` still reports `-1`; every later callback
+must carry explicit success (`0`) or failure (`1`). Payment request advances
+`enqueueing` to `paymentDispatching`;
+pay-pass advances once to `paymentSucceededCallback`, and pay-fail advances
+once to `paymentFailedCallback`; only that authoritative callback state can
+enter the trainer. Tagged covert
+deposit is impossible for this bank-funded canary and is quarantined. Every
+stage verifies the complete operation, lifecycle, trainer, skill, cost, and
+preimage record plus one of four authoritative vectors: PRE, DEBIT, HELD, or
+REFUND. `player_money` now proves the same full lifecycle-relative, bank-funded
+preimage equations as the trainer before it may advance to
+`paymentDispatching` or call `money.pay`. The trainer independently revalidates
+every persisted preimage leaf, binds both tagged player and trainer, and
+re-proves the required vector at every state transition. Success callbacks
+require exact bank-first DEBIT with unchanged prepared gameplay; failed-payment
+callbacks require exact PRE. HELD requires the complete grant, exact debit,
+spent XP and points, and the 2,000 trained cap. Refund success is terminal only
+from exact restored REFUND and emits its success prose only after that verified
+transition; refund failure is terminal only from exact retained DEBIT with no
+skill grant. Missing leaves, partial grants, or balance/gameplay drift are
+quarantined before any purchase, message, accounting, or money side effect.
+All PRE/DEBIT/HELD/REFUND decisions also require the exact two-command,
+six-modifier, five-group, 35-unique-schematic vector.
+
+After a proved server-process change, `purchaseApplying` plus exact HELD is
+advanced only through `resumePurchaseAccounting`; HELD alone never proves
+purchase success. `accountingRequested` can safely requeue its player-owned
+request. `accountingDispatching` or `accountingPending` remains fail-closed
+unless its durable outcome is exactly `SUCCESS`; that callback cut can be
+terminalized without retrying the transfer. Two-write failure cuts retain
+`REQUEST_QUEUE_FAILED`, `QUEUE_FAILED`, or `FAILED` against their exact current
+accounting state; they are reload-valid but remain fail-closed and non-clearable.
+Completed request-queue, native-queue, and callback failures likewise remain
+durable and non-clearable. Exact DEBIT with no grant at
+`paymentDispatching`, `paymentSucceededCallback`, or `purchaseApplying`
+reconstructs and sends only the original trainer `attemptedPayment` callback;
+it never replays the debit, `money.requestPayment`, `money.pay`, or a pay-pass
+handler. `paymentDispatching` plus PRE, any same-process inference, and every
+partial vector remain fail-closed. Refund state is generation-scoped by the
+deterministic `<operation>.refund.<generation>` key. Generation 1 may claim the
+single recovery generation 2 only from exact initial failure; either generation
+may safely resume only from its `Claiming` cut. Dispatching, pending, queue
+failure other than the exact generation-1 initial-failure gateway, callback
+failure, and every consumed recovery DEBIT remain fail-closed.
+Any exact generation state plus REFUND terminalizes without another transfer;
+stale generation-1 callbacks are quarantined after generation 2 is claimed.
+Schema v8 synchronizes an authoritative marker into a detached clone, copies
+all seven protocol provenance leaves, normalizes its recovery target, validates
+the full lifecycle, JSON-roundtrips it, and validates it again before replacing
+the working operation. Recoverable settled refund failures are evaluated before
+generic terminal handling, making exact generation-1 `refundInitialFailed` plus
+DEBIT reach its single generation-2 retry while generation-2 failure remains
+non-clearable. A validated recovery intent is atomically saved before its RPC.
+After success, timeout, or exception the runner makes a best-effort authoritative
+refresh; correlated reachable state is normalized and saved before return or
+before rethrowing the original action error. Invalid refreshes retain the last
+valid intent. The latest recovery source/process remains historical audit
+evidence across allowed accounting, callback, and refund states, while advanced
+targets are cleared so synchronized live state cannot carry stale action intent.
+Attempt-only and `reserving` recovery accepts only a gap-free observable prefix
+of the reservation writes, neutral refund/accounting leaves, an incomplete
+marker, no volatile nonce, and the unchanged preimage. Immediately before either
+reservation rollback or pre-dispatch clear, the server independently recomputes
+the exact values and presence order of all 25 writes, including the eight
+preimage leaves and the hidden provenance-presence cuts. A hidden gap therefore
+retains evidence and makes clear fail closed; the runner records success only
+after `cleared=true` and an authoritative marker-absent readback. A missing
+attempt ID must have zero operation instrumentation before any checkpoint
+discard or marker-cleared cleanup. Every complete or terminal operation marker
+must carry a strictly positive durable `operation.updated` value in the server,
+runner synchronization, held-evidence, and terminal-clear proofs. An early
+gap-free `reserving` prefix may still omit `updated` only when the ordered write
+has not yet occurred and no later reservation leaf is present.
+Recovered purchase evidence is also saved after terminal confirmation and
+before destructive marker removal, preserving marker-cleared replay after a
+lost clear response.
+Recovered purchase evidence retains the operation, lifecycle, trainer, skill,
+cost, origin process, and outcome process through checkpointed held, surrender
+intent, surrendered evidence, baseline cleanup, and terminal `cleaned` reloads.
+If terminal marker removal succeeded but its response was lost, recovery
+accepts only zero operation instrumentation, exact held gameplay, and exact
+active-lifecycle/evidence lineage. A still-present terminal marker continues to
+require strict equality of the entire persistent state.
+
+Every mutating invocation holds a deterministic container/player lock and the
+sibling `<evidence-json>.lock` from before its first observation through exit.
+Prepare first writes a versioned external snapshot with a random lifecycle ID.
+The server writes that ID first as `lifecycle.attemptId`, records and verifies
+all seven baseline leaves, publishes and verifies `established`, and makes
+`lifecycle.id` the single final write. No rollback or other mutation follows
+that commit write; a lost or incomplete readback is handled as authoritative
+partial/corrupt residue by cleanup.
+Status distinguishes `none`, `partial`, `complete`, and corrupt residue; every
+mutation and callback requires the exact complete record. Cleanup from
+`lifecyclePending` is a dedicated metadata-only path: gameplay drift is rejected
+before any gameplay API, while exact partial/complete response-loss residue can
+be authoritatively cleared. Other cleanup checkpoints `releasePending`, restores the
+exact baseline, removes the lifecycle marker, re-reads the authoritative state,
+and only then records `complete`/`cleaned`. Replaying terminal Cleanup is an
+immutable no-op; any drift from both final evidence and baseline is rejected.
+The runner identity includes its own SHA-256 and the injected materialization
+fingerprint, so source, staged contract, and deployed callback classes cannot
+be silently mixed.
+
+Boundary evidence does not rely on Java static state. The runner samples the
+authoritative Tatooine `SwgGameServer` Linux boot ID, PID, and process start
+ticks immediately before and after each probe. Relog requires that token to
+remain identical; restart requires it to change. This prevents a script reload
+from being accepted as a server restart and rejects a process transition that
+occurs while state is being sampled.
+
+`Conversation` is that separate surface: after the same trainer validation it
+queues the production `npcConversationStart` command against the trainer and
+reports only `conversationUi=pending purchaseMutation=false`. The connected
+client must supply the visible acceptance evidence; the server probe never
+claims the mediator opened merely because the command entered the queue.
+That validated trainer OID is stored in the snapshot, and `Purchase` refuses to
+use any different trainer.
+
+The staged acceptance supplies exactly the resources that the authentic
+Engineering I purchase consumes. This allows surrender to prove that neither
+credits nor XP are refunded, while the final administrative prerequisite
+cleanup can still restore the fixture's exact original state. The held snapshot
+also covers the complete novice-plus-Engineering vector by identity: both
+named commands, all six prepared-to-held modifier deltas, and each of the 35
+named concrete schematics in the five authoritative schematic groups.
+
 This gate requires exactly the six retail starting-profession keys, safe
 PlayerObject-first setup and failure teardown, a deferred selected-skill
 handoff for the full tutorial, a verified immediate grant when the tutorial is

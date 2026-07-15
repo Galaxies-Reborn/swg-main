@@ -1,13 +1,17 @@
 diff --git a/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
 new file mode 100644
-index 000000000..cda346120
+index 0000000..a04654c
 --- /dev/null
 +++ b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,2673 @@
 +package script.test;
 +
++import script.dictionary;
++import script.location;
 +import script.obj_id;
++import script.library.money;
 +import script.library.skill;
++import script.library.utils;
 +
 +/**
 + * Trusted ServerConsole probe for the Pre-CU Phase-A skill lifecycle.
@@ -16,22 +20,159 @@ index 000000000..cda346120
 + * the existing CentralServer runScript console handler and deliberately sends
 + * surrender through the production command table and command queue. Every
 + * action is limited to the disposable Phase-A login fixture.
++ *
++ * trainerPurchase deliberately enters the real trainer payment/callback path
++ * on a loaded, nearby skillteacher. It does not claim to have exercised the
++ * client conversation UI; that distinction is emitted in the probe result.
 + */
 +public class precu_phase_a_runtime extends script.base_script
 +{
++    private static final String RUNTIME_CONTRACT_ID = "phase-a-trainer-persistence-v6.4";
++    private static final String BUILD_FINGERPRINT = "__PHASE_A_BUILD_FINGERPRINT__";
 +    private static final int RUNTIME_STATION_ID = 91001;
++    private static final String CRAFTING_NOVICE_SKILL = "crafting_artisan_novice";
 +    private static final String CRAFTING_SKILL = "crafting_artisan_engineering_01";
 +    private static final String CRAFTING_XP_TYPE = "crafting_general";
++    private static final int CRAFTING_TRAINER_COST = 1000;
++    private static final int CRAFTING_XP_COST = 500;
 +    private static final String CRAFTING_COMMAND = "private_artisan_engineering_1";
 +    private static final String CRAFTING_SKILL_MOD = "general_assembly";
 +    private static final String CRAFTING_SCHEMATIC_GROUP = "craftArtisanToolGroupA";
 +    private static final String CRAFTING_SCHEMATIC =
 +        "object/draft_schematic/item/item_clothing_tool.iff";
++    private static final String SKILLTEACHER_SCRIPT = "npc.skillteacher.skillteacher";
++    private static final String SCHEMATIC_GROUP_TABLE =
++        "datatables/crafting/schematic_group.iff";
++    private static final float TRAINER_DISCOVERY_RANGE = 16.0f;
++    private static final float TRAINER_INTERACTION_RANGE = 8.0f;
++    private static final float TRAINER_INSPECTION_RANGE = 64.0f;
++    private static final String OP_ROOT = "precu.phaseA.operation";
++    private static final String OP_ATTEMPT_ID = OP_ROOT + ".attemptId";
++    private static final String OP_ID = OP_ROOT + ".id";
++    private static final String OP_KIND = OP_ROOT + ".kind";
++    private static final String OP_STATE = OP_ROOT + ".state";
++    private static final String OP_UPDATED = OP_ROOT + ".updated";
++    private static final String OP_LIFECYCLE_ID = OP_ROOT + ".lifecycleId";
++    private static final String OP_TRAINER_OID = OP_ROOT + ".trainerOid";
++    private static final String OP_SKILL_NAME = OP_ROOT + ".skillName";
++    private static final String OP_COST = OP_ROOT + ".cost";
++    private static final String OP_PRE_CREDITS = OP_ROOT + ".preCredits";
++    private static final String OP_PRE_CASH = OP_ROOT + ".preCash";
++    private static final String OP_PRE_BANK = OP_ROOT + ".preBank";
++    private static final String OP_PRE_XP = OP_ROOT + ".preXp";
++    private static final String OP_PRE_POINTS = OP_ROOT + ".prePoints";
++    private static final String OP_PRE_CAP = OP_ROOT + ".preCap";
++    private static final String OP_PRE_NOVICE = OP_ROOT + ".preNovice";
++    private static final String OP_PRE_SKILL = OP_ROOT + ".preSkill";
++    private static final String OP_PROTOCOL_VERSION = OP_ROOT + ".protocolVersion";
++    private static final String OP_REFUND_GENERATION = OP_ROOT + ".refundGeneration";
++    private static final String OP_REFUND_ATTEMPT_KEY = OP_ROOT + ".refundAttemptKey";
++    private static final String OP_REFUND_RETRY_CONSUMED =
++        OP_ROOT + ".refundRetryConsumed";
++    private static final String OP_ACCOUNTING_ATTEMPT_KEY =
++        OP_ROOT + ".accountingAttemptKey";
++    private static final String OP_ACCOUNTING_ACCOUNT = OP_ROOT + ".accountingAccount";
++    private static final String OP_ACCOUNTING_OUTCOME = OP_ROOT + ".accountingOutcome";
++    private static final String OP_PARAM_ID = "precuPhaseAOperationId";
++    private static final String OP_PARAM_KIND = "precuPhaseAOperationKind";
++    private static final String OP_PROTOCOL_PARAM_VERSION = "precuPhaseAProtocolVersion";
++    private static final String REFUND_PARAM_GENERATION = "precuPhaseARefundGeneration";
++    private static final String REFUND_PARAM_ATTEMPT_KEY = "precuPhaseARefundAttemptKey";
++    private static final String REFUND_PARAM_RETRY_CONSUMED =
++        "precuPhaseARefundRetryConsumed";
++    private static final String ACCOUNTING_PARAM_ATTEMPT_KEY =
++        "precuPhaseAAccountingAttemptKey";
++    private static final String LIFECYCLE_ROOT = "precu.phaseA.lifecycle";
++    private static final String LIFECYCLE_ATTEMPT_ID = LIFECYCLE_ROOT + ".attemptId";
++    private static final String LIFECYCLE_ID = LIFECYCLE_ROOT + ".id";
++    private static final String LIFECYCLE_STATE = LIFECYCLE_ROOT + ".state";
++    private static final String LIFECYCLE_BASE_CASH = LIFECYCLE_ROOT + ".baseCash";
++    private static final String LIFECYCLE_BASE_BANK = LIFECYCLE_ROOT + ".baseBank";
++    private static final String LIFECYCLE_BASE_XP = LIFECYCLE_ROOT + ".baseXp";
++    private static final String LIFECYCLE_BASE_POINTS = LIFECYCLE_ROOT + ".basePoints";
++    private static final String LIFECYCLE_BASE_CAP = LIFECYCLE_ROOT + ".baseCap";
++    private static final String LIFECYCLE_BASE_NOVICE = LIFECYCLE_ROOT + ".baseNovice";
++    private static final String LIFECYCLE_BASE_SKILL = LIFECYCLE_ROOT + ".baseSkill";
++    private static final String LIFECYCLE_PARAM_ID = "precuPhaseALifecycleId";
++    private static final String RELOG_NONCE = "precu.phaseA.relogNonce";
++    private static final String RESTART_NONCE = "precu.phaseA.restartNonce";
++    private static final int PROTOCOL_VERSION = 64;
++    private static final int CRAFTING_VECTOR_SCHEMATIC_COUNT = 35;
++    private static final String ACCOUNTING_OUTCOME_NONE = "none";
++    private static final String ACCOUNTING_OUTCOME_SUCCESS = "SUCCESS";
++    private static final String ACCOUNTING_OUTCOME_REQUEST_QUEUE_FAILED =
++        "REQUEST_QUEUE_FAILED";
++    private static final String ACCOUNTING_OUTCOME_QUEUE_FAILED = "QUEUE_FAILED";
++    private static final String ACCOUNTING_OUTCOME_FAILED = "FAILED";
++
++    private static final String[] CRAFTING_VECTOR_COMMANDS =
++    {
++        "private_artisan_novice",
++        "private_artisan_engineering_1"
++    };
++    private static final String[] CRAFTING_VECTOR_MODS =
++    {
++        "surveying",
++        "general_assembly",
++        "general_experimentation",
++        "clothing_customization",
++        "armor_customization",
++        "slope_move"
++    };
++    private static final int[] CRAFTING_VECTOR_MOD_VALUES =
++    {
++        20,
++        30,
++        30,
++        20,
++        40,
++        25
++    };
++    private static final int[] CRAFTING_PURCHASE_MOD_DELTAS =
++    {
++        0,
++        10,
++        10,
++        0,
++        20,
++        0
++    };
++    private static final String[] CRAFTING_VECTOR_SCHEMATIC_GROUPS =
++    {
++        "craftArtisanNewbieGroupA",
++        "craftArtisanNewbieGroupB",
++        "craftArtisanSurveyGroupA",
++        "craftArtisanEngineeringGroupA",
++        "craftArtisanToolGroupA"
++    };
++    private static final String[] CRAFTING_PURCHASE_SCHEMATICS =
++    {
++        "object/draft_schematic/item/craftable_bug_habitat.iff",
++        "object/draft_schematic/item/item_battery_droid.iff",
++        "object/draft_schematic/item/item_clothing_tool.iff",
++        "object/draft_schematic/item/item_firework_five.iff",
++        "object/draft_schematic/item/item_firework_four.iff",
++        "object/draft_schematic/item/item_hundred_sided_dice.iff",
++        "object/draft_schematic/item/item_space_tool.iff",
++        "object/draft_schematic/item/item_structure_tool.iff",
++        "object/draft_schematic/item/item_twelve_sided_dice.iff",
++        "object/draft_schematic/item/item_twenty_sided_dice.iff",
++        "object/draft_schematic/item/item_weapon_tool.iff"
++    };
 +
 +    private static final String USAGE =
-+        "usage: craftingStatus <playerOid>; " +
-+        "status|grant|revoke|purchase|queueSurrender|verifySurrender " +
-+        "<playerOid> <skill> [xpType]; or grantXp <playerOid> <xpType> <amount>";
++        "usage: craftingStatus|findTrainer|inspectTrainer <playerOid>; " +
++        "beginLifecycle|clearLifecycle|clearBoundaryMarkers <playerOid> <lifecycleId>; " +
++        "fundTrainerCost|drainTrainerCost|clearOperation|armRestartBoundary " +
++        "<playerOid> <operationId> <lifecycleId>; " +
++        "resumePurchaseAccounting|requeuePurchaseCallback|reconcileRefundOutcome " +
++        "<playerOid> <operationId> <lifecycleId>; retryPurchaseRefund " +
++        "<playerOid> <operationId> <lifecycleId> <generation> <refundAttemptKey>; " +
++        "queueTrainerConversation <playerOid> <trainerOid> <lifecycleId>; " +
++        "trainerPurchase <playerOid> <trainerOid> <skill> <operationId> <lifecycleId>; " +
++        "grant|revoke|purchase|queueSurrender <playerOid> <skill> <lifecycleId>; " +
++        "status|verifySurrender <playerOid> <skill> [xpType]; or grantXp " +
++        "<playerOid> crafting_general +/-500 <lifecycleId>";
 +
 +    public String executeProbe(String params) throws InterruptedException
 +    {
@@ -69,6 +210,157 @@ index 000000000..cda346120
 +        }
 +
 +        String action = args[0];
++        if (action.equalsIgnoreCase("beginLifecycle"))
++        {
++            if (args.length != 3 || !isValidLifecycleId(args[2]))
++            {
++                return USAGE;
++            }
++            String markerState = getLifecycleMarkerState(player);
++            String attemptId = getLifecycleAttemptId(player);
++            String activeLifecycleId = getLifecycleId(player);
++            if (!"none".equals(markerState))
++            {
++                if ("complete".equals(markerState) && args[2].equals(attemptId) &&
++                    args[2].equals(activeLifecycleId))
++                {
++                    return "action=beginLifecycle established=true resumed=true" +
++                        " lifecycleAttemptId=" + attemptId +
++                        " lifecycleId=" + activeLifecycleId +
++                        " lifecycleMarkerState=complete lifecycleBaselineComplete=true";
++                }
++                if (args[2].equals(attemptId) && "partial".equals(markerState))
++                {
++                    return "error=lifecycleEstablishmentPartial lifecycleAttemptId=" +
++                        attemptId + " lifecycleId=" + activeLifecycleId;
++                }
++                return "error=lifecycleAlreadyActive lifecycleAttemptId=" + attemptId +
++                    " lifecycleId=" + activeLifecycleId + " lifecycleMarkerState=" + markerState;
++            }
++            if (hasAnyOperationMarker(player) || utils.hasScriptVar(player, RELOG_NONCE) ||
++                utils.hasScriptVar(player, RESTART_NONCE))
++            {
++                return "error=lifecycleFixtureDirty " + buildOperationStatus(player) +
++                    " relogNoncePresent=" + utils.hasScriptVar(player, RELOG_NONCE) +
++                    " restartNoncePresent=" + utils.hasScriptVar(player, RESTART_NONCE);
++            }
++            int baseCash = getCashBalance(player);
++            int baseBank = getBankBalance(player);
++            int baseXp = getExperiencePoints(player, CRAFTING_XP_TYPE);
++            int basePoints = skill.getAvailableSkillPoints(player);
++            int baseCap = getExperienceCap(player, CRAFTING_XP_TYPE);
++            int baseNovice = hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0;
++            int baseSkill = hasSkill(player, CRAFTING_SKILL) ? 1 : 0;
++
++            // The attempt ID is the crash-safe ownership anchor. The active ID
++            // is the sole final commit write after state and every baseline leaf verify.
++            setObjVar(player, LIFECYCLE_ATTEMPT_ID, args[2]);
++            if (!hasObjVar(player, LIFECYCLE_ATTEMPT_ID) ||
++                !args[2].equals(getStringObjVar(player, LIFECYCLE_ATTEMPT_ID)))
++            {
++                return rollbackLifecycleEstablishment(player, args[2],
++                    "lifecycleAttemptWriteFailed");
++            }
++            setObjVar(player, LIFECYCLE_STATE, "establishing");
++            setObjVar(player, LIFECYCLE_BASE_CASH, baseCash);
++            setObjVar(player, LIFECYCLE_BASE_BANK, baseBank);
++            setObjVar(player, LIFECYCLE_BASE_XP, baseXp);
++            setObjVar(player, LIFECYCLE_BASE_POINTS, basePoints);
++            setObjVar(player, LIFECYCLE_BASE_CAP, baseCap);
++            setObjVar(player, LIFECYCLE_BASE_NOVICE, baseNovice);
++            setObjVar(player, LIFECYCLE_BASE_SKILL, baseSkill);
++            if (!isLifecycleBaselineComplete(player) ||
++                !lifecycleBaselineEquals(player, baseCash, baseBank, baseXp,
++                    basePoints, baseCap, baseNovice, baseSkill) ||
++                !lifecycleBaselineMatchesCurrent(player))
++            {
++                return rollbackLifecycleEstablishment(player, args[2],
++                    "lifecycleBaselineWriteFailed");
++            }
++            setObjVar(player, LIFECYCLE_STATE, "established");
++            if (!hasObjVar(player, LIFECYCLE_STATE) ||
++                !"established".equals(getStringObjVar(player, LIFECYCLE_STATE)) ||
++                !args[2].equals(getLifecycleAttemptId(player)) ||
++                !isLifecycleBaselineComplete(player) ||
++                !lifecycleBaselineEquals(player, baseCash, baseBank, baseXp,
++                    basePoints, baseCap, baseNovice, baseSkill) ||
++                !lifecycleBaselineMatchesCurrent(player))
++            {
++                return rollbackLifecycleEstablishment(player, args[2],
++                    "lifecycleCommitPreparationFailed");
++            }
++            // No required write may follow this commit leaf. A lost response
++            // after this point is recovered by authoritative complete-marker readback.
++            setObjVar(player, LIFECYCLE_ID, args[2]);
++            if (!isLifecycleEstablished(player, args[2]))
++            {
++                // The commit write is the final mutation even when its readback
++                // is incomplete. Cleanup owns any exact partial residue.
++                return "error=lifecycleCommitWriteFailed rolledBack=false" +
++                    " lifecycleAttemptId=" + getLifecycleAttemptId(player) +
++                    " lifecycleId=" + getLifecycleId(player) +
++                    " lifecycleMarkerState=" + getLifecycleMarkerState(player);
++            }
++            return "action=beginLifecycle established=true resumed=false" +
++                " lifecycleAttemptId=" + args[2] + " lifecycleId=" + args[2] +
++                " lifecycleMarkerState=complete lifecycleBaselineComplete=true";
++        }
++        if (action.equalsIgnoreCase("clearLifecycle"))
++        {
++            if (args.length != 3 || !isValidLifecycleId(args[2]))
++            {
++                return USAGE;
++            }
++            String markerState = getLifecycleMarkerState(player);
++            String attemptId = getLifecycleAttemptId(player);
++            String activeLifecycleId = getLifecycleId(player);
++            if ("none".equals(markerState))
++            {
++                if (!hasAnyOperationMarker(player) &&
++                    !utils.hasScriptVar(player, RELOG_NONCE) &&
++                    !utils.hasScriptVar(player, RESTART_NONCE))
++                {
++                    return "action=clearLifecycle cleared=true alreadyClear=true" +
++                        " lifecycleAttemptId=none lifecycleId=none lifecycleMarkerState=none";
++                }
++                return "error=lifecycleMissingFixtureDirty " + buildCraftingStatus(player);
++            }
++            if (!args[2].equals(attemptId) ||
++                !("partial".equals(markerState) ||
++                    ("complete".equals(markerState) && args[2].equals(activeLifecycleId))))
++            {
++                return "error=lifecycleOwnershipMismatch suppliedLifecycleId=" + args[2] +
++                    " lifecycleAttemptId=" + attemptId + " lifecycleId=" +
++                    activeLifecycleId + " lifecycleMarkerState=" + markerState;
++            }
++            if (hasAnyOperationMarker(player) || utils.hasScriptVar(player, RELOG_NONCE) ||
++                utils.hasScriptVar(player, RESTART_NONCE))
++            {
++                return "error=lifecycleClearHasInstrumentation " + buildCraftingStatus(player);
++            }
++            if ("partial".equals(markerState))
++            {
++                if (!partialLifecycleBaselineMatchesCurrent(player))
++                {
++                    return "error=lifecyclePartialBaselineDrift " + buildCraftingStatus(player);
++                }
++            }
++            else if (!isLifecycleEstablished(player, args[2]) ||
++                !lifecycleBaselineMatchesCurrent(player))
++            {
++                return "error=lifecycleClearNotAtBaseline " + buildCraftingStatus(player);
++            }
++            removeObjVar(player, LIFECYCLE_ROOT);
++            if (hasObjVar(player, LIFECYCLE_ROOT) || hasObjVar(player, LIFECYCLE_ATTEMPT_ID) ||
++                hasObjVar(player, LIFECYCLE_ID))
++            {
++                return "error=lifecycleClearFailed lifecycleAttemptId=" +
++                    getLifecycleAttemptId(player) + " lifecycleId=" + getLifecycleId(player) +
++                    " lifecycleMarkerState=" + getLifecycleMarkerState(player);
++            }
++            return "action=clearLifecycle cleared=true alreadyClear=false" +
++                " lifecycleAttemptId=none lifecycleId=none lifecycleMarkerState=none";
++        }
 +        if (action.equalsIgnoreCase("craftingStatus"))
 +        {
 +            if (args.length != 2)
@@ -77,12 +369,523 @@ index 000000000..cda346120
 +            }
 +            return "action=craftingStatus " + buildCraftingStatus(player);
 +        }
++        if (action.equalsIgnoreCase("findTrainer"))
++        {
++            if (args.length != 2)
++            {
++                return USAGE;
++            }
++            return findCraftingTrainer(player);
++        }
++        if (action.equalsIgnoreCase("inspectTrainer"))
++        {
++            if (args.length != 2)
++            {
++                return USAGE;
++            }
++            return inspectCraftingTrainer(player);
++        }
++        if (action.equalsIgnoreCase("fundTrainerCost"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]))
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
++            if (getTotalMoney(player) != 0 ||
++                !hasSkill(player, CRAFTING_NOVICE_SKILL) ||
++                hasSkill(player, CRAFTING_SKILL) ||
++                getExperiencePoints(player, CRAFTING_XP_TYPE) != CRAFTING_XP_COST)
++            {
++                return "error=fixtureNotReadyForFunding " + buildCraftingStatus(player);
++            }
++            String operationError = beginOperation(
++                player, args[2], "fund", args[3], "none", "none");
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            if (!hasScript(player, "player.player_money"))
++            {
++                attachScript(player, "player.player_money");
++            }
++            if (!hasScript(player, "player.player_money"))
++            {
++                setOperationState(player, args[2], "fund", "fundFailed");
++                return "error=playerMoneyScriptUnavailable operationId=" + args[2];
++            }
++            dictionary transfer = buildOperationParams(args[2], "fund", args[3]);
++            if (!markOperationEnqueueing(player, args[2], "fund"))
++            {
++                return "error=operationDispatchStateFailed " + buildOperationStatus(player);
++            }
++            boolean queued = transferBankCreditsFromNamedAccount(
++                money.ACCT_CUSTOMER_SERVICE,
++                player,
++                CRAFTING_TRAINER_COST,
++                money.HANDLER_BANK_SUCCESS,
++                money.HANDLER_BANK_TRANSFER_ERROR,
++                transfer);
++            if (!queued)
++            {
++                transitionOperationState(
++                    player, args[2], "fund", "enqueueing", "fundQueueFailed");
++            }
++            return "action=fundTrainerCost setup=administrative queued=" + queued +
++                " operationId=" + args[2] + " amount=" + CRAFTING_TRAINER_COST +
++                " " + buildBalances(player);
++        }
++        if (action.equalsIgnoreCase("drainTrainerCost"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]))
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
++            if (getTotalMoney(player) != CRAFTING_TRAINER_COST ||
++                hasSkill(player, CRAFTING_SKILL))
++            {
++                return "error=fixtureNotReadyForCreditCleanup " + buildCraftingStatus(player);
++            }
++            String operationError = beginOperation(
++                player, args[2], "drain", args[3], "none", "none");
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            if (!hasScript(player, "player.player_money"))
++            {
++                attachScript(player, "player.player_money");
++            }
++            if (!hasScript(player, "player.player_money"))
++            {
++                setOperationState(player, args[2], "drain", "drainFailed");
++                return "error=playerMoneyScriptUnavailable operationId=" + args[2];
++            }
++            dictionary transfer = buildOperationParams(args[2], "drain", args[3]);
++            if (!markOperationEnqueueing(player, args[2], "drain"))
++            {
++                return "error=operationDispatchStateFailed " + buildOperationStatus(player);
++            }
++            boolean queued = transferBankCreditsToNamedAccount(
++                player,
++                money.ACCT_CUSTOMER_SERVICE,
++                CRAFTING_TRAINER_COST,
++                money.HANDLER_BANK_SUCCESS,
++                money.HANDLER_BANK_TRANSFER_ERROR,
++                transfer);
++            if (!queued)
++            {
++                transitionOperationState(
++                    player, args[2], "drain", "enqueueing", "drainQueueFailed");
++            }
++            return "action=drainTrainerCost cleanup=administrative queued=" + queued +
++                " operationId=" + args[2] + " amount=" + CRAFTING_TRAINER_COST +
++                " " + buildBalances(player);
++        }
++        if (action.equalsIgnoreCase("trainerPurchase"))
++        {
++            if (args.length != 6 || !isValidOperationId(args[4]))
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[5]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
++            if (!CRAFTING_SKILL.equals(args[3]))
++            {
++                return "error=skillOutsideTrainerCanary skill=" + args[3];
++            }
 +
-+        if (action.equalsIgnoreCase("grantXp"))
++            obj_id trainer;
++            try
++            {
++                trainer = obj_id.getObjId(Long.parseLong(args[2]));
++            }
++            catch (NumberFormatException exception)
++            {
++                return "error=invalidTrainerOid value=" + args[2];
++            }
++
++            String trainerError = validateCraftingTrainer(player, trainer);
++            if (trainerError != null)
++            {
++                return trainerError;
++            }
++            String operationError = beginOperation(
++                player, args[4], "purchase", args[5], trainer.toString(), CRAFTING_SKILL);
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            dictionary payment = new dictionary();
++            payment.put("skillName", CRAFTING_SKILL);
++            payment.put(OP_PARAM_ID, args[4]);
++            payment.put(OP_PARAM_KIND, "purchase");
++            payment.put(LIFECYCLE_PARAM_ID, args[5]);
++            payment.put(OP_PROTOCOL_PARAM_VERSION, PROTOCOL_VERSION);
++            payment.put(money.DICT_PAY_HANDLER, "attemptedPayment");
++            if (!markOperationEnqueueing(player, args[4], "purchase"))
++            {
++                return "error=operationDispatchStateFailed " + buildOperationStatus(player);
++            }
++            boolean queued = money.requestPayment(
++                player,
++                trainer,
++                CRAFTING_TRAINER_COST,
++                "attemptedPayment",
++                payment,
++                true);
++            if (!queued)
++            {
++                transitionOperationState(
++                    player, args[4], "purchase", "enqueueing", "paymentQueueFailed");
++            }
++            return "action=trainerPurchase path=skillteacherPaymentHandler conversationUi=false" +
++                " queued=" + queued + " trainerOid=" + trainer +
++                " operationId=" + args[4] +
++                " skill=" + CRAFTING_SKILL + " cost=" + CRAFTING_TRAINER_COST +
++                " xpCost=" + CRAFTING_XP_COST + " " + buildCraftingStatus(player);
++        }
++        if (action.equalsIgnoreCase("queueTrainerConversation"))
 +        {
 +            if (args.length != 4)
 +            {
 +                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
++
++            obj_id trainer;
++            try
++            {
++                trainer = obj_id.getObjId(Long.parseLong(args[2]));
++            }
++            catch (NumberFormatException exception)
++            {
++                return "error=invalidTrainerOid value=" + args[2];
++            }
++
++            String trainerError = validateCraftingTrainer(player, trainer);
++            if (trainerError != null)
++            {
++                return trainerError;
++            }
++            boolean queued = queueCommand(
++                player,
++                getStringCrc("npcConversationStart"),
++                trainer,
++                "0 ",
++                COMMAND_PRIORITY_IMMEDIATE);
++            return "action=queueTrainerConversation queued=" + queued +
++                " trainerOid=" + trainer +
++                " conversationUi=pending purchaseMutation=false";
++        }
++        if (action.equalsIgnoreCase("clearOperation"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]))
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
++            String operationError = clearTerminalOperation(player, args[2]);
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            return "action=clearOperation cleared=true operationId=" + args[2] +
++                " " + buildOperationStatus(player);
++        }
++        if (action.equalsIgnoreCase("requeuePurchaseCallback"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]) ||
++                !isValidLifecycleId(args[3]))
++            {
++                return USAGE;
++            }
++            String operationError = validateExactPurchaseOperation(player, args[2], args[3]);
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            String operationState = getStringObjVar(player, OP_STATE);
++            if (!"paymentDispatching".equals(operationState) &&
++                !"paymentSucceededCallback".equals(operationState) &&
++                !"purchaseApplying".equals(operationState))
++            {
++                return "error=purchaseCallbackNotReplayable " + buildOperationStatus(player);
++            }
++            if (!hasExactPurchaseDebitVector(player))
++            {
++                return "error=purchaseCallbackReplayVectorMismatch " +
++                    buildCraftingStatus(player);
++            }
++            obj_id trainer = obj_id.getObjId(
++                Long.parseLong(getStringObjVar(player, OP_TRAINER_OID)));
++            String trainerError = validateStoredCraftingTrainer(player, trainer);
++            if (trainerError != null)
++            {
++                return trainerError;
++            }
++            if (!"paymentSucceededCallback".equals(operationState) &&
++                !transitionExactPurchaseState(
++                    player,
++                    args[2],
++                    args[3],
++                    operationState,
++                    "paymentSucceededCallback",
++                    "DEBIT"))
++            {
++                return "error=purchaseCallbackReplayClaimLost " +
++                    buildOperationStatus(player);
++            }
++            dictionary callback = buildExactPurchaseCallbackParams(player, trainer, money.RET_SUCCESS);
++            if (!hasExactPurchaseDebitVector(player) ||
++                !"paymentSucceededCallback".equals(getStringObjVar(player, OP_STATE)))
++            {
++                return "error=purchaseCallbackReplayPreSendDrift " +
++                    buildCraftingStatus(player);
++            }
++            boolean queued = messageTo(
++                trainer,
++                "attemptedPayment",
++                callback,
++                0,
++                isObjectPersisted(trainer));
++            return "action=requeuePurchaseCallback queued=" + queued +
++                " operationId=" + args[2] + " sourceState=" + operationState +
++                " operationState=" + getStringObjVar(player, OP_STATE);
++        }
++        if (action.equalsIgnoreCase("reconcileRefundOutcome"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]) ||
++                !isValidLifecycleId(args[3]))
++            {
++                return USAGE;
++            }
++            String operationError = validateExactPurchaseOperation(player, args[2], args[3]);
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            String operationState = getStringObjVar(player, OP_STATE);
++            if (!isExactPersistedRefundState(player, operationState) ||
++                !hasExactPurchaseRefundVector(player) ||
++                !transitionExactPurchaseState(
++                    player,
++                    args[2],
++                    args[3],
++                    operationState,
++                    "purchaseRefunded",
++                    "REFUND"))
++            {
++                return "error=refundOutcomeNotReconcileable " +
++                    buildCraftingStatus(player);
++            }
++            return "action=reconcileRefundOutcome reconciled=true operationId=" + args[2] +
++                " operationState=purchaseRefunded transferRetried=false";
++        }
++        if (action.equalsIgnoreCase("retryPurchaseRefund"))
++        {
++            if (args.length != 6 || !isValidOperationId(args[2]) ||
++                !isValidLifecycleId(args[3]))
++            {
++                return USAGE;
++            }
++            String operationError = validateExactPurchaseOperation(player, args[2], args[3]);
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            int expectedGeneration;
++            try
++            {
++                expectedGeneration = Integer.parseInt(args[4]);
++            }
++            catch (NumberFormatException exception)
++            {
++                return USAGE;
++            }
++            String operationState = getStringObjVar(player, OP_STATE);
++            if (expectedGeneration != getIntObjVar(player, OP_REFUND_GENERATION) ||
++                !args[5].equals(getStringObjVar(player, OP_REFUND_ATTEMPT_KEY)) ||
++                !isValidRefundAttemptKey(player, expectedGeneration, args[5]) ||
++                !hasExactPurchaseDebitVector(player))
++            {
++                return "error=refundRetryNotAuthorized " + buildCraftingStatus(player);
++            }
++            obj_id trainer = obj_id.getObjId(
++                Long.parseLong(getStringObjVar(player, OP_TRAINER_OID)));
++            String trainerError = validateStoredCraftingTrainer(player, trainer);
++            if (trainerError != null)
++            {
++                return trainerError;
++            }
++            if (expectedGeneration == 1 && "refundInitialFailed".equals(operationState) &&
++                getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 0)
++            {
++                if (!claimExactRecoveryRefund(player, args[2], args[3]))
++                {
++                    return "error=refundRetryClaimLost " + buildOperationStatus(player);
++                }
++            }
++            else if (!((expectedGeneration == 1 &&
++                        "refundInitialClaiming".equals(operationState) &&
++                        getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 0) ||
++                    (expectedGeneration == 2 &&
++                        "refundRecoveryClaiming".equals(operationState) &&
++                        getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 1)))
++            {
++                return "error=refundRetryConsumedOrAmbiguous " + buildOperationStatus(player);
++            }
++            int generation = getIntObjVar(player, OP_REFUND_GENERATION);
++            dictionary callback = buildExactPurchaseCallbackParams(
++                player, trainer, money.RET_SUCCESS);
++            putExactRefundParams(player, callback);
++            boolean queued = dispatchExactClaimedRefund(
++                player, trainer, callback, args[2], args[3], generation);
++            return "action=retryPurchaseRefund queued=" + queued +
++                " operationId=" + args[2] +
++                " refundGeneration=" + generation +
++                " refundAttemptKey=" + getStringObjVar(player, OP_REFUND_ATTEMPT_KEY) +
++                " refundRetryConsumed=" +
++                    (getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) != 0) +
++                " operationState=" + getStringObjVar(player, OP_STATE);
++        }
++        if (action.equalsIgnoreCase("resumePurchaseAccounting"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]) ||
++                !isValidLifecycleId(args[3]))
++            {
++                return USAGE;
++            }
++            String operationError = validateExactPurchaseOperation(player, args[2], args[3]);
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            String operationState = getStringObjVar(player, OP_STATE);
++            if (hasExactAccountingSuccessProvenance(player) &&
++                ("accountingDispatching".equals(operationState) ||
++                    "accountingPending".equals(operationState) ||
++                    "accountingSucceededCallback".equals(operationState)))
++            {
++                setObjVar(player, OP_STATE, "purchaseSucceeded");
++                setObjVar(player, OP_UPDATED, getCalendarTime());
++                return "action=resumePurchaseAccounting reconciled=true transferRetried=false" +
++                    " operationId=" + args[2] + " operationState=purchaseSucceeded";
++            }
++            if ("purchaseApplying".equals(operationState))
++            {
++                if (!claimExactAccountingRequest(player, args[2], args[3]))
++                {
++                    return "error=accountingRequestClaimLost " + buildOperationStatus(player);
++                }
++                operationState = "accountingRequested";
++            }
++            if (!"accountingRequested".equals(operationState) ||
++                !hasExactPendingAccountingProvenance(player))
++            {
++                return "error=accountingOutcomeAmbiguous " + buildOperationStatus(player);
++            }
++            obj_id trainer = obj_id.getObjId(
++                Long.parseLong(getStringObjVar(player, OP_TRAINER_OID)));
++            String trainerError = validateStoredCraftingTrainer(player, trainer);
++            if (trainerError != null)
++            {
++                return trainerError;
++            }
++            dictionary accounting = buildExactPurchaseCallbackParams(
++                player, trainer, money.RET_SUCCESS);
++            accounting.put(
++                ACCOUNTING_PARAM_ATTEMPT_KEY,
++                getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY));
++            accounting.put(money.DICT_ACCT_NAME, money.ACCT_SKILL_TRAINING);
++            boolean queued = messageTo(
++                player,
++                "precuPhaseARequestAccounting",
++                accounting,
++                0,
++                true);
++            if (!queued)
++            {
++                publishAccountingRequestQueueFailure(player);
++            }
++            return "action=resumePurchaseAccounting reconciled=false transferRetried=false" +
++                " requestQueued=" + queued + " operationId=" + args[2] +
++                " accountingAttemptKey=" +
++                    getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) +
++                " operationState=" + getStringObjVar(player, OP_STATE);
++        }
++        if (action.equalsIgnoreCase("armRestartBoundary"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]))
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
++            if (!operationMatches(player, args[2], "purchase") ||
++                !"purchaseSucceeded".equals(getStringObjVar(player, OP_STATE)) ||
++                utils.hasScriptVar(player, RELOG_NONCE) ||
++                utils.hasScriptVar(player, RESTART_NONCE))
++            {
++                return "error=boundaryNotReady " + buildOperationStatus(player) +
++                    " relogNoncePresent=" + utils.hasScriptVar(player, RELOG_NONCE) +
++                    " restartNoncePresent=" + utils.hasScriptVar(player, RESTART_NONCE);
++            }
++            utils.setScriptVar(player, RESTART_NONCE, args[2]);
++            return "action=armRestartBoundary armed=" +
++                utils.hasScriptVar(player, RESTART_NONCE) + " operationId=" + args[2];
++        }
++        if (action.equalsIgnoreCase("clearBoundaryMarkers"))
++        {
++            if (args.length != 3)
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[2]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
++            utils.removeScriptVar(player, RELOG_NONCE);
++            utils.removeScriptVar(player, RESTART_NONCE);
++            return "action=clearBoundaryMarkers cleared=true relogNoncePresent=" +
++                utils.hasScriptVar(player, RELOG_NONCE) + " restartNoncePresent=" +
++                utils.hasScriptVar(player, RESTART_NONCE);
++        }
++
++        if (action.equalsIgnoreCase("grantXp"))
++        {
++            if (args.length != 5)
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[4]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
 +            }
 +
 +            int amount;
@@ -94,10 +897,29 @@ index 000000000..cda346120
 +            {
 +                return "error=invalidXpAmount value=" + args[3];
 +            }
++            if (!CRAFTING_XP_TYPE.equals(args[2]) ||
++                (amount != CRAFTING_XP_COST && amount != -CRAFTING_XP_COST))
++            {
++                return "error=xpMutationOutsideTrainerCanary xpType=" + args[2] +
++                    " amount=" + amount;
++            }
++            int currentXp = getExperiencePoints(player, CRAFTING_XP_TYPE);
++            if (amount == CRAFTING_XP_COST &&
++                (currentXp != 0 ||
++                    !hasSkill(player, CRAFTING_NOVICE_SKILL) ||
++                    hasSkill(player, CRAFTING_SKILL)))
++            {
++                return "error=fixtureNotReadyForXpSetup xp=" + currentXp;
++            }
++            if (amount == -CRAFTING_XP_COST &&
++                (currentXp != CRAFTING_XP_COST || hasSkill(player, CRAFTING_SKILL)))
++            {
++                return "error=fixtureNotReadyForXpCleanup xp=" + currentXp;
++            }
 +
 +            int result = grantExperiencePoints(player, args[2], amount);
-+            return "action=grantXp oid=" + player + " xpType=" + args[2] +
-+                " amount=" + amount + " result=" + result +
++            return "action=grantXp setup=administrative oid=" + player +
++                " xpType=" + args[2] + " amount=" + amount + " result=" + result +
 +                " xp=" + getExperiencePoints(player, args[2]) +
 +                " cap=" + getExperienceCap(player, args[2]);
 +        }
@@ -124,21 +946,57 @@ index 000000000..cda346120
 +        }
 +        if (action.equalsIgnoreCase("grant"))
 +        {
++            if (args.length != 4)
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
 +            boolean result = grantSkill(player, skillName);
 +            return "action=grant result=" + result + " " + buildStatus(player, skillName, null);
 +        }
 +        if (action.equalsIgnoreCase("revoke"))
 +        {
++            if (args.length != 4)
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
 +            revokeSkill(player, skillName);
 +            return "action=revoke " + buildStatus(player, skillName, null);
 +        }
 +        if (action.equalsIgnoreCase("purchase"))
 +        {
++            if (args.length != 4)
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
 +            boolean result = skill.purchaseSkill(player, skillName);
 +            return "action=purchase result=" + result + " " + buildStatus(player, skillName, null);
 +        }
 +        if (action.equalsIgnoreCase("queueSurrender"))
 +        {
++            if (args.length != 4)
++            {
++                return USAGE;
++            }
++            String lifecycleError = validateLifecycle(player, args[3]);
++            if (lifecycleError != null)
++            {
++                return lifecycleError;
++            }
 +            boolean queued = queueCommand(
 +                player,
 +                getStringCrc("surrenderskill"),
@@ -178,14 +1036,1466 @@ index 000000000..cda346120
 +        return null;
 +    }
 +
++    private String validateCraftingTrainer(obj_id player, obj_id trainer) throws InterruptedException
++    {
++        if (trainer == null || trainer == obj_id.NULL_ID || !trainer.isLoaded())
++        {
++            return "error=trainerNotLoaded";
++        }
++        if (!trainer.isAuthoritative())
++        {
++            return "error=trainerNotAuthoritative trainerOid=" + trainer;
++        }
++        if (!isMob(trainer) || !hasScript(trainer, SKILLTEACHER_SCRIPT))
++        {
++            return "error=notProductionSkillteacher trainerOid=" + trainer;
++        }
++        if (hasObjVar(player, "newbie.hasSkill") && !hasObjVar(player, "newbie.trained"))
++        {
++            return "error=newbieFreeTrainingRouteActive trainerOid=" + trainer;
++        }
++        if (!hasSkill(player, CRAFTING_NOVICE_SKILL) ||
++            hasSkill(player, CRAFTING_SKILL) ||
++            hasCommand(player, CRAFTING_COMMAND) ||
++            hasSchematic(player, CRAFTING_SCHEMATIC) ||
++            getTotalMoney(player) != CRAFTING_TRAINER_COST ||
++            getExperiencePoints(player, CRAFTING_XP_TYPE) != CRAFTING_XP_COST ||
++            skill.getAvailableSkillPoints(player) < skill.getSkillPointCost(CRAFTING_SKILL))
++        {
++            return "error=fixtureNotInExactPreparedState trainerOid=" + trainer;
++        }
++        if (hasObjVar(player, OP_ID))
++        {
++            return "error=operationAlreadyActive " + buildOperationStatus(player);
++        }
++        int distanceCentimeters = (int)(getDistance(player, trainer) * 100.0f);
++        if (distanceCentimeters > (int)(TRAINER_INTERACTION_RANGE * 100.0f))
++        {
++            return "error=trainerOutOfRange trainerOid=" + trainer +
++                " distanceCentimeters=" + distanceCentimeters;
++        }
++        if (!contains(skill.getTeacherSkills(trainer, player), CRAFTING_SKILL))
++        {
++            return "error=trainerDoesNotOfferSkill trainerOid=" + trainer;
++        }
++        if (!contains(skill.getQualifiedTeachableSkills(player, trainer), CRAFTING_SKILL))
++        {
++            return "error=fixtureNotQualified trainerOid=" + trainer +
++                " skill=" + CRAFTING_SKILL;
++        }
++
++        int skillRow = dataTableSearchColumnForString(CRAFTING_SKILL, "NAME", skill.TBL_SKILL);
++        if (skillRow < 0 ||
++            dataTableGetInt(skill.TBL_SKILL, skillRow, "MONEY_REQUIRED") != CRAFTING_TRAINER_COST ||
++            dataTableGetInt(skill.TBL_SKILL, skillRow, "XP_COST") != CRAFTING_XP_COST)
++        {
++            return "error=trainerCostContractDrift skill=" + CRAFTING_SKILL;
++        }
++        float persuasion = getEnhancedSkillStatisticModifier(player, "force_persuade") * 0.01f;
++        int discountedCost = CRAFTING_TRAINER_COST - (int)(CRAFTING_TRAINER_COST * persuasion);
++        if (discountedCost != CRAFTING_TRAINER_COST)
++        {
++            return "error=trainerDiscountActive discountedCost=" + discountedCost;
++        }
++        return null;
++    }
++
++    private String validateStoredCraftingTrainer(obj_id player, obj_id trainer)
++        throws InterruptedException
++    {
++        if (trainer == null || trainer == obj_id.NULL_ID || !trainer.isLoaded())
++        {
++            return "error=storedTrainerNotLoaded";
++        }
++        if (!trainer.isAuthoritative())
++        {
++            return "error=storedTrainerNotAuthoritative trainerOid=" + trainer;
++        }
++        if (!isMob(trainer) || !hasScript(trainer, SKILLTEACHER_SCRIPT) ||
++            !contains(skill.getTeacherSkills(trainer, player), CRAFTING_SKILL))
++        {
++            return "error=storedTrainerIdentityMismatch trainerOid=" + trainer;
++        }
++        return null;
++    }
++
++    private String findCraftingTrainer(obj_id player) throws InterruptedException
++    {
++        obj_id[] trainers = getAllObjectsWithScript(
++            getLocation(player),
++            TRAINER_DISCOVERY_RANGE,
++            SKILLTEACHER_SCRIPT);
++        int candidates = trainers == null ? 0 : trainers.length;
++        if (trainers != null)
++        {
++            String lastValidationError = "none";
++            for (obj_id trainer : trainers)
++            {
++                String validationError = validateCraftingTrainer(player, trainer);
++                if (validationError == null)
++                {
++                    int distanceCentimeters = (int)(getDistance(player, trainer) * 100.0f);
++                    return "action=findTrainer trainerFound=true trainerOid=" + trainer +
++                        " trainerType=" + getStringObjVar(trainer, "trainer") +
++                        " distanceCentimeters=" + distanceCentimeters +
++                        " offersSkill=true qualified=true fullyValidated=true" +
++                        " candidates=" + candidates;
++                }
++                lastValidationError = validationError.replace(' ', '_');
++            }
++            return "action=findTrainer trainerFound=false fullyValidated=false candidates=" +
++                candidates + " lastValidationError=" + lastValidationError;
++        }
++        return "action=findTrainer trainerFound=false fullyValidated=false candidates=0";
++    }
++
++    private String inspectCraftingTrainer(obj_id player) throws InterruptedException
++    {
++        obj_id[] trainers = getAllObjectsWithScript(
++            getLocation(player),
++            TRAINER_INSPECTION_RANGE,
++            SKILLTEACHER_SCRIPT);
++        obj_id nearest = obj_id.NULL_ID;
++        float nearestDistance = TRAINER_INSPECTION_RANGE + 1.0f;
++        if (trainers != null)
++        {
++            for (obj_id trainer : trainers)
++            {
++                if (trainer == null || trainer == obj_id.NULL_ID || !trainer.isLoaded() ||
++                    !trainer.isAuthoritative() || !isMob(trainer) ||
++                    !hasScript(trainer, SKILLTEACHER_SCRIPT) ||
++                    !contains(skill.getTeacherSkills(trainer, player), CRAFTING_SKILL))
++                {
++                    continue;
++                }
++                float distance = getDistance(player, trainer);
++                if (distance < nearestDistance)
++                {
++                    nearest = trainer;
++                    nearestDistance = distance;
++                }
++            }
++        }
++        if (nearest == obj_id.NULL_ID)
++        {
++            return "action=inspectTrainer trainerFound=false candidates=" +
++                (trainers == null ? 0 : trainers.length) +
++                " inspectionRangeCentimeters=" + (int)(TRAINER_INSPECTION_RANGE * 100.0f);
++        }
++        location trainerLocation = getLocation(nearest);
++        String validationError = validateCraftingTrainer(player, nearest);
++        String trainerCell = trainerLocation.cell == null || trainerLocation.cell == obj_id.NULL_ID ?
++            "world" : trainerLocation.cell.toString();
++        return "action=inspectTrainer trainerFound=true trainerOid=" + nearest +
++            " trainerType=" + getStringObjVar(nearest, "trainer") +
++            " scene=" + trainerLocation.area +
++            " cell=" + trainerCell +
++            " x=" + trainerLocation.x + " y=" + trainerLocation.y +
++            " z=" + trainerLocation.z +
++            " distanceCentimeters=" + (int)(nearestDistance * 100.0f) +
++            " withinInteractionRange=" + (nearestDistance <= TRAINER_INTERACTION_RANGE) +
++            " authoritative=true productionSkillteacher=true offersSkill=true" +
++            " qualified=" + contains(skill.getQualifiedTeachableSkills(player, nearest), CRAFTING_SKILL) +
++            " fullyValidated=" + (validationError == null) +
++            " validation=" + (validationError == null ? "none" : validationError.replace(' ', '_'));
++    }
++
++    private boolean isValidOperationId(String operationId)
++    {
++        return operationId != null && operationId.matches("[a-f0-9]{32}");
++    }
++
++    private boolean isValidLifecycleId(String lifecycleId)
++    {
++        return lifecycleId != null && lifecycleId.matches("[a-f0-9]{32}");
++    }
++
++    private boolean isValidPositiveTrainerOid(String trainerOid)
++    {
++        if (trainerOid == null || !trainerOid.matches("[0-9]+"))
++        {
++            return false;
++        }
++        try
++        {
++            return Long.parseLong(trainerOid) > 0L;
++        }
++        catch (NumberFormatException exception)
++        {
++            return false;
++        }
++    }
++
++    private boolean hasAnyLifecycleMarker(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE_ROOT) ||
++            hasObjVar(player, LIFECYCLE_ATTEMPT_ID) || hasObjVar(player, LIFECYCLE_ID) ||
++            hasObjVar(player, LIFECYCLE_STATE) || hasObjVar(player, LIFECYCLE_BASE_CASH) ||
++            hasObjVar(player, LIFECYCLE_BASE_BANK) || hasObjVar(player, LIFECYCLE_BASE_XP) ||
++            hasObjVar(player, LIFECYCLE_BASE_POINTS) || hasObjVar(player, LIFECYCLE_BASE_CAP) ||
++            hasObjVar(player, LIFECYCLE_BASE_NOVICE) || hasObjVar(player, LIFECYCLE_BASE_SKILL);
++    }
++
++    private String getLifecycleAttemptId(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE_ATTEMPT_ID) ?
++            getStringObjVar(player, LIFECYCLE_ATTEMPT_ID) : "none";
++    }
++
++    private String getLifecycleId(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE_ID) ? getStringObjVar(player, LIFECYCLE_ID) : "none";
++    }
++
++    private boolean isLifecycleBaselineComplete(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE_BASE_CASH) &&
++            hasObjVar(player, LIFECYCLE_BASE_BANK) && hasObjVar(player, LIFECYCLE_BASE_XP) &&
++            hasObjVar(player, LIFECYCLE_BASE_POINTS) && hasObjVar(player, LIFECYCLE_BASE_CAP) &&
++            hasObjVar(player, LIFECYCLE_BASE_NOVICE) && hasObjVar(player, LIFECYCLE_BASE_SKILL);
++    }
++
++    private boolean lifecycleBaselineEquals(
++        obj_id player,
++        int cash,
++        int bank,
++        int xp,
++        int points,
++        int cap,
++        int novice,
++        int trained) throws InterruptedException
++    {
++        return isLifecycleBaselineComplete(player) &&
++            getIntObjVar(player, LIFECYCLE_BASE_CASH) == cash &&
++            getIntObjVar(player, LIFECYCLE_BASE_BANK) == bank &&
++            getIntObjVar(player, LIFECYCLE_BASE_XP) == xp &&
++            getIntObjVar(player, LIFECYCLE_BASE_POINTS) == points &&
++            getIntObjVar(player, LIFECYCLE_BASE_CAP) == cap &&
++            getIntObjVar(player, LIFECYCLE_BASE_NOVICE) == novice &&
++            getIntObjVar(player, LIFECYCLE_BASE_SKILL) == trained;
++    }
++
++    private boolean lifecycleBaselineMatchesCurrent(obj_id player) throws InterruptedException
++    {
++        return isLifecycleBaselineComplete(player) &&
++            lifecycleBaselineEquals(
++                player,
++                getCashBalance(player),
++                getBankBalance(player),
++                getExperiencePoints(player, CRAFTING_XP_TYPE),
++                skill.getAvailableSkillPoints(player),
++                getExperienceCap(player, CRAFTING_XP_TYPE),
++                hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0,
++                hasSkill(player, CRAFTING_SKILL) ? 1 : 0);
++    }
++
++    private boolean partialLifecycleBaselineMatchesCurrent(obj_id player)
++        throws InterruptedException
++    {
++        return (!hasObjVar(player, LIFECYCLE_BASE_CASH) ||
++                getIntObjVar(player, LIFECYCLE_BASE_CASH) == getCashBalance(player)) &&
++            (!hasObjVar(player, LIFECYCLE_BASE_BANK) ||
++                getIntObjVar(player, LIFECYCLE_BASE_BANK) == getBankBalance(player)) &&
++            (!hasObjVar(player, LIFECYCLE_BASE_XP) ||
++                getIntObjVar(player, LIFECYCLE_BASE_XP) ==
++                    getExperiencePoints(player, CRAFTING_XP_TYPE)) &&
++            (!hasObjVar(player, LIFECYCLE_BASE_POINTS) ||
++                getIntObjVar(player, LIFECYCLE_BASE_POINTS) ==
++                    skill.getAvailableSkillPoints(player)) &&
++            (!hasObjVar(player, LIFECYCLE_BASE_CAP) ||
++                getIntObjVar(player, LIFECYCLE_BASE_CAP) ==
++                    getExperienceCap(player, CRAFTING_XP_TYPE)) &&
++            (!hasObjVar(player, LIFECYCLE_BASE_NOVICE) ||
++                getIntObjVar(player, LIFECYCLE_BASE_NOVICE) ==
++                    (hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0)) &&
++            (!hasObjVar(player, LIFECYCLE_BASE_SKILL) ||
++                getIntObjVar(player, LIFECYCLE_BASE_SKILL) ==
++                    (hasSkill(player, CRAFTING_SKILL) ? 1 : 0));
++    }
++
++    private String getLifecycleMarkerState(obj_id player) throws InterruptedException
++    {
++        if (!hasAnyLifecycleMarker(player))
++        {
++            return "none";
++        }
++        String attemptId = getLifecycleAttemptId(player);
++        String lifecycleId = getLifecycleId(player);
++        String storedState = hasObjVar(player, LIFECYCLE_STATE) ?
++            getStringObjVar(player, LIFECYCLE_STATE) : "missing";
++        if (isValidLifecycleId(attemptId) && "none".equals(lifecycleId) &&
++            ("missing".equals(storedState) || "establishing".equals(storedState) ||
++                "established".equals(storedState)))
++        {
++            return "partial";
++        }
++        if (attemptId.equals(lifecycleId) && "established".equals(storedState) &&
++            isLifecycleBaselineComplete(player))
++        {
++            return "complete";
++        }
++        return "corrupt";
++    }
++
++    private boolean isLifecycleEstablished(obj_id player, String lifecycleId)
++        throws InterruptedException
++    {
++        return isValidLifecycleId(lifecycleId) && "complete".equals(getLifecycleMarkerState(player)) &&
++            lifecycleId.equals(getLifecycleAttemptId(player)) &&
++            lifecycleId.equals(getLifecycleId(player));
++    }
++
++    private String rollbackLifecycleEstablishment(
++        obj_id player,
++        String lifecycleId,
++        String cause) throws InterruptedException
++    {
++        if (lifecycleId.equals(getLifecycleAttemptId(player)) &&
++            !hasAnyOperationMarker(player) && !utils.hasScriptVar(player, RELOG_NONCE) &&
++            !utils.hasScriptVar(player, RESTART_NONCE) &&
++            partialLifecycleBaselineMatchesCurrent(player))
++        {
++            removeObjVar(player, LIFECYCLE_ROOT);
++        }
++        boolean rolledBack = !hasAnyLifecycleMarker(player);
++        return "error=" + cause + " rolledBack=" + rolledBack +
++            " lifecycleAttemptId=" + getLifecycleAttemptId(player) +
++            " lifecycleId=" + getLifecycleId(player) +
++            " lifecycleMarkerState=" + getLifecycleMarkerState(player);
++    }
++
++    private String validateLifecycle(obj_id player, String lifecycleId)
++        throws InterruptedException
++    {
++        if (!isValidLifecycleId(lifecycleId))
++        {
++            return "error=invalidLifecycleId";
++        }
++        if (!isLifecycleEstablished(player, lifecycleId))
++        {
++            return "error=lifecycleNotComplete lifecycleAttemptId=" +
++                getLifecycleAttemptId(player) + " lifecycleId=" + getLifecycleId(player) +
++                " suppliedLifecycleId=" + lifecycleId + " lifecycleMarkerState=" +
++                getLifecycleMarkerState(player) + " lifecycleBaselineComplete=" +
++                isLifecycleBaselineComplete(player);
++        }
++        return null;
++    }
++
++    private dictionary buildOperationParams(
++        String operationId,
++        String operationKind,
++        String lifecycleId)
++    {
++        dictionary params = new dictionary();
++        params.put(OP_PARAM_ID, operationId);
++        params.put(OP_PARAM_KIND, operationKind);
++        params.put(LIFECYCLE_PARAM_ID, lifecycleId);
++        return params;
++    }
++
++    private boolean hasAnyOperationMarker(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, OP_ROOT) || hasObjVar(player, OP_ATTEMPT_ID) ||
++            hasObjVar(player, OP_ID) || hasObjVar(player, OP_KIND) ||
++            hasObjVar(player, OP_STATE) || hasObjVar(player, OP_UPDATED) ||
++            hasObjVar(player, OP_LIFECYCLE_ID) || hasObjVar(player, OP_TRAINER_OID) ||
++            hasObjVar(player, OP_SKILL_NAME) || hasObjVar(player, OP_PRE_CREDITS) ||
++            hasObjVar(player, OP_COST) ||
++            hasObjVar(player, OP_PRE_CASH) || hasObjVar(player, OP_PRE_BANK) ||
++            hasObjVar(player, OP_PRE_XP) || hasObjVar(player, OP_PRE_POINTS) ||
++            hasObjVar(player, OP_PRE_CAP) || hasObjVar(player, OP_PRE_NOVICE) ||
++            hasObjVar(player, OP_PRE_SKILL) || hasObjVar(player, OP_PROTOCOL_VERSION) ||
++            hasObjVar(player, OP_REFUND_GENERATION) ||
++            hasObjVar(player, OP_REFUND_ATTEMPT_KEY) ||
++            hasObjVar(player, OP_REFUND_RETRY_CONSUMED) ||
++            hasObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) ||
++            hasObjVar(player, OP_ACCOUNTING_ACCOUNT) ||
++            hasObjVar(player, OP_ACCOUNTING_OUTCOME);
++    }
++
++    private boolean isOperationAttemptOnly(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, OP_ATTEMPT_ID) && !hasObjVar(player, OP_ID) &&
++            !hasObjVar(player, OP_KIND) && !hasObjVar(player, OP_STATE) &&
++            !hasObjVar(player, OP_UPDATED) && !hasObjVar(player, OP_LIFECYCLE_ID) &&
++            !hasObjVar(player, OP_TRAINER_OID) && !hasObjVar(player, OP_SKILL_NAME) &&
++            !hasObjVar(player, OP_COST) && !hasObjVar(player, OP_PRE_CREDITS) &&
++            !hasObjVar(player, OP_PRE_CASH) && !hasObjVar(player, OP_PRE_BANK) &&
++            !hasObjVar(player, OP_PRE_XP) && !hasObjVar(player, OP_PRE_POINTS) &&
++            !hasObjVar(player, OP_PRE_CAP) && !hasObjVar(player, OP_PRE_NOVICE) &&
++            !hasObjVar(player, OP_PRE_SKILL) && !hasObjVar(player, OP_PROTOCOL_VERSION) &&
++            !hasObjVar(player, OP_REFUND_GENERATION) &&
++            !hasObjVar(player, OP_REFUND_ATTEMPT_KEY) &&
++            !hasObjVar(player, OP_REFUND_RETRY_CONSUMED) &&
++            !hasObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) &&
++            !hasObjVar(player, OP_ACCOUNTING_ACCOUNT) &&
++            !hasObjVar(player, OP_ACCOUNTING_OUTCOME);
++    }
++
++    private boolean isOperationMarkerComplete(obj_id player) throws InterruptedException
++    {
++        if (!hasObjVar(player, OP_ATTEMPT_ID) || !hasObjVar(player, OP_ID) ||
++            !hasObjVar(player, OP_KIND) || !hasObjVar(player, OP_STATE) ||
++            !hasObjVar(player, OP_UPDATED) || !hasObjVar(player, OP_LIFECYCLE_ID) ||
++            !hasObjVar(player, OP_TRAINER_OID) || !hasObjVar(player, OP_SKILL_NAME) ||
++            !hasObjVar(player, OP_COST) ||
++            !hasObjVar(player, OP_PRE_CASH) || !hasObjVar(player, OP_PRE_BANK) ||
++            !hasObjVar(player, OP_PRE_CREDITS) || !hasObjVar(player, OP_PRE_XP) ||
++            !hasObjVar(player, OP_PRE_POINTS) || !hasObjVar(player, OP_PRE_CAP) ||
++            !hasObjVar(player, OP_PRE_NOVICE) || !hasObjVar(player, OP_PRE_SKILL) ||
++            !hasObjVar(player, OP_PROTOCOL_VERSION) ||
++            !hasObjVar(player, OP_REFUND_GENERATION) ||
++            !hasObjVar(player, OP_REFUND_ATTEMPT_KEY) ||
++            !hasObjVar(player, OP_REFUND_RETRY_CONSUMED) ||
++            !hasObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) ||
++            !hasObjVar(player, OP_ACCOUNTING_ACCOUNT) ||
++            !hasObjVar(player, OP_ACCOUNTING_OUTCOME))
++        {
++            return false;
++        }
++        String attemptId = getStringObjVar(player, OP_ATTEMPT_ID);
++        String operationId = getStringObjVar(player, OP_ID);
++        String state = getStringObjVar(player, OP_STATE);
++        return isValidOperationId(attemptId) && attemptId.equals(operationId) &&
++            getIntObjVar(player, OP_UPDATED) > 0 &&
++            !"reserving".equals(state);
++    }
++
++    private boolean operationReservationEquals(
++        obj_id player,
++        String operationId,
++        String operationKind,
++        String lifecycleId,
++        String trainerOid,
++        String skillName,
++        int credits,
++        int cash,
++        int bank,
++        int xp,
++        int points,
++        int cap,
++        int novice,
++        int trained) throws InterruptedException
++    {
++        return hasObjVar(player, OP_ATTEMPT_ID) &&
++            operationId.equals(getStringObjVar(player, OP_ATTEMPT_ID)) &&
++            hasObjVar(player, OP_KIND) && operationKind.equals(getStringObjVar(player, OP_KIND)) &&
++            hasObjVar(player, OP_LIFECYCLE_ID) &&
++                lifecycleId.equals(getStringObjVar(player, OP_LIFECYCLE_ID)) &&
++            hasObjVar(player, OP_TRAINER_OID) &&
++                trainerOid.equals(getStringObjVar(player, OP_TRAINER_OID)) &&
++            hasObjVar(player, OP_SKILL_NAME) &&
++                skillName.equals(getStringObjVar(player, OP_SKILL_NAME)) &&
++            hasObjVar(player, OP_COST) && getIntObjVar(player, OP_COST) == CRAFTING_TRAINER_COST &&
++            hasObjVar(player, OP_PRE_CREDITS) &&
++                getIntObjVar(player, OP_PRE_CREDITS) == credits &&
++            hasObjVar(player, OP_PRE_CASH) && getIntObjVar(player, OP_PRE_CASH) == cash &&
++            hasObjVar(player, OP_PRE_BANK) && getIntObjVar(player, OP_PRE_BANK) == bank &&
++            hasObjVar(player, OP_PRE_XP) && getIntObjVar(player, OP_PRE_XP) == xp &&
++            hasObjVar(player, OP_PRE_POINTS) && getIntObjVar(player, OP_PRE_POINTS) == points &&
++            hasObjVar(player, OP_PRE_CAP) && getIntObjVar(player, OP_PRE_CAP) == cap &&
++            hasObjVar(player, OP_PRE_NOVICE) && getIntObjVar(player, OP_PRE_NOVICE) == novice &&
++            hasObjVar(player, OP_PRE_SKILL) && getIntObjVar(player, OP_PRE_SKILL) == trained &&
++            hasObjVar(player, OP_PROTOCOL_VERSION) &&
++                getIntObjVar(player, OP_PROTOCOL_VERSION) == PROTOCOL_VERSION &&
++            hasObjVar(player, OP_REFUND_GENERATION) &&
++                getIntObjVar(player, OP_REFUND_GENERATION) == 0 &&
++            hasObjVar(player, OP_REFUND_ATTEMPT_KEY) &&
++                "none".equals(getStringObjVar(player, OP_REFUND_ATTEMPT_KEY)) &&
++            hasObjVar(player, OP_REFUND_RETRY_CONSUMED) &&
++                getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 0 &&
++            hasObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) &&
++                "none".equals(getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            hasObjVar(player, OP_ACCOUNTING_ACCOUNT) &&
++                "none".equals(getStringObjVar(player, OP_ACCOUNTING_ACCOUNT)) &&
++            hasObjVar(player, OP_ACCOUNTING_OUTCOME) &&
++                ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME));
++    }
++
++    private boolean operationPreimageMatchesCurrent(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, OP_PRE_CREDITS) &&
++            getIntObjVar(player, OP_PRE_CREDITS) == getTotalMoney(player) &&
++            hasObjVar(player, OP_PRE_CASH) &&
++            getIntObjVar(player, OP_PRE_CASH) == getCashBalance(player) &&
++            hasObjVar(player, OP_PRE_BANK) &&
++            getIntObjVar(player, OP_PRE_BANK) == getBankBalance(player) &&
++            hasObjVar(player, OP_PRE_XP) &&
++            getIntObjVar(player, OP_PRE_XP) == getExperiencePoints(player, CRAFTING_XP_TYPE) &&
++            hasObjVar(player, OP_PRE_POINTS) &&
++            getIntObjVar(player, OP_PRE_POINTS) == skill.getAvailableSkillPoints(player) &&
++            hasObjVar(player, OP_PRE_CAP) &&
++            getIntObjVar(player, OP_PRE_CAP) == getExperienceCap(player, CRAFTING_XP_TYPE) &&
++            hasObjVar(player, OP_PRE_NOVICE) &&
++            getIntObjVar(player, OP_PRE_NOVICE) ==
++                (hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0) &&
++            hasObjVar(player, OP_PRE_SKILL) &&
++            getIntObjVar(player, OP_PRE_SKILL) == (hasSkill(player, CRAFTING_SKILL) ? 1 : 0);
++    }
++
++    private boolean partialOperationPreimageMatchesCurrent(obj_id player)
++        throws InterruptedException
++    {
++        return (!hasObjVar(player, OP_PRE_CREDITS) ||
++                getIntObjVar(player, OP_PRE_CREDITS) == getTotalMoney(player)) &&
++            (!hasObjVar(player, OP_PRE_CASH) ||
++                getIntObjVar(player, OP_PRE_CASH) == getCashBalance(player)) &&
++            (!hasObjVar(player, OP_PRE_BANK) ||
++                getIntObjVar(player, OP_PRE_BANK) == getBankBalance(player)) &&
++            (!hasObjVar(player, OP_PRE_XP) ||
++                getIntObjVar(player, OP_PRE_XP) == getExperiencePoints(player, CRAFTING_XP_TYPE)) &&
++            (!hasObjVar(player, OP_PRE_POINTS) ||
++                getIntObjVar(player, OP_PRE_POINTS) == skill.getAvailableSkillPoints(player)) &&
++            (!hasObjVar(player, OP_PRE_CAP) ||
++                getIntObjVar(player, OP_PRE_CAP) == getExperienceCap(player, CRAFTING_XP_TYPE)) &&
++            (!hasObjVar(player, OP_PRE_NOVICE) ||
++                getIntObjVar(player, OP_PRE_NOVICE) ==
++                    (hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0)) &&
++            (!hasObjVar(player, OP_PRE_SKILL) ||
++                getIntObjVar(player, OP_PRE_SKILL) ==
++                    (hasSkill(player, CRAFTING_SKILL) ? 1 : 0));
++    }
++
++    private boolean hasExactOperationReservationWritePrefix(
++        obj_id player,
++        String operationId) throws InterruptedException
++    {
++        if (!isValidOperationId(operationId) ||
++            !hasObjVar(player, OP_ATTEMPT_ID) ||
++            !operationId.equals(getStringObjVar(player, OP_ATTEMPT_ID)))
++        {
++            return false;
++        }
++
++        boolean statePresent = hasObjVar(player, OP_STATE);
++        boolean kindPresent = hasObjVar(player, OP_KIND);
++        boolean updatedPresent = hasObjVar(player, OP_UPDATED);
++        boolean lifecyclePresent = hasObjVar(player, OP_LIFECYCLE_ID);
++        boolean trainerPresent = hasObjVar(player, OP_TRAINER_OID);
++        boolean skillPresent = hasObjVar(player, OP_SKILL_NAME);
++        boolean costPresent = hasObjVar(player, OP_COST);
++        boolean preCreditsPresent = hasObjVar(player, OP_PRE_CREDITS);
++        boolean preCashPresent = hasObjVar(player, OP_PRE_CASH);
++        boolean preBankPresent = hasObjVar(player, OP_PRE_BANK);
++        boolean preXpPresent = hasObjVar(player, OP_PRE_XP);
++        boolean prePointsPresent = hasObjVar(player, OP_PRE_POINTS);
++        boolean preCapPresent = hasObjVar(player, OP_PRE_CAP);
++        boolean preNovicePresent = hasObjVar(player, OP_PRE_NOVICE);
++        boolean preSkillPresent = hasObjVar(player, OP_PRE_SKILL);
++        boolean protocolPresent = hasObjVar(player, OP_PROTOCOL_VERSION);
++        boolean refundGenerationPresent = hasObjVar(player, OP_REFUND_GENERATION);
++        boolean refundAttemptKeyPresent = hasObjVar(player, OP_REFUND_ATTEMPT_KEY);
++        boolean refundRetryConsumedPresent = hasObjVar(player, OP_REFUND_RETRY_CONSUMED);
++        boolean accountingAttemptKeyPresent = hasObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY);
++        boolean accountingAccountPresent = hasObjVar(player, OP_ACCOUNTING_ACCOUNT);
++        boolean accountingOutcomePresent = hasObjVar(player, OP_ACCOUNTING_OUTCOME);
++        boolean idPresent = hasObjVar(player, OP_ID);
++
++        if ((kindPresent && !statePresent) ||
++            (updatedPresent && !kindPresent) ||
++            (lifecyclePresent && !updatedPresent) ||
++            (trainerPresent && !lifecyclePresent) ||
++            (skillPresent && !trainerPresent) ||
++            (costPresent && !skillPresent) ||
++            (preCreditsPresent && !costPresent) ||
++            (preCashPresent && !preCreditsPresent) ||
++            (preBankPresent && !preCashPresent) ||
++            (preXpPresent && !preBankPresent) ||
++            (prePointsPresent && !preXpPresent) ||
++            (preCapPresent && !prePointsPresent) ||
++            (preNovicePresent && !preCapPresent) ||
++            (preSkillPresent && !preNovicePresent) ||
++            (protocolPresent && !preSkillPresent) ||
++            (refundGenerationPresent && !protocolPresent) ||
++            (refundAttemptKeyPresent && !refundGenerationPresent) ||
++            (refundRetryConsumedPresent && !refundAttemptKeyPresent) ||
++            (accountingAttemptKeyPresent && !refundRetryConsumedPresent) ||
++            (accountingAccountPresent && !accountingAttemptKeyPresent) ||
++            (accountingOutcomePresent && !accountingAccountPresent) ||
++            (idPresent && !accountingOutcomePresent))
++        {
++            return false;
++        }
++        if (!statePresent)
++        {
++            return isOperationAttemptOnly(player);
++        }
++
++        String operationState = getStringObjVar(player, OP_STATE);
++        if (!("reserving".equals(operationState) || "reserved".equals(operationState)) ||
++            ("reserved".equals(operationState) && !idPresent))
++        {
++            return false;
++        }
++        String operationKind = kindPresent ? getStringObjVar(player, OP_KIND) : "missing";
++        if (kindPresent && !("fund".equals(operationKind) ||
++                "drain".equals(operationKind) || "purchase".equals(operationKind)))
++        {
++            return false;
++        }
++        if ((updatedPresent && getIntObjVar(player, OP_UPDATED) <= 0) ||
++            (lifecyclePresent &&
++                !isLifecycleEstablished(player, getStringObjVar(player, OP_LIFECYCLE_ID))) ||
++            (trainerPresent &&
++                !("purchase".equals(operationKind) ?
++                    isValidPositiveTrainerOid(getStringObjVar(player, OP_TRAINER_OID)) :
++                    "none".equals(getStringObjVar(player, OP_TRAINER_OID)))) ||
++            (skillPresent &&
++                !("purchase".equals(operationKind) ?
++                    CRAFTING_SKILL.equals(getStringObjVar(player, OP_SKILL_NAME)) :
++                    "none".equals(getStringObjVar(player, OP_SKILL_NAME)))) ||
++            (costPresent && getIntObjVar(player, OP_COST) != CRAFTING_TRAINER_COST) ||
++            !partialOperationPreimageMatchesCurrent(player) ||
++            (protocolPresent && getIntObjVar(player, OP_PROTOCOL_VERSION) != PROTOCOL_VERSION) ||
++            (refundGenerationPresent && getIntObjVar(player, OP_REFUND_GENERATION) != 0) ||
++            (refundAttemptKeyPresent &&
++                !"none".equals(getStringObjVar(player, OP_REFUND_ATTEMPT_KEY))) ||
++            (refundRetryConsumedPresent &&
++                getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) != 0) ||
++            (accountingAttemptKeyPresent &&
++                !"none".equals(getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY))) ||
++            (accountingAccountPresent &&
++                !"none".equals(getStringObjVar(player, OP_ACCOUNTING_ACCOUNT))) ||
++            (accountingOutcomePresent &&
++                !ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME))) ||
++            (idPresent && !operationId.equals(getStringObjVar(player, OP_ID))))
++        {
++            return false;
++        }
++        return true;
++    }
++
++    private String validateExactPurchaseOperation(
++        obj_id player,
++        String operationId,
++        String lifecycleId) throws InterruptedException
++    {
++        String lifecycleError = validateLifecycle(player, lifecycleId);
++        if (lifecycleError != null)
++        {
++            return lifecycleError;
++        }
++        if (!isValidOperationId(operationId) || !isValidLifecycleId(lifecycleId) ||
++            !isOperationMarkerComplete(player) ||
++            !operationId.equals(getStringObjVar(player, OP_ATTEMPT_ID)) ||
++            !operationId.equals(getStringObjVar(player, OP_ID)) ||
++            !"purchase".equals(getStringObjVar(player, OP_KIND)) ||
++            getIntObjVar(player, OP_UPDATED) <= 0 ||
++            !lifecycleId.equals(getStringObjVar(player, OP_LIFECYCLE_ID)) ||
++            !CRAFTING_SKILL.equals(getStringObjVar(player, OP_SKILL_NAME)) ||
++            getIntObjVar(player, OP_COST) != CRAFTING_TRAINER_COST ||
++            getIntObjVar(player, OP_PROTOCOL_VERSION) != PROTOCOL_VERSION ||
++            !isValidPositiveTrainerOid(getStringObjVar(player, OP_TRAINER_OID)))
++        {
++            return "error=operationCorrelationMismatch " + buildOperationStatus(player);
++        }
++        if (!hasExactPurchasePreimageLineage(player))
++        {
++            return "error=operationPreimageLineageMismatch " + buildCraftingStatus(player);
++        }
++        return null;
++    }
++
++    private boolean hasExactPurchasePreimageLineage(obj_id player)
++        throws InterruptedException
++    {
++        int cost = getIntObjVar(player, OP_COST);
++        int preCredits = getIntObjVar(player, OP_PRE_CREDITS);
++        int preCash = getIntObjVar(player, OP_PRE_CASH);
++        int preBank = getIntObjVar(player, OP_PRE_BANK);
++        int preXp = getIntObjVar(player, OP_PRE_XP);
++        int prePoints = getIntObjVar(player, OP_PRE_POINTS);
++        int preCap = getIntObjVar(player, OP_PRE_CAP);
++        int preNovice = getIntObjVar(player, OP_PRE_NOVICE);
++        int preSkill = getIntObjVar(player, OP_PRE_SKILL);
++        int baseCash = getIntObjVar(player, LIFECYCLE_BASE_CASH);
++        int baseBank = getIntObjVar(player, LIFECYCLE_BASE_BANK);
++        int baseXp = getIntObjVar(player, LIFECYCLE_BASE_XP);
++        int basePoints = getIntObjVar(player, LIFECYCLE_BASE_POINTS);
++        int baseCap = getIntObjVar(player, LIFECYCLE_BASE_CAP);
++        int baseNovice = getIntObjVar(player, LIFECYCLE_BASE_NOVICE);
++        int baseSkill = getIntObjVar(player, LIFECYCLE_BASE_SKILL);
++        int novicePointCost = skill.getSkillPointCost(CRAFTING_NOVICE_SKILL);
++        int targetPointCost = skill.getSkillPointCost(CRAFTING_SKILL);
++        int expectedPrePoints = basePoints - (baseNovice == 0 ? novicePointCost : 0);
++        return cost == CRAFTING_TRAINER_COST && baseCash >= 0 && baseBank >= 0 &&
++            preCredits >= cost && preCash >= 0 && preBank >= cost &&
++            (long)preCredits == (long)preCash + (long)preBank &&
++            preCash == baseCash && (long)preBank == (long)baseBank + (long)cost &&
++            (long)preXp == (long)baseXp + (long)CRAFTING_XP_COST &&
++            novicePointCost >= 0 && targetPointCost >= 0 &&
++            prePoints == expectedPrePoints && prePoints >= targetPointCost &&
++            preCap == 1500 && (baseNovice != 1 || baseCap == preCap) &&
++            (baseNovice == 0 || baseNovice == 1) && baseSkill == 0 &&
++            preNovice == 1 && preSkill == 0;
++    }
++
++    private boolean hasExactPreparedCraftingVector(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasSkill(player, CRAFTING_NOVICE_SKILL) ||
++            hasSkill(player, CRAFTING_SKILL) ||
++            !hasCommand(player, CRAFTING_VECTOR_COMMANDS[0]) ||
++            hasCommand(player, CRAFTING_VECTOR_COMMANDS[1]) ||
++            (hasObjVar(player, "newbie.hasSkill") && !hasObjVar(player, "newbie.trained")))
++        {
++            return false;
++        }
++        for (int i = 0; i < CRAFTING_VECTOR_MODS.length; ++i)
++        {
++            if (getSkillStatisticModifier(player, CRAFTING_VECTOR_MODS[i]) !=
++                CRAFTING_VECTOR_MOD_VALUES[i] - CRAFTING_PURCHASE_MOD_DELTAS[i])
++            {
++                return false;
++            }
++        }
++        String[] groupIds = dataTableGetStringColumnNoDefaults(SCHEMATIC_GROUP_TABLE, "GroupId");
++        String[] schematicNames = dataTableGetStringColumnNoDefaults(
++            SCHEMATIC_GROUP_TABLE,
++            "SchematicName");
++        if (groupIds == null || schematicNames == null || groupIds.length != schematicNames.length)
++        {
++            return false;
++        }
++        java.util.Vector<String> expectedSchematics = new java.util.Vector<String>();
++        for (int i = 0; i < groupIds.length; ++i)
++        {
++            if (contains(CRAFTING_VECTOR_SCHEMATIC_GROUPS, groupIds[i]))
++            {
++                String schematicName = schematicNames[i];
++                if (schematicName == null || schematicName.length() == 0 ||
++                    expectedSchematics.contains(schematicName))
++                {
++                    return false;
++                }
++                expectedSchematics.add(schematicName);
++                boolean shouldOwn = !contains(CRAFTING_PURCHASE_SCHEMATICS, schematicName);
++                if (hasSchematic(player, schematicName) != shouldOwn)
++                {
++                    return false;
++                }
++            }
++        }
++        return expectedSchematics.size() == CRAFTING_VECTOR_SCHEMATIC_COUNT;
++    }
++
++    private boolean hasExactPurchasePreGameplayVector(obj_id player)
++        throws InterruptedException
++    {
++        return getExperiencePoints(player, CRAFTING_XP_TYPE) ==
++                getIntObjVar(player, OP_PRE_XP) &&
++            skill.getAvailableSkillPoints(player) == getIntObjVar(player, OP_PRE_POINTS) &&
++            getExperienceCap(player, CRAFTING_XP_TYPE) == getIntObjVar(player, OP_PRE_CAP) &&
++            (hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0) ==
++                getIntObjVar(player, OP_PRE_NOVICE) &&
++            (hasSkill(player, CRAFTING_SKILL) ? 1 : 0) ==
++                getIntObjVar(player, OP_PRE_SKILL) &&
++            hasExactPreparedCraftingVector(player);
++    }
++
++    private boolean hasExactPurchasePreVector(obj_id player) throws InterruptedException
++    {
++        return hasExactPurchasePreimageLineage(player) &&
++            getCashBalance(player) == getIntObjVar(player, OP_PRE_CASH) &&
++            getBankBalance(player) == getIntObjVar(player, OP_PRE_BANK) &&
++            getTotalMoney(player) == getIntObjVar(player, OP_PRE_CREDITS) &&
++            hasExactPurchasePreGameplayVector(player) &&
++            !utils.hasScriptVar(player, RELOG_NONCE) &&
++            !utils.hasScriptVar(player, RESTART_NONCE);
++    }
++
++    private boolean hasExactPurchaseDebitVector(obj_id player) throws InterruptedException
++    {
++        int cost = getIntObjVar(player, OP_COST);
++        int preBank = getIntObjVar(player, OP_PRE_BANK);
++        int bankDebit = preBank < cost ? preBank : cost;
++        int cashDebit = cost - bankDebit;
++        return hasExactPurchasePreimageLineage(player) &&
++            getCashBalance(player) == getIntObjVar(player, OP_PRE_CASH) - cashDebit &&
++            getBankBalance(player) == preBank - bankDebit &&
++            getTotalMoney(player) == getIntObjVar(player, OP_PRE_CREDITS) - cost &&
++            hasExactPurchasePreGameplayVector(player) &&
++            !utils.hasScriptVar(player, RELOG_NONCE) &&
++            !utils.hasScriptVar(player, RESTART_NONCE);
++    }
++
++    private boolean hasExactPurchaseRefundVector(obj_id player) throws InterruptedException
++    {
++        return hasExactPurchasePreVector(player);
++    }
++
++    private boolean hasExactPurchaseHeldVector(obj_id player) throws InterruptedException
++    {
++        int cost = getIntObjVar(player, OP_COST);
++        int preBank = getIntObjVar(player, OP_PRE_BANK);
++        int bankDebit = preBank < cost ? preBank : cost;
++        int cashDebit = cost - bankDebit;
++        return hasExactPurchasePreimageLineage(player) &&
++            getCashBalance(player) == getIntObjVar(player, OP_PRE_CASH) - cashDebit &&
++            getBankBalance(player) == preBank - bankDebit &&
++            getTotalMoney(player) == getIntObjVar(player, OP_PRE_CREDITS) - cost &&
++            getExperiencePoints(player, CRAFTING_XP_TYPE) ==
++                getIntObjVar(player, OP_PRE_XP) - CRAFTING_XP_COST &&
++            skill.getAvailableSkillPoints(player) == getIntObjVar(player, OP_PRE_POINTS) -
++                skill.getSkillPointCost(CRAFTING_SKILL) &&
++            getExperienceCap(player, CRAFTING_XP_TYPE) == 2000 &&
++            hasExactPersistentCraftingGrantVector(player) &&
++            !utils.hasScriptVar(player, RELOG_NONCE) &&
++            !utils.hasScriptVar(player, RESTART_NONCE);
++    }
++
++    private dictionary buildExactPurchaseCallbackParams(
++        obj_id player,
++        obj_id trainer,
++        int returnCode) throws InterruptedException
++    {
++        dictionary callback = new dictionary();
++        callback.put("skillName", CRAFTING_SKILL);
++        callback.put(OP_PARAM_ID, getStringObjVar(player, OP_ID));
++        callback.put(OP_PARAM_KIND, "purchase");
++        callback.put(LIFECYCLE_PARAM_ID, getStringObjVar(player, OP_LIFECYCLE_ID));
++        callback.put(OP_PROTOCOL_PARAM_VERSION, PROTOCOL_VERSION);
++        callback.put(money.DICT_PLAYER_ID, player);
++        callback.put(money.DICT_TARGET_ID, trainer);
++        callback.put(money.DICT_AMOUNT, CRAFTING_TRAINER_COST);
++        callback.put(money.DICT_TOTAL, CRAFTING_TRAINER_COST);
++        callback.put(money.DICT_HANDLER, "attemptedPayment");
++        callback.put(money.DICT_PAY_HANDLER, "attemptedPayment");
++        callback.put(money.DICT_NOTIFY, true);
++        callback.put(money.DICT_CODE, returnCode);
++        return callback;
++    }
++
++    private String buildPhaseAAttemptKey(String operationId, String kind, int generation)
++    {
++        return operationId + "." + kind + "." + generation;
++    }
++
++    private boolean isValidRefundAttemptKey(
++        obj_id player,
++        int generation,
++        String attemptKey) throws InterruptedException
++    {
++        return (generation == 1 || generation == 2) && attemptKey != null &&
++            attemptKey.equals(buildPhaseAAttemptKey(
++                getStringObjVar(player, OP_ID), "refund", generation));
++    }
++
++    private boolean isExactPersistedRefundState(obj_id player, String operationState)
++        throws InterruptedException
++    {
++        int generation = getIntObjVar(player, OP_REFUND_GENERATION);
++        String attemptKey = getStringObjVar(player, OP_REFUND_ATTEMPT_KEY);
++        boolean initialState = "refundInitialClaiming".equals(operationState) ||
++            "refundInitialDispatching".equals(operationState) ||
++            "refundInitialPending".equals(operationState) ||
++            "refundInitialFailed".equals(operationState);
++        boolean recoveryState = "refundRecoveryClaiming".equals(operationState) ||
++            "refundRecoveryDispatching".equals(operationState) ||
++            "refundRecoveryPending".equals(operationState) ||
++            "refundRecoveryFailed".equals(operationState);
++        return ((generation == 1 && initialState &&
++                    getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 0) ||
++                (generation == 2 && recoveryState &&
++                    getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 1)) &&
++            isValidRefundAttemptKey(player, generation, attemptKey) &&
++            "none".equals(getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            "none".equals(getStringObjVar(player, OP_ACCOUNTING_ACCOUNT)) &&
++            ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME));
++    }
++
++    private void putExactRefundParams(obj_id player, dictionary params)
++        throws InterruptedException
++    {
++        params.put(REFUND_PARAM_GENERATION, getIntObjVar(player, OP_REFUND_GENERATION));
++        params.put(REFUND_PARAM_ATTEMPT_KEY, getStringObjVar(player, OP_REFUND_ATTEMPT_KEY));
++        params.put(
++            REFUND_PARAM_RETRY_CONSUMED,
++            getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) != 0);
++    }
++
++    private boolean claimExactRecoveryRefund(
++        obj_id player,
++        String operationId,
++        String lifecycleId) throws InterruptedException
++    {
++        if (validateExactPurchaseOperation(player, operationId, lifecycleId) != null ||
++            !"refundInitialFailed".equals(getStringObjVar(player, OP_STATE)) ||
++            !isExactPersistedRefundState(player, "refundInitialFailed") ||
++            !hasExactPurchaseDebitVector(player))
++        {
++            return false;
++        }
++        String recoveryKey = buildPhaseAAttemptKey(operationId, "refund", 2);
++        setObjVar(player, OP_REFUND_GENERATION, 2);
++        setObjVar(player, OP_REFUND_ATTEMPT_KEY, recoveryKey);
++        setObjVar(player, OP_REFUND_RETRY_CONSUMED, 1);
++        setObjVar(player, OP_STATE, "refundRecoveryClaiming");
++        setObjVar(player, OP_UPDATED, getCalendarTime());
++        return "refundRecoveryClaiming".equals(getStringObjVar(player, OP_STATE)) &&
++            isExactPersistedRefundState(player, "refundRecoveryClaiming") &&
++            hasExactPurchaseDebitVector(player);
++    }
++
++    private boolean dispatchExactClaimedRefund(
++        obj_id player,
++        obj_id trainer,
++        dictionary params,
++        String operationId,
++        String lifecycleId,
++        int generation) throws InterruptedException
++    {
++        String claimingState = generation == 1 ?
++            "refundInitialClaiming" : "refundRecoveryClaiming";
++        if (validateExactPurchaseOperation(player, operationId, lifecycleId) != null ||
++            !claimingState.equals(getStringObjVar(player, OP_STATE)) ||
++            !isExactPersistedRefundState(player, claimingState) ||
++            params.getInt(REFUND_PARAM_GENERATION) != generation ||
++            !getStringObjVar(player, OP_REFUND_ATTEMPT_KEY).equals(
++                params.getString(REFUND_PARAM_ATTEMPT_KEY)) ||
++            params.getBoolean(REFUND_PARAM_RETRY_CONSUMED) != (generation == 2) ||
++            !hasExactPurchaseDebitVector(player))
++        {
++            return false;
++        }
++        // The runtime only requeues a trainer-owned dispatch message.  The
++        // trainer handler commits Dispatching before JNI, so a lost message
++        // leaves the durable Claiming cut safe to resume without ABA.
++        return messageTo(
++            trainer,
++            "precuPhaseAResumeRefund",
++            params,
++            0,
++            isObjectPersisted(trainer));
++    }
++
++    private boolean hasExactNeutralRefundProvenance(obj_id player)
++        throws InterruptedException
++    {
++        return getIntObjVar(player, OP_REFUND_GENERATION) == 0 &&
++            "none".equals(getStringObjVar(player, OP_REFUND_ATTEMPT_KEY)) &&
++            getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 0;
++    }
++
++    private boolean hasExactPendingAccountingProvenance(obj_id player)
++        throws InterruptedException
++    {
++        String operationId = getStringObjVar(player, OP_ID);
++        return hasExactPurchaseHeldVector(player) &&
++            hasExactNeutralRefundProvenance(player) &&
++            buildPhaseAAttemptKey(operationId, "accounting", 1).equals(
++                getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            money.ACCT_SKILL_TRAINING.equals(
++                getStringObjVar(player, OP_ACCOUNTING_ACCOUNT)) &&
++            ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME));
++    }
++
++    private boolean hasExactAccountingSuccessProvenance(obj_id player)
++        throws InterruptedException
++    {
++        String operationId = getStringObjVar(player, OP_ID);
++        return hasExactPurchaseHeldVector(player) &&
++            hasExactNeutralRefundProvenance(player) &&
++            buildPhaseAAttemptKey(operationId, "accounting", 1).equals(
++                getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            money.ACCT_SKILL_TRAINING.equals(
++                getStringObjVar(player, OP_ACCOUNTING_ACCOUNT)) &&
++            ACCOUNTING_OUTCOME_SUCCESS.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME));
++    }
++
++    private boolean claimExactAccountingRequest(
++        obj_id player,
++        String operationId,
++        String lifecycleId) throws InterruptedException
++    {
++        if (validateExactPurchaseOperation(player, operationId, lifecycleId) != null ||
++            !"purchaseApplying".equals(getStringObjVar(player, OP_STATE)) ||
++            !hasExactPurchaseHeldVector(player) || !hasExactNeutralRefundProvenance(player) ||
++            !"none".equals(getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY)) ||
++            !"none".equals(getStringObjVar(player, OP_ACCOUNTING_ACCOUNT)) ||
++            !ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME)))
++        {
++            return false;
++        }
++        String accountingKey = buildPhaseAAttemptKey(operationId, "accounting", 1);
++        setObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY, accountingKey);
++        setObjVar(player, OP_ACCOUNTING_ACCOUNT, money.ACCT_SKILL_TRAINING);
++        setObjVar(player, OP_ACCOUNTING_OUTCOME, ACCOUNTING_OUTCOME_NONE);
++        setObjVar(player, OP_STATE, "accountingRequested");
++        setObjVar(player, OP_UPDATED, getCalendarTime());
++        return "accountingRequested".equals(getStringObjVar(player, OP_STATE)) &&
++            hasExactPendingAccountingProvenance(player);
++    }
++
++    private boolean publishAccountingRequestQueueFailure(obj_id player)
++        throws InterruptedException
++    {
++        if (!"accountingRequested".equals(getStringObjVar(player, OP_STATE)) ||
++            !hasExactPendingAccountingProvenance(player))
++        {
++            return false;
++        }
++        setObjVar(
++            player,
++            OP_ACCOUNTING_OUTCOME,
++            ACCOUNTING_OUTCOME_REQUEST_QUEUE_FAILED);
++        if (!ACCOUNTING_OUTCOME_REQUEST_QUEUE_FAILED.equals(
++                getStringObjVar(player, OP_ACCOUNTING_OUTCOME)))
++        {
++            return false;
++        }
++        setObjVar(player, OP_STATE, "accountingRequestQueueFailed");
++        setObjVar(player, OP_UPDATED, getCalendarTime());
++        return "accountingRequestQueueFailed".equals(getStringObjVar(player, OP_STATE));
++    }
++
++    private boolean hasExactPurchaseVector(obj_id player, String vector)
++        throws InterruptedException
++    {
++        if ("PRE".equals(vector))
++        {
++            return hasExactPurchasePreVector(player);
++        }
++        if ("DEBIT".equals(vector))
++        {
++            return hasExactPurchaseDebitVector(player);
++        }
++        if ("HELD".equals(vector))
++        {
++            return hasExactPurchaseHeldVector(player);
++        }
++        if ("REFUND".equals(vector))
++        {
++            return hasExactPurchaseRefundVector(player);
++        }
++        return false;
++    }
++
++    private boolean transitionExactPurchaseState(
++        obj_id player,
++        String operationId,
++        String lifecycleId,
++        String expectedState,
++        String operationState,
++        String expectedVector) throws InterruptedException
++    {
++        if (validateExactPurchaseOperation(player, operationId, lifecycleId) != null ||
++            !expectedState.equals(getStringObjVar(player, OP_STATE)) ||
++            !hasExactPurchaseVector(player, expectedVector))
++        {
++            return false;
++        }
++        setObjVar(player, OP_STATE, operationState);
++        setObjVar(player, OP_UPDATED, getCalendarTime());
++        return operationState.equals(getStringObjVar(player, OP_STATE));
++    }
++
++    private String beginOperation(
++        obj_id player,
++        String operationId,
++        String operationKind,
++        String lifecycleId,
++        String trainerOid,
++        String skillName) throws InterruptedException
++    {
++        if (!isValidOperationId(operationId))
++        {
++            return "error=invalidOperationId";
++        }
++        if (!isLifecycleEstablished(player, lifecycleId))
++        {
++            return "error=operationLifecycleNotComplete";
++        }
++        if (hasAnyOperationMarker(player))
++        {
++            return "error=operationAlreadyActive " + buildOperationStatus(player);
++        }
++        int preCredits = getTotalMoney(player);
++        int preCash = getCashBalance(player);
++        int preBank = getBankBalance(player);
++        int preXp = getExperiencePoints(player, CRAFTING_XP_TYPE);
++        int prePoints = skill.getAvailableSkillPoints(player);
++        int preCap = getExperienceCap(player, CRAFTING_XP_TYPE);
++        int preNovice = hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0;
++        int preSkill = hasSkill(player, CRAFTING_SKILL) ? 1 : 0;
++
++        setObjVar(player, OP_ATTEMPT_ID, operationId);
++        if (!hasObjVar(player, OP_ATTEMPT_ID) ||
++            !operationId.equals(getStringObjVar(player, OP_ATTEMPT_ID)))
++        {
++            return rollbackOperationReservation(player, operationId, "operationAttemptWriteFailed");
++        }
++        setObjVar(player, OP_STATE, "reserving");
++        setObjVar(player, OP_KIND, operationKind);
++        setObjVar(player, OP_UPDATED, getCalendarTime());
++        setObjVar(player, OP_LIFECYCLE_ID, lifecycleId);
++        setObjVar(player, OP_TRAINER_OID, trainerOid);
++        setObjVar(player, OP_SKILL_NAME, skillName);
++        setObjVar(player, OP_COST, CRAFTING_TRAINER_COST);
++        setObjVar(player, OP_PRE_CREDITS, preCredits);
++        setObjVar(player, OP_PRE_CASH, preCash);
++        setObjVar(player, OP_PRE_BANK, preBank);
++        setObjVar(player, OP_PRE_XP, preXp);
++        setObjVar(player, OP_PRE_POINTS, prePoints);
++        setObjVar(player, OP_PRE_CAP, preCap);
++        setObjVar(player, OP_PRE_NOVICE, preNovice);
++        setObjVar(player, OP_PRE_SKILL, preSkill);
++        setObjVar(player, OP_PROTOCOL_VERSION, PROTOCOL_VERSION);
++        setObjVar(player, OP_REFUND_GENERATION, 0);
++        setObjVar(player, OP_REFUND_ATTEMPT_KEY, "none");
++        setObjVar(player, OP_REFUND_RETRY_CONSUMED, 0);
++        setObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY, "none");
++        setObjVar(player, OP_ACCOUNTING_ACCOUNT, "none");
++        setObjVar(player, OP_ACCOUNTING_OUTCOME, ACCOUNTING_OUTCOME_NONE);
++        if (!operationReservationEquals(
++                player, operationId, operationKind, lifecycleId, trainerOid, skillName,
++                preCredits, preCash, preBank, preXp, prePoints, preCap, preNovice, preSkill) ||
++            !operationPreimageMatchesCurrent(player))
++        {
++            return rollbackOperationReservation(player, operationId,
++                "operationPreimageWriteFailed");
++        }
++        setObjVar(player, OP_ID, operationId);
++        setObjVar(player, OP_STATE, "reserved");
++        if (!isOperationMarkerComplete(player) ||
++            !operationId.equals(getStringObjVar(player, OP_ID)) ||
++            !"reserved".equals(getStringObjVar(player, OP_STATE)))
++        {
++            return rollbackOperationReservation(player, operationId, "operationCommitWriteFailed");
++        }
++        return null;
++    }
++
++    private String rollbackOperationReservation(
++        obj_id player,
++        String operationId,
++        String cause) throws InterruptedException
++    {
++        if (hasObjVar(player, OP_ATTEMPT_ID) &&
++            operationId.equals(getStringObjVar(player, OP_ATTEMPT_ID)) &&
++            partialOperationPreimageMatchesCurrent(player) &&
++            !utils.hasScriptVar(player, RELOG_NONCE) &&
++            !utils.hasScriptVar(player, RESTART_NONCE) &&
++            hasExactOperationReservationWritePrefix(player, operationId))
++        {
++            removeObjVar(player, OP_ROOT);
++        }
++        return "error=" + cause + " rolledBack=" + !hasAnyOperationMarker(player) +
++            " " + buildOperationStatus(player);
++    }
++
++    private boolean markOperationEnqueueing(
++        obj_id player,
++        String operationId,
++        String operationKind) throws InterruptedException
++    {
++        if (operationMatches(player, operationId, operationKind) &&
++            hasObjVar(player, OP_STATE) &&
++            "reserved".equals(getStringObjVar(player, OP_STATE)))
++        {
++            setObjVar(player, OP_STATE, "enqueueing");
++            setObjVar(player, OP_UPDATED, getCalendarTime());
++            return "enqueueing".equals(getStringObjVar(player, OP_STATE));
++        }
++        return false;
++    }
++
++    private boolean operationMatches(obj_id player, String operationId, String operationKind)
++        throws InterruptedException
++    {
++        return isOperationMarkerComplete(player) &&
++            operationId.equals(getStringObjVar(player, OP_ATTEMPT_ID)) &&
++            operationId.equals(getStringObjVar(player, OP_ID)) &&
++            operationKind.equals(getStringObjVar(player, OP_KIND));
++    }
++
++    private boolean transitionOperationState(
++        obj_id player,
++        String operationId,
++        String operationKind,
++        String expectedState,
++        String operationState) throws InterruptedException
++    {
++        if (!operationMatches(player, operationId, operationKind) ||
++            !expectedState.equals(getStringObjVar(player, OP_STATE)))
++        {
++            return false;
++        }
++        setObjVar(player, OP_STATE, operationState);
++        setObjVar(player, OP_UPDATED, getCalendarTime());
++        return operationState.equals(getStringObjVar(player, OP_STATE));
++    }
++
++    private void setOperationState(
++        obj_id player,
++        String operationId,
++        String operationKind,
++        String operationState) throws InterruptedException
++    {
++        if (operationMatches(player, operationId, operationKind))
++        {
++            setObjVar(player, OP_STATE, operationState);
++            setObjVar(player, OP_UPDATED, getCalendarTime());
++        }
++    }
++
++    private boolean hasExactNeutralSubAttemptProvenance(obj_id player)
++        throws InterruptedException
++    {
++        return hasExactNeutralRefundProvenance(player) &&
++            "none".equals(getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            "none".equals(getStringObjVar(player, OP_ACCOUNTING_ACCOUNT)) &&
++            ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME));
++    }
++
++    private boolean hasNoNonNeutralPartialSubAttemptProvenance(obj_id player)
++        throws InterruptedException
++    {
++        return (!hasObjVar(player, OP_PROTOCOL_VERSION) ||
++                getIntObjVar(player, OP_PROTOCOL_VERSION) == PROTOCOL_VERSION) &&
++            (!hasObjVar(player, OP_REFUND_GENERATION) ||
++                getIntObjVar(player, OP_REFUND_GENERATION) == 0) &&
++            (!hasObjVar(player, OP_REFUND_ATTEMPT_KEY) ||
++                "none".equals(getStringObjVar(player, OP_REFUND_ATTEMPT_KEY))) &&
++            (!hasObjVar(player, OP_REFUND_RETRY_CONSUMED) ||
++                getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 0) &&
++            (!hasObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) ||
++                "none".equals(getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY))) &&
++            (!hasObjVar(player, OP_ACCOUNTING_ACCOUNT) ||
++                "none".equals(getStringObjVar(player, OP_ACCOUNTING_ACCOUNT))) &&
++            (!hasObjVar(player, OP_ACCOUNTING_OUTCOME) ||
++                ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME)));
++    }
++
++    private boolean hasExactAdministrativeGameplayPreimage(obj_id player)
++        throws InterruptedException
++    {
++        return getExperiencePoints(player, CRAFTING_XP_TYPE) ==
++                getIntObjVar(player, OP_PRE_XP) &&
++            skill.getAvailableSkillPoints(player) == getIntObjVar(player, OP_PRE_POINTS) &&
++            getExperienceCap(player, CRAFTING_XP_TYPE) == getIntObjVar(player, OP_PRE_CAP) &&
++            (hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0) ==
++                getIntObjVar(player, OP_PRE_NOVICE) &&
++            (hasSkill(player, CRAFTING_SKILL) ? 1 : 0) ==
++                getIntObjVar(player, OP_PRE_SKILL);
++    }
++
++    private boolean hasExactAdministrativeTerminalVector(
++        obj_id player,
++        String operationKind,
++        String operationState) throws InterruptedException
++    {
++        if (!isOperationMarkerComplete(player) ||
++            !operationKind.equals(getStringObjVar(player, OP_KIND)) ||
++            getIntObjVar(player, OP_PROTOCOL_VERSION) != PROTOCOL_VERSION ||
++            getIntObjVar(player, OP_COST) != CRAFTING_TRAINER_COST ||
++            !hasExactNeutralSubAttemptProvenance(player) ||
++            !hasExactAdministrativeGameplayPreimage(player) ||
++            (long)getIntObjVar(player, OP_PRE_CREDITS) !=
++                (long)getIntObjVar(player, OP_PRE_CASH) +
++                    (long)getIntObjVar(player, OP_PRE_BANK) ||
++            utils.hasScriptVar(player, RELOG_NONCE) ||
++            utils.hasScriptVar(player, RESTART_NONCE))
++        {
++            return false;
++        }
++        boolean succeeded = (operationKind + "Succeeded").equals(operationState);
++        boolean failed = (operationKind + "Failed").equals(operationState) ||
++            (operationKind + "QueueFailed").equals(operationState);
++        if (!succeeded && !failed)
++        {
++            return false;
++        }
++        int delta = succeeded ? ("fund".equals(operationKind) ?
++            CRAFTING_TRAINER_COST : -CRAFTING_TRAINER_COST) : 0;
++        return getCashBalance(player) == getIntObjVar(player, OP_PRE_CASH) &&
++            getBankBalance(player) == getIntObjVar(player, OP_PRE_BANK) + delta &&
++            getTotalMoney(player) == getIntObjVar(player, OP_PRE_CREDITS) + delta;
++    }
++
++    private boolean hasExactRefundTerminalProvenance(obj_id player)
++        throws InterruptedException
++    {
++        int generation = getIntObjVar(player, OP_REFUND_GENERATION);
++        return isValidRefundAttemptKey(
++                player,
++                generation,
++                getStringObjVar(player, OP_REFUND_ATTEMPT_KEY)) &&
++            ((generation == 1 && getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 0) ||
++                (generation == 2 &&
++                    getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) == 1)) &&
++            "none".equals(getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            "none".equals(getStringObjVar(player, OP_ACCOUNTING_ACCOUNT)) &&
++            ACCOUNTING_OUTCOME_NONE.equals(getStringObjVar(player, OP_ACCOUNTING_OUTCOME));
++    }
++
++    private boolean hasExactClearableTerminalVector(obj_id player, String operationState)
++        throws InterruptedException
++    {
++        String operationKind = getStringObjVar(player, OP_KIND);
++        if ("fund".equals(operationKind) || "drain".equals(operationKind))
++        {
++            return hasExactAdministrativeTerminalVector(
++                player, operationKind, operationState);
++        }
++        if (!"purchase".equals(operationKind))
++        {
++            return false;
++        }
++        if (("paymentFailed".equals(operationState) ||
++                "paymentQueueFailed".equals(operationState) ||
++                "purchaseRejected".equals(operationState)) &&
++            hasExactNeutralSubAttemptProvenance(player))
++        {
++            return hasExactPurchasePreVector(player);
++        }
++        if ("purchaseSucceeded".equals(operationState))
++        {
++            return hasExactAccountingSuccessProvenance(player);
++        }
++        if ("purchaseRefunded".equals(operationState))
++        {
++            return hasExactPurchaseRefundVector(player) &&
++                hasExactRefundTerminalProvenance(player);
++        }
++        // Refund failures (including consumed recovery), accounting failures,
++        // and every in-flight/ambiguous state are intentionally absent.
++        return false;
++    }
++
++    private String clearTerminalOperation(obj_id player, String operationId)
++        throws InterruptedException
++    {
++        if (!hasAnyOperationMarker(player) || !hasObjVar(player, OP_ATTEMPT_ID))
++        {
++            return "error=operationMarkerMissing operationId=" + operationId;
++        }
++        if (!operationId.equals(getStringObjVar(player, OP_ATTEMPT_ID)))
++        {
++            return "error=operationIdMismatch " + buildOperationStatus(player);
++        }
++        String operationState = hasObjVar(player, OP_STATE) ?
++            getStringObjVar(player, OP_STATE) : "missing";
++        boolean attemptOnly = "missing".equals(operationState) &&
++            isOperationAttemptOnly(player);
++        boolean preDispatch = attemptOnly || "reserving".equals(operationState) ||
++            "reserved".equals(operationState);
++        if (!preDispatch &&
++            (!isOperationMarkerComplete(player) ||
++                !hasExactClearableTerminalVector(player, operationState)))
++        {
++            return "error=operationNotClearable " + buildOperationStatus(player);
++        }
++        if (preDispatch &&
++            (("reserved".equals(operationState) && !isOperationMarkerComplete(player)) ||
++             !partialOperationPreimageMatchesCurrent(player) ||
++             !hasNoNonNeutralPartialSubAttemptProvenance(player) ||
++             utils.hasScriptVar(player, RELOG_NONCE) ||
++             utils.hasScriptVar(player, RESTART_NONCE) ||
++             !hasExactOperationReservationWritePrefix(player, operationId)))
++        {
++            return "error=operationPreDispatchClearNotExact " + buildCraftingStatus(player);
++        }
++        removeObjVar(player, OP_ROOT);
++        return hasAnyOperationMarker(player) ? "error=operationMarkerClearFailed" : null;
++    }
++
++    private String buildOperationStatus(obj_id player) throws InterruptedException
++    {
++        if (!hasAnyOperationMarker(player))
++        {
++            return "operationAttemptId=none operationId=none operationKind=none" +
++                " operationState=none operationUpdated=0 operationLifecycleId=none" +
++                " operationTrainerOid=none operationSkillName=none operationCost=0" +
++                " operationProtocolVersion=0 operationRefundGeneration=0" +
++                " operationRefundAttemptKey=none operationRefundRetryConsumed=false" +
++                " operationAccountingAttemptKey=none operationAccountingAccount=none" +
++                " operationAccountingOutcome=none" +
++                " operationMarkerComplete=false operationPreimageMatches=false";
++        }
++        String operationAttemptId = hasObjVar(player, OP_ATTEMPT_ID) ?
++            getStringObjVar(player, OP_ATTEMPT_ID) : "none";
++        String operationId = hasObjVar(player, OP_ID) ?
++            getStringObjVar(player, OP_ID) : "none";
++        String operationKind = hasObjVar(player, OP_KIND) ?
++            getStringObjVar(player, OP_KIND) : "missing";
++        String operationState = hasObjVar(player, OP_STATE) ?
++            getStringObjVar(player, OP_STATE) : "missing";
++        int operationUpdated = hasObjVar(player, OP_UPDATED) ?
++            getIntObjVar(player, OP_UPDATED) : 0;
++        String operationLifecycleId = hasObjVar(player, OP_LIFECYCLE_ID) ?
++            getStringObjVar(player, OP_LIFECYCLE_ID) : "missing";
++        String operationTrainerOid = hasObjVar(player, OP_TRAINER_OID) ?
++            getStringObjVar(player, OP_TRAINER_OID) : "missing";
++        String operationSkillName = hasObjVar(player, OP_SKILL_NAME) ?
++            getStringObjVar(player, OP_SKILL_NAME) : "missing";
++        int operationCost = hasObjVar(player, OP_COST) ? getIntObjVar(player, OP_COST) : 0;
++        int operationProtocolVersion = hasObjVar(player, OP_PROTOCOL_VERSION) ?
++            getIntObjVar(player, OP_PROTOCOL_VERSION) : 0;
++        int operationRefundGeneration = hasObjVar(player, OP_REFUND_GENERATION) ?
++            getIntObjVar(player, OP_REFUND_GENERATION) : 0;
++        String operationRefundAttemptKey = hasObjVar(player, OP_REFUND_ATTEMPT_KEY) ?
++            getStringObjVar(player, OP_REFUND_ATTEMPT_KEY) : "missing";
++        boolean operationRefundRetryConsumed =
++            hasObjVar(player, OP_REFUND_RETRY_CONSUMED) &&
++                getIntObjVar(player, OP_REFUND_RETRY_CONSUMED) != 0;
++        String operationAccountingAttemptKey = hasObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) ?
++            getStringObjVar(player, OP_ACCOUNTING_ATTEMPT_KEY) : "missing";
++        String operationAccountingAccount = hasObjVar(player, OP_ACCOUNTING_ACCOUNT) ?
++            getStringObjVar(player, OP_ACCOUNTING_ACCOUNT) : "missing";
++        String operationAccountingOutcome = hasObjVar(player, OP_ACCOUNTING_OUTCOME) ?
++            getStringObjVar(player, OP_ACCOUNTING_OUTCOME) : "missing";
++        return "operationAttemptId=" + operationAttemptId +
++            " operationId=" + operationId +
++            " operationKind=" + operationKind +
++            " operationState=" + operationState +
++            " operationUpdated=" + operationUpdated +
++            " operationLifecycleId=" + operationLifecycleId +
++            " operationTrainerOid=" + operationTrainerOid +
++            " operationSkillName=" + operationSkillName +
++            " operationCost=" + operationCost +
++            " operationProtocolVersion=" + operationProtocolVersion +
++            " operationRefundGeneration=" + operationRefundGeneration +
++            " operationRefundAttemptKey=" + operationRefundAttemptKey +
++            " operationRefundRetryConsumed=" + operationRefundRetryConsumed +
++            " operationAccountingAttemptKey=" + operationAccountingAttemptKey +
++            " operationAccountingAccount=" + operationAccountingAccount +
++            " operationAccountingOutcome=" + operationAccountingOutcome +
++            " operationMarkerComplete=" + isOperationMarkerComplete(player) +
++            " operationPreimageMatches=" + partialOperationPreimageMatchesCurrent(player);
++    }
++
++    private boolean contains(String[] values, String expected)
++    {
++        if (values == null || expected == null)
++        {
++            return false;
++        }
++        for (String value : values)
++        {
++            if (expected.equals(value))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private String buildBalances(obj_id player) throws InterruptedException
++    {
++        int cash = getCashBalance(player);
++        int bank = getBankBalance(player);
++        return "cash=" + cash + " bank=" + bank + " credits=" + (cash + bank);
++    }
++
 +    private String buildStatus(obj_id player, String skillName, String xpType) throws InterruptedException
 +    {
 +        String result = "oid=" + player +
 +            " loaded=" + player.isLoaded() +
 +            " authoritative=" + player.isAuthoritative() +
 +            " connected=" + isPlayerConnected(player) +
-+            " cash=" + getCashBalance(player) +
-+            " bank=" + getBankBalance(player) +
++            " " + buildBalances(player) +
 +            " skill=" + skillName +
 +            " hasSkill=" + hasSkill(player, skillName) +
 +            " skillCost=" + skill.getSkillPointCost(skillName) +
@@ -200,15 +2510,170 @@ index 000000000..cda346120
 +        return result;
 +    }
 +
++    private boolean deployedArtifactsVerified()
++    {
++        return BUILD_FINGERPRINT.equals(
++                script.npc.skillteacher.skillteacher.getPrecuPhaseABuildFingerprint()) &&
++            BUILD_FINGERPRINT.equals(
++                script.player.player_money.getPrecuPhaseABuildFingerprint());
++    }
++
++    private boolean hasExactPersistentCraftingGrantVector(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasSkill(player, CRAFTING_NOVICE_SKILL) ||
++            !hasSkill(player, CRAFTING_SKILL) ||
++            (hasObjVar(player, "newbie.hasSkill") && !hasObjVar(player, "newbie.trained")))
++        {
++            return false;
++        }
++        for (int i = 0; i < CRAFTING_VECTOR_COMMANDS.length; ++i)
++        {
++            if (!hasCommand(player, CRAFTING_VECTOR_COMMANDS[i]))
++            {
++                return false;
++            }
++        }
++        for (int i = 0; i < CRAFTING_VECTOR_MODS.length; ++i)
++        {
++            if (getSkillStatisticModifier(player, CRAFTING_VECTOR_MODS[i]) !=
++                CRAFTING_VECTOR_MOD_VALUES[i])
++            {
++                return false;
++            }
++        }
++        String[] groupIds = dataTableGetStringColumnNoDefaults(SCHEMATIC_GROUP_TABLE, "GroupId");
++        String[] schematicNames = dataTableGetStringColumnNoDefaults(
++            SCHEMATIC_GROUP_TABLE,
++            "SchematicName");
++        if (groupIds == null || schematicNames == null || groupIds.length != schematicNames.length)
++        {
++            return false;
++        }
++        java.util.Vector<String> expectedSchematics = new java.util.Vector<String>();
++        for (int i = 0; i < groupIds.length; ++i)
++        {
++            if (contains(CRAFTING_VECTOR_SCHEMATIC_GROUPS, groupIds[i]))
++            {
++                String schematicName = schematicNames[i];
++                if (schematicName == null || schematicName.length() == 0 ||
++                    expectedSchematics.contains(schematicName))
++                {
++                    return false;
++                }
++                expectedSchematics.add(schematicName);
++                if (!hasSchematic(player, schematicName))
++                {
++                    return false;
++                }
++            }
++        }
++        return expectedSchematics.size() == CRAFTING_VECTOR_SCHEMATIC_COUNT;
++    }
++
 +    private String buildCraftingStatus(obj_id player) throws InterruptedException
 +    {
-+        return buildStatus(player, CRAFTING_SKILL, CRAFTING_XP_TYPE) +
++        int commandsOwned = 0;
++        String commandStates = "";
++        for (int i = 0; i < CRAFTING_VECTOR_COMMANDS.length; ++i)
++        {
++            boolean owned = hasCommand(player, CRAFTING_VECTOR_COMMANDS[i]);
++            if (owned)
++            {
++                ++commandsOwned;
++            }
++            if (i > 0)
++            {
++                commandStates += ",";
++            }
++            commandStates += CRAFTING_VECTOR_COMMANDS[i] + ":" + owned;
++        }
++
++        int modsMatched = 0;
++        String modStates = "";
++        for (int i = 0; i < CRAFTING_VECTOR_MODS.length; ++i)
++        {
++            int value = getSkillStatisticModifier(player, CRAFTING_VECTOR_MODS[i]);
++            if (value == CRAFTING_VECTOR_MOD_VALUES[i])
++            {
++                ++modsMatched;
++            }
++            if (i > 0)
++            {
++                modStates += ",";
++            }
++            modStates += CRAFTING_VECTOR_MODS[i] + ":" + value;
++        }
++
++        int schematicsOwned = 0;
++        java.util.Vector<String> schematicVector = new java.util.Vector<String>();
++        String[] groupIds = dataTableGetStringColumnNoDefaults(SCHEMATIC_GROUP_TABLE, "GroupId");
++        String[] schematicNames = dataTableGetStringColumnNoDefaults(SCHEMATIC_GROUP_TABLE, "SchematicName");
++        if (groupIds != null && schematicNames != null && groupIds.length == schematicNames.length)
++        {
++            for (int i = 0; i < groupIds.length; ++i)
++            {
++                if (contains(CRAFTING_VECTOR_SCHEMATIC_GROUPS, groupIds[i]))
++                {
++                    if (!schematicVector.contains(schematicNames[i]))
++                    {
++                        schematicVector.add(schematicNames[i]);
++                    }
++                }
++            }
++        }
++        String[] vectorSchematicNames = new String[schematicVector.size()];
++        schematicVector.toArray(vectorSchematicNames);
++        java.util.Arrays.sort(vectorSchematicNames);
++        String schematicStates = "";
++        for (int i = 0; i < vectorSchematicNames.length; ++i)
++        {
++            boolean owned = hasSchematic(player, vectorSchematicNames[i]);
++            if (owned)
++            {
++                ++schematicsOwned;
++            }
++            if (i > 0)
++            {
++                schematicStates += ",";
++            }
++            schematicStates += vectorSchematicNames[i] + ":" + owned;
++        }
++
++        boolean vectorComplete = hasExactPersistentCraftingGrantVector(player);
++
++        return "contractId=" + RUNTIME_CONTRACT_ID +
++            " stationId=" + getPlayerStationId(player) +
++            " materializationFingerprint=" + BUILD_FINGERPRINT +
++            " deployedArtifactsVerified=" + deployedArtifactsVerified() +
++            " lifecycleAttemptId=" + getLifecycleAttemptId(player) +
++            " lifecycleId=" + getLifecycleId(player) +
++            " lifecycleMarkerState=" + getLifecycleMarkerState(player) +
++            " lifecycleBaselineComplete=" + isLifecycleBaselineComplete(player) +
++            " " + buildOperationStatus(player) +
++            " relogNoncePresent=" + utils.hasScriptVar(player, RELOG_NONCE) +
++            " restartNoncePresent=" + utils.hasScriptVar(player, RESTART_NONCE) +
++            " newbieFreeTrainingRouteActive=" +
++                (hasObjVar(player, "newbie.hasSkill") && !hasObjVar(player, "newbie.trained")) +
++            " " + buildStatus(player, CRAFTING_SKILL, CRAFTING_XP_TYPE) +
++            " noviceSkill=" + CRAFTING_NOVICE_SKILL +
++            " hasNovice=" + hasSkill(player, CRAFTING_NOVICE_SKILL) +
 +            " command=" + CRAFTING_COMMAND +
 +            " hasCommand=" + hasCommand(player, CRAFTING_COMMAND) +
 +            " skillMod=" + CRAFTING_SKILL_MOD +
 +            " skillModValue=" + getSkillStatisticModifier(player, CRAFTING_SKILL_MOD) +
 +            " schematicGroup=" + CRAFTING_SCHEMATIC_GROUP +
 +            " schematic=" + CRAFTING_SCHEMATIC +
-+            " hasSchematic=" + hasSchematic(player, CRAFTING_SCHEMATIC);
++            " hasSchematic=" + hasSchematic(player, CRAFTING_SCHEMATIC) +
++            " vectorCommandsOwned=" + commandsOwned +
++            " vectorCommandsExpected=" + CRAFTING_VECTOR_COMMANDS.length +
++            " vectorModsMatched=" + modsMatched +
++            " vectorModsExpected=" + CRAFTING_VECTOR_MODS.length +
++            " vectorSchematicsOwned=" + schematicsOwned +
++            " vectorSchematicsExpected=" + vectorSchematicNames.length +
++            " vectorCommands=" + commandStates +
++            " vectorMods=" + modStates +
++            " vectorSchematics=" + schematicStates +
++            " vectorComplete=" + vectorComplete;
 +    }
 +}

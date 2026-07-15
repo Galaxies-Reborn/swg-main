@@ -1,0 +1,1691 @@
+diff --git a/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java b/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java
+index 5805f7b..952a583 100644
+--- a/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java
++++ b/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java
+@@ -48,6 +48,139 @@ public class skillteacher extends script.base_script
+     public static final int STATUS_NONE = 0;
+     public static final int STATUS_LEARN = 1;
+     public static final int STATUS_INFO = 2;
++    private static final String PRECU_OP_ROOT = "precu.phaseA.operation";
++    private static final String PRECU_OP_ATTEMPT_ID = PRECU_OP_ROOT + ".attemptId";
++    private static final String PRECU_OP_ID = PRECU_OP_ROOT + ".id";
++    private static final String PRECU_OP_KIND = PRECU_OP_ROOT + ".kind";
++    private static final String PRECU_OP_STATE = PRECU_OP_ROOT + ".state";
++    private static final String PRECU_OP_UPDATED = PRECU_OP_ROOT + ".updated";
++    private static final String PRECU_OP_LIFECYCLE_ID = PRECU_OP_ROOT + ".lifecycleId";
++    private static final String PRECU_OP_COST = PRECU_OP_ROOT + ".cost";
++    private static final String PRECU_OP_TRAINER_OID = PRECU_OP_ROOT + ".trainerOid";
++    private static final String PRECU_OP_SKILL_NAME = PRECU_OP_ROOT + ".skillName";
++    private static final String PRECU_OP_PRE_CREDITS = PRECU_OP_ROOT + ".preCredits";
++    private static final String PRECU_OP_PRE_CASH = PRECU_OP_ROOT + ".preCash";
++    private static final String PRECU_OP_PRE_BANK = PRECU_OP_ROOT + ".preBank";
++    private static final String PRECU_OP_PRE_XP = PRECU_OP_ROOT + ".preXp";
++    private static final String PRECU_OP_PRE_POINTS = PRECU_OP_ROOT + ".prePoints";
++    private static final String PRECU_OP_PRE_CAP = PRECU_OP_ROOT + ".preCap";
++    private static final String PRECU_OP_PRE_NOVICE = PRECU_OP_ROOT + ".preNovice";
++    private static final String PRECU_OP_PRE_SKILL = PRECU_OP_ROOT + ".preSkill";
++    private static final String PRECU_OP_PROTOCOL_VERSION = PRECU_OP_ROOT + ".protocolVersion";
++    private static final String PRECU_OP_REFUND_GENERATION =
++        PRECU_OP_ROOT + ".refundGeneration";
++    private static final String PRECU_OP_REFUND_ATTEMPT_KEY =
++        PRECU_OP_ROOT + ".refundAttemptKey";
++    private static final String PRECU_OP_REFUND_RETRY_CONSUMED =
++        PRECU_OP_ROOT + ".refundRetryConsumed";
++    private static final String PRECU_OP_ACCOUNTING_ATTEMPT_KEY =
++        PRECU_OP_ROOT + ".accountingAttemptKey";
++    private static final String PRECU_OP_ACCOUNTING_ACCOUNT =
++        PRECU_OP_ROOT + ".accountingAccount";
++    private static final String PRECU_OP_ACCOUNTING_OUTCOME =
++        PRECU_OP_ROOT + ".accountingOutcome";
++    private static final String PRECU_PARAM_ID = "precuPhaseAOperationId";
++    private static final String PRECU_PARAM_KIND = "precuPhaseAOperationKind";
++    private static final String PRECU_REFUND_PARAM_GENERATION =
++        "precuPhaseARefundGeneration";
++    private static final String PRECU_REFUND_PARAM_ATTEMPT_KEY =
++        "precuPhaseARefundAttemptKey";
++    private static final String PRECU_REFUND_PARAM_RETRY_CONSUMED =
++        "precuPhaseARefundRetryConsumed";
++    private static final String PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY =
++        "precuPhaseAAccountingAttemptKey";
++    private static final String PRECU_PROTOCOL_PARAM_VERSION =
++        "precuPhaseAProtocolVersion";
++    private static final String PRECU_LIFECYCLE_ATTEMPT_ID = "precu.phaseA.lifecycle.attemptId";
++    private static final String PRECU_LIFECYCLE_ID = "precu.phaseA.lifecycle.id";
++    private static final String PRECU_LIFECYCLE_STATE = "precu.phaseA.lifecycle.state";
++    private static final String PRECU_LIFECYCLE_BASE_CASH = "precu.phaseA.lifecycle.baseCash";
++    private static final String PRECU_LIFECYCLE_BASE_BANK = "precu.phaseA.lifecycle.baseBank";
++    private static final String PRECU_LIFECYCLE_BASE_XP = "precu.phaseA.lifecycle.baseXp";
++    private static final String PRECU_LIFECYCLE_BASE_POINTS = "precu.phaseA.lifecycle.basePoints";
++    private static final String PRECU_LIFECYCLE_BASE_CAP = "precu.phaseA.lifecycle.baseCap";
++    private static final String PRECU_LIFECYCLE_BASE_NOVICE = "precu.phaseA.lifecycle.baseNovice";
++    private static final String PRECU_LIFECYCLE_BASE_SKILL = "precu.phaseA.lifecycle.baseSkill";
++    private static final String PRECU_LIFECYCLE_PARAM_ID = "precuPhaseALifecycleId";
++    private static final String PRECU_RELOG_NONCE = "precu.phaseA.relogNonce";
++    private static final String PRECU_RESTART_NONCE = "precu.phaseA.restartNonce";
++    private static final String PRECU_CRAFTING_XP_TYPE = "crafting_general";
++    private static final String PRECU_CRAFTING_NOVICE_SKILL = "crafting_artisan_novice";
++    private static final String PRECU_CRAFTING_SKILL = "crafting_artisan_engineering_01";
++    private static final int PRECU_CRAFTING_TRAINER_COST = 1000;
++    private static final int PRECU_CRAFTING_XP_COST = 500;
++    private static final int PRECU_PREPURCHASE_XP_CAP = 1500;
++    private static final int PRECU_TRAINED_XP_CAP = 2000;
++    private static final int PRECU_CRAFTING_SCHEMATIC_COUNT = 35;
++    private static final int PRECU_PROTOCOL_VERSION = 64;
++    private static final String PRECU_ACCOUNTING_OUTCOME_NONE = "none";
++    private static final String PRECU_ACCOUNTING_OUTCOME_REQUEST_QUEUE_FAILED =
++        "REQUEST_QUEUE_FAILED";
++    private static final String PRECU_VECTOR_PRE = "PRE";
++    private static final String PRECU_VECTOR_DEBIT = "DEBIT";
++    private static final String PRECU_VECTOR_HELD = "HELD";
++    private static final String PRECU_VECTOR_REFUND = "REFUND";
++    private static final String PRECU_SCHEMATIC_GROUP_TABLE =
++        "datatables/crafting/schematic_group.iff";
++    private static final String[] PRECU_CRAFTING_VECTOR_COMMANDS =
++    {
++        "private_artisan_novice",
++        "private_artisan_engineering_1"
++    };
++    private static final String[] PRECU_CRAFTING_VECTOR_MODS =
++    {
++        "surveying",
++        "general_assembly",
++        "general_experimentation",
++        "clothing_customization",
++        "armor_customization",
++        "slope_move"
++    };
++    private static final int[] PRECU_CRAFTING_VECTOR_MOD_VALUES =
++    {
++        20,
++        30,
++        30,
++        20,
++        40,
++        25
++    };
++    private static final int[] PRECU_CRAFTING_PURCHASE_MOD_DELTAS =
++    {
++        0,
++        10,
++        10,
++        0,
++        20,
++        0
++    };
++    private static final String[] PRECU_CRAFTING_VECTOR_SCHEMATIC_GROUPS =
++    {
++        "craftArtisanNewbieGroupA",
++        "craftArtisanNewbieGroupB",
++        "craftArtisanSurveyGroupA",
++        "craftArtisanEngineeringGroupA",
++        "craftArtisanToolGroupA"
++    };
++    private static final String[] PRECU_CRAFTING_PURCHASE_SCHEMATICS =
++    {
++        "object/draft_schematic/item/craftable_bug_habitat.iff",
++        "object/draft_schematic/item/item_battery_droid.iff",
++        "object/draft_schematic/item/item_clothing_tool.iff",
++        "object/draft_schematic/item/item_firework_five.iff",
++        "object/draft_schematic/item/item_firework_four.iff",
++        "object/draft_schematic/item/item_hundred_sided_dice.iff",
++        "object/draft_schematic/item/item_space_tool.iff",
++        "object/draft_schematic/item/item_structure_tool.iff",
++        "object/draft_schematic/item/item_twelve_sided_dice.iff",
++        "object/draft_schematic/item/item_twenty_sided_dice.iff",
++        "object/draft_schematic/item/item_weapon_tool.iff"
++    };
++    private static final String PRECU_BUILD_FINGERPRINT = "__PHASE_A_BUILD_FINGERPRINT__";
++    public static String getPrecuPhaseABuildFingerprint()
++    {
++        return PRECU_BUILD_FINGERPRINT;
++    }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+         String teacherType = getStringObjVar(self, "trainer");
+@@ -440,12 +573,51 @@ public class skillteacher extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
++        boolean phaseATagged = hasAnyPhaseATag(params);
++        // attemptedPayment is the normalized edge of the native payment
++        // protocol. Tagged callbacks must carry both exact handler names and
++        // an explicit, recognized return code; default dictionary values are
++        // never interpreted as success.
++        if (phaseATagged && !hasExactAttemptedPaymentEnvelope(params))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         int retCode = money.getReturnCode(params);
++        obj_id player = params.getObjId(money.DICT_PLAYER_ID);
++        String callbackState = retCode == money.RET_SUCCESS ?
++            "paymentSucceededCallback" : "paymentFailedCallback";
++        boolean phaseAOperation = phaseATagged &&
++            isExactActivePhaseAOperation(
++                self,
++                player,
++                params,
++                callbackState,
++                retCode == money.RET_FAIL ? "enqueueing" : "",
++                retCode == money.RET_SUCCESS ? PRECU_VECTOR_DEBIT : PRECU_VECTOR_PRE);
++        // Any Phase-A tag creates a closed callback protocol. Quarantine
++        // partial, stale, mismatched, and terminal replays before side effects.
++        if (phaseATagged && !phaseAOperation)
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (retCode != money.RET_SUCCESS)
+         {
++            if (phaseAOperation)
++            {
++                if (!transitionPhaseAOperation(
++                        self,
++                        player,
++                        params,
++                        "paymentFailedCallback",
++                        "enqueueing",
++                        "paymentFailed",
++                        PRECU_VECTOR_PRE))
++                {
++                    return SCRIPT_CONTINUE;
++                }
++            }
+             return SCRIPT_CONTINUE;
+         }
+-        obj_id player = params.getObjId(money.DICT_PLAYER_ID);
+         if (!isIdValid(player) || (!isPlayer(player)))
+         {
+             return SCRIPT_CONTINUE;
+@@ -456,19 +628,715 @@ public class skillteacher extends script.base_script
+             return SCRIPT_CONTINUE;
+         }
+         int cost = params.getInt(money.DICT_TOTAL);
++        if (phaseAOperation && !transitionPhaseAOperation(
++                self,
++                player,
++                params,
++                "paymentSucceededCallback",
++                "",
++                "purchaseApplying",
++                PRECU_VECTOR_DEBIT))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (completeSkillPurchase(player, skillName))
+         {
+-            money.bankTo(self, money.ACCT_SKILL_TRAINING, cost);
++            if (phaseAOperation)
++            {
++                // The grant is HELD until the player-owned accounting protocol
++                // receives an authoritative native success callback.  A
++                // checked message only requests dispatch; it is not settlement.
++                utils.setScriptVar(player, PRECU_RELOG_NONCE, params.getString(PRECU_PARAM_ID));
++                if (!claimPhaseAAccountingRequest(self, player, params))
++                {
++                    return SCRIPT_CONTINUE;
++                }
++                params.put(
++                    PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY,
++                    getStringObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY));
++                params.put(money.DICT_ACCT_NAME, money.ACCT_SKILL_TRAINING);
++                boolean requestQueued = messageTo(
++                    player,
++                    "precuPhaseARequestAccounting",
++                    params,
++                    0,
++                    true);
++                if (!requestQueued)
++                {
++                    publishPhaseAAccountingRequestQueueFailure(self, player, params);
++                }
++            }
++            else
++            {
++                money.bankTo(self, money.ACCT_SKILL_TRAINING, cost);
++            }
+         }
+         else 
++        {
++            if (phaseAOperation)
++            {
++                if (!claimInitialPhaseARefund(self, player, params))
++                {
++                    return SCRIPT_CONTINUE;
++                }
++                dispatchClaimedPhaseARefund(self, player, params, 1);
++            }
++            else
++            {
++                prose_package ppCostRefunded = prose.getPackage(SID_TRAINING_COST_REFUNDED);
++                prose.setDI(ppCostRefunded, cost);
++                sendSystemMessageProse(player, ppCostRefunded);
++                money.bankTo(self, player, cost);
++            }
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int precuPhaseARefundSucceeded(obj_id self, dictionary params) throws InterruptedException
++    {
++        obj_id player = params == null ? obj_id.NULL_ID : params.getObjId(money.DICT_PLAYER_ID);
++        int generation = params == null ? 0 : params.getInt(PRECU_REFUND_PARAM_GENERATION);
++        String family = generation == 1 ? "refundInitial" : "refundRecovery";
++        if (hasAnyPhaseATag(params) && (generation == 1 || generation == 2) &&
++            transitionExactPhaseARefund(
++                self,
++                player,
++                params,
++                family + "Dispatching",
++                family + "Pending",
++                "purchaseRefunded",
++                PRECU_VECTOR_REFUND,
++                generation))
+         {
+             prose_package ppCostRefunded = prose.getPackage(SID_TRAINING_COST_REFUNDED);
+-            prose.setDI(ppCostRefunded, cost);
++            prose.setDI(ppCostRefunded, params.getInt(money.DICT_TOTAL));
+             sendSystemMessageProse(player, ppCostRefunded);
+-            money.bankTo(self, player, cost);
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int precuPhaseARefundFailed(obj_id self, dictionary params) throws InterruptedException
++    {
++        obj_id player = params == null ? obj_id.NULL_ID : params.getObjId(money.DICT_PLAYER_ID);
++        int generation = params == null ? 0 : params.getInt(PRECU_REFUND_PARAM_GENERATION);
++        String family = generation == 1 ? "refundInitial" : "refundRecovery";
++        if (hasAnyPhaseATag(params) && (generation == 1 || generation == 2))
++        {
++            transitionExactPhaseARefund(
++                self,
++                player,
++                params,
++                family + "Dispatching",
++                family + "Pending",
++                family + "Failed",
++                PRECU_VECTOR_DEBIT,
++                generation);
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int precuPhaseAResumeRefund(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        obj_id player = params == null ? obj_id.NULL_ID :
++            params.getObjId(money.DICT_PLAYER_ID);
++        int generation = params == null ? 0 :
++            params.getInt(PRECU_REFUND_PARAM_GENERATION);
++        if (generation == 1 || generation == 2)
++        {
++            dispatchClaimedPhaseARefund(self, player, params, generation);
++        }
++        return SCRIPT_CONTINUE;
++    }
++    private boolean hasExactAttemptedPaymentEnvelope(dictionary params)
++    {
++        if (params == null || params.isEmpty() ||
++            !params.containsKey(money.DICT_HANDLER) ||
++            !params.containsKey(money.DICT_PAY_HANDLER) ||
++            !params.containsKey(money.DICT_CODE) ||
++            !params.containsKey(PRECU_PROTOCOL_PARAM_VERSION) ||
++            !"attemptedPayment".equals(params.getString(money.DICT_HANDLER)) ||
++            !"attemptedPayment".equals(params.getString(money.DICT_PAY_HANDLER)) ||
++            params.getInt(PRECU_PROTOCOL_PARAM_VERSION) != PRECU_PROTOCOL_VERSION)
++        {
++            return false;
++        }
++        int code = params.getInt(money.DICT_CODE);
++        return code == money.RET_SUCCESS || code == money.RET_FAIL;
++    }
++    private boolean hasExactSuccessfulPaymentProvenance(dictionary params)
++    {
++        return hasExactAttemptedPaymentEnvelope(params) &&
++            params.getInt(money.DICT_CODE) == money.RET_SUCCESS;
++    }
++    private String buildPhaseAAttemptKey(String operationId, String kind, int generation)
++    {
++        return operationId + "." + kind + "." + generation;
++    }
++    private boolean claimPhaseAAccountingRequest(
++        obj_id trainer,
++        obj_id player,
++        dictionary params) throws InterruptedException
++    {
++        if (!hasExactSuccessfulPaymentProvenance(params) ||
++            !isExactActivePhaseAOperation(
++                trainer, player, params, "purchaseApplying", "", PRECU_VECTOR_HELD) ||
++            getIntObjVar(player, PRECU_OP_PROTOCOL_VERSION) != PRECU_PROTOCOL_VERSION ||
++            getIntObjVar(player, PRECU_OP_REFUND_GENERATION) != 0 ||
++            !"none".equals(getStringObjVar(player, PRECU_OP_REFUND_ATTEMPT_KEY)) ||
++            getIntObjVar(player, PRECU_OP_REFUND_RETRY_CONSUMED) != 0 ||
++            !"none".equals(getStringObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY)) ||
++            !"none".equals(getStringObjVar(player, PRECU_OP_ACCOUNTING_ACCOUNT)) ||
++            !PRECU_ACCOUNTING_OUTCOME_NONE.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME)))
++        {
++            return false;
++        }
++        String operationId = params.getString(PRECU_PARAM_ID);
++        String attemptKey = buildPhaseAAttemptKey(operationId, "accounting", 1);
++        setObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY, attemptKey);
++        setObjVar(player, PRECU_OP_ACCOUNTING_ACCOUNT, money.ACCT_SKILL_TRAINING);
++        setObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME, PRECU_ACCOUNTING_OUTCOME_NONE);
++        setObjVar(player, PRECU_OP_STATE, "accountingRequested");
++        setObjVar(player, PRECU_OP_UPDATED, getCalendarTime());
++        return attemptKey.equals(getStringObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            money.ACCT_SKILL_TRAINING.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_ACCOUNT)) &&
++            PRECU_ACCOUNTING_OUTCOME_NONE.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME)) &&
++            "accountingRequested".equals(getStringObjVar(player, PRECU_OP_STATE));
++    }
++    private boolean claimInitialPhaseARefund(
++        obj_id trainer,
++        obj_id player,
++        dictionary params) throws InterruptedException
++    {
++        if (!hasExactSuccessfulPaymentProvenance(params) ||
++            !isExactActivePhaseAOperation(
++                trainer, player, params, "purchaseApplying", "", PRECU_VECTOR_DEBIT) ||
++            getIntObjVar(player, PRECU_OP_PROTOCOL_VERSION) != PRECU_PROTOCOL_VERSION ||
++            getIntObjVar(player, PRECU_OP_REFUND_GENERATION) != 0 ||
++            !"none".equals(getStringObjVar(player, PRECU_OP_REFUND_ATTEMPT_KEY)) ||
++            getIntObjVar(player, PRECU_OP_REFUND_RETRY_CONSUMED) != 0 ||
++            !"none".equals(getStringObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY)) ||
++            !"none".equals(getStringObjVar(player, PRECU_OP_ACCOUNTING_ACCOUNT)) ||
++            !PRECU_ACCOUNTING_OUTCOME_NONE.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME)))
++        {
++            return false;
++        }
++        String attemptKey = buildPhaseAAttemptKey(
++            params.getString(PRECU_PARAM_ID), "refund", 1);
++        setObjVar(player, PRECU_OP_REFUND_GENERATION, 1);
++        setObjVar(player, PRECU_OP_REFUND_ATTEMPT_KEY, attemptKey);
++        setObjVar(player, PRECU_OP_REFUND_RETRY_CONSUMED, 0);
++        setObjVar(player, PRECU_OP_STATE, "refundInitialClaiming");
++        setObjVar(player, PRECU_OP_UPDATED, getCalendarTime());
++        params.put(PRECU_REFUND_PARAM_GENERATION, 1);
++        params.put(PRECU_REFUND_PARAM_ATTEMPT_KEY, attemptKey);
++        params.put(PRECU_REFUND_PARAM_RETRY_CONSUMED, false);
++        return hasExactPhaseARefundAttempt(
++            trainer,
++            player,
++            params,
++            "refundInitialClaiming",
++            "",
++            PRECU_VECTOR_DEBIT,
++            1);
++    }
++    private boolean publishPhaseAAccountingRequestQueueFailure(
++        obj_id trainer,
++        obj_id player,
++        dictionary params) throws InterruptedException
++    {
++        String expectedKey = buildPhaseAAttemptKey(
++            params.getString(PRECU_PARAM_ID), "accounting", 1);
++        if (!hasExactSuccessfulPaymentProvenance(params) ||
++            !isExactActivePhaseAOperation(
++                trainer, player, params, "accountingRequested", "", PRECU_VECTOR_HELD) ||
++            !expectedKey.equals(
++                params.getString(PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY)) ||
++            !expectedKey.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY)) ||
++            !money.ACCT_SKILL_TRAINING.equals(params.getString(money.DICT_ACCT_NAME)) ||
++            !money.ACCT_SKILL_TRAINING.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_ACCOUNT)) ||
++            !PRECU_ACCOUNTING_OUTCOME_NONE.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME)))
++        {
++            return false;
++        }
++        setObjVar(
++            player,
++            PRECU_OP_ACCOUNTING_OUTCOME,
++            PRECU_ACCOUNTING_OUTCOME_REQUEST_QUEUE_FAILED);
++        if (!PRECU_ACCOUNTING_OUTCOME_REQUEST_QUEUE_FAILED.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME)))
++        {
++            return false;
++        }
++        setObjVar(player, PRECU_OP_STATE, "accountingRequestQueueFailed");
++        setObjVar(player, PRECU_OP_UPDATED, getCalendarTime());
++        return "accountingRequestQueueFailed".equals(
++            getStringObjVar(player, PRECU_OP_STATE));
++    }
++    private boolean dispatchClaimedPhaseARefund(
++        obj_id trainer,
++        obj_id player,
++        dictionary params,
++        int generation) throws InterruptedException
++    {
++        String family = generation == 1 ? "refundInitial" : "refundRecovery";
++        if ((generation != 1 && generation != 2) ||
++            !hasExactPhaseARefundAttempt(
++                trainer,
++                player,
++                params,
++                family + "Claiming",
++                "",
++                PRECU_VECTOR_DEBIT,
++                generation))
++        {
++            return false;
++        }
++        setObjVar(player, PRECU_OP_STATE, family + "Dispatching");
++        setObjVar(player, PRECU_OP_UPDATED, getCalendarTime());
++        if (!hasExactPhaseARefundAttempt(
++                trainer,
++                player,
++                params,
++                family + "Dispatching",
++                "",
++                PRECU_VECTOR_DEBIT,
++                generation))
++        {
++            return false;
++        }
++        boolean queued = transferBankCreditsTo(
++            trainer,
++            player,
++            params.getInt(money.DICT_TOTAL),
++            "precuPhaseARefundSucceeded",
++            "precuPhaseARefundFailed",
++            params);
++        if (!queued)
++        {
++            transitionExactPhaseARefund(
++                trainer,
++                player,
++                params,
++                family + "Dispatching",
++                "",
++                family + "Failed",
++                PRECU_VECTOR_DEBIT,
++                generation);
++        }
++        else
++        {
++            checkpointPhaseARefundPending(trainer, player, params, generation);
++        }
++        return queued;
++    }
++    private boolean hasAnyPhaseATag(dictionary params)
++    {
++        return params != null && !params.isEmpty() &&
++            (params.containsKey(PRECU_PARAM_ID) || params.containsKey(PRECU_PARAM_KIND) ||
++                params.containsKey(PRECU_LIFECYCLE_PARAM_ID) ||
++                params.containsKey(PRECU_PROTOCOL_PARAM_VERSION) ||
++                params.containsKey(PRECU_REFUND_PARAM_GENERATION) ||
++                params.containsKey(PRECU_REFUND_PARAM_ATTEMPT_KEY) ||
++                params.containsKey(PRECU_REFUND_PARAM_RETRY_CONSUMED) ||
++                params.containsKey(PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY));
++    }
++    private boolean isExactActivePhaseAOperation(
++        obj_id trainer,
++        obj_id player,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String expectedVector) throws InterruptedException
++    {
++        if (!isIdValid(trainer) || !trainer.isLoaded() || !trainer.isAuthoritative() ||
++            !isIdValid(player) || !isPlayer(player) || !player.isLoaded() ||
++            !player.isAuthoritative() || params == null || params.isEmpty() ||
++            !hasObjVar(player, PRECU_OP_ATTEMPT_ID) || !hasObjVar(player, PRECU_OP_ID) ||
++            !hasObjVar(player, PRECU_OP_KIND) || !hasObjVar(player, PRECU_OP_STATE) ||
++            !hasObjVar(player, PRECU_OP_UPDATED) ||
++            !hasObjVar(player, PRECU_OP_LIFECYCLE_ID) ||
++            !hasObjVar(player, PRECU_OP_TRAINER_OID) ||
++            !hasObjVar(player, PRECU_OP_SKILL_NAME) ||
++            !hasObjVar(player, PRECU_OP_COST) ||
++            !hasObjVar(player, PRECU_OP_PRE_CREDITS) ||
++            !hasObjVar(player, PRECU_OP_PRE_CASH) ||
++            !hasObjVar(player, PRECU_OP_PRE_BANK) ||
++            !hasObjVar(player, PRECU_OP_PRE_XP) ||
++            !hasObjVar(player, PRECU_OP_PRE_POINTS) ||
++            !hasObjVar(player, PRECU_OP_PRE_CAP) ||
++            !hasObjVar(player, PRECU_OP_PRE_NOVICE) ||
++            !hasObjVar(player, PRECU_OP_PRE_SKILL) ||
++            !hasObjVar(player, PRECU_OP_PROTOCOL_VERSION) ||
++            !hasObjVar(player, PRECU_OP_REFUND_GENERATION) ||
++            !hasObjVar(player, PRECU_OP_REFUND_ATTEMPT_KEY) ||
++            !hasObjVar(player, PRECU_OP_REFUND_RETRY_CONSUMED) ||
++            !hasObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY) ||
++            !hasObjVar(player, PRECU_OP_ACCOUNTING_ACCOUNT) ||
++            !hasObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_ATTEMPT_ID) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_ID) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_STATE) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_BASE_CASH) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_BASE_BANK) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_BASE_XP) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_BASE_POINTS) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_BASE_CAP) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_BASE_NOVICE) ||
++            !hasObjVar(player, PRECU_LIFECYCLE_BASE_SKILL))
++        {
++            return false;
++        }
++        String operationId = params.getString(PRECU_PARAM_ID);
++        String operationKind = params.getString(PRECU_PARAM_KIND);
++        String lifecycleId = params.getString(PRECU_LIFECYCLE_PARAM_ID);
++        String currentState = getStringObjVar(player, PRECU_OP_STATE);
++        String skillName = params.getString("skillName");
++        obj_id taggedPlayer = params.getObjId(money.DICT_PLAYER_ID);
++        obj_id taggedTrainer = params.getObjId(money.DICT_TARGET_ID);
++        int operationCost = getIntObjVar(player, PRECU_OP_COST);
++        String operationSkillName = getStringObjVar(player, PRECU_OP_SKILL_NAME);
++        if (!params.containsKey(PRECU_PARAM_ID) ||
++            !params.containsKey(PRECU_PARAM_KIND) ||
++            !params.containsKey(PRECU_LIFECYCLE_PARAM_ID) ||
++            !params.containsKey(PRECU_PROTOCOL_PARAM_VERSION) ||
++            !params.containsKey("skillName") ||
++            !params.containsKey(money.DICT_PLAYER_ID) ||
++            !params.containsKey(money.DICT_TARGET_ID) ||
++            !params.containsKey(money.DICT_AMOUNT) ||
++            !params.containsKey(money.DICT_TOTAL) ||
++            operationId == null || !operationId.matches("[a-f0-9]{32}") ||
++            !operationId.equals(getStringObjVar(player, PRECU_OP_ATTEMPT_ID)) ||
++            !operationId.equals(getStringObjVar(player, PRECU_OP_ID)) ||
++            !"purchase".equals(operationKind) ||
++            !operationKind.equals(getStringObjVar(player, PRECU_OP_KIND)) ||
++            lifecycleId == null || !lifecycleId.matches("[a-f0-9]{32}") ||
++            !lifecycleId.equals(getStringObjVar(player, PRECU_OP_LIFECYCLE_ID)) ||
++            !lifecycleId.equals(getStringObjVar(player, PRECU_LIFECYCLE_ATTEMPT_ID)) ||
++            !lifecycleId.equals(getStringObjVar(player, PRECU_LIFECYCLE_ID)) ||
++            !"established".equals(getStringObjVar(player, PRECU_LIFECYCLE_STATE)) ||
++            taggedPlayer == null || !player.equals(taggedPlayer) ||
++            taggedTrainer == null || !trainer.equals(taggedTrainer) ||
++            !trainer.toString().equals(getStringObjVar(player, PRECU_OP_TRAINER_OID)) ||
++            skillName == null || !PRECU_CRAFTING_SKILL.equals(skillName) ||
++            !skillName.equals(operationSkillName) ||
++            params.getInt(PRECU_PROTOCOL_PARAM_VERSION) != PRECU_PROTOCOL_VERSION ||
++            getIntObjVar(player, PRECU_OP_PROTOCOL_VERSION) != PRECU_PROTOCOL_VERSION ||
++            operationCost != PRECU_CRAFTING_TRAINER_COST ||
++            getIntObjVar(player, PRECU_OP_UPDATED) <= 0 ||
++            params.getInt(money.DICT_AMOUNT) != operationCost ||
++            params.getInt(money.DICT_TOTAL) != operationCost ||
++            !matchesPhaseAState(currentState, expectedState, alternateState))
++        {
++            return false;
++        }
++
++        int preCredits = getIntObjVar(player, PRECU_OP_PRE_CREDITS);
++        int preCash = getIntObjVar(player, PRECU_OP_PRE_CASH);
++        int preBank = getIntObjVar(player, PRECU_OP_PRE_BANK);
++        int preXp = getIntObjVar(player, PRECU_OP_PRE_XP);
++        int prePoints = getIntObjVar(player, PRECU_OP_PRE_POINTS);
++        int preCap = getIntObjVar(player, PRECU_OP_PRE_CAP);
++        int preNovice = getIntObjVar(player, PRECU_OP_PRE_NOVICE);
++        int preSkill = getIntObjVar(player, PRECU_OP_PRE_SKILL);
++        int baseCash = getIntObjVar(player, PRECU_LIFECYCLE_BASE_CASH);
++        int baseBank = getIntObjVar(player, PRECU_LIFECYCLE_BASE_BANK);
++        int baseXp = getIntObjVar(player, PRECU_LIFECYCLE_BASE_XP);
++        int basePoints = getIntObjVar(player, PRECU_LIFECYCLE_BASE_POINTS);
++        int baseCap = getIntObjVar(player, PRECU_LIFECYCLE_BASE_CAP);
++        int baseNovice = getIntObjVar(player, PRECU_LIFECYCLE_BASE_NOVICE);
++        int baseSkill = getIntObjVar(player, PRECU_LIFECYCLE_BASE_SKILL);
++        int novicePointCost = skill.getSkillPointCost(PRECU_CRAFTING_NOVICE_SKILL);
++        int targetPointCost = skill.getSkillPointCost(PRECU_CRAFTING_SKILL);
++        int expectedPrePoints = basePoints - (baseNovice == 0 ? novicePointCost : 0);
++        if (baseCash < 0 || baseBank < 0 || preCredits < operationCost ||
++            preCash < 0 || preBank < operationCost ||
++            (long)preCredits != (long)preCash + (long)preBank ||
++            preCash != baseCash ||
++            (long)preBank != (long)baseBank + (long)operationCost ||
++            (long)preXp != (long)baseXp + (long)PRECU_CRAFTING_XP_COST ||
++            novicePointCost < 0 || targetPointCost < 0 ||
++            prePoints != expectedPrePoints || prePoints < targetPointCost ||
++            preCap != PRECU_PREPURCHASE_XP_CAP ||
++            (baseNovice == 1 && baseCap != preCap) ||
++            (baseNovice != 0 && baseNovice != 1) || baseSkill != 0 ||
++            preNovice != 1 || preSkill != 0)
++        {
++            return false;
++        }
++
++        int bankDebit = preBank < operationCost ? preBank : operationCost;
++        int cashDebit = operationCost - bankDebit;
++        boolean preGameplay =
++            getExperiencePoints(player, PRECU_CRAFTING_XP_TYPE) == preXp &&
++            skill.getAvailableSkillPoints(player) == prePoints &&
++            getExperienceCap(player, PRECU_CRAFTING_XP_TYPE) == preCap &&
++            (hasSkill(player, PRECU_CRAFTING_NOVICE_SKILL) ? 1 : 0) == preNovice &&
++            (hasSkill(player, PRECU_CRAFTING_SKILL) ? 1 : 0) == preSkill;
++        if (PRECU_VECTOR_PRE.equals(expectedVector) ||
++            PRECU_VECTOR_REFUND.equals(expectedVector))
++        {
++            return preGameplay && !utils.hasScriptVar(player, PRECU_RELOG_NONCE) &&
++                !utils.hasScriptVar(player, PRECU_RESTART_NONCE) &&
++                hasExactPreparedPhaseACraftingVector(player) &&
++                getCashBalance(player) == preCash &&
++                getBankBalance(player) == preBank &&
++                getTotalMoney(player) == preCredits;
++        }
++        if (PRECU_VECTOR_DEBIT.equals(expectedVector))
++        {
++            return preGameplay && !utils.hasScriptVar(player, PRECU_RELOG_NONCE) &&
++                !utils.hasScriptVar(player, PRECU_RESTART_NONCE) &&
++                hasExactPreparedPhaseACraftingVector(player) &&
++                getCashBalance(player) == preCash - cashDebit &&
++                getBankBalance(player) == preBank - bankDebit &&
++                getTotalMoney(player) == preCredits - operationCost;
++        }
++        if (PRECU_VECTOR_HELD.equals(expectedVector))
++        {
++            return getCashBalance(player) == preCash - cashDebit &&
++                getBankBalance(player) == preBank - bankDebit &&
++                getTotalMoney(player) == preCredits - operationCost &&
++                getExperiencePoints(player, PRECU_CRAFTING_XP_TYPE) ==
++                    preXp - PRECU_CRAFTING_XP_COST &&
++                skill.getAvailableSkillPoints(player) == prePoints - targetPointCost &&
++                getExperienceCap(player, PRECU_CRAFTING_XP_TYPE) == PRECU_TRAINED_XP_CAP &&
++                hasExactHeldPhaseACraftingVector(player) &&
++                !utils.hasScriptVar(player, PRECU_RESTART_NONCE) &&
++                (!utils.hasScriptVar(player, PRECU_RELOG_NONCE) ||
++                    operationId.equals(
++                        utils.getStringScriptVar(player, PRECU_RELOG_NONCE)));
++        }
++        return false;
++    }
++    private boolean containsPhaseAValue(String[] values, String expected)
++    {
++        if (values == null || expected == null)
++        {
++            return false;
++        }
++        for (String value : values)
++        {
++            if (expected.equals(value))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++    private boolean hasExactPhaseASchematicVector(obj_id player, boolean held)
++        throws InterruptedException
++    {
++        String[] groupIds = dataTableGetStringColumnNoDefaults(
++            PRECU_SCHEMATIC_GROUP_TABLE,
++            "GroupId");
++        String[] schematicNames = dataTableGetStringColumnNoDefaults(
++            PRECU_SCHEMATIC_GROUP_TABLE,
++            "SchematicName");
++        if (groupIds == null || schematicNames == null ||
++            groupIds.length != schematicNames.length)
++        {
++            return false;
++        }
++        Vector<String> seen = new Vector<String>();
++        for (int i = 0; i < groupIds.length; ++i)
++        {
++            if (!containsPhaseAValue(PRECU_CRAFTING_VECTOR_SCHEMATIC_GROUPS, groupIds[i]))
++            {
++                continue;
++            }
++            String schematicName = schematicNames[i];
++            if (schematicName == null || schematicName.length() == 0 ||
++                seen.contains(schematicName))
++            {
++                return false;
++            }
++            seen.add(schematicName);
++            boolean shouldOwn = held ||
++                !containsPhaseAValue(PRECU_CRAFTING_PURCHASE_SCHEMATICS, schematicName);
++            if (hasSchematic(player, schematicName) != shouldOwn)
++            {
++                return false;
++            }
++        }
++        return seen.size() == PRECU_CRAFTING_SCHEMATIC_COUNT;
++    }
++    private boolean hasExactPreparedPhaseACraftingVector(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasSkill(player, PRECU_CRAFTING_NOVICE_SKILL) ||
++            hasSkill(player, PRECU_CRAFTING_SKILL) ||
++            !hasCommand(player, PRECU_CRAFTING_VECTOR_COMMANDS[0]) ||
++            hasCommand(player, PRECU_CRAFTING_VECTOR_COMMANDS[1]) ||
++            (hasObjVar(player, "newbie.hasSkill") && !hasObjVar(player, "newbie.trained")))
++        {
++            return false;
++        }
++        for (int i = 0; i < PRECU_CRAFTING_VECTOR_MODS.length; ++i)
++        {
++            if (getSkillStatisticModifier(player, PRECU_CRAFTING_VECTOR_MODS[i]) !=
++                PRECU_CRAFTING_VECTOR_MOD_VALUES[i] -
++                    PRECU_CRAFTING_PURCHASE_MOD_DELTAS[i])
++            {
++                return false;
++            }
++        }
++        return hasExactPhaseASchematicVector(player, false);
++    }
++    private boolean hasExactHeldPhaseACraftingVector(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasSkill(player, PRECU_CRAFTING_NOVICE_SKILL) ||
++            !hasSkill(player, PRECU_CRAFTING_SKILL))
++        {
++            return false;
++        }
++        for (String command : PRECU_CRAFTING_VECTOR_COMMANDS)
++        {
++            if (!hasCommand(player, command))
++            {
++                return false;
++            }
++        }
++        for (int i = 0; i < PRECU_CRAFTING_VECTOR_MODS.length; ++i)
++        {
++            if (getSkillStatisticModifier(player, PRECU_CRAFTING_VECTOR_MODS[i]) !=
++                PRECU_CRAFTING_VECTOR_MOD_VALUES[i])
++            {
++                return false;
++            }
++        }
++        return hasExactPhaseASchematicVector(player, true);
++    }
++    private boolean matchesPhaseAState(
++        String currentState,
++        String expectedState,
++        String alternateState)
++    {
++        return expectedState.equals(currentState) ||
++            (alternateState.length() > 0 && alternateState.equals(currentState));
++    }
++    private boolean transitionPhaseAOperation(
++        obj_id trainer,
++        obj_id player,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String state,
++        String expectedVector)
++        throws InterruptedException
++    {
++        if (!isExactActivePhaseAOperation(
++                trainer, player, params, expectedState, alternateState, expectedVector))
++        {
++            return false;
++        }
++        setObjVar(player, PRECU_OP_STATE, state);
++        setObjVar(player, PRECU_OP_UPDATED, getCalendarTime());
++        return state.equals(getStringObjVar(player, PRECU_OP_STATE));
++    }
++    private boolean hasExactPhaseARefundAttempt(
++        obj_id trainer,
++        obj_id player,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String expectedVector,
++        int generation) throws InterruptedException
++    {
++        if (!hasExactSuccessfulPaymentProvenance(params) ||
++            !params.containsKey(PRECU_REFUND_PARAM_GENERATION) ||
++            !params.containsKey(PRECU_REFUND_PARAM_ATTEMPT_KEY) ||
++            !params.containsKey(PRECU_REFUND_PARAM_RETRY_CONSUMED) ||
++            !isExactActivePhaseAOperation(
++                trainer,
++                player,
++                params,
++                expectedState,
++                alternateState,
++                expectedVector))
++        {
++            return false;
++        }
++        String expectedKey = buildPhaseAAttemptKey(
++            params.getString(PRECU_PARAM_ID), "refund", generation);
++        boolean consumed = generation == 2;
++        return (generation == 1 || generation == 2) &&
++            getIntObjVar(player, PRECU_OP_REFUND_GENERATION) == generation &&
++            expectedKey.equals(getStringObjVar(player, PRECU_OP_REFUND_ATTEMPT_KEY)) &&
++            params.getInt(PRECU_REFUND_PARAM_GENERATION) == generation &&
++            expectedKey.equals(params.getString(PRECU_REFUND_PARAM_ATTEMPT_KEY)) &&
++            (getIntObjVar(player, PRECU_OP_REFUND_RETRY_CONSUMED) != 0) == consumed &&
++            params.getBoolean(PRECU_REFUND_PARAM_RETRY_CONSUMED) == consumed &&
++            !"none".equals(expectedKey) &&
++            "none".equals(getStringObjVar(player, PRECU_OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            "none".equals(getStringObjVar(player, PRECU_OP_ACCOUNTING_ACCOUNT)) &&
++            PRECU_ACCOUNTING_OUTCOME_NONE.equals(
++                getStringObjVar(player, PRECU_OP_ACCOUNTING_OUTCOME));
++    }
++    private boolean transitionExactPhaseARefund(
++        obj_id trainer,
++        obj_id player,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String state,
++        String expectedVector,
++        int generation) throws InterruptedException
++    {
++        if (!hasExactPhaseARefundAttempt(
++                trainer,
++                player,
++                params,
++                expectedState,
++                alternateState,
++                expectedVector,
++                generation))
++        {
++            return false;
++        }
++        setObjVar(player, PRECU_OP_STATE, state);
++        setObjVar(player, PRECU_OP_UPDATED, getCalendarTime());
++        return state.equals(getStringObjVar(player, PRECU_OP_STATE));
++    }
++    private boolean checkpointPhaseARefundPending(
++        obj_id trainer,
++        obj_id player,
++        dictionary params,
++        int generation) throws InterruptedException
++    {
++        String family = generation == 1 ? "refundInitial" : "refundRecovery";
++        boolean exactTransit = hasExactPhaseARefundAttempt(
++            trainer,
++            player,
++            params,
++            family + "Dispatching",
++            "",
++            PRECU_VECTOR_DEBIT,
++            generation);
++        if (!exactTransit)
++        {
++            exactTransit = hasExactPhaseARefundAttempt(
++                trainer,
++                player,
++                params,
++                family + "Dispatching",
++                "",
++                PRECU_VECTOR_REFUND,
++                generation);
++        }
++        if (!exactTransit)
++        {
++            return false;
++        }
++        setObjVar(player, PRECU_OP_STATE, family + "Pending");
++        setObjVar(player, PRECU_OP_UPDATED, getCalendarTime());
++        return (family + "Pending").equals(getStringObjVar(player, PRECU_OP_STATE));
++    }
+     public boolean completeSkillPurchase(obj_id player, String skillName) throws InterruptedException
+     {
+         if (!isIdValid(player) || (!isPlayer(player)))
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_money.java b/sku.0/sys.server/compiled/game/script/player/player_money.java
+index 0e94ee6..25f1e4c 100644
+--- a/sku.0/sys.server/compiled/game/script/player/player_money.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_money.java
+@@ -2,6 +2,7 @@ package script.player;
+ 
+ import script.dictionary;
+ import script.library.money;
++import script.library.skill;
+ import script.library.prose;
+ import script.library.sui;
+ import script.library.utils;
+@@ -11,6 +12,139 @@ import script.string_id;
+ 
+ public class player_money extends script.base_script
+ {
++    private static final String PRECU_OP_ROOT = "precu.phaseA.operation";
++    private static final String PRECU_OP_ATTEMPT_ID = PRECU_OP_ROOT + ".attemptId";
++    private static final String PRECU_OP_ID = PRECU_OP_ROOT + ".id";
++    private static final String PRECU_OP_KIND = PRECU_OP_ROOT + ".kind";
++    private static final String PRECU_OP_STATE = PRECU_OP_ROOT + ".state";
++    private static final String PRECU_OP_UPDATED = PRECU_OP_ROOT + ".updated";
++    private static final String PRECU_OP_LIFECYCLE_ID = PRECU_OP_ROOT + ".lifecycleId";
++    private static final String PRECU_OP_COST = PRECU_OP_ROOT + ".cost";
++    private static final String PRECU_OP_TRAINER_OID = PRECU_OP_ROOT + ".trainerOid";
++    private static final String PRECU_OP_SKILL_NAME = PRECU_OP_ROOT + ".skillName";
++    private static final String PRECU_OP_PRE_CREDITS = PRECU_OP_ROOT + ".preCredits";
++    private static final String PRECU_OP_PRE_CASH = PRECU_OP_ROOT + ".preCash";
++    private static final String PRECU_OP_PRE_BANK = PRECU_OP_ROOT + ".preBank";
++    private static final String PRECU_OP_PRE_XP = PRECU_OP_ROOT + ".preXp";
++    private static final String PRECU_OP_PRE_POINTS = PRECU_OP_ROOT + ".prePoints";
++    private static final String PRECU_OP_PRE_CAP = PRECU_OP_ROOT + ".preCap";
++    private static final String PRECU_OP_PRE_NOVICE = PRECU_OP_ROOT + ".preNovice";
++    private static final String PRECU_OP_PRE_SKILL = PRECU_OP_ROOT + ".preSkill";
++    private static final String PRECU_OP_PROTOCOL_VERSION = PRECU_OP_ROOT + ".protocolVersion";
++    private static final String PRECU_OP_REFUND_GENERATION =
++        PRECU_OP_ROOT + ".refundGeneration";
++    private static final String PRECU_OP_REFUND_ATTEMPT_KEY =
++        PRECU_OP_ROOT + ".refundAttemptKey";
++    private static final String PRECU_OP_REFUND_RETRY_CONSUMED =
++        PRECU_OP_ROOT + ".refundRetryConsumed";
++    private static final String PRECU_OP_ACCOUNTING_ATTEMPT_KEY =
++        PRECU_OP_ROOT + ".accountingAttemptKey";
++    private static final String PRECU_OP_ACCOUNTING_ACCOUNT =
++        PRECU_OP_ROOT + ".accountingAccount";
++    private static final String PRECU_OP_ACCOUNTING_OUTCOME =
++        PRECU_OP_ROOT + ".accountingOutcome";
++    private static final String PRECU_PARAM_ID = "precuPhaseAOperationId";
++    private static final String PRECU_PARAM_KIND = "precuPhaseAOperationKind";
++    private static final String PRECU_REFUND_PARAM_GENERATION =
++        "precuPhaseARefundGeneration";
++    private static final String PRECU_REFUND_PARAM_ATTEMPT_KEY =
++        "precuPhaseARefundAttemptKey";
++    private static final String PRECU_REFUND_PARAM_RETRY_CONSUMED =
++        "precuPhaseARefundRetryConsumed";
++    private static final String PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY =
++        "precuPhaseAAccountingAttemptKey";
++    private static final String PRECU_PROTOCOL_PARAM_VERSION =
++        "precuPhaseAProtocolVersion";
++    private static final String PRECU_LIFECYCLE_ATTEMPT_ID = "precu.phaseA.lifecycle.attemptId";
++    private static final String PRECU_LIFECYCLE_ID = "precu.phaseA.lifecycle.id";
++    private static final String PRECU_LIFECYCLE_STATE = "precu.phaseA.lifecycle.state";
++    private static final String PRECU_LIFECYCLE_BASE_CASH = "precu.phaseA.lifecycle.baseCash";
++    private static final String PRECU_LIFECYCLE_BASE_BANK = "precu.phaseA.lifecycle.baseBank";
++    private static final String PRECU_LIFECYCLE_BASE_XP = "precu.phaseA.lifecycle.baseXp";
++    private static final String PRECU_LIFECYCLE_BASE_POINTS = "precu.phaseA.lifecycle.basePoints";
++    private static final String PRECU_LIFECYCLE_BASE_CAP = "precu.phaseA.lifecycle.baseCap";
++    private static final String PRECU_LIFECYCLE_BASE_NOVICE = "precu.phaseA.lifecycle.baseNovice";
++    private static final String PRECU_LIFECYCLE_BASE_SKILL = "precu.phaseA.lifecycle.baseSkill";
++    private static final String PRECU_LIFECYCLE_PARAM_ID = "precuPhaseALifecycleId";
++    private static final String PRECU_RELOG_NONCE = "precu.phaseA.relogNonce";
++    private static final String PRECU_RESTART_NONCE = "precu.phaseA.restartNonce";
++    private static final String PRECU_CRAFTING_XP_TYPE = "crafting_general";
++    private static final String PRECU_CRAFTING_NOVICE_SKILL = "crafting_artisan_novice";
++    private static final String PRECU_CRAFTING_SKILL = "crafting_artisan_engineering_01";
++    private static final int PRECU_CRAFTING_TRAINER_COST = 1000;
++    private static final int PRECU_CRAFTING_XP_COST = 500;
++    private static final int PRECU_PREPURCHASE_XP_CAP = 1500;
++    private static final int PRECU_TRAINED_XP_CAP = 2000;
++    private static final int PRECU_CRAFTING_SCHEMATIC_COUNT = 35;
++    private static final int PRECU_PROTOCOL_VERSION = 64;
++    private static final String PRECU_ACCOUNTING_OUTCOME_NONE = "none";
++    private static final String PRECU_ACCOUNTING_OUTCOME_SUCCESS = "SUCCESS";
++    private static final String PRECU_ACCOUNTING_OUTCOME_QUEUE_FAILED = "QUEUE_FAILED";
++    private static final String PRECU_ACCOUNTING_OUTCOME_FAILED = "FAILED";
++    private static final String PRECU_VECTOR_PRE = "PRE";
++    private static final String PRECU_VECTOR_DEBIT = "DEBIT";
++    private static final String PRECU_VECTOR_HELD = "HELD";
++    private static final String PRECU_SCHEMATIC_GROUP_TABLE =
++        "datatables/crafting/schematic_group.iff";
++    private static final String[] PRECU_CRAFTING_VECTOR_COMMANDS =
++    {
++        "private_artisan_novice",
++        "private_artisan_engineering_1"
++    };
++    private static final String[] PRECU_CRAFTING_VECTOR_MODS =
++    {
++        "surveying",
++        "general_assembly",
++        "general_experimentation",
++        "clothing_customization",
++        "armor_customization",
++        "slope_move"
++    };
++    private static final int[] PRECU_CRAFTING_VECTOR_MOD_VALUES =
++    {
++        20,
++        30,
++        30,
++        20,
++        40,
++        25
++    };
++    private static final int[] PRECU_CRAFTING_PURCHASE_MOD_DELTAS =
++    {
++        0,
++        10,
++        10,
++        0,
++        20,
++        0
++    };
++    private static final String[] PRECU_CRAFTING_VECTOR_SCHEMATIC_GROUPS =
++    {
++        "craftArtisanNewbieGroupA",
++        "craftArtisanNewbieGroupB",
++        "craftArtisanSurveyGroupA",
++        "craftArtisanEngineeringGroupA",
++        "craftArtisanToolGroupA"
++    };
++    private static final String[] PRECU_CRAFTING_PURCHASE_SCHEMATICS =
++    {
++        "object/draft_schematic/item/craftable_bug_habitat.iff",
++        "object/draft_schematic/item/item_battery_droid.iff",
++        "object/draft_schematic/item/item_clothing_tool.iff",
++        "object/draft_schematic/item/item_firework_five.iff",
++        "object/draft_schematic/item/item_firework_four.iff",
++        "object/draft_schematic/item/item_hundred_sided_dice.iff",
++        "object/draft_schematic/item/item_space_tool.iff",
++        "object/draft_schematic/item/item_structure_tool.iff",
++        "object/draft_schematic/item/item_twelve_sided_dice.iff",
++        "object/draft_schematic/item/item_twenty_sided_dice.iff",
++        "object/draft_schematic/item/item_weapon_tool.iff"
++    };
++    private static final String PRECU_BUILD_FINGERPRINT = "__PHASE_A_BUILD_FINGERPRINT__";
++    public static String getPrecuPhaseABuildFingerprint()
++    {
++        return PRECU_BUILD_FINGERPRINT;
++    }
+     public player_money()
+     {
+     }
+@@ -20,6 +154,12 @@ public class player_money extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
++        // The canary is funded entirely into bank. A tagged covert-deposit
++        // callback is therefore impossible and must have no stock side effect.
++        if (hasAnyPhaseATag(params))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         obj_id target = params.getObjId(money.DICT_TARGET_ID);
+         int total = params.getInt(money.DICT_TOTAL);
+         String returnHandler = params.getString(money.DICT_PAY_HANDLER);
+@@ -88,6 +228,23 @@ public class player_money extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
++        if (hasAnyPhaseATag(params))
++        {
++            // Native transfer success arrives without DICT_CODE.  Accept only
++            // that exact pre-normalization shape; the stock code below then
++            // publishes the explicit RET_SUCCESS required by attemptedPayment.
++            if (!hasExactNativePaymentEnvelope(params) ||
++                !transitionPhaseAPurchaseStage(
++                    self,
++                    params,
++                    "paymentDispatching",
++                    "",
++                    "paymentSucceededCallback",
++                    true))
++            {
++                return SCRIPT_CONTINUE;
++            }
++        }
+         money.decrementPayTally(self, params);
+         int retCode = money.getReturnCode(params);
+         switch (retCode)
+@@ -166,6 +323,18 @@ public class player_money extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
++        if (hasAnyPhaseATag(params) &&
++            (!hasExactNativePaymentEnvelope(params) ||
++             !transitionPhaseAPurchaseStage(
++                 self,
++                 params,
++                 "paymentDispatching",
++                 "",
++                 "paymentFailedCallback",
++                 false)))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         money.decrementPayTally(self, params);
+         params.put(money.DICT_CODE, money.RET_FAIL);
+         String returnHandler = params.getString(money.DICT_PAY_HANDLER);
+@@ -180,6 +349,103 @@ public class player_money extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int precuPhaseARequestAccounting(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!hasExactPhaseAAccountingAttempt(
++                self,
++                params,
++                "accountingRequested",
++                "",
++                PRECU_ACCOUNTING_OUTCOME_NONE))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        obj_id trainer = params.getObjId(money.DICT_TARGET_ID);
++        setObjVar(self, PRECU_OP_STATE, "accountingDispatching");
++        setObjVar(self, PRECU_OP_UPDATED, getCalendarTime());
++        if (!hasExactPhaseAAccountingAttempt(
++                self,
++                params,
++                "accountingDispatching",
++                "",
++                PRECU_ACCOUNTING_OUTCOME_NONE))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        boolean queued = transferBankCreditsToNamedAccount(
++            trainer,
++            money.ACCT_SKILL_TRAINING,
++            params.getInt(money.DICT_TOTAL),
++            "precuPhaseAAccountingSucceeded",
++            "precuPhaseAAccountingFailed",
++            params);
++        if (!queued)
++        {
++            publishPhaseAAccountingOutcome(
++                self,
++                params,
++                "accountingDispatching",
++                "",
++                PRECU_ACCOUNTING_OUTCOME_QUEUE_FAILED,
++                "accountingQueueFailed");
++        }
++        else if (hasExactPhaseAAccountingAttempt(
++                self,
++                params,
++                "accountingDispatching",
++                "",
++                PRECU_ACCOUNTING_OUTCOME_NONE))
++        {
++            setObjVar(self, PRECU_OP_STATE, "accountingPending");
++            setObjVar(self, PRECU_OP_UPDATED, getCalendarTime());
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int precuPhaseAAccountingSucceeded(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!publishPhaseAAccountingOutcome(
++                self,
++                params,
++                "accountingDispatching",
++                "accountingPending",
++                PRECU_ACCOUNTING_OUTCOME_SUCCESS,
++                "accountingSucceededCallback"))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        if (hasExactPhaseAAccountingAttempt(
++                self,
++                params,
++                "accountingSucceededCallback",
++                "",
++                PRECU_ACCOUNTING_OUTCOME_SUCCESS))
++        {
++            setObjVar(self, PRECU_OP_STATE, "purchaseSucceeded");
++            setObjVar(self, PRECU_OP_UPDATED, getCalendarTime());
++            if ("purchaseSucceeded".equals(getStringObjVar(self, PRECU_OP_STATE)))
++            {
++                utils.moneyOutMetric(
++                    params.getObjId(money.DICT_TARGET_ID),
++                    money.ACCT_SKILL_TRAINING,
++                    params.getInt(money.DICT_TOTAL));
++            }
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int precuPhaseAAccountingFailed(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        publishPhaseAAccountingOutcome(
++            self,
++            params,
++            "accountingDispatching",
++            "accountingPending",
++            PRECU_ACCOUNTING_OUTCOME_FAILED,
++            "accountingFailed");
++        return SCRIPT_CONTINUE;
++    }
+     public int acctToPass(obj_id self, dictionary params) throws InterruptedException
+     {
+         if ((params == null) || (params.isEmpty()))
+@@ -290,6 +556,10 @@ public class player_money extends script.base_script
+     }
+     public int handleBankSuccess(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (hasAnyPhaseATag(params) && !transitionPhaseAOperation(self, params, true))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         money.bankSuccess(self, params);
+         return SCRIPT_CONTINUE;
+     }
+@@ -310,9 +580,432 @@ public class player_money extends script.base_script
+     }
+     public int handleBankTransferError(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (hasAnyPhaseATag(params) && !transitionPhaseAOperation(self, params, false))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         money.bankTransferError(self);
+         return SCRIPT_CONTINUE;
+     }
++    private boolean hasAnyPhaseATag(dictionary params)
++    {
++        return params != null && !params.isEmpty() &&
++            (params.containsKey(PRECU_PARAM_ID) || params.containsKey(PRECU_PARAM_KIND) ||
++                params.containsKey(PRECU_LIFECYCLE_PARAM_ID) ||
++                params.containsKey(PRECU_PROTOCOL_PARAM_VERSION) ||
++                params.containsKey(PRECU_REFUND_PARAM_GENERATION) ||
++                params.containsKey(PRECU_REFUND_PARAM_ATTEMPT_KEY) ||
++                params.containsKey(PRECU_REFUND_PARAM_RETRY_CONSUMED) ||
++                params.containsKey(PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY));
++    }
++    private boolean hasExactHandlerEnvelope(dictionary params)
++    {
++        return params != null && !params.isEmpty() &&
++            params.containsKey(money.DICT_HANDLER) &&
++            params.containsKey(money.DICT_PAY_HANDLER) &&
++            params.containsKey(PRECU_PROTOCOL_PARAM_VERSION) &&
++            "attemptedPayment".equals(params.getString(money.DICT_HANDLER)) &&
++            "attemptedPayment".equals(params.getString(money.DICT_PAY_HANDLER)) &&
++            params.getInt(PRECU_PROTOCOL_PARAM_VERSION) == PRECU_PROTOCOL_VERSION;
++    }
++    private boolean hasExactNativePaymentEnvelope(dictionary params)
++        throws InterruptedException
++    {
++        // The native bank callback has not normalized a return code yet.
++        return hasExactHandlerEnvelope(params) &&
++            !params.containsKey(money.DICT_CODE) && money.getReturnCode(params) == -1;
++    }
++    private boolean hasExactPaymentRequestEnvelope(dictionary params)
++    {
++        return hasExactHandlerEnvelope(params) && !params.containsKey(money.DICT_CODE);
++    }
++    private boolean hasExactSuccessfulPaymentProvenance(dictionary params)
++    {
++        return hasExactHandlerEnvelope(params) && params.containsKey(money.DICT_CODE) &&
++            params.getInt(money.DICT_CODE) == money.RET_SUCCESS;
++    }
++    private String buildPhaseAAttemptKey(String operationId, String kind, int generation)
++    {
++        return operationId + "." + kind + "." + generation;
++    }
++    private boolean hasExactPhaseAAccountingAttempt(
++        obj_id self,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String expectedOutcome) throws InterruptedException
++    {
++        if (!hasExactSuccessfulPaymentProvenance(params) ||
++            !params.containsKey(PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY) ||
++            !params.containsKey(money.DICT_ACCT_NAME) ||
++            !isExactActivePhaseAPurchaseStage(
++                self,
++                params,
++                expectedState,
++                alternateState,
++                PRECU_VECTOR_HELD))
++        {
++            return false;
++        }
++        String expectedKey = buildPhaseAAttemptKey(
++            params.getString(PRECU_PARAM_ID), "accounting", 1);
++        return expectedKey.equals(
++                params.getString(PRECU_ACCOUNTING_PARAM_ATTEMPT_KEY)) &&
++            expectedKey.equals(getStringObjVar(self, PRECU_OP_ACCOUNTING_ATTEMPT_KEY)) &&
++            money.ACCT_SKILL_TRAINING.equals(params.getString(money.DICT_ACCT_NAME)) &&
++            money.ACCT_SKILL_TRAINING.equals(
++                getStringObjVar(self, PRECU_OP_ACCOUNTING_ACCOUNT)) &&
++            expectedOutcome.equals(getStringObjVar(self, PRECU_OP_ACCOUNTING_OUTCOME)) &&
++            getIntObjVar(self, PRECU_OP_REFUND_GENERATION) == 0 &&
++            "none".equals(getStringObjVar(self, PRECU_OP_REFUND_ATTEMPT_KEY)) &&
++            getIntObjVar(self, PRECU_OP_REFUND_RETRY_CONSUMED) == 0;
++    }
++    private boolean publishPhaseAAccountingOutcome(
++        obj_id self,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String outcome,
++        String state) throws InterruptedException
++    {
++        if (!hasExactPhaseAAccountingAttempt(
++                self,
++                params,
++                expectedState,
++                alternateState,
++                PRECU_ACCOUNTING_OUTCOME_NONE))
++        {
++            return false;
++        }
++        setObjVar(self, PRECU_OP_ACCOUNTING_OUTCOME, outcome);
++        if (!outcome.equals(getStringObjVar(self, PRECU_OP_ACCOUNTING_OUTCOME)))
++        {
++            return false;
++        }
++        setObjVar(self, PRECU_OP_STATE, state);
++        setObjVar(self, PRECU_OP_UPDATED, getCalendarTime());
++        return state.equals(getStringObjVar(self, PRECU_OP_STATE));
++    }
++    private boolean transitionPhaseAOperation(obj_id self, dictionary params, boolean succeeded)
++        throws InterruptedException
++    {
++        if (params == null || params.isEmpty() ||
++            !hasObjVar(self, PRECU_OP_ATTEMPT_ID) || !hasObjVar(self, PRECU_OP_ID) ||
++            !hasObjVar(self, PRECU_OP_KIND) || !hasObjVar(self, PRECU_OP_STATE) ||
++            !hasObjVar(self, PRECU_OP_LIFECYCLE_ID) ||
++            !hasObjVar(self, PRECU_OP_COST) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_ID) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_STATE) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_CASH) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_BANK) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_XP) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_POINTS) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_CAP) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_NOVICE) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_SKILL))
++        {
++            return false;
++        }
++        String operationId = params.getString(PRECU_PARAM_ID);
++        String operationKind = params.getString(PRECU_PARAM_KIND);
++        String lifecycleId = params.getString(PRECU_LIFECYCLE_PARAM_ID);
++        if (operationId == null ||
++            !operationId.equals(getStringObjVar(self, PRECU_OP_ATTEMPT_ID)) ||
++            !operationId.equals(getStringObjVar(self, PRECU_OP_ID)) ||
++            operationKind == null || !operationKind.equals(getStringObjVar(self, PRECU_OP_KIND)) ||
++            lifecycleId == null || !lifecycleId.equals(getStringObjVar(self, PRECU_OP_LIFECYCLE_ID)) ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID)) ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_LIFECYCLE_ID)) ||
++            !"established".equals(getStringObjVar(self, PRECU_LIFECYCLE_STATE)) ||
++            params.getInt(money.DICT_TOTAL) != getIntObjVar(self, PRECU_OP_COST) ||
++            (!"fund".equals(operationKind) && !"drain".equals(operationKind)))
++        {
++            return false;
++        }
++        String currentState = getStringObjVar(self, PRECU_OP_STATE);
++        if (!"enqueueing".equals(currentState) && !"queued".equals(currentState))
++        {
++            return false;
++        }
++        String terminalState = operationKind + (succeeded ? "Succeeded" : "Failed");
++        setObjVar(
++            self,
++            PRECU_OP_STATE,
++            terminalState);
++        setObjVar(self, PRECU_OP_UPDATED, getCalendarTime());
++        return terminalState.equals(getStringObjVar(self, PRECU_OP_STATE));
++    }
++    private boolean isExactActivePhaseAPurchaseStage(
++        obj_id self,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String expectedVector) throws InterruptedException
++    {
++        if (!isIdValid(self) || !isPlayer(self) || !self.isLoaded() ||
++            !self.isAuthoritative() || params == null || params.isEmpty() ||
++            !hasObjVar(self, PRECU_OP_ATTEMPT_ID) || !hasObjVar(self, PRECU_OP_ID) ||
++            !hasObjVar(self, PRECU_OP_KIND) || !hasObjVar(self, PRECU_OP_STATE) ||
++            !hasObjVar(self, PRECU_OP_UPDATED) ||
++            !hasObjVar(self, PRECU_OP_LIFECYCLE_ID) ||
++            !hasObjVar(self, PRECU_OP_TRAINER_OID) ||
++            !hasObjVar(self, PRECU_OP_SKILL_NAME) || !hasObjVar(self, PRECU_OP_COST) ||
++            !hasObjVar(self, PRECU_OP_PRE_CREDITS) ||
++            !hasObjVar(self, PRECU_OP_PRE_CASH) || !hasObjVar(self, PRECU_OP_PRE_BANK) ||
++            !hasObjVar(self, PRECU_OP_PRE_XP) || !hasObjVar(self, PRECU_OP_PRE_POINTS) ||
++            !hasObjVar(self, PRECU_OP_PRE_CAP) || !hasObjVar(self, PRECU_OP_PRE_NOVICE) ||
++            !hasObjVar(self, PRECU_OP_PRE_SKILL) ||
++            !hasObjVar(self, PRECU_OP_PROTOCOL_VERSION) ||
++            !hasObjVar(self, PRECU_OP_REFUND_GENERATION) ||
++            !hasObjVar(self, PRECU_OP_REFUND_ATTEMPT_KEY) ||
++            !hasObjVar(self, PRECU_OP_REFUND_RETRY_CONSUMED) ||
++            !hasObjVar(self, PRECU_OP_ACCOUNTING_ATTEMPT_KEY) ||
++            !hasObjVar(self, PRECU_OP_ACCOUNTING_ACCOUNT) ||
++            !hasObjVar(self, PRECU_OP_ACCOUNTING_OUTCOME) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_ID) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_STATE) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_CASH) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_BANK) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_XP) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_POINTS) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_CAP) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_NOVICE) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_SKILL))
++        {
++            return false;
++        }
++        String operationId = params.getString(PRECU_PARAM_ID);
++        String operationKind = params.getString(PRECU_PARAM_KIND);
++        String lifecycleId = params.getString(PRECU_LIFECYCLE_PARAM_ID);
++        String skillName = params.getString("skillName");
++        obj_id taggedPlayer = params.getObjId(money.DICT_PLAYER_ID);
++        obj_id taggedTrainer = params.getObjId(money.DICT_TARGET_ID);
++        String currentState = getStringObjVar(self, PRECU_OP_STATE);
++        int cost = getIntObjVar(self, PRECU_OP_COST);
++        if (!params.containsKey(PRECU_PARAM_ID) ||
++            !params.containsKey(PRECU_PARAM_KIND) ||
++            !params.containsKey(PRECU_LIFECYCLE_PARAM_ID) ||
++            !params.containsKey(PRECU_PROTOCOL_PARAM_VERSION) ||
++            !params.containsKey("skillName") ||
++            !params.containsKey(money.DICT_PLAYER_ID) ||
++            !params.containsKey(money.DICT_TARGET_ID) ||
++            !params.containsKey(money.DICT_AMOUNT) ||
++            !params.containsKey(money.DICT_TOTAL) ||
++            operationId == null || !operationId.matches("[a-f0-9]{32}") ||
++            !operationId.equals(getStringObjVar(self, PRECU_OP_ATTEMPT_ID)) ||
++            !operationId.equals(getStringObjVar(self, PRECU_OP_ID)) ||
++            !"purchase".equals(operationKind) ||
++            !operationKind.equals(getStringObjVar(self, PRECU_OP_KIND)) ||
++            lifecycleId == null || !lifecycleId.matches("[a-f0-9]{32}") ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_OP_LIFECYCLE_ID)) ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID)) ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_LIFECYCLE_ID)) ||
++            !"established".equals(getStringObjVar(self, PRECU_LIFECYCLE_STATE)) ||
++            taggedPlayer == null || !self.equals(taggedPlayer) ||
++            !isIdValid(taggedTrainer) || !taggedTrainer.isLoaded() ||
++            !taggedTrainer.isAuthoritative() ||
++            !taggedTrainer.toString().equals(getStringObjVar(self, PRECU_OP_TRAINER_OID)) ||
++            skillName == null || !PRECU_CRAFTING_SKILL.equals(skillName) ||
++            !skillName.equals(getStringObjVar(self, PRECU_OP_SKILL_NAME)) ||
++            params.getInt(PRECU_PROTOCOL_PARAM_VERSION) != PRECU_PROTOCOL_VERSION ||
++            getIntObjVar(self, PRECU_OP_PROTOCOL_VERSION) != PRECU_PROTOCOL_VERSION ||
++            cost != PRECU_CRAFTING_TRAINER_COST ||
++            getIntObjVar(self, PRECU_OP_UPDATED) <= 0 ||
++            params.getInt(money.DICT_AMOUNT) != cost ||
++            params.getInt(money.DICT_TOTAL) != cost ||
++            (!expectedState.equals(currentState) &&
++                (alternateState.length() == 0 || !alternateState.equals(currentState))))
++        {
++            return false;
++        }
++        int preCredits = getIntObjVar(self, PRECU_OP_PRE_CREDITS);
++        int preCash = getIntObjVar(self, PRECU_OP_PRE_CASH);
++        int preBank = getIntObjVar(self, PRECU_OP_PRE_BANK);
++        int preXp = getIntObjVar(self, PRECU_OP_PRE_XP);
++        int prePoints = getIntObjVar(self, PRECU_OP_PRE_POINTS);
++        int preCap = getIntObjVar(self, PRECU_OP_PRE_CAP);
++        int preNovice = getIntObjVar(self, PRECU_OP_PRE_NOVICE);
++        int preSkill = getIntObjVar(self, PRECU_OP_PRE_SKILL);
++        int baseCash = getIntObjVar(self, PRECU_LIFECYCLE_BASE_CASH);
++        int baseBank = getIntObjVar(self, PRECU_LIFECYCLE_BASE_BANK);
++        int baseXp = getIntObjVar(self, PRECU_LIFECYCLE_BASE_XP);
++        int basePoints = getIntObjVar(self, PRECU_LIFECYCLE_BASE_POINTS);
++        int baseCap = getIntObjVar(self, PRECU_LIFECYCLE_BASE_CAP);
++        int baseNovice = getIntObjVar(self, PRECU_LIFECYCLE_BASE_NOVICE);
++        int baseSkill = getIntObjVar(self, PRECU_LIFECYCLE_BASE_SKILL);
++        int novicePointCost = skill.getSkillPointCost(PRECU_CRAFTING_NOVICE_SKILL);
++        int targetPointCost = skill.getSkillPointCost(PRECU_CRAFTING_SKILL);
++        int expectedPrePoints = basePoints - (baseNovice == 0 ? novicePointCost : 0);
++        if (baseCash < 0 || baseBank < 0 || preCredits < cost ||
++            preCash < 0 || preBank < cost ||
++            (long)preCredits != (long)preCash + (long)preBank ||
++            preCash != baseCash ||
++            (long)preBank != (long)baseBank + (long)cost ||
++            (long)preXp != (long)baseXp + (long)PRECU_CRAFTING_XP_COST ||
++            novicePointCost < 0 || targetPointCost < 0 ||
++            prePoints != expectedPrePoints || prePoints < targetPointCost ||
++            preCap != PRECU_PREPURCHASE_XP_CAP ||
++            (baseNovice == 1 && baseCap != preCap) ||
++            (baseNovice != 0 && baseNovice != 1) || baseSkill != 0 ||
++            preNovice != 1 || preSkill != 0 ||
++            !PRECU_VECTOR_PRE.equals(expectedVector) &&
++                !PRECU_VECTOR_DEBIT.equals(expectedVector) &&
++                !PRECU_VECTOR_HELD.equals(expectedVector))
++        {
++            return false;
++        }
++        int bankDebit = preBank < cost ? preBank : cost;
++        int cashDebit = cost - bankDebit;
++        if (PRECU_VECTOR_PRE.equals(expectedVector) ||
++            PRECU_VECTOR_DEBIT.equals(expectedVector))
++        {
++            boolean debit = PRECU_VECTOR_DEBIT.equals(expectedVector);
++            return getExperiencePoints(self, PRECU_CRAFTING_XP_TYPE) == preXp &&
++                skill.getAvailableSkillPoints(self) == prePoints &&
++                getExperienceCap(self, PRECU_CRAFTING_XP_TYPE) == preCap &&
++                (hasSkill(self, PRECU_CRAFTING_NOVICE_SKILL) ? 1 : 0) == preNovice &&
++                (hasSkill(self, PRECU_CRAFTING_SKILL) ? 1 : 0) == preSkill &&
++                hasExactPreparedPhaseACraftingVector(self) &&
++                !utils.hasScriptVar(self, PRECU_RELOG_NONCE) &&
++                !utils.hasScriptVar(self, PRECU_RESTART_NONCE) &&
++                getCashBalance(self) == (debit ? preCash - cashDebit : preCash) &&
++                getBankBalance(self) == (debit ? preBank - bankDebit : preBank) &&
++                getTotalMoney(self) == (debit ? preCredits - cost : preCredits);
++        }
++        return getCashBalance(self) == preCash - cashDebit &&
++            getBankBalance(self) == preBank - bankDebit &&
++            getTotalMoney(self) == preCredits - cost &&
++            getExperiencePoints(self, PRECU_CRAFTING_XP_TYPE) ==
++                preXp - PRECU_CRAFTING_XP_COST &&
++            skill.getAvailableSkillPoints(self) == prePoints - targetPointCost &&
++            getExperienceCap(self, PRECU_CRAFTING_XP_TYPE) == PRECU_TRAINED_XP_CAP &&
++            hasExactHeldPhaseACraftingVector(self) &&
++            !utils.hasScriptVar(self, PRECU_RESTART_NONCE) &&
++            (!utils.hasScriptVar(self, PRECU_RELOG_NONCE) ||
++                operationId.equals(utils.getStringScriptVar(self, PRECU_RELOG_NONCE)));
++    }
++    private boolean containsPhaseAValue(String[] values, String expected)
++    {
++        if (values == null || expected == null)
++        {
++            return false;
++        }
++        for (String value : values)
++        {
++            if (expected.equals(value))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++    private boolean hasExactPhaseASchematicVector(obj_id player, boolean held)
++        throws InterruptedException
++    {
++        String[] groupIds = dataTableGetStringColumnNoDefaults(
++            PRECU_SCHEMATIC_GROUP_TABLE,
++            "GroupId");
++        String[] schematicNames = dataTableGetStringColumnNoDefaults(
++            PRECU_SCHEMATIC_GROUP_TABLE,
++            "SchematicName");
++        if (groupIds == null || schematicNames == null ||
++            groupIds.length != schematicNames.length)
++        {
++            return false;
++        }
++        java.util.Vector<String> seen = new java.util.Vector<String>();
++        for (int i = 0; i < groupIds.length; ++i)
++        {
++            if (!containsPhaseAValue(PRECU_CRAFTING_VECTOR_SCHEMATIC_GROUPS, groupIds[i]))
++            {
++                continue;
++            }
++            String schematicName = schematicNames[i];
++            if (schematicName == null || schematicName.length() == 0 ||
++                seen.contains(schematicName))
++            {
++                return false;
++            }
++            seen.add(schematicName);
++            boolean shouldOwn = held ||
++                !containsPhaseAValue(PRECU_CRAFTING_PURCHASE_SCHEMATICS, schematicName);
++            if (hasSchematic(player, schematicName) != shouldOwn)
++            {
++                return false;
++            }
++        }
++        return seen.size() == PRECU_CRAFTING_SCHEMATIC_COUNT;
++    }
++    private boolean hasExactPreparedPhaseACraftingVector(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasSkill(player, PRECU_CRAFTING_NOVICE_SKILL) ||
++            hasSkill(player, PRECU_CRAFTING_SKILL) ||
++            !hasCommand(player, PRECU_CRAFTING_VECTOR_COMMANDS[0]) ||
++            hasCommand(player, PRECU_CRAFTING_VECTOR_COMMANDS[1]) ||
++            (hasObjVar(player, "newbie.hasSkill") && !hasObjVar(player, "newbie.trained")))
++        {
++            return false;
++        }
++        for (int i = 0; i < PRECU_CRAFTING_VECTOR_MODS.length; ++i)
++        {
++            if (getSkillStatisticModifier(player, PRECU_CRAFTING_VECTOR_MODS[i]) !=
++                PRECU_CRAFTING_VECTOR_MOD_VALUES[i] -
++                    PRECU_CRAFTING_PURCHASE_MOD_DELTAS[i])
++            {
++                return false;
++            }
++        }
++        return hasExactPhaseASchematicVector(player, false);
++    }
++    private boolean hasExactHeldPhaseACraftingVector(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasSkill(player, PRECU_CRAFTING_NOVICE_SKILL) ||
++            !hasSkill(player, PRECU_CRAFTING_SKILL))
++        {
++            return false;
++        }
++        for (String command : PRECU_CRAFTING_VECTOR_COMMANDS)
++        {
++            if (!hasCommand(player, command))
++            {
++                return false;
++            }
++        }
++        for (int i = 0; i < PRECU_CRAFTING_VECTOR_MODS.length; ++i)
++        {
++            if (getSkillStatisticModifier(player, PRECU_CRAFTING_VECTOR_MODS[i]) !=
++                PRECU_CRAFTING_VECTOR_MOD_VALUES[i])
++            {
++                return false;
++            }
++        }
++        return hasExactPhaseASchematicVector(player, true);
++    }
++    private boolean transitionPhaseAPurchaseStage(
++        obj_id self,
++        dictionary params,
++        String expectedState,
++        String alternateState,
++        String state,
++        boolean expectDebit) throws InterruptedException
++    {
++        if (!isExactActivePhaseAPurchaseStage(
++                self,
++                params,
++                expectedState,
++                alternateState,
++                expectDebit ? PRECU_VECTOR_DEBIT : PRECU_VECTOR_PRE))
++        {
++            return false;
++        }
++        setObjVar(self, PRECU_OP_STATE, state);
++        setObjVar(self, PRECU_OP_UPDATED, getCalendarTime());
++        return state.equals(getStringObjVar(self, PRECU_OP_STATE));
++    }
+     public int handleCashTransferError(obj_id self, dictionary params) throws InterruptedException
+     {
+         money.cashTransferError(self);
+@@ -340,6 +1033,18 @@ public class player_money extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
++        if (hasAnyPhaseATag(params) &&
++            (!hasExactPaymentRequestEnvelope(params) ||
++             !transitionPhaseAPurchaseStage(
++                 self,
++                 params,
++                 "enqueueing",
++                 "",
++                 "paymentDispatching",
++                 false)))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         int amt = params.getInt(money.DICT_AMOUNT);
+         String returnHandler = params.getString(money.DICT_HANDLER);
+         boolean notify = params.getBoolean(money.DICT_NOTIFY);

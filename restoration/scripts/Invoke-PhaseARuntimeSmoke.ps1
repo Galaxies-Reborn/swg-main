@@ -251,15 +251,69 @@ function Revoke-TemporarySkillIfOwned
         return
     }
 
-    $revoke = Invoke-Probe -Arguments "revoke $PlayerOid $SkillName"
+    $revoke = Invoke-Probe -Arguments "revoke $PlayerOid $SkillName $lifecycleId"
     Assert-Field -Result $revoke -Name "authoritative" -Expected "true"
     Assert-Field -Result $revoke -Name "hasSkill" -Expected "false"
+}
+
+function Clear-AttemptedLifecycleMarker
+{
+    param([Parameter(Mandatory = $true)] [string]$ExpectedLifecycleId)
+
+    $lastClearError = $null
+    for ($attempt = 0; $attempt -lt 3; $attempt++)
+    {
+        $status = Invoke-Probe -Arguments "craftingStatus $PlayerOid"
+        $markerState = [string]$status.Values["lifecycleMarkerState"]
+        $attemptId = [string]$status.Values["lifecycleAttemptId"]
+        $activeId = [string]$status.Values["lifecycleId"]
+        if ($markerState -ceq "none")
+        {
+            Assert-Field -Result $status -Name "lifecycleAttemptId" -Expected "none"
+            Assert-Field -Result $status -Name "lifecycleId" -Expected "none"
+            Assert-Field -Result $status -Name "lifecycleBaselineComplete" -Expected "false"
+            return
+        }
+        $ownedPartial = $markerState -ceq "partial" -and
+            $attemptId -ceq $ExpectedLifecycleId -and $activeId -ceq "none"
+        $ownedComplete = $markerState -ceq "complete" -and
+            $attemptId -ceq $ExpectedLifecycleId -and $activeId -ceq $ExpectedLifecycleId
+        if (-not $ownedPartial -and -not $ownedComplete)
+        {
+            throw "Refusing lifecycle recovery for foreign/corrupt marker '$markerState/$attemptId/$activeId'."
+        }
+        if ($attempt -eq 2)
+        {
+            $suffix = $(if ($null -ne $lastClearError) { " Last clear error: $($lastClearError.Exception.Message)" } else { "" })
+            throw "Exact-owned lifecycle marker remained after authoritative clear retries.$suffix"
+        }
+        try
+        {
+            $released = Invoke-Probe -Arguments "clearLifecycle $PlayerOid $ExpectedLifecycleId"
+            Assert-Field -Result $released -Name "cleared" -Expected "true"
+        }
+        catch
+        {
+            # The response may have been lost after the metadata clear. Never
+            # trust the exception or success response; the next status read is
+            # the authoritative outcome.
+            $lastClearError = $_
+        }
+    }
 }
 
 $initialResult = Invoke-Probe -Arguments "craftingStatus $PlayerOid"
 $initialState = Get-CraftingStateSnapshot -Result $initialResult
 
 Write-Host "[PASS] Artisan authoritative status: $($initialResult.Text)"
+Assert-Field -Result $initialResult -Name "lifecycleAttemptId" -Expected "none"
+Assert-Field -Result $initialResult -Name "lifecycleId" -Expected "none"
+Assert-Field -Result $initialResult -Name "lifecycleMarkerState" -Expected "none"
+Assert-Field -Result $initialResult -Name "lifecycleBaselineComplete" -Expected "false"
+Assert-Field -Result $initialResult -Name "operationAttemptId" -Expected "none"
+Assert-Field -Result $initialResult -Name "operationId" -Expected "none"
+Assert-Field -Result $initialResult -Name "relogNoncePresent" -Expected "false"
+Assert-Field -Result $initialResult -Name "restartNoncePresent" -Expected "false"
 if (-not $ExerciseSurrender)
 {
     Write-Host "Observation-only smoke passed. Re-run with -ExerciseSurrender to grant a temporary Artisan engineering box and verify production queued surrender."
@@ -270,7 +324,6 @@ if ($initialState.HasSkill)
 {
     throw "Fixture already owns $engineeringSkill; refusing to mutate pre-existing state: $($initialResult.Text)"
 }
-
 $noviceStatus = Invoke-Probe -Arguments "status $PlayerOid $noviceSkill $xpType"
 Assert-Field -Result $noviceStatus -Name "authoritative" -Expected "true"
 $noviceWasOwned = Get-BooleanField -Result $noviceStatus -Name "hasSkill"
@@ -278,13 +331,22 @@ $noviceMutationAttempted = $false
 $engineeringMutationAttempted = $false
 $exerciseFailure = $null
 $cleanupFailure = $null
+$lifecycleId = [guid]::NewGuid().ToString("N")
+$lifecycleAttempted = $false
 
 try
 {
+    # Record intent before the first lifecycle RPC so response loss and partial
+    # establishment are always routed through authoritative marker recovery.
+    $lifecycleAttempted = $true
+    $begun = Invoke-Probe -Arguments "beginLifecycle $PlayerOid $lifecycleId"
+    Assert-Field -Result $begun -Name "established" -Expected "true"
+    Assert-Field -Result $begun -Name "lifecycleMarkerState" -Expected "complete"
+
     if (-not $noviceWasOwned)
     {
         $noviceMutationAttempted = $true
-        $grantNovice = Invoke-Probe -Arguments "grant $PlayerOid $noviceSkill"
+        $grantNovice = Invoke-Probe -Arguments "grant $PlayerOid $noviceSkill $lifecycleId"
         Assert-Field -Result $grantNovice -Name "authoritative" -Expected "true"
         Assert-Field -Result $grantNovice -Name "result" -Expected "true"
         Assert-Field -Result $grantNovice -Name "hasSkill" -Expected "true"
@@ -314,7 +376,7 @@ try
     }
 
     $engineeringMutationAttempted = $true
-    $grantEngineering = Invoke-Probe -Arguments "grant $PlayerOid $engineeringSkill"
+    $grantEngineering = Invoke-Probe -Arguments "grant $PlayerOid $engineeringSkill $lifecycleId"
     Assert-Field -Result $grantEngineering -Name "authoritative" -Expected "true"
     Assert-Field -Result $grantEngineering -Name "result" -Expected "true"
     Assert-Field -Result $grantEngineering -Name "hasSkill" -Expected "true"
@@ -349,7 +411,7 @@ try
     }
     Write-Host "[PASS] Artisan skill grant consumed $expectedEngineeringSkillCost points, changed the XP cap from $expectedPreEngineeringXpCap to $expectedPostEngineeringXpCap, and exposed the selected command/mod/schematic canaries."
 
-    $queued = Invoke-Probe -Arguments "queueSurrender $PlayerOid $engineeringSkill"
+    $queued = Invoke-Probe -Arguments "queueSurrender $PlayerOid $engineeringSkill $lifecycleId"
     Assert-Field -Result $queued -Name "queued" -Expected "true"
     Assert-Field -Result $queued -Name "verification" -Expected "pending"
 
@@ -426,6 +488,15 @@ try
     if ($restoredNoviceOwned -ne $noviceWasOwned)
     {
         throw "Final novice ownership was '$restoredNoviceOwned'; expected original value '$noviceWasOwned'"
+    }
+    if ($lifecycleAttempted)
+    {
+        Clear-AttemptedLifecycleMarker -ExpectedLifecycleId $lifecycleId
+        $releasedStatus = Invoke-Probe -Arguments "craftingStatus $PlayerOid"
+        Assert-Field -Result $releasedStatus -Name "lifecycleMarkerState" -Expected "none"
+        Assert-Field -Result $releasedStatus -Name "lifecycleAttemptId" -Expected "none"
+        Assert-Field -Result $releasedStatus -Name "lifecycleId" -Expected "none"
+        Assert-Field -Result $releasedStatus -Name "lifecycleBaselineComplete" -Expected "false"
     }
 }
 catch
