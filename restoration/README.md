@@ -56,6 +56,21 @@ Validate the Publish 14 character-sheet server payload:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CharacterSheetServer.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the generic opt-in Publish 14.1 three-pool combat runtime:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatHam.ps1 -SourceRoot <materialized-staging-directory>
+
+This M3 seam restores atomic strict-positive Health/Action/Mind ability costs,
+the Core3-derived cost formula at an explicit neutral governing value of 300,
+explicit primary target-pool
+damage, and any-primary-pool incapacitation. It is inert for production combat
+commands until a separate override row opts one in. The first command-specific
+vertical slice remains blocked by its own gate until queue, rifle, multiplier,
+cost, Mind-damage, and no-partial-drain integration acceptance is complete.
+Dynamic Strength/Quickness/Focus adjustment remains blocked on the separate
+nine-attribute persistence and replication slice; no NGE secondary attribute is
+silently substituted as a proxy.
+
 Run the staged trainer purchase and persistence acceptance against only the
 disposable station `91001` fixture. `Observe` is the default and performs no
 mutation. The mutating phases require an explicit snapshot outside the source

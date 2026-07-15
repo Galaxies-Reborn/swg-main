@@ -180,3 +180,9 @@ matches the established trainer-spawner pattern already used by the Mos Eisley
 buildout and keeps the stock `npc.skillteacher.skillteacher` behavior owned by
 the mobile definition. The adjacent later profession quest-giver remains a
 separate NPC and is not used as a substitute for the trainer lifecycle.
+
+`008-precu-three-pool-combat-runtime.patch` installs the script-side half of
+the generic M3 combat seam. A separate override table opts individual commands
+into Core3-derived Health/Action/Mind costs and explicit target-pool routing;
+all existing commands retain their legacy drain and Health-damage defaults.
+The initial weapon-cost table pins only the authenticated CDEF rifle fixture.

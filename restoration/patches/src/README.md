@@ -27,3 +27,9 @@ without inventing coordinates, reports the residence object's own scene, and
 sends account lots remaining from the authoritative configured cap plus the
 persisted per-account adjustment. It adapts Core3 field semantics to the
 retained SWGSource message envelope rather than claiming wire equivalence.
+
+`005-precu-three-pool-combat-runtime.patch` supplies the native M3 primitives:
+atomic strict-positive Health/Action/Mind cost drain, explicit primary-pool
+damage routing, and incapacitation on any depleted primary pool with recovery
+only after all three pools are positive. The original no-pool damage entry
+point remains Health-only for unconverted commands.
