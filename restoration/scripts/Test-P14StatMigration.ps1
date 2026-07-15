@@ -145,13 +145,57 @@ Assert-Contract -Condition $responseReady -Name "p14.stat-migration.response.ser
 
 $tutorialReady = `
     $text.commandCpp.Contains('if (creature->getSceneId() == "newbie_hall")') -and `
-    $text.commandCpp.Contains("applyTutorialStatMigration(*creature, targets)") -and `
+    $text.commandCpp.Contains("applyStatMigration(*creature, targets)") -and `
+    $text.commandCpp.Contains("s_statMigrationSessions.erase(actor)") -and `
     $text.commandCpp.Contains("remain pending for the Image Designer workflow")
-Assert-Contract -Condition $tutorialReady -Name "p14.stat-migration.commit.tutorial-only-and-normal-world-pending"
+Assert-Contract -Condition $tutorialReady -Name "p14.stat-migration.commit.tutorial-immediate-and-consumed"
+
+$nativeCommitReady = `
+    $text.commandHeader.Contains("canCommitStatMigration") -and `
+    $text.commandHeader.Contains("commitStatMigration") -and `
+    $text.commandCpp.Contains("session->second.pointsLeft == 0") -and `
+    $text.commandCpp.Contains("validateStatMigrationTargets(*creature, session->second.targets)") -and `
+    $text.commandCpp.Contains("applyStatMigration(*creature, session->second.targets)") -and `
+    $text.commandCpp.Contains("s_statMigrationSessions.erase(session)")
+Assert-Contract -Condition $nativeCommitReady -Name "p14.stat-migration.commit.revalidated-and-consumed-once"
+
+$controllerAuthenticationReady = `
+    $text.playerController.Contains("SharedImageDesignerManager::Session authenticatedSession") -and `
+    $text.playerController.Contains("authenticatedSession.designerId == designerId") -and `
+    $text.playerController.Contains("authenticatedSession.recipientId == recipientId") -and `
+    $text.playerController.Contains("authenticatedSession.terminalId == inMsg->getTerminalId()") -and `
+    $text.playerController.Contains("designerId != recipientId") -and `
+    $text.playerController.Contains("session.startingTime = authenticatedSession.startingTime") -and `
+    $text.playerController.Contains("cancelSession(session.designerId, session.recipientId)")
+Assert-Contract -Condition $controllerAuthenticationReady -Name "p14.stat-migration.image-designer.controller-session-identity"
+
+$salonTransactionReady = `
+    $text.imageDesignerManager.Contains("session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION") -and `
+    $text.imageDesignerManager.Contains("designer != recipient") -and `
+    $text.imageDesignerManager.Contains("designerTopmost->getNetworkId() == session.terminalId") -and `
+    $text.imageDesignerManager.Contains("recipientTopmost->getNetworkId() == session.terminalId") -and `
+    $text.imageDesignerManager.Contains("CommandCppFuncs::canCommitStatMigration(recipient->getNetworkId())") -and `
+    $text.imageDesignerManager.Contains("CommandCppFuncs::commitStatMigration(recipient->getNetworkId())")
+Assert-Contract -Condition $salonTransactionReady -Name "p14.stat-migration.image-designer.non-self-salon-transaction"
+
+$nativeCallbackReady = `
+    $text.imageDesignerNative.Contains("SharedImageDesignerManager::getSession(session.designerId, authenticatedSession)") -and `
+    $text.imageDesignerNative.Contains("authenticatedSession.startingTime == session.startingTime") -and `
+    $text.imageDesignerNative.Contains("authenticatedSession.designType == session.designType") -and `
+    $text.imageDesignerNative.Contains("return JNI_FALSE")
+Assert-Contract -Condition $nativeCallbackReady -Name "p14.stat-migration.image-designer.java-native-authentication"
+
+$retailTimingAndRewardReady = `
+    $text.sharedImageDesigner.Contains("ConfigSharedGame::getImageDesignerStatMigrationSessionTimeSeconds()") -and `
+    $text.sharedImageDesigner.Contains("statMigrationRequested") -and `
+    $text.sharedImageDesigner.Contains("ImageDesignChangeMessage::DT_STAT_MIGRATION") -and `
+    $text.imageDesignerScript.Contains("IMAGE_DESIGN_EXPERIENCE_STAT_MIG = 2000") -and `
+    $text.imageDesignerScript.Contains('utils.hasObjVar(structure, "salon")')
+Assert-Contract -Condition $retailTimingAndRewardReady -Name "p14.stat-migration.image-designer.retail-timer-salon-and-reward"
 
 Assert-Contract `
-    -Condition ([string]$contract.knownLimitations.imageDesignerCommit -like "Pending*" -and [string]$contract.knownLimitations.sessionPersistence -like "Pending*") `
-    -Name "p14.stat-migration.boundary.pending-image-designer-work-is-explicit"
+    -Condition ([string]$contract.knownLimitations.imageDesignerCommit -like "Restored*" -and [string]$contract.knownLimitations.sessionPersistence -like "Pending*") `
+    -Name "p14.stat-migration.boundary.image-designer-restored-process-local-persistence-explicit"
 
 if ($failures.Count -gt 0)
 {

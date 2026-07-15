@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "ready",
-  "scope": "Publish 14.1 stat-migration tables, server-owned allocation sessions, tutorial commit path, and retained client command protocol.",
+  "scope": "Publish 14.1 stat-migration tables, server-owned allocation sessions, tutorial commit path, authenticated Image Designer commit, and retained client command protocol.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "commit": "6856f315a80b5250635b2272695caec1d64204ed",
@@ -45,16 +45,35 @@
   },
   "sourceFiles": {
     "commandCpp": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp",
+    "commandHeader": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h",
+    "playerController": "src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp",
+    "imageDesignerManager": "src/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp",
+    "imageDesignerNative": "src/engine/server/library/serverScript/src/shared/ScriptMethodsImageDesign.cpp",
+    "sharedImageDesigner": "src/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp",
+    "imageDesignerScript": "dsrc/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java",
     "attributeLimits": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/attribute_limits.tab",
     "racialMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/racial_mods.tab",
     "professionMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/profession_mods.tab"
   },
   "commitBoundaries": {
-    "tutorial": "Validated targets are applied immediately only in newbie_hall.",
-    "normalWorld": "Validated targets remain server-owned and pending for the later Image Designer commit milestone."
+    "tutorial": "Validated targets are applied immediately in newbie_hall and consumed once.",
+    "normalWorld": "Validated targets remain server-owned until an authenticated, non-self Image Designer transaction commits them in the original salon structure."
+  },
+  "imageDesignerCommit": {
+    "designType": "DT_STAT_MIGRATION",
+    "minimumSessionSeconds": 240,
+    "experience": 2000,
+    "requirements": [
+      "existing server-owned designer session",
+      "exact designer, recipient, terminal, and starting-time identity",
+      "designer and recipient are distinct",
+      "both participants remain in the original salon structure",
+      "recipient has a valid zero-points-left nine-stat allocation"
+    ],
+    "consumption": "The allocation is revalidated immediately before mutation and erased after one successful commit."
   },
   "knownLimitations": {
-    "imageDesignerCommit": "Pending. This slice does not apply normal-world targets directly to the creature.",
-    "sessionPersistence": "Pending allocations are process-local until the Image Designer transaction boundary is restored."
+    "imageDesignerCommit": "Restored for authenticated normal-world salon transactions.",
+    "sessionPersistence": "Pending allocations remain process-local and are lost on game-server restart."
   }
 }

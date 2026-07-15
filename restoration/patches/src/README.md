@@ -48,3 +48,13 @@ minimums, maximums, and totals are authoritative; client-supplied points-left
 is advisory. Valid tutorial allocations commit immediately in `newbie_hall`,
 while normal-world allocations remain pending for the separate Image Designer
 transaction milestone.
+
+`008-p14-stat-migration-image-designer.patch` completes that normal-world
+transaction boundary. Client change and cancel messages must match the
+server-owned designer, recipient, and terminal identities; the Java-to-native
+callback must also match the authoritative start time and design type. Stat
+migration is non-self, requires both participants to remain in the original
+salon structure, revalidates the recipient's exact nine-stat allocation, and
+consumes it once after payment validation. The retained script awards the
+authentic 2,000 Image Designer XP and the shared timer restores the 240-second
+Publish 14 delay.

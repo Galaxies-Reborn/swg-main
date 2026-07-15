@@ -65,8 +65,8 @@ runtime:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NineAttributeRuntime.ps1 -SourceRoot <materialized-staging-directory>
 
-Validate the Publish 14.1 stat-migration tables, server-owned session, and
-tutorial-only commit boundary:
+Validate the Publish 14.1 stat-migration tables, server-owned session,
+tutorial commit, and authenticated normal-world Image Designer transaction:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatMigration.ps1 -SourceRoot <materialized-staging-directory>
 
