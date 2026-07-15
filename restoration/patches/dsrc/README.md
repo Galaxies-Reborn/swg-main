@@ -186,3 +186,13 @@ the generic M3 combat seam. A separate override table opts individual commands
 into Core3-derived Health/Action/Mind costs and explicit target-pool routing;
 all existing commands retain their legacy drain and Health-damage defaults.
 The initial weapon-cost table pins only the authenticated CDEF rifle fixture.
+
+`009-precu-nine-attribute-runtime.patch` restores the nine attribute constants
+and three-value HAM groups, reopens object-template TDF versions 9 through 11
+to the Publish 14 enum, fills the player/creature/NPC base templates plus
+direct vehicular roots, and replaces the temporary neutral combat-cost
+governors with authoritative Strength, Quickness, and Focus reads. It also
+retires NGE combat-level stat grants and pool recalculation so attach,
+initialize, respec, and level-change paths cannot overwrite Publish 14 HAM;
+the retained compatibility recalculation may only heal pools to their
+existing authoritative maxima.

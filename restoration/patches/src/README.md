@@ -33,3 +33,11 @@ atomic strict-positive Health/Action/Mind cost drain, explicit primary-pool
 damage routing, and incapacitation on any depleted primary pool with recovery
 only after all three pools are positive. The original no-pool damage entry
 point remains Health-only for unconverted commands.
+
+`006-precu-nine-attribute-runtime.patch` restores the exact Publish 14
+H/S/C/A/Q/St/M/F/W shared enum and all generated server/compiler template
+arrays. It expands creation and stat-migration messages, replicates every
+attribute, remaps item-bonus names, migrates persisted six-value creatures on
+authoritative load, and derives pool regeneration from Constitution, Stamina,
+and Willpower using the Core3 formula. The combat-damage script callback is
+expanded atomically to the same nine-value order.

@@ -60,16 +60,25 @@ Validate the generic opt-in Publish 14.1 three-pool combat runtime:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatHam.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the atomic Publish 14.1 nine-attribute persistence and replication
+runtime:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NineAttributeRuntime.ps1 -SourceRoot <materialized-staging-directory>
+
 This M3 seam restores atomic strict-positive Health/Action/Mind ability costs,
-the Core3-derived cost formula at an explicit neutral governing value of 300,
+the Core3-derived cost formula from authoritative Strength/Quickness/Focus,
 explicit primary target-pool
 damage, and any-primary-pool incapacitation. It is inert for production combat
 commands until a separate override row opts one in. The first command-specific
 vertical slice remains blocked by its own gate until queue, rifle, multiplier,
 cost, Mind-damage, and no-partial-drain integration acceptance is complete.
-Dynamic Strength/Quickness/Focus adjustment remains blocked on the separate
-nine-attribute persistence and replication slice; no NGE secondary attribute is
-silently substituted as a proxy.
+The companion nine-attribute slice restores the exact
+Health/Strength/Constitution/Action/Quickness/Stamina/Mind/Focus/Willpower
+order across templates, persistence, shared messages, creation tables, and
+client replication. Existing six-value creature state is deterministically
+migrated on authoritative load; new secondary cost governors use the neutral
+Publish 14 value 300, while the former maximum Constitution/Stamina/Willpower
+values are retained as regeneration governors.
 
 Run the staged trainer purchase and persistence acceptance against only the
 disposable station `91001` fixture. `Observe` is the default and performs no

@@ -34,10 +34,14 @@
   ],
   "costAdjustment": "baseCost * multiplier - (((governingAttribute - 300) / 1200) * (baseCost * multiplier)), clamped to zero and truncated to an integer",
   "governingAttributeSource": {
-    "mode": "neutralBaseline",
-    "value": 300,
-    "dynamicNineAttributeValuesReady": false,
-    "reason": "SWGSource currently persists six attributes and has no authoritative Strength, Quickness, or Focus values. The neutral Publish 14 baseline is explicit until the nine-attribute persistence and network slice lands."
+    "mode": "authoritativeNineAttributeRuntime",
+    "attributes": [
+      "Strength",
+      "Quickness",
+      "Focus"
+    ],
+    "dynamicNineAttributeValuesReady": true,
+    "contract": "contracts/p14-nine-attribute-runtime.json"
   },
   "executionRules": {
     "strictPositiveRemainder": true,
@@ -56,7 +60,7 @@
   "knownLimitations": {
     "commandActivation": "This contract installs no production combat-command override. Queue behavior, rifle restriction, command multipliers, and live damage/cost integration remain in the command-specific vertical slice.",
     "weaponCoverage": "Only the CDEF rifle fixture required by the first vertical slice is pinned. Additional weapon templates require provenance before activation.",
-    "woundsAndBattleFatigue": "Wounds, battle fatigue, regeneration balance, healing balance, deathblow, and cloning remain later M3 work.",
-    "nineAttributeModel": "Strength, Quickness, and Focus are not yet persisted or replicated by SWGSource. Costs use the explicit neutral value 300; no proxy attributes are substituted."
+    "woundsAndBattleFatigue": "Wounds, battle fatigue, stance-specific regeneration balance, healing balance, deathblow, and cloning remain later M3 work.",
+    "statMigrationUi": "The nine-value stat-migration message is wire-ready, but the Publish 14 client mediator remains a separate restoration slice."
   }
 }

@@ -129,8 +129,8 @@ Assert-Contract `
     -Condition ($costAdjustment.Contains("governingValue - 300.0f") -and $costAdjustment.Contains("/ 1200.0f") -and $costAdjustment.Contains("Math.max(0, (int)cost)")) `
     -Name "p14.combat-ham.cost.core3-adjustment-formula"
 Assert-Contract `
-    -Condition ($text.combatLibrary.Contains("PRECU_NEUTRAL_GOVERNING_ATTRIBUTE = 300") -and $costVector.Contains("PRECU_NEUTRAL_GOVERNING_ATTRIBUTE") -and $costVector.Contains("Strength, Quickness, or Focus") -and $costVector.Contains("healthCost") -and $costVector.Contains("actionCost") -and $costVector.Contains("mindCost") -and -not [bool]$contract.governingAttributeSource.dynamicNineAttributeValuesReady) `
-    -Name "p14.combat-ham.cost.explicit-neutral-governors-without-false-proxy"
+    -Condition (-not $text.combatLibrary.Contains("PRECU_NEUTRAL_GOVERNING_ATTRIBUTE") -and $costVector.Contains("getAttrib(self, STRENGTH)") -and $costVector.Contains("getAttrib(self, QUICKNESS)") -and $costVector.Contains("getAttrib(self, FOCUS)") -and $costVector.Contains("healthCost") -and $costVector.Contains("actionCost") -and $costVector.Contains("mindCost") -and [bool]$contract.governingAttributeSource.dynamicNineAttributeValuesReady) `
+    -Name "p14.combat-ham.cost.authoritative-nine-attribute-governors"
 
 $legacyDrain = Get-BracedBlock -Text $text.combatLibrary -Signature "public static boolean drainCombatActionAttributes(obj_id self, int[] actionCost) throws"
 $optInDrain = Get-BracedBlock -Text $text.combatLibrary -Signature "public static boolean drainCombatActionAttributes(obj_id self, int[] actionCost, boolean usePrecuHam)"
