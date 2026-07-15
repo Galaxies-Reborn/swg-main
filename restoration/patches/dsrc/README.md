@@ -150,6 +150,11 @@ materializer injects one composite SHA-256 into the runtime probe, both callback
 classes, and staged contract; the runner contract-locks that value and its own
 file hash.
 
+`002b-phase-a-attached-bank-dispatch.patch` routes administrative lifecycle
+fund/drain requests onto the fixture's attached `player_money` script before
+calling native named-account APIs. Those APIs require an object owner context;
+an unattached ServerConsole probe cannot dispatch them directly.
+
 `003-precu-character-creation.patch` retires the NGE Choose Your Path mediator
 and skip-tutorial payload from the login path. It also removes the NGE-era
 all-novice grant so character creation can retain exactly the one Publish 14.1
@@ -168,8 +173,10 @@ skipped state only after world transfer is observed. It removes the fixed Mos
 Eisley, NGE groundquest, ribbon, and automatic-arrival warp path.
 
 `006-p14-mos-eisley-artisan-trainer.patch` restores the production Artisan
-skill trainer removed from Mos Eisley's outdoor population. The row uses the
-existing `trainer_artisan` mobile definition, which owns the stock
-`npc.skillteacher.skillteacher` script, at the Publish 14.1/Core3 position
-`(3503, 5, -4809)`. The adjacent later profession quest-giver remains a
+skill trainer removed from Mos Eisley's outdoor population. A durable
+`systems.spawning.spawner_area` buildout object creates exactly one stationary
+`trainer_artisan` at the Publish 14.1/Core3 position `(3503, 5, -4809)`. This
+matches the established trainer-spawner pattern already used by the Mos Eisley
+buildout and keeps the stock `npc.skillteacher.skillteacher` behavior owned by
+the mobile definition. The adjacent later profession quest-giver remains a
 separate NPC and is not used as a substitute for the trainer lifecycle.

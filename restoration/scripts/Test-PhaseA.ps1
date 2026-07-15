@@ -122,9 +122,14 @@ $requiredAcceptancePaths = @(
     "restoration/manifest.json",
     "restoration/README.md",
     "restoration/contracts/phase-a.json",
+    "restoration/patches/root/README.md",
+    "restoration/patches/root/001-dedicated-transfer-server.patch",
+    "restoration/patches/exe/README.md",
+    "restoration/patches/exe/001-p14-xp-rate.patch",
     "restoration/patches/dsrc/README.md",
     "restoration/patches/dsrc/002-phase-a-runtime-probe.patch",
     "restoration/patches/dsrc/002a-phase-a-operation-markers.patch",
+    "restoration/patches/dsrc/007-phase-a-attached-bank-dispatch.patch",
     "restoration/patches/dsrc/006-p14-mos-eisley-artisan-trainer.patch",
     "restoration/patches/src/README.md",
     "restoration/scripts/Invoke-RestorationMaterializer.ps1",
@@ -160,12 +165,14 @@ foreach ($pin in @($sourcePins))
 $skillTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $commandTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 $schematicGroupTablePath = Join-Path $source ([string]$contract.sourceFiles.schematicGroupTable)
-$tatooinePoiSpawnerPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/poi_spawner/tatooine.tab"
+$tatooineBuildoutPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_6_2.tab"
 $creaturesTablePath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+$localOptionsPath = Join-Path $source "exe/linux/localOptions.cfg"
+$execPath = Join-Path $source "exec.sh"
 $skills = @(Import-SwgTab -Path $skillTablePath)
 $commands = @(Import-SwgTab -Path $commandTablePath)
 $schematicGroups = @(Import-SwgTab -Path $schematicGroupTablePath)
-$tatooinePoiSpawns = @(Import-SwgTab -Path $tatooinePoiSpawnerPath)
+$tatooineBuildout = @(Import-SwgTab -Path $tatooineBuildoutPath)
 $creatures = @(Import-SwgTab -Path $creaturesTablePath)
 
 $script:checks = @()
@@ -292,39 +299,67 @@ $trainingRowPassed = (
 )
 Add-PhaseCheck -Id "phaseA.training.table-costs" -Passed $trainingRowPassed -Detail "expected $trainingSkillName points=$($contract.trainingSkill.pointsRequired) money=$($contract.trainingSkill.moneyRequired)"
 
-$artisanTrainerSpawns = @($tatooinePoiSpawns | Where-Object {
-    [string]$_.w -ceq "91001001"
+$artisanTrainerSpawners = @($tatooineBuildout | Where-Object {
+    [string]$_.objid -ceq "-1894400000"
 })
 $artisanTrainerDefinitions = @($creatures | Where-Object {
     [string]$_.creatureName -ceq "trainer_artisan"
 })
 $artisanTrainerSpawnReady = (
-    $artisanTrainerSpawns.Count -eq 1 -and
-    [string]$artisanTrainerSpawns[0].LOC_X -ceq "3503" -and
-    [string]$artisanTrainerSpawns[0].LOC_Y -ceq "5" -and
-    [string]$artisanTrainerSpawns[0].LOC_Z -ceq "-4809" -and
-    [string]$artisanTrainerSpawns[0].PLANET -ceq "tatooine" -and
-    [string]$artisanTrainerSpawns[0].BUILDING -ceq "0" -and
-    [string]$artisanTrainerSpawns[0].POP -ceq "1" -and
-    [string]$artisanTrainerSpawns[0].TYPE -ceq "trainer_artisan" -and
-    [string]::IsNullOrEmpty([string]$artisanTrainerSpawns[0].SCRIPTS) -and
-    [string]$artisanTrainerSpawns[0].SENTINEL -ceq "1" -and
+    $artisanTrainerSpawners.Count -eq 1 -and
+    [string]$artisanTrainerSpawners[0].container -ceq "0" -and
+    [string]$artisanTrainerSpawners[0].server_template_crc -ceq "object/tangible/ground_spawning/area_spawner.iff" -and
+    [string]$artisanTrainerSpawners[0].cell_index -ceq "0" -and
+    [string]$artisanTrainerSpawners[0].px -ceq "1455" -and
+    [string]$artisanTrainerSpawners[0].py -ceq "5" -and
+    [string]$artisanTrainerSpawners[0].pz -ceq "1335" -and
+    [string]$artisanTrainerSpawners[0].scripts -ceq "systems.spawning.spawner_area" -and
+    [string]$artisanTrainerSpawners[0].objvars -cmatch '(?:^|\|)fltRadius\|2\|0\.000000(?:\||$)' -and
+    [string]$artisanTrainerSpawners[0].objvars -cmatch '(?:^|\|)intDefaultBehavior\|0\|1(?:\||$)' -and
+    [string]$artisanTrainerSpawners[0].objvars -cmatch '(?:^|\|)intSpawnCount\|0\|1(?:\||$)' -and
+    [string]$artisanTrainerSpawners[0].objvars -cmatch '(?:^|\|)strSpawns\|4\|trainer_artisan(?:\||$)' -and
     $artisanTrainerDefinitions.Count -eq 1 -and
     ([string]$artisanTrainerDefinitions[0].objvars).Split(',') -ccontains "string:trainer=trainer_artisan" -and
     ([string]$artisanTrainerDefinitions[0].scripts).Split(',') -ccontains "npc.skillteacher.skillteacher"
 )
-Add-PhaseCheck -Id "phaseA.training.mos-eisley-artisan-spawn" -Passed $artisanTrainerSpawnReady -Detail "production trainer_artisan must spawn outdoors at the Core3/P14 coordinates with its stock skillteacher script"
+Add-PhaseCheck -Id "phaseA.training.mos-eisley-artisan-spawn" -Passed $artisanTrainerSpawnReady -Detail "durable buildout spawner must create one sentinel trainer_artisan at global Core3/P14 coordinates (3503, 5, -4809) with its stock skillteacher script"
+
+$localOptions = Get-Content -LiteralPath $localOptionsPath -Raw
+$xpMultiplierLines = @($localOptions -split "\r?\n" | Where-Object {
+    $_.StartsWith('xpMultiplier=', [System.StringComparison]::Ordinal)
+})
+$xpMultiplierReady = (
+    $xpMultiplierLines.Count -eq 1 -and
+    $xpMultiplierLines[0] -ceq 'xpMultiplier=1'
+)
+Add-PhaseCheck -Id "phaseA.training.p14-xp-rate" -Passed $xpMultiplierReady -Detail "dedicated Pre-CU runtime must use exactly one xpMultiplier=1 setting"
+
+$execScript = Get-Content -LiteralPath $execPath -Raw
+$transferServerRuntimeReady = (
+    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'transferServerAddress=HOSTIP' }).Count -eq 1 -and
+    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'transferServerPort=44469' }).Count -eq 1 -and
+    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'centralServerServiceBindInterface=eth0' }).Count -eq 1 -and
+    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'centralServerServiceBindPort=44469' }).Count -eq 1 -and
+    $execScript -match '(?m)^start_transfer_server\s*\(\)' -and
+    $execScript -match 'pgrep\s+-x\s+CentralServer' -and
+    $execScript -match '\./bin/TransferServer\s+--\s+@servercommon\.cfg' -and
+    $execScript -match '\./bin/TaskManager\s+--\s+@servercommon\.cfg\s+&' -and
+    $execScript -match 'wait\s+"\$task_manager_pid"'
+)
+Add-PhaseCheck -Id "phaseA.runtime.transfer-server" -Passed $transferServerRuntimeReady -Detail "dedicated cluster must configure and supervise the TransferServer required for named-account bank transfers"
 
 $skillScriptPath = Join-Path $source ([string]$contract.sourceFiles.skillScript)
 $teacherScriptPath = Join-Path $source ([string]$contract.sourceFiles.teacherScript)
 $playerMoneyScriptPath = Join-Path $source ([string]$contract.sourceFiles.playerMoneyScript)
 $runtimeProbePath = Join-Path $source ([string]$contract.sourceFiles.runtimeProbe)
+$bankDispatchScriptPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/test/precu_phase_a_bank_dispatch.java"
 $commandCppPath = Join-Path $source ([string]$contract.sourceFiles.commandCpp)
 $playerObjectCppPath = Join-Path $source ([string]$contract.sourceFiles.playerObjectCpp)
 $skillScript = Get-Content -LiteralPath $skillScriptPath -Raw
 $teacherScript = Get-Content -LiteralPath $teacherScriptPath -Raw
 $playerMoneyScript = Get-Content -LiteralPath $playerMoneyScriptPath -Raw
 $runtimeProbe = if (Test-Path -LiteralPath $runtimeProbePath -PathType Leaf) { Get-Content -LiteralPath $runtimeProbePath -Raw } else { "" }
+$bankDispatchScript = if (Test-Path -LiteralPath $bankDispatchScriptPath -PathType Leaf) { Get-Content -LiteralPath $bankDispatchScriptPath -Raw } else { "" }
 $commandCpp = Get-Content -LiteralPath $commandCppPath -Raw
 $playerObjectCpp = Get-Content -LiteralPath $playerObjectCppPath -Raw
 
@@ -1445,8 +1480,21 @@ $trainerProbeReady = (
     ($runtimeProbe -match 'trainer\s*,\s*"0 "\s*,\s*COMMAND_PRIORITY_IMMEDIATE') -and
     ($runtimeProbe -match 'action=queueTrainerConversation queued=') -and
     ($runtimeProbe -match 'conversationUi=pending purchaseMutation=false') -and
-    ($runtimeProbe -match 'transferBankCreditsFromNamedAccount\s*\(') -and
-    ($runtimeProbe -match 'transferBankCreditsToNamedAccount\s*\(') -and
+    ($runtimeProbe -match 'attachScript\s*\(\s*player\s*,\s*"test\.precu_phase_a_bank_dispatch"') -and
+    ($bankDispatchScript -match 'public\s+int\s+OnAttach') -and
+    ($bankDispatchScript -match 'public\s+int\s+OnLogin') -and
+    ($bankDispatchScript -match 'public\s+int\s+OnArrivedAtLocation') -and
+    ($bankDispatchScript -match 'public\s+String\s+executeDispatch') -and
+    ($bankDispatchScript -match 'action=attachBankDispatch queued=true') -and
+    ($bankDispatchScript -match 'messageTo\s*\(\s*self\s*,\s*"precuPhaseADispatchBankTransfer"') -and
+    ($bankDispatchScript -match 'detachScript\s*\(\s*player\s*,\s*SCRIPT_NAME\s*\)') -and
+    ($playerMoneyScript -match 'public\s+int\s+precuPhaseADispatchBankTransfer') -and
+    ($playerMoneyScript -match 'public\s+int\s+OnLogin') -and
+    ($playerMoneyScript -match 'private\s+boolean\s+isExactPhaseABankDispatch') -and
+    ($playerMoneyScript -match 'currentXp\s*==\s*PRECU_CRAFTING_XP_COST') -and
+    ($playerMoneyScript -match 'currentXp\s*==\s*getIntObjVar\s*\(\s*self\s*,\s*PRECU_LIFECYCLE_BASE_XP\s*\)') -and
+    ($playerMoneyScript -match 'transferBankCreditsFromNamedAccount\s*\(') -and
+    ($playerMoneyScript -match 'transferBankCreditsToNamedAccount\s*\(') -and
     ($runtimeProbe -match 'beginOperation\s*\(') -and
     ($runtimeProbe -match 'clearTerminalOperation\s*\(') -and
     ($runtimeProbe -match 'LIFECYCLE_ATTEMPT_ID') -and

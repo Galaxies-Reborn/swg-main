@@ -482,6 +482,7 @@ function Save-SnapshotAtomic
         throw "Snapshot parent directory does not exist: $parent"
     }
     $temporaryPath = Join-Path $parent ("." + [System.IO.Path]::GetFileName($resolvedPath) + "." + [guid]::NewGuid().ToString("N") + ".tmp")
+    $backupPath = Join-Path $parent ("." + [System.IO.Path]::GetFileName($resolvedPath) + "." + [guid]::NewGuid().ToString("N") + ".bak")
     $json = $normalizedSnapshot | ConvertTo-Json -Depth 12
     $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes($json)
     $stream = $null
@@ -494,7 +495,11 @@ function Save-SnapshotAtomic
         $stream = $null
         if (Test-Path -LiteralPath $resolvedPath -PathType Leaf)
         {
-            [System.IO.File]::Replace($temporaryPath, $resolvedPath, $null)
+            # Windows PowerShell 5.1 rejects a null backup path even though
+            # newer .NET runtimes accept it.  A same-directory backup keeps
+            # replacement atomic on NTFS and is removed only after success.
+            [System.IO.File]::Replace($temporaryPath, $resolvedPath, $backupPath)
+            Remove-Item -LiteralPath $backupPath -Force
         }
         else
         {
@@ -507,6 +512,10 @@ function Save-SnapshotAtomic
         if (Test-Path -LiteralPath $temporaryPath -PathType Leaf)
         {
             Remove-Item -LiteralPath $temporaryPath -Force
+        }
+        if (Test-Path -LiteralPath $backupPath -PathType Leaf)
+        {
+            Remove-Item -LiteralPath $backupPath -Force
         }
     }
 }

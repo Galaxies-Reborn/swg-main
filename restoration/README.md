@@ -1,14 +1,14 @@
 # Pre-CU restoration overlays
 
 This directory owns restoration changes without committing edits inside the
-dsrc or src gitlinks. The manifest locks the x64-dx9 component commits. Scripts
+dsrc, exe, or src gitlinks. The manifest locks the x64-dx9 component commits. Scripts
 refuse a source checkout whose gitlinks or initialized component HEADs drift.
 
 The materializer is plan-only unless Apply is supplied. StagingRoot is always
 mandatory, must be empty, and must be outside both this superproject and the
 initialized source checkout. It clones the complete locked superproject plus
 all five pinned gitlinks into that isolated directory, then applies ordered
-dsrc and src patches. The materialized tree therefore contains the top-level
+superproject, dsrc, exe, and src patches. The materialized tree therefore contains the top-level
 build and runtime files as well as the edited components. The materializer
 removes every staging `origin` after checkout so the transient tree cannot be
 used for publishing.
@@ -23,6 +23,8 @@ Use Expectation Ready as the implementation gate. It requires:
 - authoritative point enforcement in purchaseSkill
 - reachable trainer conversations with table-derived skill, species, money,
   and point data
+- the unmultiplied Publish 14.1 XP rate used by those table-derived costs
+- a supervised TransferServer endpoint for production named-account transfers
 - the authentic client-visible surrenderSkill command contract
 - an actor-only native surrender path with transitive dependency rejection,
   protected-family policy, post-revoke verification, and XP-cap repair
