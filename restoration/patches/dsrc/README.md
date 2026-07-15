@@ -166,3 +166,10 @@ shared hall until terminal use, sends the canonical availability list to the
 retained `/AvLoc2` client path, validates a one-shot selection, and retires the
 skipped state only after world transfer is observed. It removes the fixed Mos
 Eisley, NGE groundquest, ribbon, and automatic-arrival warp path.
+
+`006-p14-mos-eisley-artisan-trainer.patch` restores the production Artisan
+skill trainer removed from Mos Eisley's outdoor population. The row uses the
+existing `trainer_artisan` mobile definition, which owns the stock
+`npc.skillteacher.skillteacher` script, at the Publish 14.1/Core3 position
+`(3503, 5, -4809)`. The adjacent later profession quest-giver remains a
+separate NPC and is not used as a substitute for the trainer lifecycle.

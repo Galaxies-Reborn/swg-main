@@ -125,6 +125,7 @@ $requiredAcceptancePaths = @(
     "restoration/patches/dsrc/README.md",
     "restoration/patches/dsrc/002-phase-a-runtime-probe.patch",
     "restoration/patches/dsrc/002a-phase-a-operation-markers.patch",
+    "restoration/patches/dsrc/006-p14-mos-eisley-artisan-trainer.patch",
     "restoration/patches/src/README.md",
     "restoration/scripts/Invoke-RestorationMaterializer.ps1",
     "restoration/scripts/Restoration.Common.psm1",
@@ -159,9 +160,13 @@ foreach ($pin in @($sourcePins))
 $skillTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $commandTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 $schematicGroupTablePath = Join-Path $source ([string]$contract.sourceFiles.schematicGroupTable)
+$tatooinePoiSpawnerPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/poi_spawner/tatooine.tab"
+$creaturesTablePath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
 $skills = @(Import-SwgTab -Path $skillTablePath)
 $commands = @(Import-SwgTab -Path $commandTablePath)
 $schematicGroups = @(Import-SwgTab -Path $schematicGroupTablePath)
+$tatooinePoiSpawns = @(Import-SwgTab -Path $tatooinePoiSpawnerPath)
+$creatures = @(Import-SwgTab -Path $creaturesTablePath)
 
 $script:checks = @()
 
@@ -286,6 +291,29 @@ $trainingRowPassed = (
     ([int]$trainingRows[0].MONEY_REQUIRED -eq [int]$contract.trainingSkill.moneyRequired)
 )
 Add-PhaseCheck -Id "phaseA.training.table-costs" -Passed $trainingRowPassed -Detail "expected $trainingSkillName points=$($contract.trainingSkill.pointsRequired) money=$($contract.trainingSkill.moneyRequired)"
+
+$artisanTrainerSpawns = @($tatooinePoiSpawns | Where-Object {
+    [string]$_.w -ceq "91001001"
+})
+$artisanTrainerDefinitions = @($creatures | Where-Object {
+    [string]$_.creatureName -ceq "trainer_artisan"
+})
+$artisanTrainerSpawnReady = (
+    $artisanTrainerSpawns.Count -eq 1 -and
+    [string]$artisanTrainerSpawns[0].LOC_X -ceq "3503" -and
+    [string]$artisanTrainerSpawns[0].LOC_Y -ceq "5" -and
+    [string]$artisanTrainerSpawns[0].LOC_Z -ceq "-4809" -and
+    [string]$artisanTrainerSpawns[0].PLANET -ceq "tatooine" -and
+    [string]$artisanTrainerSpawns[0].BUILDING -ceq "0" -and
+    [string]$artisanTrainerSpawns[0].POP -ceq "1" -and
+    [string]$artisanTrainerSpawns[0].TYPE -ceq "trainer_artisan" -and
+    [string]::IsNullOrEmpty([string]$artisanTrainerSpawns[0].SCRIPTS) -and
+    [string]$artisanTrainerSpawns[0].SENTINEL -ceq "1" -and
+    $artisanTrainerDefinitions.Count -eq 1 -and
+    ([string]$artisanTrainerDefinitions[0].objvars).Split(',') -ccontains "string:trainer=trainer_artisan" -and
+    ([string]$artisanTrainerDefinitions[0].scripts).Split(',') -ccontains "npc.skillteacher.skillteacher"
+)
+Add-PhaseCheck -Id "phaseA.training.mos-eisley-artisan-spawn" -Passed $artisanTrainerSpawnReady -Detail "production trainer_artisan must spawn outdoors at the Core3/P14 coordinates with its stock skillteacher script"
 
 $skillScriptPath = Join-Path $source ([string]$contract.sourceFiles.skillScript)
 $teacherScriptPath = Join-Path $source ([string]$contract.sourceFiles.teacherScript)

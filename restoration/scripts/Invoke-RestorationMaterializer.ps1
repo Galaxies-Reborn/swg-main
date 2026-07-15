@@ -53,6 +53,7 @@ $requiredAcceptancePaths = @(
     "restoration/patches/dsrc/README.md",
     "restoration/patches/dsrc/002-phase-a-runtime-probe.patch",
     "restoration/patches/dsrc/002a-phase-a-operation-markers.patch",
+    "restoration/patches/dsrc/006-p14-mos-eisley-artisan-trainer.patch",
     "restoration/patches/src/README.md",
     "restoration/scripts/Invoke-RestorationMaterializer.ps1",
     "restoration/scripts/Restoration.Common.psm1",
