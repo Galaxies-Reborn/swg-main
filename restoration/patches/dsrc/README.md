@@ -201,3 +201,17 @@ existing authoritative maxima.
 creation stubs with the decoded Publish 14.1 racial limits, racial modifiers,
 and starting-profession allocations. The corresponding retail IFF hashes and
 semantic canaries are locked by `contracts/p14-stat-migration.json`.
+
+`011-p14-image-designer-live-fixture.patch` adds a ServerConsole-only,
+identity-bound two-client location fixture for the Image Designer live gate. It
+stores persistent original-location snapshots for both disposable characters,
+moves them into the authentic Tatooine salon cell, and restores only its owned
+state during cleanup. Skill grants, grouping, session start, acceptance, and
+commit remain on their production gameplay paths.
+
+`012-p14-stat-migration-image-designer-xp.patch` fixes the pure stat-migration
+reward boundary. A `DT_STAT_MIGRATION` transaction now reaches the authentic
+2,000 Image Designer XP branch even when no cosmetic hair, morph, index, or
+holo-emote field changed. The reward is granted directly to the dedicated
+`imagedesigner` pool because SWGSource's NGE social-style helper ignores that
+pool and redirects rewards through the active expertise template.

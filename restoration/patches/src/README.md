@@ -58,3 +58,8 @@ salon structure, revalidates the recipient's exact nine-stat allocation, and
 consumes it once after payment validation. The retained script awards the
 authentic 2,000 Image Designer XP and the shared timer restores the 240-second
 Publish 14 delay.
+
+`009-p14-image-designer-wire-time32.patch` pins the controller message's start
+time to the retail-era signed 32-bit wire field. This prevents an x64 client
+host's 64-bit `time_t` from shifting the remaining payload and triggering the
+32-bit game server's invalid-network-stream disconnect guard.

@@ -190,8 +190,19 @@ $retailTimingAndRewardReady = `
     $text.sharedImageDesigner.Contains("statMigrationRequested") -and `
     $text.sharedImageDesigner.Contains("ImageDesignChangeMessage::DT_STAT_MIGRATION") -and `
     $text.imageDesignerScript.Contains("IMAGE_DESIGN_EXPERIENCE_STAT_MIG = 2000") -and `
+    $text.imageDesignerScript.Contains('if (designType == 2 || newHairSet || !holoEmote.equals("") || morphChangesKeys.length != 0 || indexChangesKeys.length != 0)') -and `
+    $text.imageDesignerScript.Contains('xp.grant(self, xp.IMAGEDESIGNER, experience)') -and `
+    -not $text.imageDesignerScript.Contains('xp.grantSocialStyleXp(self, xp.IMAGEDESIGNER, experience)') -and `
     $text.imageDesignerScript.Contains('utils.hasObjVar(structure, "salon")')
 Assert-Contract -Condition $retailTimingAndRewardReady -Name "p14.stat-migration.image-designer.retail-timer-salon-and-reward"
+
+$retailWireTimeReady = `
+    $text.imageDesignerWireMessage.Contains("int const startingTimeWire = static_cast<int>(msg->getStartingTime())") -and `
+    $text.imageDesignerWireMessage.Contains("Archive::put(target, startingTimeWire)") -and `
+    $text.imageDesignerWireMessage.Contains("int tempTimeWire = 0") -and `
+    $text.imageDesignerWireMessage.Contains("msg->setStartingTime(static_cast<time_t>(tempTimeWire))") -and `
+    -not $text.imageDesignerWireMessage.Contains("Archive::put(target, msg->getStartingTime())")
+Assert-Contract -Condition $retailWireTimeReady -Name "p14.stat-migration.image-designer.retail-32-bit-start-time-wire"
 
 Assert-Contract `
     -Condition ([string]$contract.knownLimitations.imageDesignerCommit -like "Restored*" -and [string]$contract.knownLimitations.sessionPersistence -like "Pending*") `
