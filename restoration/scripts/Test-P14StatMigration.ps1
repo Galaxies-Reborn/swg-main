@@ -139,7 +139,7 @@ $validationReady = `
 Assert-Contract -Condition $validationReady -Name "p14.stat-migration.submit.nine-target-bounds-and-authoritative-sum"
 
 $responseReady = `
-    $text.commandCpp.Contains("StatMigrationTargetsMessage const message(session.targets, session.pointsLeft)") -and `
+    $text.commandCpp.Contains("StatMigrationTargetsMessage const message(session->targets, session->pointsLeft)") -and `
     $text.commandCpp.Contains("creature->getClient()->send(message, true)")
 Assert-Contract -Condition $responseReady -Name "p14.stat-migration.response.server-owned-target-vector"
 
@@ -153,8 +153,8 @@ Assert-Contract -Condition $tutorialReady -Name "p14.stat-migration.commit.tutor
 $nativeCommitReady = `
     $text.commandHeader.Contains("canCommitStatMigration") -and `
     $text.commandHeader.Contains("commitStatMigration") -and `
-    $text.commandCpp.Contains("session->second.pointsLeft == 0") -and `
-    $text.commandCpp.Contains("validateStatMigrationTargets(*creature, session->second.targets)") -and `
+    $text.commandCpp.Contains("session->pointsLeft == 0") -and `
+    $text.commandCpp.Contains("validateStatMigrationTargets(*creature, session->targets)") -and `
     $text.commandCpp.Contains("applyStatMigration(*creature, session->second.targets)") -and `
     $text.commandCpp.Contains("s_statMigrationSessions.erase(session)")
 Assert-Contract -Condition $nativeCommitReady -Name "p14.stat-migration.commit.revalidated-and-consumed-once"
@@ -204,9 +204,29 @@ $retailWireTimeReady = `
     -not $text.imageDesignerWireMessage.Contains("Archive::put(target, msg->getStartingTime())")
 Assert-Contract -Condition $retailWireTimeReady -Name "p14.stat-migration.image-designer.retail-32-bit-start-time-wire"
 
+$persistentSessionReady = `
+    $text.commandCpp.Contains('cms_statMigrationObjVarRoot = "precu.statMigration"') -and `
+    $text.commandCpp.Contains("setObjVarItem(cms_statMigrationObjVarTargets, session.targets)") -and `
+    $text.commandCpp.Contains("setObjVarItem(cms_statMigrationObjVarState, cms_statMigrationStatePending)") -and `
+    $text.commandCpp.Contains("loadPersistentStatMigration(creature, restored)") -and `
+    $text.commandCpp.Contains("validateStatMigrationTargets(creature, targets)") -and `
+    $text.commandCpp.Contains("beginPersistentStatMigrationCommit(*creature)") -and `
+    $text.commandCpp.Contains("clearPersistentStatMigration(*creature)")
+Assert-Contract -Condition $persistentSessionReady -Name "p14.stat-migration.session.restart-persistent-fail-closed"
+
+$persistenceFixtureReady = `
+    $text.persistenceFixture.Contains("private static final long RECIPIENT_OID = 39008597L") -and `
+    $text.persistenceFixture.Contains("private static final int RECIPIENT_STATION_ID = 1001") -and `
+    $text.persistenceFixture.Contains('private static final String ROOT = "precu.statMigration"') -and `
+    $text.persistenceFixture.Contains("getIntArrayObjVar(recipient, TARGETS)") -and `
+    $text.persistenceFixture.Contains('return "oid=" + recipient + " present=" + present') -and `
+    -not $text.persistenceFixture.Contains("setObjVar") -and `
+    -not $text.persistenceFixture.Contains("removeObjVar")
+Assert-Contract -Condition $persistenceFixtureReady -Name "p14.stat-migration.fixture.read-only-identity-bound-persistence-status"
+
 Assert-Contract `
-    -Condition ([string]$contract.knownLimitations.imageDesignerCommit -like "Restored*" -and [string]$contract.knownLimitations.sessionPersistence -like "Pending*") `
-    -Name "p14.stat-migration.boundary.image-designer-restored-process-local-persistence-explicit"
+    -Condition ([string]$contract.knownLimitations.imageDesignerCommit -like "Restored*" -and [string]$contract.knownLimitations.sessionPersistence -like "Validated*") `
+    -Name "p14.stat-migration.boundary.image-designer-and-restart-persistence-restored"
 
 if ($failures.Count -gt 0)
 {

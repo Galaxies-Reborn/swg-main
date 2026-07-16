@@ -52,6 +52,7 @@
     "sharedImageDesigner": "src/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp",
     "imageDesignerWireMessage": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/ImageDesignChangeMessage.cpp",
     "imageDesignerScript": "dsrc/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java",
+    "persistenceFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_stat_migration_persistence_fixture.java",
     "attributeLimits": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/attribute_limits.tab",
     "racialMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/racial_mods.tab",
     "professionMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/profession_mods.tab"
@@ -79,8 +80,15 @@
     "startingTime": "Signed 32-bit retail-era epoch field, explicitly encoded independent of host time_t width.",
     "liveFinding": "An x64 Windows client writing raw 64-bit time_t shifts the remaining controller payload and is rejected by the 32-bit game server as an invalid network stream."
   },
+  "persistentSession": {
+    "storage": "Recipient creature object variables under precu.statMigration.",
+    "record": "A nine-integer targets vector followed by a pending state marker written last.",
+    "recovery": "The authoritative game server reloads and revalidates the record when no process-local session exists.",
+    "consumption": "A committing marker is persisted before mutation; successful tutorial and salon commits remove the complete record.",
+    "failurePolicy": "Partial, invalid, or interrupted-commit records fail closed and are never replayed."
+  },
   "knownLimitations": {
     "imageDesignerCommit": "Restored for authenticated normal-world salon transactions.",
-    "sessionPersistence": "Pending allocations remain process-local and are lost on game-server restart."
+    "sessionPersistence": "Validated pending allocations survive a graceful game-server restart; an interruption after the committing marker is written fails closed rather than replaying the service."
   }
 }

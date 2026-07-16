@@ -215,3 +215,8 @@ reward boundary. A `DT_STAT_MIGRATION` transaction now reaches the authentic
 holo-emote field changed. The reward is granted directly to the dedicated
 `imagedesigner` pool because SWGSource's NGE social-style helper ignores that
 pool and redirects rewards through the active expertise template.
+
+`013-p14-stat-migration-persistence-fixture.patch` adds a read-only,
+identity-bound ServerConsole probe for the recipient's durable migration
+record. It reports the state marker, nine targets, and sum but exposes no
+mutation action; production client commands remain the only writers.

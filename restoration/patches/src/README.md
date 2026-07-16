@@ -63,3 +63,10 @@ Publish 14 delay.
 time to the retail-era signed 32-bit wire field. This prevents an x64 client
 host's 64-bit `time_t` from shifting the remaining payload and triggering the
 32-bit game server's invalid-network-stream disconnect guard.
+
+`010-p14-stat-migration-persistence.patch` stores a validated, zero-points-left
+allocation on the recipient as a versioned native object-variable record. The
+in-memory session reloads from that record after a game-server restart and is
+validated again before use. A committing marker is persisted before mutation,
+so partial or interrupted records fail closed and cannot replay the service or
+its XP reward. Tutorial and successful salon commits consume the durable state.

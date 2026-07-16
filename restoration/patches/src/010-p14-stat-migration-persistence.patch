@@ -1,0 +1,162 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+index 96e19f1..d148b54 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -158,6 +158,12 @@ namespace CommandCppFuncsNamespace
+ 	typedef std::map<NetworkId, StatMigrationSession> StatMigrationSessionMap;
+ 	StatMigrationSessionMap s_statMigrationSessions;
+ 
++	char const * const cms_statMigrationObjVarRoot = "precu.statMigration";
++	char const * const cms_statMigrationObjVarTargets = "precu.statMigration.targets";
++	char const * const cms_statMigrationObjVarState = "precu.statMigration.state";
++	int const cms_statMigrationStatePending = 1;
++	int const cms_statMigrationStateCommitting = 2;
++
+ 	bool getStatMigrationLimits(CreatureObject const & creature, std::vector<std::pair<int, int> > & limits, int & total)
+ 	{
+ 		char const * const sharedTemplateName = creature.getSharedTemplateName();
+@@ -221,6 +227,67 @@ namespace CommandCppFuncsNamespace
+ 		return assigned == total;
+ 	}
+ 
++	void clearPersistentStatMigration(CreatureObject & creature)
++	{
++		creature.removeObjVarItem(cms_statMigrationObjVarRoot);
++	}
++
++	bool persistStatMigration(CreatureObject & creature, StatMigrationSession const & session)
++	{
++		if (session.pointsLeft != 0 || !validateStatMigrationTargets(creature, session.targets))
++			return false;
++
++		// The state marker is written last. A server stop between these writes
++		// leaves a fail-closed partial record that will never be accepted.
++		clearPersistentStatMigration(creature);
++		if (!creature.setObjVarItem(cms_statMigrationObjVarTargets, session.targets) ||
++			!creature.setObjVarItem(cms_statMigrationObjVarState, cms_statMigrationStatePending))
++		{
++			clearPersistentStatMigration(creature);
++			return false;
++		}
++		return true;
++	}
++
++	bool loadPersistentStatMigration(CreatureObject & creature, StatMigrationSession & session)
++	{
++		int state = 0;
++		std::vector<int> targets;
++		if (!creature.getObjVars().getItem(cms_statMigrationObjVarState, state) ||
++			state != cms_statMigrationStatePending ||
++			!creature.getObjVars().getItem(cms_statMigrationObjVarTargets, targets) ||
++			!validateStatMigrationTargets(creature, targets))
++		{
++			if (creature.getObjVars().hasItem(cms_statMigrationObjVarRoot))
++				clearPersistentStatMigration(creature);
++			return false;
++		}
++
++		session.targets = targets;
++		session.pointsLeft = 0;
++		return true;
++	}
++
++	StatMigrationSession * findOrLoadPersistentStatMigration(CreatureObject & creature)
++	{
++		StatMigrationSessionMap::iterator session = s_statMigrationSessions.find(creature.getNetworkId());
++		if (session != s_statMigrationSessions.end())
++			return &session->second;
++
++		StatMigrationSession restored;
++		if (!loadPersistentStatMigration(creature, restored))
++			return nullptr;
++
++		return &s_statMigrationSessions.insert(std::make_pair(creature.getNetworkId(), restored)).first->second;
++	}
++
++	bool beginPersistentStatMigrationCommit(CreatureObject & creature)
++	{
++		// Persist a consumed marker before mutation. If the server stops during
++		// commit, recovery fails closed instead of replaying the service or XP.
++		return creature.setObjVarItem(cms_statMigrationObjVarState, cms_statMigrationStateCommitting);
++	}
++
+ 	void applyStatMigration(CreatureObject & creature, std::vector<int> const & targets)
+ 	{
+ 		for (int attribute = 0; attribute < Attributes::NumberOfAttributes; ++attribute)
+@@ -6247,8 +6314,10 @@ static void commandFuncRequestStatMigrationData(Command const &, NetworkId const
+ 	if (!creature || !creature->isAuthoritative() || !creature->getClient())
+ 		return;
+ 
+-	StatMigrationSession & session = s_statMigrationSessions[actor];
+-	if (session.targets.empty() && !initializeStatMigrationSession(*creature, session))
++	StatMigrationSession * session = findOrLoadPersistentStatMigration(*creature);
++	if (!session)
++		session = &s_statMigrationSessions[actor];
++	if (session->targets.empty() && !initializeStatMigrationSession(*creature, *session))
+ 	{
+ 		char const * const sharedTemplateName = creature->getSharedTemplateName();
+ 		WARNING(true, ("Unable to initialize Publish 14 stat migration for %s (%s)",
+@@ -6257,7 +6326,7 @@ static void commandFuncRequestStatMigrationData(Command const &, NetworkId const
+ 		return;
+ 	}
+ 
+-	StatMigrationTargetsMessage const message(session.targets, session.pointsLeft);
++	StatMigrationTargetsMessage const message(session->targets, session->pointsLeft);
+ 	creature->getClient()->send(message, true);
+ }
+ 
+@@ -6293,6 +6362,13 @@ static void commandFuncRequestSetStatMigrationData(Command const &, NetworkId co
+ 	if (creature->getSceneId() == "newbie_hall")
+ 	{
+ 		applyStatMigration(*creature, targets);
++		clearPersistentStatMigration(*creature);
++		s_statMigrationSessions.erase(actor);
++	}
++	else if (!persistStatMigration(*creature, session))
++	{
++		WARNING(true, ("Unable to persist Publish 14 stat migration targets for %s",
++			actor.getValueString().c_str()));
+ 		s_statMigrationSessions.erase(actor);
+ 	}
+ }
+@@ -6305,8 +6381,10 @@ static void commandFuncRequestStatMigrationStart(Command const &, NetworkId cons
+ 	if (!creature || !creature->isAuthoritative())
+ 		return;
+ 
+-	StatMigrationSession & session = s_statMigrationSessions[actor];
+-	if (session.targets.empty() && !initializeStatMigrationSession(*creature, session))
++	StatMigrationSession * session = findOrLoadPersistentStatMigration(*creature);
++	if (!session)
++		session = &s_statMigrationSessions[actor];
++	if (session->targets.empty() && !initializeStatMigrationSession(*creature, *session))
+ 		s_statMigrationSessions.erase(actor);
+ }
+ 
+@@ -9851,11 +9929,10 @@ bool CommandCppFuncs::canCommitStatMigration(NetworkId const & actor)
+ 	if (!creature || !creature->isAuthoritative())
+ 		return false;
+ 
+-	CommandCppFuncsNamespace::StatMigrationSessionMap::const_iterator const session =
+-		CommandCppFuncsNamespace::s_statMigrationSessions.find(actor);
+-	return session != CommandCppFuncsNamespace::s_statMigrationSessions.end() &&
+-		session->second.pointsLeft == 0 &&
+-		CommandCppFuncsNamespace::validateStatMigrationTargets(*creature, session->second.targets);
++	CommandCppFuncsNamespace::StatMigrationSession const * const session =
++		CommandCppFuncsNamespace::findOrLoadPersistentStatMigration(*creature);
++	return session && session->pointsLeft == 0 &&
++		CommandCppFuncsNamespace::validateStatMigrationTargets(*creature, session->targets);
+ }
+ 
+ // ----------------------------------------------------------------------
+@@ -9871,7 +9948,11 @@ bool CommandCppFuncs::commitStatMigration(NetworkId const & actor)
+ 	if (!creature || session == CommandCppFuncsNamespace::s_statMigrationSessions.end())
+ 		return false;
+ 
++	if (!CommandCppFuncsNamespace::beginPersistentStatMigrationCommit(*creature))
++		return false;
++
+ 	CommandCppFuncsNamespace::applyStatMigration(*creature, session->second.targets);
++	CommandCppFuncsNamespace::clearPersistentStatMigration(*creature);
+ 	CommandCppFuncsNamespace::s_statMigrationSessions.erase(session);
+ 	return true;
+ }
