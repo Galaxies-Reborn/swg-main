@@ -1,19 +1,24 @@
 {
   "schemaVersion": 1,
   "feature": "marksman-tier1-combat-command-matrix",
-  "status": "blocked",
-  "scope": "Candidate expansion from the accepted rifle/Mind headShot1 slice to pistol/Health bodyShot1 and carbine/Action legShot1 without bypassing the remaining weapon-profile, ricochet, and live-acceptance gates.",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Authentic Publish 14.1 Marksman tier-I activation for rifle/Mind headShot1, pistol/Health bodyShot1, and carbine/Action legShot1 across skill grants, queue dispatch, Core3-derived timing and accuracy, three-pool costs, weapon profiles, and client tables.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
     "verifiedCurrentCommit": "3f294c7027dde69647bc0461224041551ee55f2b",
     "currentMatchesPinned": true,
     "combatQueueCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.h",
-    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp"
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "combatManagerHeader": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.h",
+    "pistolTemplate": "MMOCoreORB/bin/scripts/object/weapon/ranged/pistol/pistol_cdef.lua",
+    "carbineTemplate": "MMOCoreORB/bin/scripts/object/weapon/ranged/carbine/carbine_cdef.lua"
   },
   "publish14ClientEvidence": {
     "commandTableSha256": "F7ACB20472CBFC78A182703B8CFBF48A3EEAA84AF32ACD5E638F9342822258D8",
     "skillTableSha256": "CA5275D226361E8AE9AEFE1CCF24C9432F58E5D3BC043BB3217D15674BF17136",
+    "rifleSkill": "combat_marksman_rifle_01",
+    "rifleCommand": "headShot1",
     "pistolSkill": "combat_marksman_pistol_01",
     "pistolCommand": "bodyShot1",
     "carbineSkill": "combat_marksman_carbine_01",
@@ -30,6 +35,7 @@
     "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
     "weaponCosts": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
     "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
   },
   "fixture": {
@@ -55,6 +61,22 @@
       "mindCostMultiplier": 0.5,
       "accuracyBonus": 50,
       "animation": "fire_1_special_single",
+      "animationColumn": "anim_pistol",
+      "attackSpeed": 3.5,
+      "speedSkill": "pistol_speed",
+      "pointBlankRange": 0,
+      "pointBlankAccuracy": 20,
+      "idealRange": 15,
+      "idealAccuracy": 50,
+      "maxRange": 64,
+      "maxRangeAccuracy": -80,
+      "accuracySkill": "pistol_accuracy",
+      "categoryAccuracySkill": "ranged_accuracy",
+      "defenseSkill": "ranged_defense",
+      "weaponFamily": "pistol",
+      "postureMultiplier": 1.5,
+      "secondaryDefenseSkill": "dodge",
+      "secondaryDefenseResult": "DODGE",
       "expectedFixtureHealthCost": 2,
       "expectedFixtureActionCost": 11,
       "expectedFixtureMindCost": 5
@@ -73,18 +95,73 @@
       "mindCostMultiplier": 0.5,
       "accuracyBonus": 25,
       "animation": "test_homing",
+      "animationColumn": "anim_carbine",
+      "attackSpeed": 3.5,
+      "speedSkill": "carbine_speed",
+      "pointBlankRange": 0,
+      "pointBlankAccuracy": 20,
+      "idealRange": 15,
+      "idealAccuracy": 50,
+      "maxRange": 64,
+      "maxRangeAccuracy": -80,
+      "accuracySkill": "carbine_accuracy",
+      "categoryAccuracySkill": "ranged_accuracy",
+      "defenseSkill": "ranged_defense",
+      "weaponFamily": "carbine",
+      "postureMultiplier": 2.0,
+      "secondaryDefenseSkill": "counterattack",
+      "secondaryDefenseResult": "COUNTER",
       "expectedFixtureHealthCost": 9,
       "expectedFixtureActionCost": 18,
       "expectedFixtureMindCost": 5
     }
   ],
-  "requiredBeforeReady": [
-    "weapon-derived command duration equivalent to Core3 calculateWeaponAttackSpeed rather than a fixed executeTime",
-    "per-action accuracy bonus mapped through an authenticated Pre-CU accuracy and defense equation rather than the NGE miss table",
-    "authenticated attacker and defender weapon profiles beyond CDEF rifle, player unarmed, and standardized lightsaber ricochet",
-    "pistol and carbine CDEF costs installed from the pinned Core3 10/15/10 templates",
-    "authenticated skill grants, standard combat hooks, weapon restrictions, and target-pool routing",
-    "two-client live success, wrong-weapon rejection, and strict no-partial HAM acceptance for both commands"
+  "authenticTier1Skills": [
+    {
+      "name": "combat_marksman_rifle_01",
+      "xpType": "combat_rangedspecialize_rifle",
+      "commands": [
+        "private_marksman_rifle_1",
+        "headShot1",
+        "cert_rifle_dlt20a",
+        "cert_rifle_tusken"
+      ],
+      "skillMods": [
+        "rifle_accuracy=10",
+        "rifle_speed=5",
+        "private_rifle_combat_difficulty=100",
+        "rifle_concealment_chance=5"
+      ]
+    },
+    {
+      "name": "combat_marksman_pistol_01",
+      "xpType": "combat_rangedspecialize_pistol",
+      "commands": [
+        "private_marksman_pistol_1",
+        "bodyShot1",
+        "cert_pistol_dl44",
+        "cert_pistol_dl44_metal"
+      ],
+      "skillMods": [
+        "pistol_accuracy=10",
+        "pistol_speed=5",
+        "private_pistol_combat_difficulty=100"
+      ]
+    },
+    {
+      "name": "combat_marksman_carbine_01",
+      "xpType": "combat_rangedspecialize_carbine",
+      "commands": [
+        "private_marksman_carbine_1",
+        "legShot1",
+        "cert_carbine_dh17_snubnose"
+      ],
+      "skillMods": [
+        "carbine_speed=5",
+        "carbine_accuracy=10",
+        "private_carbine_combat_difficulty=100"
+      ]
+    }
   ],
   "runtimeSeams": {
     "commandDuration": {
@@ -98,17 +175,57 @@
     "secondaryDefense": {
       "status": "implemented-build-verified-live-pending",
       "contract": "contracts/p14-secondary-defense.json",
-      "coverage": "exact CDEF-rifle and player-unarmed block, dodge, and counter profiles"
+      "coverage": "exact CDEF rifle, pistol, and carbine plus player-unarmed block, dodge, and counter profiles"
     },
     "ricochetDefense": {
       "status": "implemented-build-verified-live-pending",
       "contract": "contracts/p14-secondary-defense.json"
     },
     "attackerWeaponProfiles": {
-      "status": "blocked",
-      "reason": "Pinned CDEF pistol and carbine speed, range, accuracy, defense, and HAM profiles have not yet been installed for bodyShot1 and legShot1."
+      "status": "implemented-build-verified-live-pending",
+      "coverage": "Pinned Core3 CDEF pistol and carbine 3.5 speed, 0/15/64 range interpolation, 20/50/-80 accuracy, ranged defense, posture, secondary defense, and 10/15/10 HAM costs."
     }
   },
+  "buildEvidence": {
+    "environment": "isolated Docker volume swg-precu-tier1-build with the exact staged seven-file activation",
+    "javaResult": "passed",
+    "tableResult": "passed",
+    "sourceSha256": {
+      "combatActions": "b4b5442e12f6f655d47210d5c6df3f9ad79cf34958ca96005bf1a44767e30b5d",
+      "combatData": "0aaac92c0b24109ba6e4adcc8daca46fbbc1fa1c1629b14e3f55b074b61400ce",
+      "commandTable": "3853c89d8701b21d52393974479bf0bc10b6e6aab83d75ca234e5642ec2e6169",
+      "skillTable": "6071d68a40330b044e03c00c2ce688c1c7312bf57139ce432b18517f13a12182",
+      "combatOverrides": "e05683f3702935845e09ecb8bd027ac9093682a59fc63230a75d2a81136012fd",
+      "weaponCosts": "8df2fe312735e421c3759d611b80cd4a0648ae0b63cbbf5eae32fbb4f1b3e61f",
+      "weaponProfiles": "8d40ee7df4ecf6993134d2bfb06b0d67a98a0afffeab69f926def9261b9f2bb2"
+    },
+    "compiledIffSha256": {
+      "combatData": "b10370723f639746b385eb10c4f3c39c36440d640342c58da3cfa1fd9ca405cd",
+      "commandTable": "68aafa7ea1c3064cb7da847594a307d75b5c4fcca0e7f5bc69e525fcc80ce86a",
+      "skillTable": "eb62b893658e550bd18b3f6c8173a6f76f04db982a6dfd0b04bd8f0a53cb10e6",
+      "combatOverrides": "d7f27fe1e790c6ae9dba877c473dbb73c001afd8205e4a3c0dde511b46d200ad",
+      "weaponCosts": "00dbb380729884ed7f225e7e0bcd4e0007fb7811170ed81caf47bca2efd334d9",
+      "weaponProfiles": "de9ad894f8f6ae08dafa6f9b5dcb549c80557a98aa7dd55152483fbaa80c6c23"
+    }
+  },
+  "clientAssetPublication": {
+    "status": "published",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "51cbfa0f1a92d1317f4a4758a0a3a5ec7d12232b",
+    "artifacts": {
+      "datatables/combat/combat_data.iff": "b10370723f639746b385eb10c4f3c39c36440d640342c58da3cfa1fd9ca405cd",
+      "datatables/command/command_table.iff": "68aafa7ea1c3064cb7da847594a307d75b5c4fcca0e7f5bc69e525fcc80ce86a",
+      "datatables/skill/skills.iff": "eb62b893658e550bd18b3f6c8173a6f76f04db982a6dfd0b04bd8f0a53cb10e6"
+    }
+  },
+  "requiredBeforeReady": [
+    "two-client live success for bodyShot1 and legShot1 with the production client queue",
+    "wrong-weapon rejection for pistol, carbine, and rifle cross-use",
+    "strict no-partial Health/Action/Mind acceptance for both commands",
+    "live status exposes the weapon-derived duration, primary accuracy, and secondary-defense result for each command",
+    "fixture cleanup restores owned skill, position, weapon, combat, and HAM state"
+  ],
   "materializerPolicy": {
     "rejectPatchTextWhileBlocked": [
       "bodyShot1",

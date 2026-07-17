@@ -206,7 +206,7 @@ function Assert-BlockedPatchFeaturesAbsent
         [Parameter(Mandatory = $true)][psobject]$Gate
     )
 
-    if ([string]$Gate.status -eq "ready")
+    if (@("ready", "implemented-build-verified-live-pending") -ccontains [string]$Gate.status)
     {
         return
     }

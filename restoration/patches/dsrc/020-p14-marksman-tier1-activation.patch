@@ -1,0 +1,99 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 52d886b..f34ffcf 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14551,4 +14551,20 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int bodyShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("bodyShot1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int legShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("legShot1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+ }
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 897c7bc..a73af3d 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1286,3 +1286,5 @@ gcw_atst_attack_tower	gcw_atst_attack_tower				LEFT_CLICK_DEFAULT	STANDARD	ATTAC
+ gcw_rocket_launch	gcw_rocket_launch					STANDARD	DELAY_ATTACK			appearance/pt_gcw_rocket_launch.prt	root					0.5		TARGETED_OBJECT	STANDARD	1	1	fire_1_single_medium														OFF	OFF	OFF	OFF	ON	AREA	5			100	10000		1		1						1000					fire	1000	10																									gcw_rocket			
+ firePulseCannon	firePulseCannon				LEFT_CLICK_DEFAULT	STANDARD	DELAY_ATTACK								0	0	1	LOCATION	STANDARD	1	0	fire_blue_energy_at_loc														OFF	OFF	OFF	OFF	OFF	TARGET_AREA	5			64											750																																			WEAPON_NAME
+ headShot1	headShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
++bodyShot1	bodyShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single					fire_1_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
++legShot1	legShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	test_homing							test_homing							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 4fbe5e9..f86b60c 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -2,3 +2,5 @@ actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPo
+ s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2)[HEALTH]"	f	i
+ __precu_runtime_probe	0	0	0	HEALTH	0	0
+ headShot1	0.5	0.5	1	MIND	1.5	5
++bodyShot1	0.5	0.75	0.5	HEALTH	1	50
++legShot1	2.25	1.25	0.5	ACTION	2	25
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+index 63a27e7..984b0d5 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+@@ -1,3 +1,5 @@
+ templateName	healthCost	actionCost	mindCost
+ s	i	i	i
+ object/weapon/ranged/rifle/rifle_cdef.iff	10	15	10
++object/weapon/ranged/pistol/pistol_cdef.iff	10	15	10
++object/weapon/ranged/carbine/carbine_cdef.iff	10	15	10
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+index e18f861..d049b10 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+@@ -1,4 +1,6 @@
+ templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	weaponFamily	postureMultiplier	secondaryDefenseSkill	secondaryDefenseResult
+ s	f	s	f	f	f	f	f	f	s	s	s	s	f	s	s
+ object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0	20	15	50	64	-80	rifle_accuracy	ranged_accuracy	ranged_defense	rifle	2.5	block	BLOCK
++object/weapon/ranged/pistol/pistol_cdef.iff	3.5	pistol_speed	0	20	15	50	64	-80	pistol_accuracy	ranged_accuracy	ranged_defense	pistol	1.5	dodge	DODGE
++object/weapon/ranged/carbine/carbine_cdef.iff	3.5	carbine_speed	0	20	15	50	64	-80	carbine_accuracy	ranged_accuracy	ranged_defense	carbine	2	counterattack	COUNTER
+ object/weapon/melee/unarmed/unarmed_default_player.iff	2	unarmed_speed	0	0	5	3	5	5	unarmed_accuracy	melee_accuracy	melee_defense	unarmed	1	unarmed_passive_defense	RANDOM
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index bf910f6..f91b067 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1908,3 +1908,5 @@ callforslave1pickup		normal	callForTcgSlave1Pickup					callforslave1pickup	1	1	1
+ costume_esb_yoda	commandClicky	normal	costume_esb_yoda	failSpecialAttack			1	costume_esb_yoda	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	1	0	0	0			0	0	1	1		1	0	0	1	1	1	1	0	1	0	1	1	1	1	0	0	1								0		0	0	0	0		1							other	none		2		costume	0			costume				costume	0	0.25	10				
+ surrenderSkill		immediate			surrenderSkill		0		1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1		other	none		1	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	0	0		0	0	0
+ headShot1	combat	normal	headShot1	failSpecialAttack			1.5	headShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++bodyShot1	combat	normal	bodyShot1	failSpecialAttack			1.5	bodyShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++legShot1	combat	normal	legShot1	failSpecialAttack			1.5	legShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index 39c9d72..3a2892b 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -788,15 +788,15 @@ combat_brawler_polearm_04	combat_brawler_polearm_03		1	1	0	1	4000	5		combat_braw
+ combat_marksman	combat		1	0	1	1	0	0						0											0	0
+ combat_marksman_novice	combat_marksman		1	1	0	1	100	15					0	0							"private_marksman_novice,knockdownRecovery"	"ranged_accuracy=10,ranged_speed=5"			0	0
+ combat_marksman_master	combat_marksman		1	1	0	1	5000	6		"combat_marksman_rifle_04,combat_marksman_pistol_04,combat_marksman_carbine_04,combat_marksman_support_04"		combat_general	35000	70000							"private_marksman_master,lethalShot"	"ranged_defense=5,ranged_accuracy=25,ranged_speed=15"			0	0
+-combat_marksman_rifle_01	combat_marksman		1	0	0	1	1000	2		combat_marksman_novice		combat_rangedspecialize_rifle	1000	200000							"private_marksman_rifle_1,headShot1"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
++combat_marksman_rifle_01	combat_marksman		0	0	0	0	1000	2	0	combat_marksman_novice		combat_rangedspecialize_rifle	1000	10000		0					"private_marksman_rifle_1,headShot1,cert_rifle_dlt20a,cert_rifle_tusken"	"rifle_accuracy=10,rifle_speed=5,private_rifle_combat_difficulty=100,rifle_concealment_chance=5"			1	0
+ combat_marksman_rifle_02	combat_marksman_rifle_01		1	0	0	1	2000	3		combat_marksman_rifle_01		combat_rangedspecialize_rifle	5000	200000							"private_marksman_rifle_2,placedShot"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
+ combat_marksman_rifle_03	combat_marksman_rifle_02		1	0	0	1	3000	4		combat_marksman_rifle_02		combat_rangedspecialize_rifle	15000	200000							"private_marksman_rifle_3,firearmStrike"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
+ combat_marksman_rifle_04	combat_marksman_rifle_03		1	1	0	1	4000	5		combat_marksman_rifle_03		combat_rangedspecialize_rifle	70000	200000							"private_marksman_rifle_4,aim"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
+-combat_marksman_pistol_01	combat_marksman		1	0	0	1	1000	2		combat_marksman_novice		combat_rangedspecialize_pistol	1000	200000							"private_marksman_pistol_1,firearmStrike"	"pistol_defense=5,pistol_accuracy=10,pistol_speed=5"			0	0
++combat_marksman_pistol_01	combat_marksman		0	0	0	0	1000	2	0	combat_marksman_novice		combat_rangedspecialize_pistol	1000	10000		0					"private_marksman_pistol_1,bodyShot1,cert_pistol_dl44,cert_pistol_dl44_metal"	"pistol_accuracy=10,pistol_speed=5,private_pistol_combat_difficulty=100"			1	0
+ combat_marksman_pistol_02	combat_marksman_pistol_01		1	0	0	1	2000	3		combat_marksman_pistol_01		combat_rangedspecialize_pistol	5000	200000							"private_marksman_pistol_2,aimedShot"	"pistol_defense=5,pistol_accuracy=10,pistol_speed=5"			0	0
+ combat_marksman_pistol_03	combat_marksman_pistol_02		1	0	0	1	3000	4		combat_marksman_pistol_02		combat_rangedspecialize_pistol	15000	200000							"private_marksman_pistol_3,placedShot"	"pistol_defense=5,pistol_accuracy=10,pistol_speed=5"			0	0
+ combat_marksman_pistol_04	combat_marksman_pistol_03		1	1	0	1	4000	5		combat_marksman_pistol_03		combat_rangedspecialize_pistol	70000	200000							"private_marksman_pistol_4,quickDraw"	"pistol_defense=5,pistol_accuracy=10,pistol_speed=5"			0	0
+-combat_marksman_carbine_01	combat_marksman		1	0	0	1	1000	2		combat_marksman_novice		combat_rangedspecialize_carbine	1000	200000							"private_marksman_carbine_1,placedShot"	"carbine_defense=5,carbine_accuracy=10,carbine_speed=5"			0	0
++combat_marksman_carbine_01	combat_marksman		0	0	0	0	1000	2	0	combat_marksman_novice		combat_rangedspecialize_carbine	1000	10000		0					"private_marksman_carbine_1,legShot1,cert_carbine_dh17_snubnose"	"carbine_speed=5,carbine_accuracy=10,private_carbine_combat_difficulty=100"			1	0
+ combat_marksman_carbine_02	combat_marksman_carbine_01		1	0	0	1	2000	3		combat_marksman_carbine_01		combat_rangedspecialize_carbine	5000	200000							"private_marksman_carbine_2,firearmStrike"	"carbine_defense=5,carbine_accuracy=10,carbine_speed=5"			0	0
+ combat_marksman_carbine_03	combat_marksman_carbine_02		1	0	0	1	3000	4		combat_marksman_carbine_02		combat_rangedspecialize_carbine	15000	200000							"private_marksman_carbine_3,aimedShot"	"carbine_defense=5,carbine_accuracy=10,carbine_speed=5"			0	0
+ combat_marksman_carbine_04	combat_marksman_carbine_03		1	1	0	1	4000	5		combat_marksman_carbine_03		combat_rangedspecialize_carbine	70000	200000							"private_marksman_carbine_4,rapidFire"	"carbine_defense=5,carbine_accuracy=10,carbine_speed=5"			0	0

@@ -11,6 +11,7 @@ $restorationRoot = Split-Path -Parent $PSScriptRoot
 $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw | ConvertFrom-Json
 $contract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14CombatHam)) -Raw | ConvertFrom-Json
 $gate = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.headShot1Gate)) -Raw | ConvertFrom-Json
+$marksmanMatrix = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14MarksmanTier1Matrix)) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 
 $paths = @{}
@@ -160,9 +161,14 @@ Assert-Contract `
 
 $overrideRows = @(Import-Csv -LiteralPath $paths.combatOverrides -Delimiter "`t")
 $productionRows = @($overrideRows | Where-Object { $_.actionName -notin @("s", "__precu_runtime_probe") })
+$expectedProductionCommands = @(
+    [string]$gate.feature
+    @($marksmanMatrix.commands | ForEach-Object { [string]$_.name })
+)
+$actualProductionCommands = @($productionRows | ForEach-Object { [string]$_.actionName })
 Assert-Contract `
-    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -eq 1 -and [string]$productionRows[0].actionName -ceq [string]$gate.feature) `
-    -Name "p14.combat-ham.data.separate-override-table-first-production-command"
+    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -eq $expectedProductionCommands.Count -and @($expectedProductionCommands | Where-Object { $actualProductionCommands -cnotcontains $_ }).Count -eq 0) `
+    -Name "p14.combat-ham.data.separate-override-table-authenticated-production-commands"
 Assert-Contract `
     -Condition ((Get-Content -LiteralPath $paths.combatOverrides -Raw).Contains([string]$gate.feature)) `
     -Name "p14.combat-ham.data.ready-command-activated"

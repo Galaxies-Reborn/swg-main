@@ -232,3 +232,22 @@ two-player preparation used to prove that slice live. It reversibly owns the
 temporary skill grants, positions, personal-enemy flags, and current HAM values,
 while the connected P14 client remains the only component allowed to queue the
 actual command.
+
+`016-p14-precu-command-duration-data.patch` replaces fixed execute timing for
+opted-in Pre-CU attacks with the pinned Core3 weapon-speed, profession-speed,
+and combat-haste equation while leaving non-opted NGE commands unchanged.
+
+`017-p14-precu-primary-accuracy.patch` installs the fail-closed Core3 primary
+hit equation for authenticated weapon profiles and keeps it isolated from the
+NGE defender-result table.
+
+`018-p14-precu-secondary-defense.patch` adds exact profile-driven block, dodge,
+and counter outcomes for the authenticated CDEF rifle and player-unarmed seam.
+
+`019-p14-precu-lightsaber-ricochet.patch` restores profile-driven lightsaber
+ricochet for ranged attacks without invoking NGE parry, proc, or reflect logic.
+
+`020-p14-marksman-tier1-activation.patch` activates authentic Publish 14.1
+Marksman Rifle I, Pistol I, and Carbine I rows and adds `bodyShot1` plus
+`legShot1` across command, combat, skill, override, CDEF HAM-cost, weapon-profile,
+and standard combat-dispatch data.

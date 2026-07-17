@@ -332,10 +332,12 @@ materializer still rejects its feature name whenever the gate is moved away
 from `ready`; a speculative combat-data row cannot bypass the three-pool HAM,
 skill-grant, queue, rifle, hook, Mind-routing, or atomic-drain acceptance.
 
-`bodyShot1` and `legShot1` are the next candidate pair because the authentic
-Marksman tier-I rows cover pistol/Health and carbine/Action beside the accepted
-rifle/Mind slice. They remain blocked: Core3 derives command duration from
-weapon speed and the profession speed modifier and adds a per-action accuracy
-bonus to its Pre-CU hit equation. Fixed NGE command time and the NGE miss table
-are not accepted substitutes. The materializer rejects either command token
-until `p14-marksman-tier1-matrix.json` is moved to `ready` with those gates met.
+`bodyShot1` and `legShot1` now complete the authentic Marksman tier-I trio beside
+the accepted rifle/Mind `headShot1` slice. Pistol/Health and carbine/Action use
+the pinned Core3 CDEF speed, range, accuracy, defense, posture, secondary-defense,
+and 10/15/10 HAM profiles; the standard combat wrapper consumes the already
+accepted weapon-derived duration, primary-accuracy, and three-pool runtime seams.
+The exact compiled combat, command, and skill IFFs are published on
+`swgsais/pre-cu-reborn-assets:x64-dx9`. Static and isolated-build acceptance are
+complete; two-client success, cross-weapon rejection, strict no-partial HAM, and
+live diagnostic acceptance remain before the matrix can move to `ready`.
