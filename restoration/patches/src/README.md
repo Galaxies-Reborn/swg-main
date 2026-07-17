@@ -70,3 +70,16 @@ in-memory session reloads from that record after a game-server restart and is
 validated again before use. A committing marker is persisted before mutation,
 so partial or interrupted records fail closed and cannot replay the service or
 its XP reward. Tutorial and successful salon commits consume the durable state.
+
+`011-p14-precu-command-duration.patch` exposes authoritative weapon attack
+speed to the Java combat-data bridge so authenticated Pre-CU commands can use
+the Core3 duration equation without changing NGE command timing.
+
+`012-p14-persistent-wounds.patch` restores wounds as a dedicated persistent
+nine-value `CreatureObject` vector instead of the non-persistent attribute-mod
+list. It stores the vector in retired NGE creature columns 18 through 26 under
+database version 271, separates unwounded and wounded maximum attributes,
+applies primary versus linked-secondary current-value semantics, and exposes
+exact add/heal operations to scripts. The database server's required version,
+version query, generated packager registration, and zero-baseline migration
+travel in the same atomic overlay.

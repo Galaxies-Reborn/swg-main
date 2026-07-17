@@ -228,7 +228,9 @@ Assert-Contract -Condition (
     $combatBase.Contains("actionData.precuHamCostModel > 0")) -Name "p14.headshot1.runtime.authoritative-three-cost-governors"
 Assert-Contract -Condition (
     $combatBase.Contains("if (actionData.precuTargetPool >= 0)") -and
-    $combatBase.Contains("doDamageToPool(attacker, defender, hitData, actionData.precuTargetPool)")) -Name "p14.headshot1.runtime.explicit-mind-routing"
+    [regex]::IsMatch(
+        $combatBase,
+        'doDamageToPool\s*\(\s*attacker,\s*defender,\s*hitData,\s*actionData\.precuTargetPool\s*\)')) -Name "p14.headshot1.runtime.explicit-mind-routing"
 
 $liveFixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 Assert-Contract -Condition (

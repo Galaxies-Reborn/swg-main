@@ -136,6 +136,7 @@ Assert-Contract `
 $legacyDrain = Get-BracedBlock -Text $text.combatLibrary -Signature "public static boolean drainCombatActionAttributes(obj_id self, int[] actionCost) throws"
 $optInDrain = Get-BracedBlock -Text $text.combatLibrary -Signature "public static boolean drainCombatActionAttributes(obj_id self, int[] actionCost, boolean usePrecuHam)"
 $optInCheck = Get-BracedBlock -Text $text.combatLibrary -Signature "public static boolean canDrainCombatActionAttributes(obj_id self, int[] actionCost, boolean usePrecuHam)"
+$wrappedDamage = Get-BracedBlock -Text $text.combatBase -Signature "public void doWrappedDamage(obj_id attacker, obj_id defender, weapon_data weaponData, hit_result hitData, combat_data actionData, int overloadDamage)"
 Assert-Contract `
     -Condition ($legacyDrain.Contains("drainAttributes(self, actionCost[1], actionCost[2])") -and -not $legacyDrain.Contains("drainCombatAttributes")) `
     -Name "p14.combat-ham.compatibility.legacy-drain-preserved"
@@ -143,7 +144,15 @@ Assert-Contract `
     -Condition ($optInDrain.Contains("if (!usePrecuHam)") -and $optInDrain.Contains("drainCombatAttributes(self, actionCost[0], actionCost[1], actionCost[2])") -and $optInCheck.Contains("getAttrib(self, pools[i]) <= actionCost[i]")) `
     -Name "p14.combat-ham.compatibility.explicit-opt-in-drain-and-check"
 Assert-Contract `
-    -Condition ($text.combatBase.Contains("actionData.precuHamCostModel > 0") -and $text.combatBase.Contains("if (actionData.precuTargetPool >= 0)") -and $text.combatBase.Contains("doDamageToPool(attacker, defender, hitData, actionData.precuTargetPool)") -and $text.combatBase.Contains("doDamage(attacker, defender, hitData)")) `
+    -Condition (
+        $text.combatBase.Contains("actionData.precuHamCostModel > 0") -and
+        $wrappedDamage.Contains("if (actionData.precuTargetPool >= 0)") -and
+        [regex]::IsMatch(
+            $wrappedDamage,
+            'doDamageToPool\s*\(\s*attacker,\s*defender,\s*hitData,\s*actionData\.precuTargetPool\s*\)') -and
+        [regex]::IsMatch(
+            $wrappedDamage,
+            'else\s*\{\s*damageApplied\s*=\s*doDamage\s*\(\s*attacker,\s*defender,\s*hitData\s*\)')) `
     -Name "p14.combat-ham.compatibility.combat-path-opt-in-with-legacy-fallback"
 
 Assert-Contract `

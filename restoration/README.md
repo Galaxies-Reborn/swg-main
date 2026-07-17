@@ -86,6 +86,12 @@ seam independently (additional weapon profiles and live outcomes remain gated):
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SecondaryDefense.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate persistent Publish 14.1 wounds, schema-271 storage, login/combat shock
+retention, and the pinned Core3 post-damage linked-wound/shock roll
+independently:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Wounds.ps1 -SourceRoot <materialized-staging-directory>
+
 Validate the atomic Publish 14.1 nine-attribute persistence and replication
 runtime:
 

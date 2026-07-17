@@ -304,3 +304,15 @@ client and NGE server template sets. `jedi.isLightsaber(obj_id)` recognizes that
 canonical marker, and passive defense reads the held weapon instead of the NGE
 current-weapon combat cache. Live acceptance proved block, dodge, counter,
 ricochet, missing-profile NGE fallback, and complete fixture cleanup.
+
+`027-p14-core3-wounds.patch` activates the pinned Core3 post-damage wound roll
+for exact authenticated CDEF rifle, pistol, carbine, and player-unarmed
+profiles. A surviving positive-damage hit wounds the selected primary and its
+two linked secondary attributes by one and attempts three shock wounds. Legacy
+medicine helpers use the same native add/heal seam. The Marksman fixture
+snapshots all nine defender wounds plus shock, exposes production telemetry,
+and restores only the positive wound delta owned by its lifecycle. The NGE
+combat-exit hook no longer erases shock wounds when combat ends, preserving
+the persistent battle-fatigue input expected by the retained medicine path.
+The NGE player-initialization hook likewise no longer zeros battle fatigue
+after the creature is reconstructed from its persisted database row.

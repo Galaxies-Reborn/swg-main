@@ -459,6 +459,7 @@ run_server() {
         echo "Server binaries are missing; running first-time init."
         init_server
     else
+        run_ant update_database
         run_ant update_configs
         write_runtime_network_config
         sync_runtime_config_files
