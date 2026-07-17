@@ -66,6 +66,9 @@ Assert-Contract -Condition (-not [bool]$contract.excludedPriorReconstruction.bal
 Assert-Contract -Condition ([string]$headShotContract.status -ceq "ready") -Name "p14.marksman-tier1.prerequisite.headshot1-ready"
 Assert-Contract -Condition (
     @($headShotContract.acceptanceBoundary.deferredToMarksmanTier1Matrix).Count -eq 2) -Name "p14.marksman-tier1.prerequisite.speed-and-accuracy-deferred"
+Assert-Contract -Condition (
+    [string]$contract.runtimeSeams.commandDuration.status -ceq "implemented-build-verified-live-pending" -and
+    [string]$contract.runtimeSeams.primaryAccuracy.status -ceq "blocked") -Name "p14.marksman-tier1.runtime-seams.duration-built-accuracy-blocked"
 
 $blockedTokens = @($contract.materializerPolicy.rejectPatchTextWhileBlocked | ForEach-Object { [string]$_ })
 Assert-Contract -Condition (

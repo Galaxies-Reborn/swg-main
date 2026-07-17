@@ -69,6 +69,11 @@ closed until its dynamic speed, action accuracy, and live gates are complete:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MarksmanTier1Gate.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the build-complete, live-pending Core3 weapon-derived command-duration
+seam independently:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CommandDuration.ps1 -SourceRoot <materialized-staging-directory>
+
 Validate the atomic Publish 14.1 nine-attribute persistence and replication
 runtime:
 

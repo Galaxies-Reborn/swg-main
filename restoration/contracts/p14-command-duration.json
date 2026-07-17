@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "feature": "precu-combat-command-duration",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Opt-in Core3-equivalent weapon-derived execute timing for authenticated Pre-CU combat commands without changing static NGE command timing.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "combatQueueCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.h",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "formula": "max((1 - speedModifier / 100) * speedMultiplier * weaponAttackSpeed * (1 - positiveCombatHaste / 100), 1)",
+    "nullWeaponSeconds": 4.0,
+    "minimumSeconds": 1.0
+  },
+  "sourceFiles": {
+    "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "optIn": {
+    "command": "headShot1",
+    "speedMultiplier": 1.5,
+    "weaponTemplate": "object/weapon/ranged/rifle/rifle_cdef.iff",
+    "weaponAttackSpeed": 3.5,
+    "weaponSpeedSkill": "rifle_speed",
+    "categorySpeedSkill": "ranged_speed",
+    "hasteSkill": "combat_haste"
+  },
+  "modeledAcceptance": {
+    "neutralSeconds": 5.25,
+    "marksmanNoviceAndRifleOneSeconds": 4.725,
+    "marksmanSpeedModifier": 10,
+    "twentyPercentHasteSeconds": 3.78,
+    "floorSeconds": 1.0
+  },
+  "fallbackPolicy": {
+    "nonOptedCommand": "original command-table executeTime",
+    "missingWeaponProfile": "original command-table executeTime",
+    "missingTables": "original command-table executeTime",
+    "reason": "Pre-CU timing must fail closed instead of applying partial NGE weapon data to an authenticated command."
+  },
+  "buildEvidence": {
+    "environment": "isolated clone of swg-precu Linux build volume",
+    "targets": [
+      "serverGame",
+      "SwgGameServer",
+      "SwgDatabaseServer",
+      "precu_combat_overrides.iff",
+      "precu_weapon_profiles.iff"
+    ],
+    "result": "passed"
+  },
+  "requiredBeforeReady": [
+    "live queue timer exposes the modeled duration for the authenticated fixture modifiers",
+    "the combat action executes only after that duration and command removal reports success",
+    "a non-opted command retains its original command-table executeTime",
+    "fixture cleanup restores all skill, weapon, position, combat, and HAM state"
+  ]
+}
