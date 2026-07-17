@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "consumable": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "utils": "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_medicine_consumption_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "scope": "patient-side wound-pack treatment after battle-fatigue scaling",
+    "patientShock": 1000,
+    "minimumBattleFatigueMultiplier": 0.25
+  },
+  "productionContract": {
+    "itemMustBeOwnedByHealer": true,
+    "skillRequirementsRemainEnforced": true,
+    "battleFatigueUsesTarget": true,
+    "allValidatedAttributeModifiersApplied": true,
+    "healthOnlyApplicationForbidden": true,
+    "successfulConsumptionDecrementsExactlyOneCharge": true,
+    "medicineTemplates": [
+      "object/tangible/medicine/medpack_wound_health.iff",
+      "object/tangible/medicine/medpack_wound_action.iff"
+    ]
+  },
+  "liveFixture": {
+    "healerOid": 39008597,
+    "healerStationId": 1001,
+    "actions": [
+      "prepare",
+      "consumeHealth",
+      "consumeAction",
+      "status",
+      "cleanup"
+    ],
+    "target": "disposable authoritative object/mobile/human_male.iff",
+    "testMaximum": 1000,
+    "testWound": 400,
+    "medicinePower": 400,
+    "medicineStartingCharges": 2,
+    "mutationScope": "fixture-created patient and medicine only",
+    "cleanupPolicy": "destroy both fixture objects and remove the healer-owned fixture root"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "compiledSha256": {
+      "consumable.class": "c884b9704e789939e53a5be6e536d076a8479efdebf28dda9493274a4800c565",
+      "precu_medicine_consumption_fixture.class": "446ef150b441d0b5467513daaefc4e2f169bbfeb810c7d43cd135e0a1c3bedc2"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "beforeRepair": {
+      "lifecycle": "7c8c171802684b8dba7ea2e5873a88e1",
+      "health": {
+        "beforeWound": 400,
+        "afterWound": 315,
+        "healed": 85,
+        "remainingCharges": 1
+      },
+      "action": {
+        "beforeWound": 400,
+        "afterWound": 400,
+        "healed": 0,
+        "remainingCharges": 1
+      },
+      "finding": "the retained loop consumed non-Health medicine without applying its validated attribute modifier"
+    },
+    "afterRepair": {
+      "lifecycle": "b3f91b6e8a574fe99a0ff3295f0e6c63",
+      "health": {
+        "beforeWound": 400,
+        "afterWound": 329,
+        "healed": 71,
+        "remainingCharges": 1
+      },
+      "action": {
+        "beforeWound": 400,
+        "afterWound": 266,
+        "healed": 134,
+        "remainingCharges": 1
+      }
+    },
+    "cleanup": {
+      "fixtureRootAbsent": true,
+      "medicineDestroyed": true,
+      "patientDestroyed": true,
+      "healerHamMutated": false
+    }
+  },
+  "narrowBoundary": {
+    "included": [
+      "real inventory medicine templates",
+      "production item ownership and skill gates",
+      "patient-side battle-fatigue scaling",
+      "Health and Action persistent wound healing",
+      "single-charge depletion",
+      "identity-bound disposable-patient cleanup"
+    ],
+    "deferred": [
+      "player-facing heal-wound command and target selection",
+      "medicine-use cooldowns and medical-location bonuses",
+      "doctor and entertainer profession loops",
+      "tending and enhancement commands",
+      "Mind and all six secondary-attribute live matrix",
+      "healer-side wound and shock costs"
+    ]
+  }
+}

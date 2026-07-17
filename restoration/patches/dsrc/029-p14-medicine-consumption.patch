@@ -1,0 +1,401 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/consumable.java b/sku.0/sys.server/compiled/game/script/library/consumable.java
+index 8b3fb09..fbf5953 100644
+--- a/sku.0/sys.server/compiled/game/script/library/consumable.java
++++ b/sku.0/sys.server/compiled/game/script/library/consumable.java
+@@ -427,16 +427,12 @@ public class consumable extends script.base_script
+                 {
+                     if (am != null)
+                     {
+-                        boolean isBuff = false;
+-                        for (attrib_mod attrib_mod : am) {
+-                            debugServerConsoleMsg(target, ">>>>>>>>>>>> PREPARING TO APPLY MOD TO ATTRIBUTE: " + attrib_mod.getAttribute());
+-                            if (attrib_mod.getAttribute() == HEALTH) {
+-                                debugServerConsoleMsg(target, ">>>>>>>>>>>> ATTEMPTING TO APPLY MOD -- " + attrib_mod.getAttribute() + " LOOKS LIKE HEALTH TO ME!");
+-                                utils.addAttribMod(target, attrib_mod);
+-                            }
+-                            if (attrib_mod.getDuration() > 0) {
+-                                isBuff = true;
+-                            }
++                        boolean isBuff = false;
++                        for (attrib_mod attrib_mod : am) {
++                            utils.addAttribMod(target, attrib_mod);
++                            if (attrib_mod.getDuration() > 0) {
++                                isBuff = true;
++                            }
+                         }
+                         if (isBuff)
+                         {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_medicine_consumption_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_medicine_consumption_fixture.java
+new file mode 100644
+index 0000000..3cbfd4d
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_medicine_consumption_fixture.java
+@@ -0,0 +1,368 @@
++package script.test;
++
++import script.attrib_mod;
++import script.library.consumable;
++import script.library.utils;
++import script.location;
++import script.obj_id;
++
++/**
++ * Identity-bound ServerConsole fixture for real medicine-item consumption.
++ *
++ * Each consume action creates an authentic wound-pack object in the bound
++ * healer's inventory, replaces its randomized beta data with deterministic
++ * medicine objvars, calls the production consumable path, and observes wound
++ * healing plus charge depletion on a disposable nearby patient. Cleanup
++ * destroys both fixture objects and never mutates the bound player's HAM.
++ */
++public class precu_medicine_consumption_fixture extends script.base_script
++{
++    private static final long HEALER_OID = 39008597L;
++    private static final int HEALER_STATION_ID = 1001;
++    private static final int TEST_MAX = 1000;
++    private static final int TEST_WOUND = 400;
++    private static final int MEDICINE_POWER = 400;
++    private static final int TEST_SHOCK = 1000;
++    private static final String ROOT = "precu.medicineConsumptionFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String TARGET = ROOT + ".target";
++    private static final String ITEM = ROOT + ".item";
++    private static final String USAGE =
++        "usage: prepare|status|consumeHealth|consumeAction|cleanup " +
++        "<healerOid> <lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args =
++            params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++
++        long healerValue;
++        try
++        {
++            healerValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (healerValue != HEALER_OID || !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id healer = obj_id.getObjId(healerValue);
++        if (healer == null || healer == obj_id.NULL_ID || !healer.isLoaded())
++        {
++            return "error=healerNotLoaded";
++        }
++        if (!healer.isAuthoritative() || !isPlayer(healer) ||
++            getPlayerStationId(healer) != HEALER_STATION_ID)
++        {
++            return "error=healerNotAuthoritative";
++        }
++
++        String action = args[0];
++        String lifecycle = args[2];
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            return prepare(healer, lifecycle);
++        }
++        if (action.equalsIgnoreCase("status"))
++        {
++            return status(healer, lifecycle);
++        }
++        if (action.equalsIgnoreCase("consumeHealth"))
++        {
++            return consume(healer, lifecycle, HEALTH);
++        }
++        if (action.equalsIgnoreCase("consumeAction"))
++        {
++            return consume(healer, lifecycle, ACTION);
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(healer, lifecycle);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id healer, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(healer, ROOT))
++        {
++            if (hasObjVar(healer, LIFECYCLE) &&
++                lifecycle.equals(getStringObjVar(healer, LIFECYCLE)) &&
++                hasObjVar(healer, TARGET))
++            {
++                String ownership = validateOwnership(healer, lifecycle);
++                if (ownership == null)
++                {
++                    destroyTrackedItem(healer);
++                    return "action=prepare resumed=true " +
++                        buildStatus(healer);
++                }
++            }
++            destroyTrackedItem(healer);
++            destroyTrackedTarget(healer);
++            removeObjVar(healer, ROOT);
++        }
++
++        location targetLocation = getLocation(healer);
++        obj_id target =
++            createObject("object/mobile/human_male.iff", targetLocation);
++        if (!isIdValid(target) || !target.isAuthoritative())
++        {
++            if (isIdValid(target))
++            {
++                destroyObject(target);
++            }
++            return "error=targetCreationFailed";
++        }
++        setObjVar(healer, LIFECYCLE, lifecycle);
++        setObjVar(healer, TARGET, target);
++        if (!configureTarget(target))
++        {
++            destroyTrackedTarget(healer);
++            removeObjVar(healer, ROOT);
++            return "error=targetConfigurationFailed";
++        }
++        return "action=prepare resumed=false " + buildStatus(healer);
++    }
++
++    private String consume(obj_id healer, String lifecycle, int attribute)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(healer, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        destroyTrackedItem(healer);
++        obj_id target = getObjIdObjVar(healer, TARGET);
++
++        if (!setWoundExact(target, attribute, TEST_WOUND) ||
++            !setShockWound(target, TEST_SHOCK))
++        {
++            return "error=patientArmFailed attribute=" + attribute + " " +
++                buildStatus(healer);
++        }
++
++        obj_id inventory = utils.getInventoryContainer(healer);
++        if (!isIdValid(inventory))
++        {
++            return "error=inventoryUnavailable";
++        }
++        String template = attribute == HEALTH
++            ? "object/tangible/medicine/medpack_wound_health.iff"
++            : "object/tangible/medicine/medpack_wound_action.iff";
++        obj_id medicine = createObject(template, inventory, "");
++        if (!isIdValid(medicine))
++        {
++            return "error=medicineCreationFailed template=" + template;
++        }
++        setObjVar(healer, ITEM, medicine);
++
++        attrib_mod[] modifiers = new attrib_mod[1];
++        modifiers[0] =
++            utils.createHealWoundAttribMod(attribute, MEDICINE_POWER);
++        setObjVar(medicine, consumable.VAR_CONSUMABLE_MODS, modifiers);
++        setObjVar(medicine, consumable.VAR_CONSUMABLE_MEDICINE, true);
++        setObjVar(
++            medicine,
++            consumable.VAR_CONSUMABLE_STOMACH_VALUES,
++            new int[] { 0, 0, 0 });
++        setObjVar(
++            medicine,
++            consumable.VAR_SKILL_MOD_REQUIRED,
++            new String[] { "healing_ability" });
++        setObjVar(
++            medicine,
++            consumable.VAR_SKILL_MOD_MIN,
++            new int[] { 0 });
++        setCount(medicine, 2);
++
++        int beforeWound = getAttribWound(target, attribute);
++        boolean consumed =
++            consumable.consumeItem(healer, target, medicine, false);
++        int afterWound = getAttribWound(target, attribute);
++        int charges = isIdValid(medicine) ? getCount(medicine) : -1;
++        int healed = beforeWound - afterWound;
++        return "action=consume attribute=" + attribute +
++            " target=" + target +
++            " medicine=" + medicine +
++            " consumed=" + consumed +
++            " beforeWound=" + beforeWound +
++            " afterWound=" + afterWound +
++            " healed=" + healed +
++            " charges=" + charges +
++            " shock=" + getShockWound(target);
++    }
++
++    private String status(obj_id healer, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(healer, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        return "action=status " + buildStatus(healer);
++    }
++
++    private String cleanup(obj_id healer, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(healer, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateOwnership(healer, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++
++        obj_id item = hasObjVar(healer, ITEM)
++            ? getObjIdObjVar(healer, ITEM)
++            : obj_id.NULL_ID;
++        obj_id target = getObjIdObjVar(healer, TARGET);
++        destroyTrackedItem(healer);
++        destroyTrackedTarget(healer);
++        removeObjVar(healer, ROOT);
++        return "action=cleanup alreadyClean=false restored=true " +
++            "item=" + item + " target=" + target;
++    }
++
++    private boolean configureTarget(obj_id target)
++        throws InterruptedException
++    {
++        boolean configured =
++            setMaxAttrib(target, HEALTH, TEST_MAX) &&
++            setMaxAttrib(target, ACTION, TEST_MAX) &&
++            setAttrib(target, HEALTH, TEST_MAX) &&
++            setAttrib(target, ACTION, TEST_MAX) &&
++            setShockWound(target, 0);
++        return configured &&
++            getMaxAttrib(target, HEALTH) == TEST_MAX &&
++            getMaxAttrib(target, ACTION) == TEST_MAX &&
++            getAttrib(target, HEALTH) == TEST_MAX &&
++            getAttrib(target, ACTION) == TEST_MAX;
++    }
++
++    private boolean setWoundExact(
++        obj_id target, int attribute, int requested)
++        throws InterruptedException
++    {
++        int current = getAttribWound(target, attribute);
++        if (current == ATTRIB_ERROR)
++        {
++            return false;
++        }
++        if (current < requested)
++        {
++            addWound(target, attribute, requested - current);
++        }
++        else if (current > requested)
++        {
++            healWound(target, attribute, current - requested);
++        }
++        return getAttribWound(target, attribute) == requested;
++    }
++
++    private void destroyTrackedItem(obj_id healer)
++        throws InterruptedException
++    {
++        if (!hasObjVar(healer, ITEM))
++        {
++            return;
++        }
++        obj_id item = getObjIdObjVar(healer, ITEM);
++        if (isIdValid(item))
++        {
++            destroyObject(item);
++        }
++        removeObjVar(healer, ITEM);
++    }
++
++    private void destroyTrackedTarget(obj_id healer)
++        throws InterruptedException
++    {
++        if (!hasObjVar(healer, TARGET))
++        {
++            return;
++        }
++        obj_id target = getObjIdObjVar(healer, TARGET);
++        if (isIdValid(target))
++        {
++            destroyObject(target);
++        }
++        removeObjVar(healer, TARGET);
++    }
++
++    private String validateOwnership(obj_id healer, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(healer, ROOT) ||
++            !hasObjVar(healer, LIFECYCLE) ||
++            !hasObjVar(healer, TARGET))
++        {
++            return "error=fixtureAbsent";
++        }
++        if (!lifecycle.equals(getStringObjVar(healer, LIFECYCLE)))
++        {
++            return "error=lifecycleMismatch";
++        }
++        obj_id target = getObjIdObjVar(healer, TARGET);
++        if (!isIdValid(target) || !target.isLoaded() ||
++            !target.isAuthoritative())
++        {
++            return "error=targetUnavailable";
++        }
++        return null;
++    }
++
++    private String buildStatus(obj_id healer) throws InterruptedException
++    {
++        obj_id target = getObjIdObjVar(healer, TARGET);
++        String itemStatus = "none";
++        if (hasObjVar(healer, ITEM))
++        {
++            obj_id item = getObjIdObjVar(healer, ITEM);
++            itemStatus = isIdValid(item)
++                ? item + ":" + getCount(item)
++                : "invalid";
++        }
++        return "healer=" + healer +
++            " target=" + target +
++            " healthWound=" + getAttribWound(target, HEALTH) +
++            " actionWound=" + getAttribWound(target, ACTION) +
++            " healthCurrent=" + getAttrib(target, HEALTH) +
++            " actionCurrent=" + getAttrib(target, ACTION) +
++            " shock=" + getShockWound(target) +
++            " item=" + itemStatus;
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            boolean digit = value >= '0' && value <= '9';
++            boolean lowerHex = value >= 'a' && value <= 'f';
++            if (!digit && !lowerHex)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}

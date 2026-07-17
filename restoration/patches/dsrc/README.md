@@ -323,3 +323,11 @@ controls only the bound patient's shock wounds and reports the production
 `healing.applyShockWoundModifier` result at 250, 251, 500, and 1000. It does
 not consume medicine, fabricate healing, or introduce a combat-accuracy
 modifier.
+
+`029-p14-medicine-consumption.patch` carries that multiplier through actual
+inventory medicine. It removes the retained Health-only final application
+gate so every already-validated attribute modifier reaches the shared
+`utils.addAttribMod` path. Its identity-bound fixture creates authentic Health
+and Action wound packs with two charges, consumes each through the production
+ownership, skill, patient-fatigue, stomach, modifier, and charge path, and
+destroys its disposable patient and remaining medicine during cleanup.
