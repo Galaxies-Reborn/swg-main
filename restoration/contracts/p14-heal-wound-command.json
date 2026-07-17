@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "consumable": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
+    "commandHandler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/heal_wound.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_heal_wound_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/HealWoundCommand.h",
+    "publish": "14.1",
+    "scope": "queued medical wound treatment"
+  },
+  "commandContract": {
+    "name": "healWound",
+    "category": "combat",
+    "scriptHook": "cmdHealWound",
+    "tempScript": "player.cmd.heal_wound",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 7,
+    "executeTimeSeconds": 7,
+    "addToCombatQueue": true,
+    "validWeapon": "ALL",
+    "expectedColumnCount": 94
+  },
+  "medicNoviceContract": {
+    "skill": "science_medic_novice",
+    "expectedColumnCount": 27,
+    "commands": [
+      "private_medic_novice",
+      "healDamage",
+      "healWound",
+      "medicalForage",
+      "tendWound",
+      "tendDamage",
+      "diagnose"
+    ],
+    "skillMods": {
+      "healing_injury_treatment": 5,
+      "healing_wound_treatment": 5,
+      "healing_ability": 5,
+      "healing_injury_speed": 5,
+      "medicine_assembly": 10,
+      "medicine_experimentation": 10,
+      "medical_foraging": 10
+    }
+  },
+  "productionContract": {
+    "baseMindCost": 50,
+    "mindCostFormula": "truncate(baseCost - (((Focus - 300) / 1200) * baseCost))",
+    "roundTimeFormula": "max(3, round(healing_wound_speed * -2 / 25 + 20))",
+    "maximumRangeMeters": 6,
+    "combatForbidden": true,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "medicalFacilityDroidOrCampRequired": true,
+    "cooldownUsesRoundTime": true,
+    "successfulUseConsumesExactlyOneCharge": true,
+    "medicalXpPerWound": 2.5,
+    "medicalXpGrant": "xp.grant",
+    "fixtureTelemetryRequiresFixtureRoot": true
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "markQueue",
+      "status",
+      "markCooldown",
+      "cleanup"
+    ],
+    "patient": "fixture-created authoritative bantha pet",
+    "attribute": "Health",
+    "startingWound": 300,
+    "medicinePower": 200,
+    "medicineStartingCharges": 2,
+    "temporarySkills": [
+      "science_medic_novice",
+      "science_medic_injury_01"
+    ],
+    "cleanupPolicy": "restore Mind, shock, medical XP, skills, command, cooldown, and facility state; destroy fixture patient and medicine"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java",
+    "patchSha256": "f7d100ae1be5999f5d05e7174e64f67e8fdd30bc3607c6799a3117f9ec7d00da",
+    "compiledSha256": {
+      "healing.class": "92e44196db6abc809c0a496d12b4d2f566fb148450b149f2941b04496ca48eb1",
+      "heal_wound.class": "2a0954cad4ac5e82cb37ed4f370531bf5e26e2d793e4a8050379e4629a045f24",
+      "precu_heal_wound_command_fixture.class": "9bf28e7e6d944f9a4a398169f4e6bf7f4e979ff25acc1eebfecceea508c59cce"
+    },
+    "compiledIffSha256": {
+      "command_table.iff": "c8d82fd1d4896140b7b1884e1220a4347b2ba66ecb16fc7b17f49b540b867224",
+      "skills.iff": "39f8bc038eaad9f18967e9e6945987dc0f10f3b475cd2dd58d64b4e68092b188"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 58540,
+    "clientProtocolVersion": 15,
+    "lifecycle": "0d716745d5f04f808cd98c406b03bf6b",
+    "firstQueue": {
+      "patientOid": 747594883,
+      "handlerEnteredGameTime": 292699,
+      "handlerCalls": 1,
+      "handlerOutcome": "performed",
+      "startingWound": 300,
+      "remainingWound": 114,
+      "appliedWoundHeal": 186,
+      "expectedMindCost": 45,
+      "appliedMindCost": 45,
+      "appliedChargeCost": 1,
+      "remainingCharges": 1,
+      "expectedMedicalXp": 465,
+      "appliedMedicalXp": 465,
+      "medicalXpCap": 10000,
+      "expectedRoundTimeSeconds": 20
+    },
+    "cooldownQueue": {
+      "handlerEnteredGameTime": 292706,
+      "handlerCalls": 2,
+      "handlerOutcome": "canHealWoundRejected",
+      "retainedQueueDeltaSeconds": 7,
+      "additionalWoundHeal": 0,
+      "additionalChargeCost": 0,
+      "additionalMedicalXp": 0,
+      "cooldownRemainingAtObservation": 3,
+      "clientQueueCountAtObservation": 0
+    },
+    "cleanup": {
+      "restored": true,
+      "clientQueueCount": 0
+    }
+  },
+  "narrowBoundary": {
+    "included": [
+      "authentic healWound command and Medic novice grants",
+      "real client combat-queue entry",
+      "patient, combat, range, line-of-sight, PvP, facility, and cooldown gates",
+      "Focus-adjusted Mind cost",
+      "production wound-pack consumption",
+      "2.5x immediate medical XP",
+      "identity-bound reversible live fixture"
+    ],
+    "deferred": [
+      "healDamage command adapter",
+      "tendWound and tendDamage command adapters",
+      "diagnose and medicalForage behavior",
+      "full Medic and Doctor branch progression",
+      "entertainer Mind-wound treatment"
+    ]
+  }
+}

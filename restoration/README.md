@@ -368,3 +368,11 @@ added, and the tier-I matrix is now `ready`. The shared command-duration
 contract also has live evidence for both the modeled 4.725-second `headShot1`
 timer and the non-opted 1.5-second `headShot2` static fallback; primary-accuracy
 and secondary-defense keep their separate live-readiness boundaries.
+
+The first production medical command is now `ready`. `healWound` enters the
+real retained client combat queue, enforces the pinned Core3 patient, combat,
+range, PvP, facility, medicine, Focus-cost, and round-time behavior, consumes
+the real wound pack, and awards 2.5 medical XP per wound. The live lifecycle
+proved success followed by an in-queue cooldown rejection and exact fixture
+cleanup; `Test-P14HealWoundCommand.ps1` locks the table, runtime, skill-grant,
+and evidence boundaries.

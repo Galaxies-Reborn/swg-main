@@ -333,3 +333,16 @@ charges, consumes each through the production ownership, skill,
 patient-fatigue, stomach, modifier, and charge path, and destroys its
 disposable patient and remaining medicine during cleanup. The Mind trio
 remains an entertainer-healing boundary rather than a fabricated medical pack.
+
+`030-p14-heal-wound-command.patch` restores the authentic Publish 14.1
+`healWound` command row and Medic novice command grant, then routes the queued
+command through a thin `player.cmd.heal_wound` adapter into the retained
+production medicine path. The pinned Core3 equations provide a base 50 Mind
+cost adjusted by Focus, a minimum-three-second wound-treatment round time, and
+2.5 medical XP per wound healed. Combat, patient, six-meter range,
+line-of-sight, PvP-help, facility/droid/camp, medicine, wound, and cooldown
+checks remain authoritative. Its opt-in, identity-bound fixture never queues a
+command; the connected client owns both live queue entries. Acceptance proved
+one successful wound treatment, exact Mind and charge costs, exact asynchronous
+medical XP, the retained seven-second queue entry, a second cooldown rejection
+without partial mutation, and complete cleanup.
