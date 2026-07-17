@@ -384,3 +384,15 @@ locks Core3's other-player-only 25-percent Health-plus-Action medical XP
 boundary in `Test-P14HealDamageCommand.ps1`. The reversible pet/stim lifecycle
 proved one successful three-pool treatment followed five seconds later by a
 cooldown rejection with no additional cost or consumption.
+
+`tendDamage` and `tendWound` are restored together as the next Medic novice
+slice. Both use authentic five-second queue rows and organic treatment—no
+medicine item—with six-meter patient, visibility, and PvP gates. The shared
+backend applies Focus-adjusted 200/400 Mind costs, five Focus and five
+Willpower wounds, and patient battle-fatigue scaling. `tendDamage` restores
+Health and Action without XP; `tendWound` selects Health through Stamina and
+awards 2.5 medical XP per wound to another target. Protocol-17 live acceptance
+proved 22-point Health/Action tending for exact 183 Mind, then 22 Health-wound
+tending for exact 368 Mind and 55 asynchronously observed medical XP. Each
+command added five Focus and Willpower wounds, both client queue admissions
+drained, and all three composed fixtures restored their owned state.

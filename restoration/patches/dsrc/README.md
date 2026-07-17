@@ -359,3 +359,18 @@ stim while the connected client remains the sole queue owner. Live protocol-16
 acceptance proved 214 points restored to each HAM pool, exact 45 Mind and one
 charge costs, no pet medical XP, a five-second second-handler entry rejected
 by the retained 19-second cooldown, and complete fixture cleanup.
+
+`032-p14-tending-commands.patch` restores the authentic five-second
+`tendDamage` and `tendWound` combat-queue entries. Their adapters use the
+pinned Core3 organic tending contract rather than the unrelated retained
+medikit helpers: six-meter patient checks, no medicine consumption,
+Focus-adjusted 200/400 Mind costs, five Focus and Willpower wounds, and
+patient battle-fatigue scaling. Damage tending restores Health and Action
+without XP. Wound tending chooses the first wounded Health-through-Stamina
+attribute by default, excludes the Mind trio, and grants 2.5 medical XP per
+wound to another target. The identity-bound tending fixture owns reversible
+healer state and handler telemetry only. It composes with the already accepted
+single-purpose healDamage and healWound disposable-patient fixtures while the
+connected protocol-17 client remains the sole queue owner. Active lifecycle
+mismatches fail closed; inactive packed objvar leaves are deterministically
+re-keyed, re-snapshotted, and reset on the next preparation.
