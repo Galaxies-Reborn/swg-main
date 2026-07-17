@@ -97,8 +97,8 @@ Assert-Contract `
     -Condition ([string]$contract.status -ceq "ready") `
     -Name "p14.combat-ham.contract.generic-runtime-ready"
 Assert-Contract `
-    -Condition (([string]$gate.status -ceq "blocked") -and -not [string]::IsNullOrWhiteSpace([string]$gate.materializerPolicy.rejectPatchTextWhileBlocked)) `
-    -Name "p14.combat-ham.command-specific-gate-remains-blocked"
+    -Condition (([string]$gate.status -ceq "ready") -and [string]$gate.acceptanceContract -ceq "contracts/p14-headshot1.json") `
+    -Name "p14.combat-ham.first-command-gate-ready"
 
 Assert-Contract `
     -Condition ($text.scriptAttributes.Contains('JF("_drainCombatAttributes", "(JIII)Z", drainCombatAttributes)') -and $text.baseClass.Contains("private static native boolean _drainCombatAttributes(long target, int health, int action, int mind);")) `
@@ -161,11 +161,11 @@ Assert-Contract `
 $overrideRows = @(Import-Csv -LiteralPath $paths.combatOverrides -Delimiter "`t")
 $productionRows = @($overrideRows | Where-Object { $_.actionName -notin @("s", "__precu_runtime_probe") })
 Assert-Contract `
-    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -eq 0) `
-    -Name "p14.combat-ham.data.separate-override-table-no-production-command"
+    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -eq 1 -and [string]$productionRows[0].actionName -ceq [string]$gate.feature) `
+    -Name "p14.combat-ham.data.separate-override-table-first-production-command"
 Assert-Contract `
-    -Condition (-not (Get-Content -LiteralPath $paths.combatOverrides -Raw).Contains([string]$gate.feature)) `
-    -Name "p14.combat-ham.data.blocked-command-not-activated"
+    -Condition ((Get-Content -LiteralPath $paths.combatOverrides -Raw).Contains([string]$gate.feature)) `
+    -Name "p14.combat-ham.data.ready-command-activated"
 
 if ($failures.Count -gt 0)
 {

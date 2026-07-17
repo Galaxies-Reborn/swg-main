@@ -220,3 +220,15 @@ pool and redirects rewards through the active expertise template.
 identity-bound ServerConsole probe for the recipient's durable migration
 record. It reports the state marker, nine targets, and sum but exposes no
 mutation action; production client commands remain the only writers.
+
+`014-p14-headshot1-vertical-slice.patch` activates the first authenticated
+Publish 14.1 combat command. Marksman Rifle I grants the queued `headShot1`
+entry, its thin script wrapper uses the production standard-combat path, combat
+data restricts it to rifles and applies 1.5x weapon damage, and the explicit
+override selects 0.5/0.5/1.0 three-pool costs plus Mind target damage.
+
+`015-p14-headshot1-live-fixture.patch` adds the ServerConsole-only, fixed-identity
+two-player preparation used to prove that slice live. It reversibly owns the
+temporary skill grants, positions, personal-enemy flags, and current HAM values,
+while the connected P14 client remains the only component allowed to queue the
+actual command.

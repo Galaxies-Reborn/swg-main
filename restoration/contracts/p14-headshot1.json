@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "feature": "headShot1",
+  "status": "ready",
+  "scope": "First authenticated Publish 14.1 combat-command vertical slice across skill grant, command queue, combat execution, three-pool attacker cost, and Mind target damage.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "verifiedCurrentCommit": "3f294c7027dde69647bc0461224041551ee55f2b",
+    "lua": "MMOCoreORB/bin/scripts/commands/headShot1.lua",
+    "command": "MMOCoreORB/src/server/zone/objects/creature/commands/HeadShot1Command.h",
+    "currentMatchesPinned": true
+  },
+  "publish14Evidence": {
+    "repository": "swgsais/dsrc",
+    "workingTreeBaseCommit": "7d337e746b8e6a6f3d17eb880e57536de6806b77",
+    "commandTableSha256": "9cf151ed4eb67e37b6c2c688205359ad5fed6748cd08e48573ede773036fe040",
+    "combatDataSha256": "54290162d6d54f17a97c7e7006df49060b1a8e134b64d515c3a2532a62436df2",
+    "skillTableSha256": "fa947c757f582e884cedc641577b5b495b41514e3838e34e1cfa8830c428dfb0",
+    "combatActionsSha256": "45e857f033a4fa26cb9559be09f2614ca62086ca9b79238f0165b6a2d2a5dfa3"
+  },
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponCosts": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java"
+  },
+  "skillGrant": {
+    "skill": "combat_marksman_rifle_01",
+    "command": "headShot1"
+  },
+  "command": {
+    "addToCombatQueue": 1,
+    "scriptHook": "headShot1",
+    "failScriptHook": "failSpecialAttack",
+    "defaultTime": 1.5,
+    "executeTime": 1.5,
+    "target": "other",
+    "targetType": "optional"
+  },
+  "combat": {
+    "weaponType": "RIFLE",
+    "attackType": "SINGLE_TARGET",
+    "damageMultiplier": 1.5,
+    "speedMultiplier": 1.5,
+    "healthCostMultiplier": 0.5,
+    "actionCostMultiplier": 0.5,
+    "mindCostMultiplier": 1.0,
+    "targetPool": "MIND",
+    "accuracyBonus": 5,
+    "animation": "fire_1_special_single"
+  },
+  "cdefFixture": {
+    "template": "object/weapon/ranged/rifle/rifle_cdef.iff",
+    "baseHealthCost": 10,
+    "baseActionCost": 15,
+    "baseMindCost": 10,
+    "neutralGovernor": 300,
+    "expectedHealthCost": 5,
+    "expectedActionCost": 7,
+    "expectedMindCost": 10
+  },
+  "executionRules": {
+    "strictPositiveRemainder": true,
+    "atomicPreflight": true,
+    "damagePool": "MIND",
+    "incapacitateWhenAnyPrimaryPoolIsEmpty": true
+  },
+  "liveFixture": {
+    "attackerOid": 44003778,
+    "attackerStationId": 91001,
+    "defenderOid": 39008597,
+    "defenderStationId": 1001,
+    "costGovernorPreparation": {
+      "preferredValue": 300,
+      "usesAuthoritativeExistingValues": true,
+      "expectedAttackerStrength": 1000,
+      "expectedAttackerQuickness": 300,
+      "expectedAttackerFocus": 100,
+      "expectedHealthCost": 2,
+      "expectedActionCost": 7,
+      "expectedMindCost": 11
+    },
+    "suspendsAndRestoresPrimaryPoolRegeneration": true,
+    "noPartialBoundary": {
+      "action": "armNoPartial",
+      "attackerHealth": 3,
+      "attackerAction": 7,
+      "attackerMind": 12,
+      "expectedAllPoolsUnchanged": true,
+      "expectedTargetMindUnchanged": true
+    },
+    "serverQueuesCombatCommand": false,
+    "restoresSkillsLocationsPvpAndCurrentHam": true
+  }
+}

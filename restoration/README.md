@@ -60,6 +60,10 @@ Validate the generic opt-in Publish 14.1 three-pool combat runtime:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatHam.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the first authenticated Publish 14.1 combat-command vertical slice:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HeadShot1.ps1 -SourceRoot <materialized-staging-directory>
+
 Validate the atomic Publish 14.1 nine-attribute persistence and replication
 runtime:
 
@@ -74,9 +78,10 @@ This M3 seam restores atomic strict-positive Health/Action/Mind ability costs,
 the Core3-derived cost formula from authoritative Strength/Quickness/Focus,
 explicit primary target-pool
 damage, and any-primary-pool incapacitation. It is inert for production combat
-commands until a separate override row opts one in. The first command-specific
-vertical slice remains blocked by its own gate until queue, rifle, multiplier,
-cost, Mind-damage, and no-partial-drain integration acceptance is complete.
+commands until a separate override row opts one in. `headShot1` is the first
+authenticated opt-in: Marksman Rifle I grants it, the retail command row queues
+it, the standard combat hook enforces rifle combat data, its Core3-derived
+three-pool multipliers drain atomically, and successful damage targets Mind.
 The companion nine-attribute slice restores the exact
 Health/Strength/Constitution/Action/Quickness/Stamina/Mind/Focus/Willpower
 order across templates, persistence, shared messages, creation tables, and
@@ -302,6 +307,7 @@ bounty-investigation-03 and squad-leader skills closed until their mission and
 group-state cleanup hooks are restored. Pilot and Force families likewise stay
 on their specialized progression paths.
 
-The headShot1 gate is intentionally blocked. While blocked, the materializer
-rejects any patch containing that feature name; a speculative combat-data row
-is not an acceptable substitute for the missing HAM runtime behavior.
+The headShot1 gate is ready only as the complete command-specific overlay. The
+materializer still rejects its feature name whenever the gate is moved away
+from `ready`; a speculative combat-data row cannot bypass the three-pool HAM,
+skill-grant, queue, rifle, hook, Mind-routing, or atomic-drain acceptance.
