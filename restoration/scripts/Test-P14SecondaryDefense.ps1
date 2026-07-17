@@ -143,7 +143,9 @@ Assert-Contract -Condition (
     $secondary.Contains('combat.isRangedWeapon(weaponData.weaponType) || combat.isHeavyWeapon(weaponData.weaponType)') -and
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, "saber_block")')) -Name "p14.secondary-defense.ricochet.core3-eligibility"
 Assert-Contract -Condition (
-    $secondary.Contains('saberBlock > 0 && rand(0, 100) <= saberBlock ? HIT_RESULT_PRECU_RICOCHET : HIT_RESULT_HIT;')) -Name "p14.secondary-defense.ricochet.inclusive-saber-block-roll"
+    $secondary.Contains('int saberRoll = rand(0, 100);') -and
+    $secondary.Contains('int saberResult = saberBlock > 0 && saberRoll <= saberBlock ?') -and
+    $secondary.Contains('HIT_RESULT_PRECU_RICOCHET : HIT_RESULT_HIT;')) -Name "p14.secondary-defense.ricochet.inclusive-saber-block-roll"
 Assert-Contract -Condition (
     $secondary.Contains('getState(defenderData.id, STATE_INTIMIDATED) > 0') -and
     $secondary.Contains('getState(defenderData.id, STATE_BERSERK) > 0') -and
@@ -159,7 +161,8 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     $secondary.Contains('int attackRoll = rand(1, 500);') -and
     $secondary.Contains('int defendRoll = rand(1, 200);') -and
-    $secondary.Contains('accuracyTotal + attackRoll <= evadeTotal + defendRoll ? defendResult : HIT_RESULT_HIT;')) -Name "p14.secondary-defense.runtime.core3-roll-equation"
+    $secondary.Contains('int result = accuracyTotal + attackRoll <= evadeTotal + defendRoll ?') -and
+    $secondary.Contains('defendResult : HIT_RESULT_HIT;')) -Name "p14.secondary-defense.runtime.core3-roll-equation"
 Assert-Contract -Condition (
     $resultCode.Contains('secondaryDefenseResult.equals("BLOCK")') -and
     $resultCode.Contains('secondaryDefenseResult.equals("DODGE")') -and

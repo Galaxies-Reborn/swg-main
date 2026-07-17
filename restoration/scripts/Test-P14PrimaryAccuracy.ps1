@@ -217,7 +217,9 @@ Assert-Contract -Condition (
     $defensePosture.Contains('case LOCOMOTION_STANDING:') -and $defensePosture.Contains('return -10;') -and
     $defensePosture.Contains('case LOCOMOTION_RUNNING:') -and $defensePosture.Contains('return 45;')) -Name "p14.primary-accuracy.runtime.core3-locomotion-table"
 Assert-Contract -Condition (
-    $primaryResult.Contains('return rand(0, 100) <= hitChance ? HIT_RESULT_HIT : HIT_RESULT_MISS;') -and
+    $primaryResult.Contains('int hitRoll = rand(0, 100);') -and
+    $primaryResult.Contains('int result = hitRoll <= hitChance ? HIT_RESULT_HIT : HIT_RESULT_MISS;') -and
+    $primaryResult.Contains('return result;') -and
     $combatBase.Contains('int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuSecondaryResult;') -and
     $combatBase.Contains('int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuPrimaryResult;')) -Name "p14.primary-accuracy.runtime.authoritative-no-hybrid-primary"
 

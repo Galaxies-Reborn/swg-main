@@ -258,3 +258,11 @@ lifecycle from `precu_headshot1_fixture`, which continues to own location, PvP,
 combat-state, and HAM restoration. The tier-I layer can arm success and strict
 no-partial boundaries, but it cannot equip a weapon, queue a command, or
 fabricate damage.
+
+`022-p14-live-combat-diagnostics.patch` adds an opt-in, fixture-scoped record of
+the production Pre-CU primary-accuracy components and random result plus the
+secondary block, dodge, or counter profile, operands, rolls, and result. The
+Marksman tier-I fixture clears that record on every arm and owns dedicated CDEF
+rifle, pistol, and carbine weapons for the bound defender. Normal players do not
+enable the diagnostic objvar, and the fixture still never equips, queues, rolls,
+or fabricates a combat result.

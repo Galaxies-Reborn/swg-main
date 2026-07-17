@@ -80,22 +80,20 @@ function Get-CommaValues
 
 Write-Host "Publish 14.1 Marksman tier-I activation checks:"
 Assert-Contract -Condition (
-    [string]$contract.status -ceq "implemented-build-verified-live-partial") -Name "p14.marksman-tier1.status.live-execution-verified"
+    [string]$contract.status -ceq "ready") -Name "p14.marksman-tier1.status.ready"
 Assert-Contract -Condition ([bool]$contract.semanticReference.currentMatchesPinned) -Name "p14.marksman-tier1.core3.current-matches-pin"
 Assert-Contract -Condition (-not [bool]$contract.excludedPriorReconstruction.balanceAuthority) -Name "p14.marksman-tier1.prior-balance-reconstruction-excluded"
 Assert-Contract -Condition ([string]$headShotContract.status -ceq "ready") -Name "p14.marksman-tier1.prerequisite.headshot1-ready"
 Assert-Contract -Condition (
     @($headShotContract.acceptanceBoundary.deferredToMarksmanTier1Matrix).Count -eq 2) -Name "p14.marksman-tier1.prerequisite.deferred-seams-owned"
 
-$runtimeStatuses = @(
-    [string]$contract.runtimeSeams.commandDuration.status
-    [string]$contract.runtimeSeams.primaryAccuracy.status
-    [string]$contract.runtimeSeams.secondaryDefense.status
-    [string]$contract.runtimeSeams.ricochetDefense.status
-    [string]$contract.runtimeSeams.attackerWeaponProfiles.status
-)
 Assert-Contract -Condition (
-    @($runtimeStatuses | Where-Object { $_ -cne "implemented-build-verified-live-pending" }).Count -eq 0) -Name "p14.marksman-tier1.runtime-seams.build-verified"
+    [string]$contract.runtimeSeams.commandDuration.status -ceq "live-verified" -and
+    [string]$contract.runtimeSeams.primaryAccuracy.status -ceq "live-verified" -and
+    [string]$contract.runtimeSeams.secondaryDefense.status -ceq "live-verified" -and
+    [string]$contract.runtimeSeams.attackerWeaponProfiles.status -ceq "live-verified" -and
+    [string]$contract.runtimeSeams.ricochetDefense.status -ceq
+        "implemented-build-verified-live-pending") -Name "p14.marksman-tier1.runtime-seams.live-verified"
 
 $blockedTokens = @($contract.materializerPolicy.rejectPatchTextWhileBlocked | ForEach-Object { [string]$_ })
 Assert-Contract -Condition (
@@ -111,14 +109,20 @@ Assert-Contract -Condition (
     [string]$contract.clientAssetPublication.artifacts.'datatables/command/command_table.iff' -ceq "683e65f2d3c80c7feaa4a9609849d29ec2221832d81edcd8d93bea79b9895ff4" -and
     [string]$contract.clientAssetPublication.artifacts.'datatables/skill/skills.iff' -ceq "eb62b893658e550bd18b3f6c8173a6f76f04db982a6dfd0b04bd8f0a53cb10e6") -Name "p14.marksman-tier1.client-assets.exact-hashes"
 Assert-Contract -Condition (
+    [string]$contract.clientToolPublication.status -ceq "published" -and
+    [string]$contract.clientToolPublication.commit -ceq
+        "71df084a5725f7ba7bc2c54b201295af370a9bec" -and
+    [int]$contract.clientToolPublication.bridgeProtocol -eq 12) -Name "p14.marksman-tier1.client-tools.published"
+Assert-Contract -Condition (
     [string]$contract.buildEvidence.javaResult -ceq "passed" -and
     [string]$contract.buildEvidence.tableResult -ceq "passed") -Name "p14.marksman-tier1.prototype-build.passed"
 Assert-Contract -Condition (
     [string]$contract.liveFixture.status -ceq "live-verified" -and
-    [int]$contract.liveEvidence.clientBridgeProtocol -eq 11 -and
-    [string]$contract.liveEvidence.clientExeSha256 -ceq "9da0a60cc52d02d9eb2e2ea866c692c39e69b6dd42ad9467f60fd1594e022bf2" -and
+    [int]$contract.liveEvidence.clientBridgeProtocol -eq 12 -and
+    [string]$contract.liveEvidence.clientExeSha256 -ceq "d48ae17ace79a756dc2bc358766f0397c53a62f1d05eb717da51f9dd9904837d" -and
     [string]$contract.liveEvidence.serverBinarySha256 -ceq "2c309c5ede3d4bc417fc6094110c4135dacc621272b31e3b2247a340c4d5f001" -and
-    [string]$contract.liveEvidence.compiledFixtureSha256 -ceq "790d928bb76d166d5956f330207e95a5413f46eec942d3d17c1048830930abcc") -Name "p14.marksman-tier1.live.identity-and-artifacts"
+    [string]$contract.liveEvidence.compiledCombatBaseSha256 -ceq "c623c033e34ca52d1787b74ba41c0257184c4ba183230f4a93b47a15111ace6f" -and
+    [string]$contract.liveEvidence.compiledFixtureSha256 -ceq "92c279b7914a0452bc57368803c606947c8ffed54b6a7332b14a75690e7eacc2") -Name "p14.marksman-tier1.live.identity-and-artifacts"
 Assert-Contract -Condition (
     [string]$contract.liveEvidence.positiveExecution.bodyShot1.queueResult -ceq "Success" -and
     [int]$contract.liveEvidence.positiveExecution.bodyShot1.attackerHealthCost -eq 2 -and
@@ -147,6 +151,40 @@ Assert-Contract -Condition (
     [string]$contract.liveEvidence.noPartialResult.legShot1.queueResult -ceq "Cancelled" -and
     -not [bool]$contract.liveEvidence.noPartialResult.legShot1.attackerHamChanged -and
     -not [bool]$contract.liveEvidence.noPartialResult.legShot1.defenderHamChanged) -Name "p14.marksman-tier1.live.strict-no-partial"
+
+$headDiagnostic = $contract.liveEvidence.diagnosticExecution.headShot1
+$bodyDiagnostic = $contract.liveEvidence.diagnosticExecution.bodyShot1
+$legDiagnostic = $contract.liveEvidence.diagnosticExecution.legShot1
+Assert-Contract -Condition (
+    [int]$headDiagnostic.serverExecuteMaxMs -eq 4725 -and
+    [int]$bodyDiagnostic.serverExecuteMaxMs -eq 3150 -and
+    [int]$legDiagnostic.serverExecuteMaxMs -eq 6300 -and
+    [string]$headDiagnostic.queueResult -ceq "Success" -and
+    [string]$bodyDiagnostic.queueResult -ceq "Success" -and
+    [string]$legDiagnostic.queueResult -ceq "Success") -Name "p14.marksman-tier1.live.server-derived-duration"
+Assert-Contract -Condition (
+    [int]$headDiagnostic.primary.accuracyBonus -eq 5 -and
+    [int]$bodyDiagnostic.primary.accuracyBonus -eq 50 -and
+    [int]$legDiagnostic.primary.accuracyBonus -eq 25 -and
+    [double]$headDiagnostic.primary.hitChance -eq 100.0 -and
+    [double]$bodyDiagnostic.primary.hitChance -eq 100.0 -and
+    [double]$legDiagnostic.primary.hitChance -eq 100.0 -and
+    [string]$headDiagnostic.primary.result -ceq "HIT" -and
+    [string]$bodyDiagnostic.primary.result -ceq "HIT" -and
+    [string]$legDiagnostic.primary.result -ceq "HIT") -Name "p14.marksman-tier1.live.primary-accuracy-operands-and-rolls"
+Assert-Contract -Condition (
+    [string]$headDiagnostic.secondary.profile -ceq "BLOCK" -and
+    [string]$headDiagnostic.secondary.skill -ceq "block" -and
+    [string]$bodyDiagnostic.secondary.profile -ceq "DODGE" -and
+    [string]$bodyDiagnostic.secondary.skill -ceq "dodge" -and
+    [string]$legDiagnostic.secondary.profile -ceq "COUNTER" -and
+    [string]$legDiagnostic.secondary.skill -ceq "counterattack" -and
+    [int]$headDiagnostic.secondary.attackRoll -gt 0 -and
+    [int]$headDiagnostic.secondary.defendRoll -gt 0 -and
+    [int]$bodyDiagnostic.secondary.attackRoll -gt 0 -and
+    [int]$bodyDiagnostic.secondary.defendRoll -gt 0 -and
+    [int]$legDiagnostic.secondary.attackRoll -gt 0 -and
+    [int]$legDiagnostic.secondary.defendRoll -gt 0) -Name "p14.marksman-tier1.live.secondary-profiles-and-rolls"
 Assert-Contract -Condition (
     [bool]$contract.liveEvidence.cleanup.tier1Restored -and
     [bool]$contract.liveEvidence.cleanup.headShotLayerRestored -and
@@ -154,7 +192,9 @@ Assert-Contract -Condition (
     [bool]$contract.liveEvidence.cleanup.fixtureWeaponsRemoved -and
     [bool]$contract.liveEvidence.cleanup.pvpRestored -and
     [bool]$contract.liveEvidence.cleanup.hamRestored -and
-    @($contract.requiredBeforeReady).Count -eq 1) -Name "p14.marksman-tier1.live.cleanup-and-remaining-boundary"
+    [bool]$contract.liveEvidence.cleanup.diagnosticObjvarsRemoved -and
+    [bool]$contract.liveEvidence.cleanup.defenderFixtureWeaponsRemoved -and
+    @($contract.requiredBeforeReady).Count -eq 0) -Name "p14.marksman-tier1.live.cleanup-and-ready-boundary"
 
 $commandRows = @(Import-SwgTab -Path $paths.commandTable)
 $combatRows = @(Import-SwgTab -Path $paths.combatData)
@@ -300,6 +340,7 @@ foreach ($candidate in @($contract.commands))
 }
 
 $liveFixture = Get-Content -LiteralPath $paths.liveFixture -Raw
+$combatBase = Get-Content -LiteralPath $paths.combatBase -Raw
 Assert-Contract -Condition (
     $liveFixture.Contains("ATTACKER_OID = 44003778L") -and
     $liveFixture.Contains("ATTACKER_STATION_ID = 91001") -and
@@ -311,8 +352,11 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     $liveFixture.Contains("grantSkill(attacker, PISTOL_ONE)") -and
     $liveFixture.Contains("grantSkill(attacker, CARBINE_ONE)") -and
-    $liveFixture.Contains("createObjectInInventoryAllowOverload(PISTOL_TEMPLATE, attacker)") -and
-    $liveFixture.Contains("createObjectInInventoryAllowOverload(CARBINE_TEMPLATE, attacker)") -and
+    $liveFixture.Contains("createOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE)") -and
+    $liveFixture.Contains("createOwnedWeapon(attacker, CARBINE_WEAPON, CARBINE_TEMPLATE)") -and
+    $liveFixture.Contains("createOwnedWeapon(defender, DEFENDER_RIFLE_WEAPON, RIFLE_TEMPLATE)") -and
+    $liveFixture.Contains("createOwnedWeapon(defender, DEFENDER_PISTOL_WEAPON, PISTOL_TEMPLATE)") -and
+    $liveFixture.Contains("createOwnedWeapon(defender, DEFENDER_CARBINE_WEAPON, CARBINE_TEMPLATE)") -and
     $liveFixture.Contains("hasCommand(attacker, BODY_COMMAND)") -and
     $liveFixture.Contains("hasCommand(attacker, LEG_COMMAND)")) -Name "p14.marksman-tier1.live-fixture.skills-weapons-and-commands"
 Assert-Contract -Condition (
@@ -331,6 +375,9 @@ Assert-Contract -Condition (
     $liveFixture.Contains("ORIGINAL_CARBINE_ONE") -and
     $liveFixture.Contains("destroyOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE)") -and
     $liveFixture.Contains("destroyOwnedWeapon(attacker, CARBINE_WEAPON, CARBINE_TEMPLATE)") -and
+    $liveFixture.Contains("destroyOwnedWeapon(defender, DEFENDER_RIFLE_WEAPON, RIFLE_TEMPLATE)") -and
+    $liveFixture.Contains("destroyOwnedWeapon(defender, DEFENDER_PISTOL_WEAPON, PISTOL_TEMPLATE)") -and
+    $liveFixture.Contains("destroyOwnedWeapon(defender, DEFENDER_CARBINE_WEAPON, CARBINE_TEMPLATE)") -and
     $liveFixture.Contains("revokeSkill(attacker, CARBINE_ONE)") -and
     $liveFixture.Contains("revokeSkill(attacker, PISTOL_ONE)") -and
     $liveFixture.Contains("removeObjVar(attacker, ROOT)") -and
@@ -340,7 +387,17 @@ Assert-Contract -Condition (
     $liveFixture.Contains('" canLegShot1="') -and
     $liveFixture.Contains('" attackerHealth="') -and
     $liveFixture.Contains('" defenderAction="') -and
+    $liveFixture.Contains('" diagnosticPrimaryHitChance="') -and
+    $liveFixture.Contains('" diagnosticSecondaryResultName="') -and
     $liveFixture.Contains('" distanceCentimeters="')) -Name "p14.marksman-tier1.live-fixture.observable-status"
+Assert-Contract -Condition (
+    $liveFixture.Contains("resetLiveDiagnostic(attacker)") -and
+    $liveFixture.Contains("removeObjVar(attacker, DIAGNOSTIC_ROOT)") -and
+    $liveFixture.Contains("setObjVar(attacker, DIAGNOSTIC_ENABLED, 1)") -and
+    $combatBase.Contains("isPrecuLiveDiagnosticEnabled(obj_id attacker)") -and
+    $combatBase.Contains("recordPrecuLiveDiagnostic(attackerData.id, `"primary.roll`", hitRoll)") -and
+    $combatBase.Contains("attackerData.id, `"secondary.attackRoll`", attackRoll") -and
+    -not $combatBase.Contains("PRECU_LIVE_DIAGNOSTIC_ENABLED = `"true`"")) -Name "p14.marksman-tier1.live-fixture.diagnostics-opt-in-and-observable"
 Assert-Contract -Condition (
     -not $liveFixture.Contains("queueCommand(") -and
     -not $liveFixture.Contains("combatStandardAction(") -and
@@ -354,4 +411,4 @@ if ($failures.Count -gt 0)
 }
 
 Write-Host ""
-Write-Host "Publish 14.1 Marksman tier-I build/static and live execution acceptance passed; diagnostic seam acceptance remains pending."
+Write-Host "Publish 14.1 Marksman tier-I build/static, live execution, and diagnostic seam acceptance passed."
