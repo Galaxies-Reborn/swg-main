@@ -97,8 +97,8 @@ Validate the retained patient-side battle-fatigue medicine multiplier and its
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BattleFatigue.ps1 -SourceRoot <materialized-staging-directory>
 
-Validate real Health/Action wound-pack consumption, all-attribute modifier
-application, one-charge depletion, and disposable-patient cleanup
+Validate the six authentic medical wound-pack attributes, all-attribute
+modifier application, one-charge depletion, and disposable-patient cleanup
 independently:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicineConsumption.ps1 -SourceRoot <materialized-staging-directory>

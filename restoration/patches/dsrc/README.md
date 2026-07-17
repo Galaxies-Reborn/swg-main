@@ -327,7 +327,9 @@ modifier.
 `029-p14-medicine-consumption.patch` carries that multiplier through actual
 inventory medicine. It removes the retained Health-only final application
 gate so every already-validated attribute modifier reaches the shared
-`utils.addAttribMod` path. Its identity-bound fixture creates authentic Health
-and Action wound packs with two charges, consumes each through the production
-ownership, skill, patient-fatigue, stomach, modifier, and charge path, and
-destroys its disposable patient and remaining medicine during cleanup.
+`utils.addAttribMod` path. Its identity-bound fixture creates authentic Health,
+Strength, Constitution, Action, Quickness, and Stamina wound packs with two
+charges, consumes each through the production ownership, skill,
+patient-fatigue, stomach, modifier, and charge path, and destroys its
+disposable patient and remaining medicine during cleanup. The Mind trio
+remains an entertainer-healing boundary rather than a fabricated medical pack.

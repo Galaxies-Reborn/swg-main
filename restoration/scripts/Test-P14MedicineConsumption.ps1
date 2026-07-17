@@ -150,8 +150,12 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     $fixture.Contains("HEALER_OID = 39008597L") -and
     $fixture.Contains("HEALER_STATION_ID = 1001") -and
-    $fixture.Contains('equalsIgnoreCase("consumeHealth")') -and
-    $fixture.Contains('equalsIgnoreCase("consumeAction")')) `
+    $fixture.Contains('"consumeHealth"') -and
+    $fixture.Contains('"consumeStrength"') -and
+    $fixture.Contains('"consumeConstitution"') -and
+    $fixture.Contains('"consumeAction"') -and
+    $fixture.Contains('"consumeQuickness"') -and
+    $fixture.Contains('"consumeStamina"')) `
     -Name "p14.medicine.live.identity-and-actions"
 Assert-Contract -Condition (
     $fixture.Contains(
@@ -159,11 +163,25 @@ Assert-Contract -Condition (
     $fixture.Contains(
         '"object/tangible/medicine/medpack_wound_health.iff"') -and
     $fixture.Contains(
+        '"object/tangible/medicine/medpack_wound_strength.iff"') -and
+    $fixture.Contains(
+        '"object/tangible/medicine/medpack_wound_constitution.iff"') -and
+    $fixture.Contains(
         '"object/tangible/medicine/medpack_wound_action.iff"') -and
+    $fixture.Contains(
+        '"object/tangible/medicine/medpack_wound_quickness.iff"') -and
+    $fixture.Contains(
+        '"object/tangible/medicine/medpack_wound_stamina.iff"') -and
     $fixture.Contains(
         "obj_id medicine = createObject(template, inventory,") -and
     $fixture.Contains("setCount(medicine, 2);")) `
     -Name "p14.medicine.live.real-patient-items-and-charges"
+Assert-Contract -Condition (
+    $fixture.Contains("private static final int[] CONSUME_ATTRIBUTES") -and
+    $fixture.Contains("for (int attribute : CONSUME_ATTRIBUTES)") -and
+    $fixture.Contains("setMaxAttrib(target, attribute, TEST_MAX)") -and
+    $fixture.Contains("setAttrib(target, attribute, TEST_MAX)")) `
+    -Name "p14.medicine.live.six-attribute-patient-configuration"
 Assert-Contract -Condition (
     $fixture.Contains(
         "consumable.consumeItem(healer, target, medicine, false)") -and
@@ -183,6 +201,7 @@ if ($Expectation -ceq "Ready")
 {
     $before = $contract.liveEvidence.beforeRepair
     $after = $contract.liveEvidence.afterRepair
+    $matrix = $contract.liveEvidence.sixAttributeMatrix
     Assert-Contract -Condition (
         [string]$contract.status -ceq "ready" -and
         @($contract.requiredBeforeReady).Count -eq 0 -and
@@ -203,6 +222,27 @@ if ($Expectation -ceq "Ready")
         [bool]$contract.liveEvidence.cleanup.fixtureRootAbsent -and
         [bool]$contract.liveEvidence.cleanup.healerHamMutated -eq $false) `
         -Name "p14.medicine.live.health-action-charges-and-cleanup"
+    $matrixAttributes = @(
+        "health",
+        "strength",
+        "constitution",
+        "action",
+        "quickness",
+        "stamina")
+    $matrixPassed = [string]$matrix.result -ceq "passed"
+    foreach ($attributeName in $matrixAttributes)
+    {
+        $entry = $matrix.attributes.$attributeName
+        $matrixPassed =
+            $matrixPassed -and
+            $null -ne $entry -and
+            [int]$entry.beforeWound -eq 400 -and
+            [int]$entry.afterWound -lt 400 -and
+            [int]$entry.healed -gt 0 -and
+            [int]$entry.remainingCharges -eq 1
+    }
+    Assert-Contract -Condition $matrixPassed `
+        -Name "p14.medicine.live.six-attribute-real-item-matrix"
 }
 
 if ($failures.Count -gt 0)

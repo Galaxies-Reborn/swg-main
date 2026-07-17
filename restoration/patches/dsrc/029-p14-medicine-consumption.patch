@@ -30,7 +30,7 @@ new file mode 100644
 index 0000000..3cbfd4d
 --- /dev/null
 +++ b/sku.0/sys.server/compiled/game/script/test/precu_medicine_consumption_fixture.java
-@@ -0,0 +1,368 @@
+@@ -0,0 +1,412 @@
 +package script.test;
 +
 +import script.attrib_mod;
@@ -60,8 +60,34 @@ index 0000000..3cbfd4d
 +    private static final String LIFECYCLE = ROOT + ".lifecycle";
 +    private static final String TARGET = ROOT + ".target";
 +    private static final String ITEM = ROOT + ".item";
++    private static final String[] CONSUME_ACTIONS = {
++        "consumeHealth",
++        "consumeStrength",
++        "consumeConstitution",
++        "consumeAction",
++        "consumeQuickness",
++        "consumeStamina"
++    };
++    private static final int[] CONSUME_ATTRIBUTES = {
++        HEALTH,
++        STRENGTH,
++        CONSTITUTION,
++        ACTION,
++        QUICKNESS,
++        STAMINA
++    };
++    private static final String[] MEDICINE_TEMPLATES = {
++        "object/tangible/medicine/medpack_wound_health.iff",
++        "object/tangible/medicine/medpack_wound_strength.iff",
++        "object/tangible/medicine/medpack_wound_constitution.iff",
++        "object/tangible/medicine/medpack_wound_action.iff",
++        "object/tangible/medicine/medpack_wound_quickness.iff",
++        "object/tangible/medicine/medpack_wound_stamina.iff"
++    };
 +    private static final String USAGE =
-+        "usage: prepare|status|consumeHealth|consumeAction|cleanup " +
++        "usage: prepare|status|consumeHealth|consumeStrength|" +
++        "consumeConstitution|consumeAction|consumeQuickness|" +
++        "consumeStamina|cleanup " +
 +        "<healerOid> <lifecycle>";
 +
 +    public String executeFixture(String params) throws InterruptedException
@@ -108,13 +134,16 @@ index 0000000..3cbfd4d
 +        {
 +            return status(healer, lifecycle);
 +        }
-+        if (action.equalsIgnoreCase("consumeHealth"))
++        for (int index = 0; index < CONSUME_ACTIONS.length; ++index)
 +        {
-+            return consume(healer, lifecycle, HEALTH);
-+        }
-+        if (action.equalsIgnoreCase("consumeAction"))
-+        {
-+            return consume(healer, lifecycle, ACTION);
++            if (action.equalsIgnoreCase(CONSUME_ACTIONS[index]))
++            {
++                return consume(
++                    healer,
++                    lifecycle,
++                    CONSUME_ATTRIBUTES[index],
++                    MEDICINE_TEMPLATES[index]);
++            }
 +        }
 +        if (action.equalsIgnoreCase("cleanup"))
 +        {
@@ -167,7 +196,11 @@ index 0000000..3cbfd4d
 +        return "action=prepare resumed=false " + buildStatus(healer);
 +    }
 +
-+    private String consume(obj_id healer, String lifecycle, int attribute)
++    private String consume(
++        obj_id healer,
++        String lifecycle,
++        int attribute,
++        String template)
 +        throws InterruptedException
 +    {
 +        String ownership = validateOwnership(healer, lifecycle);
@@ -190,9 +223,6 @@ index 0000000..3cbfd4d
 +        {
 +            return "error=inventoryUnavailable";
 +        }
-+        String template = attribute == HEALTH
-+            ? "object/tangible/medicine/medpack_wound_health.iff"
-+            : "object/tangible/medicine/medpack_wound_action.iff";
 +        obj_id medicine = createObject(template, inventory, "");
 +        if (!isIdValid(medicine))
 +        {
@@ -274,17 +304,27 @@ index 0000000..3cbfd4d
 +    private boolean configureTarget(obj_id target)
 +        throws InterruptedException
 +    {
-+        boolean configured =
-+            setMaxAttrib(target, HEALTH, TEST_MAX) &&
-+            setMaxAttrib(target, ACTION, TEST_MAX) &&
-+            setAttrib(target, HEALTH, TEST_MAX) &&
-+            setAttrib(target, ACTION, TEST_MAX) &&
-+            setShockWound(target, 0);
-+        return configured &&
-+            getMaxAttrib(target, HEALTH) == TEST_MAX &&
-+            getMaxAttrib(target, ACTION) == TEST_MAX &&
-+            getAttrib(target, HEALTH) == TEST_MAX &&
-+            getAttrib(target, ACTION) == TEST_MAX;
++        boolean configured = setShockWound(target, 0);
++        for (int attribute : CONSUME_ATTRIBUTES)
++        {
++            configured =
++                setMaxAttrib(target, attribute, TEST_MAX) &&
++                setAttrib(target, attribute, TEST_MAX) &&
++                configured;
++        }
++        if (!configured)
++        {
++            return false;
++        }
++        for (int attribute : CONSUME_ATTRIBUTES)
++        {
++            if (getMaxAttrib(target, attribute) != TEST_MAX ||
++                getAttrib(target, attribute) != TEST_MAX)
++            {
++                return false;
++            }
++        }
++        return true;
 +    }
 +
 +    private boolean setWoundExact(
@@ -373,7 +413,11 @@ index 0000000..3cbfd4d
 +        return "healer=" + healer +
 +            " target=" + target +
 +            " healthWound=" + getAttribWound(target, HEALTH) +
++            " strengthWound=" + getAttribWound(target, STRENGTH) +
++            " constitutionWound=" + getAttribWound(target, CONSTITUTION) +
 +            " actionWound=" + getAttribWound(target, ACTION) +
++            " quicknessWound=" + getAttribWound(target, QUICKNESS) +
++            " staminaWound=" + getAttribWound(target, STAMINA) +
 +            " healthCurrent=" + getAttrib(target, HEALTH) +
 +            " actionCurrent=" + getAttrib(target, ACTION) +
 +            " shock=" + getShockWound(target) +
