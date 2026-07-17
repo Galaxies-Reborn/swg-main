@@ -316,3 +316,10 @@ combat-exit hook no longer erases shock wounds when combat ends, preserving
 the persistent battle-fatigue input expected by the retained medicine path.
 The NGE player-initialization hook likewise no longer zeros battle fatigue
 after the creature is reconstructed from its persisted database row.
+
+`028-p14-battle-fatigue-fixture.patch` adds an identity-bound, reversible
+ServerConsole fixture for the retained patient-side medical multiplier. It
+controls only the bound patient's shock wounds and reports the production
+`healing.applyShockWoundModifier` result at 250, 251, 500, and 1000. It does
+not consume medicine, fabricate healing, or introduce a combat-accuracy
+modifier.

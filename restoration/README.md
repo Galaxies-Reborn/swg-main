@@ -92,6 +92,11 @@ independently:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Wounds.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the retained patient-side battle-fatigue medicine multiplier and its
+250/251/500/1000 live boundaries independently:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BattleFatigue.ps1 -SourceRoot <materialized-staging-directory>
+
 Validate the atomic Publish 14.1 nine-attribute persistence and replication
 runtime:
 
