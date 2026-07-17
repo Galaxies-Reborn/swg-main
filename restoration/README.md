@@ -376,3 +376,11 @@ the real wound pack, and awards 2.5 medical XP per wound. The live lifecycle
 proved success followed by an in-queue cooldown rejection and exact fixture
 cleanup; `Test-P14HealWoundCommand.ps1` locks the table, runtime, skill-grant,
 and evidence boundaries.
+
+The next production medical command is live accepted. `healDamage` restores
+the authentic five-second queue row, corrects the retained disabled injury
+cooldown and doubled Mind cost, measures all three primary HAM pools, and
+locks Core3's other-player-only 25-percent Health-plus-Action medical XP
+boundary in `Test-P14HealDamageCommand.ps1`. The reversible pet/stim lifecycle
+proved one successful three-pool treatment followed five seconds later by a
+cooldown rejection with no additional cost or consumption.

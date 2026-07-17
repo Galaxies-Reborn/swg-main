@@ -92,8 +92,21 @@ $consumable = Get-Content -LiteralPath $paths.consumable -Raw
 $healing = Get-Content -LiteralPath $paths.healing -Raw
 $utils = Get-Content -LiteralPath $paths.utils -Raw
 $fixture = Get-Content -LiteralPath $paths.liveFixture -Raw
-$consume = Get-BracedBlock -Text $consumable `
+$consumeEntry = Get-BracedBlock -Text $consumable `
     -Signature "public static boolean consumeItem(obj_id player, obj_id target, obj_id item, boolean checkPvpStatus)"
+$consume = $consumeEntry
+if ($consumeEntry.Contains("MAX_AFFECT_DISTANCE") -and
+    $consumable.Contains("float maximumNormalMedicineRange)"))
+{
+    $consume = Get-BracedBlock -Text $consumable `
+        -Signature "public static boolean consumeItem(`r`n        obj_id player,`r`n        obj_id target,`r`n        obj_id item,`r`n        boolean checkPvpStatus,`r`n        float maximumNormalMedicineRange)"
+    if ([string]::IsNullOrEmpty($consume))
+    {
+        $normalizedConsumable = $consumable.Replace("`r`n", "`n")
+        $consume = Get-BracedBlock -Text $normalizedConsumable `
+            -Signature "public static boolean consumeItem(`n        obj_id player,`n        obj_id target,`n        obj_id item,`n        boolean checkPvpStatus,`n        float maximumNormalMedicineRange)"
+    }
+}
 $applyStart = $consume.IndexOf(
     "for (attrib_mod attrib_mod : am)",
     [StringComparison]::Ordinal)

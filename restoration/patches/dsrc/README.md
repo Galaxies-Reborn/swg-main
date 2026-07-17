@@ -346,3 +346,16 @@ command; the connected client owns both live queue entries. Acceptance proved
 one successful wound treatment, exact Mind and charge costs, exact asynchronous
 medical XP, the retained seven-second queue entry, a second cooldown rejection
 without partial mutation, and complete cleanup.
+
+`031-p14-heal-damage-command.patch` restores the authentic five-second
+`healDamage` combat-queue entry and routes it through
+`player.cmd.heal_damage`. The retained stim backend now uses the pinned Core3
+50-Mind Focus adjustment, real injury-treatment cooldown with a four-second
+floor, seven-meter normal-stim command range, and actual Health, Action, and
+Mind deltas. Medical XP is immediate and limited to 25 percent of Health plus
+Action restored to another player; self and pet treatment award none. Its
+identity-bound fixture creates a disposable three-pool patient and two-charge
+stim while the connected client remains the sole queue owner. Live protocol-16
+acceptance proved 214 points restored to each HAM pool, exact 45 Mind and one
+charge costs, no pet medical XP, a five-second second-handler entry rejected
+by the retained 19-second cooldown, and complete fixture cleanup.
