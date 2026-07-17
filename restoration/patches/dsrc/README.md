@@ -374,3 +374,12 @@ single-purpose healDamage and healWound disposable-patient fixtures while the
 connected protocol-17 client remains the sole queue owner. Active lifecycle
 mismatches fail closed; inactive packed objvar leaves are deterministically
 re-keyed, re-snapshotted, and reset on the next preparation.
+
+`033-p14-diagnose-command.patch` restores the authentic five-second,
+nonqueued `diagnose` row and its `player.cmd.diagnose` adapter. The handler
+uses the pinned Core3 six-meter organic-target/PvP contract and displays the
+original ten-line wound and Battle Fatigue medical listbox. The reversible
+identity-bound fixture records SUI telemetry only after a real protocol-18
+client admission, snapshots every patient current value and wound plus Battle
+Fatigue, and restores skill and command ownership. SUI dismissal remains
+client-owned because ServerConsole handlers have no script owner context.

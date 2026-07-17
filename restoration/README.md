@@ -396,3 +396,14 @@ proved 22-point Health/Action tending for exact 183 Mind, then 22 Health-wound
 tending for exact 368 Mind and 55 asynchronously observed medical XP. Each
 command added five Focus and Willpower wounds, both client queue admissions
 drained, and all three composed fixtures restored their owned state.
+
+`diagnose` is now the first completed read-only Medic SUI slice. Its
+required-target, five-second, nonqueued row routes through
+`player.cmd.diagnose`, applies the pinned Core3 six-meter organic-creature and
+PvP-help gates, and opens the Publish 14 listbox with all nine wounds plus
+Battle Fatigue. Protocol-18 live acceptance observed the exact ten values from
+the authoritative player, kept the local combat queue at zero, dismissed the
+page through background client input, and restored every fixture-owned value.
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DiagnoseCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

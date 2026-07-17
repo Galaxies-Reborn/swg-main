@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "diagnoseHandler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/diagnose.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_diagnose_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "nonCombatTable": "dsrc/sku.0/sys.server/compiled/game/datatables/combat/non_combat_data.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/DiagnoseCommand.h",
+    "publish": "14.1",
+    "scope": "organic patient diagnosis and medical SUI"
+  },
+  "commandContract": {
+    "name": "diagnose",
+    "category": "combat",
+    "scriptHook": "cmdDiagnose",
+    "failScriptHook": "cmdFailDiagnose",
+    "tempScript": "player.cmd.diagnose",
+    "target": "other",
+    "targetType": "required",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "maximumRangeMeters": 6,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "readOnly": true,
+    "lineOfSightRequired": false,
+    "pvpHelpRequired": true,
+    "rejectedTargets": [
+      "non-creature",
+      "droid",
+      "android",
+      "walker or vehicle"
+    ],
+    "windowPolicy": "close the prior diagnose SUI before opening a replacement",
+    "title": "Patient <displayed name>",
+    "cancelButton": false,
+    "entries": [
+      "Health",
+      "Strength",
+      "Constitution",
+      "Action",
+      "Quickness",
+      "Stamina",
+      "Mind",
+      "Focus",
+      "Willpower",
+      "Battle Fatigue"
+    ],
+    "entryFormat": "<name> -- <authoritative wound value>"
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporarySkill": "science_medic_novice",
+    "testWounds": [
+      11,
+      22,
+      33,
+      44,
+      55,
+      66,
+      77,
+      88,
+      99
+    ],
+    "testBattleFatigue": 321,
+    "clientDismissal": "protocol-18 background Escape before ServerConsole cleanup",
+    "cleanupPolicy": "restore nine current values, nine wounds, Battle Fatigue, skill, and command; ServerConsole never invokes SUI APIs"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "7c6f38945310c9ab514d4a7d6638369b17c7675b880928482c4abd99d86cdb15",
+    "compiledSha256": {
+      "diagnose.class": "12e8fab9756716f83bf5d21022fb75a90b7e185886796c0bfd1a539a5bf4e951",
+      "precu_diagnose_command_fixture.class": "01fe0db70eae339c3e4f0fca09f5c5d3fec3ec56c8443d1377963e0c3f12f402"
+    },
+    "compiledIffSha256": {
+      "command_table.iff": "2322527d8d887bae787c7ae5bb21cb95912aeb3bf0c03a87c99ea782eb45849e"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 11636,
+    "clientProtocolVersion": 18,
+    "lifecycle": "2557a5f4fa5448e882ec21e4709e11d3",
+    "handlerEnteredGameTime": 300482,
+    "handlerOutcome": "displayed",
+    "targetOid": 39008597,
+    "suiPid": 518,
+    "entryCount": 10,
+    "observedWounds": [
+      11,
+      22,
+      33,
+      44,
+      55,
+      66,
+      77,
+      88,
+      99
+    ],
+    "observedBattleFatigue": 321,
+    "clientQueueCountAtAdmission": 0,
+    "clientQueueCountAfterCleanup": 0,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    }
+  },
+  "narrowBoundary": {
+    "included": [
+      "authentic required-target nonqueued command row",
+      "six-meter organic-creature and PvP-help gates",
+      "one-at-a-time medical listbox",
+      "all nine wound values and Battle Fatigue",
+      "protocol-18 background client admission",
+      "identity-bound reversible live fixture"
+    ],
+    "deferred": [
+      "medicalForage focused parity",
+      "Medic and Doctor branch progression beyond novice"
+    ]
+  }
+}
