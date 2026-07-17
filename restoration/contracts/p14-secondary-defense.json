@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "feature": "precu-secondary-defense",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Fail-closed Core3 block, dodge, and counter resolution for authenticated Pre-CU rifle attacks against exact CDEF-rifle and player-unarmed defender profiles. Lightsaber ricochet remains separately blocked.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "combatManagerHeader": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.h",
+    "cdefRifle": "MMOCoreORB/bin/scripts/object/weapon/ranged/rifle/rifle_cdef.lua",
+    "playerUnarmed": "MMOCoreORB/bin/scripts/object/weapon/melee/unarmed/unarmed_default_player.lua",
+    "secondaryDefenseCap": 125,
+    "attackRollMinimum": 1,
+    "attackRollMaximum": 500,
+    "defendRollMinimum": 1,
+    "defendRollMaximum": 200,
+    "blockDamageMultiplier": 0.5,
+    "counterattackCommandCrc": 1957054281
+  },
+  "sourceFiles": {
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatEngine": "dsrc/sku.0/sys.server/compiled/game/script/combat_engine.java",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "legacyCombatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base_old.java"
+  },
+  "profiles": [
+    {
+      "template": "object/weapon/ranged/rifle/rifle_cdef.iff",
+      "secondaryDefenseSkill": "block",
+      "secondaryDefenseResult": "BLOCK"
+    },
+    {
+      "template": "object/weapon/melee/unarmed/unarmed_default_player.iff",
+      "secondaryDefenseSkill": "unarmed_passive_defense",
+      "secondaryDefenseResult": "RANDOM",
+      "randomResults": [
+        "BLOCK",
+        "DODGE",
+        "COUNTER"
+      ]
+    }
+  ],
+  "equation": {
+    "precondition": "authenticated Core3 primary result is HIT",
+    "evadeSkill": "min(defender level + secondary skill + private secondary skill, 125)",
+    "evadeTotal": "evadeSkill + private_center_of_being + target posture defense",
+    "success": "attacker accuracy total + random(1..500) <= evadeTotal + random(1..200)",
+    "suppressedWhen": [
+      "defender intimidated",
+      "defender berserk",
+      "defender is a vehicle"
+    ]
+  },
+  "outcomes": {
+    "block": "attack remains successful; base and elemental damage are halved; defender result is block",
+    "dodge": "attack is unsuccessful and applies no damage; defender result is evade",
+    "counter": "attack is unsuccessful and applies no damage; defender enters combat and queues the legacy basic counterattack at front priority"
+  },
+  "modeledAcceptance": {
+    "attackerAccuracyTotal": 55,
+    "defenderEvadeSkill": 1,
+    "defenderStandingEvadeTotal": -9,
+    "successfulSecondaryPairs": 9316,
+    "totalRollPairs": 100000,
+    "totalSecondaryChance": 0.09316,
+    "eachUnarmedOutcomeChance": 0.031053333333333334
+  },
+  "fallbackPolicy": {
+    "missingDefenderWeapon": "complete NGE attacker and defender result path",
+    "missingExactDefenderProfile": "complete NGE attacker and defender result path when the authenticated primary roll hits",
+    "unknownSecondaryResult": "complete NGE attacker and defender result path",
+    "primaryMiss": "retain the authenticated Core3 miss without consulting a secondary profile",
+    "reason": "A Core3 primary hit must never be blended with the NGE defender table."
+  },
+  "narrowBoundary": {
+    "included": [
+      "exact CDEF rifle block profile",
+      "exact player-unarmed passive-defense profile",
+      "unarmed random block, dodge, or counter selection",
+      "Core3 roll ranges, cap, center-of-being, posture, and state suppression",
+      "50 percent block damage multiplier",
+      "legacy SWGSource basic counterattack command plumbing"
+    ],
+    "deferred": [
+      "lightsaber saber_block ricochet",
+      "non-CDEF and non-unarmed defender weapon profiles",
+      "live outcome telemetry and deterministic fixture rolls"
+    ]
+  },
+  "buildEvidence": {
+    "environment": "isolated swg-precu Linux build volume with exact staged files",
+    "targets": [
+      "combat_base.java",
+      "combat_engine.java",
+      "precu_weapon_profiles.iff"
+    ],
+    "result": "passed"
+  },
+  "requiredBeforeReady": [
+    "live status exposes defender profile, evade skill, center-of-being, posture, both rolls, and final outcome",
+    "a controlled block proves exactly half base and elemental damage before armor",
+    "a controlled dodge proves zero target-pool damage",
+    "a controlled counter proves zero incoming damage and one basic response command",
+    "missing-profile acceptance proves the complete NGE result path is restored",
+    "fixture cleanup restores defender weapon, skills, states, position, combat, and HAM"
+  ]
+}

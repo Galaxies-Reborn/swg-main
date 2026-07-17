@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "marksman-tier1-combat-command-matrix",
   "status": "blocked",
-  "scope": "Candidate expansion from the accepted rifle/Mind headShot1 slice to pistol/Health bodyShot1 and carbine/Action legShot1 without bypassing the missing Pre-CU speed and accuracy models.",
+  "scope": "Candidate expansion from the accepted rifle/Mind headShot1 slice to pistol/Health bodyShot1 and carbine/Action legShot1 without bypassing the remaining weapon-profile, ricochet, and live-acceptance gates.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
@@ -81,6 +81,7 @@
   "requiredBeforeReady": [
     "weapon-derived command duration equivalent to Core3 calculateWeaponAttackSpeed rather than a fixed executeTime",
     "per-action accuracy bonus mapped through an authenticated Pre-CU accuracy and defense equation rather than the NGE miss table",
+    "Core3 saber_block ricochet plus authenticated defender profiles beyond CDEF rifle and player unarmed",
     "pistol and carbine CDEF costs installed from the pinned Core3 10/15/10 templates",
     "authenticated skill grants, standard combat hooks, weapon restrictions, and target-pool routing",
     "two-client live success, wrong-weapon rejection, and strict no-partial HAM acceptance for both commands"
@@ -95,8 +96,13 @@
       "contract": "contracts/p14-primary-accuracy.json"
     },
     "secondaryDefense": {
+      "status": "implemented-build-verified-live-pending",
+      "contract": "contracts/p14-secondary-defense.json",
+      "coverage": "exact CDEF-rifle and player-unarmed block, dodge, and counter profiles"
+    },
+    "ricochetDefense": {
       "status": "blocked",
-      "reason": "Core3 block, dodge, counter, and ricochet resolution has not yet replaced the NGE secondary defender table for opted-in commands."
+      "reason": "Core3 saber_block ricochet resolution has not yet replaced the NGE lightsaber defender path for opted-in commands."
     }
   },
   "materializerPolicy": {

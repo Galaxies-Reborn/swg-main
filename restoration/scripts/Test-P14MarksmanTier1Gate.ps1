@@ -69,7 +69,8 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     [string]$contract.runtimeSeams.commandDuration.status -ceq "implemented-build-verified-live-pending" -and
     [string]$contract.runtimeSeams.primaryAccuracy.status -ceq "implemented-build-verified-live-pending" -and
-    [string]$contract.runtimeSeams.secondaryDefense.status -ceq "blocked") -Name "p14.marksman-tier1.runtime-seams.primary-built-secondary-blocked"
+    [string]$contract.runtimeSeams.secondaryDefense.status -ceq "implemented-build-verified-live-pending" -and
+    [string]$contract.runtimeSeams.ricochetDefense.status -ceq "blocked") -Name "p14.marksman-tier1.runtime-seams.secondary-built-ricochet-blocked"
 
 $blockedTokens = @($contract.materializerPolicy.rejectPatchTextWhileBlocked | ForEach-Object { [string]$_ })
 Assert-Contract -Condition (

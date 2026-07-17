@@ -181,6 +181,7 @@ Assert-Contract -Condition (
 $combatBase = Get-Content -LiteralPath $paths.combatBase -Raw
 $primaryResult = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuPrimaryAttackResult("
 $primaryChance = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuPrimaryHitChance("
+$attackerAccuracy = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuAttackerAccuracyTotal("
 $rangeCurve = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuWeaponRangeModifier("
 $equation = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuHitChanceEquation("
 $attackPosture = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuRangedAttackLocomotionModifier("
@@ -193,9 +194,10 @@ Assert-Contract -Condition (
     ([regex]::Matches($primaryChance, 'return -1\.0f;').Count -ge 3) -and
     $primaryChance.Contains('if (accuracyBonus <= 0 || !isIdValid(weaponData.id))')) -Name "p14.primary-accuracy.runtime.fail-closed"
 Assert-Contract -Condition (
-    $primaryChance.Contains('accuracySkillValue = -15;') -and
-    $primaryChance.Contains('getEnhancedSkillStatisticModifierUncapped(attackerData.id, categoryAccuracySkill)') -and
-    $primaryChance.Contains('getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_ranged_accuracy_bonus")')) -Name "p14.primary-accuracy.runtime.attacker-modifier-stack"
+    $primaryChance.Contains('getPrecuAttackerAccuracyTotal(attackerData, defenderData, weaponRow, accuracyBonus)') -and
+    $attackerAccuracy.Contains('accuracySkillValue = -15;') -and
+    $attackerAccuracy.Contains('getEnhancedSkillStatisticModifierUncapped(attackerData.id, categoryAccuracySkill)') -and
+    $attackerAccuracy.Contains('getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_ranged_accuracy_bonus")')) -Name "p14.primary-accuracy.runtime.attacker-modifier-stack"
 Assert-Contract -Condition (
     $primaryChance.Contains('int defenseSkillValue = getLevel(defenderData.id);') -and
     $primaryChance.Contains('if (defenseSkillValue > 125)') -and
@@ -216,7 +218,7 @@ Assert-Contract -Condition (
     $defensePosture.Contains('case LOCOMOTION_RUNNING:') -and $defensePosture.Contains('return 45;')) -Name "p14.primary-accuracy.runtime.core3-locomotion-table"
 Assert-Contract -Condition (
     $primaryResult.Contains('return rand(0, 100) <= hitChance ? HIT_RESULT_HIT : HIT_RESULT_MISS;') -and
-    $combatBase.Contains('int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming) : HIT_RESULT_HIT;') -and
+    $combatBase.Contains('int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuSecondaryResult;') -and
     $combatBase.Contains('int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuPrimaryResult;')) -Name "p14.primary-accuracy.runtime.authoritative-no-hybrid-primary"
 
 $dormant = Get-Content -LiteralPath $paths.dormantHitEngine -Raw
@@ -245,4 +247,4 @@ if ($failures.Count -gt 0)
 }
 
 Write-Host ""
-Write-Host "Publish 14.1 Core3 primary-accuracy implementation passed its build/static gate; live accuracy and secondary defense remain pending."
+Write-Host "Publish 14.1 Core3 primary-accuracy implementation passed its build/static gate; live accuracy remains pending and secondary outcomes are gated separately."

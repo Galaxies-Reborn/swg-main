@@ -75,9 +75,14 @@ seam independently:
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CommandDuration.ps1 -SourceRoot <materialized-staging-directory>
 
 Validate the build-complete, live-pending Core3 primary hit-or-miss seam
-independently (secondary defense remains blocked):
+independently (secondary outcomes are gated separately):
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrimaryAccuracy.ps1 -SourceRoot <materialized-staging-directory>
+
+Validate the build-complete, live-pending Core3 block/dodge/counter seam
+independently (lightsaber ricochet remains blocked):
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SecondaryDefense.ps1 -SourceRoot <materialized-staging-directory>
 
 Validate the atomic Publish 14.1 nine-attribute persistence and replication
 runtime:
