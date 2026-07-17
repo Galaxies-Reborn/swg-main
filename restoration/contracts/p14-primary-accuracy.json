@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "feature": "precu-primary-attack-accuracy",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Fail-closed Core3-equivalent primary hit-or-miss calculation for authenticated Pre-CU combat commands. Core3 secondary block, dodge, counter, and ricochet resolution remains separately blocked.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "combatManagerHeader": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.h",
+    "creaturePosture": "MMOCoreORB/src/templates/params/creature/CreaturePosture.h",
+    "cdefRifle": "MMOCoreORB/bin/scripts/object/weapon/ranged/rifle/rifle_cdef.lua",
+    "equation": "Starting at 75, apply up to three nonlinear 25-point steps to (attackerAccuracy - targetDefense) / 50, then clamp to 0..100.",
+    "unskilledWeaponPenalty": -15,
+    "primaryDefenseCap": 125
+  },
+  "sourceFiles": {
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "dormantHitEngine": "dsrc/sku.0/sys.server/compiled/game/script/combat_engine.java"
+  },
+  "optIn": {
+    "command": "headShot1",
+    "actionAccuracyBonus": 5,
+    "weaponTemplate": "object/weapon/ranged/rifle/rifle_cdef.iff",
+    "pointBlankRange": 0,
+    "pointBlankAccuracy": 20,
+    "idealRange": 15,
+    "idealAccuracy": 50,
+    "maxRange": 64,
+    "maxRangeAccuracy": -80,
+    "accuracySkill": "rifle_accuracy",
+    "categoryAccuracySkill": "ranged_accuracy",
+    "defenseSkill": "ranged_defense",
+    "weaponFamily": "rifle",
+    "postureMultiplier": 2.5
+  },
+  "modeledAcceptance": {
+    "defenderLevel": 1,
+    "defenderStandingDefenseTotal": -9,
+    "neutralIdealRangeChance": 99.5,
+    "marksmanNoviceRifleOneIdealRangeChance": 100.0,
+    "marksmanNoviceRifleOneMaxRangeChance": 52.0,
+    "marksmanNoviceRifleOneRunningIdealRangeChance": 46.0,
+    "maxRangeChanceWithoutActionBonus": 49.75
+  },
+  "fallbackPolicy": {
+    "nonOptedCommand": "existing NGE attacker and defender result tables",
+    "zeroOrMissingAccuracyBonus": "existing NGE attacker and defender result tables",
+    "missingWeaponProfile": "existing NGE attacker and defender result tables",
+    "authenticatedPrimaryPath": "Core3 primary hit-or-miss result with the NGE defender table bypassed so the two systems are never blended",
+    "reason": "A partial row must never silently create a Core3/NGE hybrid hit equation."
+  },
+  "narrowBoundary": {
+    "included": [
+      "exact CDEF rifle range interpolation",
+      "weapon and ranged accuracy skill mods",
+      "Core3 private accuracy bonuses used by the unbuffed fixture",
+      "ranged attack and defense locomotion modifiers",
+      "rifle posture multiplier",
+      "defender level, ranged defense, private defense, group defense, and dodge-attack bonuses",
+      "headShot1 action accuracy bonus"
+    ],
+    "deferred": [
+      "dead-eye percentage buff adjustment",
+      "Core3 secondary block, dodge, counter, and ricochet resolution",
+      "non-rifle weapon profiles"
+    ]
+  },
+  "buildEvidence": {
+    "environment": "isolated swg-precu Linux build volume with exact staged files",
+    "targets": [
+      "combat_base.java",
+      "precu_combat_overrides.iff",
+      "precu_weapon_profiles.iff"
+    ],
+    "result": "passed"
+  },
+  "requiredBeforeReady": [
+    "live status exposes the computed Core3 accuracy components and chance for the authenticated fixture",
+    "ideal-range and max-range fixture placements produce the modeled chances",
+    "an authenticated attack uses the Core3 primary result and reports the observed hit or miss",
+    "a non-opted command demonstrably retains the NGE result path",
+    "fixture cleanup restores all owned position, weapon, skill, combat, and HAM state"
+  ]
+}

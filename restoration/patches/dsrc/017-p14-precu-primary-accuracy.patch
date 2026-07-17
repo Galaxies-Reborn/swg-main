@@ -1,0 +1,260 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -33,6 +33,9 @@ public class combat_base extends script.base_script
+     public static final int HIT_RESULT_STRIKETHROUGH = 9;
+     public static final String PROGRESSIVE_DAMAGE_COUNTER = "hitData.progressive.counter";
+     public static final string_id SID_NONE = new string_id();
++    public static final String PRECU_COMBAT_OVERRIDES = "datatables/combat/precu_combat_overrides.iff";
++    public static final String PRECU_WEAPON_PROFILES = "datatables/combat/precu_weapon_profiles.iff";
++    public static final int PRECU_PRIMARY_RESULT_FALLBACK = -1;
+     public boolean combatStandardAction(String actionName, obj_id self, obj_id target, String params, String successHandler, String failHandler) throws InterruptedException
+     {
+         return combatStandardAction(actionName, self, target, getCurrentWeapon(self), params, null, false, false, 0);
+@@ -1275,8 +1278,9 @@ public class combat_base extends script.base_script
+             }
+             else 
+             {
+-                int defResult = getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming);
+-                int atkResult = getAttackerResult(attackerData, defenderData[i], actionData, isAutoAiming);
++                int precuPrimaryResult = getPrecuPrimaryAttackResult(attackerData, defenderData[i], weaponData, actionData);
++                int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming) : HIT_RESULT_HIT;
++                int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuPrimaryResult;
+                 switch (defResult)
+                 {
+                     case HIT_RESULT_DODGE:
+@@ -1620,6 +1624,212 @@ public class combat_base extends script.base_script
+         callDefenderCombatAction(defenders, results, attackerData.id, weaponData.id);
+         return hitData;
+     }
++    public int getPrecuPrimaryAttackResult(attacker_data attackerData, defender_data defenderData, weapon_data weaponData, combat_data actionData) throws InterruptedException
++    {
++        float hitChance = getPrecuPrimaryHitChance(attackerData, defenderData, weaponData, actionData);
++        if (hitChance < 0.0f)
++        {
++            return PRECU_PRIMARY_RESULT_FALLBACK;
++        }
++        return rand(0, 100) <= hitChance ? HIT_RESULT_HIT : HIT_RESULT_MISS;
++    }
++    public float getPrecuPrimaryHitChance(attacker_data attackerData, defender_data defenderData, weapon_data weaponData, combat_data actionData) throws InterruptedException
++    {
++        int actionRow = dataTableSearchColumnForString(actionData.actionName, "actionName", PRECU_COMBAT_OVERRIDES);
++        if (actionRow < 0)
++        {
++            return -1.0f;
++        }
++        int accuracyBonus = dataTableGetInt(PRECU_COMBAT_OVERRIDES, actionRow, "accuracyBonus");
++        if (accuracyBonus <= 0 || !isIdValid(weaponData.id))
++        {
++            return -1.0f;
++        }
++        String weaponTemplate = getTemplateName(weaponData.id);
++        int weaponRow = dataTableSearchColumnForString(weaponTemplate, "templateName", PRECU_WEAPON_PROFILES);
++        if (weaponRow < 0)
++        {
++            return -1.0f;
++        }
++
++        String accuracySkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "accuracySkill");
++        String categoryAccuracySkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "categoryAccuracySkill");
++        String defenseSkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "defenseSkill");
++        String weaponFamily = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "weaponFamily");
++        float postureMultiplier = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "postureMultiplier");
++
++        int accuracySkillValue = getEnhancedSkillStatisticModifierUncapped(attackerData.id, accuracySkill);
++        accuracySkillValue += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_" + accuracySkill);
++        if (accuracySkillValue == 0)
++        {
++            accuracySkillValue = -15;
++        }
++        accuracySkillValue += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "attack_accuracy");
++        accuracySkillValue += getEnhancedSkillStatisticModifierUncapped(attackerData.id, categoryAccuracySkill);
++
++        float accuracyWeapon = getPrecuWeaponRangeModifier(attackerData, defenderData, weaponRow);
++        int accuracyPosture = getPrecuRangedAttackLocomotionModifier(attackerData.locomotion);
++        int accuracyWeaponPosture = 0;
++        if (isPrecuMovingLocomotion(attackerData.locomotion))
++        {
++            accuracyWeaponPosture += getEnhancedSkillStatisticModifierUncapped(attackerData.id, weaponFamily + "_hit_while_moving");
++        }
++        if (attackerData.posture == POSTURE_UPRIGHT)
++        {
++            accuracyWeaponPosture += getEnhancedSkillStatisticModifierUncapped(attackerData.id, weaponFamily + "_accuracy_while_standing");
++        }
++        int accuracyPostureTotal = (int)(accuracyPosture * postureMultiplier) + accuracyWeaponPosture;
++        if (accuracyPostureTotal > 0 && accuracyPosture < 0)
++        {
++            accuracyPostureTotal = 0;
++        }
++
++        int accuracyPrivateBonus = getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_attack_accuracy");
++        accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_accuracy_bonus");
++        accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_ranged_accuracy_bonus");
++        accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_aim");
++        if (defenderData.isCreature)
++        {
++            accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "creature_hit_bonus");
++        }
++
++        int defenseSkillValue = getLevel(defenderData.id);
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, defenseSkill);
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + defenseSkill);
++        if (defenseSkillValue > 125)
++        {
++            defenseSkillValue = 125;
++        }
++        if (isPlayer(attackerData.id))
++        {
++            defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_defense");
++        }
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_group_" + defenseSkill);
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "dodge_attack");
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_dodge_attack");
++
++        float accuracyTotal = accuracySkillValue + accuracyWeapon + accuracyPostureTotal + accuracyBonus + accuracyPrivateBonus;
++        float defenseTotal = defenseSkillValue + getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion);
++        return getPrecuHitChanceEquation(accuracyTotal, defenseTotal);
++    }
++    public float getPrecuWeaponRangeModifier(attacker_data attackerData, defender_data defenderData, int weaponRow) throws InterruptedException
++    {
++        float currentRange = attackerData.worldPos.distance(defenderData.worldPos) - (attackerData.radius + defenderData.radius);
++        if (currentRange < 0.0f)
++        {
++            currentRange = 0.0f;
++        }
++        float pointBlankRange = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "pointBlankRange");
++        float pointBlankAccuracy = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "pointBlankAccuracy");
++        float idealRange = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "idealRange");
++        float idealAccuracy = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "idealAccuracy");
++        float maxRange = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "maxRange");
++        float maxRangeAccuracy = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "maxRangeAccuracy");
++        if (currentRange >= maxRange)
++        {
++            return maxRangeAccuracy;
++        }
++        if (currentRange <= pointBlankRange)
++        {
++            return pointBlankAccuracy;
++        }
++        float smallRange = pointBlankRange;
++        float bigRange = idealRange;
++        float smallAccuracy = pointBlankAccuracy;
++        float bigAccuracy = idealAccuracy;
++        if (currentRange > idealRange)
++        {
++            smallRange = idealRange;
++            bigRange = maxRange;
++            smallAccuracy = idealAccuracy;
++            bigAccuracy = maxRangeAccuracy;
++        }
++        if (bigRange == smallRange)
++        {
++            return idealAccuracy;
++        }
++        return smallAccuracy + ((currentRange - smallRange) / (bigRange - smallRange) * (bigAccuracy - smallAccuracy));
++    }
++    public float getPrecuHitChanceEquation(float attackerAccuracy, float targetDefense) throws InterruptedException
++    {
++        float roll = (attackerAccuracy - targetDefense) / 50.0f;
++        float sign = roll > 0.0f ? 1.0f : roll < 0.0f ? -1.0f : 0.0f;
++        float toHit = 75.0f;
++        for (int i = 1; i <= 3; i++)
++        {
++            if ((roll * sign) > i)
++            {
++                toHit += sign * 25.0f;
++                roll -= sign * i;
++            }
++            else
++            {
++                toHit += (roll / i) * 25.0f;
++                break;
++            }
++        }
++        if (toHit > 100.0f)
++        {
++            return 100.0f;
++        }
++        if (toHit < 0.0f)
++        {
++            return 0.0f;
++        }
++        return toHit;
++    }
++    public boolean isPrecuMovingLocomotion(int locomotion) throws InterruptedException
++    {
++        return locomotion == LOCOMOTION_SNEAKING || locomotion == LOCOMOTION_WALKING || locomotion == LOCOMOTION_RUNNING || locomotion == LOCOMOTION_CRAWLING || locomotion == LOCOMOTION_FLYING;
++    }
++    public int getPrecuRangedAttackLocomotionModifier(int locomotion) throws InterruptedException
++    {
++        switch (locomotion)
++        {
++            case LOCOMOTION_SNEAKING:
++            return -6;
++            case LOCOMOTION_WALKING:
++            return -40;
++            case LOCOMOTION_RUNNING:
++            return -60;
++            case LOCOMOTION_KNEELING:
++            return 15;
++            case LOCOMOTION_PRONE:
++            return 30;
++            case LOCOMOTION_CRAWLING:
++            return -80;
++            case LOCOMOTION_FLYING:
++            return -10;
++            default:
++            return 0;
++        }
++    }
++    public int getPrecuRangedDefenseLocomotionModifier(int locomotion) throws InterruptedException
++    {
++        switch (locomotion)
++        {
++            case LOCOMOTION_STANDING:
++            return -10;
++            case LOCOMOTION_SNEAKING:
++            return 5;
++            case LOCOMOTION_WALKING:
++            return 25;
++            case LOCOMOTION_RUNNING:
++            return 45;
++            case LOCOMOTION_PRONE:
++            return 25;
++            case LOCOMOTION_CRAWLING:
++            return 5;
++            case LOCOMOTION_HOVERING:
++            return -5;
++            case LOCOMOTION_FLYING:
++            return -10;
++            case LOCOMOTION_KNOCKED_DOWN:
++            return -15;
++            default:
++            return 0;
++        }
++    }
+     public int getDefenderResult(attacker_data attackerData, defender_data defenderData, combat_data actionData, boolean autoAim) throws InterruptedException
+     {
+         if (combat.isAreaAttack(actionData.attackType))
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -1,4 +1,4 @@
+-actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier
+-s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2)[HEALTH]"	f
+-__precu_runtime_probe	0	0	0	HEALTH	0
+-headShot1	0.5	0.5	1	MIND	1.5
++actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus
++s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2)[HEALTH]"	f	i
++__precu_runtime_probe	0	0	0	HEALTH	0	0
++headShot1	0.5	0.5	1	MIND	1.5	5
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+@@ -1,3 +1,3 @@
+-templateName	attackSpeed	speedSkill
+-s	f	s
+-object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed
++templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	weaponFamily	postureMultiplier
++s	f	s	f	f	f	f	f	f	s	s	s	s	f
++object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0	20	15	50	64	-80	rifle_accuracy	ranged_accuracy	ranged_defense	rifle	2.5
