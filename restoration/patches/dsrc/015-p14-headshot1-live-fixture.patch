@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36bb77363b6
 --- /dev/null
 +++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
-@@ -0,0 +1,622 @@
+@@ -0,0 +1,647 @@
 +package script.test;
 +
 +import script.location;
@@ -24,6 +24,7 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +    private static final String MARKSMAN_NOVICE = "combat_marksman_novice";
 +    private static final String RIFLE_ONE = "combat_marksman_rifle_01";
 +    private static final String COMMAND = "headShot1";
++    private static final String DURATION_CONTROL_COMMAND = "headShot2";
 +    private static final String COMBAT_ACTIONS_SCRIPT = "systems.combat.combat_actions";
 +    private static final String ROOT = "precu.p14.headShot1Fixture";
 +    private static final String LIFECYCLE = ROOT + ".lifecycle";
@@ -42,6 +43,8 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +    private static final String ORIGINAL_MIND_REGEN = ROOT + ".originalMindRegen";
 +    private static final String ORIGINAL_NOVICE = ROOT + ".originalNovice";
 +    private static final String ORIGINAL_RIFLE_ONE = ROOT + ".originalRifleOne";
++    private static final String ORIGINAL_DURATION_CONTROL =
++        ROOT + ".originalDurationControl";
 +    private static final String ORIGINAL_PERSONAL_ENEMY = ROOT + ".originalPersonalEnemy";
 +    private static final String ORIGINAL_COMBAT_ACTIONS = ROOT + ".originalCombatActions";
 +    private static final String PREPARED = ROOT + ".prepared";
@@ -170,11 +173,15 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +            grantSkill(attacker, MARKSMAN_NOVICE);
 +        boolean rifleGranted = noviceGranted &&
 +            (hasSkill(attacker, RIFLE_ONE) || grantSkill(attacker, RIFLE_ONE));
-+        if (!noviceGranted || !rifleGranted || !hasCommand(attacker, COMMAND))
++        boolean durationControlGranted = hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
++            grantCommand(attacker, DURATION_CONTROL_COMMAND);
++        if (!noviceGranted || !rifleGranted || !hasCommand(attacker, COMMAND) ||
++            !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND))
 +        {
 +            restore(attacker, defender);
 +            return "error=skillPreparationFailed novice=" + noviceGranted +
-+                " rifleOne=" + rifleGranted + " hasCommand=" + hasCommand(attacker, COMMAND);
++                " rifleOne=" + rifleGranted + " hasCommand=" + hasCommand(attacker, COMMAND) +
++                " durationControl=" + hasCommand(attacker, DURATION_CONTROL_COMMAND);
 +        }
 +
 +        obj_id fixtureWeapon = createObjectInInventoryAllowOverload(CDEF_TEMPLATE, attacker);
@@ -251,6 +258,12 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +            getIntObjVar(defender, ORIGINAL_PERSONAL_ENEMY) == 0)
 +        {
 +            pvpRemovePersonalEnemyFlags(defender, attacker);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_DURATION_CONTROL) &&
++            getIntObjVar(attacker, ORIGINAL_DURATION_CONTROL) == 0 &&
++            hasCommand(attacker, DURATION_CONTROL_COMMAND))
++        {
++            revokeCommand(attacker, DURATION_CONTROL_COMMAND);
 +        }
 +        if (attackerRoot && hasObjVar(attacker, ORIGINAL_RIFLE_ONE) &&
 +            getIntObjVar(attacker, ORIGINAL_RIFLE_ONE) == 0 && hasSkill(attacker, RIFLE_ONE))
@@ -362,6 +375,8 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +        setObjVar(player, ORIGINAL_MIND_REGEN, getRegenRate(player, MIND));
 +        setObjVar(player, ORIGINAL_NOVICE, hasSkill(player, MARKSMAN_NOVICE) ? 1 : 0);
 +        setObjVar(player, ORIGINAL_RIFLE_ONE, hasSkill(player, RIFLE_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_DURATION_CONTROL,
++            hasCommand(player, DURATION_CONTROL_COMMAND) ? 1 : 0);
 +        setObjVar(player, ORIGINAL_PERSONAL_ENEMY,
 +            pvpHasPersonalEnemyFlag(player, peer) ? 1 : 0);
 +        setObjVar(player, ORIGINAL_COMBAT_ACTIONS,
@@ -389,6 +404,12 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +            pvpRemovePersonalEnemyFlags(defender, attacker);
 +        }
 +
++        if (hasObjVar(attacker, ORIGINAL_DURATION_CONTROL) &&
++            getIntObjVar(attacker, ORIGINAL_DURATION_CONTROL) == 0 &&
++            hasCommand(attacker, DURATION_CONTROL_COMMAND))
++        {
++            revokeCommand(attacker, DURATION_CONTROL_COMMAND);
++        }
 +        if (hasObjVar(attacker, ORIGINAL_RIFLE_ONE) &&
 +            getIntObjVar(attacker, ORIGINAL_RIFLE_ONE) == 0 &&
 +            hasSkill(attacker, RIFLE_ONE))
@@ -472,7 +493,9 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +        setRegenRate(defender, MIND, 0.0f);
 +        pvpSetPermanentPersonalEnemyFlag(attacker, defender);
 +        pvpSetPermanentPersonalEnemyFlag(defender, attacker);
-+        return attackerStanding && defenderStanding &&
++        boolean durationControlReady = hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
++            grantCommand(attacker, DURATION_CONTROL_COMMAND);
++        return durationControlReady && attackerStanding && defenderStanding &&
 +            attackerStationary && defenderStationary &&
 +            getPosture(attacker) == POSTURE_UPRIGHT &&
 +            getPosture(defender) == POSTURE_UPRIGHT &&
@@ -524,6 +547,7 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +            hasObjVar(player, ORIGINAL_HEALTH_REGEN) &&
 +            hasObjVar(player, ORIGINAL_ACTION_REGEN) &&
 +            hasObjVar(player, ORIGINAL_MIND_REGEN) &&
++            hasObjVar(player, ORIGINAL_DURATION_CONTROL) &&
 +            hasObjVar(player, ORIGINAL_COMBAT_ACTIONS);
 +    }
 +
@@ -595,6 +619,7 @@ index 0000000000000000000000000000000000000000..a830030a5d45e1bbcfc42645790da36b
 +            " novice=" + hasSkill(attacker, MARKSMAN_NOVICE) +
 +            " rifleOne=" + hasSkill(attacker, RIFLE_ONE) +
 +            " hasCommand=" + hasCommand(attacker, COMMAND) +
++            " durationControl=" + hasCommand(attacker, DURATION_CONTROL_COMMAND) +
 +            " combatActions=" + hasScript(attacker, COMBAT_ACTIONS_SCRIPT) +
 +            " weapon=" + weaponTemplate +
 +            " canPerformAction=" + canPerformAction +

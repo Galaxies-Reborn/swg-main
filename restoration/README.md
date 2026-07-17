@@ -346,5 +346,8 @@ carbine/LegShot1 succeeded through the production client queue with exact
 three-pool costs; all six rifle/pistol/carbine cross-use cases and both strict
 no-partial boundaries cancelled without HAM mutation. The layered fixtures
 then restored all owned state. Live diagnostic exposure for command duration,
-primary-accuracy components, and secondary-defense results remains before the
-matrix can move to `ready`.
+primary-accuracy components, and secondary-defense results was subsequently
+added, and the tier-I matrix is now `ready`. The shared command-duration
+contract also has live evidence for both the modeled 4.725-second `headShot1`
+timer and the non-opted 1.5-second `headShot2` static fallback; primary-accuracy
+and secondary-defense keep their separate live-readiness boundaries.

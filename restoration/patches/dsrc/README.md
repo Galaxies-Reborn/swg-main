@@ -266,3 +266,10 @@ Marksman tier-I fixture clears that record on every arm and owns dedicated CDEF
 rifle, pistol, and carbine weapons for the bound defender. Normal players do not
 enable the diagnostic objvar, and the fixture still never equips, queues, rolls,
 or fabricates a combat result.
+
+`023-p14-command-duration-control.patch` restores the authentic Publish 14.1
+`headShot2` command row, rifle combat-data row, and standard combat wrapper as
+the shared duration seam's non-opted control. It deliberately has no
+`precu_combat_overrides` row, so its fixed 1.5-second command-table execute time
+proves that commands not yet migrated to the Core3 weapon-speed model continue
+to fail closed.

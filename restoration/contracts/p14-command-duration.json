@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "precu-combat-command-duration",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Opt-in Core3-equivalent weapon-derived execute timing for authenticated Pre-CU combat commands without changing static NGE command timing.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
@@ -14,9 +14,13 @@
   },
   "sourceFiles": {
     "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
     "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
     "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
-    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java"
   },
   "optIn": {
     "command": "headShot1",
@@ -40,21 +44,72 @@
     "missingTables": "original command-table executeTime",
     "reason": "Pre-CU timing must fail closed instead of applying partial NGE weapon data to an authenticated command."
   },
+  "staticControl": {
+    "command": "headShot2",
+    "provenance": "authentic Publish 14.1 client command and combat-data rows",
+    "commandTableExecuteSeconds": 1.5,
+    "weaponType": "RIFLE",
+    "overridePresent": false,
+    "fixtureOwnership": "identity-bound direct command grant, snapshotted and revoked on cleanup"
+  },
   "buildEvidence": {
-    "environment": "isolated clone of swg-precu Linux build volume",
+    "environment": "isolated stage-56 source in the swg-precu Linux build volume",
     "targets": [
       "serverGame",
       "SwgGameServer",
       "SwgDatabaseServer",
+      "Java scripts (5,629 sources in the full build; 2 changed sources in the live-stage rebuild)",
+      "precu_headshot1_fixture.class",
+      "combat_actions.class",
+      "command_table.iff",
+      "combat_data.iff",
       "precu_combat_overrides.iff",
       "precu_weapon_profiles.iff"
     ],
     "result": "passed"
   },
-  "requiredBeforeReady": [
-    "live queue timer exposes the modeled duration for the authenticated fixture modifiers",
-    "the combat action executes only after that duration and command removal reports success",
-    "a non-opted command retains its original command-table executeTime",
-    "fixture cleanup restores all skill, weapon, position, combat, and HAM state"
-  ]
+  "liveEvidence": {
+    "date": "2026-07-17",
+    "stage": "E:\\SWG\\SWGSource\\Staging\\swg-precu-command-duration-live-20260717-56",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "patchCount": 37,
+    "acceptanceFileCount": 77,
+    "lifecycle": "d7a6c3e59f874b77a217202607170007",
+    "container": "swg-precu",
+    "containerHealthAfterCleanup": "healthy",
+    "clientBridgeProtocol": 13,
+    "clientSha256": "10F643B881239550AD4C479D706D32EAB7326670CE987BB5288CE316063BB909",
+    "staticControl": {
+      "command": "headShot2",
+      "queueCountAfterAdmission": 1,
+      "authoritativeTimerMaxMs": 1500,
+      "commandTableExecuteMs": 1500,
+      "authoritativeRemoval": "Success"
+    },
+    "optedCommand": {
+      "command": "headShot1",
+      "queueCountAfterAdmission": 1,
+      "authoritativeTimerMaxMs": 4725,
+      "modeledTimerMaxMs": 4725,
+      "authoritativeRemoval": "Success"
+    },
+    "transientOutcomeBeforeCleanup": {
+      "attackerHealth": 1433,
+      "attackerAction": 343,
+      "attackerMind": 89,
+      "defenderHealth": 843,
+      "defenderMind": 369
+    },
+    "cleanup": {
+      "result": "restored",
+      "durationControlRevoked": true,
+      "rifleOneRestoredAbsent": true,
+      "fixtureWeaponDestroyed": true,
+      "pvpAndCombatCleared": true,
+      "attackerHamRestored": "1435/500/100",
+      "defenderHamRestored": "900/500/400",
+      "regenRestored": true
+    }
+  },
+  "requiredBeforeReady": []
 }
