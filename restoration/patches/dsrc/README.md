@@ -251,3 +251,10 @@ ricochet for ranged attacks without invoking NGE parry, proc, or reflect logic.
 Marksman Rifle I, Pistol I, and Carbine I rows and adds `bodyShot1` plus
 `legShot1` across command, combat, skill, override, CDEF HAM-cost, weapon-profile,
 and standard combat-dispatch data.
+
+`021-p14-marksman-tier1-live-fixture.patch` adds the identity-bound reversible
+live layer for Pistol I, Carbine I, and their CDEF weapons. It requires the same
+lifecycle from `precu_headshot1_fixture`, which continues to own location, PvP,
+combat-state, and HAM restoration. The tier-I layer can arm success and strict
+no-partial boundaries, but it cannot equip a weapon, queue a command, or
+fabricate damage.

@@ -64,8 +64,10 @@ Validate the first authenticated Publish 14.1 combat-command vertical slice:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HeadShot1.ps1 -SourceRoot <materialized-staging-directory>
 
-Validate that the next Marksman tier-I Health/Action command matrix remains
-closed until its dynamic speed, action accuracy, and live gates are complete:
+Validate the activated Marksman tier-I Health/Action command matrix and its
+layered, identity-bound live fixture. The fixture owns reversible pistol-I,
+carbine-I, and CDEF weapon setup while the established headShot1 fixture owns
+world/HAM restoration; combat commands remain client-queue-only:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MarksmanTier1Gate.ps1 -SourceRoot <materialized-staging-directory>
 
@@ -338,6 +340,11 @@ the pinned Core3 CDEF speed, range, accuracy, defense, posture, secondary-defens
 and 10/15/10 HAM profiles; the standard combat wrapper consumes the already
 accepted weapon-derived duration, primary-accuracy, and three-pool runtime seams.
 The exact compiled combat, command, and skill IFFs are published on
-`swgsais/pre-cu-reborn-assets:x64-dx9`. Static and isolated-build acceptance are
-complete; two-client success, cross-weapon rejection, strict no-partial HAM, and
-live diagnostic acceptance remain before the matrix can move to `ready`.
+`swgsais/pre-cu-reborn-assets:x64-dx9`. Static, isolated-build, and two-client
+live execution acceptance are complete. Pistol/BodyShot1 and
+carbine/LegShot1 succeeded through the production client queue with exact
+three-pool costs; all six rifle/pistol/carbine cross-use cases and both strict
+no-partial boundaries cancelled without HAM mutation. The layered fixtures
+then restored all owned state. Live diagnostic exposure for command duration,
+primary-accuracy components, and secondary-defense results remains before the
+matrix can move to `ready`.

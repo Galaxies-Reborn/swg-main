@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "marksman-tier1-combat-command-matrix",
-  "status": "implemented-build-verified-live-pending",
+  "status": "implemented-build-verified-live-partial",
   "scope": "Authentic Publish 14.1 Marksman tier-I activation for rifle/Mind headShot1, pistol/Health bodyShot1, and carbine/Action legShot1 across skill grants, queue dispatch, Core3-derived timing and accuracy, three-pool costs, weapon profiles, and client tables.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
@@ -36,7 +36,8 @@
     "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
     "weaponCosts": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab",
     "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
-    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java"
   },
   "fixture": {
     "governingStrength": 1000,
@@ -187,44 +188,162 @@
     }
   },
   "buildEvidence": {
-    "environment": "isolated Docker volume swg-precu-tier1-build with the exact staged seven-file activation",
+    "environment": "isolated Docker volume swg-precu-tier1-build from stage swg-precu-marksman-tier1-live-20260717-49",
     "javaResult": "passed",
     "tableResult": "passed",
     "sourceSha256": {
       "combatActions": "b4b5442e12f6f655d47210d5c6df3f9ad79cf34958ca96005bf1a44767e30b5d",
       "combatData": "0aaac92c0b24109ba6e4adcc8daca46fbbc1fa1c1629b14e3f55b074b61400ce",
-      "commandTable": "3853c89d8701b21d52393974479bf0bc10b6e6aab83d75ca234e5642ec2e6169",
+      "commandTable": "7567a3ff3e5579f0c88a3d9314cb16537e8455f51bfdb7dce2a097e1ee20ae96",
       "skillTable": "6071d68a40330b044e03c00c2ce688c1c7312bf57139ce432b18517f13a12182",
       "combatOverrides": "e05683f3702935845e09ecb8bd027ac9093682a59fc63230a75d2a81136012fd",
       "weaponCosts": "8df2fe312735e421c3759d611b80cd4a0648ae0b63cbbf5eae32fbb4f1b3e61f",
-      "weaponProfiles": "8d40ee7df4ecf6993134d2bfb06b0d67a98a0afffeab69f926def9261b9f2bb2"
+      "weaponProfiles": "8d40ee7df4ecf6993134d2bfb06b0d67a98a0afffeab69f926def9261b9f2bb2",
+      "liveFixture": "b1c74cb45ae679d430f831026a82fb98a48f8fd9070c63738ef6d518e3907f76"
     },
     "compiledIffSha256": {
       "combatData": "b10370723f639746b385eb10c4f3c39c36440d640342c58da3cfa1fd9ca405cd",
-      "commandTable": "68aafa7ea1c3064cb7da847594a307d75b5c4fcca0e7f5bc69e525fcc80ce86a",
+      "commandTable": "683e65f2d3c80c7feaa4a9609849d29ec2221832d81edcd8d93bea79b9895ff4",
       "skillTable": "eb62b893658e550bd18b3f6c8173a6f76f04db982a6dfd0b04bd8f0a53cb10e6",
       "combatOverrides": "d7f27fe1e790c6ae9dba877c473dbb73c001afd8205e4a3c0dde511b46d200ad",
       "weaponCosts": "00dbb380729884ed7f225e7e0bcd4e0007fb7811170ed81caf47bca2efd334d9",
       "weaponProfiles": "de9ad894f8f6ae08dafa6f9b5dcb549c80557a98aa7dd55152483fbaa80c6c23"
+    },
+    "compiledClassSha256": {
+      "liveFixture": "790d928bb76d166d5956f330207e95a5413f46eec942d3d17c1048830930abcc"
     }
   },
   "clientAssetPublication": {
     "status": "published",
     "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
     "branch": "x64-dx9",
-    "commit": "51cbfa0f1a92d1317f4a4758a0a3a5ec7d12232b",
+    "commit": "f3a6fc3f5edd04dd116b498d11cc41ce9ce3accc",
     "artifacts": {
       "datatables/combat/combat_data.iff": "b10370723f639746b385eb10c4f3c39c36440d640342c58da3cfa1fd9ca405cd",
-      "datatables/command/command_table.iff": "68aafa7ea1c3064cb7da847594a307d75b5c4fcca0e7f5bc69e525fcc80ce86a",
+      "datatables/command/command_table.iff": "683e65f2d3c80c7feaa4a9609849d29ec2221832d81edcd8d93bea79b9895ff4",
       "datatables/skill/skills.iff": "eb62b893658e550bd18b3f6c8173a6f76f04db982a6dfd0b04bd8f0a53cb10e6"
     }
   },
+  "liveFixture": {
+    "status": "live-verified",
+    "script": "test.precu_marksman_tier1_fixture",
+    "attackerOid": "44003778",
+    "attackerStationId": 91001,
+    "defenderOid": "39008597",
+    "defenderStationId": 1001,
+    "dependency": {
+      "script": "test.precu_headshot1_fixture",
+      "sameLifecycleRequired": true,
+      "ownedState": "location, PvP, combat reset, posture, locomotion, regeneration, and complete HAM restoration"
+    },
+    "ownedState": [
+      "original pistol-I ownership",
+      "original carbine-I ownership",
+      "fixture CDEF pistol",
+      "fixture CDEF carbine"
+    ],
+    "actions": [
+      "inspect",
+      "recover",
+      "prepare",
+      "status",
+      "armSuccess",
+      "armNoPartialBody",
+      "armNoPartialLeg",
+      "cleanup"
+    ],
+    "noPartialBoundaries": {
+      "bodyShot1": {
+        "attackerHealth": 3,
+        "attackerAction": 11,
+        "attackerMind": 6,
+        "limitingPool": "ACTION"
+      },
+      "legShot1": {
+        "attackerHealth": 10,
+        "attackerAction": 18,
+        "attackerMind": 6,
+        "limitingPool": "ACTION"
+      }
+    },
+    "commandExecutionOwner": "production x64 client toolbar and ClientCommandQueue only",
+    "neverQueuesOrFabricatesCombat": true
+  },
+  "liveEvidence": {
+    "date": "2026-07-17",
+    "lifecycle": "20d51c6c92884827a77d48cf5873a96e",
+    "container": "swg-precu",
+    "clientBridgeProtocol": 11,
+    "clientExeSha256": "9da0a60cc52d02d9eb2e2ea866c692c39e69b6dd42ad9467f60fd1594e022bf2",
+    "serverBinarySha256": "2c309c5ede3d4bc417fc6094110c4135dacc621272b31e3b2247a340c4d5f001",
+    "compiledFixtureSha256": "790d928bb76d166d5956f330207e95a5413f46eec942d3d17c1048830930abcc",
+    "positiveExecution": {
+      "bodyShot1": {
+        "weapon": "PISTOL",
+        "queueResult": "Success",
+        "attackerHealthCost": 2,
+        "attackerActionCost": 11,
+        "attackerMindCost": 5,
+        "defenderPool": "HEALTH",
+        "defenderBefore": 900,
+        "defenderAfter": 868
+      },
+      "legShot1": {
+        "weapon": "CARBINE",
+        "queueResult": "Success",
+        "attackerHealthCost": 9,
+        "attackerActionCost": 18,
+        "attackerMindCost": 5,
+        "defenderPool": "ACTION",
+        "defenderBefore": 500,
+        "defenderAfter": 473
+      }
+    },
+    "wrongWeaponMatrix": [
+      "bodyShot1+CARBINE",
+      "bodyShot1+RIFLE",
+      "legShot1+PISTOL",
+      "legShot1+RIFLE",
+      "headShot1+PISTOL",
+      "headShot1+CARBINE"
+    ],
+    "wrongWeaponResult": {
+      "serverCanPerformAction": 2,
+      "queueResult": "Cancelled",
+      "attackerHamChanged": false,
+      "defenderHamChanged": false
+    },
+    "noPartialResult": {
+      "bodyShot1": {
+        "serverCanPerformAction": 3,
+        "attackerHealth": 3,
+        "attackerAction": 11,
+        "attackerMind": 6,
+        "queueResult": "Cancelled",
+        "attackerHamChanged": false,
+        "defenderHamChanged": false
+      },
+      "legShot1": {
+        "serverCanPerformAction": 3,
+        "attackerHealth": 10,
+        "attackerAction": 18,
+        "attackerMind": 6,
+        "queueResult": "Cancelled",
+        "attackerHamChanged": false,
+        "defenderHamChanged": false
+      }
+    },
+    "cleanup": {
+      "tier1Restored": true,
+      "headShotLayerRestored": true,
+      "skillsRemoved": true,
+      "fixtureWeaponsRemoved": true,
+      "pvpRestored": true,
+      "hamRestored": true
+    }
+  },
   "requiredBeforeReady": [
-    "two-client live success for bodyShot1 and legShot1 with the production client queue",
-    "wrong-weapon rejection for pistol, carbine, and rifle cross-use",
-    "strict no-partial Health/Action/Mind acceptance for both commands",
-    "live status exposes the weapon-derived duration, primary accuracy, and secondary-defense result for each command",
-    "fixture cleanup restores owned skill, position, weapon, combat, and HAM state"
+    "live diagnostics expose the weapon-derived duration, primary-accuracy components, and secondary-defense result for each authenticated command"
   ],
   "materializerPolicy": {
     "rejectPatchTextWhileBlocked": [
