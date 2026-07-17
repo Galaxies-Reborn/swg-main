@@ -143,16 +143,18 @@ function Get-ModeledHitChance
 
 Write-Host "Publish 14.1 Core3 primary-accuracy checks:"
 Assert-Contract -Condition (
-    [string]$contract.status -ceq "implemented-build-verified-live-pending") -Name "p14.primary-accuracy.status.live-pending"
+    [string]$contract.status -ceq "ready") -Name "p14.primary-accuracy.status.ready"
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq "6856f315a80b5250635b2272695caec1d64204ed" -and
     [int]$contract.semanticReference.unskilledWeaponPenalty -eq -15 -and
     [int]$contract.semanticReference.primaryDefenseCap -eq 125) -Name "p14.primary-accuracy.core3.pin-and-constants"
 
+$commandRows = @(Import-SwgTab -Path $paths.commandTable)
 $overrideRows = @(Import-SwgTab -Path $paths.combatOverrides)
 $profileRows = @(Import-SwgTab -Path $paths.weaponProfiles)
 $skillRows = @(Import-SwgTab -Path $paths.skillTable)
 $headRows = @($overrideRows | Where-Object { [string]$_.actionName -ceq [string]$contract.optIn.command })
+$headCommands = @($commandRows | Where-Object { [string]$_.commandName -ceq [string]$contract.optIn.command })
 $probeRows = @($overrideRows | Where-Object { [string]$_.actionName -ceq "__precu_runtime_probe" })
 $profileRows = @($profileRows | Where-Object { [string]$_.templateName -ceq [string]$contract.optIn.weaponTemplate })
 $noviceRows = @($skillRows | Where-Object { [string]$_.NAME -ceq "combat_marksman_novice" })
@@ -160,6 +162,9 @@ $rifleOneRows = @($skillRows | Where-Object { [string]$_.NAME -ceq "combat_marks
 
 Assert-Contract -Condition (
     $headRows.Count -eq 1 -and [int]$headRows[0].accuracyBonus -eq [int]$contract.optIn.actionAccuracyBonus) -Name "p14.primary-accuracy.headshot1.opt-in-bonus"
+Assert-Contract -Condition (
+    $headCommands.Count -eq 1 -and
+    [double]$headCommands[0].maxRangeToTarget -eq [double]$contract.optIn.clientMaxRangeToTarget) -Name "p14.primary-accuracy.headshot1.client-admission-range"
 Assert-Contract -Condition (
     $probeRows.Count -eq 1 -and [int]$probeRows[0].accuracyBonus -eq 0) -Name "p14.primary-accuracy.runtime-probe.inert"
 Assert-Contract -Condition ($profileRows.Count -eq 1) -Name "p14.primary-accuracy.cdef-profile.unique"
@@ -186,6 +191,7 @@ $rangeCurve = Get-BracedBlock -Text $combatBase -Signature "public float getPrec
 $equation = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuHitChanceEquation("
 $attackPosture = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuRangedAttackLocomotionModifier("
 $defensePosture = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuRangedDefenseLocomotionModifier("
+$liveFixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 
 Assert-Contract -Condition (
     $primaryChance.Contains('dataTableSearchColumnForString(actionData.actionName, "actionName", PRECU_COMBAT_OVERRIDES)') -and
@@ -222,6 +228,29 @@ Assert-Contract -Condition (
     $primaryResult.Contains('return result;') -and
     $combatBase.Contains('int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuSecondaryResult;') -and
     $combatBase.Contains('int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuPrimaryResult;')) -Name "p14.primary-accuracy.runtime.authoritative-no-hybrid-primary"
+Assert-Contract -Condition (
+    $liveFixture.Contains('equalsIgnoreCase("armPrimaryIdeal")') -and
+    $liveFixture.Contains('armPrimaryRange(attacker, defender, args[3], "ideal", 16.0f)') -and
+    $liveFixture.Contains('equalsIgnoreCase("armPrimaryNearMax")') -and
+    $liveFixture.Contains('armPrimaryRange(attacker, defender, args[3], "nearMax", 64.0f)') -and
+    $liveFixture.Contains('equalsIgnoreCase("armPrimaryFallback")') -and
+    $liveFixture.Contains('armPrimaryRange(attacker, defender, args[3], "fallback", 6.0f)') -and
+    $liveFixture.Contains('resetLiveDiagnostic(attacker);') -and
+    $liveFixture.Contains('float attackerX = 1000.0f;') -and
+    $liveFixture.Contains('float attackerZ = 1000.0f;') -and
+    $liveFixture.Contains('float defenderZ = attackerZ + centerSeparationMeters;') -and
+    $liveFixture.Contains('getHeightAtLocation(attackerX, attackerZ)') -and
+    $liveFixture.Contains('getHeightAtLocation(defenderX, defenderZ)') -and
+    $liveFixture.Contains('boolean pvpReady =') -and
+    $liveFixture.Contains('pvpCanAttack(attacker, defender) &') -and
+    $liveFixture.Contains('if (!moved || !stateReady || !pvpReady || !hamReady ||') -and
+    $liveFixture.Contains('setLocation(attacker, attackerDestination)') -and
+    $liveFixture.Contains('setLocation(defender, defenderDestination)') -and
+    -not $liveFixture.Contains('setWeaponRangeInfo(') -and
+    $liveFixture.Contains('" globalMaxCombatRange=" + combat_engine.getMaxCombatRange()') -and
+    $liveFixture.Contains('" attackerWeaponMaxRange=" +') -and
+    $liveFixture.Contains('" headShot1MaxRange=" + headShotMaxRange') -and
+    $liveFixture.Contains('" lineOfSight=" + canSee(attacker, defender)')) -Name "p14.primary-accuracy.fixture.reversible-range-controls"
 
 $dormant = Get-Content -LiteralPath $paths.dormantHitEngine -Raw
 Assert-Contract -Condition (
@@ -231,17 +260,88 @@ Assert-Contract -Condition (
 
 $neutralIdeal = Get-ModeledHitChance -AttackerAccuracy ((Get-ModeledRangeAccuracy -Range 15 -Profile $profile) - 15 + 5) -TargetDefense -9
 $marksmanIdeal = Get-ModeledHitChance -AttackerAccuracy ((Get-ModeledRangeAccuracy -Range 15 -Profile $profile) + 20 + 5) -TargetDefense -9
+$marksmanNearMax = Get-ModeledHitChance -AttackerAccuracy ((Get-ModeledRangeAccuracy -Range 63 -Profile $profile) + 20 + 5) -TargetDefense -9
 $marksmanMax = Get-ModeledHitChance -AttackerAccuracy ((Get-ModeledRangeAccuracy -Range 64 -Profile $profile) + 20 + 5) -TargetDefense -9
 $marksmanRunning = Get-ModeledHitChance -AttackerAccuracy ((Get-ModeledRangeAccuracy -Range 15 -Profile $profile) + 20 + 5 - 150) -TargetDefense -9
 $withoutActionBonus = Get-ModeledHitChance -AttackerAccuracy ((Get-ModeledRangeAccuracy -Range 64 -Profile $profile) + 20) -TargetDefense -9
 Assert-Contract -Condition ([Math]::Abs($neutralIdeal - [double]$contract.modeledAcceptance.neutralIdealRangeChance) -lt 0.000001) -Name "p14.primary-accuracy.model.neutral-ideal"
 Assert-Contract -Condition ([Math]::Abs($marksmanIdeal - [double]$contract.modeledAcceptance.marksmanNoviceRifleOneIdealRangeChance) -lt 0.000001) -Name "p14.primary-accuracy.model.marksman-ideal"
+Assert-Contract -Condition ([Math]::Abs($marksmanNearMax - [double]$contract.modeledAcceptance.marksmanNoviceRifleOneNearMax63RangeChance) -lt 0.000001) -Name "p14.primary-accuracy.model.marksman-near-max"
 Assert-Contract -Condition ([Math]::Abs($marksmanMax - [double]$contract.modeledAcceptance.marksmanNoviceRifleOneMaxRangeChance) -lt 0.000001) -Name "p14.primary-accuracy.model.marksman-max"
 Assert-Contract -Condition ([Math]::Abs($marksmanRunning - [double]$contract.modeledAcceptance.marksmanNoviceRifleOneRunningIdealRangeChance) -lt 0.000001) -Name "p14.primary-accuracy.model.running-ideal"
 Assert-Contract -Condition ([Math]::Abs($withoutActionBonus - [double]$contract.modeledAcceptance.maxRangeChanceWithoutActionBonus) -lt 0.000001) -Name "p14.primary-accuracy.model.action-bonus-observable"
 Assert-Contract -Condition (
     [string]$contract.buildEvidence.result -ceq "passed" -and
-    @($contract.buildEvidence.targets).Count -eq 3) -Name "p14.primary-accuracy.isolated-build.evidence"
+    @($contract.buildEvidence.targets).Count -eq 5 -and
+    [string]$contract.buildEvidence.materializationFingerprint -ceq "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e" -and
+    [string]$contract.buildEvidence.compiledSha256.combatBase -ceq "c623c033e34ca52d1787b74ba41c0257184c4ba183230f4a93b47a15111ace6f" -and
+    [string]$contract.buildEvidence.compiledSha256.liveFixture -ceq "708fc824e45c2aa9a1a3f539831c334dee69d70930410a09d2a72fb4bc08dafd" -and
+    [string]$contract.buildEvidence.compiledSha256.commandTable -ceq "e756e50ecd19d60620d88a22bf721b594fea2268607a6dd614af9f39f537f083") -Name "p14.primary-accuracy.isolated-build.evidence"
+
+$ideal = $contract.liveEvidence.idealRange
+$nearMaximum = $contract.liveEvidence.nearMaximumRange
+$fallback = $contract.liveEvidence.fallbackControl
+Assert-Contract -Condition (
+    [string]$contract.liveEvidence.lifecycle -ceq "f2b6c3e59f874b77a217202607170013" -and
+    [string]$contract.liveEvidence.container -ceq "swg-precu" -and
+    [int]$contract.liveEvidence.clientBridgeProtocol -eq 13 -and
+    [string]$contract.liveEvidence.clientExeSha256 -ceq "10f643b881239550ad4c479d706d32eab7326670ce987bb5288ce316063bb909" -and
+    [string]$contract.liveEvidence.serverBinarySha256 -ceq "2c309c5ede3d4bc417fc6094110c4135dacc621272b31e3b2247a340c4d5f001" -and
+    [string]$contract.liveEvidence.compiledCombatBaseSha256 -ceq "c623c033e34ca52d1787b74ba41c0257184c4ba183230f4a93b47a15111ace6f" -and
+    [string]$contract.liveEvidence.compiledFixtureSha256 -ceq "708fc824e45c2aa9a1a3f539831c334dee69d70930410a09d2a72fb4bc08dafd" -and
+    [string]$contract.liveEvidence.compiledCommandTableSha256 -ceq "e756e50ecd19d60620d88a22bf721b594fea2268607a6dd614af9f39f537f083") -Name "p14.primary-accuracy.live.identity-and-artifacts"
+Assert-Contract -Condition (
+    [string]$contract.clientAssetPublication.status -ceq "published" -and
+    [string]$contract.clientAssetPublication.commit -ceq "5f18e2956d878b6b9fc2f929a0c1a00ddbb4caed" -and
+    [string]$contract.clientAssetPublication.sha256 -ceq "e756e50ecd19d60620d88a22bf721b594fea2268607a6dd614af9f39f537f083" -and
+    [string]$contract.clientToolPublication.status -ceq "published" -and
+    [string]$contract.clientToolPublication.commit -ceq "47c7a55cdf9bec5459cbb6c04dd9fca5bf053b5e" -and
+    [int]$contract.clientToolPublication.clientBridgeProtocol -eq 13) -Name "p14.primary-accuracy.client-publications"
+Assert-Contract -Condition (
+    [string]$ideal.command -ceq "headShot1" -and
+    [int]$ideal.distanceCentimeters -eq 1504 -and
+    [string]$ideal.queueResult -ceq "Success" -and
+    [int]$ideal.serverExecuteMaxMs -eq 4725 -and
+    [int]$ideal.primaryAccuracySkill -eq 20 -and
+    [int]$ideal.primaryAccuracyBonus -eq 5 -and
+    [Math]::Abs([double]$ideal.primaryAccuracyTotal - 74.884445) -lt 0.000001 -and
+    [double]$ideal.primaryDefenseTotal -eq -9.0 -and
+    [double]$ideal.hitChance -eq 100.0 -and
+    [string]$ideal.result -ceq "HIT" -and
+    [string]$ideal.secondaryProfile -ceq "RANDOM" -and
+    [string]$ideal.secondaryResult -ceq "HIT" -and
+    [int]$ideal.defenderMindAfter -lt [int]$ideal.defenderMindBefore) -Name "p14.primary-accuracy.live.ideal-range"
+Assert-Contract -Condition (
+    [string]$nearMaximum.command -ceq "headShot1" -and
+    [int]$nearMaximum.distanceCentimeters -eq 6299 -and
+    [string]$nearMaximum.queueResult -ceq "Success" -and
+    [int]$nearMaximum.serverExecuteMaxMs -eq 4725 -and
+    [int]$nearMaximum.primaryAccuracySkill -eq 20 -and
+    [int]$nearMaximum.primaryAccuracyBonus -eq 5 -and
+    [Math]::Abs([double]$nearMaximum.primaryAccuracyTotal - -52.323494) -lt 0.000001 -and
+    [double]$nearMaximum.primaryDefenseTotal -eq -9.0 -and
+    [Math]::Abs([double]$nearMaximum.hitChance - 53.338253) -lt 0.000001 -and
+    [string]$nearMaximum.result -ceq "HIT" -and
+    [string]$nearMaximum.secondaryProfile -ceq "RANDOM" -and
+    [string]$nearMaximum.secondaryResult -ceq "HIT" -and
+    [int]$nearMaximum.defenderMindAfter -lt [int]$nearMaximum.defenderMindBefore) -Name "p14.primary-accuracy.live.near-maximum-range"
+Assert-Contract -Condition (
+    [string]$fallback.command -ceq "headShot2" -and
+    [int]$fallback.distanceCentimeters -eq 720 -and
+    [string]$fallback.queueResult -ceq "Success" -and
+    [int]$fallback.serverExecuteMaxMs -eq 1500 -and
+    [string]$fallback.diagnosticPrimaryResult -ceq "FALLBACK" -and
+    [int]$fallback.attackerActionAfter -lt [int]$fallback.attackerActionBefore -and
+    [int]$fallback.defenderHealthAfter -lt [int]$fallback.defenderHealthBefore) -Name "p14.primary-accuracy.live.non-opted-fallback"
+Assert-Contract -Condition (
+    [bool]$contract.liveEvidence.cleanup.tier1Restored -and
+    [bool]$contract.liveEvidence.cleanup.headShotLayerRestored -and
+    [bool]$contract.liveEvidence.cleanup.skillsRemoved -and
+    [bool]$contract.liveEvidence.cleanup.fixtureWeaponsRemoved -and
+    [bool]$contract.liveEvidence.cleanup.pvpRestored -and
+    [bool]$contract.liveEvidence.cleanup.hamRestored -and
+    [bool]$contract.liveEvidence.cleanup.diagnosticObjvarsRemoved -and
+    @($contract.requiredBeforeReady).Count -eq 0) -Name "p14.primary-accuracy.live.cleanup-and-ready-boundary"
 
 if ($failures.Count -gt 0)
 {
@@ -249,4 +349,4 @@ if ($failures.Count -gt 0)
 }
 
 Write-Host ""
-Write-Host "Publish 14.1 Core3 primary-accuracy implementation passed its build/static gate; live accuracy remains pending and secondary outcomes are gated separately."
+Write-Host "Publish 14.1 Core3 primary-accuracy build/static, live execution, fallback, and cleanup acceptance passed; secondary outcomes remain gated separately."

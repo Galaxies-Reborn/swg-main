@@ -273,3 +273,19 @@ the shared duration seam's non-opted control. It deliberately has no
 `precu_combat_overrides` row, so its fixed 1.5-second command-table execute time
 proves that commands not yet migrated to the Core3 weapon-speed model continue
 to fail closed.
+
+`024-p14-primary-accuracy-live-fixture.patch` extends only the identity-bound
+Marksman diagnostic fixture with reversible ideal-range, near-maximum, and
+non-opted fallback placements. Status includes the inherited global
+combat-range gate plus the equipped weapon and action ranges. Its fixed
+wilderness anchor uses terrain-derived elevations on a verified clear
+positive-z sight line, avoiding city geometry and terrain occlusion in the
+near-maximum control. It resets telemetry and combat state but never equips or
+queues a command; the connected Publish 14.1 client remains the sole
+command-execution owner, and the underlying headShot1 lifecycle restores both
+players' original locations and state.
+
+`025-p14-primary-command-range.patch` gives `headShot1` an explicit 64-meter
+client command range, matching its restored combat-data row. This prevents the
+inherited NGE CDEF object range from canceling a valid Pre-CU command before
+the authoritative server action runs.
