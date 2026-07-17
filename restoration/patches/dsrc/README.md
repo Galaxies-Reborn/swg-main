@@ -289,3 +289,18 @@ players' original locations and state.
 client command range, matching its restored combat-data row. This prevents the
 inherited NGE CDEF object range from canceling a valid Pre-CU command before
 the authoritative server action runs.
+
+`026-p14-secondary-defense-live-fixture.patch` extends the identity-bound
+Marksman fixture with reversible block, dodge, counter, lightsaber-ricochet,
+and missing-profile fallback controls. It creates exact defender weapons and
+uses additive, snapshot-backed defense modifiers to make the authentic Core3
+inequalities certain without replacing random rolls or outcomes. The connected
+client remains the only command owner. Combat telemetry records exact block
+scaling, counter dispatch, and whether the isolated ricochet ever entered the
+NGE parry or reflect branches. A server-only ricochet adapter is a real
+`WeaponObject` with the canonical `isLightsaber=1` marker, while inheriting the
+DL44 weapon type and shared arrangement that are stable across the Publish 14
+client and NGE server template sets. `jedi.isLightsaber(obj_id)` recognizes that
+canonical marker, and passive defense reads the held weapon instead of the NGE
+current-weapon combat cache. Live acceptance proved block, dodge, counter,
+ricochet, missing-profile NGE fallback, and complete fixture cleanup.

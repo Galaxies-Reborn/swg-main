@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "precu-secondary-defense",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Fail-closed Core3 block, dodge, counter, and lightsaber ricochet resolution for authenticated Pre-CU rifle attacks against exact CDEF-rifle, player-unarmed, and standardized lightsaber defender paths.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
@@ -23,9 +23,12 @@
   "sourceFiles": {
     "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
     "combatEngine": "dsrc/sku.0/sys.server/compiled/game/script/combat_engine.java",
+    "jediLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
     "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
     "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
-    "legacyCombatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base_old.java"
+    "legacyCombatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base_old.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java",
+    "fixtureWeaponTemplate": "dsrc/sku.0/sys.server/compiled/game/object/weapon/ranged/pistol/pistol_precu_ricochet_fixture.tpf"
   },
   "profiles": [
     {
@@ -88,8 +91,7 @@
       "standardized lightsaber saber_block ricochet for ranged and heavy attacks"
     ],
     "deferred": [
-      "non-CDEF and non-unarmed defender weapon profiles",
-      "live outcome telemetry and deterministic fixture rolls"
+      "non-CDEF and non-unarmed defender weapon profiles"
     ]
   },
   "buildEvidence": {
@@ -97,17 +99,105 @@
     "targets": [
       "combat_base.java",
       "combat_engine.java",
-      "precu_weapon_profiles.iff"
+      "jedi.java",
+      "precu_weapon_profiles.iff",
+      "precu_marksman_tier1_fixture.java",
+      "pistol_precu_ricochet_fixture.iff"
     ],
     "result": "passed"
   },
-  "requiredBeforeReady": [
-    "live status exposes defender profile, evade skill, center-of-being, posture, both rolls, and final outcome",
-    "a controlled block proves exactly half base and elemental damage before armor",
-    "a controlled dodge proves zero target-pool damage",
-    "a controlled counter proves zero incoming damage and one basic response command",
-    "a controlled lightsaber ricochet proves zero damage and no NGE parry proc or reflect command",
-    "missing-profile acceptance proves the complete NGE result path is restored",
-    "fixture cleanup restores defender weapon, skills, states, position, combat, and HAM"
-  ]
+  "liveFixture": {
+    "script": "test.precu_marksman_tier1_fixture",
+    "attackerOid": "44003778",
+    "defenderOid": "39008597",
+    "actions": {
+      "block": "armSecondaryBlock",
+      "dodge": "armSecondaryDodge",
+      "counter": "armSecondaryCounter",
+      "ricochet": "armSecondaryRicochet",
+      "missingProfileFallback": "armSecondaryFallback"
+    },
+    "defenderWeapons": {
+      "block": "object/weapon/ranged/rifle/rifle_cdef.iff",
+      "dodge": "object/weapon/ranged/pistol/pistol_cdef.iff",
+      "counter": "object/weapon/ranged/carbine/carbine_cdef.iff",
+      "ricochet": "object/weapon/ranged/pistol/pistol_precu_ricochet_fixture.iff",
+      "missingProfileFallback": "object/weapon/ranged/pistol/pistol_dl44_metal.iff"
+    },
+    "controlPolicy": "The fixture applies and later removes an exact +1000 private_center_of_being delta for ordinary defenses or +101 saber_block for ricochet, making the authentic Core3 inequality certain without replacing its roll or result code. Its server-only ricochet adapter is a real WeaponObject with the canonical isLightsaber=1 marker consumed by jedi.isLightsaber(obj_id), while its inherited DL44 weapon type and shared arrangement remain stable across the Publish 14 client and NGE-derived server. The Pre-CU resolver reads the defender's held weapon rather than the NGE current-weapon combat cache because passive defense must follow the equipped hand slot. The fixture also supplies a snapshot-backed force_sensitive_1a class template, identity-bound weapon certification cache, and fixture-owned newWeapon.coreLevel=1. No Jedi skill is granted; every non-ricochet arm and cleanup restores the exact original class template, and cleanup destroys every adapter control with its owned weapon.",
+    "ownership": "layered under the identity-bound headShot1 lifecycle; cleanup restores the original skill-mod values and destroys every fixture-owned defender weapon",
+    "commandExecutionOwner": "production x64 client toolbar and ClientCommandQueue only",
+    "weaponEquipOwner": "production x64 client inventory equip path for the player-driven profiles; reversible server-native fixture equip is used only for the missing-profile fallback control"
+  },
+  "liveEvidence": {
+    "capturedUtc": "2026-07-17T14:30:00Z",
+    "environment": "isolated swg-precu cluster on login port 45450 with two protocol-14 x64 clients",
+    "clientExecutableSha256": "62E9056500758B0F1F7706F4ECC71441BE73E059112098AC9521BFF08457DCFC",
+    "publishedClientExecutableSha256": "17882CC8C9EB3933AABD8F7241D36EBADAF67B8667670D29F2B9499C78AA1375",
+    "publishedClientToolsCommit": "305f0eb5b2b899c0f3b04706b80fb57d94cf76d8",
+    "publishedClientProtocolSmoke": "protocol 14 accepted by both unattended clients after staging the published executable",
+    "canonicalPatchSha256": "87EB6BE24C5A5B7A9C84EC904662ABC7BE01CBCA7C8D0C1B578578914EF292F9",
+    "block": {
+      "lifecycle": "f3b6c3e59f874b77a217202607170014",
+      "primaryResult": "HIT",
+      "secondaryResult": "BLOCK",
+      "baseBefore": 43,
+      "baseAfter": 21,
+      "defenderMindBefore": 400,
+      "defenderMindAfter": 379,
+      "ngeParryBranch": 0,
+      "reflectQueued": 0
+    },
+    "dodge": {
+      "lifecycle": "f3b6c3e59f874b77a217202607170014",
+      "primaryResult": "HIT",
+      "secondaryResult": "DODGE",
+      "defenderHamUnchanged": true
+    },
+    "counter": {
+      "lifecycle": "f4b6c3e59f874b77a217202607170015",
+      "primaryResult": "HIT",
+      "secondaryResult": "COUNTER",
+      "defenderHamUnchanged": true,
+      "counterDispatched": 1,
+      "attackerResponseCostObserved": true
+    },
+    "ricochet": {
+      "lifecycle": "a7b6c3e59f874b77a217202607170034",
+      "primaryHitChance": 100.0,
+      "primaryRoll": 5,
+      "primaryResult": "HIT",
+      "secondaryProfile": "LIGHTSABER",
+      "secondaryResult": "RICOCHET",
+      "saberBlock": 101,
+      "saberRoll": 82,
+      "defenderWeapon": "object/weapon/ranged/pistol/pistol_precu_ricochet_fixture.iff",
+      "defenderHamUnchanged": true,
+      "ngeParryBranch": 0,
+      "reflectQueued": 0
+    },
+    "missingProfileFallback": {
+      "lifecycle": "a7b6c3e59f874b77a217202607170034",
+      "primaryHitChance": 100.0,
+      "primaryRoll": 55,
+      "primaryResult": "HIT",
+      "secondaryProfile": "FALLBACK_NO_PROFILE",
+      "secondaryResult": "FALLBACK",
+      "defenderWeapon": "object/weapon/ranged/pistol/pistol_dl44_metal.iff",
+      "defenderMindBefore": 400,
+      "defenderMindAfter": 365,
+      "ngeParryBranch": 0,
+      "reflectQueued": 0
+    },
+    "cleanup": {
+      "marksmanRestored": true,
+      "headShotRestored": true,
+      "fixtureWeaponsRemaining": 0,
+      "diagnosticEnabledAfterCleanup": 0,
+      "attackerHamRestored": "1435/500/100",
+      "defenderHamRestored": "900/500/400",
+      "pvpCanAttackAfterCleanup": false
+    }
+  },
+  "requiredBeforeReady": []
 }

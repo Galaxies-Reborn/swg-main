@@ -84,7 +84,8 @@ function Get-BracedBlock
 
 Write-Host "Publish 14.1 Core3 secondary-defense checks:"
 Assert-Contract -Condition (
-    [string]$contract.status -ceq "implemented-build-verified-live-pending") -Name "p14.secondary-defense.status.live-pending"
+    [string]$contract.status -ceq "ready" -and
+    @($contract.requiredBeforeReady).Count -eq 0) -Name "p14.secondary-defense.status.ready"
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq "6856f315a80b5250635b2272695caec1d64204ed" -and
     [int]$contract.semanticReference.secondaryDefenseCap -eq 125 -and
@@ -112,10 +113,13 @@ Assert-Contract -Condition (
 
 $combatBase = Get-Content -LiteralPath $paths.combatBase -Raw
 $combatEngine = Get-Content -LiteralPath $paths.combatEngine -Raw
+$jediLibrary = Get-Content -LiteralPath $paths.jediLibrary -Raw
 $legacyCombatBase = Get-Content -LiteralPath $paths.legacyCombatBase -Raw
+$liveFixture = Get-Content -LiteralPath $paths.liveFixture -Raw
+$fixtureWeaponTemplate = Get-Content -LiteralPath $paths.fixtureWeaponTemplate -Raw
 $secondary = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuSecondaryDefenseResult("
 $resultCode = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuSecondaryDefenseResultCode("
-$counter = Get-BracedBlock -Text $combatBase -Signature "public void doPrecuCounterAttack("
+$counter = Get-BracedBlock -Text $combatBase -Signature "public boolean doPrecuCounterAttack("
 $attackerAccuracy = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuAttackerAccuracyTotal("
 
 Assert-Contract -Condition (
@@ -131,7 +135,8 @@ Assert-Contract -Condition (
     $combatBase.Contains("int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult") -and
     $combatBase.Contains("int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult")) -Name "p14.secondary-defense.integration.complete-nge-fallback"
 Assert-Contract -Condition (
-    $secondary.Contains('getCurrentWeapon(defenderData.id)') -and
+    $secondary.Contains('getHeldWeapon(defenderData.id)') -and
+    -not $secondary.Contains('getCurrentWeapon(defenderData.id)') -and
     $secondary.Contains('dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES)') -and
     ([regex]::Matches($secondary, 'return PRECU_SECONDARY_RESULT_FALLBACK;').Count -ge 4)) -Name "p14.secondary-defense.runtime.exact-defender-profile"
 Assert-Contract -Condition (
@@ -195,8 +200,12 @@ Assert-Contract -Condition (
     $combatBase.Contains('else if (hitData[i].precuCounter)') -and
     $combatBase.Contains('defenderResults[i].result = COMBAT_RESULT_COUNTER;')) -Name "p14.secondary-defense.counter.negates-damage-and-reports"
 Assert-Contract -Condition (
+    $counter.Contains('setObjVar(attacker, "combat.boolCounterAttack", true);') -and
     $counter.Contains('startCombat(defender, attacker);') -and
-    $counter.Contains('queueCommand(defender, PRECU_COUNTERATTACK_COMMAND, attacker, "", COMMAND_PRIORITY_FRONT);') -and
+    $counter.Contains('return queueCommand(') -and
+    $counter.Contains('PRECU_COUNTERATTACK_COMMAND') -and
+    $counter.Contains('COMMAND_PRIORITY_FRONT') -and
+    $combatBase.Contains('"secondary.counterQueued"') -and
     $combatBase.Contains('public static final int PRECU_COUNTERATTACK_COMMAND = 1957054281;')) -Name "p14.secondary-defense.counter.basic-response-command"
 Assert-Contract -Condition (
     $legacyCombatBase.Contains('queueCommand(objDefender, (1957054281), objAttacker, "", COMMAND_PRIORITY_FRONT);') -and
@@ -211,6 +220,83 @@ Assert-Contract -Condition (
         $combatBase.IndexOf('else if (hitData[i].parry)', [StringComparison]::Ordinal) -and
     $combatBase.IndexOf('else if (hitData[i].precuRicochet)', [StringComparison]::Ordinal) -gt
         $combatBase.IndexOf('queueCommand(defenderData[i].id, (1345072218)', [StringComparison]::Ordinal)) -Name "p14.secondary-defense.ricochet.bypasses-nge-parry-proc-reflect"
+Assert-Contract -Condition (
+    $combatBase.Contains('"secondary.blockBaseBefore"') -and
+    $combatBase.Contains('"secondary.blockBaseAfter"') -and
+    $combatBase.Contains('"secondary.blockElementalBefore"') -and
+    $combatBase.Contains('"secondary.blockElementalAfter"') -and
+    $combatBase.Contains('"secondary.ngeParryBranch"') -and
+    $combatBase.Contains('"secondary.reflectQueued"')) -Name "p14.secondary-defense.live.outcome-telemetry"
+Assert-Contract -Condition (
+    $secondary.Contains('"FALLBACK_NO_PROFILE"') -and
+    $secondary.Contains('"FALLBACK_INCOMPLETE_PROFILE"') -and
+    $secondary.Contains('"secondary.resultName", "FALLBACK"')) -Name "p14.secondary-defense.live.fallback-telemetry"
+Assert-Contract -Condition (
+    $liveFixture.Contains('equalsIgnoreCase("armSecondaryBlock")') -and
+    $liveFixture.Contains('equalsIgnoreCase("armSecondaryDodge")') -and
+    $liveFixture.Contains('equalsIgnoreCase("armSecondaryCounter")') -and
+    $liveFixture.Contains('equalsIgnoreCase("armSecondaryRicochet")') -and
+    $liveFixture.Contains('equalsIgnoreCase("armSecondaryFallback")') -and
+    $liveFixture.Contains('"private_center_of_being", 1000') -and
+    $liveFixture.Contains('"ricochet", "saber_block", 101') -and
+    $liveFixture.Contains('LIGHTSABER_TEMPLATE') -and
+    $liveFixture.Contains('FALLBACK_WEAPON_TEMPLATE')) -Name "p14.secondary-defense.live.reversible-controls"
+Assert-Contract -Condition (
+    $fixtureWeaponTemplate.Contains('@base object/weapon/ranged/pistol/pistol_dl44.iff') -and
+    $fixtureWeaponTemplate.Contains('@class weapon_object_template 11') -and
+    $fixtureWeaponTemplate.Contains('sharedTemplate = "object/weapon/ranged/pistol/shared_pistol_dl44.iff"') -and
+    $fixtureWeaponTemplate.Contains('objvars = +["isLightsaber"=1]') -and
+    -not $fixtureWeaponTemplate.Contains('weaponType = WT_1handLightsaber') -and
+    $jediLibrary.Contains('hasObjVar(objWeapon, "isLightsaber")') -and
+    $jediLibrary.Contains('getIntObjVar(objWeapon, "isLightsaber") == 1')) -Name "p14.secondary-defense.live.cross-version-ricochet-adapter"
+Assert-Contract -Condition (
+    $liveFixture.Contains('clearSecondaryDefenseControl(defender)') -and
+    $liveFixture.Contains('applySkillStatisticModifier(defender, controlMod, -controlDelta)') -and
+    $liveFixture.Contains('ORIGINAL_CENTER_OF_BEING') -and
+    $liveFixture.Contains('ORIGINAL_SABER_BLOCK') -and
+    $liveFixture.Contains('destroyOwnedWeapon(') -and
+    -not $liveFixture.Contains('queueCommand(') -and
+    $liveFixture.Contains('equipOverride(weapon, defender)') -and
+    $liveFixture.Contains('COMBAT_WEAPON_SCRIPT') -and
+    [string]$contract.liveFixture.commandExecutionOwner -match 'ClientCommandQueue' -and
+    [string]$contract.liveFixture.weaponEquipOwner -match 'client inventory equip') -Name "p14.secondary-defense.live.ownership-and-cleanup"
+Assert-Contract -Condition (
+    [string]$contract.liveEvidence.clientExecutableSha256 -ceq
+        "62E9056500758B0F1F7706F4ECC71441BE73E059112098AC9521BFF08457DCFC" -and
+    [string]$contract.liveEvidence.publishedClientExecutableSha256 -ceq
+        "17882CC8C9EB3933AABD8F7241D36EBADAF67B8667670D29F2B9499C78AA1375" -and
+    [string]$contract.liveEvidence.publishedClientToolsCommit -ceq
+        "305f0eb5b2b899c0f3b04706b80fb57d94cf76d8" -and
+    [string]$contract.liveEvidence.publishedClientProtocolSmoke -match 'protocol 14' -and
+    [string]$contract.liveEvidence.canonicalPatchSha256 -ceq
+        "87EB6BE24C5A5B7A9C84EC904662ABC7BE01CBCA7C8D0C1B578578914EF292F9" -and
+    [string]$contract.liveEvidence.block.secondaryResult -ceq "BLOCK" -and
+    [int]$contract.liveEvidence.block.baseBefore -eq 43 -and
+    [int]$contract.liveEvidence.block.baseAfter -eq 21 -and
+    [string]$contract.liveEvidence.dodge.secondaryResult -ceq "DODGE" -and
+    [bool]$contract.liveEvidence.dodge.defenderHamUnchanged -and
+    [string]$contract.liveEvidence.counter.secondaryResult -ceq "COUNTER" -and
+    [int]$contract.liveEvidence.counter.counterDispatched -eq 1) -Name "p14.secondary-defense.live.block-dodge-counter"
+Assert-Contract -Condition (
+    [string]$contract.liveEvidence.ricochet.secondaryProfile -ceq "LIGHTSABER" -and
+    [string]$contract.liveEvidence.ricochet.secondaryResult -ceq "RICOCHET" -and
+    [int]$contract.liveEvidence.ricochet.saberBlock -eq 101 -and
+    [int]$contract.liveEvidence.ricochet.saberRoll -le 101 -and
+    [bool]$contract.liveEvidence.ricochet.defenderHamUnchanged -and
+    [int]$contract.liveEvidence.ricochet.ngeParryBranch -eq 0 -and
+    [int]$contract.liveEvidence.ricochet.reflectQueued -eq 0 -and
+    [string]$contract.liveEvidence.missingProfileFallback.secondaryProfile -ceq
+        "FALLBACK_NO_PROFILE" -and
+    [string]$contract.liveEvidence.missingProfileFallback.secondaryResult -ceq
+        "FALLBACK" -and
+    [int]$contract.liveEvidence.missingProfileFallback.defenderMindBefore -gt
+        [int]$contract.liveEvidence.missingProfileFallback.defenderMindAfter) -Name "p14.secondary-defense.live.ricochet-and-fallback"
+Assert-Contract -Condition (
+    [bool]$contract.liveEvidence.cleanup.marksmanRestored -and
+    [bool]$contract.liveEvidence.cleanup.headShotRestored -and
+    [int]$contract.liveEvidence.cleanup.fixtureWeaponsRemaining -eq 0 -and
+    [int]$contract.liveEvidence.cleanup.diagnosticEnabledAfterCleanup -eq 0 -and
+    -not [bool]$contract.liveEvidence.cleanup.pvpCanAttackAfterCleanup) -Name "p14.secondary-defense.live.cleanup"
 
 $successfulPairs = 0
 for ($attackRoll = [int]$contract.semanticReference.attackRollMinimum; $attackRoll -le [int]$contract.semanticReference.attackRollMaximum; $attackRoll++)
@@ -238,7 +324,7 @@ Assert-Contract -Condition (
     @($contract.narrowBoundary.deferred | Where-Object { [string]$_ -match 'ricochet' }).Count -eq 0) -Name "p14.secondary-defense.boundary.ricochet-included"
 Assert-Contract -Condition (
     [string]$contract.buildEvidence.result -ceq "passed" -and
-    @($contract.buildEvidence.targets).Count -eq 3) -Name "p14.secondary-defense.isolated-build.evidence"
+    @($contract.buildEvidence.targets).Count -eq 6) -Name "p14.secondary-defense.isolated-build.evidence"
 
 if ($failures.Count -gt 0)
 {
@@ -246,4 +332,4 @@ if ($failures.Count -gt 0)
 }
 
 Write-Host ""
-Write-Host "Publish 14.1 Core3 block/dodge/counter/ricochet implementation passed its build/static gate; live outcomes and additional weapon profiles remain pending."
+Write-Host "Publish 14.1 Core3 block/dodge/counter/ricochet implementation passed its build, static, and live acceptance gates; additional defender weapon profiles remain deferred."
