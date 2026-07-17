@@ -91,7 +91,9 @@ Assert-Contract -Condition (
     [int]$contract.semanticReference.attackRollMinimum -eq 1 -and
     [int]$contract.semanticReference.attackRollMaximum -eq 500 -and
     [int]$contract.semanticReference.defendRollMinimum -eq 1 -and
-    [int]$contract.semanticReference.defendRollMaximum -eq 200) -Name "p14.secondary-defense.core3.pin-cap-and-rolls"
+    [int]$contract.semanticReference.defendRollMaximum -eq 200 -and
+    [int]$contract.semanticReference.saberBlockRollMinimum -eq 0 -and
+    [int]$contract.semanticReference.saberBlockRollMaximum -eq 100) -Name "p14.secondary-defense.core3.pin-cap-and-rolls"
 
 $profileRows = @(Import-SwgTab -Path $paths.weaponProfiles)
 $cdefRows = @($profileRows | Where-Object { [string]$_.templateName -ceq "object/weapon/ranged/rifle/rifle_cdef.iff" })
@@ -118,7 +120,8 @@ $attackerAccuracy = Get-BracedBlock -Text $combatBase -Signature "public float g
 
 Assert-Contract -Condition (
     $combatEngine.Contains("public boolean precuBlock = false;") -and
-    $combatEngine.Contains("public boolean precuCounter = false;")) -Name "p14.secondary-defense.hit-result.explicit-flags"
+    $combatEngine.Contains("public boolean precuCounter = false;") -and
+    $combatEngine.Contains("public boolean precuRicochet = false;")) -Name "p14.secondary-defense.hit-result.explicit-flags"
 Assert-Contract -Condition (
     $combatBase.Contains("if (precuPrimaryResult == HIT_RESULT_HIT)") -and
     $combatBase.Contains("precuSecondaryResult = getPrecuSecondaryDefenseResult(attackerData, defenderData[i], weaponData, actionData);")) -Name "p14.secondary-defense.integration.after-primary-hit-only"
@@ -131,6 +134,16 @@ Assert-Contract -Condition (
     $secondary.Contains('getCurrentWeapon(defenderData.id)') -and
     $secondary.Contains('dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES)') -and
     ([regex]::Matches($secondary, 'return PRECU_SECONDARY_RESULT_FALLBACK;').Count -ge 4)) -Name "p14.secondary-defense.runtime.exact-defender-profile"
+Assert-Contract -Condition (
+    $secondary.IndexOf('if (jedi.isLightsaber(defenderWeapon))', [StringComparison]::Ordinal) -ge 0 -and
+    $secondary.IndexOf('if (jedi.isLightsaber(defenderWeapon))', [StringComparison]::Ordinal) -lt
+        $secondary.IndexOf('dataTableSearchColumnForString(getTemplateName(defenderWeapon)', [StringComparison]::Ordinal)) -Name "p14.secondary-defense.ricochet.standardized-before-profile-fallback"
+Assert-Contract -Condition (
+    $secondary.Contains('!ai_lib.isTurret(attackerData.id)') -and
+    $secondary.Contains('combat.isRangedWeapon(weaponData.weaponType) || combat.isHeavyWeapon(weaponData.weaponType)') -and
+    $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, "saber_block")')) -Name "p14.secondary-defense.ricochet.core3-eligibility"
+Assert-Contract -Condition (
+    $secondary.Contains('saberBlock > 0 && rand(0, 100) <= saberBlock ? HIT_RESULT_PRECU_RICOCHET : HIT_RESULT_HIT;')) -Name "p14.secondary-defense.ricochet.inclusive-saber-block-roll"
 Assert-Contract -Condition (
     $secondary.Contains('getState(defenderData.id, STATE_INTIMIDATED) > 0') -and
     $secondary.Contains('getState(defenderData.id, STATE_BERSERK) > 0') -and
@@ -185,6 +198,16 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     $legacyCombatBase.Contains('queueCommand(objDefender, (1957054281), objAttacker, "", COMMAND_PRIORITY_FRONT);') -and
     $legacyCombatBase.Contains('cbtDefenderResults[intI].result = COMBAT_RESULT_COUNTER;')) -Name "p14.secondary-defense.counter.legacy-swgsource-plumbing"
+Assert-Contract -Condition (
+    $combatBase.Contains('case HIT_RESULT_PRECU_RICOCHET:') -and
+    $combatBase.Contains('hitData[i].precuRicochet = true;') -and
+    $combatBase.Contains('else if (hitData[i].precuRicochet)') -and
+    $combatBase.Contains('defenderResults[i].result = COMBAT_RESULT_LIGHTSABER_BLOCK;')) -Name "p14.secondary-defense.ricochet.zero-damage-lightsaber-result"
+Assert-Contract -Condition (
+    $combatBase.IndexOf('else if (hitData[i].precuRicochet)', [StringComparison]::Ordinal) -gt
+        $combatBase.IndexOf('else if (hitData[i].parry)', [StringComparison]::Ordinal) -and
+    $combatBase.IndexOf('else if (hitData[i].precuRicochet)', [StringComparison]::Ordinal) -gt
+        $combatBase.IndexOf('queueCommand(defenderData[i].id, (1345072218)', [StringComparison]::Ordinal)) -Name "p14.secondary-defense.ricochet.bypasses-nge-parry-proc-reflect"
 
 $successfulPairs = 0
 for ($attackRoll = [int]$contract.semanticReference.attackRollMinimum; $attackRoll -le [int]$contract.semanticReference.attackRollMaximum; $attackRoll++)
@@ -208,7 +231,8 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     [Math]::Abs(($secondaryChance / 3.0) - [double]$contract.modeledAcceptance.eachUnarmedOutcomeChance) -lt 0.000000001) -Name "p14.secondary-defense.model.each-unarmed-outcome"
 Assert-Contract -Condition (
-    @($contract.narrowBoundary.deferred | Where-Object { [string]$_ -match 'ricochet' }).Count -eq 1) -Name "p14.secondary-defense.boundary.ricochet-explicitly-deferred"
+    @($contract.narrowBoundary.included | Where-Object { [string]$_ -match 'ricochet' }).Count -eq 1 -and
+    @($contract.narrowBoundary.deferred | Where-Object { [string]$_ -match 'ricochet' }).Count -eq 0) -Name "p14.secondary-defense.boundary.ricochet-included"
 Assert-Contract -Condition (
     [string]$contract.buildEvidence.result -ceq "passed" -and
     @($contract.buildEvidence.targets).Count -eq 3) -Name "p14.secondary-defense.isolated-build.evidence"
@@ -219,4 +243,4 @@ if ($failures.Count -gt 0)
 }
 
 Write-Host ""
-Write-Host "Publish 14.1 Core3 block/dodge/counter implementation passed its build/static gate; live outcomes and lightsaber ricochet remain pending."
+Write-Host "Publish 14.1 Core3 block/dodge/counter/ricochet implementation passed its build/static gate; live outcomes and additional weapon profiles remain pending."

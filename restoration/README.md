@@ -79,8 +79,8 @@ independently (secondary outcomes are gated separately):
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrimaryAccuracy.ps1 -SourceRoot <materialized-staging-directory>
 
-Validate the build-complete, live-pending Core3 block/dodge/counter seam
-independently (lightsaber ricochet remains blocked):
+Validate the build-complete, live-pending Core3 block/dodge/counter/ricochet
+seam independently (additional weapon profiles and live outcomes remain gated):
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SecondaryDefense.ps1 -SourceRoot <materialized-staging-directory>
 

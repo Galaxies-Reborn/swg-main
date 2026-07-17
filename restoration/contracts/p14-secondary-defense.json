@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "precu-secondary-defense",
   "status": "implemented-build-verified-live-pending",
-  "scope": "Fail-closed Core3 block, dodge, and counter resolution for authenticated Pre-CU rifle attacks against exact CDEF-rifle and player-unarmed defender profiles. Lightsaber ricochet remains separately blocked.",
+  "scope": "Fail-closed Core3 block, dodge, counter, and lightsaber ricochet resolution for authenticated Pre-CU rifle attacks against exact CDEF-rifle, player-unarmed, and standardized lightsaber defender paths.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
@@ -15,6 +15,8 @@
     "attackRollMaximum": 500,
     "defendRollMinimum": 1,
     "defendRollMaximum": 200,
+    "saberBlockRollMinimum": 0,
+    "saberBlockRollMaximum": 100,
     "blockDamageMultiplier": 0.5,
     "counterattackCommandCrc": 1957054281
   },
@@ -56,7 +58,8 @@
   "outcomes": {
     "block": "attack remains successful; base and elemental damage are halved; defender result is block",
     "dodge": "attack is unsuccessful and applies no damage; defender result is evade",
-    "counter": "attack is unsuccessful and applies no damage; defender enters combat and queues the legacy basic counterattack at front priority"
+    "counter": "attack is unsuccessful and applies no damage; defender enters combat and queues the legacy basic counterattack at front priority",
+    "ricochet": "a ranged or heavy attack against a lightsaber defender is unsuccessful when an inclusive random(0..100) roll is at or below saber_block; result is lightsaber block with no NGE proc or reflect path"
   },
   "modeledAcceptance": {
     "attackerAccuracyTotal": 55,
@@ -81,10 +84,10 @@
       "unarmed random block, dodge, or counter selection",
       "Core3 roll ranges, cap, center-of-being, posture, and state suppression",
       "50 percent block damage multiplier",
-      "legacy SWGSource basic counterattack command plumbing"
+      "legacy SWGSource basic counterattack command plumbing",
+      "standardized lightsaber saber_block ricochet for ranged and heavy attacks"
     ],
     "deferred": [
-      "lightsaber saber_block ricochet",
       "non-CDEF and non-unarmed defender weapon profiles",
       "live outcome telemetry and deterministic fixture rolls"
     ]
@@ -103,6 +106,7 @@
     "a controlled block proves exactly half base and elemental damage before armor",
     "a controlled dodge proves zero target-pool damage",
     "a controlled counter proves zero incoming damage and one basic response command",
+    "a controlled lightsaber ricochet proves zero damage and no NGE parry proc or reflect command",
     "missing-profile acceptance proves the complete NGE result path is restored",
     "fixture cleanup restores defender weapon, skills, states, position, combat, and HAM"
   ]
