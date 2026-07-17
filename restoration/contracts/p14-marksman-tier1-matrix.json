@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "feature": "marksman-tier1-combat-command-matrix",
+  "status": "blocked",
+  "scope": "Candidate expansion from the accepted rifle/Mind headShot1 slice to pistol/Health bodyShot1 and carbine/Action legShot1 without bypassing the missing Pre-CU speed and accuracy models.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "verifiedCurrentCommit": "3f294c7027dde69647bc0461224041551ee55f2b",
+    "currentMatchesPinned": true,
+    "combatQueueCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.h",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp"
+  },
+  "publish14ClientEvidence": {
+    "commandTableSha256": "F7ACB20472CBFC78A182703B8CFBF48A3EEAA84AF32ACD5E638F9342822258D8",
+    "skillTableSha256": "CA5275D226361E8AE9AEFE1CCF24C9432F58E5D3BC043BB3217D15674BF17136",
+    "pistolSkill": "combat_marksman_pistol_01",
+    "pistolCommand": "bodyShot1",
+    "carbineSkill": "combat_marksman_carbine_01",
+    "carbineCommand": "legShot1"
+  },
+  "excludedPriorReconstruction": {
+    "combatSliceSha256": "1E51DC8154117EDCEC034C66289A99D99292EAEF0D0948910EB5DA500A29F27B",
+    "balanceAuthority": false,
+    "reason": "The previous combat_data_marksman_slice.tab identifies itself as a first-pass reconstruction. Its balance rows are not Publish 14 or Core3 authority."
+  },
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponCosts": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+  },
+  "fixture": {
+    "governingStrength": 1000,
+    "governingQuickness": 300,
+    "governingFocus": 100,
+    "baseHealthCost": 10,
+    "baseActionCost": 15,
+    "baseMindCost": 10
+  },
+  "commands": [
+    {
+      "name": "bodyShot1",
+      "core3Lua": "MMOCoreORB/bin/scripts/commands/bodyShot1.lua",
+      "skill": "combat_marksman_pistol_01",
+      "weaponType": "PISTOL",
+      "weaponTemplate": "object/weapon/ranged/pistol/pistol_cdef.iff",
+      "targetPool": "HEALTH",
+      "damageMultiplier": 2.0,
+      "speedMultiplier": 1.0,
+      "healthCostMultiplier": 0.5,
+      "actionCostMultiplier": 0.75,
+      "mindCostMultiplier": 0.5,
+      "accuracyBonus": 50,
+      "animation": "fire_1_special_single",
+      "expectedFixtureHealthCost": 2,
+      "expectedFixtureActionCost": 11,
+      "expectedFixtureMindCost": 5
+    },
+    {
+      "name": "legShot1",
+      "core3Lua": "MMOCoreORB/bin/scripts/commands/legShot1.lua",
+      "skill": "combat_marksman_carbine_01",
+      "weaponType": "CARBINE",
+      "weaponTemplate": "object/weapon/ranged/carbine/carbine_cdef.iff",
+      "targetPool": "ACTION",
+      "damageMultiplier": 1.0,
+      "speedMultiplier": 2.0,
+      "healthCostMultiplier": 2.25,
+      "actionCostMultiplier": 1.25,
+      "mindCostMultiplier": 0.5,
+      "accuracyBonus": 25,
+      "animation": "test_homing",
+      "expectedFixtureHealthCost": 9,
+      "expectedFixtureActionCost": 18,
+      "expectedFixtureMindCost": 5
+    }
+  ],
+  "requiredBeforeReady": [
+    "weapon-derived command duration equivalent to Core3 calculateWeaponAttackSpeed rather than a fixed executeTime",
+    "per-action accuracy bonus mapped through an authenticated Pre-CU accuracy and defense equation rather than the NGE miss table",
+    "pistol and carbine CDEF costs installed from the pinned Core3 10/15/10 templates",
+    "authenticated skill grants, standard combat hooks, weapon restrictions, and target-pool routing",
+    "two-client live success, wrong-weapon rejection, and strict no-partial HAM acceptance for both commands"
+  ],
+  "materializerPolicy": {
+    "rejectPatchTextWhileBlocked": [
+      "bodyShot1",
+      "legShot1"
+    ]
+  }
+}

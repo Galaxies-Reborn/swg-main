@@ -140,6 +140,10 @@ Write-Host "Publish 14.1 headShot1 vertical-slice checks:"
 Assert-Contract -Condition ([string]$contract.status -ceq "ready") -Name "p14.headshot1.contract.ready"
 Assert-Contract -Condition ([string]$gate.status -ceq "ready") -Name "p14.headshot1.gate.ready"
 Assert-Contract -Condition ([bool]$contract.semanticReference.currentMatchesPinned) -Name "p14.headshot1.core3.current-matches-pin"
+Assert-Contract -Condition (
+    @($contract.acceptanceBoundary.deferredToMarksmanTier1Matrix).Count -eq 2 -and
+    @($contract.acceptanceBoundary.deferredToMarksmanTier1Matrix) -contains "weapon-derived queue duration from speedMultiplier" -and
+    @($contract.acceptanceBoundary.deferredToMarksmanTier1Matrix) -contains "per-action accuracyBonus in an authenticated Pre-CU hit equation") -Name "p14.headshot1.acceptance.speed-and-accuracy-deferred"
 
 $commandRows = @(Import-SwgTab -Path $paths.commandTable)
 $combatRows = @(Import-SwgTab -Path $paths.combatData)

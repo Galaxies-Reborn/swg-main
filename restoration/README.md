@@ -64,6 +64,11 @@ Validate the first authenticated Publish 14.1 combat-command vertical slice:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HeadShot1.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate that the next Marksman tier-I Health/Action command matrix remains
+closed until its dynamic speed, action accuracy, and live gates are complete:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MarksmanTier1Gate.ps1 -SourceRoot <materialized-staging-directory>
+
 Validate the atomic Publish 14.1 nine-attribute persistence and replication
 runtime:
 
@@ -311,3 +316,11 @@ The headShot1 gate is ready only as the complete command-specific overlay. The
 materializer still rejects its feature name whenever the gate is moved away
 from `ready`; a speculative combat-data row cannot bypass the three-pool HAM,
 skill-grant, queue, rifle, hook, Mind-routing, or atomic-drain acceptance.
+
+`bodyShot1` and `legShot1` are the next candidate pair because the authentic
+Marksman tier-I rows cover pistol/Health and carbine/Action beside the accepted
+rifle/Mind slice. They remain blocked: Core3 derives command duration from
+weapon speed and the profession speed modifier and adds a per-action accuracy
+bonus to its Pre-CU hit equation. Fixed NGE command time and the NGE miss table
+are not accepted substitutes. The materializer rejects either command token
+until `p14-marksman-tier1-matrix.json` is moved to `ready` with those gates met.

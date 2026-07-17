@@ -200,20 +200,37 @@ foreach ($overlay in @($manifest.overlays))
     }
 }
 
-$headShotGatePath = Join-Path $restorationRoot ([string]$manifest.contracts.headShot1Gate)
-$headShotGate = Get-Content -LiteralPath $headShotGatePath -Raw | ConvertFrom-Json
-if ([string]$headShotGate.status -ne "ready")
+function Assert-BlockedPatchFeaturesAbsent
 {
-    $blockedText = [string]$headShotGate.materializerPolicy.rejectPatchTextWhileBlocked
-    foreach ($patchRecord in $patches)
+    param(
+        [Parameter(Mandatory = $true)][psobject]$Gate
+    )
+
+    if ([string]$Gate.status -eq "ready")
     {
-        $patchText = Get-Content -LiteralPath $patchRecord.File.FullName -Raw
-        if ($patchText.IndexOf($blockedText, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)
+        return
+    }
+
+    foreach ($blockedText in @($Gate.materializerPolicy.rejectPatchTextWhileBlocked))
+    {
+        foreach ($patchRecord in $patches)
         {
-            throw "Blocked feature '$($headShotGate.feature)' appears in $($patchRecord.File.FullName). Satisfy and update its gate contract first."
+            $patchText = Get-Content -LiteralPath $patchRecord.File.FullName -Raw
+            if ($patchText.IndexOf([string]$blockedText, [System.StringComparison]::OrdinalIgnoreCase) -ge 0)
+            {
+                throw "Blocked feature '$($Gate.feature)' token '$blockedText' appears in $($patchRecord.File.FullName). Satisfy and update its gate contract first."
+            }
         }
     }
 }
+
+$headShotGatePath = Join-Path $restorationRoot ([string]$manifest.contracts.headShot1Gate)
+$headShotGate = Get-Content -LiteralPath $headShotGatePath -Raw | ConvertFrom-Json
+Assert-BlockedPatchFeaturesAbsent -Gate $headShotGate
+
+$marksmanTier1GatePath = Join-Path $restorationRoot ([string]$manifest.contracts.p14MarksmanTier1Matrix)
+$marksmanTier1Gate = Get-Content -LiteralPath $marksmanTier1GatePath -Raw | ConvertFrom-Json
+Assert-BlockedPatchFeaturesAbsent -Gate $marksmanTier1Gate
 
 Write-Host "Restoration materialization plan"
 Write-Host "  source:  $source"
