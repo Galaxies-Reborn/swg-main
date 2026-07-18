@@ -407,3 +407,17 @@ page through background client input, and restored every fixture-owned value.
 Validate a materialized tree with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DiagnoseCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+`medicalForage` completes the Medic novice command surface. Its authentic
+targetless, two-second, nonqueued row enters the retained player utility, which
+now implements the pinned Core3 Quickness-adjusted Action cost, outdoor and
+mount gates, 8.5-second stationary search, combat-at-completion check,
+per-player 10-meter area depletion, 30-minute expiration, medical-foraging
+chance, and the original food, local flora resource, and tiered medical
+component reward bands. Protocol-19 live acceptance charged 45 Action, waited
+nine game seconds, used novice `medical_foraging=10`, and awarded a real
+randomized biologic component. The fixture then destroyed only that reward and
+restored Action, location, skill, command, and both runtime roots. Validate
+with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicalForageCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

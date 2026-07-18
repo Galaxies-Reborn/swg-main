@@ -383,3 +383,14 @@ identity-bound fixture records SUI telemetry only after a real protocol-18
 client admission, snapshots every patient current value and wound plus Battle
 Fatigue, and restores skill and command ownership. SUI dismissal remains
 client-owned because ServerConsole handlers have no script owner context.
+
+`034-p14-medical-forage-command.patch` restores the authentic targetless,
+nonqueued `medicalForage` row and implements its pinned Core3 manager behavior
+inside the retained player utility. It applies the Quickness-adjusted 50-Action
+cost, outdoor and mount gates, 8.5-second stationary delay, combat-at-finish
+gate, per-player 10-meter/three-use/30-minute area history, the
+`medical_foraging` chance formula, and the original five reward bands. The
+protocol-19 identity-bound fixture forces one ordinary biologic-component
+result through production creation and randomization, then destroys that exact
+reward and restores the player's Action, location, skill, command, and runtime
+state.
