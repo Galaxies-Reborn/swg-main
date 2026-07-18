@@ -642,3 +642,14 @@ recapacitation posture callback can complete. Every player-death path clears
 the counter. Its ServerConsole-only station-91001 fixture drives real Health,
 Action, and Mind transitions, proves the timer boundaries and automatic third
 death, and restores the exact preimage without adding a client protocol.
+
+`058-p14-death-blow-admission.patch` restores the pinned Core3 player
+death-blow admission boundary while preserving both authentic Publish 14.1
+`coupDeGrace` and `deathBlow` client rows. The client continues to advertise
+and queue the three-second command at sixteen meters; the server owns the
+inclusive five-meter execution range plus distinct-player, alive-incapacitated,
+non-feigning, PvP-attackable, and line-of-sight gates. The immediate and
+retained delayed handlers share the same admission method and then preserve
+the existing `pclib.coupDeGrace` death path. Its protocol-30 acceptance fixture
+layers six-meter rejection, feign rejection, and four-meter execution over the
+exact reversible combat snapshot without directly invoking gameplay code.
