@@ -521,3 +521,14 @@ the exact modifier and schematic vectors, and restored the complete
 Medic-through-Doctor preimage twice without residue. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier1Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The second Doctor row is also live accepted. Wound Treatment II and Wound
+Speed II grant the authentic `healEnhance` and `curePoison` commands;
+Medicine Knowledge II remains passive; and Medicine Crafting II grants twelve
+exact wound-pack, cure, enhancement, and secondary-enhancement schematics.
+All four boxes restore their retail four-point and XP costs and exact passive
+modifiers, while nine NGE commands are explicitly absent. The command rows are
+published at their authentic client-admission boundary; their gameplay
+adapters remain separate vertical slices. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier2Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

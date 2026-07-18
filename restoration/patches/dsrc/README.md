@@ -514,3 +514,15 @@ three decoded group-A/group-B rows. Its identity-bound fixture owns the full
 nineteen-skill prerequisite chain, purchases all four boxes through production
 validation, grant, and XP deduction, and restores XP, skill points, commands,
 schematics, modifiers, and every fixture-owned skill.
+
+`046-p14-doctor-tier2-progression.patch` restores all four authentic Doctor
+tier-II boxes and the exact 94-column `curePoison` and `healEnhance` client
+admission rows. The branches require their matching tier-I boxes, cost four
+skill points, and use 30,000 medical XP or 21,000 medicine-crafting XP.
+Medicine Crafting II restores twelve retail wound-pack, poison-cure,
+enhancement, and secondary-enhancement schematics from four decoded groups.
+Nine retained NGE command grants and their unrelated defense/efficiency
+modifiers are absent. The identity-bound fixture owns the complete
+Medic-through-Doctor-tier-I prerequisite chain, purchases all four boxes
+through production validation, grant, and XP deduction, and performs exact
+and idempotent cleanup.
