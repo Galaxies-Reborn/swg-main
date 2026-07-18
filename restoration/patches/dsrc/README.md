@@ -619,3 +619,16 @@ hospital rows already enforce the authentic city-rank-three,
 The fixture proves negative admission, direct Master Doctor grant, positive
 three-template admission, exact restoration, and idempotent cleanup without
 changing production placement behavior.
+
+`056-p14-armor-mitigation-ordering.patch` restores the pinned Core3 player
+mitigation sequence only for authenticated pre-CU combat actions. It maps the
+selected HAM pool to a physical hit location, applies PSG and hit-location
+armor layers with explicit NONE/LIGHT/MEDIUM/HEAVY armor-piercing multipliers,
+uses damage-type protection, applies 20 percent condition wear per layer, and
+then consumes retained or migrated `mitigate_damage` food before the existing
+HAM and wound paths. Exact CDEF rifle, pistol, carbine, and unarmed profiles
+declare armor-piercing NONE; the untouched NGE aggregate-armor path remains the
+fallback. Its reversible two-player fixture uses a real LIGHT bone helmet,
+bypasses the NGE certification transfer callback only while equipping that
+fixture-owned item, immediately restores its armor script, and certifies both a
+deterministic 1000-point probe and a protocol-29 off-focus `headShot1`.

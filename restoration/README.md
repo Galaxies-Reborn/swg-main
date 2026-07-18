@@ -658,3 +658,21 @@ production placement code and requires no client-tools or asset publication.
 Both isolated containers remained healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HospitalPlacementCertification.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Publish 14.1 player armor now follows the pinned Core3 ordering for
+authenticated pre-CU combat actions: pool-aligned hit location, personal
+shield generator, the armor piece in that location, post-armor
+`mitigate_damage` food, target HAM, then the existing wound roll. Weapon
+armor-piercing rating is explicit in the exact pre-CU weapon profiles; rating
+differences use the retail 1.25/0.50 multipliers, damage-type protection is
+applied per piece, and each layer receives 20 percent condition wear. The
+default NGE route remains unchanged. Protocol-29 live acceptance equipped a
+real LIGHT bone helmet and queued `headShot1` off-focus: 16 raw damage became
+6 after armor and 5 after food, Mind fell by exactly 5, the helmet lost 3
+condition, and one food charge was consumed. A separate 1000-point production
+helper probe observed 400 post-armor, 300 final, 200 condition wear, and one
+food charge. The identity-bound fixture then restored both players exactly and
+proved repeated cleanup while both isolated containers remained healthy.
+Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ArmorMitigationOrdering.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
