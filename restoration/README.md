@@ -643,3 +643,18 @@ medicine twice without residue while both isolated containers remained
 healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RevivePlayerCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Master Doctor hospital placement is now live certified across the retained
+production ownership path. Core3's `place_hospital` ability is not a slash
+command handler: its three city-hospital templates require city rank three and
+the placement certification. SWGSource preserves the equivalent gate through
+`tryEnterPlacementMode`, `canPlaceStructure`, and `canOwnStructure`; each
+hospital row requires `private_place_hospital=100` and uses
+`place_hospital` as its failure message. A protocol-29 identity-bound lifecycle
+proved all three rows denied an unskilled player (`000`), granted Master Doctor
+and observed the exact ability/modifier vector plus all three admissions
+(`111`), then restored all three denials twice. This milestone changes no
+production placement code and requires no client-tools or asset publication.
+Both isolated containers remained healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HospitalPlacementCertification.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

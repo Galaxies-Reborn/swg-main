@@ -610,3 +610,12 @@ grogginess. The patch also corrects the retained NGE medical attribute-name
 helper so Publish 14 Willpower cleanup cannot index beyond its list. Its
 identity-bound fixture owns a two-charge revive pack and restores the complete
 medic and patient preimages after reversible two-player acceptance.
+
+`055-p14-hospital-placement-certification.patch` adds a reversible acceptance
+fixture around the retained Master Doctor hospital-ownership path. The
+production structure library and all three Tatooine, Corellia, and Naboo
+hospital rows already enforce the authentic city-rank-three,
+`private_place_hospital=100`, and `place_hospital` certification contract.
+The fixture proves negative admission, direct Master Doctor grant, positive
+three-template admission, exact restoration, and idempotent cleanup without
+changing production placement behavior.
