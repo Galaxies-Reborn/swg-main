@@ -550,3 +550,18 @@ XP (including its deferred server delivery), wound-treatment recovery, and
 exact cleanup. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HealEnhanceCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Doctor tier III restores all four authentic third-row boxes. The three
+clinical branches cost 45,000 medical XP and three points each; Medicine
+Crafting III costs 27,000 medicine-crafting XP and three points. The row owns
+only the retail healing modifiers, `extinguishFire`, and thirteen exact
+stimpack, secondary-wound, disease-cure, and enhancement schematics decoded
+from `patch_12_00.tre`; sixteen NGE combat-buff commands are explicitly
+absent. The identity-bound fixture purchases all four boxes through production
+validation, grant, and XP deduction, then restores its complete
+Medic-through-Doctor-II preimage. Protocol-26 live acceptance purchased every
+box, observed the exact five-command, thirteen-schematic, and modifier vectors,
+then restored the snapshot twice while both containers stayed healthy.
+Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier3Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

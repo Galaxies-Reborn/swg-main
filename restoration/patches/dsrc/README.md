@@ -550,3 +550,13 @@ the complete Medic-through-Doctor-Wound-II skill chain, and exact cleanup of
 the touched facility and player state. The patch preserves the positive
 crafted modifier for Publish 14 buff medicine instead of sending it through
 the NGE consumable calculation that produces a zero-value enhancement.
+
+`049-p14-doctor-tier3-progression.patch` restores the complete third Doctor
+row. Its four three-point boxes use the retail 45,000 medical or 27,000
+medicine-crafting XP costs and caps, grant only the authentic healing and
+medicine-crafting modifiers, and replace sixteen NGE combat-buff commands with
+the single retail `extinguishFire` grant. Five decoded
+`patch_12_00.tre` schematic groups resolve to thirteen exact medicine
+schematics. The reversible fixture grants the complete
+Medic-through-Doctor-II prerequisite vector and purchases every box through
+production validation and mutation.
