@@ -580,3 +580,12 @@ command-admission rows are restored. Five decoded `patch_12_00.tre`
 schematic groups resolve to eighteen exact medicine schematics. The reversible
 fixture grants the complete Medic-through-Doctor-III prerequisite vector and
 purchases every box through production validation and mutation.
+
+`052-p14-doctor-master-progression.patch` restores the authentic Master Doctor
+capstone. The one-point, 10,000-credit title requires all four tier-IV branches,
+grants `place_hospital`, applies only the four retail Doctor modifiers, and
+removes six NGE combat-buff commands plus five unrelated NGE modifiers.
+Four decoded `patch_12_00.tre` groups resolve to fourteen exact advanced
+medicine schematics. The reversible fixture grants the complete thirty-five
+skill Medic-through-Doctor-IV prerequisite vector and purchases the capstone
+through production validation, grant, and XP deduction.

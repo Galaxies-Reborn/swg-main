@@ -595,3 +595,18 @@ XP, and skill-point vectors, with an empty client queue and healthy isolated
 containers after idempotent cleanup. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier4Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Master Doctor restores the authentic Publish 14.1 capstone after all four
+tier-IV branches. The one-point, 10,000-credit title grants `place_hospital`,
+the retail wound-treatment, wound-speed, healing-ability, and private hospital
+modifiers, and fourteen exact advanced wound, disease-cure, enhancement, and
+secondary-enhancement schematics decoded from `patch_12_00.tre`. Six NGE
+capstone commands and five unrelated NGE defense/efficiency modifiers are
+explicitly absent. The identity-bound fixture purchases the capstone through
+production validation, grant, and XP deduction, then restores its complete
+thirty-five-skill Medic-through-Doctor-IV preimage. Protocol-27 live acceptance
+observed the exact command, schematic, modifier, XP, and skill-point vectors
+with an empty client queue and healthy isolated containers after idempotent
+cleanup. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
