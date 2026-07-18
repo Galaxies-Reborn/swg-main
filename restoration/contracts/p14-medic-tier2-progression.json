@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "feature": "medic-tier2-progression",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Medic tier-II progression across all four branches, including visibility, prerequisites, XP, skill points, commands, modifiers, corrected component/stimpack group-B membership, compiled client tables, and reversible live purchase.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "schematicGroupTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_medic_tier2_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "skillSourceSha256": "ca5275d226361e8ae9aefe1ccf24c9432f58e5d3bc043bb3217d15674bf17136",
+    "schematicTre": "patch_12_00.tre",
+    "schematicTableSha256": "7558a8671a75154ba713c2d9b2ea415907f59b947d05c699a3417aefce7d67a7",
+    "core3Commit": "6856f315a80b5250635b2272695caec1d64204ed"
+  },
+  "skills": [
+    {
+      "name": "science_medic_injury_02",
+      "parent": "science_medic_injury_01",
+      "graphType": "fourByFour",
+      "moneyRequired": "2000",
+      "pointsRequired": "3",
+      "skillsRequired": "science_medic_injury_01",
+      "xpType": "medical",
+      "xpCost": "5000",
+      "xpCap": "20000",
+      "commands": "private_medic_injury_2,firstAid",
+      "skillMods": "healing_injury_treatment=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_injury_speed_02",
+      "parent": "science_medic_injury_speed_01",
+      "graphType": "fourByFour",
+      "moneyRequired": "2000",
+      "pointsRequired": "3",
+      "skillsRequired": "science_medic_injury_speed_01",
+      "xpType": "medical",
+      "xpCost": "5000",
+      "xpCap": "20000",
+      "commands": "private_medic_speed_2,dragIncapacitatedPlayer",
+      "skillMods": "healing_injury_speed=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_ability_02",
+      "parent": "science_medic_ability_01",
+      "graphType": "fourByFour",
+      "moneyRequired": "2000",
+      "pointsRequired": "3",
+      "skillsRequired": "science_medic_ability_01",
+      "xpType": "medical",
+      "xpCost": "5000",
+      "xpCap": "20000",
+      "commands": "private_medic_ability_2",
+      "skillMods": "healing_ability=10,medical_foraging=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_crafting_02",
+      "parent": "science_medic_crafting_01",
+      "graphType": "fourByFour",
+      "moneyRequired": "2000",
+      "pointsRequired": "3",
+      "skillsRequired": "science_medic_crafting_01",
+      "xpType": "crafting_medicine_general",
+      "xpCost": "1000",
+      "xpCap": "6000",
+      "commands": "private_medic_crafting_2",
+      "skillMods": "medicine_assembly=10,medicine_experimentation=10",
+      "schematics": "craftMedicineComponentGroupB,craftMedicineStimpackGroupB"
+    }
+  ],
+  "schematicGroups": {
+    "craftMedicineComponentGroupB": [
+      "object/draft_schematic/chemistry/component/release_mechanism_duration.iff",
+      "object/draft_schematic/chemistry/component/solid_delivery_shell.iff"
+    ],
+    "craftMedicineStimpackGroupB": [
+      "object/draft_schematic/chemistry/med_stimpack_b.iff"
+    ]
+  },
+  "retainedTemplates": [
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/component/shared_release_mechanism_duration.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/component/shared_solid_delivery_shell.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_med_stimpack_b.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/chemistry/component/release_mechanism_duration.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/chemistry/component/solid_delivery_shell.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/chemistry/med_stimpack_b.tpf"
+  ],
+  "fixtureBoundary": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "purchase",
+      "status",
+      "cleanup"
+    ],
+    "preparedMedicalXp": 5000,
+    "preparedCraftingXp": 1000,
+    "purchaseOperations": [
+      "skill.getAvailableSkillPoints",
+      "skill.hasRequiredSkillsForSkillPurchase",
+      "skill.hasRequiredXpForSkillPurchase",
+      "skill.grantSkillToPlayer",
+      "skill.deductXpCostForSkillPurchase"
+    ],
+    "omittedNotification": "handleHolocronEvent",
+    "reason": "ServerConsole runScript has no script owner context; production gameplay validation, grant, and XP mutation remain authoritative.",
+    "cleanupPolicy": "Revoke all four tier-II boxes, all fixture-granted tier-I prerequisites, and novice; restore both XP pools and original skill points; then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "b3c9f57854984f6a625be370bce65e7db7d2e4dd45607a9d4de42373db796d11",
+    "sourceSha256": {
+      "precu_medic_tier2_fixture.java": "aea5c9a42ee10086d0b28d81fa5b6601660892564e2ab42ef968395f551ad404",
+      "skills.tab": "47ac1a71ecccc91f5a638923370c5df04054ce225daf823d60136e845e66727a",
+      "schematic_group.tab": "938aeaffa53367071ce71fc861db0b44ade9928e1035794292794e64f73072b1"
+    },
+    "compiledSha256": {
+      "precu_medic_tier2_fixture.class": "16136996a14e830ea4c93aca34c4de36556b4057e5e169b3632689121e3d8163",
+      "skills.iff": "d5c8d406343c3e9a6354b11258d6304ba26757e8cdbd03e3d3da80d4c860cc03",
+      "schematic_group.iff": "cb2df1af818dd5f5b2954875e88b11f52507f33f7af9cbaaeef44d7d8d617a42"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "f91f29da1b0500c68269ca8f52a38b6abf51f017",
+    "skillsIffSha256": "d5c8d406343c3e9a6354b11258d6304ba26757e8cdbd03e3d3da80d4c860cc03",
+    "schematicGroupIffSha256": "cb2df1af818dd5f5b2954875e88b11f52507f33f7af9cbaaeef44d7d8d617a42"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "date": "2026-07-18",
+    "container": "swg-precu",
+    "clientProcessId": 54960,
+    "clientProtocolVersion": 21,
+    "clientSha256": "b03cbde225a0567a4332c0945c86305f34c2e16474fcf1b39595ed255177207a",
+    "lifecycle": "dacafb42d6a74223a520e765764418f2",
+    "prerequisites": "11111",
+    "tierSkills": "1111",
+    "commands": "111111",
+    "schematics": "111",
+    "modifierDeltas": {
+      "healing_injury_treatment": 15,
+      "healing_injury_speed": 15,
+      "healing_ability": 10,
+      "medical_foraging": 15,
+      "medicine_assembly": 10,
+      "medicine_experimentation": 10
+    },
+    "medicalXpAfter": 0,
+    "medicalXpCapAfter": 20000,
+    "craftingXpAfter": 0,
+    "craftingXpCapAfter": 6000,
+    "availableSkillPointsAfter": 215,
+    "skillsWindow": {
+      "result": "passed",
+      "evidenceType": "client-log-processing",
+      "clientLogSha256": "ab7df4365f3fff56835042d66504e8529bb66d061a41684c1aad06dc7e551289",
+      "lineSpan": "65391-65469",
+      "selectedProfession": "science_medic_novice",
+      "professionDefinition": "Medic",
+      "graph": "fourByFour",
+      "graphVisible": true,
+      "graphSize": "770x475"
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "all four Medic tier-II skill rows",
+      "exact XP and three-point costs",
+      "First Aid and incapacitated-player drag command ownership",
+      "tier-II healing and crafting modifiers",
+      "corrected component/stimpack group-B membership",
+      "compiled client tables and reversible live purchase"
+    ],
+    "deferred": [
+      "Medic tier III, tier IV, and master",
+      "Doctor prerequisites and branches",
+      "tier-II schematic crafting execution beyond grant ownership"
+    ]
+  }
+}

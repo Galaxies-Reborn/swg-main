@@ -433,3 +433,13 @@ posture, locomotion, and HAM preimages; the protocol-21 clients remain the sole
 group and command owners. Live acceptance proved one nonqueued group-authorized
 handler call, 900-to-400-centimeter separation, exact 500-centimeter movement,
 zero HAM/medical-XP mutation, real group disband, and idempotent cleanup.
+
+`038-p14-medic-tier2-progression.patch` activates all four authentic
+Publish 14.1 Medic tier-II boxes as one coherent progression slice. It
+restores the exact three-point and XP costs, prerequisites, private and
+gameplay commands, healing/crafting modifiers, and searchable four-by-four
+rows. It also corrects the retained group-B labels to their retail contents:
+duration-release and solid-shell components plus `med_stimpack_b`. Its
+identity-bound fixture grants novice and tier I only as reversible
+prerequisites, snapshots that modifier baseline, then exercises production
+validation, grant, and XP deduction for each tier-II purchase.

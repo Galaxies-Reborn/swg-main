@@ -432,3 +432,12 @@ Skills window, then restored the character twice without residue. Validate
 with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier1Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Medic progression now includes the complete authentic tier-II row. First Aid
+II, Diagnostics II, Pharmacology II, and Organic Chemistry II restore their
+retail three-point costs, XP/caps, commands, modifiers, and group-B
+schematics. The component and stimpack groups are corrected to the decoded
+Publish 14 table rather than retaining later mislabeled contents. Validate a
+materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier2Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
