@@ -599,3 +599,14 @@ line-of-sight gates, Focus-adjusted 100-Mind cost, shared condition-treatment
 recovery, and fixed 50 medical XP for another player. Its identity-bound
 fixture owns one private disease DOT, a two-charge antidote, and the complete
 Medic-through-Doctor-Wound-Speed-IV skill chain.
+
+`054-p14-revive-player-command.patch` completes the Doctor tier-IV Revive
+Player gameplay slice. It restores the original optional-target, ten-second
+nonqueued hook and routes it through a narrow adapter. Pinned Core3 supplies
+the dead-player and resuscitation-window gates, group-or-consent and PvP-help
+admission, seven-meter range, Focus-adjusted 200-Mind cost, six-channel
+healing, one-charge use, exact medical XP, upright recovery, and nine-attribute
+grogginess. The patch also corrects the retained NGE medical attribute-name
+helper so Publish 14 Willpower cleanup cannot index beyond its list. Its
+identity-bound fixture owns a two-charge revive pack and restores the complete
+medic and patient preimages after reversible two-player acceptance.

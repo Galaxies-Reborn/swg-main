@@ -625,3 +625,21 @@ Medic-through-Doctor-Wound-Speed-IV, disease, HAM, XP, cooldown, and medicine
 preimage twice while both isolated containers remained healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CureDiseaseCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Doctor Wound Treatment IV's active Revive Player command is now live accepted.
+The original optional-target, ten-second nonqueued `cmdRevivePlayer` hook
+enters a narrow adapter that preserves the dead-player and resuscitation-window
+gates, group-or-consent and PvP-help rules, seven-meter range, explicit or
+automatic revive-pack selection, and one-charge consumption. The retained
+medical library applies the Focus-adjusted 200-Mind cost, heals all six primary
+damage and wound channels, grants exact medical XP, restores upright posture,
+and applies one minute of grogginess across all nine Publish 14 attributes.
+Protocol-29 off-focus two-player acceptance revived the grouped patient at
+3.97 meters, charged exactly 183 Mind and one medicine charge, healed 218
+points, granted 234 medical XP, applied nine groggy modifiers, and left the
+client queue empty. The identity-bound fixture restored both players'
+locations, skills, HAM, wounds, modifiers, XP, regeneration, and owned
+medicine twice without residue while both isolated containers remained
+healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RevivePlayerCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
