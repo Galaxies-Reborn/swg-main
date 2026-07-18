@@ -494,3 +494,17 @@ added ten Focus and Willpower wounds, granted no XP, left the local queue empty,
 and completed idempotent cleanup with both containers healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14QuickHealCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Novice Doctor's first active command is now live accepted. The original
+optional-target, five-second queued `healState` row enters a narrow adapter
+that preserves Core3's six-meter organic-patient, visibility, PvP-help,
+state-specific medicine, Focus-adjusted 20-Mind, injury-speed recovery,
+one-charge consumption, state-removal, effect, and other-player-only 50-XP
+boundaries. Protocol-23 off-focus acceptance removed dizzy state 14 from the
+fixture player, charged exactly 18 Mind and one medicine charge, applied the
+expected five-second recovery, granted zero self-treatment XP, and left the
+client queue empty. The identity-bound fixture then restored its complete
+Medic/Doctor, state, HAM, XP, cooldown, and medicine ownership twice without
+residue while both isolated containers remained healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HealStateCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

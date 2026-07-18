@@ -489,3 +489,16 @@ Publish 14 command-table row is restored at this data boundary; its gameplay
 handler is a separate vertical slice. The identity-bound fixture grants the
 complete eighteen-skill Medic tree and purchases novice Doctor through
 production validation, grant, and XP deduction.
+
+`044-p14-heal-state-command.patch` completes that gameplay slice. It routes
+the authentic optional-target, five-second queued `healState` row through a
+narrow SWGSource adapter preserving the pinned Core3 six-meter organic-patient,
+line-of-sight, PvP-help, state-medicine, Focus-adjusted 20-Mind, injury-speed
+recovery, state-removal, charge, effect, and other-player-only 50-XP behavior.
+The command recognizes stunned, dizzy, blinded, and intimidated in retail
+priority order. Its identity-bound fixture owns the complete Medic-plus-novice-
+Doctor skill chain and a two-charge dizzy pack while the protocol-23 client
+remains the sole queue owner. Live self-treatment removed state 14, charged
+exactly 18 Mind and one medicine charge, applied the expected five-second
+recovery, granted zero self-treatment XP, drained the client queue, and
+completed exact idempotent cleanup.
