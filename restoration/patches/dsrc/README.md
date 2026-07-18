@@ -589,3 +589,13 @@ Four decoded `patch_12_00.tre` groups resolve to fourteen exact advanced
 medicine schematics. The reversible fixture grants the complete thirty-five
 skill Medic-through-Doctor-IV prerequisite vector and purchases the capstone
 through production validation, grant, and XP deduction.
+
+`053-p14-cure-disease-command.patch` completes the Doctor tier-IV Cure Disease
+gameplay slice. It binds the authentic optional-target, five-second nonqueued
+row to a narrow adapter while retaining SWGSource disease DOTs, antidote
+selection and power, area packs, charge use, effects, and PvP-help mechanics.
+The pinned Core3 behavior supplies the seven-meter organic-patient and
+line-of-sight gates, Focus-adjusted 100-Mind cost, shared condition-treatment
+recovery, and fixed 50 medical XP for another player. Its identity-bound
+fixture owns one private disease DOT, a two-charge antidote, and the complete
+Medic-through-Doctor-Wound-Speed-IV skill chain.

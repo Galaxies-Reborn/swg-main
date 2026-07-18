@@ -610,3 +610,18 @@ with an empty client queue and healthy isolated containers after idempotent
 cleanup. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Doctor Wound Speed IV's active Cure Disease command is now live accepted. The
+authentic optional-target, five-second nonqueued row enters a narrow adapter
+that preserves SWGSource disease DOTs, antidote selection and power, area
+packs, charge use, effects, and PvP-help paths. Pinned Core3 supplies the
+seven-meter organic-patient and visibility gates, Focus-adjusted 100-Mind
+cost, shared condition-treatment recovery, and fixed other-player 50-XP
+boundary. Protocol-28 off-focus self-treatment reduced disease strength from
+90 to zero, consumed exactly 91 Mind and one charge, applied the expected
+five-second recovery, granted zero self-treatment XP, and left no queue
+residue. The identity-bound fixture restored its complete
+Medic-through-Doctor-Wound-Speed-IV, disease, HAM, XP, cooldown, and medicine
+preimage twice while both isolated containers remained healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CureDiseaseCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
