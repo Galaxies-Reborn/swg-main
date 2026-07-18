@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "feature": "heal-enhance-command",
+  "status": "ready",
+  "scope": "Publish 14.1 Doctor Heal Enhance command admission and server behavior, including optional targeting, medical-location and combat gates, enhancement-pack selection and replacement, battle-fatigue scaling, Focus-adjusted Mind cost, shared wound-treatment recovery, one-charge consumption, net-enhancement medical XP, and healing presentation.",
+  "sourceFiles": {
+    "consumableLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/heal_enhance.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_heal_enhance_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "command": "MMOCoreORB/src/server/zone/objects/creature/commands/HealEnhanceCommand.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "healEnhance",
+    "category": "combat",
+    "scriptHook": "healEnhance",
+    "tempScript": "player.cmd.heal_enhance",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 7,
+    "executeTimeSeconds": 7,
+    "addToCombatQueue": true,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "invalidTargetFallback": "self",
+    "eligibleTargets": [
+      "living player",
+      "living organic creature pet"
+    ],
+    "maximumOtherTargetRangeMeters": 7,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "medicAndPatientMustBeOutOfCombat": true,
+    "location": "hospital, campsite, or surgical droid",
+    "medicineType": "positive-duration consumable attribute modifier for Health through Stamina",
+    "medicineSelection": "explicit item, explicit attribute, first unbuffed supported attribute, then a non-weaker replacement",
+    "baseMindCost": 150,
+    "mindCostFunction": "healing.getMedicalMindCost",
+    "roundTimeFormula": "max(3, round((20 - healing_wound_speed * 2 / 25) * (100 - heal_recovery) / 100))",
+    "sharedCooldown": "healing.can_heal_wound",
+    "medicineChargesConsumed": 1,
+    "buffPower": "retained healing-efficiency, city, surgical-droid, and battle-fatigue scaling",
+    "medicalXpForOtherTarget": "floor(net attribute increase * 2.5)",
+    "medicalXpForSelf": 0,
+    "presentation": [
+      "heal_self or heal_other animation",
+      "clienteffect/healing_healenhance.cef"
+    ]
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporaryCommand": "healEnhance",
+    "patient": "fixture-owned organic Bantha pet",
+    "preparedAttribute": "Health",
+    "preparedMedicinePower": 200,
+    "preparedMedicineDurationSeconds": 1800,
+    "preparedMedicineCharges": 2,
+    "cleanupPolicy": "Restore the exact wound-treatment cooldown, Mind, medical XP, facility marker, and skill-point preimage; destroy only the fixture patient and medicine; revoke the fixture-owned Medic-through-Doctor-Wound-II chain; then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and targeted DataTableTool command-table compile",
+    "patchSha256": "414a7d7700b464ce8948c96e164e4d9a239634080380dc86bee011f7eb83c88c",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-heal-enhance-ready-20260718-131",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "consumableLibrary": "f64627a4d97ffa20bdb42b9709d1573af2cc37142388828726f62917148696a0",
+      "healingLibrary": "a55988dd5b62b8dc1992433f2ddae1639ae944ffdb678be91e0563359c5ad924",
+      "handler": "de91218a1ecb8757b8074155f28988435ed9ca741fd5c715ae9734eb572e934b",
+      "liveFixture": "11efb827d60896ee36ac61cc4cfc1ca321e16d9c3a0eea243b87576f1682a0a8",
+      "commandTable": "6502451b211e4ebc41a2facfa26e6a336beb6f2c2da590ea9c86605c76d4dcf2"
+    },
+    "compiledSha256": {
+      "consumableLibrary": "3f69b26763512b3dc53a3655fda418354afb6fe4a5cb4a0aea4075aac2fc1dfd",
+      "healingLibrary": "009380edaf4d6bca9d836a5e0dac59dc195f2fcd86c70261abaa8fdbfecc28bd",
+      "handler": "301f79a204c2b80899e4cf118a9166f5d9add81aa25d77ee649108f940d99467",
+      "liveFixture": "fe8c64684b252d082c22a4eb5ef2a1a64ad7b0a66637f2b071bc3927e882de9a",
+      "commandTable": "640a9d4c3e62def80e913ae46d7967cc502232b62eb378ddf516a6e63ede5b16"
+    }
+  },
+  "clientToolsPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "protocolVersion": 26,
+    "commit": "f610953d",
+    "clientSha256": "8a4320daf658f10f226c162984d15766e6db796e9c48dab407f96d410d7e21aa",
+    "startupMode": "Off-focus splash bypass, login auto-connect, scheduler progression, and Heal Enhance admission are enabled only by the explicit background-input bridge."
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "d52156e",
+    "commandTableIffSha256": "640a9d4c3e62def80e913ae46d7967cc502232b62eb378ddf516a6e63ede5b16"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T09:04:56.3003538-04:00",
+    "lifecycle": "0793362f21e84f90ad52761f3a5e980a",
+    "container": "swg-precu",
+    "oracleContainer": "swg-precu-oracle",
+    "clientProcessId": 48448,
+    "clientProtocolVersion": 26,
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "patientOid": 800548123,
+    "patientCreatureKey": "bantha",
+    "skillVector": "111111111111111111111",
+    "clientQueueCountAfterAdmission": 1,
+    "clientQueueCountAfterExecution": 0,
+    "clientQueueCountAfterCleanup": 0,
+    "clientLastStatus": "Success",
+    "handlerCalls": 1,
+    "handlerOutcome": "performed",
+    "appliedTargetOid": 800548123,
+    "appliedAttribute": 0,
+    "projectedPower": 200,
+    "buffBefore": 0,
+    "buffAfter": 200,
+    "amountEnhanced": 200,
+    "expectedMindCost": 137,
+    "appliedMindCost": 137,
+    "observedMindAfterRegeneration": 345,
+    "appliedChargeCost": 1,
+    "chargesAfter": 1,
+    "handlerObservedMedicalXpDelta": 0,
+    "medicalXpDelta": 500,
+    "expectedMedicalXp": 500,
+    "expectedRoundTime": 20,
+    "appliedRoundTime": 20,
+    "cooldownRemainingAtStatus": -13,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target seven-second queued command row",
+      "seven-meter organic patient, line-of-sight, PvP-help, combat, and location gates",
+      "explicit and automatic enhancement-pack selection",
+      "retained battle-fatigue scaling, buff replacement, and one-charge consumption",
+      "Focus-adjusted 150-Mind cost and shared wound-treatment recovery",
+      "2.5-times net-enhancement medical XP for a non-self target",
+      "protocol-26 no-focus client admission",
+      "identity-bound reversible pet-treatment fixture"
+    ],
+    "deferred": [
+      "live second-player enhancement acceptance",
+      "protection enhancement packs",
+      "remaining Doctor tier-III and tier-IV progression"
+    ]
+  }
+}

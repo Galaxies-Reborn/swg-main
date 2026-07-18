@@ -538,3 +538,15 @@ command against the pinned Core3 behavior while retaining SWGSource medicine,
 DOT-strength, area-pack, charge, effect, and PvP-help paths. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CurePoisonCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The second Doctor tier-II gameplay adapter restores queued Heal Enhance
+against the pinned Core3 behavior while retaining SWGSource enhancement-pack,
+battle-fatigue, buff-replacement, charge, PvP-help, and presentation paths.
+The adapter also exempts Publish 14 positive-duration medicine from the NGE
+consumable path that otherwise zeroes its crafted modifier. Protocol-26 client
+admission and the identity-bound live fixture verify a
+disposable organic pet target, Focus-adjusted Mind, net enhancement, medical
+XP (including its deferred server delivery), wound-treatment recovery, and
+exact cleanup. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HealEnhanceCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

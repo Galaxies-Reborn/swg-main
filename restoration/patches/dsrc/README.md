@@ -536,3 +536,17 @@ Focus-adjusted 100-Mind cost, shared condition-treatment recovery, and fixed
 50 medical XP for another player only. Its identity-bound fixture owns one
 private poison DOT, one two-charge antidote, and the complete
 Medic-through-Doctor-Wound-Speed-II skill chain.
+
+`048-p14-heal-enhance-command.patch` completes the second Doctor tier-II
+gameplay slice. It routes the authentic optional-target, seven-second queued
+`healEnhance` row through a narrow adapter while retaining SWGSource's
+consumable certification, battle-fatigue scaling, modifier replacement,
+charge, PvP-help, and presentation paths. The pinned Core3 behavior supplies
+the seven-meter organic-patient, medical-location, combat, and line-of-sight
+gates; Focus-adjusted 150-Mind cost; wound-speed recovery; automatic
+enhancement-pack selection; and 2.5-times net-enhancement medical XP. Its
+identity-bound fixture owns a disposable Bantha pet, a two-charge Health pack,
+the complete Medic-through-Doctor-Wound-II skill chain, and exact cleanup of
+the touched facility and player state. The patch preserves the positive
+crafted modifier for Publish 14 buff medicine instead of sending it through
+the NGE consumable calculation that produces a zero-value enhancement.
