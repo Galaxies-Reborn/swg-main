@@ -579,3 +579,19 @@ Doctor-III, fire, HAM, XP, cooldown, and medicine preimage twice while both
 isolated containers remained healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ExtinguishFireCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Doctor tier IV restores all four authentic fourth-row boxes. The three
+clinical branches cost 60,000 medical XP and two points each; Medicine
+Crafting IV costs 33,000 medicine-crafting XP and two points. Wound Speed IV
+grants `cureDisease`, Wound Treatment IV grants `revivePlayer`, and the row
+adds only the retail healing and medicine-crafting modifiers. Five decoded
+`patch_12_00.tre` schematic groups resolve to eighteen exact wound, revive,
+fire-blanket, cure, and enhancement schematics; twenty-four accumulated NGE
+combat-buff grants are explicitly absent. The identity-bound fixture purchases
+all four boxes through production validation, grant, and XP deduction, then
+restores its complete Medic-through-Doctor-III preimage. Protocol-27 live
+acceptance observed the exact seven-command, eighteen-schematic, modifier,
+XP, and skill-point vectors, with an empty client queue and healthy isolated
+containers after idempotent cleanup. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier4Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

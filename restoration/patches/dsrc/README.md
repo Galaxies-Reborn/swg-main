@@ -570,3 +570,13 @@ Focus-adjusted 100-Mind cost, shared condition-treatment recovery,
 wound-treatment blanket power, and fixed 50 medical XP for another player.
 Its identity-bound fixture owns one private fire DOT, a two-charge fire
 blanket, and the complete Medic-through-Doctor-Wound-Speed-III skill chain.
+
+`051-p14-doctor-tier4-progression.patch` restores the complete fourth Doctor
+row. Its four two-point boxes use the retail 60,000 medical or 33,000
+medicine-crafting XP costs and caps, grant only the authentic healing and
+medicine-crafting modifiers, and replace the accumulated NGE combat-buff
+surface with `cureDisease` and `revivePlayer`. Both authentic 94-column
+command-admission rows are restored. Five decoded `patch_12_00.tre`
+schematic groups resolve to eighteen exact medicine schematics. The reversible
+fixture grants the complete Medic-through-Doctor-III prerequisite vector and
+purchases every box through production validation and mutation.
