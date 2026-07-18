@@ -473,3 +473,10 @@ four secondary-stat wound medpacks. Its identity-bound fixture grants the
 thirteen novice-through-tier-III prerequisites in dependency order, snapshots
 that modifier baseline, and purchases all four tier-IV boxes through
 production validation, grant, and XP deduction.
+
+`042-p14-medic-master-progression.patch` restores the authentic Master Medic
+capstone. It requires all four tier-IV boxes, costs six skill points, grants
+the private master command, adds the exact injury-treatment, healing-ability,
+and medical-foraging modifiers, and grants retail Stimpack D. Its reversible
+fixture owns the full seventeen-skill prerequisite tree and purchases the
+master box through production validation, grant, and XP deduction.

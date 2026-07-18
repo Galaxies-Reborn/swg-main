@@ -461,6 +461,17 @@ remained healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier4Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
 
+Master Medic restores the retail six-point capstone, all four tier-IV
+prerequisites, its private command, injury-treatment/healing/foraging
+modifiers, and Stimpack D. Its reversible fixture grants the complete
+seventeen-box prerequisite tree before invoking production master-skill
+validation, grant, and XP deduction. Live acceptance acquired the master
+skill, private command, Stimpack D, and exact modifier vector, then restored
+the full tree twice without residue while both containers remained healthy.
+Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
 Medic First Aid IV grants the original optional-target, nonqueued Quick Heal
 command. The adapter preserves Core3's Focus-adjusted Mind cost, shared random
 Health/Action heal power, Focus and Willpower wounds, six-meter organic target
