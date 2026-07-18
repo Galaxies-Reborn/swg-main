@@ -421,3 +421,14 @@ restored Action, location, skill, command, and both runtime roots. Validate
 with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicalForageCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Medic profession tree now advances beyond novice. The authentic
+four-by-four root and all four tier-I boxes restore their exact XP and
+skill-point costs, private commands, healing/crafting modifiers, and retail
+novice plus Organic Chemistry I schematic groups. Protocol-19 live acceptance
+acquired every box through production skill validation, grant, and XP
+deduction operations, displayed the four highlighted boxes in the legacy
+Skills window, then restored the character twice without residue. Validate
+with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier1Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

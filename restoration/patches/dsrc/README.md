@@ -394,3 +394,13 @@ protocol-19 identity-bound fixture forces one ordinary biologic-component
 result through production creation and randomization, then destroys that exact
 reward and restores the player's Action, location, skill, command, and runtime
 state.
+
+`035-p14-medic-tier1-progression.patch` restores the visible Publish 14.1
+Medic profession root and all four first-tier boxes. It carries the exact
+medical and medicine-crafting XP costs, two-point box costs, private commands,
+healing and crafting modifiers, and retail novice/tier-I schematic groups.
+Its identity-bound fixture invokes the production validation, grant, and XP
+deduction operations while omitting only the owner-context-dependent holocron
+notification that ServerConsole cannot emit. Live protocol-19 acceptance
+proved all four boxes, five commands, six schematics, exact modifier deltas,
+227 remaining skill points, and reversible idempotent cleanup.
