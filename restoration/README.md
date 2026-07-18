@@ -508,3 +508,16 @@ Medic/Doctor, state, HAM, XP, cooldown, and medicine ownership twice without
 residue while both isolated containers remained healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HealStateCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Doctor progression now includes the complete authentic first row. Wound
+Treatment I, Wound Speed I, Medicine Knowledge I, and Medicine Crafting I each
+require novice Doctor, cost 15,000 branch-appropriate XP and five skill points,
+and grant only their retail passive modifiers and schematic groups. Five
+later-era active commands are explicitly absent. The crafting branch restores
+the exact six Publish 14.1 enhancement, state-treatment, and disease-cure
+schematics decoded from `patch_12_00.tre`. Protocol-23 live acceptance bought
+all four boxes through production validation, grant, and XP deduction, observed
+the exact modifier and schematic vectors, and restored the complete
+Medic-through-Doctor preimage twice without residue. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier1Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

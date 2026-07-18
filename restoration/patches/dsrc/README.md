@@ -502,3 +502,15 @@ remains the sole queue owner. Live self-treatment removed state 14, charged
 exactly 18 Mind and one medicine charge, applied the expected five-second
 recovery, granted zero self-treatment XP, drained the client queue, and
 completed exact idempotent cleanup.
+
+`045-p14-doctor-tier1-progression.patch` restores all four authentic Doctor
+tier-I boxes as one progression boundary. Each box requires novice Doctor,
+costs five skill points and 15,000 medical or medicine-crafting XP, and grants
+only its Publish 14.1 passive modifiers; the retained NGE `bandage`,
+`countertoxin`, `bactaInfusion_1`, `poisonInnoculation`, and
+`endorphineInjection` grants are removed. Medicine Crafting I restores six
+retail enhancement, state-treatment, and disease-cure schematics through the
+three decoded group-A/group-B rows. Its identity-bound fixture owns the full
+nineteen-skill prerequisite chain, purchases all four boxes through production
+validation, grant, and XP deduction, and restores XP, skill points, commands,
+schematics, modifiers, and every fixture-owned skill.
