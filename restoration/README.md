@@ -449,6 +449,18 @@ Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier3Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
 
+The fourth Medic row restores First Aid IV, Diagnostics IV, Pharmacology IV,
+and Organic Chemistry IV with their retail five-point costs, XP caps, private
+commands, modifiers, and nine exact schematics from the decoded
+`patch_12_00.tre` table. First Aid IV owns the already-live-accepted Quick Heal
+command. The reversible fixture purchases all four boxes after granting the
+thirteen novice-through-tier-III prerequisites. Live acceptance acquired all
+four boxes, five commands, nine schematics, and the exact modifier vector,
+then restored the character twice without residue while both containers
+remained healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier4Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
 Medic First Aid IV grants the original optional-target, nonqueued Quick Heal
 command. The adapter preserves Core3's Focus-adjusted Mind cost, shared random
 Health/Action heal power, Focus and Willpower wounds, six-meter organic target

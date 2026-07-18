@@ -464,3 +464,12 @@ Mind/Focus profile. That removable modifier leaves the charged Mind pool and
 production cost formula untouched. Protocol-22 live execution charged exactly
 333 Mind, applied ten wounds to both mental secondaries, granted zero XP, and
 proved idempotent cleanup.
+
+`041-p14-medic-tier4-progression.patch` activates all four authentic
+Publish 14.1 Medic tier-IV boxes. It restores the exact five-point and XP
+costs, private commands, healing/crafting modifiers, Quick Heal ownership, and
+nine retail schematics: Stimpack C, four advanced medicine components, and
+four secondary-stat wound medpacks. Its identity-bound fixture grants the
+thirteen novice-through-tier-III prerequisites in dependency order, snapshots
+that modifier baseline, and purchases all four tier-IV boxes through
+production validation, grant, and XP deduction.
