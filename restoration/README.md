@@ -441,3 +441,10 @@ Publish 14 table rather than retaining later mislabeled contents. Validate a
 materialized tree with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier2Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The third Medic row restores all four passive Publish 14.1 boxes without
+introducing a new gameplay-command seam. Organic Chemistry III also restores
+six wound-medpack schematics from the canonical retail schematic-group table.
+Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier3Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -443,3 +443,11 @@ duration-release and solid-shell components plus `med_stimpack_b`. Its
 identity-bound fixture grants novice and tier I only as reversible
 prerequisites, snapshots that modifier baseline, then exercises production
 validation, grant, and XP deduction for each tier-II purchase.
+
+`039-p14-medic-tier3-progression.patch` activates the complete third Medic
+row. It restores exact four-point and XP costs, private commands, passive
+healing/crafting modifiers, and the six retail wound-medpack schematics from
+the decoded `patch_12_00.tre` group table. Its reversible fixture grants the
+nine novice-through-tier-II prerequisites in dependency order, snapshots the
+tier-II modifier baseline, and purchases all four tier-III boxes through
+production validation and mutation.
