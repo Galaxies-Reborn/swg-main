@@ -532,3 +532,9 @@ published at their authentic client-admission boundary; their gameplay
 adapters remain separate vertical slices. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier2Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The first Doctor tier-II gameplay adapter restores the nonqueued Cure Poison
+command against the pinned Core3 behavior while retaining SWGSource medicine,
+DOT-strength, area-pack, charge, effect, and PvP-help paths. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CurePoisonCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

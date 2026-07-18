@@ -526,3 +526,13 @@ modifiers are absent. The identity-bound fixture owns the complete
 Medic-through-Doctor-tier-I prerequisite chain, purchases all four boxes
 through production validation, grant, and XP deduction, and performs exact
 and idempotent cleanup.
+
+`047-p14-cure-poison-command.patch` completes the first Doctor tier-II gameplay
+slice. It routes the authentic optional-target, five-second nonqueued
+`curePoison` row through a narrow adapter while retaining the existing
+medicine, DOT-strength, area-pack, charge, effect, and PvP-help mechanics. The
+pinned Core3 behavior supplies the seven-meter organic-patient gate,
+Focus-adjusted 100-Mind cost, shared condition-treatment recovery, and fixed
+50 medical XP for another player only. Its identity-bound fixture owns one
+private poison DOT, one two-charge antidote, and the complete
+Medic-through-Doctor-Wound-Speed-II skill chain.
