@@ -472,6 +472,16 @@ Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
 
+Novice Doctor now follows the Publish 14.1 profession boundary rather than
+the retained NGE shortcut. It requires Master Medic, costs 11,250 medical XP
+and six skill points, grants `healState` plus medical registration, restores
+five wound/crafting/healing modifiers, and exposes the four retail state and
+poison schematics. The reversible fixture owns the full eighteen-skill Medic
+prerequisite tree and invokes production skill validation, grant, and XP
+deduction. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorNoviceProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
 Medic First Aid IV grants the original optional-target, nonqueued Quick Heal
 command. The adapter preserves Core3's Focus-adjusted Mind cost, shared random
 Health/Action heal power, Focus and Willpower wounds, six-meter organic target

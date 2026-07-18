@@ -480,3 +480,12 @@ the private master command, adds the exact injury-treatment, healing-ability,
 and medical-foraging modifiers, and grants retail Stimpack D. Its reversible
 fixture owns the full seventeen-skill prerequisite tree and purchases the
 master box through production validation, grant, and XP deduction.
+
+`043-p14-doctor-novice-progression.patch` restores the authentic Doctor root
+and novice box. It replaces the NGE two-branch/125,000-XP shortcut with Master
+Medic, 11,250 medical XP, six skill points, `healState`, registration, five
+medical modifiers, and four retail state/poison schematics. The exact
+Publish 14 command-table row is restored at this data boundary; its gameplay
+handler is a separate vertical slice. The identity-bound fixture grants the
+complete eighteen-skill Medic tree and purchases novice Doctor through
+production validation, grant, and XP deduction.
