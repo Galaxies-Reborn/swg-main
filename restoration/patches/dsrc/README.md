@@ -404,3 +404,15 @@ deduction operations while omitting only the owner-context-dependent holocron
 notification that ServerConsole cannot emit. Live protocol-19 acceptance
 proved all four boxes, five commands, six schematics, exact modifier deltas,
 227 remaining skill points, and reversible idempotent cleanup.
+
+`036-p14-first-aid-command.patch` restores the authentic optional-target,
+nonqueued `firstAid` row and a thin `player.cmd.first_aid` adapter. Invalid
+targets fall back to self; other patients must be living organic players or
+pets within six meters, visible, and legal to help. The production path
+removes bleeding strength equal to three times injury treatment while
+consuming no medicine or Mind and granting no medical XP. Its identity-bound
+fixture seeds only a private DOT in the retained library's script-variable
+format, while the protocol-20 client owns the real command admission and the
+production handler owns reduction, effects, and feedback. Live acceptance
+proved a 105-point request removed the full 90-point bleed with exact
+Health/Mind/XP preservation and idempotent cleanup.
