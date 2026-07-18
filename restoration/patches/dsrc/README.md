@@ -451,3 +451,16 @@ the decoded `patch_12_00.tre` group table. Its reversible fixture grants the
 nine novice-through-tier-II prerequisites in dependency order, snapshots the
 tier-II modifier baseline, and purchases all four tier-III boxes through
 production validation and mutation.
+
+`040-p14-quick-heal-command.patch` restores the Publish 14.1 Quick Heal command
+row and a thin player-command adapter. It uses the pinned Core3 Focus cost
+formula, heals Health and Action with one shared 150–750 roll, charges ten
+Focus and Willpower wounds, consumes no medicine, and grants no XP. Its
+identity-bound fixture creates a deterministic self-heal boundary, records
+production telemetry, and restores the complete five-attribute preimage. The
+fixture temporarily raises only Focus to the authentic Human Publish 14 maximum
+of 1,100 because the retained test character was created with an NGE 400-point
+Mind/Focus profile. That removable modifier leaves the charged Mind pool and
+production cost formula untouched. Protocol-22 live execution charged exactly
+333 Mind, applied ten wounds to both mental secondaries, granted zero XP, and
+proved idempotent cleanup.

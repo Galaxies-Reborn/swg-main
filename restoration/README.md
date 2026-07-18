@@ -448,3 +448,16 @@ six wound-medpack schematics from the canonical retail schematic-group table.
 Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MedicTier3Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Medic First Aid IV grants the original optional-target, nonqueued Quick Heal
+command. The adapter preserves Core3's Focus-adjusted Mind cost, shared random
+Health/Action heal power, Focus and Willpower wounds, six-meter organic target
+boundary, and zero-medicine/zero-XP behavior. Protocol-22 live acceptance used
+a fixture-owned 1,100 Focus allocation—the authentic Publish 14 Human
+maximum—to bridge the NGE-origin test character's 400-point HAM profile without
+altering the charged Mind pool. The command entered through the off-focus
+client, charged exactly 333 Mind, used one 654-point roll for Health and Action,
+added ten Focus and Willpower wounds, granted no XP, left the local queue empty,
+and completed idempotent cleanup with both containers healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14QuickHealCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
