@@ -565,3 +565,17 @@ then restored the snapshot twice while both containers stayed healthy.
 Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DoctorTier3Progression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Doctor Wound Speed III's active command is now live accepted. The authentic
+optional-target, five-second nonqueued `extinguishFire` row enters a narrow
+adapter that preserves Core3's seven-meter organic-patient, visibility,
+PvP-help, fire-blanket, Focus-adjusted 100-Mind, wound-speed recovery,
+one-charge, DOT-reduction, and fixed other-player 50-XP boundaries.
+Protocol-27 off-focus self-treatment reduced fire strength from 90 to zero,
+charged exactly 91 Mind and one blanket charge, applied the expected
+five-second recovery, granted zero self-treatment XP, and left no queue
+residue. The identity-bound fixture restored its complete Medic-through-
+Doctor-III, fire, HAM, XP, cooldown, and medicine preimage twice while both
+isolated containers remained healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ExtinguishFireCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -560,3 +560,13 @@ the single retail `extinguishFire` grant. Five decoded
 schematics. The reversible fixture grants the complete
 Medic-through-Doctor-II prerequisite vector and purchases every box through
 production validation and mutation.
+
+`050-p14-extinguish-fire-command.patch` completes the Doctor tier-III active
+gameplay slice. It routes the authentic optional-target, five-second nonqueued
+`extinguishFire` row through a narrow adapter while retaining SWGSource's fire
+DOT, medicine, charge, effect, and PvP-help mechanics. The pinned Core3
+behavior supplies the seven-meter organic-patient and line-of-sight gates,
+Focus-adjusted 100-Mind cost, shared condition-treatment recovery,
+wound-treatment blanket power, and fixed 50 medical XP for another player.
+Its identity-bound fixture owns one private fire DOT, a two-charge fire
+blanket, and the complete Medic-through-Doctor-Wound-Speed-III skill chain.
