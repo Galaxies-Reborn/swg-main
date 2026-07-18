@@ -416,3 +416,20 @@ format, while the protocol-20 client owns the real command admission and the
 production handler owns reduction, effects, and feedback. Live acceptance
 proved a 105-point request removed the full 90-point bleed with exact
 Health/Mind/XP preservation and idempotent cleanup.
+
+`037-p14-drag-incapacitated-player.patch` restores the authentic optional-
+target, nonqueued, two-second `dragIncapacitatedPlayer` row and a narrow
+`player.cmd.drag_incap_player` adapter. The production path follows the pinned
+Core3 command rather than the incompatible NGE corpse helper: Medic injury-
+speed tier II, legal PvP help, line of sight, outdoor-only placement, an
+incapacitated or dying player, and group membership or patient consent are all
+required. Range is `10 + healing_ability * 0.2` meters and each successful
+command uses raw world-position distance and pulls the patient at most five
+meters toward the medic, clamps the destination to terrain, faces the patient
+toward the medic, emits the original drag effect and fly text, and records
+help/TEF. Its two-player fixture owns only reversible skill, command,
+healing-ability, incapacitation-resistance, Health-regeneration, location,
+posture, locomotion, and HAM preimages; the protocol-21 clients remain the sole
+group and command owners. Live acceptance proved one nonqueued group-authorized
+handler call, 900-to-400-centimeter separation, exact 500-centimeter movement,
+zero HAM/medical-XP mutation, real group disband, and idempotent cleanup.
