@@ -676,3 +676,8 @@ proved repeated cleanup while both isolated containers remained healthy.
 Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ArmorMitigationOrdering.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Validate the Publish 14.1 rolling three-incap death threshold, Core3-derived
+recovery timer, all-primary-pool recovery, stale-task guard, and counter reset:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14IncapacitationRecovery.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

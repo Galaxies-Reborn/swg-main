@@ -632,3 +632,13 @@ fallback. Its reversible two-player fixture uses a real LIGHT bone helmet,
 bypasses the NGE certification transfer callback only while equipping that
 fixture-owned item, immediately restores its armor script, and certifies both a
 deterministic 1000-point probe and a protocol-29 off-focus `headShot1`.
+
+`057-p14-incapacitation-recovery-lifecycle.patch` replaces the retained NGE
+second-incap `incapWeaken` death with the pinned Core3 rolling three-incap
+threshold over 600 seconds. Recovery time is derived from the most-depleted
+Health, Action, or Mind pool, stale delayed messages are generation-checked,
+and every non-positive primary pool is raised to one so the native
+recapacitation posture callback can complete. Every player-death path clears
+the counter. Its ServerConsole-only station-91001 fixture drives real Health,
+Action, and Mind transitions, proves the timer boundaries and automatic third
+death, and restores the exact preimage without adding a client protocol.
