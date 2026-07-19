@@ -719,3 +719,21 @@ condition, and the identity-bound fixture restored its full preimage twice
 while both isolated containers remained healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CloneDecayReport.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Publish 14.1 performance Action drain now replaces the retained no-op. Every
+ten-second dance, music, and juggle heartbeat applies the pinned Core3
+Quickness adjustment to the authentic performance-table base and truncates
+the non-negative result. Solo and band flourishes use Core3's separate
+Quickness-over-35 half-cost equation. Both paths refuse a charge when the
+performer has exactly the required Action, preventing a performance from
+draining its owner to zero.
+
+Protocol-31 identity-bound acceptance used Basic dance index 281 and the
+connected character's authoritative Quickness 400. The loop charged 25
+Action (`100 -> 75`), the flourish charged 9 (`100 -> 91`), and both
+equal-cost cases were rejected without mutation. Cleanup restored Action 500,
+Quickness 400, and performance index zero; a second cleanup was already clean.
+An interrupted earlier lifecycle was also recovered exactly after a server
+restart. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PerformanceActionDrain.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

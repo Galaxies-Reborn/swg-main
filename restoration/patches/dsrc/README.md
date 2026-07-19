@@ -693,3 +693,14 @@ the exact base/skill/flourish calculation grants solo or active-group
 `entertainer_healing` XP within 40 meters. Its identity-bound fixture proves
 the Basic-dance three-point four-channel heal, asynchronous six-XP delivery,
 exact preimage restoration, and idempotent cleanup.
+
+`063-p14-performance-action-drain.patch` restores the pinned Core3 Action
+costs for every performance heartbeat and flourish. Ten-second dance, music,
+and juggle loops use the performance row's Action base with the
+Quickness-300-over-1200 adjustment and truncate after clamping to zero.
+Solo and band flourishes retain their distinct base-minus-Quickness-over-35,
+half-cost, rounded equation. Both paths reject when current Action is equal
+to the calculated charge. The identity-bound fixture proves Basic dance at
+the live character's authoritative Quickness 400: loop cost 25, flourish
+cost 9, both exact-cost rejection boundaries, interrupted-lifecycle recovery,
+exact preimage restoration, and idempotent cleanup.
