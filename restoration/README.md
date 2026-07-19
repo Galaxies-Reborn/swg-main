@@ -806,3 +806,10 @@ both commands and both schematics are removed, exactly three points return,
 the spent XP stays spent, and the Music I cap is restored. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The third slice restores exact Music III costs, Folk, Fanfar, five
+music-healing ability, a 90,000 XP cap, and tree visibility. Protocol 37
+proves real Folk at runtime index 43, delayed stop, actor-only surrender,
+four-point recovery, Music II grant retention, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -744,3 +744,7 @@ identity-bound purchase, Rock, surrender, and cleanup fixture.
 row, including Star Wars 2 and the Fizz schematic group, and extends the same
 fixture through purchase, real-client playback, actor-routed surrender, and
 idempotent restoration.
+
+`069-p14-entertainer-music-three-progression.patch` restores exact Music III,
+including Folk and Fanfar, and extends the fixture through protocol-37
+purchase, playback, surrender, prerequisite retention, and cleanup.
