@@ -1093,3 +1093,15 @@ and their commands retained, parent Dance and Healing XP caps retained, all
 master modifier deltas reset, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Musician novice slice restores the exact searchable four-by-four title
+box: Music IV and Healing IV prerequisites, 50,000 Music XP, six points,
+Traz, location registration, Star Wars 4, five authentic modifiers, and the
+classic instrument schematic group. It removes the NGE novice-level Kloo Horn
+substitution while retaining Kloo Horn through Music IV. Protocol 66 proves
+production purchase, exact command/modifier/schematic grants, actor-only
+client surrender, six-point recovery, both prerequisite boxes and their
+commands retained, Music-cap recomputation to 150,000, Healing-cap retention
+at 75,000, modifier rollback, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianNoviceProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
