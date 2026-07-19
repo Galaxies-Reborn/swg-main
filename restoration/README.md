@@ -1041,3 +1041,14 @@ independent 350,000 Dance XP cap, all modifier deltas reset, and exact
 cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerShockFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The first Dancer Knowledge branch slice restores the exact searchable
+four-by-four box: Dancer novice prerequisite, 87,500 Dance XP, five points,
+Popular 2, Tumble, +10 dance healing ability, and the 500,000 cap. It removes
+the NGE-only Bunduki 2 command and hidden row. Protocol 61 proves production
+purchase, both authentic commands present, Bunduki 2 absent, actor-only client
+surrender, five-point recovery, Dancer novice and its three commands retained,
+the 350,000-cap fallback, all modifier deltas reset, and exact cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerKnowledgeOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
