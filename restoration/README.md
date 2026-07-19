@@ -1173,3 +1173,12 @@ Wound II retention, 400,000-cap recomputation, rollback, and cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Wound IV completes the branch with the exact searchable title box:
+Wound III, 125,000 Entertainer Healing XP, two points, a terminal 500,000
+Healing cap, and +15 Music wound healing. It rejects NGE's hidden, graphless
+225,000 Music XP and +25 contract. Protocol 74 proves purchase, production
+surrender, Wound III retention, terminal-cap retention, rollback, and
+idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
