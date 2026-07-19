@@ -896,3 +896,14 @@ actor-only surrender, five-point recovery, Hairstyle I-III retention, the
 Hairstyle III 30,000 XP-cap fallback, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerHairstyleFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Dancer entry slice restores the searchable profession root and exact
+novice box: Dance IV plus Healing IV prerequisites, 50,000 Dance XP, six
+points, Popular, Poplock, registration, four distinct healing modifiers, and
+the 350,000 cap. It removes the retained NGE Bunduki/prop/crafting surface.
+Protocol 48 proves real Popular at runtime index 291, its exact
+Quickness-adjusted 36 Action drain, actor-only surrender, six-point recovery,
+both Entertainer prerequisite boxes, the Dance IV 150,000 cap fallback, and
+exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerNoviceProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
