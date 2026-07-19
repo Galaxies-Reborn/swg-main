@@ -855,3 +855,12 @@ four-point recovery, Dance I-II grant retention, the Dance II 30,000 XP-cap
 fallback, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The terminal Dance branch slice restores exact Dance IV costs, Formal, ten
+additional dance-healing ability, a 150,000 XP cap, and title-box visibility.
+Protocol 43 proves real Formal at runtime index 287, two exact
+Quickness-adjusted 33 Action loop drains, immediate stop, actor-only
+surrender, five-point recovery, Dance I-III grant retention, the Dance III
+90,000 XP-cap fallback, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
