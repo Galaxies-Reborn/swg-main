@@ -1127,3 +1127,12 @@ Healing-cap retention at 75,000, schematic and modifier rollback, and exact
 cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Ability III restores the exact searchable box: Ability II,
+175,000 Music XP, three points, 900,000 cap, Ventriloquism, +15 assembly,
++20 Music mind healing, and Bandfill schematics, while removing NGE Fire Jet
+2. Protocol 69 proves purchase, production surrender, three-point recovery,
+Ability II grant retention, 700,000-cap recomputation, rollback, and cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
