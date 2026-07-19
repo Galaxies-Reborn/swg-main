@@ -1146,3 +1146,13 @@ terminal-cap retention, modifier and schematic rollback, and cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Wound I restores the exact searchable box: Musician novice,
+25,000 Entertainer Healing XP, five points, a 200,000 Healing cap, and +5
+Music wound healing. It rejects the NGE Music XP and +10 modifier contract.
+Protocol 71 proves purchase, production surrender, five-point recovery,
+novice command and schematic retention, Healing-cap recomputation to 75,000,
+independent Music-cap retention at 350,000, modifier rollback, and cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
