@@ -1,0 +1,157 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/cloninglib.java b/sku.0/sys.server/compiled/game/script/library/cloninglib.java
+index 4d935de72..b17d65385 100755
+--- a/sku.0/sys.server/compiled/game/script/library/cloninglib.java
++++ b/sku.0/sys.server/compiled/game/script/library/cloninglib.java
+@@ -59,7 +59,18 @@ public class cloninglib extends script.base_script
+     public static final int PRECU_CLONE_WOUND_AMOUNT = 100;
+     public static final float PRECU_INSURED_DECAY = 0.01f;
+     public static final float PRECU_UNINSURED_DECAY = 0.05f;
+-    public static final float DEFAULT_REPAIR_RATIO = 10.0f;
++    public static final String PRECU_DECAY_REPORT_ROOT =
++        "decayReport";
++    public static final String PRECU_DECAY_REPORT_SUI =
++        PRECU_DECAY_REPORT_ROOT + ".sui";
++    public static final String PRECU_DECAY_REPORT_TITLE =
++        "DECAY REPORT";
++    public static final String PRECU_DECAY_REPORT_PROMPT =
++        "The following report summarizes the status of your items " +
++        "after the decay event.";
++    public static final String PRECU_DECAY_REPORT_HEADER =
++        "\\#00FF00DECAYED ITEMS";
++    public static final float DEFAULT_REPAIR_RATIO = 10.0f;
+     public static dictionary getCloningAreas(String planet, String area) throws InterruptedException
+     {
+         dictionary data = new dictionary();
+@@ -680,6 +691,8 @@ public class cloninglib extends script.base_script
+         {
+             return;
+         }
++        Vector decayedItems = new Vector();
++        decayedItems.setSize(0);
+         for (obj_id item : items)
+         {
+             if (!isDamagedOnClone(player, item))
+@@ -695,7 +708,87 @@ public class cloninglib extends script.base_script
+             {
+                 pclib.damageAndDecayItem(item, PRECU_UNINSURED_DECAY);
+             }
++            decayedItems = utils.addElement(decayedItems, item);
+         }
++        if (decayedItems.size() > 0)
++        {
++            showPrecuCloneDecayReport(player, decayedItems);
++        }
++    }
++    public static int showPrecuCloneDecayReport(
++        obj_id player,
++        Vector decayedItems) throws InterruptedException
++    {
++        if (!isIdValid(player) || !isPlayer(player) ||
++            decayedItems == null || decayedItems.size() == 0)
++        {
++            return -1;
++        }
++        if (utils.hasScriptVar(player, PRECU_DECAY_REPORT_SUI))
++        {
++            forceCloseSUIPage(
++                utils.getIntScriptVar(
++                    player,
++                    PRECU_DECAY_REPORT_SUI));
++        }
++        utils.removeScriptVarTree(player, PRECU_DECAY_REPORT_ROOT);
++
++        int pid =
++            createSUIPage(
++                sui.SUI_LISTBOX,
++                player,
++                player,
++                "handleDecayReport");
++        if (pid < 0)
++        {
++            return -1;
++        }
++        setSUIProperty(
++            pid,
++            sui.LISTBOX_TITLE,
++            sui.PROP_TEXT,
++            PRECU_DECAY_REPORT_TITLE);
++        setSUIProperty(
++            pid,
++            sui.LISTBOX_PROMPT,
++            sui.PROP_TEXT,
++            PRECU_DECAY_REPORT_PROMPT);
++        sui.listboxButtonSetup(pid, sui.OK_ONLY);
++        clearSUIDataSource(pid, sui.LISTBOX_DATASOURCE);
++        addSUIDataItem(pid, sui.LISTBOX_DATASOURCE, "header");
++        setSUIProperty(
++            pid,
++            sui.LISTBOX_DATASOURCE + ".header",
++            sui.PROP_TEXT,
++            PRECU_DECAY_REPORT_HEADER);
++        for (int index = 0; index < decayedItems.size(); ++index)
++        {
++            obj_id item = (obj_id)decayedItems.get(index);
++            if (!isIdValid(item))
++            {
++                continue;
++            }
++            int maxHitpoints = getMaxHitpoints(item);
++            int hitpoints = getHitpoints(item);
++            int conditionPercent =
++                maxHitpoints > 0
++                    ? (int)(100.0f * hitpoints / maxHitpoints)
++                    : 0;
++            String rowName = "item" + index;
++            String line =
++                " - " + getEncodedName(item) +
++                " (@" + conditionPercent + "%)";
++            addSUIDataItem(pid, sui.LISTBOX_DATASOURCE, rowName);
++            setSUIProperty(
++                pid,
++                sui.LISTBOX_DATASOURCE + "." + rowName,
++                sui.PROP_TEXT,
++                line);
++        }
++        showSUIPage(pid);
++        flushSUIPage(pid);
++        utils.setScriptVar(player, PRECU_DECAY_REPORT_SUI, pid);
++        return pid;
+     }
+     public static obj_id[] getAllRepairItems(obj_id player) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java
+index e2cc37983..e10f69827 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java
+@@ -230,6 +230,18 @@ public class precu_clone_penalty_fixture extends script.base_script
+         {
+             return ownership;
+         }
++        if (utils.hasScriptVar(
++            player,
++            cloninglib.PRECU_DECAY_REPORT_SUI))
++        {
++            forceCloseSUIPage(
++                utils.getIntScriptVar(
++                    player,
++                    cloninglib.PRECU_DECAY_REPORT_SUI));
++        }
++        utils.removeScriptVarTree(
++            player,
++            cloninglib.PRECU_DECAY_REPORT_ROOT);
+ 
+         int[] originalWounds =
+             getIntArrayObjVar(player, ORIGINAL_WOUNDS);
+@@ -454,7 +466,11 @@ public class precu_clone_penalty_fixture extends script.base_script
+             " uninsuredHp=" + getHitpoints(uninsured) +
+             " uninsuredFlag=" + isInsured(uninsured) +
+             " autoInsuredHp=" + getHitpoints(autoInsured) +
+-            " autoInsuredFlag=" + isAutoInsured(autoInsured);
++            " autoInsuredFlag=" + isAutoInsured(autoInsured) +
++            " decayReportActive=" +
++            utils.hasScriptVar(
++                player,
++                cloninglib.PRECU_DECAY_REPORT_SUI);
+     }
+ 
+     private void destroyIfValid(obj_id item) throws InterruptedException

@@ -703,3 +703,19 @@ pools, 100 battle fatigue, no PvP item decay, an upright player, exact layered
 cleanup, and healthy isolated server/database containers. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ClonePenalties.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The real PvE clone path now also emits the pinned Core3 Publish 14.1 decay
+report after condition loss. Its single-button list uses the authentic title,
+prompt, green section header, and post-decay condition percentages, and only
+contains items that actually entered the one/five-percent decay path.
+Auto-insured items and player death-blows remain excluded. A stale tracked
+page is force-closed before replacement, while the retained
+`handleDecayReport` callback removes the entire script-var tree on OK.
+
+Protocol-31 acceptance rendered the real list with the controlled insured and
+uninsured rifles at 99 and 95 percent, respectively. The close callback
+removed the tracked page without changing the already-applied wounds or item
+condition, and the identity-bound fixture restored its full preimage twice
+while both isolated containers remained healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CloneDecayReport.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

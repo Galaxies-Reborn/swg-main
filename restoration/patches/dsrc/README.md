@@ -672,3 +672,13 @@ The completion handler is idempotent, so callback races cannot duplicate
 healing, wounds, item decay, or effects. Protocol-31 row-zero acceptance
 proved the real prompt round-trip, OK callback, upright recovery, exact PvP
 penalties, residue-free cleanup, and healthy isolated containers.
+
+`061-p14-clone-decay-report.patch` restores the pinned Core3 Publish 14.1
+decay report on the authoritative PvE item-decay path. The report contains
+only items actually processed by clone decay, computes their condition after
+the retained one/five-percent loss, and uses the authentic title, explanatory
+copy, green header, row shape, and single OK button. It force-closes a stale
+tracked page before replacement and reuses the existing residue-free
+`handleDecayReport` callback. The clone fixture exposes the report lifecycle
+without taking ownership of unrelated pages and proved protocol-31 render,
+close, exact restoration, and idempotent cleanup.
