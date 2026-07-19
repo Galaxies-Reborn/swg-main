@@ -778,3 +778,20 @@ locations, instruments, HAM, regen, skill ownership, posture, locomotion, and
 performance state. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RealClientBandMusicSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The first post-novice Entertainer progression slice restores the exact
+Publish 14.1 Entertainer root, novice, and Music I rows. This removes retained
+NGE novice commands and XP fields, restores the Pre-CU performance command
+vector and search visibility, and makes Music I grant Rock plus the Fizz
+instrument with only five points of music-healing ability. Protocol-35
+acceptance purchases Music I through the production skill service, starts and
+stops Rock through the real client, then submits the ordinary player
+`surrenderSkill social_entertainer_music_01` command. The server must revoke
+all three Music I abilities, return exactly two skill points without refunding
+the spent music XP, and recompute the XP cap. Live acceptance also fixes two
+cross-stack ambiguities: Rock on slitherhorn is runtime performance index 15
+with instrument-audio ID 2, and the actor-routed `surrenderSkill` request must
+carry no target because its command row declares `targetType=none`. Validate
+with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
