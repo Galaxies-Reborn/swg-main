@@ -918,3 +918,14 @@ retained, 350,000-cap recomputation, all modifier deltas reset, and exact
 cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerAbilityOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The second Dancer Ability branch slice restores the exact searchable
+four-by-four box: Ability I prerequisite, 125,000 Dance XP, four points,
+Distract, +10 dance Mind healing, and the 700,000 cap. It removes the NGE-only
+Color Swirl grant and replaces the retained Entertainer XP, 50,000-cost,
+400,000-cap, modifier-free hidden row. Protocol 50 proves production purchase,
+actor-only client surrender, four-point recovery, Ability I and all of its
+grants retained, 500,000-cap recomputation, all modifier deltas reset, and
+exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerAbilityTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
