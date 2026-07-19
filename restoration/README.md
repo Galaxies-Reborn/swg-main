@@ -838,3 +838,11 @@ two-point recovery, the novice 2,000 XP-cap fallback, and exact cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The second Dance branch slice restores exact Dance II costs, Rhythmic 2, five
+additional dance-healing ability, a 30,000 XP cap, and tree visibility.
+Protocol 41 proves real Rhythmic 2 at runtime index 284, immediate stop,
+actor-only surrender, three-point recovery, Dance I command and skill
+retention, the Dance I 10,000 XP-cap fallback, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
