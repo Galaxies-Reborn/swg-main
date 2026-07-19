@@ -1156,3 +1156,12 @@ independent Music-cap retention at 350,000, modifier rollback, and cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Wound II restores the exact searchable box: Wound I, 50,000
+Entertainer Healing XP, four points, a 400,000 Healing cap, and +10 Music
+wound healing. Protocol 72 proves purchase, production surrender, four-point
+recovery, Wound I and novice grant retention, Healing-cap recomputation to
+200,000, independent Music-cap retention, modifier rollback, and cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
