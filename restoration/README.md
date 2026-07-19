@@ -1072,3 +1072,13 @@ Knowledge II and its commands retained, the 700,000-cap fallback, all
 modifier deltas reset, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerKnowledgeThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The fourth Dancer Knowledge branch slice restores the exact searchable title
+box: Knowledge III prerequisite, 225,000 Dance XP, two points, Breakdance 2,
+Exotic, Exotic 2, +10 dance healing ability, and the terminal 900,000 cap.
+Protocol 64 proves production purchase, all three new commands and all
+Knowledge I-III commands present, actor-only client surrender, two-point
+recovery, Knowledge III and its commands retained, terminal cap retention,
+all modifier deltas reset, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerKnowledgeFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
