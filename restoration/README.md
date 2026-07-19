@@ -907,3 +907,14 @@ both Entertainer prerequisite boxes, the Dance IV 150,000 cap fallback, and
 exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerNoviceProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The first Dancer Ability branch slice restores the exact searchable
+four-by-four box: Dancer novice prerequisite, 87,500 Dance XP, five points,
+Spotlight, Color Lights, Dazzle, +10 dance Mind healing, and the 500,000 cap.
+It replaces the retained NGE Entertainer XP, 25,000-cost, 200,000-cap,
+modifier-free hidden row. Protocol 49 proves production purchase,
+actor-only client surrender, five-point recovery, Dancer novice and its grants
+retained, 350,000-cap recomputation, all modifier deltas reset, and exact
+cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerAbilityOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
