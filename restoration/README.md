@@ -1191,3 +1191,11 @@ proves purchase, production surrender, novice retention, 75,000-cap
 recomputation, rollback, negative grants, and idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Shock II restores Shock I, 50,000 Entertainer Healing XP, four
+points, a 400,000 Healing cap, and +10 Music shock healing. Protocol 76 proves
+purchase, production surrender, Shock I retention, 200,000-cap recomputation,
+and rejection of the NGE Bandfill command, assembly modifier, and schematic
+group. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
