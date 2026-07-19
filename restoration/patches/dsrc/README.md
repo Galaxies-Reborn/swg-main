@@ -653,3 +653,22 @@ retained delayed handlers share the same admission method and then preserve
 the existing `pclib.coupDeGrace` death path. Its protocol-30 acceptance fixture
 layers six-meter rejection, feign rejection, and four-meter execution over the
 exact reversible combat snapshot without directly invoking gameplay code.
+
+`059-p14-clone-penalties.patch` replaces retained NGE clone sickness with the
+pinned Core3 registered-versus-alternate facility penalty. Alternate
+facilities add 100 Health, Action, and Mind wounds plus 100 battle fatigue.
+PvE decay remains one percent for insured items and five percent for uninsured
+items, consumes the insured flag, and excludes auto-insured items; player
+death-blows retain the no-decay death-type split. Its reversible fixture owns
+three controlled items and snapshots all pre-existing eligible item state.
+
+`060-p14-clone-selection-compatibility.patch` completes real-client
+acceptance without moving authority into the client. It stores only a
+server-observed, vector-bounded row for the current clone SUI and uses it when
+the legacy close payload omits `SelectedRow`. Clone warps mark completion
+pending before transfer, while a persistent five-second call to the normal
+completion handler covers same-scene transfers whose engine callback is lost.
+The completion handler is idempotent, so callback races cannot duplicate
+healing, wounds, item decay, or effects. Protocol-31 row-zero acceptance
+proved the real prompt round-trip, OK callback, upright recovery, exact PvP
+penalties, residue-free cleanup, and healthy isolated containers.

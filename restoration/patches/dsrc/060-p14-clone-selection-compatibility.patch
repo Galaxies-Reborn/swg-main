@@ -1,0 +1,154 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/pclib.java b/sku.0/sys.server/compiled/game/script/library/pclib.java
+index eacc95c72..751916c79 100755
+--- a/sku.0/sys.server/compiled/game/script/library/pclib.java
++++ b/sku.0/sys.server/compiled/game/script/library/pclib.java
+@@ -32,6 +32,7 @@ public class pclib extends script.base_script
+     public static final String VAR_REVIVE_CLONE = "revive.cloneLocs";
+     public static final String VAR_REVIVE_SPAWN = "revive.spawnLocs";
+     public static final String VAR_REVIVE_DAMAGE = "revive.damage";
++    public static final String VAR_REVIVE_SELECTION = "revive.selectedRow";
+     public static final String VAR_PRECU_CLONE_WOUND =
+         "revive.precuCloneWound";
+     public static final String VAR_SUI_CLONE = "sui.clone";
+@@ -963,12 +964,21 @@ public class pclib extends script.base_script
+             VAR_PRECU_CLONE_WOUND,
+             Math.max(0, damage));
+         setObjVar(player, "fullHealClone", true);
+-        if (!sendToCloneSpawn(player, HANDLER_CLONE_RESPAWN, reviveLoc, spawnLoc))
+-        {
+-            sendSystemMessage(player, cloninglib.SID_RESPAWN_CURRENT_LOCATION);
+-            messageTo(player, HANDLER_CLONE_RESPAWN, null, 2, true);
+-        }
+-        return true;
++        if (!sendToCloneSpawn(player, HANDLER_CLONE_RESPAWN, reviveLoc, spawnLoc))
++        {
++            sendSystemMessage(player, cloninglib.SID_RESPAWN_CURRENT_LOCATION);
++            messageTo(player, HANDLER_CLONE_RESPAWN, null, 2, true);
++        }
++        else
++        {
++            // Same-scene clone transfers on the legacy client/server seam can
++            // complete the warp without delivering its callback. Keep the
++            // normal callback authoritative, but schedule the same handler as
++            // a persistent fallback. The handler consumes the pending marker
++            // and is idempotent when the engine callback wins the race.
++            messageTo(player, HANDLER_CLONE_RESPAWN, null, 5, true);
++        }
++        return true;
+     }
+     public static boolean equipClone(obj_id player) throws InterruptedException
+     {
+@@ -1230,13 +1240,14 @@ public class pclib extends script.base_script
+         }
+         setHitpoints(item, Math.max(0, hitpoints - amount));
+     }
+-    public static boolean sendToCloneSpawn(obj_id player, String callback, location world, location spawn) throws InterruptedException
+-    {
+-        if ((player == null) || (world == null) || (!isPlayer(player)))
+-        {
+-            return false;
+-        }
+-        if (spawn == null)
++    public static boolean sendToCloneSpawn(obj_id player, String callback, location world, location spawn) throws InterruptedException
++    {
++        if ((player == null) || (world == null) || (!isPlayer(player)))
++        {
++            return false;
++        }
++        utils.setScriptVar(player, "waitingOnCloneRespawn", 1);
++        if (spawn == null)
+         {
+             warpPlayer(player, world.area, world.x, world.y, world.z, null, world.x, world.y, world.z, callback);
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index b79d4e49d..dcf116dc6 100755
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -2963,6 +2963,7 @@ public class base_player extends script.base_script
+         utils.setScriptVar(self, pclib.VAR_REVIVE_CLONE, cloneLocs);
+         utils.setScriptVar(self, pclib.VAR_REVIVE_SPAWN, spawnLocs);
+         utils.setScriptVar(self, pclib.VAR_REVIVE_DAMAGE, damage);
++        utils.removeScriptVar(self, pclib.VAR_REVIVE_SELECTION);
+         dictionary hrem = new dictionary();
+         hrem.put("time", healing.REVIVE_TIMER);
+         hrem.put("sui", suiClone);
+@@ -3001,6 +3002,19 @@ public class base_player extends script.base_script
+         }
+         int pid = utils.getIntScriptVar(self, pclib.VAR_SUI_CLONE);
+         int idx = sui.getListboxSelectedRow(params);
++        String[] options =
++            utils.getStringArrayScriptVar(self, pclib.VAR_REVIVE_OPTIONS);
++        location[] cloneLocs =
++            utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_CLONE);
++        location[] spawnLocs =
++            utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_SPAWN);
++        if (idx < 0 || options == null || cloneLocs == null ||
++            spawnLocs == null || idx >= options.length ||
++            idx >= cloneLocs.length || idx >= spawnLocs.length)
++        {
++            return SCRIPT_CONTINUE;
++        }
++        utils.setScriptVar(self, pclib.VAR_REVIVE_SELECTION, idx);
+         String prompt = buildCloningPrompt(self, idx);
+         setSUIProperty(pid, sui.LISTBOX_PROMPT, sui.PROP_TEXT, prompt);
+         flushSUIPage(pid);
+@@ -3077,6 +3091,7 @@ public class base_player extends script.base_script
+         if (remaining_time <= 0)
+         {
+             sendSystemMessage(self, new string_id("base_player", "revive_expired"));
++            utils.removeScriptVar(self, pclib.VAR_REVIVE_SELECTION);
+             forceCloseSUIPage(sui_id);
+             if (space_dungeon.isCloningInstance(self))
+             {
+@@ -3237,6 +3252,14 @@ public class base_player extends script.base_script
+         if (params != null)
+         {
+             idx = sui.getListboxSelectedRow(params);
++            if (idx < 0 &&
++                utils.hasScriptVar(self, pclib.VAR_REVIVE_SELECTION))
++            {
++                idx =
++                    utils.getIntScriptVar(
++                        self,
++                        pclib.VAR_REVIVE_SELECTION);
++            }
+             if (idx > -1)
+             {
+                 location[] cloneLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_CLONE);
+@@ -3268,6 +3291,7 @@ public class base_player extends script.base_script
+                 sendSystemMessage(self, SID_CLONE_FAIL_SELECTION);
+             }
+         }
++        utils.removeScriptVar(self, pclib.VAR_REVIVE_SELECTION);
+         if (clone != null && clone.compareTo(new location()) != 0 && spawn != null && spawn.compareTo(new location()) != 0)
+         {
+             if (delayedClone > 0)
+@@ -3327,13 +3351,25 @@ public class base_player extends script.base_script
+         messageTo(self, pclib.HANDLER_PLAYER_DEATH, null, 0.0f, true);
+         return SCRIPT_CONTINUE;
+     }
+-    public int handleCloneRespawn(obj_id self, dictionary params) throws InterruptedException
+-    {
+-        utils.removeScriptVar(self, pclib.VAR_SUI_CLONE);
++    public int handleCloneRespawn(obj_id self, dictionary params) throws InterruptedException
++    {
++        // Both the engine warp callback and pclib's persistent same-scene
++        // fallback target this handler. Whichever arrives first consumes the
++        // pending lifecycle; a later duplicate must not heal, penalize, decay,
++        // or animate the player twice.
++        if (!isDead(self) &&
++            !utils.hasScriptVar(self, "waitingOnCloneRespawn") &&
++            !utils.hasScriptVar(self, pclib.VAR_PRECU_CLONE_WOUND) &&
++            !hasObjVar(self, "fullHealClone"))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        utils.removeScriptVar(self, pclib.VAR_SUI_CLONE);
+         utils.removeScriptVar(self, pclib.VAR_REVIVE_OPTIONS);
+         utils.removeScriptVar(self, pclib.VAR_REVIVE_CLONE);
+         utils.removeScriptVar(self, pclib.VAR_REVIVE_SPAWN);
+         utils.removeScriptVar(self, pclib.VAR_REVIVE_DAMAGE);
++        utils.removeScriptVar(self, pclib.VAR_REVIVE_SELECTION);
+         utils.removeScriptVar(self, "waitingOnCloneRespawn");
+         boolean hasClonePenalty =
+             utils.hasScriptVar(self, pclib.VAR_PRECU_CLONE_WOUND);

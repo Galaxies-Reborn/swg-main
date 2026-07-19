@@ -690,6 +690,16 @@ death-type split is preserved: PvE/AI deaths decay eligible insured items by
 one percent and uninsured items by five percent, consume the insured flag,
 and exclude auto-insured items; player death-blows do not decay items. The
 retained `insure_decay_event` table independently encodes the same `1/5/1`
-death row. NGE cloning sickness is no longer applied. Validate with:
+death row. NGE cloning sickness is no longer applied.
+
+Protocol-31 acceptance now drives the real Publish 14 clone list rather than
+calling the penalty helper directly. The server retains the bounded row seen
+by the generic-selection callback when the legacy close payload omits it.
+Same-scene clone warps mark completion pending and schedule an idempotent
+five-second fallback through the normal `handleCloneRespawn` handler, covering
+the retained engine path that can complete a warp without delivering its
+callback. Live row-zero acceptance produced 100 wounds in all three primary
+pools, 100 battle fatigue, no PvP item decay, an upright player, exact layered
+cleanup, and healthy isolated server/database containers. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ClonePenalties.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

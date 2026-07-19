@@ -134,6 +134,36 @@ Assert-Contract -Condition (
     -Name "p14.clone.runtime.parallel-selection-and-exactly-once-completion"
 
 Assert-Contract -Condition (
+    $pclib.Contains(
+        'VAR_REVIVE_SELECTION = "revive.selectedRow"') -and
+    $basePlayer.Contains(
+        "utils.setScriptVar(self, pclib.VAR_REVIVE_SELECTION, idx)") -and
+    $basePlayer.Contains(
+        "idx < 0 || options == null || cloneLocs == null") -and
+    $basePlayer.Contains(
+        "utils.hasScriptVar(self, pclib.VAR_REVIVE_SELECTION)") -and
+    $basePlayer.Contains(
+        "idx =`r`n                    utils.getIntScriptVar(") -and
+    $basePlayer.Contains(
+        "utils.removeScriptVar(self, pclib.VAR_REVIVE_SELECTION)")) `
+    -Name "p14.clone.runtime.server-observed-selection-close-compatibility"
+
+Assert-Contract -Condition (
+    $pclib.Contains(
+        'utils.setScriptVar(player, "waitingOnCloneRespawn", 1)') -and
+    $pclib.Contains(
+        "messageTo(player, HANDLER_CLONE_RESPAWN, null, 5, true)") -and
+    $basePlayer.Contains(
+        "if (!isDead(self) &&") -and
+    $basePlayer.Contains(
+        '!utils.hasScriptVar(self, "waitingOnCloneRespawn")') -and
+    $basePlayer.Contains(
+        "!utils.hasScriptVar(self, pclib.VAR_PRECU_CLONE_WOUND)") -and
+    $basePlayer.Contains(
+        '!hasObjVar(self, "fullHealClone")')) `
+    -Name "p14.clone.runtime.same-scene-transfer-fallback-idempotence"
+
+Assert-Contract -Condition (
     -not $basePlayer.Contains(
         'buff.applyBuff(self, "cloning_sickness")') -and
     $basePlayer.Contains(
@@ -165,6 +195,24 @@ Assert-Contract -Condition (
         [string]$contract.buildEvidence.compiledSha256.
             "precu_clone_penalty_fixture.class")) `
     -Name "p14.clone.build.clean-java-evidence"
+
+Assert-Contract -Condition (
+    [string]$contract.selectionCompatibilityBuildEvidence.result -ceq
+        "passed" -and
+    [string]$contract.selectionCompatibilityBuildEvidence.
+        overlayPatchSha256 -ceq
+        "6296c5ec685c56d61a2628004f4a22b3afdca8fdc874126e797d32cfdf7d235" -and
+    [string]$contract.selectionCompatibilityBuildEvidence.
+        cleanApplyCheck -ceq "passed" -and
+    [int]$contract.selectionCompatibilityBuildEvidence.
+        finalIncrementalBuild.compiledSourceCount -eq 2 -and
+    -not [string]::IsNullOrWhiteSpace(
+        [string]$contract.selectionCompatibilityBuildEvidence.
+            compiledSha256."pclib.class") -and
+    -not [string]::IsNullOrWhiteSpace(
+        [string]$contract.selectionCompatibilityBuildEvidence.
+            compiledSha256."base_player.class")) `
+    -Name "p14.clone.build.selection-and-transfer-compatibility"
 
 if ($Expectation -ceq "Ready")
 {
@@ -204,6 +252,33 @@ if ($Expectation -ceq "Ready")
         [bool]$live.serverHealthyAfterCleanup -and
         [bool]$live.oracleHealthyAfterCleanup) `
         -Name "p14.clone.live.exact-cleanup-and-container-health"
+    $selection = $live.selectionCompatibility
+    Assert-Contract -Condition (
+        [string]$selection.result -ceq "passed" -and
+        [int]$selection.clientProtocolVersion -eq 31 -and
+        [int]$selection.selectionIndex -eq 0 -and
+        [bool]$selection.serverPromptRoundTrip -and
+        [bool]$selection.realOkCallback -and
+        -not [bool]$selection.victimDead -and
+        [int]$selection.victimPosture -eq 0 -and
+        [int]$selection.healthWound -eq 100 -and
+        [int]$selection.actionWound -eq 100 -and
+        [int]$selection.mindWound -eq 100 -and
+        [int]$selection.shock -eq 100 -and
+        [int]$selection.insuredHp -eq 1000 -and
+        [bool]$selection.insuredFlag -and
+        [int]$selection.uninsuredHp -eq 1000 -and
+        [int]$selection.autoInsuredHp -eq 1000) `
+        -Name "p14.clone.live.protocol-thirty-one-selection-and-completion"
+    Assert-Contract -Condition (
+        [bool]$selection.cleanup.restored -and
+        [bool]$selection.cleanup.idempotent -and
+        [bool]$selection.cleanup.allRootsAbsent -and
+        [bool]$selection.serverHealthyAfterCleanup -and
+        [bool]$selection.oracleHealthyAfterCleanup -and
+        [bool]$contract.publicationBoundary.clientToolsChanged -and
+        [int]$contract.publicationBoundary.clientProtocolVersion -eq 31) `
+        -Name "p14.clone.live.protocol-thirty-one-cleanup-and-boundary"
 }
 
 if ($failures.Count -gt 0)
