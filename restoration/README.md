@@ -1005,3 +1005,15 @@ fallback, the independent 350,000 Dance XP cap, all modifier deltas reset,
 and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerShockOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The second Dancer Shock branch slice restores the exact searchable
+four-by-four box: Shock I prerequisite, 50,000 Entertainer Healing XP, four
+points, +10 dance Shock healing, and the 400,000 cap. It removes the retained
+NGE Entertainer XP, ribbon-magic prop command, +10 prop assembly,
+`craftDancePropH` schematic group, and hidden row. Protocol 58 proves
+production purchase, all three NGE grants absent, actor-only client surrender,
+four-point recovery, Shock I retained, the 200,000-cap fallback, the
+independent 350,000 Dance XP cap, all modifier deltas reset, and exact
+cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerShockTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
