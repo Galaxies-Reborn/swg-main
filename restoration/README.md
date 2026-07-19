@@ -681,3 +681,15 @@ Validate the Publish 14.1 rolling three-incap death threshold, Core3-derived
 recovery timer, all-primary-pool recovery, stale-task guard, and counter reset:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14IncapacitationRecovery.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Publish 14.1 clone penalties now replace the retained incomplete/NGE path.
+Every clone option carries a parallel registered-versus-alternate penalty:
+registered facilities add no wounds, while alternate facilities add exactly
+100 Health, Action, and Mind wounds plus 100 battle fatigue. Pinned Core3's
+death-type split is preserved: PvE/AI deaths decay eligible insured items by
+one percent and uninsured items by five percent, consume the insured flag,
+and exclude auto-insured items; player death-blows do not decay items. The
+retained `insure_decay_event` table independently encodes the same `1/5/1`
+death row. NGE cloning sickness is no longer applied. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ClonePenalties.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
