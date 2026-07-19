@@ -929,3 +929,14 @@ grants retained, 500,000-cap recomputation, all modifier deltas reset, and
 exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerAbilityTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The third Dancer Ability branch slice restores the exact searchable
+four-by-four box: Ability II prerequisite, 175,000 Dance XP, three points,
+Smoke Bomb, +20 dance Mind healing, and the 900,000 cap. It removes the
+NGE-only Center Stage grant and replaces the retained Entertainer XP,
+100,000-cost, 500,000-cap, modifier-free hidden row. Protocol 51 proves
+production purchase, actor-only client surrender, three-point recovery,
+Ability II and Distract retained, 700,000-cap recomputation, all modifier
+deltas reset, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerAbilityThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
