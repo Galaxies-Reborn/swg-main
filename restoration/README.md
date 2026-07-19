@@ -1165,3 +1165,11 @@ recovery, Wound I and novice grant retention, Healing-cap recomputation to
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Wound III restores Wound II, 100,000 Entertainer Healing XP, three
+points, a 500,000 cap, and +10 Music wound healing while rejecting NGE's
+175,000 Music XP and +20 contract. Protocol 73 proves purchase, surrender,
+Wound II retention, 400,000-cap recomputation, rollback, and cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
