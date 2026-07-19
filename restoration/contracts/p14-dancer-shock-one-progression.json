@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "feature": "dancer-shock-one-progression",
+  "status": "ready",
+  "scope": "Exact Publish 14.1 Dancer Shock I data, NGE prop-surface removal, production purchase, actor-routed client surrender, Dancer novice retention, modifier and dual-XP-cap recomputation, and reversible live acceptance.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "shockOne": {
+      "name": "social_dancer_shock_01",
+      "parent": "social_dancer",
+      "graphType": "fourByFour",
+      "isTitle": "0",
+      "isProfession": "0",
+      "moneyRequired": "6000",
+      "pointsRequired": "5",
+      "skillsRequired": "social_dancer_novice",
+      "xpType": "entertainer_healing",
+      "xpCost": "25000",
+      "xpCap": "200000",
+      "commands": "",
+      "skillMods": "healing_dance_shock=10",
+      "schematics": "",
+      "searchable": "1"
+    },
+    "removedNgeSurface": {
+      "graphType": "",
+      "xpType": "entertainer",
+      "xpCost": "25000",
+      "xpCap": "200000",
+      "commands": "prop_double_ribbon",
+      "skillMods": "prop_assembly=10",
+      "schematics": "craftDancePropG",
+      "searchable": "0"
+    }
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "contract": "Qualification precedes point and XP costs; purchase applies only archived commands, modifiers, and schematics; actor-routed surrender returns points, removes only unshared grants, retains the parent box, and recomputes the relevant XP cap without refund."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlayPatch": "restoration/patches/dsrc/089-p14-dancer-shock-one-progression.patch",
+    "overlayPatchSha256": "92d80db4ef9cb6f5ce2d3167e903bc22e3482f065e4c009b3fa4184c2c52a45d",
+    "cleanApplyServerCommit": "44dd493400c1f77d92458def4dae50c86dbfdec3",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 2,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledBytes": 60795,
+      "compiledSha256": "b03e2dc2c16e74d536455142ea5378a8ca59642b0fa897c2046b334925fb4cdc"
+    },
+    "clientTableBuild": {
+      "result": "passed",
+      "compiledBytes": 578218,
+      "compiledSha256": "00f04b95908b617b9f6a3fb52e5ef044013d6cd1afadce004e2bc166a6245571"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "protocolVersion": 57,
+      "testCount": 144,
+      "expectedSkipCount": 1,
+      "sourceCommit": "ceb3ba013e7ef7f73301a6ba027b4442beb4df49",
+      "executableBytes": 32579584,
+      "executableSha256": "fddd40d4328f8044dc0a3fec697d6888644d353acc2748e32eeaf17993724c79",
+      "clientMainSha256": "8ace9bf2fe21a48a1d232d8e21cadaa0e5225d6c16e72aba127f8bd6d387b2bc"
+    },
+    "sourceSha256": {
+      "precu_entertainer_dance_one_fixture.java": "9d5340555e305b80f5bbaad368c032a3b40e7e0b43389ea14844a563f91fd358",
+      "skills.tab": "2e680362af964b48c0395c9a24368a648710b4de769fc226cf62dcd20d085bfd"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "94cac4efc8dc32662a5aaaa602625dad964710b3",
+    "skillsIffSha256": "00f04b95908b617b9f6a3fb52e5ef044013d6cd1afadce004e2bc166a6245571"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "120a2f69ae33498181f9fd0b0a0f24ea",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 74536,
+    "clientProtocolVersion": 57,
+    "purchase": {
+      "passed": true,
+      "healingXpBefore": 25000,
+      "healingXpAfter": 0,
+      "pointCost": 5,
+      "availablePointsBefore": 210,
+      "availablePointsAfter": 205,
+      "danceShockDelta": 10,
+      "propAssemblyDelta": 0,
+      "ngePropCommandAfter": "0",
+      "ngeRepresentativeSchematicAfter": false,
+      "healingXpCapAfter": 200000,
+      "danceXpCapAfter": 350000
+    },
+    "surrender": {
+      "clientSubmitted": true,
+      "serverRemoved": true,
+      "dancerNoviceRetained": true,
+      "dancerNoviceCommandsAfter": "111",
+      "pointsRecovered": 5,
+      "healingXpRefund": 0,
+      "healingFourXpCapAfter": 75000,
+      "danceXpCapAfter": 350000,
+      "modifierDeltasAfter": "0,0,0,0",
+      "propAssemblyDeltaAfter": 0,
+      "ngePropCommandAfter": "0",
+      "ngeRepresentativeSchematicAfter": false
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "availablePoints": 250,
+      "performanceType": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "nextBoundary": "Dancer Shock II progression"
+}
