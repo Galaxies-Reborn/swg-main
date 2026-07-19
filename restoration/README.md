@@ -962,3 +962,13 @@ fallback, the independent 350,000 Dance XP cap, all modifier deltas reset,
 and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerWoundOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The second Dancer Wound branch slice restores the exact searchable
+four-by-four box: Wound I prerequisite, 50,000 Entertainer Healing XP, four
+points, +10 dance Wound healing, and the 400,000 cap. It replaces the retained
+NGE Dance XP, 125,000-cost hidden row. Protocol 54 proves production purchase,
+actor-only client surrender, four-point recovery, Wound I and Dancer novice
+grants retained, the Wound I 200,000-cap fallback, the independent 350,000
+Dance XP cap, all modifier deltas reset, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerWoundTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
