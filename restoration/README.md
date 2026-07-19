@@ -864,3 +864,11 @@ surrender, five-point recovery, Dance I-III grant retention, the Dance III
 90,000 XP-cap fallback, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The first Hairstyle branch slice restores exact Hairstyle I costs, the private
+hair marker, one hair customization rank, a 10,000 Image Designer XP cap,
+and tree visibility. Protocol 44 proves production purchase, actor-only
+surrender, two-point recovery, the novice 2,000 XP-cap fallback, and exact
+cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerHairstyleOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
