@@ -1182,3 +1182,12 @@ surrender, Wound III retention, terminal-cap retention, rollback, and
 idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianWoundFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Shock I restores the exact searchable box: Musician novice, 25,000
+Entertainer Healing XP, five points, a 200,000 Healing cap, and +10 Music
+shock healing. It removes the NGE duplicate Traz, assembly modifier, and Traz
+schematic group while retaining Traz from the novice parent. Protocol 75
+proves purchase, production surrender, novice retention, 75,000-cap
+recomputation, rollback, negative grants, and idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
