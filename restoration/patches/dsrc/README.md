@@ -682,3 +682,14 @@ tracked page before replacement and reuses the existing residue-free
 `handleDecayReport` callback. The clone fixture exposes the report lifecycle
 without taking ownership of unrelated pages and proved protocol-31 render,
 close, exact restoration, and idempotent cleanup.
+
+`062-p14-entertainer-mind-healing.patch` restores the pinned Core3 performance
+heartbeat for Mind, Focus, Willpower, and Battle Fatigue healing. It overlays
+all six authentic fields for the 154 Publish 14.1 performance rows that have
+unique counterparts while preserving 157 later rows, restores the four-box
+entertainer-healing XP branch, and removes the retained NGE healer-XP
+conversion. Performers heal themselves and valid patrons within 60 meters;
+the exact base/skill/flourish calculation grants solo or active-group
+`entertainer_healing` XP within 40 meters. Its identity-bound fixture proves
+the Basic-dance three-point four-channel heal, asynchronous six-XP delivery,
+exact preimage restoration, and idempotent cleanup.
