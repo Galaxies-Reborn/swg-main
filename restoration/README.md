@@ -1105,3 +1105,14 @@ commands retained, Music-cap recomputation to 150,000, Healing-cap retention
 at 75,000, modifier rollback, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianNoviceProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Musician Ability I slice restores the exact searchable four-by-four box:
+Musician novice prerequisite, 87,500 Music XP, five points, a 500,000 cap,
+spotlight, colorlights, dazzle, +10 instrument assembly, and +10 Music mind
+healing. Protocol 67 proves production purchase, exact grants, actor-only
+client surrender, five-point recovery, Musician novice and all novice commands
+retained, parent Kloo Horn retained, Music-cap recomputation to 350,000,
+Healing-cap retention at 75,000, modifier rollback, and exact cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
