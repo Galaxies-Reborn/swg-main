@@ -758,3 +758,7 @@ cleanup.
 four-terminal Entertainer capstone and extends the fixture through protocol-39
 purchase, Ceremonial playback, surrender, prerequisite retention, and
 cleanup.
+
+`072-p14-entertainer-dance-one-progression.patch` restores exact Dance I,
+including Basic 2, and adds the protocol-40 purchase, playback, surrender,
+novice-cap recomputation, and cleanup fixture.

@@ -830,3 +830,11 @@ index 71, delayed stop, actor-only surrender, prerequisite retention, and
 exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The first Dance branch slice restores exact Dance I costs, Basic 2, five
+dance-healing ability, a 10,000 XP cap, and tree visibility. Protocol 40
+proves real Basic 2 at runtime index 282, immediate stop, actor-only surrender,
+two-point recovery, the novice 2,000 XP-cap fallback, and exact cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
