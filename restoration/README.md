@@ -846,3 +846,12 @@ actor-only surrender, three-point recovery, Dance I command and skill
 retention, the Dance I 10,000 XP-cap fallback, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The third Dance branch slice restores exact Dance III costs, Footloose, five
+additional dance-healing ability, a 90,000 XP cap, and tree visibility.
+Protocol 42 proves real Footloose at runtime index 285, the exact
+Quickness-adjusted 33 Action loop cost, immediate stop, actor-only surrender,
+four-point recovery, Dance I-II grant retention, the Dance II 30,000 XP-cap
+fallback, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerDanceThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "feature": "entertainer-dance-three-progression",
+  "status": "ready",
+  "scope": "Exact Publish 14.1 Entertainer Dance III data, production purchase, Footloose use, actor-routed surrender, lower-tier retention, and reversible live acceptance.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "performanceTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/performance/performance.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "danceThree": {
+      "name": "social_entertainer_dance_03",
+      "parent": "social_entertainer_dance_02",
+      "graphType": "fourByFour",
+      "moneyRequired": "3000",
+      "pointsRequired": "4",
+      "skillsRequired": "social_entertainer_dance_02",
+      "xpType": "dance",
+      "xpCost": "15000",
+      "xpCap": "90000",
+      "commands": "private_entertainer_dance_3,startDance+footloose",
+      "skillMods": "healing_dance_ability=5",
+      "schematics": "",
+      "searchable": "1"
+    },
+    "footloose": {
+      "performanceIndex": 285,
+      "requiredDance": "startDance+footloose",
+      "actionPointsPerLoop": 36,
+      "quickness": 400,
+      "adjustedActionPointsPerLoop": 33,
+      "loopDuration": 10
+    }
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "contract": "Qualification precedes costs; learning applies commands, modifiers, and XP limits. Actor-routed surrender returns points, removes only unshared grants, retains prerequisite boxes and their grants, and recomputes limits without XP refund."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlayPatch": "restoration/patches/dsrc/074-p14-entertainer-dance-three-progression.patch",
+    "overlayPatchSha256": "3113c12fff2ed7a61e2a4fc701c4fddcb335a38d5e71cccdc94846e20462e299",
+    "cleanApplyServerCommit": "65b196e0173df89dff58f2431b593789d4762129",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 2,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledBytes": 21145,
+      "compiledSha256": "f256e6e583a55b5a80d42b2be31013ce2d3285b24f50a972223193a3a6eacada"
+    },
+    "clientTableBuild": {
+      "result": "passed",
+      "compiledBytes": 578213,
+      "compiledSha256": "0cca9f3ed0d6247dda2a0336c80363d280eafcf16e0c3e50bf70136fc42c8668"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "protocolVersion": 42,
+      "testCount": 143,
+      "expectedSkipCount": 1,
+      "sourceCommit": "5ac8e124702c5bf646519f37feb477dfd68d5190",
+      "executableBytes": 32564736,
+      "executableSha256": "02995cc471545b2844630a960bbe9ce6bb53244472c7ee4812806992b1104e5f",
+      "clientMainSha256": "a05be85285c12ad55db03f0ddf8a98510e97f13bef9378dc8f239a453b028d07"
+    },
+    "sourceSha256": {
+      "precu_entertainer_dance_one_fixture.java": "aaeff7d11cbc14e8b12cc3cc6cb3d65dbadccb214b0c651fe942fb9ea65c3276",
+      "skills.tab": "db070e9502080202e26958b824ca34cbba3003b4a4d18df0c37a3d5da745e7cf"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "44b256d0b6cd3b2a39904ecda6d1bfcc65216cec",
+    "skillsIffSha256": "0cca9f3ed0d6247dda2a0336c80363d280eafcf16e0c3e50bf70136fc42c8668"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "d3ed9545013e46baa66f0023229bd104",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 71340,
+    "clientProtocolVersion": 42,
+    "purchase": {
+      "passed": true,
+      "danceXpBefore": 15000,
+      "danceXpAfter": 0,
+      "pointCost": 4,
+      "availablePointsBefore": 230,
+      "availablePointsAfter": 226,
+      "commandsAfter": "11",
+      "danceAbilityDelta": 5,
+      "xpCapAfter": 90000
+    },
+    "footloose": {
+      "startAccepted": true,
+      "performanceIndex": 285,
+      "actionBeforeLoop": 100,
+      "actionAfterLoop": 67,
+      "stopAccepted": true,
+      "stopCompleted": true
+    },
+    "surrender": {
+      "clientSubmitted": true,
+      "serverRemoved": true,
+      "danceTwoRetained": true,
+      "danceOneRetained": true,
+      "danceThreeCommandsAfter": "00",
+      "danceTwoCommandsAfter": "11",
+      "danceOneCommandsAfter": "11",
+      "danceAbilityDelta": 0,
+      "pointsRecovered": 4,
+      "danceXpRefund": 0,
+      "danceTwoXpCapAfter": 30000
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "availablePoints": 250,
+      "performanceIndex": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "nextBoundary": "Entertainer Dance IV"
+}
