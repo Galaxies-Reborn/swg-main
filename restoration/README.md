@@ -1116,3 +1116,14 @@ Healing-cap retention at 75,000, modifier rollback, and exact cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Musician Ability II slice restores the exact searchable four-by-four box:
+Ability I prerequisite, 125,000 Music XP, four points, a 700,000 cap, Fire
+Jet, +15 instrument assembly, +10 Music mind healing, and the Traz schematic
+group. It removes the NGE-only Laser Show command. Protocol 68 proves exact
+production purchase, actor-only client surrender, four-point recovery,
+Ability I and all its commands retained, Music-cap recomputation to 500,000,
+Healing-cap retention at 75,000, schematic and modifier rollback, and exact
+cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
