@@ -1136,3 +1136,13 @@ Ability II grant retention, 700,000-cap recomputation, rollback, and cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Ability IV restores the exact searchable box: Ability III,
+225,000 Music XP, two points, terminal 900,000 cap, +25 instrument assembly,
++25 Music mind healing, and Omni Box schematics. It grants no command and
+removes NGE Featured Solo. Protocol 70 proves purchase, production surrender,
+two-point recovery, Ability III, Ventriloquism, and Bandfill retention,
+terminal-cap retention, modifier and schematic rollback, and cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianAbilityFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
