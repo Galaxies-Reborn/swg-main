@@ -1082,3 +1082,14 @@ recovery, Knowledge III and its commands retained, terminal cap retention,
 all modifier deltas reset, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerKnowledgeFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Dancer master slice restores the exact searchable four-branch title box:
+all four terminal prerequisites, zero XP, one point, five authentic commands,
+and all eight authentic modifiers. It removes the NGE-only 350,000 Dance XP
+cost and 500,000 cap grant, spark prop command, prop assembly, and schematic
+group. Protocol 65 proves zero-XP production purchase, exact grants,
+actor-only client surrender, one-point recovery, all four terminal branches
+and their commands retained, parent Dance and Healing XP caps retained, all
+master modifier deltas reset, and exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14DancerMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
