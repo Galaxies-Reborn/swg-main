@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "feature": "entertainer-music-two-progression",
+  "status": "ready",
+  "scope": "Exact Publish 14.1 Entertainer Music II data, production purchase, Star Wars 2 use, Fizz schematic grants, actor-routed surrender, and reversible live acceptance.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "performanceTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/performance/performance.tab",
+    "schematicGroupTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "skillSourceSha256": "ca5275d226361e8ae9aefe1ccf24c9432f58e5d3bc043bb3217d15674bf17136",
+    "musicTwo": {
+      "name": "social_entertainer_music_02",
+      "parent": "social_entertainer_music_01",
+      "graphType": "fourByFour",
+      "moneyRequired": "2000",
+      "pointsRequired": "3",
+      "skillsRequired": "social_entertainer_music_01",
+      "xpType": "music",
+      "xpCost": "5000",
+      "xpCap": "30000",
+      "commands": "private_entertainer_music_2,startMusic+starwars2",
+      "skillMods": "healing_music_ability=5",
+      "schematics": "craftInstrumentGroupB",
+      "searchable": "1"
+    },
+    "starwarsTwoSlitherhorn": {
+      "performanceIndex": 29,
+      "instrumentAudioId": 2,
+      "requiredSong": "startMusic+starwars2",
+      "requiredInstrument": "slitherhorn",
+      "actionPointsPerLoop": 32,
+      "loopDuration": 5
+    },
+    "schematicGroupB": [
+      "object/draft_schematic/instrument/instrument_fizz.iff",
+      "object/draft_schematic/instrument/instrument_fizz_classic.iff"
+    ]
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "skillManagerSource": "MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+    "trainerSource": "MMOCoreORB/bin/scripts/screenplays/trainers/trainerConvHandler.lua",
+    "surrenderCommandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/SurrenderSkillCommand.h",
+    "contract": "Qualification precedes point and XP deduction; learning applies commands, modifiers, schematics, and XP limits. Actor-routed surrender returns points, removes only unshared grants, and recomputes XP limits without refunding XP."
+  },
+  "fixtureBoundary": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "prerequisiteSetup": "Entertainer novice and Music I are fixture-only prerequisites",
+    "realClientOperations": [
+      "startMusic starwars2",
+      "stopMusic",
+      "surrenderSkill social_entertainer_music_02"
+    ],
+    "cleanupPolicy": "Destroy only the fixture slitherhorn, revoke Music II before Music I and novice, restore XP, skill points, HAM, regen, posture, locomotion, and remove the fixture namespace."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlayPatch": "restoration/patches/dsrc/068-p14-entertainer-music-two-progression.patch",
+    "overlayPatchSha256": "15b19b0694cf11d344c9ab3cfb90d39e90855326a482267a85f3e65decc73535",
+    "cleanApplyServerCommit": "d373d9f339560d9578493762900e106a9bfdc398",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 2,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledBytes": 20463,
+      "compiledSha256": "e6349d27d32fbd795e5598051fa94ed1881acbed732e346c321eec6257c06306"
+    },
+    "clientTableBuild": {
+      "result": "passed",
+      "compiledBytes": 578406,
+      "compiledSha256": "971f7710885e5a4080b0963bd4c600f0345ceced8a709bfb9fb201c7ceba79bc"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "protocolVersion": 36,
+      "testCount": 143,
+      "expectedSkipCount": 1,
+      "sourceCommit": "cb774e7abb339e86e449be2350904c2614022fb2",
+      "executableBytes": 32559104,
+      "executableSha256": "9f5281705c9220d7dc7889ec9852e85eee83b029716d7c6e2ed5f1cd7e07b899",
+      "clientMainSha256": "35b0e2e8b0b509582abaef4d68aed3bd2a45d5cf18506f674a5d3687aaaac755"
+    },
+    "sourceSha256": {
+      "precu_entertainer_music_one_fixture.java": "0062cc4f9fa8356eed1b33a0cc9224d850c54c518b3c7a558c72d1d58205a9f1",
+      "skills.tab": "c557e84ce5b3a66cfa8c469dd1d62254adae98dddfdc2dc05ee7ccde3c9e8c30"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "cd6f7808d467fe7048cefbb97f91e925b6fa22f0",
+    "skillsIffSha256": "971f7710885e5a4080b0963bd4c600f0345ceced8a709bfb9fb201c7ceba79bc"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "319e6c978ba245d194bce2b6f213aa5a",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 74552,
+    "clientProtocolVersion": 36,
+    "purchase": {
+      "passed": true,
+      "musicXpBefore": 5000,
+      "musicXpAfter": 0,
+      "pointCost": 3,
+      "availablePointsBefore": 233,
+      "availablePointsAfter": 230,
+      "commandsAfter": "11",
+      "schematicsAfter": "11",
+      "musicAbilityDelta": 5,
+      "xpCapAfter": 30000
+    },
+    "starwarsTwo": {
+      "startAccepted": true,
+      "performanceIndex": 29,
+      "instrumentAudioId": 2,
+      "stopAccepted": true,
+      "outroObserved": true,
+      "stopCompleted": true
+    },
+    "surrender": {
+      "clientSubmitted": true,
+      "serverRemoved": true,
+      "commandsAfter": "00",
+      "schematicsAfter": "00",
+      "musicAbilityDelta": 0,
+      "pointsRecovered": 3,
+      "musicXpRefund": 0,
+      "xpCapAfter": 10000
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "availablePoints": 250,
+      "performanceIndex": 0,
+      "instrumentAudioId": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "Music II exact row and schematic group",
+      "production purchase service",
+      "real-client Star Wars 2 start and stop",
+      "real-client actor-routed surrender",
+      "reversible fixture and compiled client skill table"
+    ],
+    "deferred": [
+      "visible trainer conversation and credit debit",
+      "Entertainer Music III through master",
+      "Entertainer dance and hairstyle tracks",
+      "Dancer and Musician profession trees"
+    ]
+  }
+}

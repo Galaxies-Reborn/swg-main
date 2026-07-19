@@ -735,3 +735,12 @@ to share one performance start time, pay their authentic Quickness-dependent
 flourish and heartbeat costs independently, enter and leave the 15-second
 outro together, and restore both complete preimages after real-client group
 dissolution.
+
+`067-p14-entertainer-music-one-progression.patch` restores the exact
+Publish 14.1 Entertainer root, novice, and Music I rows and adds the
+identity-bound purchase, Rock, surrender, and cleanup fixture.
+
+`068-p14-entertainer-music-two-progression.patch` restores the exact Music II
+row, including Star Wars 2 and the Fizz schematic group, and extends the same
+fixture through purchase, real-client playback, actor-routed surrender, and
+idempotent restoration.

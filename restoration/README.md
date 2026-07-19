@@ -795,3 +795,14 @@ carry no target because its command row declares `targetType=none`. Validate
 with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The second Entertainer music slice restores the exact Publish 14.1 Music II
+row: 5,000 music XP, three skill points, Star Wars 2, five
+`healing_music_ability`, the two-schematic Fizz group, a 30,000 XP cap, and
+four-by-four search visibility. Protocol-36 acceptance purchases the box,
+plays slitherhorn Star Wars 2 at runtime index 29, completes the authentic
+outro, and actor-routes the ordinary Music II surrender. The server proves
+both commands and both schematics are removed, exactly three points return,
+the spent XP stays spent, and the Music I cap is restored. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
