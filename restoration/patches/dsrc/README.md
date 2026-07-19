@@ -753,3 +753,8 @@ purchase, playback, surrender, prerequisite retention, and cleanup.
 including Star Wars 3 and Kloo Horn, and extends the fixture through
 protocol-38 purchase, playback, surrender, prerequisite retention, and
 cleanup.
+
+`071-p14-entertainer-master-progression.patch` restores the exact
+four-terminal Entertainer capstone and extends the fixture through protocol-39
+purchase, Ceremonial playback, surrender, prerequisite retention, and
+cleanup.

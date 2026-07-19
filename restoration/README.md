@@ -821,3 +821,12 @@ surrender, five-point recovery, Music III grant retention, and exact cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The capstone slice restores the exact four-terminal Entertainer master row,
+removing retained NGE XP, props, assembly modifiers, and schematics.
+Protocol 39 proves all-terminal qualification, six-point purchase, five
+capstone commands, four +10 healing modifiers, real Ceremonial at runtime
+index 71, delayed stop, actor-only surrender, prerequisite retention, and
+exact cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

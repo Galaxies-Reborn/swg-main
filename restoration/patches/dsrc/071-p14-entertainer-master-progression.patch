@@ -1,0 +1,572 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
+index 526c4edad..934c9e7d7 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
+@@ -7,7 +7,8 @@ import script.obj_id;
+ 
+ /**
+  * Identity-bound reversible fixture for authentic Publish 14.1 Entertainer
+- * Music I or II purchase, real-client song use, and production surrender.
++ * Music progression and master purchase, real-client song use, and
++ * production surrender.
+  */
+ public class precu_entertainer_music_one_fixture
+     extends script.base_script
+@@ -24,6 +25,14 @@ public class precu_entertainer_music_one_fixture
+         "social_entertainer_music_03";
+     private static final String MUSIC_FOUR =
+         "social_entertainer_music_04";
++    private static final String HAIRSTYLE_FOUR =
++        "social_entertainer_hairstyle_04";
++    private static final String DANCE_FOUR =
++        "social_entertainer_dance_04";
++    private static final String HEALING_FOUR =
++        "social_entertainer_healing_04";
++    private static final String MASTER =
++        "social_entertainer_master";
+     private static final String MUSIC_XP = "music";
+     private static final String ROCK_ABILITY = "startMusic+rock";
+     private static final String FIZZ_ABILITY = "fizz";
+@@ -43,6 +52,15 @@ public class precu_entertainer_music_one_fixture
+     private static final String KLOOHORN_ABILITY = "kloohorn";
+     private static final String PRIVATE_FOUR_ABILITY =
+         "private_entertainer_music_4";
++    private static final String PRIVATE_MASTER_ABILITY =
++        "private_entertainer_master";
++    private static final String FOOTLOOSE_TWO_ABILITY =
++        "startDance+footloose2";
++    private static final String FORMAL_TWO_ABILITY =
++        "startDance+formal2";
++    private static final String CEREMONIAL_ABILITY =
++        "startMusic+ceremonial";
++    private static final String MANDOVIOL_ABILITY = "mandoviol";
+     private static final String FIZZ_SCHEMATIC =
+         "object/draft_schematic/instrument/instrument_fizz.iff";
+     private static final String FIZZ_CLASSIC_SCHEMATIC =
+@@ -51,10 +69,17 @@ public class precu_entertainer_music_one_fixture
+     private static final String INSTRUMENT_TEMPLATE =
+         "object/tangible/instrument/slitherhorn.iff";
+     private static final String MUSIC_MOD = "healing_music_ability";
++    private static final String DANCE_MOD = "healing_dance_ability";
++    private static final String MUSIC_WOUND_MOD =
++        "healing_music_wound";
++    private static final String DANCE_WOUND_MOD =
++        "healing_dance_wound";
+     private static final int ROCK_INDEX = 15;
+     private static final int STARWARS_TWO_INDEX = 29;
+     private static final int FOLK_INDEX = 43;
+     private static final int STARWARS_THREE_INDEX = 57;
++    private static final int CEREMONIAL_INDEX = 71;
++    private static final int CEREMONIAL_FIRST_LOOP_ACTION = 64;
+     private static final int SLITHERHORN_AUDIO_ID = 2;
+     private static final int MUSIC_ONE_XP_COST = 1000;
+     private static final int MUSIC_ONE_POINT_COST = 2;
+@@ -64,6 +89,8 @@ public class precu_entertainer_music_one_fixture
+     private static final int MUSIC_THREE_POINT_COST = 4;
+     private static final int MUSIC_FOUR_XP_COST = 45000;
+     private static final int MUSIC_FOUR_POINT_COST = 5;
++    private static final int MASTER_PREREQUISITE_POINT_COST = 5;
++    private static final int MASTER_POINT_COST = 6;
+     private static final int REFERENCE_QUICKNESS = 400;
+     private static final int START_ACTION = 100;
+ 
+@@ -89,6 +116,12 @@ public class precu_entertainer_music_one_fixture
+     private static final String BASE_POINTS = ROOT + ".basePoints";
+     private static final String BASE_MUSIC_MOD =
+         ROOT + ".baseMusicMod";
++    private static final String BASE_DANCE_MOD =
++        ROOT + ".baseDanceMod";
++    private static final String BASE_MUSIC_WOUND_MOD =
++        ROOT + ".baseMusicWoundMod";
++    private static final String BASE_DANCE_WOUND_MOD =
++        ROOT + ".baseDanceWoundMod";
+     private static final String FIXTURE_INSTRUMENT =
+         ROOT + ".fixtureInstrument";
+     private static final String PURCHASED = ROOT + ".purchased";
+@@ -110,6 +143,9 @@ public class precu_entertainer_music_one_fixture
+         "prepareFour|purchaseFour|observeStarwarsThreeStart|" +
+         "observeStarwarsThreeStopRequested|" +
+         "observeStarwarsThreeStopComplete|observeSurrenderFour|" +
++        "prepareMaster|purchaseMaster|observeCeremonialStart|" +
++        "observeCeremonialStopRequested|" +
++        "observeCeremonialStopComplete|observeSurrenderMaster|" +
+         "status|cleanup <playerOid> <lifecycle>";
+ 
+     public String executeFixture(String params)
+@@ -167,6 +203,10 @@ public class precu_entertainer_music_one_fixture
+         {
+             return prepareFour(player, args[2]);
+         }
++        if (action.equalsIgnoreCase("prepareMaster"))
++        {
++            return prepareMaster(player, args[2]);
++        }
+         if (action.equalsIgnoreCase("cleanup") &&
+             !hasObjVar(player, ROOT))
+         {
+@@ -193,6 +233,10 @@ public class precu_entertainer_music_one_fixture
+         {
+             return purchaseFour(player);
+         }
++        if (action.equalsIgnoreCase("purchaseMaster"))
++        {
++            return purchaseMaster(player);
++        }
+         if (action.equalsIgnoreCase("observeRockStart"))
+         {
+             return observeRockStart(player);
+@@ -261,6 +305,24 @@ public class precu_entertainer_music_one_fixture
+         {
+             return observeSurrenderFour(player);
+         }
++        if (action.equalsIgnoreCase("observeCeremonialStart"))
++        {
++            return observeCeremonialStart(player);
++        }
++        if (action.equalsIgnoreCase(
++            "observeCeremonialStopRequested"))
++        {
++            return observeCeremonialStopRequested(player);
++        }
++        if (action.equalsIgnoreCase(
++            "observeCeremonialStopComplete"))
++        {
++            return observeCeremonialStopComplete(player);
++        }
++        if (action.equalsIgnoreCase("observeSurrenderMaster"))
++        {
++            return observeSurrenderMaster(player);
++        }
+         if (action.equalsIgnoreCase("status"))
+         {
+             return "action=status " + buildStatus(player);
+@@ -287,6 +349,10 @@ public class precu_entertainer_music_one_fixture
+             hasSkill(player, MUSIC_TWO) ||
+             hasSkill(player, MUSIC_THREE) ||
+             hasSkill(player, MUSIC_FOUR) ||
++            hasSkill(player, HAIRSTYLE_FOUR) ||
++            hasSkill(player, DANCE_FOUR) ||
++            hasSkill(player, HEALING_FOUR) ||
++            hasSkill(player, MASTER) ||
+             hasCommand(player, ROCK_ABILITY) ||
+             hasCommand(player, FIZZ_ABILITY) ||
+             hasCommand(player, PRIVATE_ABILITY) ||
+@@ -298,6 +364,11 @@ public class precu_entertainer_music_one_fixture
+             hasCommand(player, STARWARS_THREE_ABILITY) ||
+             hasCommand(player, KLOOHORN_ABILITY) ||
+             hasCommand(player, PRIVATE_FOUR_ABILITY) ||
++            hasCommand(player, PRIVATE_MASTER_ABILITY) ||
++            hasCommand(player, FOOTLOOSE_TWO_ABILITY) ||
++            hasCommand(player, FORMAL_TWO_ABILITY) ||
++            hasCommand(player, CEREMONIAL_ABILITY) ||
++            hasCommand(player, MANDOVIOL_ABILITY) ||
+             hasSchematic(player, FIZZ_SCHEMATIC) ||
+             hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC))
+         {
+@@ -503,6 +574,18 @@ public class precu_entertainer_music_one_fixture
+             player,
+             BASE_MUSIC_MOD,
+             getSkillStatMod(player, MUSIC_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_MOD,
++            getSkillStatMod(player, DANCE_MOD));
++        setObjVar(
++            player,
++            BASE_MUSIC_WOUND_MOD,
++            getSkillStatMod(player, MUSIC_WOUND_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_WOUND_MOD,
++            getSkillStatMod(player, DANCE_WOUND_MOD));
+         boolean xpReady =
+             setXpExact(player, MUSIC_XP, MUSIC_THREE_XP_COST);
+         resetTelemetry(player);
+@@ -565,6 +648,18 @@ public class precu_entertainer_music_one_fixture
+             player,
+             BASE_MUSIC_MOD,
+             getSkillStatMod(player, MUSIC_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_MOD,
++            getSkillStatMod(player, DANCE_MOD));
++        setObjVar(
++            player,
++            BASE_MUSIC_WOUND_MOD,
++            getSkillStatMod(player, MUSIC_WOUND_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_WOUND_MOD,
++            getSkillStatMod(player, DANCE_WOUND_MOD));
+         boolean xpReady =
+             setXpExact(player, MUSIC_XP, MUSIC_FOUR_XP_COST);
+         resetTelemetry(player);
+@@ -601,6 +696,100 @@ public class precu_entertainer_music_one_fixture
+             buildStatus(player);
+     }
+ 
++    private String prepareMaster(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String preparedFour = prepareFour(player, lifecycle);
++        if (preparedFour.startsWith("error="))
++        {
++            return preparedFour;
++        }
++        if (hasSkill(player, MASTER))
++        {
++            return "action=prepareMaster resumed=true " +
++                buildStatus(player);
++        }
++
++        boolean musicReady =
++            hasSkill(player, MUSIC_FOUR) ||
++            (skill.grantSkillToPlayer(player, MUSIC_FOUR) &&
++                hasSkill(player, MUSIC_FOUR));
++        boolean hairstyleReady =
++            hasSkill(player, HAIRSTYLE_FOUR) ||
++            (skill.grantSkillToPlayer(player, HAIRSTYLE_FOUR) &&
++                hasSkill(player, HAIRSTYLE_FOUR));
++        boolean danceReady =
++            hasSkill(player, DANCE_FOUR) ||
++            (skill.grantSkillToPlayer(player, DANCE_FOUR) &&
++                hasSkill(player, DANCE_FOUR));
++        boolean healingReady =
++            hasSkill(player, HEALING_FOUR) ||
++            (skill.grantSkillToPlayer(player, HEALING_FOUR) &&
++                hasSkill(player, HEALING_FOUR));
++        setObjVar(
++            player,
++            BASE_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(
++            player,
++            BASE_MUSIC_MOD,
++            getSkillStatMod(player, MUSIC_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_MOD,
++            getSkillStatMod(player, DANCE_MOD));
++        setObjVar(
++            player,
++            BASE_MUSIC_WOUND_MOD,
++            getSkillStatMod(player, MUSIC_WOUND_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_WOUND_MOD,
++            getSkillStatMod(player, DANCE_WOUND_MOD));
++        boolean xpReady = setXpExact(player, MUSIC_XP, 0);
++        resetTelemetry(player);
++
++        boolean prepared =
++            musicReady &&
++            hairstyleReady &&
++            danceReady &&
++            healingReady &&
++            xpReady &&
++            hasSkill(player, MUSIC_FOUR) &&
++            hasSkill(player, HAIRSTYLE_FOUR) &&
++            hasSkill(player, DANCE_FOUR) &&
++            hasSkill(player, HEALING_FOUR) &&
++            !hasSkill(player, MASTER) &&
++            hasCommand(player, STARWARS_THREE_ABILITY) &&
++            hasCommand(player, KLOOHORN_ABILITY) &&
++            hasCommand(player, PRIVATE_FOUR_ABILITY) &&
++            !hasCommand(player, PRIVATE_MASTER_ABILITY) &&
++            !hasCommand(player, FOOTLOOSE_TWO_ABILITY) &&
++            !hasCommand(player, FORMAL_TWO_ABILITY) &&
++            !hasCommand(player, CEREMONIAL_ABILITY) &&
++            !hasCommand(player, MANDOVIOL_ABILITY) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) -
++                    15 - MUSIC_ONE_POINT_COST -
++                    MUSIC_TWO_POINT_COST -
++                    MUSIC_THREE_POINT_COST -
++                    MUSIC_FOUR_POINT_COST -
++                    3 * MASTER_PREREQUISITE_POINT_COST;
++        if (!prepared)
++        {
++            String detail = buildStatus(player);
++            boolean restored = restoreSnapshot(player);
++            if (restored)
++            {
++                removeObjVar(player, ROOT);
++            }
++            return "error=fixtureMasterSetupFailed restored=" +
++                restored + " " + detail;
++        }
++        return "action=prepareMaster resumed=false " +
++            buildStatus(player);
++    }
++
+     private String purchase(obj_id player)
+         throws InterruptedException
+     {
+@@ -725,6 +914,45 @@ public class precu_entertainer_music_one_fixture
+             " purchased=" + purchased + " " + buildStatus(player);
+     }
+ 
++    private String purchaseMaster(obj_id player)
++        throws InterruptedException
++    {
++        if (readFlag(player, PURCHASED))
++        {
++            return "action=purchaseMaster resumed=true " +
++                buildStatus(player);
++        }
++        boolean purchased =
++            purchaseWithoutHolocron(
++                player,
++                MASTER,
++                MASTER_POINT_COST);
++        boolean passed =
++            purchased &&
++            hasSkill(player, MASTER) &&
++            hasCommand(player, PRIVATE_MASTER_ABILITY) &&
++            hasCommand(player, FOOTLOOSE_TWO_ABILITY) &&
++            hasCommand(player, FORMAL_TWO_ABILITY) &&
++            hasCommand(player, CEREMONIAL_ABILITY) &&
++            hasCommand(player, MANDOVIOL_ABILITY) &&
++            getSkillStatMod(player, MUSIC_MOD) -
++                getIntObjVar(player, BASE_MUSIC_MOD) == 10 &&
++            getSkillStatMod(player, DANCE_MOD) -
++                getIntObjVar(player, BASE_DANCE_MOD) == 10 &&
++            getSkillStatMod(player, MUSIC_WOUND_MOD) -
++                getIntObjVar(player, BASE_MUSIC_WOUND_MOD) == 10 &&
++            getSkillStatMod(player, DANCE_WOUND_MOD) -
++                getIntObjVar(player, BASE_DANCE_WOUND_MOD) == 10 &&
++            getExperiencePoints(player, MUSIC_XP) == 0 &&
++            getExperienceCap(player, MUSIC_XP) == 150000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS) -
++                    MASTER_POINT_COST;
++        setObjVar(player, PURCHASED, passed ? 1 : 0);
++        return "action=purchaseMaster passed=" + passed +
++            " purchased=" + purchased + " " + buildStatus(player);
++    }
++
+     private boolean purchaseWithoutHolocron(
+         obj_id player,
+         String skillName,
+@@ -1045,6 +1273,84 @@ public class precu_entertainer_music_one_fixture
+             passed + " " + buildStatus(player);
+     }
+ 
++    private String observeCeremonialStart(obj_id player)
++        throws InterruptedException
++    {
++        int lookup =
++            performance.lookupPerformanceIndex(
++                866729052,
++                "ceremonial",
++                SLITHERHORN_AUDIO_ID);
++        boolean passed =
++            readFlag(player, PURCHASED) &&
++            lookup == CEREMONIAL_INDEX &&
++            getPerformanceType(player) == CEREMONIAL_INDEX &&
++            hasScript(
++                player,
++                performance.MUSIC_HEARTBEAT_SCRIPT) &&
++            getInstrumentAudioId(player) ==
++                SLITHERHORN_AUDIO_ID &&
++            (getAttrib(player, ACTION) == START_ACTION ||
++                getAttrib(player, ACTION) ==
++                    CEREMONIAL_FIRST_LOOP_ACTION);
++        setObjVar(player, STARTED, passed ? 1 : 0);
++        return "action=observeCeremonialStart passed=" +
++            passed + " lookup=" + lookup + " " +
++            buildStatus(player);
++    }
++
++    private String observeCeremonialStopRequested(obj_id player)
++        throws InterruptedException
++    {
++        return observeStopRequested(
++            player,
++            CEREMONIAL_INDEX,
++            "observeCeremonialStopRequested");
++    }
++
++    private String observeCeremonialStopComplete(obj_id player)
++        throws InterruptedException
++    {
++        return observeStopComplete(
++            player,
++            "observeCeremonialStopComplete");
++    }
++
++    private String observeSurrenderMaster(obj_id player)
++        throws InterruptedException
++    {
++        boolean passed =
++            readFlag(player, STOPPED) &&
++            !hasSkill(player, MASTER) &&
++            hasSkill(player, MUSIC_FOUR) &&
++            hasSkill(player, HAIRSTYLE_FOUR) &&
++            hasSkill(player, DANCE_FOUR) &&
++            hasSkill(player, HEALING_FOUR) &&
++            !hasCommand(player, PRIVATE_MASTER_ABILITY) &&
++            !hasCommand(player, FOOTLOOSE_TWO_ABILITY) &&
++            !hasCommand(player, FORMAL_TWO_ABILITY) &&
++            !hasCommand(player, CEREMONIAL_ABILITY) &&
++            !hasCommand(player, MANDOVIOL_ABILITY) &&
++            hasCommand(player, STARWARS_THREE_ABILITY) &&
++            hasCommand(player, KLOOHORN_ABILITY) &&
++            hasCommand(player, PRIVATE_FOUR_ABILITY) &&
++            getSkillStatMod(player, MUSIC_MOD) ==
++                getIntObjVar(player, BASE_MUSIC_MOD) &&
++            getSkillStatMod(player, DANCE_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MOD) &&
++            getSkillStatMod(player, MUSIC_WOUND_MOD) ==
++                getIntObjVar(player, BASE_MUSIC_WOUND_MOD) &&
++            getSkillStatMod(player, DANCE_WOUND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_WOUND_MOD) &&
++            getExperiencePoints(player, MUSIC_XP) == 0 &&
++            getExperienceCap(player, MUSIC_XP) == 150000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS);
++        setObjVar(player, SURRENDERED, passed ? 1 : 0);
++        return "action=observeSurrenderMaster passed=" +
++            passed + " " + buildStatus(player);
++    }
++
+     private String cleanup(obj_id player)
+         throws InterruptedException
+     {
+@@ -1072,6 +1378,22 @@ public class precu_entertainer_music_one_fixture
+         }
+         clearPerformanceState(player);
+         boolean instrumentRemoved = removeFixtureInstrument(player);
++        if (hasSkill(player, MASTER))
++        {
++            revokeSkill(player, MASTER);
++        }
++        if (hasSkill(player, HAIRSTYLE_FOUR))
++        {
++            revokeSkill(player, HAIRSTYLE_FOUR);
++        }
++        if (hasSkill(player, DANCE_FOUR))
++        {
++            revokeSkill(player, DANCE_FOUR);
++        }
++        if (hasSkill(player, HEALING_FOUR))
++        {
++            revokeSkill(player, HEALING_FOUR);
++        }
+         if (hasSkill(player, MUSIC_FOUR))
+         {
+             revokeSkill(player, MUSIC_FOUR);
+@@ -1130,6 +1452,10 @@ public class precu_entertainer_music_one_fixture
+             !hasSkill(player, MUSIC_TWO) &&
+             !hasSkill(player, MUSIC_THREE) &&
+             !hasSkill(player, MUSIC_FOUR) &&
++            !hasSkill(player, HAIRSTYLE_FOUR) &&
++            !hasSkill(player, DANCE_FOUR) &&
++            !hasSkill(player, HEALING_FOUR) &&
++            !hasSkill(player, MASTER) &&
+             !hasSkill(player, NOVICE) &&
+             !hasCommand(player, ROCK_ABILITY) &&
+             !hasCommand(player, FIZZ_ABILITY) &&
+@@ -1141,6 +1467,11 @@ public class precu_entertainer_music_one_fixture
+             !hasCommand(player, STARWARS_THREE_ABILITY) &&
+             !hasCommand(player, KLOOHORN_ABILITY) &&
+             !hasCommand(player, PRIVATE_FOUR_ABILITY) &&
++            !hasCommand(player, PRIVATE_MASTER_ABILITY) &&
++            !hasCommand(player, FOOTLOOSE_TWO_ABILITY) &&
++            !hasCommand(player, FORMAL_TWO_ABILITY) &&
++            !hasCommand(player, CEREMONIAL_ABILITY) &&
++            !hasCommand(player, MANDOVIOL_ABILITY) &&
+             !hasSchematic(player, FIZZ_SCHEMATIC) &&
+             !hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC) &&
+             skill.getAvailableSkillPoints(player) ==
+@@ -1248,6 +1579,17 @@ public class precu_entertainer_music_one_fixture
+         int baseMod = hasObjVar(player, BASE_MUSIC_MOD)
+             ? getIntObjVar(player, BASE_MUSIC_MOD)
+             : getSkillStatMod(player, MUSIC_MOD);
++        int baseDanceMod = hasObjVar(player, BASE_DANCE_MOD)
++            ? getIntObjVar(player, BASE_DANCE_MOD)
++            : getSkillStatMod(player, DANCE_MOD);
++        int baseMusicWoundMod =
++            hasObjVar(player, BASE_MUSIC_WOUND_MOD)
++                ? getIntObjVar(player, BASE_MUSIC_WOUND_MOD)
++                : getSkillStatMod(player, MUSIC_WOUND_MOD);
++        int baseDanceWoundMod =
++            hasObjVar(player, BASE_DANCE_WOUND_MOD)
++                ? getIntObjVar(player, BASE_DANCE_WOUND_MOD)
++                : getSkillStatMod(player, DANCE_WOUND_MOD);
+         return "player=" + player +
+             " novice=" + (hasSkill(player, NOVICE) ? "1" : "0") +
+             " musicOne=" +
+@@ -1258,6 +1600,13 @@ public class precu_entertainer_music_one_fixture
+                 (hasSkill(player, MUSIC_THREE) ? "1" : "0") +
+             " musicFour=" +
+                 (hasSkill(player, MUSIC_FOUR) ? "1" : "0") +
++            " masterPrerequisites=" +
++                (hasSkill(player, HAIRSTYLE_FOUR) ? "1" : "0") +
++                (hasSkill(player, MUSIC_FOUR) ? "1" : "0") +
++                (hasSkill(player, DANCE_FOUR) ? "1" : "0") +
++                (hasSkill(player, HEALING_FOUR) ? "1" : "0") +
++            " master=" +
++                (hasSkill(player, MASTER) ? "1" : "0") +
+             " commands=" +
+                 (hasCommand(player, ROCK_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, FIZZ_ABILITY) ? "1" : "0") +
+@@ -1290,8 +1639,33 @@ public class precu_entertainer_music_one_fixture
+                 (hasCommand(
+                     player,
+                     PRIVATE_FOUR_ABILITY) ? "1" : "0") +
++            " commandsMaster=" +
++                (hasCommand(
++                    player,
++                    PRIVATE_MASTER_ABILITY) ? "1" : "0") +
++                (hasCommand(
++                    player,
++                    FOOTLOOSE_TWO_ABILITY) ? "1" : "0") +
++                (hasCommand(
++                    player,
++                    FORMAL_TWO_ABILITY) ? "1" : "0") +
++                (hasCommand(
++                    player,
++                    CEREMONIAL_ABILITY) ? "1" : "0") +
++                (hasCommand(
++                    player,
++                    MANDOVIOL_ABILITY) ? "1" : "0") +
+             " musicModDelta=" +
+                 (getSkillStatMod(player, MUSIC_MOD) - baseMod) +
++            " danceModDelta=" +
++                (getSkillStatMod(player, DANCE_MOD) -
++                    baseDanceMod) +
++            " musicWoundModDelta=" +
++                (getSkillStatMod(player, MUSIC_WOUND_MOD) -
++                    baseMusicWoundMod) +
++            " danceWoundModDelta=" +
++                (getSkillStatMod(player, DANCE_WOUND_MOD) -
++                    baseDanceWoundMod) +
+             " musicXp=" + getExperiencePoints(player, MUSIC_XP) +
+             " musicCap=" + getExperienceCap(player, MUSIC_XP) +
+             " availablePoints=" +
+@@ -1320,7 +1694,10 @@ public class precu_entertainer_music_one_fixture
+             hasObjVar(player, ORIGINAL_LOCOMOTION) &&
+             hasObjVar(player, ORIGINAL_INSTRUMENT_AUDIO) &&
+             hasObjVar(player, BASE_POINTS) &&
+-            hasObjVar(player, BASE_MUSIC_MOD);
++            hasObjVar(player, BASE_MUSIC_MOD) &&
++            hasObjVar(player, BASE_DANCE_MOD) &&
++            hasObjVar(player, BASE_MUSIC_WOUND_MOD) &&
++            hasObjVar(player, BASE_DANCE_WOUND_MOD);
+     }
+ 
+     private String validateOwnership(
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index f29ea0692..4f8db7c70 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -351,7 +351,7 @@ class_engineering_phase4_master	class_engineering_phase4	oneByFour	0	1	0	0	100	0
+ social			1	0	0	0	0	0						0											0	0
+ social_entertainer	social	fourByFour	0	0	1	0	0	0	0				0	0		0			none						1	0
+ social_entertainer_novice	social_entertainer	fourByFour	0	1	0	0	100	15	0				0	0		0			none		"private_entertainer_novice,musician,dancer,imagedesigner,startDance,stopDance,startMusic,stopMusic,flourish+1,flourish+2,flourish+3,flourish+4,flourish+5,flourish+6,flourish+7,flourish+8,startDance+basic,startDance+rhythmic,startMusic+starwars1,slitherhorn"	"healing_dance_wound=5,healing_music_wound=5,healing_music_ability=5,healing_dance_ability=5,hair=1,face=1"	craftInstrumentGroupA		1	0
+-social_entertainer_master	social_entertainer		0	1	0	0	5000	6		"social_entertainer_hairstyle_04,social_entertainer_music_04,social_entertainer_dance_04,social_entertainer_healing_04"		entertainer	75000	200000							"private_entertainer_master,startDance+footloose2,startDance+formal2,startMusic+ceremonial,mandoviol,prop_torch"	"healing_dance_ability=10,healing_music_ability=10,instrument_assembly=10,prop_assembly=10,healing_dance_wound=5,healing_music_wound=5"	"craftInstrumentGroupBBB,craftDancePropE"		0	0
++social_entertainer_master	social_entertainer	fourByFour	0	1	0	0	5000	6	0	"social_entertainer_hairstyle_04,social_entertainer_music_04,social_entertainer_dance_04,social_entertainer_healing_04"			0	0		0			none		"private_entertainer_master,startDance+footloose2,startDance+formal2,startMusic+ceremonial,mandoviol"	"healing_dance_ability=10,healing_music_ability=10,healing_dance_wound=10,healing_music_wound=10"			1	0
+ social_entertainer_hairstyle_01	social_entertainer		0	0	0	0	1000	2		social_entertainer_novice		imagedesigner	1000	10000							private_entertainer_hair_1	hair=1			0	0
+ social_entertainer_hairstyle_02	social_entertainer_hairstyle_01		0	0	0	0	2000	3		social_entertainer_hairstyle_01		imagedesigner	5000	20000							private_entertainer_hair_2	"markings=1,face=1"			0	0
+ social_entertainer_hairstyle_03	social_entertainer_hairstyle_02		0	0	0	0	3000	4		social_entertainer_hairstyle_02		imagedesigner	10000	30000							private_entertainer_hair_3	hair=1			0	0
