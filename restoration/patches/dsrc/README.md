@@ -748,3 +748,8 @@ idempotent restoration.
 `069-p14-entertainer-music-three-progression.patch` restores exact Music III,
 including Folk and Fanfar, and extends the fixture through protocol-37
 purchase, playback, surrender, prerequisite retention, and cleanup.
+
+`070-p14-entertainer-music-four-progression.patch` restores exact Music IV,
+including Star Wars 3 and Kloo Horn, and extends the fixture through
+protocol-38 purchase, playback, surrender, prerequisite retention, and
+cleanup.

@@ -813,3 +813,11 @@ proves real Folk at runtime index 43, delayed stop, actor-only surrender,
 four-point recovery, Music II grant retention, and exact cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The fourth slice restores exact Music IV costs, Star Wars 3, Kloo Horn, ten
+music-healing ability, a 150,000 XP cap, and tree visibility. Protocol 38
+proves real Star Wars 3 at runtime index 57, delayed stop, actor-only
+surrender, five-point recovery, Music III grant retention, and exact cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerMusicFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
