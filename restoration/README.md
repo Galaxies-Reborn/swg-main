@@ -737,3 +737,17 @@ An interrupted earlier lifecycle was also recovered exactly after a server
 restart. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PerformanceActionDrain.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Protocol-32 real-client acceptance now closes the continuous dance-session
+boundary. The dedicated client admitted the ordinary `startDance rhythmic`,
+`flourish 1`, and `stopDance` commands; the authoritative server observed
+rhythmic index 283, flourish Action `100 -> 91`, and complete explicit
+performance-script detachment. A second real-client start at exactly 25
+Action remained active until the ten-second heartbeat, then stopped
+automatically without draining below the inclusive exhaustion boundary.
+
+The fixture restored Action 500, Action regen 6.190476, posture, locomotion,
+novice-skill ownership, and performance state. Its second cleanup was already
+clean, and both isolated containers remained healthy. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RealClientPerformanceSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

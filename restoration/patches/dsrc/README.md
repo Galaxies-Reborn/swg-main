@@ -704,3 +704,13 @@ to the calculated charge. The identity-bound fixture proves Basic dance at
 the live character's authoritative Quickness 400: loop cost 25, flourish
 cost 9, both exact-cost rejection boundaries, interrupted-lifecycle recovery,
 exact preimage restoration, and idempotent cleanup.
+
+`064-p14-real-client-performance-session.patch` adds the reversible,
+identity-bound fixture for the real Publish 14.1 client command seam. Protocol
+32 admits fixed `startDance rhythmic`, `flourish 1`, and `stopDance` requests
+through the ordinary client command queue while the server retains every
+skill, posture, session, Action, heartbeat, and termination decision. Live
+acceptance proved rhythmic index 283, flourish Action `100 -> 91`, explicit
+stop and script detachment, then automatic too-tired termination at exactly
+25 Action without underflow. Cleanup restored Action, regen, posture,
+locomotion, novice-skill ownership, and performance residue.
