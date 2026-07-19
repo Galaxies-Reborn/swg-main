@@ -765,3 +765,16 @@ Quickness 400, Action regen 6.190476, posture, locomotion, and novice-skill
 ownership; its second pass was already clean. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RealClientMusicSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Protocol-34 real-client acceptance extends the music seam to an authentic
+two-player band. The identity-bound clients form their group with `/invite`
+and `/join`, then the leader queues ordinary `startBand starwars1`,
+`bandFlourish 1`, and `stopBand` commands. Both server-owned slitherhorn
+performers must share one performance start time, pay their separately
+calculated nine- and ten-Action flourish charges, and complete the retained
+15-second band outro. The leader
+then dissolves the group through `/disband` before the fixture restores both
+locations, instruments, HAM, regen, skill ownership, posture, locomotion, and
+performance state. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RealClientBandMusicSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

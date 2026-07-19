@@ -725,3 +725,13 @@ Live acceptance proved flourish Action `100 -> 91`, the explicit-stop outro
 and its single heartbeat at `91 -> 66`, then the exact-cost 25-Action
 exhaustion outro without underflow. Cleanup destroyed the fixture instrument
 and restored the full character preimage.
+
+`066-p14-real-client-band-music-session.patch` adds the reversible,
+identity-bound two-player fixture for the retained Publish 14.1 band command
+path. Protocol 34 uses real clients for `/invite`, `/join`, `startBand`,
+`bandFlourish`, `stopBand`, and `/disband`; the fixture only prepares and
+observes server-owned state. Acceptance requires both equipped group members
+to share one performance start time, pay their authentic Quickness-dependent
+flourish and heartbeat costs independently, enter and leave the 15-second
+outro together, and restore both complete preimages after real-client group
+dissolution.
