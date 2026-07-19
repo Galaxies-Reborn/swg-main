@@ -751,3 +751,17 @@ novice-skill ownership, and performance state. Its second cleanup was already
 clean, and both isolated containers remained healthy. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RealClientPerformanceSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Protocol-33 real-client acceptance closes the matching solo music boundary.
+The fixture creates and equips its own slitherhorn, while the dedicated client
+queues ordinary `startMusic starwars1`, `flourish 1`, and `stopMusic`
+commands. The authoritative server must observe performance index 1, the
+Star Wars 1 flourish charge at reference Quickness 400, the retained
+15-second post-performance outro, and exact-cost exhaustion at 25 Action.
+Live acceptance proved flourish Action `100 -> 91`, the one explicit-outro
+heartbeat at `91 -> 66`, and automatic too-tired outro at exactly 25 Action
+without underflow. Cleanup destroyed the instrument and restored Action 500,
+Quickness 400, Action regen 6.190476, posture, locomotion, and novice-skill
+ownership; its second pass was already clean. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RealClientMusicSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

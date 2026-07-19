@@ -714,3 +714,14 @@ acceptance proved rhythmic index 283, flourish Action `100 -> 91`, explicit
 stop and script detachment, then automatic too-tired termination at exactly
 25 Action without underflow. Cleanup restored Action, regen, posture,
 locomotion, novice-skill ownership, and performance residue.
+
+`065-p14-real-client-music-session.patch` adds the reversible,
+identity-bound instrument fixture for the real Publish 14.1 music command
+seam. Protocol 33 admits fixed `startMusic starwars1`, `flourish 1`, and
+`stopMusic` requests through the ordinary client command queue. The server
+still owns slitherhorn equip state, song/instrument abilities, performance
+index 1, heartbeat cost, and the authentic 15-second post-performance outro.
+Live acceptance proved flourish Action `100 -> 91`, the explicit-stop outro
+and its single heartbeat at `91 -> 66`, then the exact-cost 25-Action
+exhaustion outro without underflow. Cleanup destroyed the fixture instrument
+and restored the full character preimage.
