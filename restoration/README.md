@@ -1199,3 +1199,11 @@ and rejection of the NGE Bandfill command, assembly modifier, and schematic
 group. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Shock III restores Shock II, 100,000 Entertainer Healing XP, three
+points, a 500,000 Healing cap, and +20 Music shock healing. Protocol 77 proves
+purchase, production surrender, Shock II retention, 400,000-cap recomputation,
+and rejection of the NGE Flutedroopy command, assembly modifier, and schematic
+group. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
