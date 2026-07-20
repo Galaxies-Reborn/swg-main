@@ -1377,3 +1377,9 @@ the classless runtime's neutral display level one and the inherited cap stays
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeDroidClassBonusRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Post-CU expertise now fails closed: combat level no longer auto-grants its
+root or introduction, and direct expertise skill admission is rejected
+without consulting an NGE profession template. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeExpertiseAdmissionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
