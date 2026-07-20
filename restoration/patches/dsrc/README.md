@@ -798,3 +798,7 @@ buildout anchor objects.
 
 `175-p14-empire-day-parade-controller-retirement.patch` runs existing
 sound/NPC/dropship cleanup before detaching both parade anchors.
+`176-p14-empire-day-spawner-retirement.patch` retires later Empire and
+Remembrance Day area, patrol, and random-sign spawners through a narrowly
+scoped shared predicate, cleanup-first lifecycle detachment, and callback
+guards while retaining ordinary generic spawning.

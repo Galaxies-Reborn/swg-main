@@ -1514,3 +1514,11 @@ NPC, and vehicle cleanup before detaching. Visual anchors remain, but no
 parade, gift, badge, or ceremony lifecycle is scheduled. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayParadeControllerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Later Empire and Remembrance Day area, patrol, and random-sign spawners now
+clean up tracked creations and detach at lifecycle entry. The shared guard is
+limited to eight event-specific spawn-name families and the exact
+`empireday_ceremony` requirement, preserving ordinary generic spawners.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDaySpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

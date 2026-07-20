@@ -1,0 +1,222 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/spawning.java b/sku.0/sys.server/compiled/game/script/library/spawning.java
+index bba2a46..b3f97b5 100644
+--- a/sku.0/sys.server/compiled/game/script/library/spawning.java
++++ b/sku.0/sys.server/compiled/game/script/library/spawning.java
+@@ -259,4 +259,32 @@ public class spawning extends script.base_script
+ 
+         return true;
+     }
++    public static boolean isRetiredEmpireDaySpawner(obj_id spawner) throws InterruptedException
++    {
++        if (!isValidId(spawner))
++        {
++            return false;
++        }
++        if (hasObjVar(spawner, "eventRequired") && getStringObjVar(spawner, "eventRequired").equals("empireday_ceremony"))
++        {
++            return true;
++        }
++        if (!hasObjVar(spawner, "strSpawns"))
++        {
++            return false;
++        }
++        String spawn = getStringObjVar(spawner, "strSpawns");
++        if (spawn == null)
++        {
++            return false;
++        }
++        return spawn.startsWith("at_st_empire_day_") ||
++            spawn.startsWith("imp_empireday_") ||
++            spawn.startsWith("reb_empireday_") ||
++            spawn.startsWith("imperial_emperorsday_") ||
++            spawn.startsWith("rebel_emperorsday_") ||
++            spawn.startsWith("imperial_detainment_") ||
++            spawn.startsWith("imperial_marine_detainment_") ||
++            spawn.startsWith("rebel_detainment_");
++    }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java
+index cf450c9..12d53d0 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java
++++ b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java
+@@ -15,6 +15,12 @@ public class spawner_area extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            OnDestroy(self);
++            detachScript(self, "systems.spawning.spawner_area");
++            return SCRIPT_CONTINUE;
++        }
+         if (!hasObjVar(self, "registerWithController"))
+         {
+             setObjVar(self, "registerWithController", 1);
+@@ -31,6 +37,12 @@ public class spawner_area extends script.base_script
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            OnDestroy(self);
++            detachScript(self, "systems.spawning.spawner_area");
++            return SCRIPT_CONTINUE;
++        }
+         if (!hasObjVar(self, "registerWithController"))
+         {
+             setObjVar(self, "registerWithController", 1);
+@@ -47,6 +59,10 @@ public class spawner_area extends script.base_script
+     }
+     public int doSpawnEvent(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (!spawning.checkSpawnCount(self))
+         {
+             return SCRIPT_CONTINUE;
+@@ -208,6 +224,10 @@ public class spawner_area extends script.base_script
+     }
+     public int spawnDestroyed(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         int intCurrentSpawnCount = utils.getIntScriptVar(self, "intCurrentSpawnCount");
+         intCurrentSpawnCount--;
+         if (intCurrentSpawnCount >= 0)
+diff --git a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java
+index b5bc08b..3b369fd 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java
++++ b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java
+@@ -16,6 +16,12 @@ public class spawner_random extends script.base_script
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+         CustomerServiceLog("holidaySpawner", "spawner_random.OnAttach: Initialized for: " + self);
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            OnDestroy(self);
++            detachScript(self, "systems.spawning.spawner_random");
++            return SCRIPT_CONTINUE;
++        }
+         if (!hasObjVar(self, "registerWithController"))
+         {
+             setObjVar(self, "registerWithController", 1);
+@@ -33,6 +39,12 @@ public class spawner_random extends script.base_script
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+         CustomerServiceLog("holidaySpawner", "spawner_random.OnAttach: Initialized for: " + self);
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            OnDestroy(self);
++            detachScript(self, "systems.spawning.spawner_random");
++            return SCRIPT_CONTINUE;
++        }
+         if (!hasObjVar(self, "registerWithController"))
+         {
+             setObjVar(self, "registerWithController", 1);
+@@ -54,6 +66,10 @@ public class spawner_random extends script.base_script
+     }
+     public int OnHearSpeech(obj_id self, obj_id speaker, String text) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (!isGod(speaker))
+         {
+             return SCRIPT_CONTINUE;
+@@ -83,6 +99,10 @@ public class spawner_random extends script.base_script
+     }
+     public int doSpawnEvent(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         CustomerServiceLog("holidaySpawner", "spawner_random.doSpawnEvent: Initialized for: " + self);
+         String datatable = getStringObjVar(self, "strSpawnTable");
+         if (datatable == null || datatable.equals(""))
+@@ -265,6 +285,10 @@ public class spawner_random extends script.base_script
+     }
+     public int spawnDestroyed(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         int intCurrentSpawnCount = utils.getIntScriptVar(self, "intCurrentSpawnCount");
+         intCurrentSpawnCount = intCurrentSpawnCount - 1;
+         if (intCurrentSpawnCount > -1)
+diff --git a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java
+index 1e33e1d..d543e38 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java
++++ b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java
+@@ -18,16 +18,32 @@ public class spawner_patrol extends script.base_script
+     public static final int LOCATION_SEARCH_RADIUS = 1000;
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            OnDestroy(self);
++            detachScript(self, "systems.spawning.spawner_patrol");
++            return SCRIPT_CONTINUE;
++        }
+         start(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            OnDestroy(self);
++            detachScript(self, "systems.spawning.spawner_patrol");
++            return SCRIPT_CONTINUE;
++        }
+         start(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int startTheaterFromBuildout(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         start(self);
+         return SCRIPT_CONTINUE;
+     }
+@@ -47,6 +63,10 @@ public class spawner_patrol extends script.base_script
+     }
+     public int doInitialSpawn(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (!spawning.checkSpawnCount(self))
+         {
+             return SCRIPT_CONTINUE;
+@@ -130,6 +150,10 @@ public class spawner_patrol extends script.base_script
+     }
+     public int doSpawnEvent(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (!spawning.checkSpawnCount(self))
+         {
+             LOG("spawning", "No count 1");
+@@ -356,6 +380,10 @@ public class spawner_patrol extends script.base_script
+     }
+     public int spawnDestroyed(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         int intCurrentSpawnCount = utils.getIntScriptVar(self, "intCurrentSpawnCount");
+         intCurrentSpawnCount = intCurrentSpawnCount - 1;
+         if (intCurrentSpawnCount > -1)
