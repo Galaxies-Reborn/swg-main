@@ -1216,3 +1216,12 @@ production surrender, Shock III retention, terminal-cap retention, rollback,
 negative grants, and idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Knowledge I restores the exact searchable box: Musician novice,
+87,500 Music XP, five points, a 500,000 Music cap, Ballad, and +5 Music
+healing ability. It removes NGE's extra Swing grant. Protocol 79 proves
+purchase, production surrender, novice command and schematic retention,
+350,000-cap recomputation, independent Healing-cap retention, modifier
+rollback, and idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
