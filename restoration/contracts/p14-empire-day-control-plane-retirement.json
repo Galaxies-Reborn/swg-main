@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "feature": "empire-day-control-plane-retirement",
+  "status": "ready",
+  "scope": "Prevent startup and god-speech control paths from starting the later Empire Day universe event while preserving other holiday controller branches.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "No Empire Day universe-wide event, ceremony configuration, or matching holiday-controller command exists in the pinned Publish 14.1 Core3 tree.",
+    "cleanupBoundary": "Attach, initialize, server-start, and all four Empire Day operator commands synchronously stop stale empireday_ceremony state and never start it.",
+    "sharedBoundary": "Halloween, Life Day, and Love Day controller branches are unchanged for their separate content-era audits."
+  },
+  "expected": {
+    "startupCanStartEmpireDay": false,
+    "operatorCanStartEmpireDay": false,
+    "staleUniverseEventStopped": true,
+    "empireDayReportedActive": false,
+    "otherHolidayBranchesRetained": true
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/178-p14-empire-day-control-plane-retirement.patch",
+    "overlayPatchBytes": 6921,
+    "overlayPatchSha256": "5084e0893c6cd0dc009aceaf68214dd7d16c2fc53a651c9a962cb60ba68d0b1b",
+    "sourceSha256": {
+      "holiday_controller.java": "c92ac99b974e3816d6a363fdd5b6dfa12e7b0f709a5df8e26f938da96996eda7"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "holiday_controller.class": "a12dd0f96ef0da489619cf3732c923a9b5532e484c7003cd301d0b1f150c6fbe"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 70724,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

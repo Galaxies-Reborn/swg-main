@@ -1530,3 +1530,11 @@ tables are covered; the host cantinas and military buildings remain intact.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayInteriorSpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The shared holiday controller can no longer start Empire Day from server
+startup or its four god-speech commands. Each path stops stale universe-wide
+event state synchronously and reports the Publish 14.1 retirement boundary;
+the Halloween, Life Day, and Love Day branches remain for separate audits.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayControlPlaneRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

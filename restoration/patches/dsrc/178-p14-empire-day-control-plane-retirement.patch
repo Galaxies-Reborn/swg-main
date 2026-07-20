@@ -1,0 +1,124 @@
+diff --git a/sku.0/sys.server/compiled/game/script/event/holiday_controller.java b/sku.0/sys.server/compiled/game/script/event/holiday_controller.java
+index 85ad144..551c134 100644
+--- a/sku.0/sys.server/compiled/game/script/event/holiday_controller.java
++++ b/sku.0/sys.server/compiled/game/script/event/holiday_controller.java
+@@ -16,7 +16,7 @@ public class holiday_controller extends script.base_script
+         messageTo(self, "halloweenServerStart", null, 600.0f, false);
+         messageTo(self, "lifedayServerStart", null, 610.0f, false);
+         messageTo(self, "lovedayServerStart", null, 615.0f, false);
+-        messageTo(self, "empiredayServerStart", null, holiday.EMPIRE_DAY_EVENT_START_DELAY, false);
++        empiredayServerStart(self, null);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+@@ -24,7 +24,7 @@ public class holiday_controller extends script.base_script
+         messageTo(self, "halloweenServerStart", null, 720.0f, false);
+         messageTo(self, "lifedayServerStart", null, 730.0f, false);
+         messageTo(self, "lovedayServerStart", null, 735.0f, false);
+-        messageTo(self, "empiredayServerStart", null, (holiday.EMPIRE_DAY_EVENT_START_DELAY + 100), false);
++        empiredayServerStart(self, null);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnGetAttributes(obj_id self, obj_id player, String[] names, String[] attribs) throws InterruptedException
+@@ -41,7 +41,6 @@ public class holiday_controller extends script.base_script
+         String halloweenRunning = getConfigSetting("GameServer", "halloween");
+         String lifedayRunning = getConfigSetting("GameServer", "lifeday");
+         String lovedayRunning = getConfigSetting("GameServer", "loveday");
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+         if (halloweenRunning != null && (halloweenRunning.equals("true") || halloweenRunning.equals("1")))
+         {
+             names[idx] = "holiday_event";
+@@ -78,16 +77,8 @@ public class holiday_controller extends script.base_script
+             attribs[idx] = "Love Day Event Running = False";
+             idx++;
+         }
+-        if (empiredayRunning != null && (empiredayRunning.equals("true") || empiredayRunning.equals("1")))
+-        {
+-            names[idx] = "holiday_event";
+-            attribs[idx] = "Empire Day Event Running = True";
+-        }
+-        else 
+-        {
+-            names[idx] = "holiday_event";
+-            attribs[idx] = "Empire Day Event Running = False";
+-        }
++        names[idx] = "holiday_event";
++        attribs[idx] = "Empire Day Event Running = False (Publish 14.1)";
+         return SCRIPT_CONTINUE;
+     }
+     public int OnHearSpeech(obj_id self, obj_id speaker, String text) throws InterruptedException
+@@ -104,9 +95,6 @@ public class holiday_controller extends script.base_script
+         String lifedayRunning = getConfigSetting("GameServer", "lifeday");
+         int loveday = universeWideEvents.indexOf("loveday");
+         String lovedayRunning = getConfigSetting("GameServer", "loveday");
+-        int empireday = universeWideEvents.indexOf("empireday_ceremony");
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-
+         switch (text) {
+             case "halloweenStart":
+                 startHolidayEvent(speaker, "halloween", halloweenRunning, halloween);
+@@ -145,16 +133,18 @@ public class holiday_controller extends script.base_script
+                 stopHolidayEventForReals(speaker, "loveday");
+                 return SCRIPT_OVERRIDE;
+             case "empiredayStart":
+-                startHolidayEvent(speaker, "empireday_ceremony", empiredayRunning, empireday);
++                retireEmpireDayEvent();
++                sendSystemMessageTestingOnly(speaker, "Empire Day is retired by the Publish 14.1 restoration.");
+                 return SCRIPT_OVERRIDE;
+             case "empiredayStop":
+-                stopHolidayEvent(speaker, "empireday_ceremony", empiredayRunning, empireday);
++                retireEmpireDayEvent();
+                 return SCRIPT_OVERRIDE;
+             case "empiredayStartForReals":
+-                startHolidayEventForReals(speaker, "empireday_ceremony", empiredayRunning);
++                retireEmpireDayEvent();
++                sendSystemMessageTestingOnly(speaker, "Empire Day is retired by the Publish 14.1 restoration.");
+                 return SCRIPT_OVERRIDE;
+             case "empiredayStopForReals":
+-                stopHolidayEventForReals(speaker, "empireday_ceremony");
++                retireEmpireDayEvent();
+                 return SCRIPT_OVERRIDE;
+         }
+         return SCRIPT_CONTINUE;
+@@ -299,34 +289,14 @@ public class holiday_controller extends script.base_script
+     }
+     public int empiredayServerStart(obj_id self, dictionary params) throws InterruptedException
+     {
+-        CustomerServiceLog("holidayEvent", "holiday_controller.empiredayServerStart Empire Day event handler called.");
+-        String empiredayString = getCurrentUniverseWideEvents();
+-        int empireday = empiredayString.indexOf("empireday_ceremony");
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-        CustomerServiceLog("holidayEvent", "holiday_controller.empiredayServerStart empiredayString: " + empiredayString + " empireday: " + empireday + " empiredayRunning: " + empiredayRunning);
+-        if (empiredayRunning == null)
+-        {
+-            CustomerServiceLog("holidayEvent", "holiday_controller.empiredayServerStart event is either not running or not in the server configs.");
+-            if (empireday > -1)
+-            {
+-                stopUniverseWideEvent("empireday_ceremony");
+-            }
+-        }
+-        else if (empiredayRunning.equals("true") || empiredayRunning.equals("1"))
++        retireEmpireDayEvent();
++        return SCRIPT_CONTINUE;
++    }
++    private void retireEmpireDayEvent() throws InterruptedException
++    {
++        if (getCurrentUniverseWideEvents().indexOf("empireday_ceremony") > -1)
+         {
+-            CustomerServiceLog("holidayEvent", "holiday_controller.empiredayServerStart event is starting.");
+-            if (empireday < 0)
+-            {
+-                if (!startUniverseWideEvent("empireday_ceremony"))
+-                {
+-                    CustomerServiceLog("holidayEvent", "holiday_controller.empiredayServerStart startUniverseWideEvent reports FAILURE to start universe wide event.");
+-                }
+-                else 
+-                {
+-                    CustomerServiceLog("holidayEvent", "holiday_controller.empiredayServerStart startUniverseWideEvent reports SUCCESS starting universe wide event.");
+-                }
+-            }
++            stopUniverseWideEvent("empireday_ceremony");
+         }
+-        return SCRIPT_CONTINUE;
+     }
+ }

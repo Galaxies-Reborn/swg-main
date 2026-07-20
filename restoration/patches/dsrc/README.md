@@ -806,3 +806,7 @@ guards while retaining ordinary generic spawning.
 `177-p14-empire-day-interior-spawner-retirement.patch` destroys tracked
 Empire Day building-interior NPCs, clears their persistent tracking state,
 and detaches the independent spawner while retaining its host buildings.
+
+`178-p14-empire-day-control-plane-retirement.patch` prevents startup and
+operator commands from starting the later universe event, synchronously
+stops stale Empire Day state, and retains the other shared holiday branches.
