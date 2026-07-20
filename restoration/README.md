@@ -1317,3 +1317,17 @@ remain unchanged, and the inherited command handler is retained only as a
 compatibility boundary. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeCorpseContrabandRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+All three Corvette loot containers now admit restored Publish 14.1
+characters without an NGE Trader/Entertainer class-template check. Their
+ITEM_OPEN, enemy-spawn, ownership, and timed-respawn behavior remains intact.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CorvetteLootAdmission.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+GCW crafting-tool attributes no longer read an NGE Trader profession. Charges
+and power remain unchanged, and the class-dependent fatigue display collapses
+to its neutral value of one for the classless Publish 14.1 progression model.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14GcwCraftingToolClassRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
