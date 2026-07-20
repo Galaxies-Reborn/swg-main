@@ -1,0 +1,204 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/utils.java b/sku.0/sys.server/compiled/game/script/library/utils.java
+--- a/sku.0/sys.server/compiled/game/script/library/utils.java
++++ b/sku.0/sys.server/compiled/game/script/library/utils.java
+@@ -149,20 +149,10 @@ public class utils extends script.base_script
+     }
+     public static boolean hasSpecialSkills(obj_id player) throws InterruptedException
+     {
+-        boolean skillCheck = false;
+-        if (hasSkill(player, "class_commando_phase4_master"))
+-        {
+-            skillCheck = true;
+-        }
+-        if (hasSkill(player, "class_bountyhunter_phase4_master"))
+-        {
+-            skillCheck = true;
+-        }
+-        if (hasSkill(player, "class_officer_phase4_master"))
+-        {
+-            skillCheck = true;			
+-        }
+-        return skillCheck;
++        return hasSkill(player, "combat_bountyhunter_master") ||
++            hasSkill(player, "combat_commando_master") ||
++            hasSkill(player, "outdoors_squadleader_master") ||
++            hasSkill(player, "outdoors_ranger_master");
+     }
+     public static int unequipAndNotifyUncerted(obj_id player) throws InterruptedException
+     {
+@@ -186,7 +176,6 @@ public class utils extends script.base_script
+         };
+         obj_id curArmor;
+         obj_id inv = utils.getInventoryContainer(player);
+-        String classTemplate = getSkillTemplate(player);
+         prose_package pp;
+ 
+         for (String armorSlot : armorSlots) {
+@@ -200,15 +189,13 @@ public class utils extends script.base_script
+                 putInOverloaded(curArmor, inv);
+             }
+             if (!isIdNull(curArmor) && hasObjVar(curArmor, "armor.fake_armor") && hasObjVar(curArmor, "dynamic_item.required_skill")) {
+-                if (classTemplate != null && !classTemplate.equals("")) {
+-                    if (!classTemplate.startsWith(getStringObjVar(curArmor, "dynamic_item.required_skill"))) {
+-                        totalUnequipped++;
+-                        pp = new prose_package();
+-                        pp = prose.setStringId(pp, new string_id("spam", "armor_lost_cert"));
+-                        pp = prose.setTT(pp, curArmor);
+-                        sendSystemMessageProse(player, pp);
+-                        putInOverloaded(curArmor, inv);
+-                    }
++                if (!meetsProfessionRequirement(player, getStringObjVar(curArmor, "dynamic_item.required_skill"))) {
++                    totalUnequipped++;
++                    pp = new prose_package();
++                    pp = prose.setStringId(pp, new string_id("spam", "armor_lost_cert"));
++                    pp = prose.setTT(pp, curArmor);
++                    sendSystemMessageProse(player, pp);
++                    putInOverloaded(curArmor, inv);
+                 }
+             }
+         }
+@@ -288,15 +275,13 @@ public class utils extends script.base_script
+                     putInOverloaded(curArmor, inv);
+                 }
+                 if (!isIdNull(curArmor) && hasObjVar(curArmor, "armor.fake_armor") && hasObjVar(curArmor, "dynamic_item.required_skill")) {
+-                    if (classTemplate != null && !classTemplate.equals("")) {
+-                        if (!classTemplate.startsWith(getStringObjVar(curArmor, "dynamic_item.required_skill"))) {
+-                            totalUnequipped++;
+-                            pp = new prose_package();
+-                            pp = prose.setStringId(pp, new string_id("spam", "armor_lost_cert"));
+-                            pp = prose.setTT(pp, curArmor);
+-                            sendSystemMessageProse(player, pp);
+-                            putInOverloaded(curArmor, inv);
+-                        }
++                    if (!meetsProfessionRequirement(player, getStringObjVar(curArmor, "dynamic_item.required_skill"))) {
++                        totalUnequipped++;
++                        pp = new prose_package();
++                        pp = prose.setStringId(pp, new string_id("spam", "armor_lost_cert"));
++                        pp = prose.setTT(pp, curArmor);
++                        sendSystemMessageProse(player, pp);
++                        putInOverloaded(curArmor, inv);
+                     }
+                 }
+                 if (!static_item.validateLevelRequired(player, curArmor)) {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_mandalorian_armor_eligibility_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_mandalorian_armor_eligibility_fixture.java
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_mandalorian_armor_eligibility_fixture.java
+@@ -0,0 +1,117 @@
++package script.test;
++
++import script.obj_id;
++import script.library.utils;
++
++/**
++ * Identity-bound, reversible proof of the four Publish 14.1 Mandalorian armor
++ * master-profession alternatives.
++ */
++public class precu_mandalorian_armor_eligibility_fixture
++    extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++    private static final String[] MASTER_SKILLS =
++    {
++        "combat_bountyhunter_master",
++        "combat_commando_master",
++        "outdoors_squadleader_master",
++        "outdoors_ranger_master"
++    };
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        long value;
++        try
++        {
++            value = Long.parseLong(params == null ? "" : params.trim());
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (value != PLAYER_OID)
++        {
++            return "error=identityNotAllowed";
++        }
++        obj_id player = obj_id.getObjId(value);
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded() || !player.isAuthoritative() ||
++            !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        boolean[] originallyOwned = new boolean[MASTER_SKILLS.length];
++        for (int index = 0; index < MASTER_SKILLS.length; ++index)
++        {
++            originallyOwned[index] = hasSkill(player, MASTER_SKILLS[index]);
++        }
++        String result = "error=probeIncomplete";
++        try
++        {
++            for (int index = 0; index < MASTER_SKILLS.length; ++index)
++            {
++                if (originallyOwned[index])
++                {
++                    revokeSkill(player, MASTER_SKILLS[index]);
++                }
++            }
++            boolean baselineRejected = !utils.hasSpecialSkills(player);
++            boolean alternativesPassed = true;
++            String vector = "";
++            for (int index = 0; index < MASTER_SKILLS.length; ++index)
++            {
++                boolean granted =
++                    grantSkill(player, MASTER_SKILLS[index]) &&
++                    hasSkill(player, MASTER_SKILLS[index]);
++                boolean admitted = granted && utils.hasSpecialSkills(player);
++                revokeSkill(player, MASTER_SKILLS[index]);
++                boolean rejected =
++                    !hasSkill(player, MASTER_SKILLS[index]) &&
++                    !utils.hasSpecialSkills(player);
++                alternativesPassed =
++                    alternativesPassed && granted && admitted && rejected;
++                vector +=
++                    (index == 0 ? "" : ",") +
++                    MASTER_SKILLS[index] + ":" +
++                    granted + "/" + admitted + "/" + rejected;
++            }
++            boolean passed = baselineRejected && alternativesPassed;
++            result =
++                "action=probe authoritative=true" +
++                " baselineRejected=" + baselineRejected +
++                " alternatives=" + vector +
++                " alternativesPassed=" + alternativesPassed +
++                " passed=" + passed;
++        }
++        finally
++        {
++            boolean restored = true;
++            for (int index = 0; index < MASTER_SKILLS.length; ++index)
++            {
++                boolean owned = hasSkill(player, MASTER_SKILLS[index]);
++                if (originallyOwned[index] && !owned)
++                {
++                    grantSkill(player, MASTER_SKILLS[index]);
++                }
++                else if (!originallyOwned[index] && owned)
++                {
++                    revokeSkill(player, MASTER_SKILLS[index]);
++                }
++                restored =
++                    restored &&
++                    hasSkill(player, MASTER_SKILLS[index]) ==
++                        originallyOwned[index];
++            }
++            result += " restored=" + restored;
++            if (!restored)
++            {
++                result = "error=mandalorianRestoreFailed " + result;
++            }
++        }
++        return result;
++    }
++}

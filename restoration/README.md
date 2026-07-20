@@ -1346,3 +1346,10 @@ tokens through that predicate. Empty, Spy, unknown, and ambiguous later
 class-master requirements fail closed. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ProfessionRequirementGates.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Armor revalidation now uses the same exact ownership rule as equip and
+transfer for both equipped and appearance inventories. Mandalorian armor uses
+Core3's four exact master alternatives—Bounty Hunter, Commando, Squad Leader,
+or Ranger—instead of three NGE phase skills. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ArmorOwnershipRevalidation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
