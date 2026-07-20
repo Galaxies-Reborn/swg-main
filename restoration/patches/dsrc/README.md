@@ -834,3 +834,8 @@ random Love Day rows through an exact shared predicate. Lifecycle cleanup now
 finds children by authoritative `objParent` ownership before detaching, and
 queued spawn/location callbacks fail closed. Ordinary and Life Day spawners
 remain active.
+
+Milestone 184 is evidence-only and therefore has no overlay patch. It proves
+the three retained Love Day quest barrels have no admission path after the
+sole Blaire quest giver was retired, while preserving the generic wave-event
+controller and passive serialized anchors.

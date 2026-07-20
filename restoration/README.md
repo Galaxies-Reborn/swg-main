@@ -1552,3 +1552,11 @@ use regional control, and both banner classes render their requested faction.
 Only the later event overrides were removed. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayGenericSystemOverrides.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The three persistent Tyrena Love Day barrels remain as passive serialized
+anchors. Their shared wave controller requires an already-active matching
+quest task; only three Mr. Hate tables match, and their sole grantable
+variants came from the retired Blaire producer. The generic controller and
+ordinary wave quests remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LoveDayWaveBarrelAdmissionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
