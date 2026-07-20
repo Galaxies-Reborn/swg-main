@@ -823,3 +823,8 @@ and two banner implementations while retaining their normal behavior.
 the post-Publish-14.1 Halloween and Love Day universe events at startup and
 through all operator commands. The distinct 2004 Life Day control path remains
 intact for its own reconstruction.
+
+`182-p14-love-day-custom-spawner-retirement.patch` cleans and detaches the
+Cupid registration/manager pair, both romance-target anchors, and the
+disillusion spawner. Queued callbacks fail closed, while passive templates,
+buildout anchors, and generic spawners remain for separate treatment.
