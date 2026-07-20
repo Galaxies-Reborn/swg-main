@@ -1,0 +1,189 @@
+diff --git a/sku.0/sys.server/compiled/game/script/city/guard_spawner.java b/sku.0/sys.server/compiled/game/script/city/guard_spawner.java
+index cb19627..7fce5df 100644
+--- a/sku.0/sys.server/compiled/game/script/city/guard_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/city/guard_spawner.java
+@@ -31,15 +31,6 @@ public class guard_spawner extends script.base_script
+                     attachScript(self, "city.bestine.politician_event_npc");
+                 }
+             }
+-            else if (city.equals("theed"))
+-            {
+-                String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-                if (empiredayRunning != null && (empiredayRunning.equals("true") || empiredayRunning.equals("1")))
+-                {
+-                    utils.setScriptVar(self, "OFF", "DUE TO EMPIRE DAY");
+-                    return SCRIPT_CONTINUE;
+-                }
+-            }
+         }
+         if (hasObjVar(self, "current"))
+         {
+@@ -292,25 +283,6 @@ public class guard_spawner extends script.base_script
+         if ((city != null) && (planet.equals("tatooine") || planet.equals("naboo") || planet.equals("corellia")))
+         {
+             String test_city = city;
+-            if (planet.equals("naboo") || planet.equals("corellia"))
+-            {
+-                String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-                if (empiredayRunning != null)
+-                {
+-                    if (empiredayRunning.equals("true") || empiredayRunning.equals("1"))
+-                    {
+-                        if (city.equals("coronet"))
+-                        {
+-                            return test_city + "_rebel_hard";
+-                        }
+-                        else if (city.equals("theed"))
+-                        {
+-                            return test_city + "_imperial_hard";
+-                        }
+-                    }
+-                }
+-            }
+-
+             float imp_r = gcw.getImperialPercentileByRegion(self);
+             float reb_r = gcw.getRebelPercentileByRegion(self);
+             if (imp_r >= reb_r)
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/script_spawner/spawner_methods/gcw_spawner.java b/sku.0/sys.server/compiled/game/script/theme_park/script_spawner/spawner_methods/gcw_spawner.java
+index 9ff1087..88b00cd 100644
+--- a/sku.0/sys.server/compiled/game/script/theme_park/script_spawner/spawner_methods/gcw_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/script_spawner/spawner_methods/gcw_spawner.java
+@@ -299,32 +299,6 @@ public class gcw_spawner extends script.base_script
+                 hard = true;
+             }
+         }
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-        if (empiredayRunning != null)
+-        {
+-            if (empiredayRunning.equals("true") || empiredayRunning.equals("1"))
+-            {
+-                location here = getLocation(self);
+-                String city = locations.getCityName(here);
+-                if (city == null)
+-                {
+-                    city = locations.getGuardSpawnerRegionName(here);
+-                }
+-                if (city != null && city.length() > 0)
+-                {
+-                    if (city.equals("coronet"))
+-                    {
+-                        faction = "rebel";
+-                        hard = false;
+-                    }
+-                    else if (city.equals("theed"))
+-                    {
+-                        faction = "imperial";
+-                        hard = false;
+-                    }
+-                }
+-            }
+-        }
+         webster.put("faction", faction);
+         webster.put("hard", hard);
+         return webster;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/deliver_npc_spawner.java b/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/deliver_npc_spawner.java
+index 276c872..8cce183 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/deliver_npc_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/dynamic/deliver_npc_spawner.java
+@@ -1,7 +1,6 @@
+ package script.systems.missions.dynamic;
+ 
+ import script.library.create;
+-import script.library.locations;
+ import script.location;
+ import script.obj_id;
+ 
+@@ -12,26 +11,6 @@ public class deliver_npc_spawner extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-        if (empiredayRunning != null)
+-        {
+-            if (empiredayRunning.equals("true") || empiredayRunning.equals("1"))
+-            {
+-                location here = getLocation(self);
+-                String city = locations.getCityName(here);
+-                if (city == null)
+-                {
+-                    city = locations.getGuardSpawnerRegionName(here);
+-                }
+-                if (city != null && city.length() > 0)
+-                {
+-                    if (city.equals("theed"))
+-                    {
+-                        return SCRIPT_CONTINUE;
+-                    }
+-                }
+-            }
+-        }
+         location here = getLocation(self);
+         obj_id npc = create.object("commoner", here);
+         attachScript(npc, "systems.missions.dynamic.mission_deliver_npc");
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner.java b/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner.java
+index 9110ec9..f8de620 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner.java
+@@ -73,27 +73,6 @@ public class flip_banner extends script.base_script
+     }
+     public void spawnBanner(obj_id self, String faction) throws InterruptedException
+     {
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-        if (empiredayRunning != null && (empiredayRunning.equals("true") || empiredayRunning.equals("1")))
+-        {
+-            location here = getLocation(self);
+-            String city = locations.getCityName(here);
+-            if (city == null)
+-            {
+-                city = locations.getGuardSpawnerRegionName(here);
+-            }
+-            if (city != null && city.length() > 0)
+-            {
+-                if (city.equals("coronet"))
+-                {
+-                    faction = "rebel";
+-                }
+-                else if (city.equals("theed"))
+-                {
+-                    faction = "imperial";
+-                }
+-            }
+-        }
+         transform t = getTransform_o2w(self);
+         if (faction.equals("rebel"))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner_onpole.java b/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner_onpole.java
+index a20ad7b..66eeafb 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner_onpole.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/flip_banner_onpole.java
+@@ -77,30 +77,6 @@ public class flip_banner_onpole extends script.systems.gcw.flip_banner
+     }
+     public void spawnBanner(obj_id self, String faction) throws InterruptedException
+     {
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-        if (empiredayRunning != null)
+-        {
+-            if (empiredayRunning.equals("true") || empiredayRunning.equals("1"))
+-            {
+-                location here = getLocation(self);
+-                String city = locations.getCityName(here);
+-                if (city == null)
+-                {
+-                    city = locations.getGuardSpawnerRegionName(here);
+-                }
+-                if (city != null && city.length() > 0)
+-                {
+-                    if (city.equals("coronet"))
+-                    {
+-                        faction = "rebel";
+-                    }
+-                    else if (city.equals("theed"))
+-                    {
+-                        faction = "imperial";
+-                    }
+-                }
+-            }
+-        }
+         transform t = getTransform_o2w(self);
+         obj_id banner = createObject("object/tangible/gcw/flip_banner_onpole_" + faction + ".iff", t, null);
+         if (!isIdValid(banner))

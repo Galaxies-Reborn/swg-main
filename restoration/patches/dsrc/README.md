@@ -814,3 +814,7 @@ stops stale Empire Day state, and retains the other shared holiday branches.
 `179-p14-empire-day-planet-state-retirement.patch` removes persistent Empire
 Day leaderboard roots, scores, and timestamps and closes queued setup/reset
 callbacks while retaining Life Day planet state.
+
+`180-p14-empire-day-generic-system-overrides.patch` removes Empire Day
+configuration branches from generic city guards, GCW spawns, delivery NPCs,
+and two banner implementations while retaining their normal behavior.

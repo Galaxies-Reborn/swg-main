@@ -1545,3 +1545,10 @@ the same namespace and return, while Life Day planet score data and alarms
 remain available for their separate audit. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayPlanetStateRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Five generic systems no longer branch on the Empire Day configuration. Theed
+guards and delivery NPCs remain active, GCW spawns and city guard difficulty
+use regional control, and both banner classes render their requested faction.
+Only the later event overrides were removed. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayGenericSystemOverrides.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
