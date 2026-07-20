@@ -1451,3 +1451,11 @@ of native, CTS, dormant compatibility, GM/QA, and reversible fixture code.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RespecAutolevelEntrypointRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Player Generated Chronicles and Storyteller command scripts now detach on
+attach and initialization. Chronicles client-ready handling no longer queues
+terms-of-service or reserve-reminder messages. The only retained storyteller
+attachment call is inside the already-retired live-conversion script.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ChroniclesScriptLifecycleRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
