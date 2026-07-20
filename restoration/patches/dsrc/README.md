@@ -870,3 +870,9 @@ cleanup-first generic spawner predicate to `eventRequired=life_day`, retiring
 six random and 18 area spawners in the later factional cities. It deliberately
 does not match the retained `lifeday` event or either original 2004 custom
 spawner.
+
+`191-p14-life-day-2004-admission-restoration.patch` restores the retained
+2004 Life Day control path across six planet objects. It materializes three
+city and twelve forest quest anchors only on authoritative scene servers,
+corrects the forest coordinate fan-out, owns both anchor and celebrity NPC
+lifecycles, and adds an identity-locked activation/cleanup fixture.

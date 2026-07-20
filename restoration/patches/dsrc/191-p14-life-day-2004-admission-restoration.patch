@@ -1,0 +1,773 @@
+diff --git a/sku.0/sys.server/compiled/game/script/event/holiday_controller.java b/sku.0/sys.server/compiled/game/script/event/holiday_controller.java
+index 3f059c5..c7c2a82 100644
+--- a/sku.0/sys.server/compiled/game/script/event/holiday_controller.java
++++ b/sku.0/sys.server/compiled/game/script/event/holiday_controller.java
+@@ -143,6 +143,7 @@ public class holiday_controller extends script.base_script
+                 sendSystemMessageTestingOnly(speaker, holidayName + " started.");
+                 startUniverseWideEvent(holidayName);
+             }
++            refreshPrecuLifeDayPlanets(true);
+         }
+     }
+     private void startHolidayEventForReals(obj_id speaker, String holidayName, String holidayRunning) throws InterruptedException
+@@ -156,6 +157,7 @@ public class holiday_controller extends script.base_script
+         {
+             sendSystemMessageTestingOnly(speaker, holidayName + " started.");
+             startUniverseWideEvent(holidayName);
++            refreshPrecuLifeDayPlanets(true);
+         }
+     }
+     private void stopHolidayEvent(obj_id speaker, String holidayName, String holidayRunning, int holidayStatus) throws InterruptedException
+@@ -169,6 +171,7 @@ public class holiday_controller extends script.base_script
+     {
+         sendSystemMessageTestingOnly(speaker, holidayName + " stopped.");
+         stopUniverseWideEvent(holidayName);
++        refreshPrecuLifeDayPlanets(false);
+     }
+     public int halloweenServerStart(obj_id self, dictionary params) throws InterruptedException
+     {
+@@ -182,15 +185,18 @@ public class holiday_controller extends script.base_script
+         int lifeday = lifedayString.indexOf("lifeday");
+         String lifedayRunning = getConfigSetting("GameServer", "lifeday");
+         CustomerServiceLog("holidayEvent", "holiday_controller.lifedayServerStart lifedayString: " + lifedayString + " lifeday: " + lifeday + " lifedayRunning: " + lifedayRunning);
+-        if (lifedayRunning == null)
++        boolean enabled = lifedayRunning != null &&
++            (lifedayRunning.equals("true") || lifedayRunning.equals("1"));
++        if (!enabled)
+         {
+             CustomerServiceLog("holidayEvent", "holiday_controller.lifedayServerStart event is either not running or not in the server configs.");
+             if (lifeday > -1)
+             {
+                 stopUniverseWideEvent("lifeday");
+             }
++            refreshPrecuLifeDayPlanets(false);
+         }
+-        else if (lifedayRunning.equals("true") || lifedayRunning.equals("1"))
++        else
+         {
+             if (lifeday < 0)
+             {
+@@ -203,9 +209,32 @@ public class holiday_controller extends script.base_script
+                     CustomerServiceLog("holidayEvent", "holiday_controller.lifedayServerStart startUniverseWideEvent reports SUCCESS starting universe wide event.");
+                 }
+             }
++            refreshPrecuLifeDayPlanets(true);
+         }
+         return SCRIPT_CONTINUE;
+     }
++    private void refreshPrecuLifeDayPlanets(boolean active) throws InterruptedException
++    {
++        dictionary params = new dictionary();
++        params.put("active", active);
++        String[] planets =
++        {
++            "tatooine",
++            "corellia",
++            "naboo",
++            "dathomir",
++            "endor",
++            "yavin4"
++        };
++        for (String planetName : planets)
++        {
++            obj_id planet = getPlanetByName(planetName);
++            if (isIdValid(planet) && exists(planet))
++            {
++                messageTo(planet, "refreshPrecuLifeDayAnchors", params, 2.0f, false);
++            }
++        }
++    }
+     public int lovedayServerStart(obj_id self, dictionary params) throws InterruptedException
+     {
+         retireHolidayEvent("loveday");
+diff --git a/sku.0/sys.server/compiled/game/script/event/lifeday/city_spawner.java b/sku.0/sys.server/compiled/game/script/event/lifeday/city_spawner.java
+index f34f106..7bf6e55 100644
+--- a/sku.0/sys.server/compiled/game/script/event/lifeday/city_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/event/lifeday/city_spawner.java
+@@ -1,11 +1,16 @@
+ package script.event.lifeday;
+ 
+ import script.library.create;
++import script.dictionary;
+ import script.location;
+ import script.obj_id;
+ 
+ public class city_spawner extends script.base_script
+ {
++    private static final String CHILD_VAR = "event.lifeday.male1";
++    private static final String SPAWNED_VAR = "event.lifeday.spawned";
++    private static final String OWNER_VAR = "precuLifeDay.anchor";
++    private static final String TEMPLATE = "object/tangible/spawning/static_npc/wookiee_lifeday_male1.iff";
+     public city_spawner()
+     {
+     }
+@@ -15,30 +20,106 @@ public class city_spawner extends script.base_script
+         {-5545,23,-6177},
+         {-5557,-150,0}
+     };
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        if (!hasObjVar(self, "event.lifeday.spawned"))
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int reconcilePrecuLifeDayAnchors(obj_id self, dictionary params) throws InterruptedException
++    {
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int retirePrecuLifeDayAnchors(obj_id self, dictionary params) throws InterruptedException
++    {
++        cleanup(self);
++        detachScript(self, "event.lifeday.city_spawner");
++        return SCRIPT_CONTINUE;
++    }
++    public int OnDetach(obj_id self) throws InterruptedException
++    {
++        cleanup(self);
++        return SCRIPT_CONTINUE;
++    }
++    private void reconcile(obj_id self) throws InterruptedException
++    {
++        if (!isLifeDayEnabled())
++        {
++            cleanup(self);
++            return;
++        }
++        if (hasObjVar(self, CHILD_VAR))
++        {
++            obj_id existing = getObjIdObjVar(self, CHILD_VAR);
++            if (isIdValid(existing) && exists(existing))
++            {
++                messageTo(existing, "reconcilePrecuLifeDayCelebrity", null, 0.0f, false);
++                return;
++            }
++            removeObjVar(self, CHILD_VAR);
++        }
++        String myPlanet = getNameForPlanetObject(self);
++        if (myPlanet == null || !myPlanet.equals(getCurrentSceneName()))
++        {
++            return;
++        }
++        int locStart = getLocationIndex(myPlanet);
++        if (locStart < 0)
++        {
++            return;
++        }
++        location spawnLocation = new location(startLocations[locStart][0], startLocations[locStart][1], startLocations[locStart][2], myPlanet);
++        obj_id anchor = create.object(TEMPLATE, spawnLocation);
++        if (isIdValid(anchor))
++        {
++            setObjVar(anchor, "objParent", self);
++            setObjVar(anchor, OWNER_VAR, 1);
++            setObjVar(self, CHILD_VAR, anchor);
++            setObjVar(self, SPAWNED_VAR, 1);
++        }
++    }
++    private int getLocationIndex(String planetName) throws InterruptedException
++    {
++        if (planetName.equals("tatooine")) return 0;
++        if (planetName.equals("corellia")) return 1;
++        if (planetName.equals("naboo")) return 2;
++        return -1;
++    }
++    private boolean isLifeDayEnabled() throws InterruptedException
++    {
++        String gameSetting = getConfigSetting("GameServer", "lifeday");
++        String eventSetting = getConfigSetting("EventTeam", "lifeday");
++        return (gameSetting != null && (gameSetting.equals("true") || gameSetting.equals("1"))) ||
++            (eventSetting != null && (eventSetting.equals("true") || eventSetting.equals("1")));
++    }
++    private void cleanup(obj_id self) throws InterruptedException
++    {
++        if (hasObjVar(self, CHILD_VAR))
+         {
+-            String myPlanet = getCurrentSceneName();
+-            int locStart;
+-            switch(myPlanet){
+-                case "tatooine":
+-                    locStart = 0;
+-                    break;
+-                case "corellia":
+-                    locStart = 1;
+-                    break;
+-                case "naboo":
+-                    locStart = 2;
+-                    break;
+-                default:
+-                    return SCRIPT_CONTINUE;
++            obj_id child = getObjIdObjVar(self, CHILD_VAR);
++            if (isIdValid(child) && exists(child))
++            {
++                destroyObject(child);
+             }
+-            location male1Spawn = new location(startLocations[locStart][0], startLocations[locStart][1], startLocations[locStart][2], myPlanet);
+-            obj_id male1 = create.object("object/tangible/spawning/static_npc/wookiee_lifeday_male1.iff", male1Spawn);
+-            setObjVar(self, "event.lifeday.spawned", 1);
+-            setObjVar(self, "event.lifeday.male1", male1);
++            removeObjVar(self, CHILD_VAR);
+         }
+-        return SCRIPT_CONTINUE;
++        obj_id[] owned = getAllObjectsWithObjVar(getLocation(self), 32000.0f, OWNER_VAR);
++        if (owned != null)
++        {
++            for (obj_id child : owned)
++            {
++                if (isIdValid(child) && exists(child) && hasObjVar(child, "objParent") &&
++                    getObjIdObjVar(child, "objParent") == self)
++                {
++                    destroyObject(child);
++                }
++            }
++        }
++        removeObjVar(self, SPAWNED_VAR);
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/event/lifeday/lifeday_spawner.java b/sku.0/sys.server/compiled/game/script/event/lifeday/lifeday_spawner.java
+index 4b7ffc1..6896170 100644
+--- a/sku.0/sys.server/compiled/game/script/event/lifeday/lifeday_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/event/lifeday/lifeday_spawner.java
+@@ -1,11 +1,28 @@
+ package script.event.lifeday;
+ 
+ import script.library.create;
++import script.dictionary;
+ import script.location;
+ import script.obj_id;
+ 
+ public class lifeday_spawner extends script.base_script
+ {
++    private static final String SPAWNED_VAR = "event.lifeday.spawned";
++    private static final String OWNER_VAR = "precuLifeDay.anchor";
++    private static final String[] CHILD_VARS =
++    {
++        "event.lifeday.elder",
++        "event.lifeday.female1",
++        "event.lifeday.female2",
++        "event.lifeday.male2"
++    };
++    private static final String[] TEMPLATES =
++    {
++        "object/tangible/spawning/static_npc/wookiee_lifeday_elder.iff",
++        "object/tangible/spawning/static_npc/wookiee_lifeday_female1.iff",
++        "object/tangible/spawning/static_npc/wookiee_lifeday_female2.iff",
++        "object/tangible/spawning/static_npc/wookiee_lifeday_male2.iff"
++    };
+     public lifeday_spawner()
+     {
+     }
+@@ -24,39 +41,133 @@ public class lifeday_spawner extends script.base_script
+             {-3,163,-3922},
+             {-3,163,-3918}
+     };
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        if (!hasObjVar(self, "event.lifeday.spawned"))
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int reconcilePrecuLifeDayAnchors(obj_id self, dictionary params) throws InterruptedException
++    {
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int retirePrecuLifeDayAnchors(obj_id self, dictionary params) throws InterruptedException
++    {
++        cleanup(self);
++        detachScript(self, "event.lifeday.lifeday_spawner");
++        return SCRIPT_CONTINUE;
++    }
++    public int OnDetach(obj_id self) throws InterruptedException
++    {
++        cleanup(self);
++        return SCRIPT_CONTINUE;
++    }
++    private void reconcile(obj_id self) throws InterruptedException
++    {
++        if (!isLifeDayEnabled())
++        {
++            cleanup(self);
++            return;
++        }
++        String myPlanet = getNameForPlanetObject(self);
++        if (myPlanet == null || !myPlanet.equals(getCurrentSceneName()))
++        {
++            return;
++        }
++        int locStart = getLocationIndex(myPlanet);
++        if (locStart < 0)
++        {
++            return;
++        }
++        boolean allPresent = true;
++        for (int i = 0; i < CHILD_VARS.length; i++)
+         {
+-            String myPlanet = getCurrentSceneName();
+-            int locStart;
+-            switch(myPlanet){
+-                case "dathomir":
+-                    locStart = 0;
+-                    break;
+-                case "endor":
+-                    locStart = 4;
+-                    break;
+-                case "yavin4":
+-                    locStart = 8;
+-                    break;
+-                default:
+-                    return SCRIPT_CONTINUE;
++            if (hasObjVar(self, CHILD_VARS[i]))
++            {
++                obj_id existing = getObjIdObjVar(self, CHILD_VARS[i]);
++                if (isIdValid(existing) && exists(existing))
++                {
++                    messageTo(existing, "reconcilePrecuLifeDayCelebrity", null, 0.0f, false);
++                    continue;
++                }
++                removeObjVar(self, CHILD_VARS[i]);
++            }
++            allPresent = false;
++            location spawnLocation = new location(LOCS[locStart + i][0], LOCS[locStart + i][1], LOCS[locStart + i][2], myPlanet);
++            obj_id anchor = create.object(TEMPLATES[i], spawnLocation);
++            if (isIdValid(anchor))
++            {
++                setObjVar(anchor, "objParent", self);
++                setObjVar(anchor, OWNER_VAR, 1);
++                setObjVar(self, CHILD_VARS[i], anchor);
+             }
+-            location elderSpawn = new location(LOCS[locStart][0], LOCS[locStart][1], LOCS[locStart][2], myPlanet);
+-            location female1Spawn = new location(LOCS[locStart][0], LOCS[locStart][1], LOCS[locStart][2], myPlanet);
+-            location female2Spawn = new location(LOCS[locStart][0], LOCS[locStart][1], LOCS[locStart][2], myPlanet);
+-            location male2Spawn = new location(LOCS[locStart][0], LOCS[locStart][1], LOCS[locStart][2], myPlanet);
+-            obj_id elder = create.object("object/tangible/spawning/static_npc/wookiee_lifeday_elder.iff", elderSpawn);
+-            obj_id female1 = create.object("object/tangible/spawning/static_npc/wookiee_lifeday_female1.iff", female1Spawn);
+-            obj_id female2 = create.object("object/tangible/spawning/static_npc/wookiee_lifeday_female2.iff", female2Spawn);
+-            obj_id male2 = create.object("object/tangible/spawning/static_npc/wookiee_lifeday_male2.iff", male2Spawn);
+-            setObjVar(self, "event.lifeday.elder", elder);
+-            setObjVar(self, "event.lifeday.female1", female1);
+-            setObjVar(self, "event.lifeday.female2", female2);
+-            setObjVar(self, "event.lifeday.male2", male2);
+-            setObjVar(self, "event.lifeday.spawned", 1);
+         }
+-        return SCRIPT_CONTINUE;
++        if (allPresent || allChildrenValid(self))
++        {
++            setObjVar(self, SPAWNED_VAR, 1);
++        }
++    }
++    private boolean allChildrenValid(obj_id self) throws InterruptedException
++    {
++        for (String childVar : CHILD_VARS)
++        {
++            if (!hasObjVar(self, childVar))
++            {
++                return false;
++            }
++            obj_id child = getObjIdObjVar(self, childVar);
++            if (!isIdValid(child) || !exists(child))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++    private int getLocationIndex(String planetName) throws InterruptedException
++    {
++        if (planetName.equals("dathomir")) return 0;
++        if (planetName.equals("endor")) return 4;
++        if (planetName.equals("yavin4")) return 8;
++        return -1;
++    }
++    private boolean isLifeDayEnabled() throws InterruptedException
++    {
++        String gameSetting = getConfigSetting("GameServer", "lifeday");
++        String eventSetting = getConfigSetting("EventTeam", "lifeday");
++        return (gameSetting != null && (gameSetting.equals("true") || gameSetting.equals("1"))) ||
++            (eventSetting != null && (eventSetting.equals("true") || eventSetting.equals("1")));
++    }
++    private void cleanup(obj_id self) throws InterruptedException
++    {
++        for (String childVar : CHILD_VARS)
++        {
++            if (hasObjVar(self, childVar))
++            {
++                obj_id child = getObjIdObjVar(self, childVar);
++                if (isIdValid(child) && exists(child))
++                {
++                    destroyObject(child);
++                }
++                removeObjVar(self, childVar);
++            }
++        }
++        obj_id[] owned = getAllObjectsWithObjVar(getLocation(self), 32000.0f, OWNER_VAR);
++        if (owned != null)
++        {
++            for (obj_id child : owned)
++            {
++                if (isIdValid(child) && exists(child) && hasObjVar(child, "objParent") &&
++                    getObjIdObjVar(child, "objParent") == self)
++                {
++                    destroyObject(child);
++                }
++            }
++        }
++        removeObjVar(self, SPAWNED_VAR);
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/npc/celebrity/lifeday_spawner.java b/sku.0/sys.server/compiled/game/script/npc/celebrity/lifeday_spawner.java
+index fa67d6f..b3ee1bd 100644
+--- a/sku.0/sys.server/compiled/game/script/npc/celebrity/lifeday_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/npc/celebrity/lifeday_spawner.java
+@@ -2,56 +2,111 @@ package script.npc.celebrity;
+ 
+ import script.library.ai_lib;
+ import script.library.create;
++import script.dictionary;
+ import script.obj_id;
+ 
+ public class lifeday_spawner extends script.base_script
+ {
++    private static final String CHILD_VAR = "event.lifeday.spawnedNpc";
++    private static final String OWNER_VAR = "precuLifeDay.celebrity";
+     public lifeday_spawner()
+     {
+     }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        String setting = getConfigSetting("EventTeam", "lifeday");
+-        if (setting == null || setting.equals(""))
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int reconcilePrecuLifeDayCelebrity(obj_id self, dictionary params) throws InterruptedException
++    {
++        reconcile(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnDestroy(obj_id self) throws InterruptedException
++    {
++        cleanup(self);
++        return SCRIPT_CONTINUE;
++    }
++    private void reconcile(obj_id self) throws InterruptedException
++    {
++        if (!isLifeDayEnabled())
+         {
+-            return SCRIPT_CONTINUE;
++            cleanup(self);
++            return;
+         }
+-        if (setting.equals("true") || setting.equals("1"))
++        if (hasObjVar(self, CHILD_VAR))
+         {
+-            String spawn = getStringObjVar(self, "spawns");
+-            obj_id celeb = create.object(spawn, getLocation(self));
+-            if (!isIdValid(celeb))
++            obj_id existing = getObjIdObjVar(self, CHILD_VAR);
++            if (isIdValid(existing) && exists(existing))
+             {
+-                return SCRIPT_CONTINUE;
++                return;
+             }
+-            setInvulnerable(celeb, true);
+-            ai_lib.setDefaultCalmBehavior(celeb, ai_lib.BEHAVIOR_SENTINEL);
+-            if (hasObjVar(self, "quest_script"))
++            removeObjVar(self, CHILD_VAR);
++        }
++        String spawn = getStringObjVar(self, "spawns");
++        obj_id celeb = create.object(spawn, getLocation(self));
++        if (!isIdValid(celeb))
++        {
++            return;
++        }
++        setObjVar(celeb, "objParent", self);
++        setObjVar(celeb, OWNER_VAR, 1);
++        setObjVar(self, CHILD_VAR, celeb);
++        setInvulnerable(celeb, true);
++        ai_lib.setDefaultCalmBehavior(celeb, ai_lib.BEHAVIOR_SENTINEL);
++        if (hasObjVar(self, "quest_script"))
++        {
++            String script = getStringObjVar(self, "quest_script");
++            attachScript(celeb, script);
++        }
++        if (hasObjVar(self, "quest_table"))
++        {
++            String table = getStringObjVar(self, "quest_table");
++            setObjVar(celeb, "quest_table", table);
++        }
++        if (hasObjVar(self, "npc_name"))
++        {
++            String name = getStringObjVar(self, "npc_name");
++            if (name != null && !name.equals(""))
+             {
+-                String script = getStringObjVar(self, "quest_script");
+-                attachScript(celeb, script);
++                setName(celeb, name);
+             }
+-            if (hasObjVar(self, "quest_table"))
++        }
++    }
++    private boolean isLifeDayEnabled() throws InterruptedException
++    {
++        String gameSetting = getConfigSetting("GameServer", "lifeday");
++        String eventSetting = getConfigSetting("EventTeam", "lifeday");
++        return (gameSetting != null && (gameSetting.equals("true") || gameSetting.equals("1"))) ||
++            (eventSetting != null && (eventSetting.equals("true") || eventSetting.equals("1")));
++    }
++    private void cleanup(obj_id self) throws InterruptedException
++    {
++        if (hasObjVar(self, CHILD_VAR))
++        {
++            obj_id child = getObjIdObjVar(self, CHILD_VAR);
++            if (isIdValid(child) && exists(child))
+             {
+-                String table = getStringObjVar(self, "quest_table");
+-                setObjVar(celeb, "quest_table", table);
++                destroyObject(child);
+             }
+-            if (hasObjVar(self, "npc_name"))
++            removeObjVar(self, CHILD_VAR);
++        }
++        obj_id[] owned = getAllObjectsWithObjVar(getLocation(self), 128.0f, OWNER_VAR);
++        if (owned != null)
++        {
++            for (obj_id child : owned)
+             {
+-                String name = getStringObjVar(self, "npc_name");
+-                if (name != null)
++                if (isIdValid(child) && exists(child) && hasObjVar(child, "objParent") &&
++                    getObjIdObjVar(child, "objParent") == self)
+                 {
+-                    if (!name.equals(""))
+-                    {
+-                        setName(celeb, name);
+-                    }
++                    destroyObject(child);
+                 }
+             }
+         }
+-        else 
+-        {
+-            return SCRIPT_OVERRIDE;
+-        }
+-        return SCRIPT_CONTINUE;
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/planet/planet_base.java b/sku.0/sys.server/compiled/game/script/planet/planet_base.java
+index 9d5d5ac..5ea07a5 100644
+--- a/sku.0/sys.server/compiled/game/script/planet/planet_base.java
++++ b/sku.0/sys.server/compiled/game/script/planet/planet_base.java
+@@ -45,6 +45,7 @@ public class planet_base extends script.base_script
+             attachScript(self, "systems.spawning.spawn_master");
+         }
+         CustomerServiceLog("holidayEvent", "planet_base.doSpawnSetup: doSpawnSetup complete.");
++        messageTo(self, "refreshPrecuLifeDayFromState", null, 780.0f, false);
+         obj_id tatooinePlanet = getPlanetByName("tatooine");
+         if (isIdValid(tatooinePlanet) && exists(tatooinePlanet))
+         {
+@@ -62,6 +63,57 @@ public class planet_base extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int refreshPrecuLifeDayFromState(obj_id self, dictionary params) throws InterruptedException
++    {
++        String setting = getConfigSetting("GameServer", "lifeday");
++        boolean configured = setting != null && (setting.equals("true") || setting.equals("1"));
++        boolean active = configured && getCurrentUniverseWideEvents().indexOf("lifeday") > -1;
++        dictionary refresh = new dictionary();
++        refresh.put("active", active);
++        return refreshPrecuLifeDayAnchors(self, refresh);
++    }
++    public int refreshPrecuLifeDayAnchors(obj_id self, dictionary params) throws InterruptedException
++    {
++        boolean active = params != null && params.getBoolean("active");
++        String planetName = getNameForPlanetObject(self);
++        String spawnerScript = getPrecuLifeDaySpawnerScript(planetName);
++        if (spawnerScript == null)
++        {
++            return SCRIPT_CONTINUE;
++        }
++        if (active)
++        {
++            if (!hasScript(self, spawnerScript))
++            {
++                attachScript(self, spawnerScript);
++            }
++            else
++            {
++                messageTo(self, "reconcilePrecuLifeDayAnchors", null, 0.0f, false);
++            }
++        }
++        else if (hasScript(self, spawnerScript))
++        {
++            messageTo(self, "retirePrecuLifeDayAnchors", null, 0.0f, false);
++        }
++        return SCRIPT_CONTINUE;
++    }
++    private String getPrecuLifeDaySpawnerScript(String planetName) throws InterruptedException
++    {
++        if (planetName == null)
++        {
++            return null;
++        }
++        if (planetName.equals("tatooine") || planetName.equals("corellia") || planetName.equals("naboo"))
++        {
++            return "event.lifeday.city_spawner";
++        }
++        if (planetName.equals("dathomir") || planetName.equals("endor") || planetName.equals("yavin4"))
++        {
++            return "event.lifeday.lifeday_spawner";
++        }
++        return null;
++    }
+     public int OnDetach(obj_id self) throws InterruptedException
+     {
+         String strPlanet = getCurrentSceneName();
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_lifeday_2004_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_lifeday_2004_fixture.java
+new file mode 100644
+index 0000000..dd195af
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_lifeday_2004_fixture.java
+@@ -0,0 +1,63 @@
++package script.test;
++
++import script.dictionary;
++import script.obj_id;
++
++/**
++ * Identity-locked player-attached lifecycle driver for Publish 14.1 Life Day.
++ */
++public class precu_lifeday_2004_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++    private static final String DRIVER =
++        "test.precu_lifeday_2004_fixture";
++    private static final String ACTION_VAR =
++        "precu.fixture.lifeday.active";
++    private static final String RESULT_VAR =
++        "precu.fixture.lifeday.notified";
++    private static final String[] PLANETS =
++    {
++        "tatooine",
++        "corellia",
++        "naboo",
++        "dathomir",
++        "endor",
++        "yavin4"
++    };
++
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        if (self == null || self == obj_id.NULL_ID ||
++            self.getValue() != PLAYER_OID ||
++            !isPlayer(self) ||
++            getPlayerStationId(self) != PLAYER_STATION_ID ||
++            !hasObjVar(self, ACTION_VAR))
++        {
++            detachScript(self, DRIVER);
++            return SCRIPT_CONTINUE;
++        }
++        boolean active = getIntObjVar(self, ACTION_VAR) == 1;
++        dictionary refresh = new dictionary();
++        refresh.put("active", active);
++        int notified = 0;
++        for (String planetName : PLANETS)
++        {
++            obj_id planet = getPlanetByName(planetName);
++            if (isIdValid(planet) && exists(planet))
++            {
++                messageTo(
++                    planet,
++                    "refreshPrecuLifeDayAnchors",
++                    refresh,
++                    0.0f,
++                    false);
++                ++notified;
++            }
++        }
++        setObjVar(self, RESULT_VAR, notified);
++        removeObjVar(self, ACTION_VAR);
++        detachScript(self, DRIVER);
++        return SCRIPT_CONTINUE;
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_profession_requirement_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_profession_requirement_fixture.java
+index c46daa8..d5c170f 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_profession_requirement_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_profession_requirement_fixture.java
+@@ -14,9 +14,21 @@ public class precu_profession_requirement_fixture extends script.base_script
+     private static final int PLAYER_STATION_ID = 1001;
+     private static final String ARTISAN = "crafting_artisan_novice";
+     private static final String ENTERTAINER = "social_entertainer_novice";
++    private static final String LIFEDAY_DRIVER =
++        "test.precu_lifeday_2004_fixture";
++    private static final String LIFEDAY_ACTION =
++        "precu.fixture.lifeday.active";
+ 
+     public String executeProbe(String params) throws InterruptedException
+     {
++        if (params != null && params.startsWith("lifeday-on:"))
++        {
++            return executeLifeDayLifecycle(params.substring(11), true);
++        }
++        if (params != null && params.startsWith("lifeday-off:"))
++        {
++            return executeLifeDayLifecycle(params.substring(12), false);
++        }
+         long value;
+         try
+         {
+@@ -149,6 +161,37 @@ public class precu_profession_requirement_fixture extends script.base_script
+         return result;
+     }
+ 
++    private String executeLifeDayLifecycle(String params, boolean active)
++        throws InterruptedException
++    {
++        long value;
++        try
++        {
++            value = Long.parseLong(params == null ? "" : params.trim());
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        obj_id player = obj_id.getObjId(value);
++        if (value != PLAYER_OID ||
++            player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded() || !player.isAuthoritative() ||
++            !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++        setObjVar(player, LIFEDAY_ACTION, active ? 1 : 0);
++        if (hasScript(player, LIFEDAY_DRIVER))
++        {
++            detachScript(player, LIFEDAY_DRIVER);
++        }
++        attachScript(player, LIFEDAY_DRIVER);
++        return "action=" + (active ? "activate" : "deactivate") +
++            " driverQueued=true passed=" + hasScript(player, LIFEDAY_DRIVER);
++    }
++
+     private void restoreSkill(
+         obj_id player,
+         String skillName,

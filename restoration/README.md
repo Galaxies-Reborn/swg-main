@@ -1612,3 +1612,14 @@ retained `lifeday` universe event, Mos Espa/orb route, five conversations, and
 two original NPC-spawner scripts remain untouched. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LaterLifeDayCitySpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The original 2004 Life Day admission path now reconciles three city anchors
+and twelve forest anchors through the retained `lifeday` control plane. Each
+planet creates only while its scene is authoritative, preventing an
+unavailable remote scene from being misplaced into the local GameServer.
+Anchors and their five `lifeday04*` quest NPC variants are idempotent,
+ownership-marked, and cleanup-first. The identity-locked fixture drives
+immediate activation and deactivation without weakening the default
+`lifeday=false` boundary. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LifeDay2004AdmissionRestoration.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

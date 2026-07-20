@@ -112,14 +112,14 @@ $forestSpawner = Get-Content $forestSpawnerPath -Raw
 $celebritySpawner = Get-Content $celebritySpawnerPath -Raw
 foreach ($scene in @('"tatooine"', '"corellia"', '"naboo"'))
 {
-    if (-not $citySpawner.Contains("case $scene"))
+    if (-not $citySpawner.Contains("planetName.equals($scene)"))
     {
         throw "Original Life Day city-spawner scene is missing: $scene."
     }
 }
 foreach ($scene in @('"dathomir"', '"endor"', '"yavin4"'))
 {
-    if (-not $forestSpawner.Contains("case $scene"))
+    if (-not $forestSpawner.Contains("planetName.equals($scene)"))
     {
         throw "Original Life Day forest-spawner scene is missing: $scene."
     }
