@@ -1225,3 +1225,12 @@ purchase, production surrender, novice command and schematic retention,
 rollback, and idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeOneProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Knowledge II restores Knowledge I, 125,000 Music XP, four points, a
+700,000 Music cap, Bandfill, Funk, and +10 Music healing ability. It moves
+Bandfill back to its authentic branch after removal from NGE-mutated Shock II.
+Protocol 80 proves purchase, production surrender, Knowledge I and Ballad
+retention, 500,000-cap recomputation, independent Healing-cap retention,
+modifier rollback, and idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
