@@ -44,6 +44,11 @@ Validate the Publish 14.1 creation/login invariant:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CharacterCreation.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate retirement of the later NGE class/roadmap skill-template graph while
+retaining the empty datatable schema required by inherited client libraries:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeSkillTemplateRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
 Validate checked-tutorial startup independently:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14TutorialStartup.ps1 -SourceRoot <materialized-staging-directory>
