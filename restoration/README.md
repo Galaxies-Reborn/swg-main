@@ -1353,3 +1353,11 @@ Core3's four exact master alternatives—Bounty Hunter, Commando, Squad Leader,
 or Ranger—instead of three NGE phase skills. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ArmorOwnershipRevalidation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The item script layer no longer reads the singular NGE class template. The
+unused senator-crate read is removed, and the later Collection ice-cream
+fryer's `trader_0a`-only Domestics reward is retired without assigning it to a
+speculative Publish 14.1 profession. Ordinary fryer rewards, combinations,
+fourth ingredients, and the existing debuff fallback remain intact. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ItemClassReadRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
