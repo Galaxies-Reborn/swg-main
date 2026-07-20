@@ -141,9 +141,22 @@ if ($Expectation -eq "Ready")
     $patchPath = Join-Path $restorationRoot (
         [string]$contract.buildEvidence.overlayPatch -replace "^restoration/", ""
     )
-    $actualPatchHash =
-        (Get-FileHash -Algorithm SHA256 -LiteralPath $patchPath).Hash.ToLowerInvariant()
-    if ((Get-Item -LiteralPath $patchPath).Length -ne
+    $canonicalPatch = (
+        [IO.File]::ReadAllText($patchPath) -replace "`r`n", "`n"
+    )
+    $canonicalPatchBytes = [Text.Encoding]::UTF8.GetBytes($canonicalPatch)
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try
+    {
+        $actualPatchHash = (
+            [BitConverter]::ToString($sha256.ComputeHash($canonicalPatchBytes))
+        ).Replace("-", "").ToLowerInvariant()
+    }
+    finally
+    {
+        $sha256.Dispose()
+    }
+    if ($canonicalPatchBytes.Length -ne
             [long]$contract.buildEvidence.overlayPatchBytes -or
         $actualPatchHash -cne [string]$contract.buildEvidence.overlayPatchSha256)
     {
