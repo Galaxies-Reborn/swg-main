@@ -1,0 +1,40 @@
+diff --git a/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java b/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
+index 9915db5..f75c948 100644
+--- a/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
++++ b/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
+@@ -74,20 +74,6 @@ public class ai_corpse extends script.base_script
+                 }
+             }
+         }
+-        String strLootTable = getStringObjVar(self, "loot.lootTable");
+-        if (strLootTable == null || strLootTable.length() < 1)
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        if ((!strLootTable.startsWith("npc") && !strLootTable.startsWith("droid")) || utils.hasScriptVar(self, "contrabandChecked"))
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        String playerClass = getSkillTemplate(player);
+-        if (isIdValid(player) && canOpen && playerClass.startsWith("smuggler") && getLevel(player) > 9)
+-        {
+-            mnu = mi.addRootMenu(menu_info_types.SERVER_MENU1, new string_id("smuggler/items", "mnu_find_illicit_goods"));
+-        }
+         return SCRIPT_CONTINUE;
+     }
+     public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+@@ -132,14 +118,6 @@ public class ai_corpse extends script.base_script
+         {
+             return SCRIPT_OVERRIDE;
+         }
+-        if (item == menu_info_types.SERVER_MENU1)
+-        {
+-            String playerClass = getSkillTemplate(player);
+-            if (isIdValid(player) && canOpen && playerClass.startsWith("smuggler") && getLevel(player) > 9)
+-            {
+-                smuggler.inspectCorpseForContraband(player, self);
+-            }
+-        }
+         obj_id inv = utils.getInventoryContainer(self);
+         obj_id[] items = getContents(inv);
+         boolean emptyCorpse = (items == null || items.length < 1);

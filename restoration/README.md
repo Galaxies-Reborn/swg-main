@@ -1308,3 +1308,12 @@ preserves stronger existing buffs, and clears transient session state. The
 NGE class-percentage inspiration path remains retired. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerAttributeBuffSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The active NGE Smuggler corpse-inspection menu is retired. Publish 14.1
+Smuggler owns container/terminal/weapon/armor slicing, not the
+`class_smuggler_phase1_novice` corpse-contraband command, combat-level gate,
+or expertise loot roll. Ordinary corpse loot, group loot, and harvesting
+remain unchanged, and the inherited command handler is retained only as a
+compatibility boundary. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeCorpseContrabandRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
