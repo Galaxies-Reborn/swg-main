@@ -1495,3 +1495,10 @@ spawning or creating badge trigger volumes. Buildout anchors and their
 separate event cleanup scripts remain intact. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerBandSpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Later Storyteller event anchors no longer become persistent through the
+anniversary helper. The `deleteEventProps` operator switch still destroys
+anchors immediately; otherwise the helper detaches, leaving independent event
+scripts intact. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerEventPersistenceRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

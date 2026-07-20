@@ -787,3 +787,7 @@ without active invite menus or relationship messages.
 `172-p14-storyteller-band-spawner-retirement.patch` cleans up tracked holiday
 band members and instruments before detaching the shared spawner. Buildout
 anchors and separate event cleanup scripts remain intact.
+
+`173-p14-storyteller-event-persistence-retirement.patch` removes automatic
+event-anchor persistence while retaining immediate config-driven deletion and
+independent event scripts.

@@ -1,0 +1,32 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/storyteller/events/anniversary_event_nyms.java b/sku.0/sys.server/compiled/game/script/systems/storyteller/events/anniversary_event_nyms.java
+index 64bf46d..c31ad2b 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/storyteller/events/anniversary_event_nyms.java
++++ b/sku.0/sys.server/compiled/game/script/systems/storyteller/events/anniversary_event_nyms.java
+@@ -11,22 +11,20 @@ public class anniversary_event_nyms extends script.base_script
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        if (!isObjectPersisted(self))
+-        {
+-            messageTo(self, "handlePersistEventProp", null, 1, false);
+-        }
+         String deleteEventProps = getConfigSetting("GameServer", "deleteEventProps");
+         if (deleteEventProps != null && deleteEventProps.length() > 0)
+         {
+             if (deleteEventProps.equals("true") || deleteEventProps.equals("1"))
+             {
+-                messageTo(self, "handleDeleteEventProps", null, 2, false);
++                destroyObject(self);
++                return SCRIPT_CONTINUE;
+             }
+         }
++        detachScript(self, "systems.storyteller.events.anniversary_event_nyms");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "handlePersistEventProp", null, 1, false);
++        detachScript(self, "systems.storyteller.events.anniversary_event_nyms");
+         return SCRIPT_CONTINUE;
+     }
+     public int handlePersistEventProp(obj_id self, dictionary params) throws InterruptedException
