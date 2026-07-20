@@ -1275,3 +1275,13 @@ already restored. The compiled table loaded in the protocol-83 client and the
 Skills window opened off-focus at the restored 250-point baseline. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianProfessionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Weapon certification ownership restores the Core3/Publish 14.1 template
+contract to every exact weapon shared by the two baselines. The pinned import
+maps 314 non-empty Core3 declarations, materializes 293 exact SWGSource
+templates, and reports 21 absent ranged-melee variants without inventing
+substitutions. The production gate now requires every template declaration
+through command or skill ownership and no longer reads NGE profession
+templates, combat levels, or weapon-level table columns. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14WeaponCertificationOwnership.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
