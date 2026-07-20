@@ -1442,3 +1442,12 @@ bodies remain link-compatible for old object data, but they cannot apply
 vendor skill mods, create NPCs, consume contracts, or mint relics. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14TcgChroniclesRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+NGE profession-respec sellers, combat-respec tokens, the repurposed veteran
+anti-decay kit, and combat-level holocrons now fail closed at every reachable
+menu or callback. Base-player template-change handlers only clear stale respec
+state. The remaining 41 template reads are an exact, machine-checked inventory
+of native, CTS, dormant compatibility, GM/QA, and reversible fixture code.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RespecAutolevelEntrypointRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
