@@ -881,3 +881,9 @@ Milestone 192 is evidence-only. It locks the retained `lifeday04*` scripts as
 a four-bit, one-time conversation quest, proves full-inventory reward retries,
 classifies candy/orbs as passive scenery rather than collection objectives,
 and preserves the original unused age calculation without inventing a gate.
+
+`193-p14-later-life-day-scoreboard-retirement.patch` retires the later
+factional daily scoreboard independently of the retained 2004 event switch.
+Both planet lifecycle entry points clean the later `lifeday` namespace;
+already-queued daily/update messages and persisted competitive-buff callbacks
+also fail closed. The cleanup deliberately does not match `lifeday04`.
