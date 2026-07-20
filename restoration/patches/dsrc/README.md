@@ -887,3 +887,9 @@ factional daily scoreboard independently of the retained 2004 event switch.
 Both planet lifecycle entry points clean the later `lifeday` namespace;
 already-queued daily/update messages and persisted competitive-buff callbacks
 also fail closed. The cleanup deliberately does not match `lifeday04`.
+
+`194-p14-later-life-day-stap-admission-retirement.patch` removes the sole
+NGE-era TK-555 building-spawn row still keyed directly to the retained
+`lifeday` switch. The five passive cantina candy props and food container
+remain, as do persisted STAP quest scripts; Saun Dann's sole producer remains
+closed by the earlier Figrin Dan band-spawner retirement.
