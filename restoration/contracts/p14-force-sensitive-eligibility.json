@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "feature": "force-sensitive-eligibility",
+  "status": "ready",
+  "scope": "Replace NGE class-template and combat-level Force-sensitive decisions with the native Publish-era Jedi state and the exact Core3 crystal-tuning skill.",
+  "sourceFiles": {
+    "jediLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+    "saberComponent": "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_saber_component.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_force_sensitive_eligibility_fixture.java"
+  },
+  "core3Evidence": {
+    "repository": "swgemu/Core3",
+    "commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "playerStateSource": "MMOCoreORB/src/server/zone/objects/player/PlayerObject.idl",
+    "villageUnlockSource": "MMOCoreORB/bin/scripts/screenplays/village/intro/fs_intro.lua",
+    "hologrindUnlockSource": "MMOCoreORB/bin/scripts/managers/jedi/hologrind_jedi_manager.lua",
+    "crystalTuningSource": "MMOCoreORB/src/server/zone/objects/tangible/component/lightsaber/LightsaberCrystalComponentImplementation.cpp",
+    "forceSensitiveState": 1,
+    "jediStateMinimum": 2,
+    "crystalTuningSkill": "force_title_jedi_rank_01"
+  },
+  "expected": {
+    "forceSensitiveAuthority": "isJediState(player, JEDI_STATE_FORCE_SENSITIVE)",
+    "ngeClassTemplateGate": false,
+    "ngeCombatLevelGate": false,
+    "legacyLevelEntryPointFailsClosed": true,
+    "crystalTuningSkill": "force_title_jedi_rank_01",
+    "saberComponentCallSites": 2
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/145-p14-force-sensitive-eligibility.patch",
+    "overlayPatchBytes": 9200,
+    "overlayPatchSha256": "e06d436999aa75cc9553ea6ab26c93d08975077952d3a98062d5d1c12c673d46",
+    "cleanApplyCheck": "passed",
+    "sourceSha256": {
+      "jedi.java": "33165e4d0ee1350eeaf8d7f3ed1217bbbe8a5c325058ca346ac93609e7fd75c5",
+      "jedi_saber_component.java": "e46dfdd388df313503811e1985ac8b3863ae27b5446c5ea0db786f12f1a83ec9",
+      "precu_force_sensitive_eligibility_fixture.java": "c7ad8daa0db42da709be35bbd72beb8764e1657f751343fcbd521e1cfe9b963a"
+    },
+    "javaCompile": {
+      "result": "passed",
+      "jedi.class": "11b51d24ea0ac93078ebe5903d8b29e4e254fc5a600852b6ca6fcced83fa35d4",
+      "jedi_saber_component.class": "3f0fdb7c2441d0a52f9a3054463b394f47ce3e13907a0417351813d1ce965600",
+      "precu_force_sensitive_eligibility_fixture.class": "24ed936952429940f83ad4c6c54372c0eaca7217e0c7e4c255464cd3a58a425e"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 55680,
+    "backgroundInputProtocol": 85,
+    "character": "Icai Darkwave",
+    "characterOid": 39008597,
+    "stationId": 1001,
+    "scene": "tatooine",
+    "originalState": 0,
+    "forceSensitiveState": 1,
+    "forceSensitiveDuring": true,
+    "jediState": 2,
+    "jediCountsAsForceSensitive": true,
+    "legacyLevelGateDuring": false,
+    "tuningSkillBefore": false,
+    "canTuneBefore": false,
+    "tuningSkillDuring": true,
+    "canTuneDuring": true,
+    "restoredState": 0,
+    "restoredEligibility": false,
+    "restoredTuningSkill": false,
+    "restored": true,
+    "serverHealthy": true,
+    "fatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

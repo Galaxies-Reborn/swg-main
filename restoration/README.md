@@ -1285,3 +1285,11 @@ through command or skill ownership and no longer reads NGE profession
 templates, combat levels, or weapon-level table columns. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14WeaponCertificationOwnership.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Force-sensitive eligibility now reads the native Jedi state instead of the
+retired NGE class template. The inherited combat-level helper remains
+ABI-compatible but fails closed, while both crystal-tuning gates use Core3's
+exact `force_title_jedi_rank_01` requirement. A reversible live probe proves
+state 1, state 2, skill admission, and exact restoration. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ForceSensitiveEligibility.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
