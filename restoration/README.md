@@ -1339,3 +1339,10 @@ Squad Leader, Force Sensitive uses native Jedi state, and Spy and unknown
 values fail closed. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ProfessionOwnershipPredicate.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Direct content, static-item, dynamic-armor, click-item, and loot-schematic
+profession gates now accept exact owned skills or the known compatibility
+tokens through that predicate. Empty, Spy, unknown, and ambiguous later
+class-master requirements fail closed. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ProfessionRequirementGates.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
