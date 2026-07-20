@@ -843,3 +843,8 @@ controller and passive serialized anchors.
 Milestone 185 is also evidence-only. Its residual audit partitions every Love
 Day buildout row among the already-retired producer families or passive barrel
 anchors and proves no unclassified world producer remains.
+
+Milestone 186 is evidence-only. Both Halloween city buildouts are wholly
+universe-event gated, and the already-retired control plane plus engine
+start/stop callbacks prevent or unload all 664 rows without altering the
+retained Life Day event.

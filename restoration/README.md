@@ -1568,3 +1568,11 @@ existing-reward behavior, cleanup/rejection logic, passive data, or a
 privileged character-builder diagnostic. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LoveDayResidualReferenceClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Both Galactic Moon Festival city buildouts are wholly registered behind
+`eventRequired=halloween`: 638 passive decoration rows and 26 generic
+skeleton/vendor spawners cannot instantiate without the universe event.
+Startup and operator paths only stop that event, and the engine unloads
+already-created event rows when the planet event list changes. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HalloweenBuildoutAdmissionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
