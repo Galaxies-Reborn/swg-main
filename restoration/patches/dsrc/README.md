@@ -839,3 +839,7 @@ Milestone 184 is evidence-only and therefore has no overlay patch. It proves
 the three retained Love Day quest barrels have no admission path after the
 sole Blaire quest giver was retired, while preserving the generic wave-event
 controller and passive serialized anchors.
+
+Milestone 185 is also evidence-only. Its residual audit partitions every Love
+Day buildout row among the already-retired producer families or passive barrel
+anchors and proves no unclassified world producer remains.

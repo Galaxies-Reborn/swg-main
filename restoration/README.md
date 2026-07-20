@@ -1560,3 +1560,11 @@ variants came from the retired Blaire producer. The generic controller and
 ordinary wave quests remain unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LoveDayWaveBarrelAdmissionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The final Love Day residual audit classifies all 34 event buildout rows and
+all 37 Love Day-bearing server scripts. Every world-producing row is covered
+by an earlier retirement; remaining code is subordinate compatibility,
+existing-reward behavior, cleanup/rejection logic, passive data, or a
+privileged character-builder diagnostic. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LoveDayResidualReferenceClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
