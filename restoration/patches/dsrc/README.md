@@ -854,3 +854,8 @@ provider and its two spawners are in the inactive Halloween buildouts.
 Trick-or-treat payout, coins, projectors, the song book, and the 46-row reward
 catalog are subordinate to that closed path. Existing-item compatibility and
 privileged diagnostics remain unchanged.
+
+Milestone 188 is evidence-only. It partitions every remaining Halloween
+world/data and server-script surface, including the one incidental Dathomir
+prop, passive templates, owned-item/sign compatibility, cleanup code, and
+privileged diagnostics. No unclassified normal world producer remains.

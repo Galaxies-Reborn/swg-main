@@ -1585,3 +1585,12 @@ independent grants. Existing projectors, song books, and house-sign
 compatibility remain available to already-owned items. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HalloweenPlayerRewardAdmissionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The final Halloween residual audit classifies all 664 event-city rows, the
+one incidental outside prop, two creature definitions, 46 vendor rows, 21
+event master items, 13 buffs, and all 12 identifier-bearing server scripts.
+No unclassified world producer, quest, or direct event start remains. Passive
+templates, existing reward/sign compatibility, and privileged diagnostics are
+retained. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HalloweenResidualReferenceClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
