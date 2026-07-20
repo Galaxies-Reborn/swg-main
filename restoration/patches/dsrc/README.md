@@ -893,3 +893,8 @@ NGE-era TK-555 building-spawn row still keyed directly to the retained
 `lifeday` switch. The five passive cantina candy props and food container
 remain, as do persisted STAP quest scripts; Saun Dann's sole producer remains
 closed by the earlier Figrin Dan band-spawner retirement.
+
+`195-p14-later-life-day-gcw-override-retirement.patch` removes the later
+factional event's Dearic invasion suppression from `gcwIsInvasionCityOn`.
+Ordinary `gcwcity*` configuration remains authoritative, so enabling the
+restored 2004 Life Day event no longer disables unrelated GCW gameplay.
