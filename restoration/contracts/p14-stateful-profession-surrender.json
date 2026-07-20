@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "feature": "stateful-profession-surrender",
+  "status": "ready",
+  "scope": "Open authentic player surrender for bounty-investigation and Squad Leader boxes, preserve recruiter-only pilot retirement, and keep Force/Jedi families fail-closed until their village and rank eligibility rules are ported.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "skillManagerPath": "MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+    "villageManagerPath": "MMOCoreORB/bin/scripts/managers/jedi/village_jedi_manager.lua",
+    "findings": [
+      "Core3 fails a live bounty mission when combat_bountyhunter_investigation_03 is surrendered.",
+      "Core3 recomputes group modifiers when a Squad Leader box is surrendered.",
+      "Core3 refuses direct pilot surrender and directs the player to the appropriate recruiter.",
+      "Core3 applies village, Jedi-title, Force-sensitive-count, discipline, and FRS rules before Force surrender."
+    ]
+  },
+  "expected": {
+    "bountyInvestigationThreeSurrenderable": true,
+    "liveBountyMissionAborted": true,
+    "squadLeaderSurrenderable": true,
+    "passiveLeadershipReadsLiveSkillMods": true,
+    "volleyTargetStateRetiredWhenAbilityLeaves": true,
+    "rallyAndPendingXpStateRetiredWhenNoviceLeaves": true,
+    "pilotDirectSurrenderBlocked": true,
+    "pilotRecruiterWarningAndWaypoint": true,
+    "pilotRetirementLifecycleRetained": true,
+    "forceAndJediDirectSurrenderBlocked": true
+  },
+  "buildEvidence": {
+    "nativeOverlay": "restoration/patches/src/013-p14-stateful-surrender-dispatch.patch",
+    "nativeOverlayBytes": 2004,
+    "nativeOverlaySha256": "560b714a86c2226bd860ba204b9fbfd2cc6767b6058bb80da7d94e31dc0db8ff",
+    "scriptOverlay": "restoration/patches/dsrc/198-p14-stateful-surrender-cleanup.patch",
+    "scriptOverlayBytes": 7186,
+    "scriptOverlaySha256": "20f8a623ad346c057bfbf67883e5b19bb97115eb14dbbbf976e7bf7a76828446",
+    "sourceSha256": {
+      "CommandCppFuncs.cpp": "c869c3827a844ee75b6cd8bce4f1c333c2568903f37c2744596248188089f508",
+      "base_player.java": "92fe7f73633594effaf24003d2b0a3d720596f523039c4919db516f35cad81e1",
+      "precu_stateful_surrender_fixture.java": "ceb52cb3f5f97ca5420a084f66e086cc767156c494e685144bba347796c95df0"
+    },
+    "cleanMaterializationPatches": 203,
+    "cleanMaterializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "javaCompile": "passed",
+    "classSha256": {
+      "base_player.class": "c893aa859fe52ef1c63620ba2d06a4cc0e6b41df86f56b0079b0df5f780e3bc0",
+      "precu_stateful_surrender_fixture.class": "d8d54c58e1e057b9c5bc88e373e55452c1c179273e187417ceda8ddfa6f18b75"
+    },
+    "nativeCompile": "passed",
+    "swgGameServerSha256": "e5f20d05a6037f1bc698ad4c7af3b885dc156c1cbdc80719dc026a5d3b80fcab",
+    "staticContract": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "characterOid": 39008597,
+    "bountySurrender": "production-command-removed-and-restored",
+    "squadLeaderSurrender": "production-command-removed-and-restored",
+    "pilotDirectSurrender": "localized-veto-retained-skill-and-restored",
+    "professionRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "followUp": "Port Core3's complete Force-sensitive, Jedi-title, discipline, village-trial, and FRS surrender eligibility as a separate stateful milestone before opening force_ or jedi families.",
+  "requiredBeforeReady": []
+}

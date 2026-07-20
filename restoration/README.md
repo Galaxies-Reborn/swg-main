@@ -1633,3 +1633,19 @@ retryable. The historical unused age calculation and unreachable fallback are
 retained exactly. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LifeDay2004QuestStateMachine.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The stateful skills-window surrender boundary now matches the pinned Core3
+behavior that can be safely reproduced in this engine. Surrendering
+`combat_bountyhunter_investigation_03` aborts a live bounty mission. Squad
+Leader surrender retires active volley targeting and clears obsolete rally
+and pending-XP state when the novice box leaves; passive group defense already
+reads the leader's current skill modifiers and needs no copied cache.
+
+Pilot skills remain recruiter-only. A direct skills-window attempt is routed
+through the retained revoke veto, producing the localized retirement warning
+and recruiter waypoint without dropping the skill. Force and Jedi families
+remain fail-closed because their Core3 path requires village, title,
+discipline, trial, and FRS eligibility beyond ordinary dependency checks.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatefulProfessionSurrender.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -1,0 +1,45 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -6490,10 +6490,8 @@ static bool isPlayerSurrenderableSkill(SkillObject const &skill)
+ 	if (!legacyProfessionFamily || skill.isProfession() || skill.findProfessionForSkill() == nullptr)
+ 		return false;
+ 
+-	// Hybrid conversion rows are not player-facing Pre-CU skills. Stateful
+-	// profession exceptions remain closed until their cleanup policy is ported.
+-	if (skillName.find("_prereq_") != std::string::npos ||
+-		skillName == "combat_bountyhunter_investigation_03")
++	// Hybrid conversion rows are not player-facing Pre-CU skills.
++	if (skillName.find("_prereq_") != std::string::npos)
+ 		return false;
+ 
+ 	char const * const protectedPrefixes[] =
+@@ -6506,7 +6504,6 @@ static bool isPlayerSurrenderableSkill(SkillObject const &skill)
+ 		"expertise",
+ 		"force_",
+ 		"internal_",
+-		"outdoors_squadleader_",
+ 		"pilot_",
+ 		"social_language_",
+ 		"social_politician_",
+@@ -6557,6 +6554,20 @@ static void commandFuncSurrenderSkill(Command const &, NetworkId const &actor, N
+ 		return;
+ 	}
+ 
++	// Pilot retirement is recruiter-only.  Route a normal player's request
++	// through the retained revoke lifecycle so base_player can veto it and
++	// display the localized recruiter warning/waypoint.  Gods remain closed
++	// here so the skills-window command cannot bypass that lifecycle.
++	if (skillName.find("pilot_") == 0)
++	{
++		Client const * const client = creature->getClient();
++		if (client != nullptr && !client->isGod())
++		{
++			creature->revokeSkill(*skill);
++			return;
++		}
++	}
++
+ 	if (!isPlayerSurrenderableSkill(*skill))
+ 	{
+ 		Chat::sendSystemMessage(*creature, Unicode::narrowToWide("That skill cannot be surrendered through the skills window."), Unicode::emptyString);
