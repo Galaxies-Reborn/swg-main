@@ -1502,3 +1502,9 @@ anchors immediately; otherwise the helper detaches, leaving independent event
 scripts intact. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerEventPersistenceRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Later Life Day gift/badge trees and Love Day berry-conversion fountains now
+detach at attach and initialization. Their buildout anchors remain loadable,
+but reward menus and mutations cannot remain active. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LaterHolidayRewardAnchorRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

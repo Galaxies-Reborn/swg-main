@@ -791,3 +791,7 @@ anchors and separate event cleanup scripts remain intact.
 `173-p14-storyteller-event-persistence-retirement.patch` removes automatic
 event-anchor persistence while retaining immediate config-driven deletion and
 independent event scripts.
+
+`174-p14-later-holiday-reward-anchor-retirement.patch` detaches Life Day
+gift/badge trees and Love Day berry-conversion fountains while retaining their
+buildout anchor objects.
