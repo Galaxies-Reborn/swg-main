@@ -859,3 +859,8 @@ Milestone 188 is evidence-only. It partitions every remaining Halloween
 world/data and server-script surface, including the one incidental Dathomir
 prop, passive templates, owned-item/sign compatibility, cleanup code, and
 privileged diagnostics. No unclassified normal world producer remains.
+
+Milestone 189 is evidence-only. It separates the retained 2004 Life Day
+Wookiee quest lineage from the later 27-row factional city event and identifies
+the missing automatic admission anchor for the two original NPC-spawner
+scripts.

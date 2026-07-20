@@ -1594,3 +1594,12 @@ templates, existing reward/sign compatibility, and privileged diagnostics are
 retained. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HalloweenResidualReferenceClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Life Day lineage inventory separates the retained 2004 Wookiee quest from
+the later factional city event. It preserves the Mos Espa candy route, six
+forest orbs, five `lifeday04*` conversations, five static-NPC anchors, and
+original rewards while classifying 27 later city rows and 42 faction-vendor
+rows. It also proves the two original anchor-spawner scripts currently have no
+automatic admission anchor and require restoration. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LifeDayLineageBoundary.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
