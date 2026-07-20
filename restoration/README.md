@@ -1428,3 +1428,10 @@ teachers and skill-box acquisition remain the authoritative onboarding path.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NpeClassProgressionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+GCW city-pylon construction no longer reads a singular Trader class. One dead
+read is removed, and the unsupported reduced-fatigue Trader branch is replaced
+by the neutral inherited five-stack path. Quest, tool, construction value,
+faction participation, and crafting-credit behavior remain intact. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14GcwPylonClassRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
