@@ -1296,7 +1296,15 @@ state 1, state 2, skill admission, and exact restoration. Validate:
 
 NGE inspiration retirement removes profession-template duration calculation
 and all three active heartbeat calls while retaining music/dance healing,
-action drain, and XP. Authentic Pre-CU mind/focus/willpower buff accumulation
-remains a separate stateful session milestone. Validate:
+action drain, and XP. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeInspirationRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The authentic entertainer session now accumulates Core3's two-minute duration
+segments and performance shock-heal strength for same-group or explicitly
+targeted patrons in qualifying venues. Stopping watch/listen applies the
+percentage to unmodified Mind for dance or Focus and Willpower for music,
+preserves stronger existing buffs, and clears transient session state. The
+NGE class-percentage inspiration path remains retired. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EntertainerAttributeBuffSession.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
