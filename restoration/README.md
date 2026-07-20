@@ -1243,3 +1243,11 @@ commands retained, 700,000-cap recomputation, independent Healing-cap
 retention, modifier rollback, and idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Knowledge IV completes the branch with Knowledge III, 225,000 Music
+XP, two points, a terminal 900,000 Music cap, Jazz, Omnibox, and +15 Music
+healing ability. Protocol 82 proves purchase, production surrender, all
+parent commands retained, terminal-cap retention, modifier rollback, and
+idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
