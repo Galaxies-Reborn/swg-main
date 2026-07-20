@@ -1,0 +1,27 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -398,6 +398,10 @@ public class base_player extends script.base_script
+     }
+     public int OnSkillRevoked(obj_id self, String strSkill) throws InterruptedException
+     {
++        if (strSkill.startsWith("force_sensitive_"))
++        {
++            jedi.recalculateForcePower(self);
++        }
+         if (strSkill.equals("combat_bountyhunter_investigation_03"))
+         {
+             // Investigation III owns access to player/Jedi bounty missions.
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_stateful_surrender_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_stateful_surrender_fixture.java
+--- a/sku.0/sys.server/compiled/game/script/test/precu_stateful_surrender_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_stateful_surrender_fixture.java
+@@ -113,7 +113,8 @@ public class precu_stateful_surrender_fixture extends script.base_script
+     {
+         return skillName.equals("combat_bountyhunter_investigation_03") ||
+             skillName.equals("outdoors_squadleader_offense_03") ||
+-            skillName.equals("pilot_neutral_novice");
++            skillName.equals("pilot_neutral_novice") ||
++            skillName.equals("force_sensitive_combat_prowess_ranged_accuracy_01");
+     }
+ 
+     private String status(String action, obj_id player, String skillName, boolean passed)

@@ -1649,3 +1649,15 @@ discipline, trial, and FRS eligibility beyond ordinary dependency checks.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatefulProfessionSurrender.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Force-sensitive phase opens only the 64 authentic intermediate boxes
+whose names end in `_01` through `_04`. A player holding the Jedi rank title
+cannot surrender at or below the retained 24-box floor; the production command
+returns `jedi_spam:revoke_force_sensitive`. Successful revocation recalculates
+Force power through the retained Jedi library.
+
+Jedi novice and title boxes, discipline trees, active trials, and FRS ranks
+remain outside generic surrender because those paths require specialized
+village, trial, and rank state transitions. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ForceSensitiveSurrender.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
