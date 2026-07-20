@@ -1459,3 +1459,10 @@ attachment call is inside the already-retired live-conversion script.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ChroniclesScriptLifecycleRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Saga holocrons, control devices, donated-credit rewards, Chronicles reward
+vendors, the Fan Faire PGC profession vendor, and Storyteller token vendors
+now fail closed at attach, menu, conversation, and callback boundaries.
+Persisted object and conversation classes remain loadable. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PgcHolocronVendorRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
