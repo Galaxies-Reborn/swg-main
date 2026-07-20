@@ -1,0 +1,6 @@
+param([Parameter(Mandatory=$true)][string]$SourceRoot,[ValidateSet("Build","Ready")][string]$Expectation="Build")
+$root=Split-Path -Parent $PSScriptRoot;$m=Get-Content (Join-Path $root manifest.json)-Raw|ConvertFrom-Json;$c=Get-Content (Join-Path $root ([string]$m.contracts.p14StandardProfessionMatrixClosure))-Raw|ConvertFrom-Json
+$skill=Join-Path (Resolve-Path $SourceRoot).Path ([string]$c.sourceFiles.skillTable);$lines=Get-Content $skill
+foreach($f in $c.families){$rows=@($lines|?{$n=($_-split"`t",2)[0];$n-eq$f.root-or($n.StartsWith([string]$f.root+"_")-and-not$n.StartsWith([string]$f.root+"_prereq"))}|Sort-Object);$text=($rows-join"`n")+"`n";$s=[Security.Cryptography.SHA256]::Create();try{$h=($s.ComputeHash([Text.Encoding]::UTF8.GetBytes($text))|%{$_.ToString("x2")})-join""}finally{$s.Dispose()};if($rows.Count-ne19-or$h-cne[string]$f.sha256){throw "Standard family failed: $($f.root)"}}
+if($Expectation-eq"Ready"){$b=$c.buildEvidence;$p=Join-Path $root ([string]$b.overlayPatch-replace"^restoration/","");if((Get-FileHash $skill).Hash.ToLower()-cne[string]$b.sourceSha256."skills.tab"-or(Get-FileHash $p).Hash.ToLower()-cne[string]$b.overlayPatchSha256-or$c.runtimeEvidence.graphVisibleCount-ne15){throw "Standard matrix ready failed"}}
+Write-Host "Publish 14.1 standard profession matrix closure passed."
