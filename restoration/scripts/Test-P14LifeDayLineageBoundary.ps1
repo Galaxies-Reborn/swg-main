@@ -138,21 +138,15 @@ if (-not $celebritySpawner.Contains('getConfigSetting("EventTeam", "lifeday")') 
     throw "Original Life Day static-NPC materializer drifted."
 }
 
-$automaticAttachments = @()
-Get-ChildItem (Join-Path $serverGame "object") -Recurse -Filter *.tpf -File | ForEach-Object {
-    $text = Get-Content $_.FullName -Raw
-    if ($text.Contains("event.lifeday.city_spawner") -or $text.Contains("event.lifeday.lifeday_spawner"))
-    {
-        $automaticAttachments += $_.FullName
-    }
-}
-Get-ChildItem $buildoutRoot -Recurse -Filter *.tab -File | ForEach-Object {
-    $text = Get-Content $_.FullName -Raw
-    if ($text.Contains("event.lifeday.city_spawner") -or $text.Contains("event.lifeday.lifeday_spawner"))
-    {
-        $automaticAttachments += $_.FullName
-    }
-}
+$attachmentPatterns = @("event.lifeday.city_spawner", "event.lifeday.lifeday_spawner")
+$templatePaths = @(Get-ChildItem (Join-Path $serverGame "object") -Recurse -Filter *.tpf -File |
+    Select-Object -ExpandProperty FullName)
+$buildoutPaths = @(Get-ChildItem $buildoutRoot -Recurse -Filter *.tab -File |
+    Select-Object -ExpandProperty FullName)
+$automaticAttachments = @(
+    Select-String -Path ($templatePaths + $buildoutPaths) -Pattern $attachmentPatterns -SimpleMatch |
+    Select-Object -ExpandProperty Path -Unique
+)
 if ($automaticAttachments.Count -ne 0)
 {
     throw "Original Life Day automatic-spawner boundary changed."

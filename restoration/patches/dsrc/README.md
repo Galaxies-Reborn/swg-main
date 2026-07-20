@@ -864,3 +864,9 @@ Milestone 189 is evidence-only. It separates the retained 2004 Life Day
 Wookiee quest lineage from the later 27-row factional city event and identifies
 the missing automatic admission anchor for the two original NPC-spawner
 scripts.
+
+`190-p14-later-life-day-city-spawner-retirement.patch` extends the exact
+cleanup-first generic spawner predicate to `eventRequired=life_day`, retiring
+six random and 18 area spawners in the later factional cities. It deliberately
+does not match the retained `lifeday` event or either original 2004 custom
+spawner.

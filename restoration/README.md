@@ -1603,3 +1603,12 @@ rows. It also proves the two original anchor-spawner scripts currently have no
 automatic admission anchor and require restoration. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LifeDayLineageBoundary.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The three later factional Life Day city producer sets are retired through the
+exact `eventRequired=life_day` discriminator: six random objective spawners
+and 18 vendor/soldier area spawners clean tracked children and fail queued
+callbacks closed. Their three main-tree anchors were already inert. The
+retained `lifeday` universe event, Mos Espa/orb route, five conversations, and
+two original NPC-spawner scripts remain untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LaterLifeDayCitySpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
