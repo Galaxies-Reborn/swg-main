@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "feature": "explicit-precu-xp-routing",
+  "status": "ready",
+  "scope": "Route active combat, social, and crafting rewards to their explicit Publish 14 XP pools and keep skill-box acquisition separate from XP accumulation.",
+  "sourceFiles": {
+    "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "playerInitialization": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "runtimeProbe": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_xp_routing_runtime.java"
+  },
+  "core3Evidence": {
+    "repository": "https://github.com/swgemu/Core3",
+    "branch": "unstable",
+    "commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "combat": "PlayerManagerImplementation::disseminateExperience awards each threat-map weapon XP type directly and separately awards combat_general.",
+    "crafting": "CraftingSessionImplementation awards the completed schematic's xpType directly.",
+    "training": "SkillManager::awardSkill independently validates prerequisites and consumes the selected skill's XP cost."
+  },
+  "expected": {
+    "questFallbacks": {
+      "combat": "combat_general",
+      "social": "entertainer",
+      "crafting": "crafting_general"
+    },
+    "activeStyleFunctionsConsultSkillTemplate": false,
+    "xpGrantAutomaticallyAwardsWorkingSkill": false,
+    "playerInitializationValidatesWorkingSkill": false,
+    "fixedNgeTraderMultiplierPresent": false,
+    "fixedNgeEntertainerMultiplierPresent": false,
+    "craftingMerchantTemplateExchangePresent": false
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/139-p14-explicit-xp-routing.patch",
+    "overlayPatchBytes": 19844,
+    "overlayPatchSha256": "f7bc7f26db4564907190cb297a09b5600c55995bc575fee4e12ee558e96af2dd",
+    "cleanApplyCheck": "passed",
+    "sourceSha256": {
+      "xp.java": "42064d788a93530e7334e82a05bb48169e2342913923168047dd717d4ba72f8a",
+      "base_player.java": "4add9c8cc02c4cac5f297f006217af025be1f806c833886b26f80764579d44a6",
+      "precu_xp_routing_runtime.java": "cda2a64dcbb5c6bef3a1525a2e764be217a8e5630cb99cbc4337bcf77ed6e607"
+    },
+    "javaCompile": {
+      "result": "passed",
+      "xp.class": {
+        "sha256": "e71c41d627203e905e0e8ef39ab5add18e9c41d5be20ba994d2f14d2c4f63c3c"
+      },
+      "base_player.class": {
+        "sha256": "42712e823d2e246384993bf25d90a5fc51ad4a42e238d5c314b7a5ea017097ee"
+      },
+      "precu_xp_routing_runtime.class": {
+        "sha256": "b5fd73858e7c5217285b9b5ba3c17de2b14347f163ce10ebc5269904b4f8225c"
+      }
+    }
+  },
+  "runtimeBoundary": {
+    "combat": "weapon and broad combat XP accumulate without a working class template",
+    "social": "music, dance, juggling, entertainer, and image-designer XP accumulate by explicit type",
+    "crafting": "schematic XP accumulates by explicit type without an NGE trader multiplier or merchant-template exchange",
+    "training": "trainSkill remains the only normal skill-box acquisition boundary"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 50556,
+    "character": "Icai Darkwave",
+    "characterOid": 39008597,
+    "stationId": 1001,
+    "baselineSkillCount": 7,
+    "routes": [
+      {
+        "family": "combat",
+        "requestedType": "combat_rangedspecialize_pistol",
+        "effectiveType": "combat_rangedspecialize_pistol",
+        "delta": 17
+      },
+      {
+        "family": "social",
+        "requestedType": "music",
+        "effectiveType": "music",
+        "delta": 19
+      },
+      {
+        "family": "crafting",
+        "requestedType": "crafting_general",
+        "effectiveType": "crafting_general",
+        "delta": 23
+      },
+      {
+        "family": "combat",
+        "requestedType": "quest_combat",
+        "effectiveType": "combat_general",
+        "delta": 29
+      },
+      {
+        "family": "social",
+        "requestedType": "quest_social",
+        "effectiveType": "entertainer",
+        "delta": 31
+      },
+      {
+        "family": "crafting",
+        "requestedType": "quest_crafting",
+        "effectiveType": "crafting_general",
+        "delta": 37
+      },
+      {
+        "family": "craftingQuest",
+        "requestedType": "quest_crafting",
+        "effectiveType": "crafting_general",
+        "delta": 41
+      }
+    ],
+    "allRoutesKeptSkillCountStable": true,
+    "allRoutesRestoredOriginalXp": true,
+    "serverHealthy": true,
+    "fatalOrExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}
