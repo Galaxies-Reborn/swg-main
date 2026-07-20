@@ -1411,3 +1411,11 @@ The NGE-inspiration retirement overlay is rebased onto the preceding
 entertainer healing and action-drain overlays. This preserves identical
 runtime behavior while allowing the numbered overlay series to replay
 sequentially from the pinned baseline through milestone 160.
+
+Seven post-victory Heroic log rows no longer present a singular NGE
+profession. The Tusken Army, Axkva Min, Star Destroyer, IG-88, Exar Kun, and
+both Echo Base victory paths use the neutral `Publish 14.1 skills` label while
+preserving token awards, timers, objectives, victory SUI, and group identity.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HeroicProgressionPresentation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
