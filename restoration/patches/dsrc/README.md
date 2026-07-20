@@ -810,3 +810,7 @@ and detaches the independent spawner while retaining its host buildings.
 `178-p14-empire-day-control-plane-retirement.patch` prevents startup and
 operator commands from starting the later universe event, synchronously
 stops stale Empire Day state, and retains the other shared holiday branches.
+
+`179-p14-empire-day-planet-state-retirement.patch` removes persistent Empire
+Day leaderboard roots, scores, and timestamps and closes queued setup/reset
+callbacks while retaining Life Day planet state.

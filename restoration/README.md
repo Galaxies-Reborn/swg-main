@@ -1538,3 +1538,10 @@ the Halloween, Life Day, and Love Day branches remain for separate audits.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayControlPlaneRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Empire Day planet leaderboard roots, scores, and timestamps are now removed
+regardless of server configuration. Queued setup and reset callbacks clean
+the same namespace and return, while Life Day planet score data and alarms
+remain available for their separate audit. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayPlanetStateRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
