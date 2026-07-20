@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "feature": "pgc-quest-xp-retirement",
+  "status": "ready",
+  "scope": "Prevent post-CU Player Generated Chronicles quest completion from routing rewards into restored Publish 14.1 XP pools.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "The pinned Publish 14.1 Core3 tree contains no Player Generated Chronicles, PGC, or Chronicle quest implementation.",
+    "swgsourceBoundary": "The inherited reward uses quest combat level, Chronicle weight, creator station ID, and a singular NGE class template to choose combat, crafting, or social quest XP."
+  },
+  "expected": {
+    "skillTemplateReads": 0,
+    "pgcQuestXpMutations": 0,
+    "combatXpUnchanged": true,
+    "craftingXpUnchanged": true,
+    "entertainerXpUnchanged": true
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/158-p14-pgc-quest-xp-retirement.patch",
+    "overlayPatchBytes": 6445,
+    "overlayPatchSha256": "a9c048f6b9a4f3fdc04647fadba394007e198449d49f06ef8e75e63df6f7a023",
+    "sourceSha256": {
+      "pgc_quests.java": "0ef31be70e3b2f3a657de51857281db799de39105d42e8a803f36700c1ba37bf",
+      "precu_pgc_quest_xp_retirement_fixture.java": "96b863e29848f3a3967bc551d588ecb77b15830307ecccbca3542dc9cde78113"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "pgc_quests.class": "6d45fa9c6e8e6ae2f69b2ed36a69a53ac84697af5207a171f4d162797c174ddb",
+      "precu_pgc_quest_xp_retirement_fixture.class": "59abf599ae886da7a18a84bbe15aab9549fab0fa4a79e9a5c89865160dcda1ff"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 41948,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "stationId": 1001,
+    "identityBoundProbe": "combat-crafting-entertainer-xp-unchanged-and-restored",
+    "cumulativeRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "fatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

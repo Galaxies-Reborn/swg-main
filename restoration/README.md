@@ -1383,3 +1383,10 @@ root or introduction, and direct expertise skill admission is rejected
 without consulting an NGE profession template. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeExpertiseAdmissionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Player Generated Chronicles quest completion no longer routes later level- and
+class-derived rewards into Publish 14.1 combat, crafting, or entertainer XP.
+Both PGC reward overloads fail closed while the rest of the isolated
+Chronicles compatibility surface remains untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PgcQuestXpRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
