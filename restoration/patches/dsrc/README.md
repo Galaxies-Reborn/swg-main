@@ -795,3 +795,6 @@ independent event scripts.
 `174-p14-later-holiday-reward-anchor-retirement.patch` detaches Life Day
 gift/badge trees and Love Day berry-conversion fountains while retaining their
 buildout anchor objects.
+
+`175-p14-empire-day-parade-controller-retirement.patch` runs existing
+sound/NPC/dropship cleanup before detaching both parade anchors.

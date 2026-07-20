@@ -1508,3 +1508,9 @@ detach at attach and initialization. Their buildout anchors remain loadable,
 but reward menus and mutations cannot remain active. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LaterHolidayRewardAnchorRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Empire and Remembrance Day parade anchors now invoke their existing sound,
+NPC, and vehicle cleanup before detaching. Visual anchors remain, but no
+parade, gift, badge, or ceremony lifecycle is scheduled. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayParadeControllerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
