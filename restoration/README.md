@@ -1419,3 +1419,12 @@ preserving token awards, timers, objectives, victory SUI, and group identity.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HeroicProgressionPresentation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Post-CU New Player Experience class-template gates fail closed instead of
+being translated into Publish 14.1 professions. The Tatooine handoff detaches
+without granting NPE quests or rewriting the toolbar, and the later
+entertainer training action cannot grant its quest or toolbar layout. Skill
+teachers and skill-box acquisition remain the authoritative onboarding path.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NpeClassProgressionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
