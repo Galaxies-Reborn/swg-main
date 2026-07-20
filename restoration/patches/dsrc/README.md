@@ -774,3 +774,8 @@ destructible-prop, effect, jukebox-converter, and NPC-difficulty token
 scripts detach at attach and initialization while their object classes remain
 loadable. Deployed controller scripts remain intact to clean up existing
 world objects.
+
+`170-p14-storyteller-command-surface-retirement.patch` closes command-table
+movement and rotation handlers plus the special city-zoning path. Handler
+names remain link-compatible, ordinary zoning remains intact, and CSR destroy
+commands remain available for later-era object cleanup.

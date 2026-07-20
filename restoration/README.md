@@ -1474,3 +1474,11 @@ attached. Already-deployed controllers are deliberately retained so their
 timers can clean up existing world objects. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerTokenLifecycleRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Residual command-table movement and rotation handlers now retain their link
+names but perform no mutation, including radial queue wrappers. Ordinary city
+zoning remains available while its later Storyteller-rights choice and direct
+command fail closed. CSR destruction commands remain available for cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerCommandSurfaceRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
