@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "feature": "nge-inspiration-retirement",
+  "status": "ready",
+  "scope": "Remove the NGE profession-completion inspiration pulse from active performances without disturbing restored Pre-CU healing, action drain, or XP.",
+  "core3Evidence": {
+    "repository": "swgemu/Core3",
+    "commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "source": "MMOCoreORB/src/server/zone/objects/player/sessions/EntertainingSessionImplementation.cpp",
+    "authenticBoundary": "Mind/focus/willpower buffs accumulate from healing_dance_mind or healing_music_mind in an entertaining session; no profession-template completion duration is used."
+  },
+  "expected": {
+    "activeInspirationCalls": 0,
+    "duration": 0,
+    "inspirationEnabled": false,
+    "ngeSkillTemplateRead": false,
+    "precuHealingCallsPreserved": 3
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/146-p14-nge-inspiration-retirement.patch",
+    "overlayPatchBytes": 5794,
+    "overlayPatchSha256": "66b9aec7deed5be6b0c74a1e7c14958914d41e44d750bb1f2a6d2be99cfd7a49",
+    "overlayPatchEvidenceEncoding": "UTF-8 with LF line endings",
+    "javaCompile": "passed",
+    "classSha256": {
+      "performance.class": "edb2d1a02da13fb797c099340d66231131d4c282b6d8da269286c3019bce361a",
+      "active_music.class": "e46957ed19a65ff4d5a4ad7c7149a48e43692fc15be9454e2cc86a5e03b95a2e",
+      "active_dance.class": "6f900d9e31e827aed1c0e66e3dbe6b2ef78f762e15572be8db8acc66750a26ae",
+      "active_juggle.class": "3d5e67a7d56d926a96d416ef2dbb82aa450ab06fab54e8127159766ad40ff3d3"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 53964,
+    "backgroundInputProtocol": 85,
+    "character": "Icai Darkwave",
+    "scene": "tatooine",
+    "serverHealthy": true,
+    "fatalSevereExceptionCount": 0
+  },
+  "followUp": "Restore authentic Pre-CU entertainer mind/focus/willpower buff accumulation as its own stateful session milestone.",
+  "requiredBeforeReady": []
+}

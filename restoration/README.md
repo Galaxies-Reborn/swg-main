@@ -1293,3 +1293,10 @@ exact `force_title_jedi_rank_01` requirement. A reversible live probe proves
 state 1, state 2, skill admission, and exact restoration. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ForceSensitiveEligibility.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+NGE inspiration retirement removes profession-template duration calculation
+and all three active heartbeat calls while retaining music/dance healing,
+action drain, and XP. Authentic Pre-CU mind/focus/willpower buff accumulation
+remains a separate stateful session milestone. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeInspirationRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
