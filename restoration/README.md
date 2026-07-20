@@ -1576,3 +1576,12 @@ Startup and operator paths only stop that event, and the engine unloads
 already-created event rows when the planet event list changes. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HalloweenBuildoutAdmissionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The Halloween player/reward chain is also admission-closed. Its five
+trick-or-treat costumes come only from the event vendor, whose two world
+spawners are inside those inactive buildouts. Coin payout and all 46 catalog
+rows are subordinate to that path; only privileged diagnostics remain as
+independent grants. Existing projectors, song books, and house-sign
+compatibility remain available to already-owned items. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HalloweenPlayerRewardAdmissionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -848,3 +848,9 @@ Milestone 186 is evidence-only. Both Halloween city buildouts are wholly
 universe-event gated, and the already-retired control plane plus engine
 start/stop callbacks prevent or unload all 664 rows without altering the
 retained Life Day event.
+
+Milestone 187 is evidence-only. The event vendor is the sole normal costume
+provider and its two spawners are in the inactive Halloween buildouts.
+Trick-or-treat payout, coins, projectors, the song book, and the 46-row reward
+catalog are subordinate to that closed path. Existing-item compatibility and
+privileged diagnostics remain unchanged.
