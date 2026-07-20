@@ -904,3 +904,9 @@ one-in-ten-thousand `levelup_lifeday_orb` substitution from ordinary
 space-combat loot. Table-selected loot remains unchanged, the original 2004
 quest orb remains, and the later orb template is retained only for persisted
 object compatibility.
+
+Milestone 197 is evidence-only. It partitions all 45 remaining Life Day
+server scripts plus 37 content-bearing datatables and 196 templates among the
+restored 2004 route, closed later systems, existing-object compatibility,
+passive/incidental data, cleanup, and privileged diagnostics. No
+unclassified normal world producer remains.
