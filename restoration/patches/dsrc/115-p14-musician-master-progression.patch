@@ -1,0 +1,544 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
+index 3d6022f7b..e17aefad2 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
+@@ -67,6 +67,8 @@ public class precu_entertainer_music_one_fixture
+         "social_musician_knowledge_03";
+     private static final String MUSICIAN_KNOWLEDGE_FOUR =
+         "social_musician_knowledge_04";
++    private static final String MUSICIAN_MASTER =
++        "social_musician_master";
+     private static final String MUSIC_XP = "music";
+     private static final String HEALING_XP = "entertainer_healing";
+     private static final String ROCK_ABILITY = "startMusic+rock";
+@@ -124,6 +126,13 @@ public class precu_entertainer_music_one_fixture
+         "startMusic+waltz";
+     private static final String JAZZ_ABILITY =
+         "startMusic+jazz";
++    private static final String VIRTUOSO_ABILITY =
++        "startMusic+virtuoso";
++    private static final String NALARGON_ABILITY = "nalargon";
++    private static final String PLACE_CANTINA_ABILITY =
++        "place_cantina";
++    private static final String PLACE_THEATER_ABILITY =
++        "place_theater";
+     private static final String FIZZ_SCHEMATIC =
+         "object/draft_schematic/instrument/instrument_fizz.iff";
+     private static final String FIZZ_CLASSIC_SCHEMATIC =
+@@ -138,6 +147,10 @@ public class precu_entertainer_music_one_fixture
+         "object/draft_schematic/instrument/instrument_omni_box.iff";
+     private static final String NGE_FLUTEDROOPY_SCHEMATIC =
+         "object/draft_schematic/instrument/instrument_flute_droopy.iff";
++    private static final String NALARGON_SCHEMATIC =
++        "object/draft_schematic/instrument/instrument_nalargon.iff";
++    private static final String NALARGON_CLASSIC_SCHEMATIC =
++        "object/draft_schematic/instrument/instrument_nalargon_classic.iff";
+     private static final String INSTRUMENT_ABILITY = "slitherhorn";
+     private static final String INSTRUMENT_TEMPLATE =
+         "object/tangible/instrument/slitherhorn.iff";
+@@ -153,6 +166,12 @@ public class precu_entertainer_music_one_fixture
+         "healing_music_mind";
+     private static final String INSTRUMENT_ASSEMBLY_MOD =
+         "instrument_assembly";
++    private static final String MELEE_DEFENSE_MOD = "melee_defense";
++    private static final String RANGED_DEFENSE_MOD = "ranged_defense";
++    private static final String PRIVATE_PLACE_CANTINA_MOD =
++        "private_place_cantina";
++    private static final String PRIVATE_PLACE_THEATER_MOD =
++        "private_place_theater";
+     private static final int ROCK_INDEX = 15;
+     private static final int STARWARS_TWO_INDEX = 29;
+     private static final int FOLK_INDEX = 43;
+@@ -204,6 +223,7 @@ public class precu_entertainer_music_one_fixture
+     private static final int MUSICIAN_KNOWLEDGE_THREE_POINT_COST = 3;
+     private static final int MUSICIAN_KNOWLEDGE_FOUR_XP_COST = 225000;
+     private static final int MUSICIAN_KNOWLEDGE_FOUR_POINT_COST = 2;
++    private static final int MUSICIAN_MASTER_POINT_COST = 1;
+     private static final int REFERENCE_QUICKNESS = 400;
+     private static final int START_ACTION = 100;
+ 
+@@ -243,6 +263,14 @@ public class precu_entertainer_music_one_fixture
+         ROOT + ".baseMusicMindMod";
+     private static final String BASE_INSTRUMENT_ASSEMBLY_MOD =
+         ROOT + ".baseInstrumentAssemblyMod";
++    private static final String BASE_MELEE_DEFENSE_MOD =
++        ROOT + ".baseMeleeDefenseMod";
++    private static final String BASE_RANGED_DEFENSE_MOD =
++        ROOT + ".baseRangedDefenseMod";
++    private static final String BASE_PRIVATE_PLACE_CANTINA_MOD =
++        ROOT + ".basePrivatePlaceCantinaMod";
++    private static final String BASE_PRIVATE_PLACE_THEATER_MOD =
++        ROOT + ".basePrivatePlaceTheaterMod";
+     private static final String FIXTURE_INSTRUMENT =
+         ROOT + ".fixtureInstrument";
+     private static final String PURCHASED = ROOT + ".purchased";
+@@ -301,6 +329,8 @@ public class precu_entertainer_music_one_fixture
+         "observeSurrenderMusicianKnowledgeThree|" +
+         "prepareMusicianKnowledgeFour|purchaseMusicianKnowledgeFour|" +
+         "observeSurrenderMusicianKnowledgeFour|" +
++        "prepareMusicianMaster|purchaseMusicianMaster|" +
++        "observeSurrenderMusicianMaster|" +
+         "status|cleanup <playerOid> <lifecycle>";
+ 
+     public String executeFixture(String params)
+@@ -430,6 +460,10 @@ public class precu_entertainer_music_one_fixture
+         {
+             return prepareMusicianKnowledgeFour(player, args[2]);
+         }
++        if (action.equalsIgnoreCase("prepareMusicianMaster"))
++        {
++            return prepareMusicianMaster(player, args[2]);
++        }
+         if (action.equalsIgnoreCase("cleanup") &&
+             !hasObjVar(player, ROOT))
+         {
+@@ -528,6 +562,10 @@ public class precu_entertainer_music_one_fixture
+         {
+             return purchaseMusicianKnowledgeFour(player);
+         }
++        if (action.equalsIgnoreCase("purchaseMusicianMaster"))
++        {
++            return purchaseMusicianMaster(player);
++        }
+         if (action.equalsIgnoreCase("observeRockStart"))
+         {
+             return observeRockStart(player);
+@@ -699,6 +737,11 @@ public class precu_entertainer_music_one_fixture
+         {
+             return observeSurrenderMusicianKnowledgeFour(player);
+         }
++        if (action.equalsIgnoreCase(
++            "observeSurrenderMusicianMaster"))
++        {
++            return observeSurrenderMusicianMaster(player);
++        }
+         if (action.equalsIgnoreCase("status"))
+         {
+             return "action=status " + buildStatus(player);
+@@ -746,6 +789,7 @@ public class precu_entertainer_music_one_fixture
+             hasSkill(player, MUSICIAN_KNOWLEDGE_TWO) ||
+             hasSkill(player, MUSICIAN_KNOWLEDGE_THREE) ||
+             hasSkill(player, MUSICIAN_KNOWLEDGE_FOUR) ||
++            hasSkill(player, MUSICIAN_MASTER) ||
+             hasCommand(player, ROCK_ABILITY) ||
+             hasCommand(player, FIZZ_ABILITY) ||
+             hasCommand(player, PRIVATE_ABILITY) ||
+@@ -781,13 +825,19 @@ public class precu_entertainer_music_one_fixture
+             hasCommand(player, FUNK_ABILITY) ||
+             hasCommand(player, WALTZ_ABILITY) ||
+             hasCommand(player, JAZZ_ABILITY) ||
++            hasCommand(player, VIRTUOSO_ABILITY) ||
++            hasCommand(player, NALARGON_ABILITY) ||
++            hasCommand(player, PLACE_CANTINA_ABILITY) ||
++            hasCommand(player, PLACE_THEATER_ABILITY) ||
+             hasSchematic(player, FIZZ_SCHEMATIC) ||
+             hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC) ||
+             hasSchematic(player, KLOO_HORN_SCHEMATIC) ||
+             hasSchematic(player, TRAZ_SCHEMATIC) ||
+             hasSchematic(player, BANDFILL_SCHEMATIC) ||
+             hasSchematic(player, OMNI_BOX_SCHEMATIC) ||
+-            hasSchematic(player, NGE_FLUTEDROOPY_SCHEMATIC))
++            hasSchematic(player, NGE_FLUTEDROOPY_SCHEMATIC) ||
++            hasSchematic(player, NALARGON_SCHEMATIC) ||
++            hasSchematic(player, NALARGON_CLASSIC_SCHEMATIC))
+         {
+             return "error=fixtureRequiresUntrainedEntertainer";
+         }
+@@ -2655,6 +2705,146 @@ public class precu_entertainer_music_one_fixture
+             buildStatus(player);
+     }
+ 
++    private String prepareMusicianMaster(
++        obj_id player,
++        String lifecycle)
++        throws InterruptedException
++    {
++        String preparedKnowledge =
++            prepareMusicianKnowledgeFour(player, lifecycle);
++        if (preparedKnowledge.startsWith("error="))
++        {
++            return preparedKnowledge;
++        }
++        if (hasSkill(player, MUSICIAN_MASTER))
++        {
++            return "action=prepareMusicianMaster resumed=true " +
++                buildStatus(player);
++        }
++
++        boolean knowledgeReady =
++            grantSkillIfMissing(player, MUSICIAN_KNOWLEDGE_FOUR);
++        boolean abilityReady =
++            grantSkillIfMissing(player, MUSICIAN_ABILITY_ONE) &&
++            grantSkillIfMissing(player, MUSICIAN_ABILITY_TWO) &&
++            grantSkillIfMissing(player, MUSICIAN_ABILITY_THREE) &&
++            grantSkillIfMissing(player, MUSICIAN_ABILITY_FOUR);
++        boolean woundReady =
++            grantSkillIfMissing(player, MUSICIAN_WOUND_ONE) &&
++            grantSkillIfMissing(player, MUSICIAN_WOUND_TWO) &&
++            grantSkillIfMissing(player, MUSICIAN_WOUND_THREE) &&
++            grantSkillIfMissing(player, MUSICIAN_WOUND_FOUR);
++        boolean shockReady =
++            grantSkillIfMissing(player, MUSICIAN_SHOCK_ONE) &&
++            grantSkillIfMissing(player, MUSICIAN_SHOCK_TWO) &&
++            grantSkillIfMissing(player, MUSICIAN_SHOCK_THREE) &&
++            grantSkillIfMissing(player, MUSICIAN_SHOCK_FOUR);
++
++        setObjVar(
++            player,
++            BASE_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(
++            player,
++            BASE_MUSIC_MOD,
++            getSkillStatMod(player, MUSIC_MOD));
++        setObjVar(
++            player,
++            BASE_MUSIC_WOUND_MOD,
++            getSkillStatMod(player, MUSIC_WOUND_MOD));
++        setObjVar(
++            player,
++            BASE_MUSIC_SHOCK_MOD,
++            getSkillStatMod(player, MUSIC_SHOCK_MOD));
++        setObjVar(
++            player,
++            BASE_MUSIC_MIND_MOD,
++            getSkillStatMod(player, MUSIC_MIND_MOD));
++        setObjVar(
++            player,
++            BASE_INSTRUMENT_ASSEMBLY_MOD,
++            getSkillStatMod(player, INSTRUMENT_ASSEMBLY_MOD));
++        setObjVar(
++            player,
++            BASE_MELEE_DEFENSE_MOD,
++            getSkillStatMod(player, MELEE_DEFENSE_MOD));
++        setObjVar(
++            player,
++            BASE_RANGED_DEFENSE_MOD,
++            getSkillStatMod(player, RANGED_DEFENSE_MOD));
++        setObjVar(
++            player,
++            BASE_PRIVATE_PLACE_CANTINA_MOD,
++            getSkillStatMod(player, PRIVATE_PLACE_CANTINA_MOD));
++        setObjVar(
++            player,
++            BASE_PRIVATE_PLACE_THEATER_MOD,
++            getSkillStatMod(player, PRIVATE_PLACE_THEATER_MOD));
++        boolean xpReady =
++            setXpExact(player, MUSIC_XP, 0) &&
++            setXpExact(player, HEALING_XP, 0);
++        resetTelemetry(player);
++
++        boolean prepared =
++            knowledgeReady &&
++            abilityReady &&
++            woundReady &&
++            shockReady &&
++            xpReady &&
++            hasSkill(player, MUSICIAN_ABILITY_FOUR) &&
++            hasSkill(player, MUSICIAN_WOUND_FOUR) &&
++            hasSkill(player, MUSICIAN_KNOWLEDGE_FOUR) &&
++            hasSkill(player, MUSICIAN_SHOCK_FOUR) &&
++            !hasSkill(player, MUSICIAN_MASTER) &&
++            hasCommand(player, JAZZ_ABILITY) &&
++            hasCommand(player, NGE_OMNIBOX_ABILITY) &&
++            !hasCommand(player, VIRTUOSO_ABILITY) &&
++            !hasCommand(player, NALARGON_ABILITY) &&
++            !hasCommand(player, PLACE_CANTINA_ABILITY) &&
++            !hasCommand(player, PLACE_THEATER_ABILITY) &&
++            !hasSchematic(player, NALARGON_SCHEMATIC) &&
++            !hasSchematic(player, NALARGON_CLASSIC_SCHEMATIC) &&
++            getExperienceCap(player, MUSIC_XP) == 900000 &&
++            getExperienceCap(player, HEALING_XP) == 500000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) -
++                    15 - MUSIC_ONE_POINT_COST -
++                    MUSIC_TWO_POINT_COST -
++                    MUSIC_THREE_POINT_COST -
++                    MUSIC_FOUR_POINT_COST -
++                    MASTER_PREREQUISITE_POINT_COST -
++                    MUSICIAN_NOVICE_POINT_COST -
++                    MUSICIAN_ABILITY_ONE_POINT_COST -
++                    MUSICIAN_ABILITY_TWO_POINT_COST -
++                    MUSICIAN_ABILITY_THREE_POINT_COST -
++                    MUSICIAN_ABILITY_FOUR_POINT_COST -
++                    MUSICIAN_WOUND_ONE_POINT_COST -
++                    MUSICIAN_WOUND_TWO_POINT_COST -
++                    MUSICIAN_WOUND_THREE_POINT_COST -
++                    MUSICIAN_WOUND_FOUR_POINT_COST -
++                    MUSICIAN_SHOCK_ONE_POINT_COST -
++                    MUSICIAN_SHOCK_TWO_POINT_COST -
++                    MUSICIAN_SHOCK_THREE_POINT_COST -
++                    MUSICIAN_SHOCK_FOUR_POINT_COST -
++                    MUSICIAN_KNOWLEDGE_ONE_POINT_COST -
++                    MUSICIAN_KNOWLEDGE_TWO_POINT_COST -
++                    MUSICIAN_KNOWLEDGE_THREE_POINT_COST -
++                    MUSICIAN_KNOWLEDGE_FOUR_POINT_COST;
++        if (!prepared)
++        {
++            String detail = buildStatus(player);
++            boolean restored = restoreSnapshot(player);
++            if (restored)
++            {
++                removeObjVar(player, ROOT);
++            }
++            return "error=fixtureMusicianMasterSetupFailed " +
++                "restored=" + restored + " " + detail;
++        }
++        return "action=prepareMusicianMaster resumed=false " +
++            buildStatus(player);
++    }
++
+     private String purchase(obj_id player)
+         throws InterruptedException
+     {
+@@ -3506,6 +3696,78 @@ public class precu_entertainer_music_one_fixture
+             buildStatus(player);
+     }
+ 
++    private String purchaseMusicianMaster(obj_id player)
++        throws InterruptedException
++    {
++        if (readFlag(player, PURCHASED))
++        {
++            return "action=purchaseMusicianMaster resumed=true " +
++                buildStatus(player);
++        }
++        boolean purchased =
++            purchaseWithoutHolocron(
++                player,
++                MUSICIAN_MASTER,
++                MUSICIAN_MASTER_POINT_COST);
++        boolean passed =
++            purchased &&
++            hasSkill(player, MUSICIAN_MASTER) &&
++            hasSkill(player, MUSICIAN_ABILITY_FOUR) &&
++            hasSkill(player, MUSICIAN_WOUND_FOUR) &&
++            hasSkill(player, MUSICIAN_KNOWLEDGE_FOUR) &&
++            hasSkill(player, MUSICIAN_SHOCK_FOUR) &&
++            hasCommand(player, VIRTUOSO_ABILITY) &&
++            hasCommand(player, NALARGON_ABILITY) &&
++            hasCommand(player, PLACE_CANTINA_ABILITY) &&
++            hasCommand(player, PLACE_THEATER_ABILITY) &&
++            hasCommand(player, JAZZ_ABILITY) &&
++            hasCommand(player, NGE_OMNIBOX_ABILITY) &&
++            !hasSchematic(player, NALARGON_SCHEMATIC) &&
++            !hasSchematic(player, NALARGON_CLASSIC_SCHEMATIC) &&
++            getSkillStatMod(player, MUSIC_MOD) -
++                getIntObjVar(player, BASE_MUSIC_MOD) == 15 &&
++            getSkillStatMod(player, MUSIC_WOUND_MOD) -
++                getIntObjVar(player, BASE_MUSIC_WOUND_MOD) == 15 &&
++            getSkillStatMod(player, MUSIC_SHOCK_MOD) -
++                getIntObjVar(player, BASE_MUSIC_SHOCK_MOD) == 25 &&
++            getSkillStatMod(player, MUSIC_MIND_MOD) -
++                getIntObjVar(player, BASE_MUSIC_MIND_MOD) == 25 &&
++            getSkillStatMod(player, INSTRUMENT_ASSEMBLY_MOD) -
++                getIntObjVar(player, BASE_INSTRUMENT_ASSEMBLY_MOD) ==
++                    25 &&
++            getSkillStatMod(player, MELEE_DEFENSE_MOD) -
++                getIntObjVar(player, BASE_MELEE_DEFENSE_MOD) == 7 &&
++            getSkillStatMod(player, RANGED_DEFENSE_MOD) -
++                getIntObjVar(player, BASE_RANGED_DEFENSE_MOD) == 7 &&
++            getSkillStatMod(player, PRIVATE_PLACE_CANTINA_MOD) -
++                getIntObjVar(player, BASE_PRIVATE_PLACE_CANTINA_MOD) ==
++                    100 &&
++            getSkillStatMod(player, PRIVATE_PLACE_THEATER_MOD) -
++                getIntObjVar(player, BASE_PRIVATE_PLACE_THEATER_MOD) ==
++                    100 &&
++            getExperiencePoints(player, MUSIC_XP) == 0 &&
++            getExperiencePoints(player, HEALING_XP) == 0 &&
++            getExperienceCap(player, MUSIC_XP) == 900000 &&
++            getExperienceCap(player, HEALING_XP) == 500000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS) -
++                    MUSICIAN_MASTER_POINT_COST;
++        setObjVar(player, PURCHASED, passed ? 1 : 0);
++        return "action=purchaseMusicianMaster passed=" + passed +
++            " purchased=" + purchased + " " + buildStatus(player);
++    }
++
++    private boolean grantSkillIfMissing(
++        obj_id player,
++        String skillName)
++        throws InterruptedException
++    {
++        return
++            hasSkill(player, skillName) ||
++            (skill.grantSkillToPlayer(player, skillName) &&
++                hasSkill(player, skillName));
++    }
++
+     private boolean purchaseWithoutHolocron(
+         obj_id player,
+         String skillName,
+@@ -4438,6 +4700,53 @@ public class precu_entertainer_music_one_fixture
+             passed + " " + buildStatus(player);
+     }
+ 
++    private String observeSurrenderMusicianMaster(obj_id player)
++        throws InterruptedException
++    {
++        boolean passed =
++            readFlag(player, PURCHASED) &&
++            !hasSkill(player, MUSICIAN_MASTER) &&
++            hasSkill(player, MUSICIAN_ABILITY_FOUR) &&
++            hasSkill(player, MUSICIAN_WOUND_FOUR) &&
++            hasSkill(player, MUSICIAN_KNOWLEDGE_FOUR) &&
++            hasSkill(player, MUSICIAN_SHOCK_FOUR) &&
++            !hasCommand(player, VIRTUOSO_ABILITY) &&
++            !hasCommand(player, NALARGON_ABILITY) &&
++            !hasCommand(player, PLACE_CANTINA_ABILITY) &&
++            !hasCommand(player, PLACE_THEATER_ABILITY) &&
++            hasCommand(player, JAZZ_ABILITY) &&
++            hasCommand(player, NGE_OMNIBOX_ABILITY) &&
++            !hasSchematic(player, NALARGON_SCHEMATIC) &&
++            !hasSchematic(player, NALARGON_CLASSIC_SCHEMATIC) &&
++            getSkillStatMod(player, MUSIC_MOD) ==
++                getIntObjVar(player, BASE_MUSIC_MOD) &&
++            getSkillStatMod(player, MUSIC_WOUND_MOD) ==
++                getIntObjVar(player, BASE_MUSIC_WOUND_MOD) &&
++            getSkillStatMod(player, MUSIC_SHOCK_MOD) ==
++                getIntObjVar(player, BASE_MUSIC_SHOCK_MOD) &&
++            getSkillStatMod(player, MUSIC_MIND_MOD) ==
++                getIntObjVar(player, BASE_MUSIC_MIND_MOD) &&
++            getSkillStatMod(player, INSTRUMENT_ASSEMBLY_MOD) ==
++                getIntObjVar(player, BASE_INSTRUMENT_ASSEMBLY_MOD) &&
++            getSkillStatMod(player, MELEE_DEFENSE_MOD) ==
++                getIntObjVar(player, BASE_MELEE_DEFENSE_MOD) &&
++            getSkillStatMod(player, RANGED_DEFENSE_MOD) ==
++                getIntObjVar(player, BASE_RANGED_DEFENSE_MOD) &&
++            getSkillStatMod(player, PRIVATE_PLACE_CANTINA_MOD) ==
++                getIntObjVar(player, BASE_PRIVATE_PLACE_CANTINA_MOD) &&
++            getSkillStatMod(player, PRIVATE_PLACE_THEATER_MOD) ==
++                getIntObjVar(player, BASE_PRIVATE_PLACE_THEATER_MOD) &&
++            getExperiencePoints(player, MUSIC_XP) == 0 &&
++            getExperiencePoints(player, HEALING_XP) == 0 &&
++            getExperienceCap(player, MUSIC_XP) == 900000 &&
++            getExperienceCap(player, HEALING_XP) == 500000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS);
++        setObjVar(player, SURRENDERED, passed ? 1 : 0);
++        return "action=observeSurrenderMusicianMaster passed=" +
++            passed + " " + buildStatus(player);
++    }
++
+     private String cleanup(obj_id player)
+         throws InterruptedException
+     {
+@@ -4466,6 +4775,10 @@ public class precu_entertainer_music_one_fixture
+         }
+         clearPerformanceState(player);
+         boolean instrumentRemoved = removeFixtureInstrument(player);
++        if (hasSkill(player, MUSICIAN_MASTER))
++        {
++            revokeSkill(player, MUSICIAN_MASTER);
++        }
+         if (hasSkill(player, MUSICIAN_KNOWLEDGE_FOUR))
+         {
+             revokeSkill(player, MUSICIAN_KNOWLEDGE_FOUR);
+@@ -4635,6 +4948,7 @@ public class precu_entertainer_music_one_fixture
+             !hasSkill(player, MUSICIAN_KNOWLEDGE_TWO) &&
+             !hasSkill(player, MUSICIAN_KNOWLEDGE_THREE) &&
+             !hasSkill(player, MUSICIAN_KNOWLEDGE_FOUR) &&
++            !hasSkill(player, MUSICIAN_MASTER) &&
+             !hasSkill(player, NOVICE) &&
+             !hasCommand(player, ROCK_ABILITY) &&
+             !hasCommand(player, FIZZ_ABILITY) &&
+@@ -4670,6 +4984,10 @@ public class precu_entertainer_music_one_fixture
+             !hasCommand(player, FUNK_ABILITY) &&
+             !hasCommand(player, WALTZ_ABILITY) &&
+             !hasCommand(player, JAZZ_ABILITY) &&
++            !hasCommand(player, VIRTUOSO_ABILITY) &&
++            !hasCommand(player, NALARGON_ABILITY) &&
++            !hasCommand(player, PLACE_CANTINA_ABILITY) &&
++            !hasCommand(player, PLACE_THEATER_ABILITY) &&
+             !hasSchematic(player, FIZZ_SCHEMATIC) &&
+             !hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC) &&
+             !hasSchematic(player, KLOO_HORN_SCHEMATIC) &&
+@@ -4677,6 +4995,8 @@ public class precu_entertainer_music_one_fixture
+             !hasSchematic(player, BANDFILL_SCHEMATIC) &&
+             !hasSchematic(player, OMNI_BOX_SCHEMATIC) &&
+             !hasSchematic(player, NGE_FLUTEDROOPY_SCHEMATIC) &&
++            !hasSchematic(player, NALARGON_SCHEMATIC) &&
++            !hasSchematic(player, NALARGON_CLASSIC_SCHEMATIC) &&
+             skill.getAvailableSkillPoints(player) ==
+                 getIntObjVar(player, ORIGINAL_POINTS) &&
+             getPerformanceType(player) == 0 &&
+@@ -4807,6 +5127,20 @@ public class precu_entertainer_music_one_fixture
+                     player,
+                     BASE_INSTRUMENT_ASSEMBLY_MOD)
+                 : getSkillStatMod(player, INSTRUMENT_ASSEMBLY_MOD);
++        int baseMeleeDefense = hasObjVar(player, BASE_MELEE_DEFENSE_MOD)
++            ? getIntObjVar(player, BASE_MELEE_DEFENSE_MOD)
++            : getSkillStatMod(player, MELEE_DEFENSE_MOD);
++        int baseRangedDefense = hasObjVar(player, BASE_RANGED_DEFENSE_MOD)
++            ? getIntObjVar(player, BASE_RANGED_DEFENSE_MOD)
++            : getSkillStatMod(player, RANGED_DEFENSE_MOD);
++        int basePlaceCantina =
++            hasObjVar(player, BASE_PRIVATE_PLACE_CANTINA_MOD)
++                ? getIntObjVar(player, BASE_PRIVATE_PLACE_CANTINA_MOD)
++                : getSkillStatMod(player, PRIVATE_PLACE_CANTINA_MOD);
++        int basePlaceTheater =
++            hasObjVar(player, BASE_PRIVATE_PLACE_THEATER_MOD)
++                ? getIntObjVar(player, BASE_PRIVATE_PLACE_THEATER_MOD)
++                : getSkillStatMod(player, PRIVATE_PLACE_THEATER_MOD);
+         return "player=" + player +
+             " novice=" + (hasSkill(player, NOVICE) ? "1" : "0") +
+             " musicOne=" +
+@@ -4858,6 +5192,8 @@ public class precu_entertainer_music_one_fixture
+                 (hasSkill(player, MUSICIAN_KNOWLEDGE_THREE) ? "1" : "0") +
+             " musicianKnowledgeFour=" +
+                 (hasSkill(player, MUSICIAN_KNOWLEDGE_FOUR) ? "1" : "0") +
++            " musicianMaster=" +
++                (hasSkill(player, MUSICIAN_MASTER) ? "1" : "0") +
+             " commands=" +
+                 (hasCommand(player, ROCK_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, FIZZ_ABILITY) ? "1" : "0") +
+@@ -4960,6 +5296,16 @@ public class precu_entertainer_music_one_fixture
+             " commandsMusicianKnowledgeFour=" +
+                 (hasCommand(player, JAZZ_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, NGE_OMNIBOX_ABILITY) ? "1" : "0") +
++            " commandsMusicianMaster=" +
++                (hasCommand(player, VIRTUOSO_ABILITY) ? "1" : "0") +
++                (hasCommand(player, NALARGON_ABILITY) ? "1" : "0") +
++                (hasCommand(player, PLACE_CANTINA_ABILITY) ? "1" : "0") +
++                (hasCommand(player, PLACE_THEATER_ABILITY) ? "1" : "0") +
++            " schematicsMusicianMaster=" +
++                (hasSchematic(player, NALARGON_SCHEMATIC) ? "1" : "0") +
++                (hasSchematic(
++                    player,
++                    NALARGON_CLASSIC_SCHEMATIC) ? "1" : "0") +
+             " musicModDelta=" +
+                 (getSkillStatMod(player, MUSIC_MOD) - baseMod) +
+             " danceModDelta=" +
+@@ -4980,6 +5326,18 @@ public class precu_entertainer_music_one_fixture
+             " instrumentAssemblyModDelta=" +
+                 (getSkillStatMod(player, INSTRUMENT_ASSEMBLY_MOD) -
+                     baseInstrumentAssemblyMod) +
++            " meleeDefenseModDelta=" +
++                (getSkillStatMod(player, MELEE_DEFENSE_MOD) -
++                    baseMeleeDefense) +
++            " rangedDefenseModDelta=" +
++                (getSkillStatMod(player, RANGED_DEFENSE_MOD) -
++                    baseRangedDefense) +
++            " privatePlaceCantinaModDelta=" +
++                (getSkillStatMod(player, PRIVATE_PLACE_CANTINA_MOD) -
++                    basePlaceCantina) +
++            " privatePlaceTheaterModDelta=" +
++                (getSkillStatMod(player, PRIVATE_PLACE_THEATER_MOD) -
++                    basePlaceTheater) +
+             " musicXp=" + getExperiencePoints(player, MUSIC_XP) +
+             " healingXp=" + getExperiencePoints(player, HEALING_XP) +
+             " musicCap=" + getExperienceCap(player, MUSIC_XP) +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index 3c67ff370..702bd2701 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -389,7 +389,7 @@ social_dancer_shock_03	social_dancer_shock_02	fourByFour	0	0	0	0	8000	3	0	social
+ social_dancer_shock_04	social_dancer_shock_03	fourByFour	0	1	0	0	9000	2	0	social_dancer_shock_03		entertainer_healing	125000	500000		0			none			healing_dance_shock=25			1	0
+ social_musician	social		0	0	1	0	0	0						0											0	0
+ social_musician_novice	social_musician	fourByFour	0	1	0	0	5000	6	0	"social_entertainer_music_04,social_entertainer_healing_04"		music	50000	350000		0			none		"traz,registerWithLocation,startMusic+starwars4"	"healing_music_ability=5,healing_music_wound=5,healing_music_shock=10,healing_music_mind=10,instrument_assembly=10"	craftInstrumentGroupC		1	0
+-social_musician_master	social_musician		0	1	0	0	10000	1		"social_musician_ability_04,social_musician_wound_04,social_musician_knowledge_04,social_musician_shock_04"		music	350000	500000							"startMusic+virtuoso,nalargon,place_cantina,place_theater"	"healing_music_ability=15,healing_music_wound=25,instrument_assembly=10,ranged_defense=7,melee_defense=7,private_place_cantina=100,private_place_theater=100"	craftInstrumentGroupFF		0	0
++social_musician_master	social_musician	fourByFour	0	1	0	0	10000	1	0	"social_musician_ability_04,social_musician_wound_04,social_musician_knowledge_04,social_musician_shock_04"			0	0		0			none		"startMusic+virtuoso,nalargon,place_cantina,place_theater"	"healing_music_ability=15,healing_music_wound=15,healing_music_shock=25,healing_music_mind=25,instrument_assembly=25,ranged_defense=7,melee_defense=7,private_place_cantina=100,private_place_theater=100"			1	0
+ social_musician_ability_01	social_musician	fourByFour	0	0	0	0	6000	5	0	social_musician_novice		music	87500	500000		0			none		"spotlight,colorlights,dazzle"	"instrument_assembly=10,healing_music_mind=10"			1	0
+ social_musician_ability_02	social_musician_ability_01	fourByFour	0	0	0	0	7000	4	0	social_musician_ability_01		music	125000	700000		0			none		firejet	"instrument_assembly=15,healing_music_mind=10"	craftInstrumentGroupD		1	0
+ social_musician_ability_03	social_musician_ability_02	fourByFour	0	0	0	0	8000	3	0	social_musician_ability_02		music	175000	900000		0			none		ventriloquism	"instrument_assembly=15,healing_music_mind=20"	craftInstrumentGroupE		1	0

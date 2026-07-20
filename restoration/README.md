@@ -1251,3 +1251,13 @@ parent commands retained, terminal-cap retention, modifier rollback, and
 idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician master closes the profession with all four terminal branches, zero
+XP, one point, Virtuoso, Nalargon, cantina and theater placement, and the exact
+nine Publish 14.1 modifiers. It removes the NGE 350,000-XP charge, 500,000 cap,
+altered healing and assembly values, hidden graph state, and Nalargon schematic
+group. Protocol 83 proves purchase, production surrender, four-terminal
+retention, no schematic grant, modifier rollback, both terminal-cap retentions,
+and idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
