@@ -1482,3 +1482,9 @@ command fail closed. CSR destruction commands remain available for cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerCommandSurfaceRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Pre-existing Storyteller invitation terminals now detach on attach and
+initialization, preserving serialized objects without exposing invite menus
+or sending relationship-acceptance messages. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerInvitationTerminalRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

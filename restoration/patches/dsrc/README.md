@@ -779,3 +779,7 @@ world objects.
 movement and rotation handlers plus the special city-zoning path. Handler
 names remain link-compatible, ordinary zoning remains intact, and CSR destroy
 commands remain available for later-era object cleanup.
+
+`171-p14-storyteller-invitation-terminal-retirement.patch` detaches persisted
+invitation terminals at attach and initialization, retaining object linkage
+without active invite menus or relationship messages.
