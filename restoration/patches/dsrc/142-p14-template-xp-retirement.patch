@@ -1,0 +1,88 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/xp.java b/sku.0/sys.server/compiled/game/script/library/xp.java
+--- a/sku.0/sys.server/compiled/game/script/library/xp.java
++++ b/sku.0/sys.server/compiled/game/script/library/xp.java
+@@ -1778,77 +1778,22 @@ public class xp extends script.base_script
+             }
+         }
+         return pp;
+     }
+     public static int grantXpByTemplate(obj_id player, int amount) throws InterruptedException
+     {
+-        String template = getSkillTemplate(player);
+-        String xpType;
+-        if (!isIdValid(player) || template == null)
+-        {
+-            return 0;
+-        }
+-        if (template.startsWith("trader"))
+-        {
+-            grantCraftingStyleXp(player, xp.QUEST_CRAFTING, amount);
+-            xpType = xp.QUEST_CRAFTING;
+-        }
+-        else if (template.startsWith("entertainer"))
+-        {
+-            grantSocialStyleXp(player, xp.QUEST_SOCIAL, amount);
+-            xpType = xp.QUEST_SOCIAL;
+-        }
+-        else 
+-        {
+-            grantCombatStyleXp(player, xp.QUEST_COMBAT, amount);
+-            xpType = xp.QUEST_COMBAT;
+-        }
+-        xp.displayXpFlyText(player, player, amount);
+-        xp.displayXpMsg(player, xpType, amount);
+-        return amount;
++        // Retained as a fail-closed ABI boundary for inherited NGE content.
++        // Publish 14 XP must name its XP pool explicitly.
++        return 0;
+     }
+     public static int grantUnmodifiedXpByTemplate(obj_id player, int amount) throws InterruptedException
+     {
+-        String template = getSkillTemplate(player);
+-        String xpType;
+-        if (!isIdValid(player) || template == null)
+-        {
+-            return 0;
+-        }
+-        if (template.startsWith("trader"))
+-        {
+-            xpType = xp.QUEST_CRAFTING;
+-        }
+-        else if (template.startsWith("entertainer"))
+-        {
+-            xpType = xp.QUEST_SOCIAL;
+-        }
+-        else 
+-        {
+-            xpType = xp.QUEST_COMBAT;
+-        }
+-        String templateXp = skill_template.getTemplateSkillXpType(player, false);
+-        if (templateXp != null && amount > 0)
+-        {
+-            amount = grant(player, templateXp, amount, false);
+-        }
+-        xp.displayXpFlyText(player, player, amount);
+-        xp.displayXpMsg(player, xpType, amount);
+-        return amount;
++        // Retained as a fail-closed ABI boundary for inherited NGE content.
++        // Unmodified grants still require an explicit Publish 14 XP pool.
++        return 0;
+     }
+     public static int grantUnmodifiedXPPercentageOfLevel(obj_id player, float percentage) throws InterruptedException
+     {
+-        int playerLevel = getLevel(player);
+-        if (playerLevel < 90)
+-        {
+-            int xpForCurrentLevel = dataTableGetInt(xp.TBL_PLAYER_LEVEL_XP, playerLevel - 1, "xp_required");
+-            int xpForNextLevel = dataTableGetInt(xp.TBL_PLAYER_LEVEL_XP, playerLevel, "xp_required");
+-            float xpGrantedFloat = (xpForNextLevel - xpForCurrentLevel) * percentage / 100;
+-            int xpGranted = (int)xpGrantedFloat;
+-            if (grantUnmodifiedXpByTemplate(player, xpGranted) > 0)
+-            {
+-                return xpGranted;
+-            }
+-        }
++        // Combat levels and class-template XP percentages are NGE concepts.
+         return 0;
+     }
+     public static void applyHealingCredit(obj_id self) throws InterruptedException
