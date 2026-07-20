@@ -828,3 +828,9 @@ intact for its own reconstruction.
 Cupid registration/manager pair, both romance-target anchors, and the
 disillusion spawner. Queued callbacks fail closed, while passive templates,
 buildout anchors, and generic spawners remain for separate treatment.
+
+`183-p14-love-day-generic-spawner-retirement.patch` retires 11 area and 11
+random Love Day rows through an exact shared predicate. Lifecycle cleanup now
+finds children by authoritative `objParent` ownership before detaching, and
+queued spawn/location callbacks fail closed. Ordinary and Life Day spawners
+remain active.

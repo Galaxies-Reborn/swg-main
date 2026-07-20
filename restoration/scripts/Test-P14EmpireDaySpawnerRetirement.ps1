@@ -104,7 +104,15 @@ if ($Expectation -eq "Ready")
     foreach ($entry in $files.GetEnumerator())
     {
         $actual = (Get-FileHash (Join-Path $scriptRoot $entry.Value) -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actual -ne $contract.buildEvidence.sourceSha256.($entry.Key)) { throw "Source evidence mismatch: $($entry.Key)" }
+        if ($actual -ne $contract.buildEvidence.sourceSha256.($entry.Key))
+        {
+            $laterContract = Get-Content (Join-Path $restorationRoot "contracts/p14-love-day-generic-spawner-retirement.json") -Raw | ConvertFrom-Json
+            if ($laterContract.status -ne "ready" -or
+                $actual -ne $laterContract.buildEvidence.sourceSha256.($entry.Key))
+            {
+                throw "Source evidence mismatch: $($entry.Key)"
+            }
+        }
     }
     $patch = Join-Path $restorationRoot "patches/dsrc/176-p14-empire-day-spawner-retirement.patch"
     $actual = (Get-FileHash $patch -Algorithm SHA256).Hash.ToLowerInvariant()
