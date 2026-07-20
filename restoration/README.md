@@ -1361,3 +1361,11 @@ speculative Publish 14.1 profession. Ordinary fryer rewards, combinations,
 fourth ingredients, and the existing debuff fallback remain intact. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ItemClassReadRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The NGE Build-a-Buff completion path no longer feeds the later entertainer
+profession-slot Collection or reads a singular class template. Its tracker,
+two-hour duration gate, random roll, and Collection slot mutation are retired.
+The already-restored Publish 14.1 entertainer Mind or Focus/Willpower session
+remains the authoritative buff path. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeEntertainerCollectionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
