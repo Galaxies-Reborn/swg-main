@@ -898,3 +898,9 @@ closed by the earlier Figrin Dan band-spawner retirement.
 factional event's Dearic invasion suppression from `gcwIsInvasionCityOn`.
 Ordinary `gcwcity*` configuration remains authoritative, so enabling the
 restored 2004 Life Day event no longer disables unrelated GCW gameplay.
+
+`196-p14-life-day-level-up-loot-retirement.patch` removes the post-era
+one-in-ten-thousand `levelup_lifeday_orb` substitution from ordinary
+space-combat loot. Table-selected loot remains unchanged, the original 2004
+quest orb remains, and the later orb template is retained only for persisted
+object compatibility.

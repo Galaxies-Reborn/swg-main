@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "feature": "life-day-level-up-loot-retirement",
+  "status": "ready",
+  "scope": "Retire the post-era Life Day orb substitution from ordinary space-combat loot while preserving the configured loot table and original 2004 Life Day reward orb.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Finding": "The pinned Core3 space-combat loot path contains no enableLevelUpLoot or levelup_lifeday_orb substitution.",
+    "targetQuestContract": "p14-life-day-2004-quest-state-machine.json",
+    "observedLeak": "When enableLevelUpLoot was present, ordinary space combat had a one-in-ten-thousand chance to replace table-selected loot with a post-era levelup_lifeday_orb."
+  },
+  "expected": {
+    "spaceCombatLifeDayReferences": 0,
+    "levelUpLootConfigReadsOnLootPath": 0,
+    "ordinaryLootTableSelectionRetained": true,
+    "original2004RewardOrbRetained": true,
+    "levelUpOrbTemplateRetainedForPersistedObjects": true,
+    "defaultLifeDayEnabled": false
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/196-p14-life-day-level-up-loot-retirement.patch",
+    "overlayPatchBytes": 1230,
+    "overlayPatchSha256": "32560bc2387b5af238009f3e39f52cad90503d1ef06f53a00909c249e7f1ba37",
+    "sourceSha256": {
+      "space_combat.java": "79b2f8cbfc7e01d84b15350465680eafc28d47ccb81576bc7ee59bc7e7f479dd"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "space_combat.class": "c4e1eb8748bc4f415d2e4e29b2125001d9e32b661443c21ab0b27be6bce07183"
+    },
+    "cleanMaterializationPatches": 201,
+    "cleanMaterializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "staticContract": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 66668,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "defaultConfigRestored": "lifeday=false",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}
