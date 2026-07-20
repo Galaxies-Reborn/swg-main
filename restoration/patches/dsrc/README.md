@@ -767,3 +767,10 @@ novice-cap recomputation, and cleanup fixture.
 template from the shared profession predicate. It maps retained compatibility
 enums to exact Publish 14.1 novice ownership, native Jedi state, or a
 fail-closed result, and adds an identity-bound reversible live fixture.
+
+`169-p14-storyteller-token-lifecycle-retirement.patch` retires nine
+player-owned Storyteller token lifecycles. Blueprint, theater, NPC, prop,
+destructible-prop, effect, jukebox-converter, and NPC-difficulty token
+scripts detach at attach and initialization while their object classes remain
+loadable. Deployed controller scripts remain intact to clean up existing
+world objects.

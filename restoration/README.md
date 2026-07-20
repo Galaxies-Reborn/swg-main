@@ -1466,3 +1466,11 @@ now fail closed at attach, menu, conversation, and callback boundaries.
 Persisted object and conversation classes remain loadable. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PgcHolocronVendorRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Nine player-owned Storyteller token scripts now detach synchronously on both
+attach and initialization. Existing token objects and serialized data remain
+loadable, but their menu, alarm, and deployment handlers cannot remain
+attached. Already-deployed controllers are deliberately retained so their
+timers can clean up existing world objects. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerTokenLifecycleRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
