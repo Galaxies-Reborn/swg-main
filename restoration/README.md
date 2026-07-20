@@ -1207,3 +1207,12 @@ and rejection of the NGE Flutedroopy command, assembly modifier, and schematic
 group. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Shock IV completes the branch with the exact searchable title box:
+Shock III, 125,000 Entertainer Healing XP, two points, a terminal 500,000
+Healing cap, and +25 Music shock healing. It removes NGE's hidden Omnibox
+command, assembly modifier, and schematic group. Protocol 78 proves purchase,
+production surrender, Shock III retention, terminal-cap retention, rollback,
+negative grants, and idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianShockFourProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
