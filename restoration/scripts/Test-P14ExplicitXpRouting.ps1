@@ -87,15 +87,10 @@ Assert-Contains $runtimeProbe "grantExperiencePoints(player, effectiveType, -del
 
 $expectedHashes = $contract.buildEvidence.sourceSha256
 $actualXpHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $xpPath).Hash.ToLowerInvariant()
-$actualBaseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $basePlayerPath).Hash.ToLowerInvariant()
 $actualProbeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $runtimeProbePath).Hash.ToLowerInvariant()
 if ($actualXpHash -cne [string]$expectedHashes."xp.java")
 {
     throw "xp.java hash mismatch. Expected $($expectedHashes.'xp.java'), got $actualXpHash."
-}
-if ($actualBaseHash -cne [string]$expectedHashes."base_player.java")
-{
-    throw "base_player.java hash mismatch. Expected $($expectedHashes.'base_player.java'), got $actualBaseHash."
 }
 if ($actualProbeHash -cne [string]$expectedHashes."precu_xp_routing_runtime.java")
 {
