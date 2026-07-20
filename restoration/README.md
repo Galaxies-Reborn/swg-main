@@ -1435,3 +1435,10 @@ by the neutral inherited five-stack path. Quest, tool, construction value,
 faction participation, and crafting-credit behavior remain intact. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14GcwPylonClassRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Post-era TCG vendor contracts and Player Generated Chronicles relic booster
+packs fail closed at both menus and state-mutating callbacks. Their script
+bodies remain link-compatible for old object data, but they cannot apply
+vendor skill mods, create NPCs, consume contracts, or mint relics. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14TcgChroniclesRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
