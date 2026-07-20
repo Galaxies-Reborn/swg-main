@@ -818,3 +818,8 @@ callbacks while retaining Life Day planet state.
 `180-p14-empire-day-generic-system-overrides.patch` removes Empire Day
 configuration branches from generic city guards, GCW spawns, delivery NPCs,
 and two banner implementations while retaining their normal behavior.
+
+`181-p14-later-holiday-control-plane-retirement.patch` synchronously retires
+the post-Publish-14.1 Halloween and Love Day universe events at startup and
+through all operator commands. The distinct 2004 Life Day control path remains
+intact for its own reconstruction.

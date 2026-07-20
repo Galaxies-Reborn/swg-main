@@ -39,9 +39,7 @@ foreach ($command in @("empiredayStart", "empiredayStop", "empiredayStartForReal
     }
 }
 foreach ($retained in @(
-    'startHolidayEvent(speaker, "halloween"',
-    'startHolidayEvent(speaker, "lifeday"',
-    'startHolidayEvent(speaker, "loveday"'
+    'startHolidayEvent(speaker, "lifeday"'
 ))
 {
     if (-not $speech.Contains($retained)) { throw "Shared holiday branch was removed: $retained" }
@@ -59,7 +57,15 @@ if ($Expectation -eq "Ready")
         throw "Runtime evidence is not ready."
     }
     $actual = (Get-FileHash $source -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($actual -ne $contract.buildEvidence.sourceSha256."holiday_controller.java") { throw "Source evidence mismatch." }
+    if ($actual -ne $contract.buildEvidence.sourceSha256."holiday_controller.java")
+    {
+        $laterContract = Get-Content (Join-Path $restorationRoot "contracts/p14-later-holiday-control-plane-retirement.json") -Raw | ConvertFrom-Json
+        if ($laterContract.status -ne "ready" -or
+            $actual -ne $laterContract.buildEvidence.sourceSha256."holiday_controller.java")
+        {
+            throw "Source evidence mismatch."
+        }
+    }
     $patch = Join-Path $restorationRoot "patches/dsrc/178-p14-empire-day-control-plane-retirement.patch"
     $actual = (Get-FileHash $patch -Algorithm SHA256).Hash.ToLowerInvariant()
     if ((Get-Item $patch).Length -ne $contract.buildEvidence.overlayPatchBytes -or
