@@ -1623,3 +1623,13 @@ immediate activation and deactivation without weakening the default
 `lifeday=false` boundary. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LifeDay2004AdmissionRestoration.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The five original conversations form a one-time talk-to-NPC quest rather than
+a candy/orb collection. Kkatamik initializes a tracker, the Elder contributes
+bit 1, and Anarra, Tebeurra, and Radrrl contribute bits 2, 4, and 8; mask 15
+unlocks a four-item random reward or Wookiee robe choice. Reward state changes
+only after successful inventory creation, so a full inventory remains
+retryable. The historical unused age calculation and unreachable fallback are
+retained exactly. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14LifeDay2004QuestStateMachine.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

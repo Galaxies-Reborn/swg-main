@@ -876,3 +876,8 @@ spawner.
 city and twelve forest quest anchors only on authoritative scene servers,
 corrects the forest coordinate fan-out, owns both anchor and celebrity NPC
 lifecycles, and adds an identity-locked activation/cleanup fixture.
+
+Milestone 192 is evidence-only. It locks the retained `lifeday04*` scripts as
+a four-bit, one-time conversation quest, proves full-inventory reward retries,
+classifies candy/orbs as passive scenery rather than collection objectives,
+and preserves the original unused age calculation without inventing a gate.
