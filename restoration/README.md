@@ -1522,3 +1522,11 @@ limited to eight event-specific spawn-name families and the exact
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDaySpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The independent Empire Day building-interior spawner now destroys tracked
+NPCs, removes their persistent tracking state, and detaches from its host
+building. Eight buildout attachments and 317 rows across 12 later spawn
+tables are covered; the host cantinas and military buildings remain intact.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmpireDayInteriorSpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

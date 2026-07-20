@@ -802,3 +802,7 @@ sound/NPC/dropship cleanup before detaching both parade anchors.
 Remembrance Day area, patrol, and random-sign spawners through a narrowly
 scoped shared predicate, cleanup-first lifecycle detachment, and callback
 guards while retaining ordinary generic spawning.
+
+`177-p14-empire-day-interior-spawner-retirement.patch` destroys tracked
+Empire Day building-interior NPCs, clears their persistent tracking state,
+and detaches the independent spawner while retaining its host buildings.

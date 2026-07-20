@@ -1,0 +1,50 @@
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/empire_day_interior_npc_spawner.java b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/empire_day_interior_npc_spawner.java
+index f1816ce..1f8b992 100644
+--- a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/empire_day_interior_npc_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/empire_day_interior_npc_spawner.java
+@@ -15,16 +15,41 @@ public class empire_day_interior_npc_spawner extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        CustomerServiceLog("holidayEvent", "empire_day_interior_npc_spawner.OnAttach: Initialized.");
+-        messageTo(self, "beginEmpireDaySpawning", null, (holiday.EMPIRE_DAY_EVENT_START_DELAY + 300), false);
++        cleanupTrackedEmpireDaySpawns(self);
++        detachScript(self, "theme_park.dungeon.empire_day_interior_npc_spawner");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        CustomerServiceLog("holidayEvent", "empire_day_interior_npc_spawner.OnInitialize: Initialized.");
+-        messageTo(self, "beginEmpireDaySpawning", null, (holiday.EMPIRE_DAY_EVENT_START_DELAY + 300), false);
++        cleanupTrackedEmpireDaySpawns(self);
++        detachScript(self, "theme_park.dungeon.empire_day_interior_npc_spawner");
+         return SCRIPT_CONTINUE;
+     }
++    public void cleanupTrackedEmpireDaySpawns(obj_id self) throws InterruptedException
++    {
++        if (!hasObjVar(self, "empire_day_spawn_table"))
++        {
++            return;
++        }
++        String datatable = getStringObjVar(self, "empire_day_spawn_table");
++        int numberOfCreatures = dataTableGetNumRows(datatable);
++        for (int i = 0; i < numberOfCreatures; i++)
++        {
++            String trackingObjVar = "empire_day_spawned" + i;
++            if (!hasObjVar(self, trackingObjVar))
++            {
++                continue;
++            }
++            obj_id spawnedCreature = getObjIdObjVar(self, trackingObjVar);
++            if (isIdValid(spawnedCreature) && exists(spawnedCreature))
++            {
++                destroyObject(spawnedCreature);
++            }
++            removeObjVar(self, trackingObjVar);
++        }
++        removeObjVar(self, "set_room");
++        utils.removeScriptVar(self, "spawnCounter");
++    }
+     public int beginEmpireDaySpawning(obj_id self, dictionary params) throws InterruptedException
+     {
+         if (!isEmpireDayRunning())
