@@ -1261,3 +1261,12 @@ retention, no schematic grant, modifier rollback, both terminal-cap retentions,
 and idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianMasterProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician profession closure restores the top-level `social_musician` root as
+a searchable `fourByFour` profession definition and verifies the complete
+19-row family against one normalized Publish 14.1 digest. This removes the
+last NGE-hidden, graphless Musician table row after every purchasable box was
+already restored. The compiled table loaded in the protocol-83 client and the
+Skills window opened off-focus at the restored 250-point baseline. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianProfessionClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
