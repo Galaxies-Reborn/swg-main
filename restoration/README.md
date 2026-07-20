@@ -1331,3 +1331,11 @@ to its neutral value of one for the classless Publish 14.1 progression model.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14GcwCraftingToolClassRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The shared profession predicate now answers from exact Publish 14.1 novice
+skill ownership, permitting simultaneous professions instead of reading one
+NGE class template. The retained Officer enum is a compatibility alias for
+Squad Leader, Force Sensitive uses native Jedi state, and Spy and unknown
+values fail closed. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ProfessionOwnershipPredicate.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

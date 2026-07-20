@@ -762,3 +762,8 @@ cleanup.
 `072-p14-entertainer-dance-one-progression.patch` restores exact Dance I,
 including Basic 2, and adds the protocol-40 purchase, playback, surrender,
 novice-cap recomputation, and cleanup fixture.
+
+`151-p14-profession-ownership-predicate.patch` removes the singular NGE class
+template from the shared profession predicate. It maps retained compatibility
+enums to exact Publish 14.1 novice ownership, native Jedi state, or a
+fail-closed result, and adds an identity-bound reversible live fixture.
