@@ -1234,3 +1234,12 @@ retention, 500,000-cap recomputation, independent Healing-cap retention,
 modifier rollback, and idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeTwoProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Musician Knowledge III restores Knowledge II, 175,000 Music XP, three points,
+a 900,000 Music cap, Waltz, Flutedroopy, and +10 Music healing ability. It
+moves Flutedroopy back to its authentic branch after removal from NGE-mutated
+Shock III. Protocol 81 proves purchase, production surrender, all parent
+commands retained, 700,000-cap recomputation, independent Healing-cap
+retention, modifier rollback, and idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14MusicianKnowledgeThreeProgression.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
