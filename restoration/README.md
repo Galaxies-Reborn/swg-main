@@ -1390,3 +1390,11 @@ Both PGC reward overloads fail closed while the rest of the isolated
 Chronicles compatibility surface remains untouched. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PgcQuestXpRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+GCW score rows and instance-entry logs no longer present one NGE roadmap
+profession or combat level. They use a neutral `Publish 14.1 skills` label and
+level zero where the fixed GCW schema requires a value. Score accumulation,
+faction data, group logging, and both instance transfer calls remain intact.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NeutralProgressionPresentation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
