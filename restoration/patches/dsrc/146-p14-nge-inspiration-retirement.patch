@@ -1,13 +1,10 @@
 diff --git a/sku.0/sys.server/compiled/game/script/library/performance.java b/sku.0/sys.server/compiled/game/script/library/performance.java
-index 31de789ff..1ec178d26 100755
 --- a/sku.0/sys.server/compiled/game/script/library/performance.java
 +++ b/sku.0/sys.server/compiled/game/script/library/performance.java
-@@ -2220,40 +2220,20 @@ public class performance extends script.base_script
-         }
-         return true;
+@@ -2292,37 +2292,17 @@ public class performance extends script.base_script
      }
--    public static float inspireGetMaxDuration(obj_id actor) throws InterruptedException
--    {
+     public static float inspireGetMaxDuration(obj_id actor) throws InterruptedException
+     {
 -        int can_heal = canPerformanceHeal(actor);
 -        float pctComplete = respec.getPercentageCompletion(actor, getSkillTemplate(actor));
 -        float totInspireSkill = (pctComplete * 300.0f);
@@ -36,35 +33,24 @@ index 31de789ff..1ec178d26 100755
 -            maxDuration = maxDuration * 0.2f;
 -        }
 -        return maxDuration;
--    }
--    public static boolean inspire(obj_id actor, String perf_type) throws InterruptedException
--    {
--        if (!isIdValid(actor))
-+    public static float inspireGetMaxDuration(obj_id actor) throws InterruptedException
-+    {
 +        // The NGE profession-completion inspiration duration is not a
 +        // Publish 14.1 mechanic. Pre-CU entertainer attribute buffs are a
 +        // separate skill-mod/session restoration boundary.
 +        return 0.0f;
-+    }
-+    public static boolean inspire(obj_id actor, String perf_type) throws InterruptedException
-+    {
+     }
+     public static boolean inspire(obj_id actor, String perf_type) throws InterruptedException
+     {
 +        if (!isNgeInspirationEnabled())
 +        {
 +            return false;
 +        }
-+        if (!isIdValid(actor))
+         if (!isIdValid(actor))
          {
              return false;
+@@ -2405,6 +2385,10 @@ public class performance extends script.base_script
          }
-@@ -2333,8 +2313,12 @@ public class performance extends script.base_script
-         for (obj_id obj_id : band) {
-             xp.grantSocialStyleXp(obj_id, xp.ENTERTAINER, experience);
-         }
--        return true;
--    }
-+        return true;
-+    }
+         return true;
+     }
 +    private static boolean isNgeInspirationEnabled()
 +    {
 +        return false;
@@ -73,11 +59,10 @@ index 31de789ff..1ec178d26 100755
          String formattedTime = "";
          time /= 60;
 diff --git a/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_dance.java b/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_dance.java
-index c5f929577..af47cc3d3 100755
 --- a/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_dance.java
 +++ b/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_dance.java
-@@ -153,7 +153,6 @@ public class active_dance extends script.base_script
-         if (performance.applyPerformanceActionCost(self, 1.0f))
+@@ -147,7 +147,6 @@ public class active_dance extends script.base_script
+         if (performance.applyPerformanceLoopActionCost(self))
          {
              performance.performanceHeal(self, performance.PERFORMANCE_TYPE_DANCE, 1.0f);
 -            performance.inspire(self, performance.PERFORMANCE_TYPE_DANCE);
@@ -85,11 +70,10 @@ index c5f929577..af47cc3d3 100755
              int xpAmt = performance.calcPerformanceXp(self);
              int entXpAmt = 0;
 diff --git a/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_juggle.java b/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_juggle.java
-index fc0177cf6..1a58c1eb4 100755
 --- a/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_juggle.java
 +++ b/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_juggle.java
 @@ -137,7 +137,6 @@ public class active_juggle extends script.base_script
-         if (performance.applyPerformanceActionCost(self, 1.0f))
+         if (performance.applyPerformanceLoopActionCost(self))
          {
              performance.performanceHeal(self, performance.PERFORMANCE_TYPE_JUGGLE, 1.0f);
 -            performance.inspire(self, performance.PERFORMANCE_TYPE_DANCE);
@@ -97,11 +81,10 @@ index fc0177cf6..1a58c1eb4 100755
              int xpAmt = performance.calcPerformanceXp(self);
              int entXpAmt = 0;
 diff --git a/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_music.java b/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_music.java
-index e140c7129..18651f275 100755
 --- a/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_music.java
 +++ b/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_music.java
-@@ -173,7 +173,6 @@ public class active_music extends script.base_script
-                 if (performance.applyPerformanceActionCost(self, 1.0f))
+@@ -167,7 +167,6 @@ public class active_music extends script.base_script
+                 if (performance.applyPerformanceLoopActionCost(self))
                  {
                      performance.performanceHeal(self, performance.PERFORMANCE_TYPE_MUSIC, 1.0f);
 -                    performance.inspire(self, performance.PERFORMANCE_TYPE_MUSIC);

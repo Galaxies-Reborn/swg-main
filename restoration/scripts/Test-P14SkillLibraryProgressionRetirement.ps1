@@ -82,7 +82,19 @@ if ($Expectation -eq "Ready")
         "precu_skill_library_retirement_fixture.java" = $fixturePath
     }.GetEnumerator())
     {
-        $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Value).Hash.ToLowerInvariant()
+        $sourceBytes = [Text.Encoding]::UTF8.GetBytes(
+            ([IO.File]::ReadAllText($entry.Value) -replace "`r`n", "`n"))
+        $sourceSha = [Security.Cryptography.SHA256]::Create()
+        try
+        {
+            $actual = ([BitConverter]::ToString(
+                $sourceSha.ComputeHash($sourceBytes))).Replace(
+                    "-", "").ToLowerInvariant()
+        }
+        finally
+        {
+            $sourceSha.Dispose()
+        }
         if ($actual -ne $contract.buildEvidence.sourceSha256.($entry.Key))
         {
             throw "Source evidence mismatch: $($entry.Key)"

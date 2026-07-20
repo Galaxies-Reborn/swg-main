@@ -1406,3 +1406,8 @@ expertise allocations are removed with the narrow native reset so pre-CU buffs
 and respec state remain untouched. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SkillLibraryProgressionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The NGE-inspiration retirement overlay is rebased onto the preceding
+entertainer healing and action-drain overlays. This preserves identical
+runtime behavior while allowing the numbered overlay series to replay
+sequentially from the pinned baseline through milestone 160.
