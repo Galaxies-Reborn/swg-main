@@ -1488,3 +1488,10 @@ initialization, preserving serialized objects without exposing invite menus
 or sending relationship-acceptance messages. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerInvitationTerminalRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The later shared holiday-band spawner now destroys tracked musicians and
+instruments on initialization, then detaches. New attachments detach without
+spawning or creating badge trigger volumes. Buildout anchors and their
+separate event cleanup scripts remain intact. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StorytellerBandSpawnerRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

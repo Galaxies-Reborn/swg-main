@@ -783,3 +783,7 @@ commands remain available for later-era object cleanup.
 `171-p14-storyteller-invitation-terminal-retirement.patch` detaches persisted
 invitation terminals at attach and initialization, retaining object linkage
 without active invite menus or relationship messages.
+
+`172-p14-storyteller-band-spawner-retirement.patch` cleans up tracked holiday
+band members and instruments before detaching the shared spawner. Buildout
+anchors and separate event cleanup scripts remain intact.
