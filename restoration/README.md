@@ -1398,3 +1398,11 @@ faction data, group logging, and both instance transfer calls remain intact.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NeutralProgressionPresentation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Residual public skill-library compatibility helpers no longer calculate HAM
+or secondary statistics from an NGE profession/combat level, emit level-up
+stat spam, or validate expertises against a singular class template. Persisted
+expertise allocations are removed with the narrow native reset so pre-CU buffs
+and respec state remain untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SkillLibraryProgressionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
