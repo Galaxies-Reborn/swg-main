@@ -1369,3 +1369,11 @@ The already-restored Publish 14.1 entertainer Mind or Focus/Willpower session
 remains the authoritative buff path. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeEntertainerCollectionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Later droid combat-module display tiers and droid caps no longer rise from a
+singular NGE Trader class or combat levels 30/60. Positive module potency keeps
+the classless runtime's neutral display level one and the inherited cap stays
+60; exact Droid Engineer ownership does not reactivate the unauthored bonus.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeDroidClassBonusRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
