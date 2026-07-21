@@ -1,0 +1,172 @@
+diff --git a/sku.0/sys.server/compiled/game/script/combat_engine.java b/sku.0/sys.server/compiled/game/script/combat_engine.java
+index c4dcc76..fce2073 100644
+--- a/sku.0/sys.server/compiled/game/script/combat_engine.java
++++ b/sku.0/sys.server/compiled/game/script/combat_engine.java
+@@ -119,9 +119,10 @@ public class combat_engine
+ 			dictionary precu = base_class.dataTableGetRow("datatables/combat/precu_combat_overrides.iff", actionName);
+ 			if (precu != null)
+ 			{
+-				dat.precuHamCostModel			= 1;
+-				dat.precuTargetPool				= precu.getInt("targetPool");
+-				dat.healthCost					= precu.getFloat("healthCostMultiplier");
++				dat.precuHamCostModel			= 1;
++				dat.precuTargetPool				= precu.getInt("targetPool");
++				dat.precuAnimationType			= precu.getInt("animationType");
++				dat.healthCost					= precu.getFloat("healthCostMultiplier");
+ 				dat.actionCost					= precu.getFloat("actionCostMultiplier");
+ 				dat.mindCost					= precu.getFloat("mindCostMultiplier");
+ 			}
+@@ -235,8 +236,9 @@ public class combat_engine
+ 			dict.put("healthCost", actionData.healthCost);
+ 			dict.put("actionCost", actionData.actionCost);
+ 			dict.put("mindCost", actionData.mindCost);
+-			dict.put("precuHamCostModel", actionData.precuHamCostModel);
+-			dict.put("precuTargetPool", actionData.precuTargetPool);
++			dict.put("precuHamCostModel", actionData.precuHamCostModel);
++			dict.put("precuTargetPool", actionData.precuTargetPool);
++			dict.put("precuAnimationType", actionData.precuAnimationType);
+ 			dict.put("vigorCost", actionData.vigorCost);
+ 			dict.put("scaleByDefenderWeaponSpeed", actionData.scaleByDefenderWeaponSpeed);
+ 			dict.put("dotType", actionData.dotType);
+@@ -339,8 +341,9 @@ public class combat_engine
+ 				dat.healthCost 						= dict.getFloat("healthCost");
+ 				dat.actionCost 						= dict.getFloat("actionCost");
+ 				dat.mindCost 						= dict.getFloat("mindCost");
+-				dat.precuHamCostModel				= dict.getInt("precuHamCostModel");
+-				dat.precuTargetPool					= dict.getInt("precuTargetPool");
++				dat.precuHamCostModel				= dict.getInt("precuHamCostModel");
++				dat.precuTargetPool					= dict.getInt("precuTargetPool");
++				dat.precuAnimationType				= dict.getInt("precuAnimationType");
+ 				dat.vigorCost 						= dict.getFloat("vigorCost");
+ 				dat.scaleByDefenderWeaponSpeed		= dict.getFloat("scaleByDefenderWeaponSpeed");
+ 				dat.dotType 						= dict.getString("dotType");
+@@ -461,8 +464,9 @@ public class combat_engine
+ 			public float	healthCost 						= 0;
+ 			public float	actionCost 						= 0;
+ 			public float	mindCost 						= 0;
+-			public int		precuHamCostModel				= 0;
+-			public int		precuTargetPool					= -1;
++			public int		precuHamCostModel				= 0;
++			public int		precuTargetPool					= -1;
++			public int		precuAnimationType				= 0;
+ 			public float 	vigorCost						= 0;
+ 			public float	scaleByDefenderWeaponSpeed				= 0;
+ 			public String 	dotType 						= "";
+diff --git a/sku.0/sys.server/compiled/game/script/library/combat.java b/sku.0/sys.server/compiled/game/script/library/combat.java
+index 52d5ebd..c756708 100644
+--- a/sku.0/sys.server/compiled/game/script/library/combat.java
++++ b/sku.0/sys.server/compiled/game/script/library/combat.java
+@@ -2854,8 +2854,8 @@ public class combat extends script.base_script
+         }
+         return actionName;
+     }
+-    public static String getActionAnimation(combat_data actionData, String weaponType) throws InterruptedException
+-    {
++    public static String getActionAnimation(combat_data actionData, String weaponType) throws InterruptedException
++    {
+         String animation = "";
+         switch (weaponType) {
+             case "unarmed":
+@@ -2910,9 +2910,27 @@ public class combat extends script.base_script
+         if (anims.length > 1)
+         {
+             animation = anims[rand(0, anims.length - 1)];
+-        }
+-        return animation;
+-    }
++        }
++        return animation;
++    }
++    public static String getPrecuActionAnimation(combat_data actionData, String weaponType, int hitLocation, int weaponMaxDamage, int damage) throws InterruptedException
++    {
++        String animation = getActionAnimation(actionData, weaponType);
++        if (animation == null || animation.equals("") ||
++            actionData.precuAnimationType <= 0 ||
++            animation.startsWith("*creature_attack"))
++        {
++            return animation;
++        }
++        int threshold = Math.max(0, weaponMaxDamage) >> 2;
++        animation += damage > threshold ? "_medium" : "_light";
++        if (actionData.precuAnimationType == 1 &&
++            hitLocation == HIT_LOCATION_HEAD)
++        {
++            animation += "_face";
++        }
++        return animation;
++    }
+     public static String getCreatureAnimationName(String playbackName) throws InterruptedException
+     {
+         obj_id self = getSelf();
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 306c9a6..e6157fd 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -1673,7 +1673,18 @@ public class combat_base extends script.base_script
+             {
+                 combat.addHateProcess(attackerData.id, defenderData[i].id, hitData[i], actionData);
+             }
+-            playbackNames[i] = combat.getActionAnimation(actionData, combat.getWeaponStringType(weaponData.weaponType));
++            playbackNames[i] = combat.getPrecuActionAnimation(
++                actionData,
++                combat.getWeaponStringType(weaponData.weaponType),
++                hitData[i].hitLocation,
++                weaponData.maxDamage,
++                hitData[i].damage);
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "animation.generated", playbackNames[i]);
++            recordPrecuLiveDiagnostic(
++                attackerData.id,
++                "animation.type",
++                actionData.precuAnimationType);
+             if (hitType == combat.NON_DAMAGE_ATTACK && hasScript(defenderData[i].id, "player.player_logout"))
+             {
+                 defenders[i] = null;
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index dea7f29..a2a41b3 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -1145,9 +1145,13 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "targetPool.configured", -1) +
+             " diagnosticTargetPoolResolved=" +
+                 readDiagnosticInt(attacker, "targetPool.resolved", -1) +
+-            " diagnosticHitLocation=" +
+-                readDiagnosticInt(attacker, "armor.hitLocation", -1) +
+-            " pvpCanAttack=" + pvpCanAttack(attacker, defender) +
++            " diagnosticHitLocation=" +
++                readDiagnosticInt(attacker, "armor.hitLocation", -1) +
++            " diagnosticAnimation=" +
++                readDiagnosticString(attacker, "animation.generated", "none") +
++            " diagnosticAnimationType=" +
++                readDiagnosticInt(attacker, "animation.type", -1) +
++            " pvpCanAttack=" + pvpCanAttack(attacker, defender) +
+             " attackerInCombat=" + combat.isInCombat(attacker) +
+             " defenderInCombat=" + combat.isInCombat(defender) +
+             " attackerHealth=" + getAttrib(attacker, HEALTH) +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 7282e51..89fe56b 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -1,11 +1,11 @@
+-actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus
+-s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2,RANDOM=3)[HEALTH]"	f	i
+-__precu_runtime_probe	0	0	0	HEALTH	0	0
+-headShot1	0.5	0.5	1	MIND	1.5	5
+-bodyShot1	0.5	0.75	0.5	HEALTH	1	50
+-legShot1	2.25	1.25	0.5	ACTION	2	25
+-polearmLegHit1	1	0.5	0.5	ACTION	1.25	10
+-polearmSpinAttack1	1.5	1	1	RANDOM	1.5	10
+-melee1hSpinAttack1	1	1	1.5	RANDOM	1.5	25
+-melee2hSpinAttack1	1	1.5	1	RANDOM	1.5	10
+-unarmedHeadHit1	1.75	1.75	1.75	MIND	2	15
++actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus	animationType
++s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2,RANDOM=3)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"
++__precu_runtime_probe	0	0	0	HEALTH	0	0	NONE
++headShot1	0.5	0.5	1	MIND	1.5	5	RANGED
++bodyShot1	0.5	0.75	0.5	HEALTH	1	50	RANGED
++legShot1	2.25	1.25	0.5	ACTION	2	25	NONE
++polearmLegHit1	1	0.5	0.5	ACTION	1.25	10	NONE
++polearmSpinAttack1	1.5	1	1	RANDOM	1.5	10	NONE
++melee1hSpinAttack1	1	1	1.5	RANDOM	1.5	25	NONE
++melee2hSpinAttack1	1	1.5	1	RANDOM	1.5	10	NONE
++unarmedHeadHit1	1.75	1.75	1.75	MIND	2	15	NONE

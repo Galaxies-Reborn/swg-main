@@ -1703,3 +1703,12 @@ fixture restores both current HAM and any generated wounds or shock. Validate:
 Validate the paired Core3 one-handed/two-handed area-spin restoration with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3MeleeSpinAttacks.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build
+
+Core3 generated combat animations now preserve the command's base token and
+append `_medium` only when applied damage exceeds one quarter of the weapon's
+maximum damage; otherwise they append `_light`. `GENERATE_RANGED` additionally
+appends `_face` for a head hit, while `GENERATE_INTENSITY` does not. Commands
+without explicit metadata retain their existing animation, and creature
+wildcard routing remains unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3GeneratedAnimation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
