@@ -1,0 +1,102 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 714db9d..a00ae96 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14632,6 +14632,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int fanShot(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("fanShot", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int bodyShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("bodyShot2", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_pistoleer_master_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_pistoleer_master_fixture.java
+index cb4710b..d31c555 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_pistoleer_master_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_pistoleer_master_fixture.java
+@@ -16,6 +16,7 @@ public class precu_pistoleer_master_fixture extends script.base_script
+     private static final String ORIGINAL_BITS = ROOT + ".originalBits";
+     private static final String MULTI_TARGET_COMMAND = "multiTargetPistolShot";
+     private static final String DISARM_COMMAND = "disarmingShot2";
++    private static final String FAN_COMMAND = "fanShot";
+     private static final String[] SKILLS =
+     {
+         "combat_pistol_ability_04",
+@@ -127,7 +128,8 @@ public class precu_pistoleer_master_fixture extends script.base_script
+         }
+         if (!hasSkill(player, "combat_pistol_master") ||
+             !hasCommand(player, MULTI_TARGET_COMMAND) ||
+-            !hasCommand(player, DISARM_COMMAND))
++            !hasCommand(player, DISARM_COMMAND) ||
++            !hasCommand(player, FAN_COMMAND))
+         {
+             restore(player);
+             removeObjVar(player, ROOT);
+@@ -174,7 +176,8 @@ public class precu_pistoleer_master_fixture extends script.base_script
+         }
+         return originalBits[SKILLS.length - 1] == 1 ||
+             (!hasCommand(player, MULTI_TARGET_COMMAND) &&
+-                !hasCommand(player, DISARM_COMMAND));
++                !hasCommand(player, DISARM_COMMAND) &&
++                !hasCommand(player, FAN_COMMAND));
+     }
+ 
+     private String buildStatus(obj_id player) throws InterruptedException
+@@ -196,7 +199,12 @@ public class precu_pistoleer_master_fixture extends script.base_script
+                 (hasCommand(player, DISARM_COMMAND) ? "1" : "0") +
+             " canDisarmingShot2=" +
+                 (hasSkill(player, "combat_pistol_master") &&
+-                    hasCommand(player, DISARM_COMMAND) ? "1" : "0");
++                    hasCommand(player, DISARM_COMMAND) ? "1" : "0") +
++            " hasFanShot=" +
++                (hasCommand(player, FAN_COMMAND) ? "1" : "0") +
++            " canFanShot=" +
++                (hasSkill(player, "combat_pistol_ability_04") &&
++                    hasCommand(player, FAN_COMMAND) ? "1" : "0");
+     }
+ 
+     private String validateOwnership(obj_id player, String lifecycle)
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 2892096..70598b6 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1958,3 +1958,4 @@ melee2hSpinAttack2	combat	normal	melee2hSpinAttack2	failSpecialAttack			2.5	mele
+ pointBlankArea2	combat	normal	pointBlankArea2	failSpecialAttack			1.5	pointBlankArea2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ multiTargetPistolShot	combat	normal	multiTargetPistolShot	failSpecialAttack			3.5	multiTargetPistolShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	3.5	0		0	0	0
+ disarmingShot2	combat	normal	disarmingShot2	failSpecialAttack			2	disarmingShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	2	0		0	0	0
++fanShot	combat	normal	fanShot	failSpecialAttack			2	fanShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	2	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index a4df006..41a76e2 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1322,3 +1322,4 @@ melee2hSpinAttack2	melee2hSpinAttack2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	H
+ pointBlankArea2	pointBlankArea2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area_no_trails					fire_area_no_trails									OFF	OFF	OFF	OFF	OFF	CONE	12	60	0	12	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+ multiTargetPistolShot	multiTargetPistolShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single					fire_5_special_single									OFF	OFF	OFF	OFF	OFF	AREA	32		0	64	0	0	4.2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+ disarmingShot2	disarmingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_3_single					fire_3_single									OFF	OFF	OFF	OFF	OFF	CONE	64	15	0	64	0	0	2.75	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
++fanShot	disarmingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area					fire_area									OFF	OFF	OFF	OFF	OFF	CONE	64	60	0	64	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index bec7320..62b63c6 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -38,3 +38,4 @@ melee2hSpinAttack2	1.5	2	1.5	RANDOM	2.5	10	INTENSITY
+ pointBlankArea2	0.5	1.5	0.5	RANDOM	1.5	50	INTENSITY
+ multiTargetPistolShot	0.5	1.25	0.5	RANDOM	3.5	50	RANGED
+ disarmingShot2	0.5	1	0.5	RANDOM	2	50	RANGED
++fanShot	0.5	1	0.5	RANDOM	2	50	INTENSITY
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 09ef631..d1d7a4e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -37,3 +37,4 @@ melee2hSpinAttack2	spinslam
+ pointBlankArea2	areashot
+ multiTargetPistolShot	pistolmultishot
+ disarmingShot2	disarmblast
++fanShot	fanshot
+
