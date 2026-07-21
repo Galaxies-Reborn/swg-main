@@ -1028,3 +1028,9 @@ costs, 2x damage, 1.5 timing, +15 accuracy, `pointblankblast` spam, aggregate
 ranged admission, a 12-meter maximum, a 15-meter area radius, and generated
 `fire_area_no_trails` intensity playback. The existing layered fixtures own
 Marksman novice, their complete prerequisite chains, and exact cleanup.
+
+`222-p14-core3-point-blank-area-two.patch` restores Pistoleer Accuracy IV's
+short-range `pointBlankArea2` with exact RANDOM targeting, 0.5/1.5/0.5 HAM
+costs, 4x damage, 1.5 timing, +50 accuracy, `areashot` spam, pistol admission,
+a 12-meter/60-degree cone, and generated `fire_area_no_trails` intensity
+playback. The layered fixture owns Accuracy I through IV and exact cleanup.
