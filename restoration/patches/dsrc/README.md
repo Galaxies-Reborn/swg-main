@@ -1041,3 +1041,8 @@ playback. The layered fixture owns Accuracy I through IV and exact cleanup.
 admission, a 32-meter area, and generated `fire_5_special_single` ranged
 playback. Its dedicated layer owns the remaining Pistoleer branches and
 master box while the established fixtures retain combat-state ownership.
+
+`224-p14-core3-disarming-shot-two.patch` restores Master Pistoleer's
+`disarmingShot2` with exact RANDOM targeting, 0.5/1.0/0.5 HAM costs, 2.75x
+damage, 2.0 timing, +50 accuracy, `disarmblast` spam, pistol admission, a
+15-degree/64-meter cone, and generated `fire_3_single` ranged playback.
