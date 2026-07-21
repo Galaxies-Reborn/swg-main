@@ -960,3 +960,8 @@ and generated `combo_2d` intensity playback.
 one-handed and two-handed melee hit specials with exact Brawler/Swordsman
 ownership, random HAM targeting, costs, damage, timing, accuracy, combat spam,
 Rantok/cleaver admission, and their distinct generated intensity animations.
+
+`211-p14-core3-polearm-leg-hit-continuation.patch` restores the two advanced
+Polearm leg-hit specials with exact Pikeman ownership, Action targeting, HAM
+costs, damage, timing, accuracy, `legsmasher`/`legbreaker` spam, wooden-staff
+admission, and their distinct generated intensity animations.
