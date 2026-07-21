@@ -965,3 +965,8 @@ Rantok/cleaver admission, and their distinct generated intensity animations.
 Polearm leg-hit specials with exact Pikeman ownership, Action targeting, HAM
 costs, damage, timing, accuracy, `legsmasher`/`legbreaker` spam, wooden-staff
 admission, and their distinct generated intensity animations.
+
+`212-p14-core3-polearm-hit-and-area.patch` restores the Brawler Polearm hit
+and Pikeman area special with exact ownership, RANDOM targeting, HAM costs,
+damage, timing, accuracy, `bonebruiser`/`whirlwind` spam, wooden-staff
+admission, generated intensity playback, and the area's 16-meter shape.
