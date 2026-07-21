@@ -988,3 +988,10 @@ costs, 4x damage, 2.0 timing, 25 accuracy, `burstshot` spam, CDEF carbine
 admission, and generated `fire_7_single` ranged playback. Its fixture owns
 the ability skill and CDEF carbine certification reversibly. `burstShot2`
 remains deferred because Core3 adds a separate 30-degree cone seam.
+
+`216-p14-core3-disarming-shot-one.patch` restores Pistoleer ability I's
+single-target `disarmingShot1` with exact RANDOM targeting, 0.5/0.75/0.5 HAM
+costs, 2x damage, 1.5 timing, 50 accuracy, `disarmshot` spam, CDEF pistol
+admission, and generated `fire_3_single` ranged playback. Its fixture owns
+the ability skill reversibly. `disarmingShot2` remains deferred because Core3
+adds a separate 15-degree cone seam.
