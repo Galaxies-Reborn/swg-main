@@ -950,3 +950,8 @@ Swordsman body-hit line with `melee1hBodyHit2` and `melee1hBodyHit3`. Both
 retain exact Core3 Health targeting, HAM costs, damage, timing, accuracy,
 `saisun`/`saitok` spam, Rantok admission, and generated intensity playback;
 the fixture snapshots and restores each command independently.
+
+`209-p14-core3-two-hand-head-hit-continuation.patch` restores all three
+ordinary two-handed head-hit specials with exact Brawler/Swordsman ownership,
+Mind targeting, HAM, damage, timing, accuracy, scalp spam, cleaver admission,
+and generated `combo_2d` intensity playback.
