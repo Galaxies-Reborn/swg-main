@@ -1014,3 +1014,10 @@ costs, 5x damage, 2.0 timing, 25 accuracy, `cripplingshot` spam, CDEF carbine
 admission, and generated `fire_5_single` ranged playback. Its fixture owns
 and restores both complete Marksman-to-elite prerequisite chains so advanced
 skill grants cannot leave hidden prerequisite boxes behind.
+
+`220-p14-core3-point-blank-single-two.patch` restores Pistoleer accuracy I's
+single-target `pointBlankSingle2` with exact RANDOM targeting, 1.0/1.0/1.0
+HAM costs, 3x damage, 1.8 timing, zero accuracy bonus, `pointblankblast` spam,
+CDEF pistol admission, a strict 10-meter maximum, and generated
+`fire_5_single` ranged playback. The reversible fixture owns the accuracy-I
+box and both complete Marksman-to-elite prerequisite chains.
