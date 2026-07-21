@@ -955,3 +955,8 @@ the fixture snapshots and restores each command independently.
 ordinary two-handed head-hit specials with exact Brawler/Swordsman ownership,
 Mind targeting, HAM, damage, timing, accuracy, scalp spam, cleaver admission,
 and generated `combo_2d` intensity playback.
+
+`210-p14-core3-basic-melee-hits.patch` restores the first two ordinary
+one-handed and two-handed melee hit specials with exact Brawler/Swordsman
+ownership, random HAM targeting, costs, damage, timing, accuracy, combat spam,
+Rantok/cleaver admission, and their distinct generated intensity animations.
