@@ -1034,3 +1034,10 @@ short-range `pointBlankArea2` with exact RANDOM targeting, 0.5/1.5/0.5 HAM
 costs, 4x damage, 1.5 timing, +50 accuracy, `areashot` spam, pistol admission,
 a 12-meter/60-degree cone, and generated `fire_area_no_trails` intensity
 playback. The layered fixture owns Accuracy I through IV and exact cleanup.
+
+`223-p14-core3-multi-target-pistol-shot.patch` restores Master Pistoleer's
+`multiTargetPistolShot` with exact RANDOM targeting, 0.5/1.25/0.5 HAM costs,
+4.2x damage, 3.5 timing, +50 accuracy, `pistolmultishot` spam, pistol
+admission, a 32-meter area, and generated `fire_5_special_single` ranged
+playback. Its dedicated layer owns the remaining Pistoleer branches and
+master box while the established fixtures retain combat-state ownership.
