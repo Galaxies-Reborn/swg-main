@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-body-shot-continuation",
+  "status": "ready",
+  "scope": "Restore the Publish 14.1 Marksman/Pistoleer bodyShot2 and bodyShot3 progression with exact Core3 combat metadata and authoritative generated-ranged playback.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "commands": [
+      {
+        "name": "bodyShot2",
+        "source": "MMOCoreORB/bin/scripts/commands/bodyShot2.lua",
+        "skillOwner": "combat_marksman_pistol_03",
+        "damageMultiplier": 3.0,
+        "speedMultiplier": 1.0,
+        "hamCostMultipliers": [0.5, 1.0, 0.5],
+        "accuracyBonus": 50
+      },
+      {
+        "name": "bodyShot3",
+        "source": "MMOCoreORB/bin/scripts/commands/bodyShot3.lua",
+        "skillOwner": "combat_pistol_accuracy_03",
+        "damageMultiplier": 4.0,
+        "speedMultiplier": 1.0,
+        "hamCostMultipliers": [0.75, 1.25, 0.75],
+        "accuracyBonus": 50
+      }
+    ],
+    "shared": {
+      "targetPool": "HEALTH",
+      "weaponType": "PISTOL",
+      "animation": "fire_1_special_single",
+      "animationType": "RANGED",
+      "combatSpam": "bodyshot",
+      "range": -1
+    }
+  },
+  "buildEvidence": {
+    "overlay": "restoration/patches/dsrc/205-p14-core3-body-shot-continuation.patch",
+    "javaCompile": "passed",
+    "datatableCompile": "passed",
+    "staticContract": "passed",
+    "materializedOverlayCount": 211,
+    "materializedRestorationFileCount": 602,
+    "materializedFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "commandTableSha256": "A6DE28C463A6B34E5353756EB9D7A3B8F0B74713800C353CE21CA8C7470A4CDA",
+    "combatDataSha256": "9E4D285BEB6F6F25497DF8F6479E5685D41D1A559B27AF7C4322063214BF0AAA",
+    "overrideTableSha256": "444FF1EB498BC1D57BF4D24937FBBBACDE13243E90008795A8FC0A05535A38D2",
+    "spamTableSha256": "AA7751B91B6828C044238A7D734D81C73313B8725CA3435EFD3E87F74318E040"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 103,
+    "attacker": { "stationId": 91001, "objectId": 44003778 },
+    "defender": { "stationId": 1001, "objectId": 39008597 },
+    "lifecycle": "20720720720720720720720720720721",
+    "weaponTemplate": "object/weapon/ranged/pistol/pistol_cdef.iff",
+    "weaponType": 2,
+    "validMask": "0x0004",
+    "bodyShot2": {
+      "spamKey": "bodyshot_hit",
+      "damage": 53,
+      "configuredTargetPool": 0,
+      "resolvedTargetPool": 0,
+      "hitLocation": 0,
+      "animation": "fire_1_special_single_medium",
+      "animationType": 1
+    },
+    "bodyShot3": {
+      "spamKey": "bodyshot_hit",
+      "damage": 70,
+      "configuredTargetPool": 0,
+      "resolvedTargetPool": 0,
+      "hitLocation": 2,
+      "animation": "fire_1_special_single_medium",
+      "animationType": 1
+    },
+    "fixtureCleanup": "passed",
+    "idempotentCleanup": "passed",
+    "serverHealthy": true,
+    "clientSha256": "56A155607EB532BA94075B466CBFFB201EE155A00C795971CFB1576C7C2D8318",
+    "runtimeTreSha256": "5F6AFFAEAA1F2117AA7A5CD2DA495C8CE20AE80F8B84EFA741F4F1987B909ED2"
+  },
+  "guardrails": [
+    "The fixture snapshots and restores both body-shot commands and the pistol CDEF certification.",
+    "The fixture creates and destroys only its exact pistol_cdef object.",
+    "The client queues production commands and never fabricates damage, target pools, spam, or animation results.",
+    "Cleanup is identity-bound, lifecycle-bound, reversible, and idempotent."
+  ]
+}

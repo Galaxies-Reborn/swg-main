@@ -1712,3 +1712,9 @@ without explicit metadata retain their existing animation, and creature
 wildcard routing remains unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3GeneratedAnimation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Validate the exact Core3 `bodyShot2` / `bodyShot3` Marksman-Pistoleer
+continuation, including skill ownership, Health targeting, generated ranged
+animation metadata, combat spam, and reversible pistol fixture ownership:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3BodyShotContinuation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -918,3 +918,17 @@ across the inclusive 0..100 roll, then the same resolved pool drives physical
 hit location, HAM damage, and wound attribution. The area pilot retains its
 16-meter Core3 range, and its identity-bound fixture now snapshots and
 restores all nine wounds plus shock wounds.
+
+`203-p14-core3-melee-spin-attacks.patch` restores the first one- and two-hand
+AREA specials with exact Core3 HAM, accuracy, spam, animation, and weapon
+metadata, backed by reversible Rantok and cleaver fixture objects.
+
+`204-p14-core3-generated-animation.patch` restores Core3's generated ranged
+and intensity suffix rules after authoritative damage and hit-location
+resolution while leaving unmapped and creature-wildcard animations unchanged.
+
+`205-p14-core3-body-shot-continuation.patch` restores `bodyShot2` and
+`bodyShot3` with their exact Marksman/Pistoleer ownership, pistol admission,
+Health targeting, HAM costs, damage multipliers, `bodyshot` spam, and generated
+ranged playback. The live fixture owns a reversible CDEF pistol and snapshots
+both commands plus its certification.
