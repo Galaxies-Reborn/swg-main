@@ -1661,3 +1661,15 @@ remain outside generic surrender because those paths require specialized
 village, trial, and rank state transitions. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ForceSensitiveSurrender.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Restored combat commands now emit the Publish-era `cbt_spam` prose key selected
+by the pinned Core3 command stem and the authoritative hit, miss, evade,
+counter, or block result. Hit prose receives applied damage; defended prose
+receives the raw pre-defense value. Commands without a mapping retain the
+existing SWGSource fallback.
+
+The live fixture also owns the CDEF rifle certification explicitly and
+reversibly. Empty-profession startup no longer makes the authenticated
+`headShot1` validation depend on a stale character-template grant. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CombatSpam.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
