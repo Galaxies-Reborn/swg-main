@@ -995,3 +995,9 @@ costs, 2x damage, 1.5 timing, 50 accuracy, `disarmshot` spam, CDEF pistol
 admission, and generated `fire_3_single` ranged playback. Its fixture owns
 the ability skill reversibly. `disarmingShot2` remains deferred because Core3
 adds a separate 15-degree cone seam.
+
+`217-p14-core3-double-tap.patch` restores Pistoleer ability II's single-target
+`doubleTap` with exact RANDOM targeting, 0.5/0.75/0.5 HAM costs, 2.8x damage,
+2.1 timing, 50 accuracy, `doubletap` spam, CDEF pistol admission, and generated
+`fire_7_single` ranged playback. Its fixture owns the ability-II skill
+reversibly and uses the already-proven ordinary generic combat path.
