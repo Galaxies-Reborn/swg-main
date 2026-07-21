@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-head-shot-continuation",
+  "status": "ready",
+  "scope": "Restore headShot2 and headShot3 with exact Core3 rifle, Mind-pool, combat-spam, timing, and generated-ranged behavior.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "commands": [
+      { "name": "headShot2", "source": "MMOCoreORB/bin/scripts/commands/headShot2.lua", "skillOwner": "combat_marksman_rifle_03", "damageMultiplier": 2.5, "speedMultiplier": 1.5, "hamCostMultipliers": [0.5, 0.5, 1.5], "accuracyBonus": 5, "combatSpam": "expertheadshot" },
+      { "name": "headShot3", "source": "MMOCoreORB/bin/scripts/commands/headShot3.lua", "skillOwner": "combat_rifleman_accuracy_02", "damageMultiplier": 3.0, "speedMultiplier": 2.0, "hamCostMultipliers": [0.5, 0.5, 2.5], "accuracyBonus": 5, "combatSpam": "masterheadshot" }
+    ],
+    "shared": { "targetPool": "MIND", "weaponType": "RIFLE", "animation": "fire_1_special_single", "animationType": "RANGED", "range": -1 }
+  },
+  "buildEvidence": {
+    "overlay": "restoration/patches/dsrc/206-p14-core3-head-shot-continuation.patch",
+    "javaCompile": "passed",
+    "datatableCompile": "passed",
+    "staticContract": "passed",
+    "materializedOverlayCount": 212,
+    "materializedRestorationFileCount": 605,
+    "materializedFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "commandTableSha256": "B6C57386CE0C1E39D0BD883B7DFB646110053602B6384D73CF3F7198749AC086",
+    "combatDataSha256": "9D35DCD2212B9713468709C8DFAC40E0DEC1CC0A483A1EBBF193ACF673F81168",
+    "overrideTableSha256": "3E665CCA36F44DBADDC274EB900967AD314CD61E69E8DA6485043ABC4D1CCB7A",
+    "spamTableSha256": "68838956B4B0F494F1AB26F36B386291DA811BF87157F3CB7135617A9844E456"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 106,
+    "attacker": { "stationId": 91001, "objectId": 44003778 },
+    "defender": { "stationId": 1001, "objectId": 39008597 },
+    "lifecycle": "20820820820820820820820820820821",
+    "weaponTemplate": "object/weapon/ranged/rifle/rifle_cdef.iff",
+    "weaponType": 0,
+    "validMask": "0x0001",
+    "headShot2": { "spamKey": "expertheadshot_hit", "damage": 55, "configuredTargetPool": 2, "resolvedTargetPool": 2, "hitLocation": 1, "animation": "fire_1_special_single_medium_face", "animationType": 1 },
+    "headShot3": { "spamKey": "masterheadshot_hit", "damage": 101, "configuredTargetPool": 2, "resolvedTargetPool": 2, "hitLocation": 1, "animation": "fire_1_special_single_medium_face", "animationType": 1 },
+    "fixtureCleanup": "passed",
+    "idempotentCleanup": "passed",
+    "serverHealthy": true,
+    "clientSha256": "A8211B6BE5BDF33027DC82514046D12903897A7EC7A1166712CCF0A06002D646",
+    "runtimeTreSha256": "A8011CDA3A8A9F027487C2EB5340EFE0FFFFE6BB7A17F15047CB1DDF80B452D2"
+  },
+  "guardrails": [
+    "headShot2 replaces its earlier duration-only placeholder with exact Core3 combat data.",
+    "The fixture snapshots and restores newly granted headShot3 ownership.",
+    "The existing exact CDEF rifle remains the only fixture weapon used by this slice.",
+    "Client diagnostics never fabricate server damage, pool, spam, hit-location, or animation results."
+  ]
+}

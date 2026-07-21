@@ -932,3 +932,9 @@ resolution while leaving unmapped and creature-wildcard animations unchanged.
 Health targeting, HAM costs, damage multipliers, `bodyshot` spam, and generated
 ranged playback. The live fixture owns a reversible CDEF pistol and snapshots
 both commands plus its certification.
+
+`206-p14-core3-head-shot-continuation.patch` replaces the earlier
+duration-only `headShot2` placeholder with exact Core3 combat behavior and
+adds `headShot3`. Both restore rifle admission, Mind targeting, exact costs,
+damage, accuracy, distinct combat spam, and generated ranged head playback;
+the existing fixture snapshots and restores the new command ownership.

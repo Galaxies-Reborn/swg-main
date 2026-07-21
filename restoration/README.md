@@ -1718,3 +1718,7 @@ continuation, including skill ownership, Health targeting, generated ranged
 animation metadata, combat spam, and reversible pistol fixture ownership:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3BodyShotContinuation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Validate the exact Core3 `headShot2` / `headShot3` rifle continuation:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3HeadShotContinuation.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
