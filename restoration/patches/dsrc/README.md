@@ -1021,3 +1021,10 @@ HAM costs, 3x damage, 1.8 timing, zero accuracy bonus, `pointblankblast` spam,
 CDEF pistol admission, a strict 10-meter maximum, and generated
 `fire_5_single` ranged playback. The reversible fixture owns the accuracy-I
 box and both complete Marksman-to-elite prerequisite chains.
+
+`221-p14-core3-point-blank-area-one.patch` restores Marksman novice's
+short-range `pointBlankArea1` with exact RANDOM targeting, 0.5/1.25/0.5 HAM
+costs, 2x damage, 1.5 timing, +15 accuracy, `pointblankblast` spam, aggregate
+ranged admission, a 12-meter maximum, a 15-meter area radius, and generated
+`fire_area_no_trails` intensity playback. The existing layered fixtures own
+Marksman novice, their complete prerequisite chains, and exact cleanup.
