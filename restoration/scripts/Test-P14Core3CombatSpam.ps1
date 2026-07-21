@@ -39,7 +39,7 @@ foreach ($required in @(
 
 $expectedRows = @(
     "headShot1`theadshot",
-    "bodyShot1`tbody",
+    "bodyShot1`tbodyshot",
     "legShot1`tleg"
 )
 foreach ($expectedRow in $expectedRows)

@@ -975,3 +975,9 @@ admission, generated intensity playback, and the area's 16-meter shape.
 ability I's `melee2hSpinAttack2` with exact Core3 RANDOM targeting, HAM costs,
 3x damage, 2.5 timing, 10 accuracy, `spinslam` spam, cleaver admission,
 generated `combo_4b` intensity playback, and its 16-meter area shape.
+
+`214-p14-core3-body-shot-one-closure.patch` closes the original Marksman
+`bodyShot1` path against pinned Core3 evidence. It corrects command timing
+from 1.5 to 1.0, restores the authentic `bodyshot` spam stem, and makes the
+reversible Marksman fixture ignore diagnostic-only objvars when validating
+ownership so retained diagnostics cannot block a fresh preparation.
