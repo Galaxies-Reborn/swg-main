@@ -938,3 +938,9 @@ duration-only `headShot2` placeholder with exact Core3 combat behavior and
 adds `headShot3`. Both restore rifle admission, Mind targeting, exact costs,
 damage, accuracy, distinct combat spam, and generated ranged head playback;
 the existing fixture snapshots and restores the new command ownership.
+
+`207-p14-core3-one-hand-body-hit-one.patch` restores the Brawler
+one-handed-II `melee1hBodyHit1` special with its exact Core3 Health target,
+HAM costs, damage, timing, accuracy, `saimai` spam, Rantok admission, and
+generated intensity playback. The identity-bound fixture reuses its existing
+Rantok while independently snapshotting and restoring the new command.
