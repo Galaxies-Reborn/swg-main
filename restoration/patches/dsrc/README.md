@@ -970,3 +970,8 @@ admission, and their distinct generated intensity animations.
 and Pikeman area special with exact ownership, RANDOM targeting, HAM costs,
 damage, timing, accuracy, `bonebruiser`/`whirlwind` spam, wooden-staff
 admission, generated intensity playback, and the area's 16-meter shape.
+
+`213-p14-core3-two-hand-spin-attack-continuation.patch` restores Swordsman
+ability I's `melee2hSpinAttack2` with exact Core3 RANDOM targeting, HAM costs,
+3x damage, 2.5 timing, 10 accuracy, `spinslam` spam, cleaver admission,
+generated `combo_4b` intensity playback, and its 16-meter area shape.
