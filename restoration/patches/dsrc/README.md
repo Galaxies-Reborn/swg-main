@@ -1001,3 +1001,9 @@ adds a separate 15-degree cone seam.
 2.1 timing, 50 accuracy, `doubletap` spam, CDEF pistol admission, and generated
 `fire_7_single` ranged playback. Its fixture owns the ability-II skill
 reversibly and uses the already-proven ordinary generic combat path.
+
+`218-p14-core3-stopping-shot.patch` restores Pistoleer ability III's
+single-target `stoppingShot` with exact RANDOM targeting, 0.5/1.25/0.5 HAM
+costs, 5x damage, 2.5 timing, 50 accuracy, `stoppingshot` spam, CDEF pistol
+admission, and generated `fire_1_special_single` ranged playback. Its fixture
+owns the ability-III skill reversibly.

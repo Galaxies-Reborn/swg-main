@@ -1,0 +1,218 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 04d25a4b41c12196674e08d0ed77bbc132300467..f87ac2d29aee5cc6c2d1c0feacab0a4ad7b94322 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14575,6 +14575,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int stoppingShot(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("stoppingShot", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int bodyShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("bodyShot2", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+index 1e8bc9fb1c9d0672e63a88e2fbbbe55c54ef12bf..f83286b2341dfde4c4b47af191c8d9a82d248e41 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+@@ -23,12 +23,14 @@ public class precu_marksman_tier1_fixture extends script.base_script
+     private static final String CARBINE_ONE = "combat_marksman_carbine_01";
+     private static final String PISTOL_ABILITY_ONE = "combat_pistol_ability_01";
+     private static final String PISTOL_ABILITY_TWO = "combat_pistol_ability_02";
++    private static final String PISTOL_ABILITY_THREE = "combat_pistol_ability_03";
+     private static final String CARBINE_ABILITY_ONE = "combat_carbine_ability_01";
+     private static final String BODY_COMMAND = "bodyShot1";
+     private static final String LEG_COMMAND = "legShot1";
+     private static final String BURST_COMMAND = "burstShot1";
+     private static final String DISARM_COMMAND = "disarmingShot1";
+     private static final String DOUBLE_TAP_COMMAND = "doubleTap";
++    private static final String STOPPING_SHOT_COMMAND = "stoppingShot";
+     private static final String CARBINE_CDEF_CERTIFICATION = "cert_carbine_cdef";
+     private static final String PISTOL_TEMPLATE =
+         "object/weapon/ranged/pistol/pistol_cdef.iff";
+@@ -55,6 +57,8 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         ROOT + ".originalPistolAbilityOne";
+     private static final String ORIGINAL_PISTOL_ABILITY_TWO =
+         ROOT + ".originalPistolAbilityTwo";
++    private static final String ORIGINAL_PISTOL_ABILITY_THREE =
++        ROOT + ".originalPistolAbilityThree";
+     private static final String ORIGINAL_CARBINE_ABILITY_ONE =
+         ROOT + ".originalCarbineAbilityOne";
+     private static final String ORIGINAL_CARBINE_CDEF_CERTIFICATION =
+@@ -261,6 +265,10 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             attacker,
+             ORIGINAL_PISTOL_ABILITY_TWO,
+             hasSkill(attacker, PISTOL_ABILITY_TWO) ? 1 : 0);
++        setObjVar(
++            attacker,
++            ORIGINAL_PISTOL_ABILITY_THREE,
++            hasSkill(attacker, PISTOL_ABILITY_THREE) ? 1 : 0);
+         setObjVar(
+             attacker,
+             ORIGINAL_CARBINE_ABILITY_ONE,
+@@ -310,25 +318,29 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             grantSkill(attacker, PISTOL_ABILITY_ONE);
+         boolean pistolAbilityTwoGranted = hasSkill(attacker, PISTOL_ABILITY_TWO) ||
+             grantSkill(attacker, PISTOL_ABILITY_TWO);
++        boolean pistolAbilityThreeGranted = hasSkill(attacker, PISTOL_ABILITY_THREE) ||
++            grantSkill(attacker, PISTOL_ABILITY_THREE);
+         boolean carbineAbilityGranted = hasSkill(attacker, CARBINE_ABILITY_ONE) ||
+             grantSkill(attacker, CARBINE_ABILITY_ONE);
+         boolean carbineCertificationGranted =
+             hasCommand(attacker, CARBINE_CDEF_CERTIFICATION) ||
+             grantCommand(attacker, CARBINE_CDEF_CERTIFICATION);
+         if (!pistolGranted || !carbineGranted || !pistolAbilityGranted ||
+-            !pistolAbilityTwoGranted ||
++            !pistolAbilityTwoGranted || !pistolAbilityThreeGranted ||
+             !carbineAbilityGranted ||
+             !carbineCertificationGranted ||
+             !hasCommand(attacker, BODY_COMMAND) || !hasCommand(attacker, LEG_COMMAND) ||
+             !hasCommand(attacker, BURST_COMMAND) ||
+             !hasCommand(attacker, DISARM_COMMAND) ||
+-            !hasCommand(attacker, DOUBLE_TAP_COMMAND))
++            !hasCommand(attacker, DOUBLE_TAP_COMMAND) ||
++            !hasCommand(attacker, STOPPING_SHOT_COMMAND))
+         {
+             String recovery = recover(attacker, defender, lifecycle).replace(' ', '_');
+             return "error=skillPreparationFailed pistol=" + pistolGranted +
+                 " carbine=" + carbineGranted +
+                 " pistolAbility=" + pistolAbilityGranted +
+                 " pistolAbilityTwo=" + pistolAbilityTwoGranted +
++                " pistolAbilityThree=" + pistolAbilityThreeGranted +
+                 " carbineAbility=" + carbineAbilityGranted +
+                 " carbineCertification=" + carbineCertificationGranted +
+                 " recovery=" + recovery;
+@@ -710,6 +722,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             !hasObjVar(attacker, ORIGINAL_CARBINE_ONE) ||
+             !hasObjVar(attacker, ORIGINAL_PISTOL_ABILITY_ONE) ||
+             !hasObjVar(attacker, ORIGINAL_PISTOL_ABILITY_TWO) ||
++            !hasObjVar(attacker, ORIGINAL_PISTOL_ABILITY_THREE) ||
+             !hasObjVar(attacker, ORIGINAL_CARBINE_ABILITY_ONE) ||
+             !hasObjVar(attacker, ORIGINAL_CARBINE_CDEF_CERTIFICATION) ||
+             !hasObjVar(defender, ORIGINAL_CENTER_OF_BEING) ||
+@@ -766,6 +779,11 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 " defenderFallback=" + defenderFallbackDestroyed;
+         }
+ 
++        if (getIntObjVar(attacker, ORIGINAL_PISTOL_ABILITY_THREE) == 0 &&
++            hasSkill(attacker, PISTOL_ABILITY_THREE))
++        {
++            revokeSkill(attacker, PISTOL_ABILITY_THREE);
++        }
+         if (getIntObjVar(attacker, ORIGINAL_PISTOL_ABILITY_TWO) == 0 &&
+             hasSkill(attacker, PISTOL_ABILITY_TWO))
+         {
+@@ -796,7 +814,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, PISTOL_ONE);
+         }
+-        if ((getIntObjVar(attacker, ORIGINAL_PISTOL_ABILITY_TWO) == 0 &&
++        if ((getIntObjVar(attacker, ORIGINAL_PISTOL_ABILITY_THREE) == 0 &&
++                hasSkill(attacker, PISTOL_ABILITY_THREE)) ||
++            (getIntObjVar(attacker, ORIGINAL_PISTOL_ABILITY_TWO) == 0 &&
+                 hasSkill(attacker, PISTOL_ABILITY_TWO)) ||
+             (getIntObjVar(attacker, ORIGINAL_PISTOL_ABILITY_ONE) == 0 &&
+                 hasSkill(attacker, PISTOL_ABILITY_ONE)) ||
+@@ -856,6 +876,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             hasSkill(attacker, CARBINE_ONE) &&
+             hasSkill(attacker, PISTOL_ABILITY_ONE) &&
+             hasSkill(attacker, PISTOL_ABILITY_TWO) &&
++            hasSkill(attacker, PISTOL_ABILITY_THREE) &&
+             hasSkill(attacker, CARBINE_ABILITY_ONE) &&
+             hasCommand(attacker, CARBINE_CDEF_CERTIFICATION) &&
+             hasCommand(attacker, BODY_COMMAND) &&
+@@ -863,6 +884,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             hasCommand(attacker, BURST_COMMAND) &&
+             hasCommand(attacker, DISARM_COMMAND) &&
+             hasCommand(attacker, DOUBLE_TAP_COMMAND) &&
++            hasCommand(attacker, STOPPING_SHOT_COMMAND) &&
+             hasOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE) &&
+             hasOwnedWeapon(attacker, CARBINE_WEAPON, CARBINE_TEMPLATE) &&
+             hasOwnedWeapon(defender, DEFENDER_RIFLE_WEAPON, RIFLE_TEMPLATE) &&
+@@ -1136,6 +1158,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_CARBINE_ONE) ||
+             hasObjVar(player, ORIGINAL_PISTOL_ABILITY_ONE) ||
+             hasObjVar(player, ORIGINAL_PISTOL_ABILITY_TWO) ||
++            hasObjVar(player, ORIGINAL_PISTOL_ABILITY_THREE) ||
+             hasObjVar(player, ORIGINAL_CARBINE_ABILITY_ONE) ||
+             hasObjVar(player, ORIGINAL_CARBINE_CDEF_CERTIFICATION) ||
+             hasObjVar(player, ORIGINAL_CENTER_OF_BEING) ||
+@@ -1195,6 +1218,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " carbineOne=" + hasSkill(attacker, CARBINE_ONE) +
+             " pistolAbilityOne=" + hasSkill(attacker, PISTOL_ABILITY_ONE) +
+             " pistolAbilityTwo=" + hasSkill(attacker, PISTOL_ABILITY_TWO) +
++            " pistolAbilityThree=" + hasSkill(attacker, PISTOL_ABILITY_THREE) +
+             " carbineAbilityOne=" + hasSkill(attacker, CARBINE_ABILITY_ONE) +
+             " carbineCdefCertification=" +
+                 hasCommand(attacker, CARBINE_CDEF_CERTIFICATION) +
+@@ -1203,6 +1227,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " hasBurstShot1=" + hasCommand(attacker, BURST_COMMAND) +
+             " hasDisarmingShot1=" + hasCommand(attacker, DISARM_COMMAND) +
+             " hasDoubleTap=" + hasCommand(attacker, DOUBLE_TAP_COMMAND) +
++            " hasStoppingShot=" + hasCommand(attacker, STOPPING_SHOT_COMMAND) +
+             " weapon=" + weaponTemplate +
+             " canBodyShot1=" + (isIdValid(weapon) ?
+                 combat.canPerformAction(BODY_COMMAND, attacker) : -1) +
+@@ -1214,6 +1239,8 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 combat.canPerformAction(DISARM_COMMAND, attacker) : -1) +
+             " canDoubleTap=" + (isIdValid(weapon) ?
+                 combat.canPerformAction(DOUBLE_TAP_COMMAND, attacker) : -1) +
++            " canStoppingShot=" + (isIdValid(weapon) ?
++                combat.canPerformAction(STOPPING_SHOT_COMMAND, attacker) : -1) +
+             " pistolWeapon=" + pistol +
+             " carbineWeapon=" + carbine +
+             " defenderWeapon=" + defenderWeaponTemplate +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 681e07bf1f157160fcbe964f4f461b80c60025df..7ac67e0ddf3fb92aefbc9e68a5608b403edeb5c8 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1289,6 +1289,7 @@ headShot1	headShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/
+ bodyShot1	bodyShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single					fire_1_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ disarmingShot1	disarmingShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_3_single					fire_3_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistol	0		ACTION_NAME	0	0	1
+ doubleTap	doubleTap			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single					fire_7_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.8	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistol	0		ACTION_NAME	0	0	1
++stoppingShot	stoppingShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single					fire_1_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistol	0		ACTION_NAME	0	0	1
+ legShot1	legShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	test_homing							test_homing							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ burstShot1	burstShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single							fire_7_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				carbineer	0		ACTION_NAME	0	0	1
+ headShot2	headShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 7cfc376a862c2cc194efbab8480da4e701dd5694..0ccfe9c52c02095ed2c92482ba74c81ea5b424ae 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -5,6 +5,7 @@ headShot1	0.5	0.5	1	MIND	1.5	5	RANGED
+ bodyShot1	0.5	0.75	0.5	HEALTH	1	50	RANGED
+ disarmingShot1	0.5	0.75	0.5	RANDOM	1.5	50	RANGED
+ doubleTap	0.5	0.75	0.5	RANDOM	2.1	50	RANGED
++stoppingShot	0.5	1.25	0.5	RANDOM	2.5	50	RANGED
+ burstShot1	1.75	1.25	0.5	RANDOM	2	25	RANGED
+ bodyShot2	0.5	1	0.5	HEALTH	1	50	RANGED
+ bodyShot3	0.75	1.25	0.75	HEALTH	1	50	RANGED
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index c29f7fcf538ed5ab4e4bc4ec1c77e0c7fc43e5bf..6756d3f9732327c9bab051b381772aec4a45cb47 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -4,6 +4,7 @@ headShot1	headshot
+ bodyShot1	bodyshot
+ disarmingShot1	disarmshot
+ doubleTap	doubletap
++stoppingShot	stoppingshot
+ burstShot1	burstshot
+ bodyShot2	bodyshot
+ bodyShot3	bodyshot
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 65059610840966629be61d3fd8eb5f18208db11e..5a9cfa3380ccff1588b1f221353bd0684be7e91d 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1915,6 +1915,7 @@ headShot1	combat	normal	headShot1	failSpecialAttack			1.5	headShot1	1	0	1	1	1	0
+ bodyShot1	combat	normal	bodyShot1	failSpecialAttack			1	bodyShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ disarmingShot1	combat	normal	disarmingShot1	failSpecialAttack			1.5	disarmingShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ doubleTap	combat	normal	doubleTap	failSpecialAttack			2.1	doubleTap	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++stoppingShot	combat	normal	stoppingShot	failSpecialAttack			2.5	stoppingShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ legShot1	combat	normal	legShot1	failSpecialAttack			1.5	legShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ burstShot1	combat	normal	burstShot1	failSpecialAttack			2	burstShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ headShot2	combat	normal	headShot2	failSpecialAttack			1.5	headShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
