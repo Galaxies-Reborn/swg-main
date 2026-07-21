@@ -1673,3 +1673,16 @@ reversibly. Empty-profession startup no longer makes the authenticated
 `headShot1` validation depend on a stale character-template grant. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CombatSpam.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The fail-closed Core3 generator now closes its first two ordinary weapon
+specials: `polearmLegHit1` and `unarmedHeadHit1`. Their thin hooks, command and
+combat rows, HAM multipliers, target pools, accuracy, duration, animation,
+spam stems, skill ownership, and representative weapon profiles are pinned to
+Core3 commit `6ea64f60ef33b89121c2a8d188b93f4bc6f158e8`.
+
+The live x64 compatibility stack admits the staff as polearm type 7 with mask
+`0x0080` and the default unarmed weapon as type 6 with mask `0x0040`. Both
+commands passed the production client queue and server execution boundary;
+the identity-bound fixture restored both players afterward. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3GeneratedCombatHooks.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
