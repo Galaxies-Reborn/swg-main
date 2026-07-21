@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-melee-spin-attacks",
+  "status": "ready",
+  "scope": "Restore the Publish-era one-handed and two-handed brawler spin attacks as Core3-exact AREA(16) actions with per-defender RANDOM HAM targeting and authentic representative weapons.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "commands": [
+      {
+        "name": "melee1hSpinAttack1",
+        "source": "MMOCoreORB/bin/scripts/commands/melee1hSpinAttack1.lua",
+        "skillOwner": "combat_brawler_1handmelee_04",
+        "weaponTemplate": "object/weapon/melee/sword/sword_rantok.iff",
+        "damageMultiplier": 2.0,
+        "speedMultiplier": 1.5,
+        "accuracyBonus": 25,
+        "hamCostMultipliers": [1.0, 1.0, 1.5],
+        "animation": "attack_high_right_medium_2",
+        "combatSpam": "slashspin",
+        "weaponType": "1HAND_MELEE"
+      },
+      {
+        "name": "melee2hSpinAttack1",
+        "source": "MMOCoreORB/bin/scripts/commands/melee2hSpinAttack1.lua",
+        "skillOwner": "combat_brawler_2handmelee_04",
+        "weaponTemplate": "object/weapon/melee/2h_sword/2h_sword_cleaver.iff",
+        "damageMultiplier": 2.0,
+        "speedMultiplier": 1.5,
+        "accuracyBonus": 10,
+        "hamCostMultipliers": [1.0, 1.5, 1.0],
+        "animation": "attack_high_right_light_2",
+        "combatSpam": "spinstrike",
+        "weaponType": "2HAND_MELEE"
+      }
+    ],
+    "targetPool": "RANDOM",
+    "areaAction": true,
+    "areaRange": 16,
+    "randomResolutionScope": "once per defender hit"
+  },
+  "buildEvidence": {
+    "overlay": "restoration/patches/dsrc/203-p14-core3-melee-spin-attacks.patch",
+    "javaCompile": "passed",
+    "datatableCompile": "passed",
+    "staticContract": "passed",
+    "materializedOverlayCount": 209,
+    "materializedRestorationFileCount": 596,
+    "materializedFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 99,
+    "attacker": {
+      "stationId": 91001,
+      "objectId": 44003778
+    },
+    "defender": {
+      "stationId": 1001,
+      "objectId": 39008597
+    },
+    "lifecycle": "20520520520520520520520520520521",
+    "oneHand": {
+      "weaponType": 4,
+      "validMask": "0x0010",
+      "maskSatisfied": true,
+      "spamKey": "slashspin_hit",
+      "damage": 1121,
+      "configuredTargetPool": 3,
+      "resolvedTargetPool": 0,
+      "hitLocation": 0
+    },
+    "twoHand": {
+      "weaponType": 5,
+      "validMask": "0x0020",
+      "maskSatisfied": true,
+      "spamKey": "spinstrike_hit",
+      "damage": 792,
+      "configuredTargetPool": 3,
+      "resolvedTargetPool": 0,
+      "hitLocation": 2
+    },
+    "fixtureCleanup": "passed",
+    "idempotentCleanup": "passed",
+    "serverHealthy": true,
+    "clientSha256": "42890C8D9C9C18FFFE33BC7DDF45B9D34FA548FFB33B1DA7297022B1FA9D1F4A",
+    "runtimeTreSha256": "F5C8752F6D3099AAD830ED8C3127C0AB847D12B3A31ABFB5AB7B5DBA7FE92D32"
+  },
+  "acceptance": [
+    "The six restoration datatables compile with the native DataTableTool and the runtime hashes match the container.",
+    "Both authentic weapon masks and production queue admissions pass through two hidden dedicated clients.",
+    "Both actions emit their Core3 combat-spam keys and resolve RANDOM HAM damage authoritatively.",
+    "The identity-bound fixture restores both players and cleanup is idempotent."
+  ]
+}

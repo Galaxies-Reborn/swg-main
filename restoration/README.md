@@ -1699,3 +1699,7 @@ the server reported configured pool 3, a concrete resolved pool, authentic
 fixture restores both current HAM and any generated wounds or shock. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3RandomAreaCombat.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Validate the paired Core3 one-handed/two-handed area-spin restoration with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3MeleeSpinAttacks.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build
