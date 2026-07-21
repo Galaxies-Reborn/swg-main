@@ -910,3 +910,11 @@ server scripts plus 37 content-bearing datatables and 196 templates among the
 restored 2004 route, closed later systems, existing-object compatibility,
 passive/incidental data, cleanup, and privileged diagnostics. No
 unclassified normal world producer remains.
+
+`202-p14-core3-random-area-combat.patch` restores Core3's default RANDOM
+target-pool policy and the first generated area command, `polearmSpinAttack1`.
+RANDOM resolves once per defender hit using the pinned 61/35/5 outcome counts
+across the inclusive 0..100 roll, then the same resolved pool drives physical
+hit location, HAM damage, and wound attribution. The area pilot retains its
+16-meter Core3 range, and its identity-bound fixture now snapshots and
+restores all nine wounds plus shock wounds.

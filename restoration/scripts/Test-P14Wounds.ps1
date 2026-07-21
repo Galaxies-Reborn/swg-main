@@ -217,8 +217,10 @@ Assert-Contract -Condition (
 
 Assert-Contract -Condition (
     $scriptWounds.Contains("!damageApplied") -and
-    $scriptWounds.Contains("actionData.precuTargetPool < 0") -and
-    $scriptWounds.Contains("actionData.precuTargetPool > 2") -and
+    $scriptWounds.Contains(
+        "targetPool < combat.PRECU_TARGET_POOL_HEALTH") -and
+    $scriptWounds.Contains(
+        "targetPool > combat.PRECU_TARGET_POOL_MIND") -and
     $scriptWounds.Contains("isDead(defender)") -and
     $scriptWounds.Contains("isIncapacitated(defender)")) `
     -Name "p14.wounds.runtime.post-damage-survivor-gate"
@@ -233,7 +235,7 @@ Assert-Contract -Condition (
     $scriptWounds.Contains("if (woundsRatio <= 0 || woundRoll >= woundsRatio)")) `
     -Name "p14.wounds.runtime.authentic-exclusive-roll"
 Assert-Contract -Condition (
-    $scriptWounds.Contains("int primaryAttribute = actionData.precuTargetPool * 3;") -and
+    $scriptWounds.Contains("int primaryAttribute = targetPool * 3;") -and
     $scriptWounds.Contains(
         "attribute < primaryAttribute + NUM_ATTRIBUTES_PER_GROUP") -and
     $scriptWounds.Contains("addWound(defender, attribute, 1)") -and

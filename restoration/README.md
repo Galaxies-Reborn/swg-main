@@ -1686,3 +1686,16 @@ commands passed the production client queue and server execution boundary;
 the identity-bound fixture restored both players afterward. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3GeneratedCombatHooks.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The first deferred area-action seam restores `polearmSpinAttack1` with its
+Core3 16-meter area range and RANDOM HAM target. RANDOM is resolved once for
+each defender using Core3's inclusive 0..100 thresholds: Health on 0..60,
+Action on 61..95, and Mind on 96..100. That one resolved pool is reused for
+armor hit location, damage, and wound attribution.
+
+The production x64 client admitted the command with polearm mask `0x0080`;
+the server reported configured pool 3, a concrete resolved pool, authentic
+`limbsmasher` spam, single-pool HAM damage, and successful queue removal. The
+fixture restores both current HAM and any generated wounds or shock. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3RandomAreaCombat.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
