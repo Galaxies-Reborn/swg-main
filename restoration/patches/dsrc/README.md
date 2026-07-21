@@ -981,3 +981,10 @@ generated `combo_4b` intensity playback, and its 16-meter area shape.
 from 1.5 to 1.0, restores the authentic `bodyshot` spam stem, and makes the
 reversible Marksman fixture ignore diagnostic-only objvars when validating
 ownership so retained diagnostics cannot block a fresh preparation.
+
+`215-p14-core3-burst-shot-one.patch` restores Carbineer ability I's
+single-target `burstShot1` with exact RANDOM targeting, 1.75/1.25/0.5 HAM
+costs, 4x damage, 2.0 timing, 25 accuracy, `burstshot` spam, CDEF carbine
+admission, and generated `fire_7_single` ranged playback. Its fixture owns
+the ability skill and CDEF carbine certification reversibly. `burstShot2`
+remains deferred because Core3 adds a separate 30-degree cone seam.
