@@ -1007,3 +1007,10 @@ single-target `stoppingShot` with exact RANDOM targeting, 0.5/1.25/0.5 HAM
 costs, 5x damage, 2.5 timing, 50 accuracy, `stoppingshot` spam, CDEF pistol
 admission, and generated `fire_1_special_single` ranged playback. Its fixture
 owns the ability-III skill reversibly.
+
+`219-p14-core3-crippling-shot.patch` restores Carbineer speed III's
+single-target `cripplingShot` with exact RANDOM targeting, 0.5/2.0/0.5 HAM
+costs, 5x damage, 2.0 timing, 25 accuracy, `cripplingshot` spam, CDEF carbine
+admission, and generated `fire_5_single` ranged playback. Its fixture owns
+and restores both complete Marksman-to-elite prerequisite chains so advanced
+skill grants cannot leave hidden prerequisite boxes behind.
