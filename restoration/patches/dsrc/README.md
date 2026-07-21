@@ -944,3 +944,9 @@ one-handed-II `melee1hBodyHit1` special with its exact Core3 Health target,
 HAM costs, damage, timing, accuracy, `saimai` spam, Rantok admission, and
 generated intensity playback. The identity-bound fixture reuses its existing
 Rantok while independently snapshotting and restoring the new command.
+
+`208-p14-core3-one-hand-body-hit-continuation.patch` completes the ordinary
+Swordsman body-hit line with `melee1hBodyHit2` and `melee1hBodyHit3`. Both
+retain exact Core3 Health targeting, HAM costs, damage, timing, accuracy,
+`saisun`/`saitok` spam, Rantok admission, and generated intensity playback;
+the fixture snapshots and restores each command independently.
