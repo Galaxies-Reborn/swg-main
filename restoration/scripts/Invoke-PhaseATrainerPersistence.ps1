@@ -4902,6 +4902,27 @@ try
 
     if ($Mode -ceq "Purchase")
     {
+        if ([string]$lifecycle.phase -ceq "purchasePending")
+        {
+            if ($null -eq $lifecycle.operation -or
+                [string]$observed.OperationAttemptId -cne [string]$lifecycle.operation.id -or
+                [string]$observed.OperationId -cne [string]$lifecycle.operation.id -or
+                [string]$observed.OperationKind -cne "purchase" -or
+                [string]$observed.OperationLifecycleId -cne [string]$lifecycle.lifecycleId -or
+                [string]$observed.OperationState -cne "purchaseSucceeded")
+            {
+                throw "Pending purchase is not the exact terminal correlated operation."
+            }
+            Set-TrackedOperationFromState -Lifecycle $lifecycle -State $observed
+            $lifecycle = New-ValidatedHeldLifecycleCandidate `
+                -Lifecycle $lifecycle `
+                -HeldState $observed `
+                -CurrentIdentity $executionIdentity `
+                -OutcomeSource "callback"
+            Save-SnapshotAtomic -Snapshot $lifecycle
+            Write-Host "[PASS] Adopted the exact terminal trainer callback after interrupted probe parsing."
+            exit 0
+        }
         if ([string]$lifecycle.phase -cne "conversationQueued") { throw "Purchase requires conversationQueued." }
         Assert-StatePersistentEquals -Actual $observed -Expected $lifecycle.prepared -Context "Prepared purchase fixture"
         $selectedTrainer = [string]$lifecycle.conversation.trainerOid

@@ -965,7 +965,7 @@ $clearLifecycleWindow = $(if ($clearLifecycleWindowMatch.Success) { $clearLifecy
 
 $beginLifecycleWindowMatch = [regex]::Match(
     $runtimeProbe,
-    '(?s)if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"beginLifecycle"\s*\)\s*\).*?(?=if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"clearLifecycle"\s*\))'
+    '(?s)if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"beginLifecycle"\s*\)\s*\).*?(?=if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"(?:reconcileLegacyLifecycleBaseline|clearLifecycle)"\s*\))'
 )
 $beginLifecycleWindow = $(if ($beginLifecycleWindowMatch.Success) { $beginLifecycleWindowMatch.Value } else { "" })
 $beginLifecycleWrites = @([regex]::Matches($beginLifecycleWindow, 'setObjVar\s*\([^;]+;'))
@@ -1032,6 +1032,11 @@ $resumePurchaseAccountingWindowMatch = [regex]::Match(
     '(?s)if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"resumePurchaseAccounting"\s*\)\s*\).*?(?=if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"armRestartBoundary"\s*\))'
 )
 $resumePurchaseAccountingWindow = $(if ($resumePurchaseAccountingWindowMatch.Success) { $resumePurchaseAccountingWindowMatch.Value } else { "" })
+$clearStalePurchaseEnqueueingWindowMatch = [regex]::Match(
+    $runtimeProbe,
+    '(?s)if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"clearStalePurchaseEnqueueing"\s*\)\s*\).*?(?=if\s*\(\s*action\.equalsIgnoreCase\s*\(\s*"requeuePurchaseCallback"\s*\))'
+)
+$clearStalePurchaseEnqueueingWindow = $(if ($clearStalePurchaseEnqueueingWindowMatch.Success) { $clearStalePurchaseEnqueueingWindowMatch.Value } else { "" })
 $phaseAReconcileCorrelationReady = (
     ($operationMarkerCompleteWindow -match 'getIntObjVar\s*\(\s*player\s*,\s*OP_UPDATED\s*\)\s*>\s*0') -and
     ($clearTerminalOperationWindow -match '(?s)!preDispatch\s*&&.*?!isOperationMarkerComplete\s*\(\s*player\s*\).*?!hasExactClearableTerminalVector') -and
@@ -1119,8 +1124,9 @@ foreach ($leaf in @(
 }
 $operationReservationWriterOwnershipReady =
     $operationReservationWriterOwnershipReady -and
-    ([regex]::Matches($runtimeProbe, 'removeObjVar\s*\(\s*player\s*,\s*OP_ROOT\s*\)').Count -eq 2) -and
+    ([regex]::Matches($runtimeProbe, 'removeObjVar\s*\(\s*player\s*,\s*OP_ROOT\s*\)').Count -eq 3) -and
     ($rollbackOperationReservationWindow -match 'removeObjVar\s*\(\s*player\s*,\s*OP_ROOT\s*\)') -and
+    ($clearStalePurchaseEnqueueingWindow -match '(?s)validateExactPurchaseOperation\s*\(.*?"enqueueing"\.equals.*?hasExactPurchasePreVector\s*\(.*?removeObjVar\s*\(\s*player\s*,\s*OP_ROOT\s*\)') -and
     ($clearTerminalOperationWindow -match 'removeObjVar\s*\(\s*player\s*,\s*OP_ROOT\s*\)')
 $operationReservationPrefixReady = (
     $operationReservationWriteOrderReady -and
@@ -1473,7 +1479,10 @@ $trainerProbeReady = (
     ($runtimeProbe -match 'error=fixtureNotInExactPreparedState') -and
     ($runtimeProbe -match 'dataTableGetInt\s*\(\s*skill\.TBL_SKILL\s*,\s*skillRow\s*,\s*"MONEY_REQUIRED"\s*\)') -and
     ($runtimeProbe -match 'dataTableGetInt\s*\(\s*skill\.TBL_SKILL\s*,\s*skillRow\s*,\s*"XP_COST"\s*\)') -and
-    ($runtimeProbe -match 'money\.requestPayment\s*\(') -and
+    ($runtimeProbe -match 'payment\.put\s*\(\s*money\.DICT_PLAYER_ID\s*,\s*player\s*\)') -and
+    ($runtimeProbe -match 'payment\.put\s*\(\s*money\.DICT_TARGET_ID\s*,\s*trainer\s*\)') -and
+    ($runtimeProbe -match 'payment\.put\s*\(\s*money\.DICT_HANDLER\s*,\s*"attemptedPayment"\s*\)') -and
+    ($runtimeProbe -match '(?s)messageTo\s*\(\s*player\s*,\s*money\.HANDLER_PAYMENT_REQUEST\s*,\s*payment\s*,\s*0\.01f\s*,\s*isObjectPersisted\s*\(\s*player\s*\)\s*\)') -and
     ($runtimeProbe -match '"attemptedPayment"') -and
     ($runtimeProbe -match 'path=skillteacherPaymentHandler conversationUi=false') -and
     ($runtimeProbe -match 'getStringCrc\s*\(\s*"npcConversationStart"\s*\)') -and
@@ -1997,7 +2006,7 @@ $trainerPersistenceReady = (
     ($trainerPersistence -notmatch 'return\s+"queued"') -and
     ($trainerPersistence -notmatch 'Assert-Field[^\r\n]+-Name\s+"connected"')
 )
-Add-PhaseCheck -Id "phaseA.runtime.trainer-persistence" -Passed $trainerPersistenceReady -Detail "offline=$offlineSelfTestDetail; materialization=$materializationDetail; checkpointed tooling must correlate visible conversation, terminal callbacks, exact grants, ordered boundaries, and strict external recovery"
+Add-PhaseCheck -Id "phaseA.runtime.trainer-persistence" -Passed $trainerPersistenceReady -Detail "probe=$trainerProbeReady callbacks=$phaseAOperationCallbacksReady lifecycle=$phaseALifecycleCommitReady attempt=$phaseAAttemptOnlyRecoveryReady tagged=$phaseATaggedPaymentStagesReady balances=$phaseAExactBalancesReady reconcile=$phaseAReconcileCorrelationReady v64=$phaseAV64RecoveryReady offline=$offlineSelfTestDetail materializationReady=$materializationReady materialization=$materializationDetail v65=$runnerV65RecoveryReady v8=$runnerV8RecoveryReady candidates=$runnerCandidateCommitReady; checkpointed tooling must correlate visible conversation, terminal callbacks, exact grants, ordered boundaries, and strict external recovery"
 
 $surrenderVerificationReady = (
     ($runtimeProbe -match 'action\.equalsIgnoreCase\s*\(\s*"verifySurrender"\s*\)') -and

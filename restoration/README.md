@@ -1726,3 +1726,13 @@ Validate the exact Core3 `headShot2` / `headShot3` rifle continuation:
 Validate the exact Core3 `melee1hBodyHit1` Brawler one-handed continuation:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3OneHandBodyHitOne.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 239 closes the Phase-A Artisan runtime frontier. The server novice
+row again carries its authoritative XP, command, and movement-mod fields; the
+client profession asset remains byte-identical. The disposable station fixture
+completed the production skillteacher payment/callback path, survived a
+same-process relog and a game-server restart, surrendered through the
+production command, and returned to its exact 191-point/zero-XP/zero-credit
+baseline. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PhaseARuntimeClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

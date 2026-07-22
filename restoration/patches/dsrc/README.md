@@ -1127,3 +1127,18 @@ RANDOM pool default, damage and HAM multipliers, 16-meter admission, 45- and
 60-degree cone geometry, generated intensity animations, spam keys, and exact
 canonical acid/lightning template gates. The reversible fixture snapshots,
 grants, reports, and restores all six commands.
+
+`237-p14-phase-a-artisan-runtime-reconciliation.patch` restores the
+server-authoritative Artisan novice progression fields that were overwritten
+when milestone 136 installed the client-facing profession matrix. It retains
+the canonical `fourByFour` presentation metadata while restoring
+`crafting_general` XP cost 100/cap 1500, the private novice grant, and
+`slope_move=25`. This reopens the exact Engineering I trainer lifecycle
+without changing the published client skill asset. The trusted runtime probe
+also reconciles the exact stale 220-to-191 skill-point lifecycle baseline,
+falls back to the production skillteacher conversation handler when the
+console command queue rejects a client-only command, dispatches the real
+player-money request asynchronously from ownerless console context, and can
+clear only an exact stale pre-payment enqueue marker. `player_money.OnLogin`
+consumes the matching relog nonce only for a fully settled purchase with
+successful accounting and the complete held Artisan vector.

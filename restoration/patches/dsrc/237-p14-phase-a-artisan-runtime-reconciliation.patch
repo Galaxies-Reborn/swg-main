@@ -1,0 +1,199 @@
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -429,3 +429,3 @@
+ crafting_artisan	crafting	fourByFour	0	0	1	0	0	0	0				0	0		0			none						1	0
+-crafting_artisan_novice	crafting_artisan	fourByFour	0	1	0	0	100	15	0				0	0		0			none		"private_artisan_novice,sample,survey"	"surveying=20,general_assembly=20,general_experimentation=20,clothing_customization=20,armor_customization=20"	"craftArtisanNewbieGroupA,craftArtisanNewbieGroupB,craftArtisanSurveyGroupA"		1	0
++crafting_artisan_novice	crafting_artisan	fourByFour	0	1	0	0	100	15	0			crafting_general	100	1500		0			none		private_artisan_novice	"surveying=20,general_assembly=20,general_experimentation=20,clothing_customization=20,armor_customization=20,slope_move=25"	"craftArtisanNewbieGroupA,craftArtisanNewbieGroupB,craftArtisanSurveyGroupA"		1	0
+ crafting_artisan_master	crafting_artisan	fourByFour	0	1	0	0	5000	6	0	"crafting_artisan_engineering_04,crafting_artisan_domestic_04,crafting_artisan_business_04,crafting_artisan_survey_04"			0	0		0			none		"private_artisan_master,customizeVehicle"		"craftArtisanMasterGroupA,craftArtisanVehicle"		1	0
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
+--- a/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
+@@ -29,6 +29,8 @@ public class precu_phase_a_runtime extends script.base_script
+     private static final String CRAFTING_XP_TYPE = "crafting_general";
+     private static final int CRAFTING_TRAINER_COST = 1000;
+     private static final int CRAFTING_XP_COST = 500;
++    private static final int LEGACY_PRE_M239_BASE_POINTS = 220;
++    private static final int M239_BASE_POINTS = 191;
+     private static final String CRAFTING_COMMAND = "private_artisan_engineering_1";
+     private static final String CRAFTING_SKILL_MOD = "general_assembly";
+     private static final String CRAFTING_SCHEMATIC_GROUP = "craftArtisanToolGroupA";
+@@ -156,8 +158,9 @@ public class precu_phase_a_runtime extends script.base_script
+ 
+     private static final String USAGE =
+         "usage: craftingStatus|findTrainer|inspectTrainer <playerOid>; " +
+-        "beginLifecycle|clearLifecycle|clearBoundaryMarkers <playerOid> <lifecycleId>; " +
++        "beginLifecycle|reconcileLegacyLifecycleBaseline|clearLifecycle|clearBoundaryMarkers " +
++        "<playerOid> <lifecycleId>; " +
+-        "fundTrainerCost|drainTrainerCost|clearOperation|armRestartBoundary " +
++        "fundTrainerCost|drainTrainerCost|clearOperation|clearStalePurchaseEnqueueing|armRestartBoundary " +
+         "<playerOid> <operationId> <lifecycleId>; " +
+         "resumePurchaseAccounting|requeuePurchaseCallback|reconcileRefundOutcome " +
+         "<playerOid> <operationId> <lifecycleId>; retryPurchaseRefund " +
+@@ -299,6 +302,50 @@ public class precu_phase_a_runtime extends script.base_script
+                 " lifecycleAttemptId=" + args[2] + " lifecycleId=" + args[2] +
+                 " lifecycleMarkerState=complete lifecycleBaselineComplete=true";
+         }
++        if (action.equalsIgnoreCase("reconcileLegacyLifecycleBaseline"))
++        {
++            if (args.length != 3 || !isValidLifecycleId(args[2]))
++            {
++                return USAGE;
++            }
++            if (!"complete".equals(getLifecycleMarkerState(player)) ||
++                !args[2].equals(getLifecycleAttemptId(player)) ||
++                !args[2].equals(getLifecycleId(player)) ||
++                hasAnyOperationMarker(player) || utils.hasScriptVar(player, RELOG_NONCE) ||
++                utils.hasScriptVar(player, RESTART_NONCE) ||
++                !isLifecycleBaselineComplete(player))
++            {
++                return "error=legacyLifecycleReconciliationNotEligible " +
++                    buildCraftingStatus(player);
++            }
++            int currentPoints = skill.getAvailableSkillPoints(player);
++            if (getIntObjVar(player, LIFECYCLE_BASE_POINTS) !=
++                    LEGACY_PRE_M239_BASE_POINTS ||
++                currentPoints != M239_BASE_POINTS ||
++                getIntObjVar(player, LIFECYCLE_BASE_CASH) != getCashBalance(player) ||
++                getIntObjVar(player, LIFECYCLE_BASE_BANK) != getBankBalance(player) ||
++                getIntObjVar(player, LIFECYCLE_BASE_XP) !=
++                    getExperiencePoints(player, CRAFTING_XP_TYPE) ||
++                getIntObjVar(player, LIFECYCLE_BASE_CAP) !=
++                    getExperienceCap(player, CRAFTING_XP_TYPE) ||
++                getIntObjVar(player, LIFECYCLE_BASE_NOVICE) !=
++                    (hasSkill(player, CRAFTING_NOVICE_SKILL) ? 1 : 0) ||
++                getIntObjVar(player, LIFECYCLE_BASE_SKILL) !=
++                    (hasSkill(player, CRAFTING_SKILL) ? 1 : 0))
++            {
++                return "error=legacyLifecycleReconciliationDrift " +
++                    buildCraftingStatus(player);
++            }
++            setObjVar(player, LIFECYCLE_BASE_POINTS, currentPoints);
++            if (!lifecycleBaselineMatchesCurrent(player))
++            {
++                return "error=legacyLifecycleReconciliationWriteFailed " +
++                    buildCraftingStatus(player);
++            }
++            return "action=reconcileLegacyLifecycleBaseline reconciled=true oldPoints=" +
++                LEGACY_PRE_M239_BASE_POINTS + " newPoints=" + currentPoints +
++                " lifecycleId=" + args[2];
++        }
+         if (action.equalsIgnoreCase("clearLifecycle"))
+         {
+             if (args.length != 3 || !isValidLifecycleId(args[2]))
+@@ -531,13 +578,18 @@ public class precu_phase_a_runtime extends script.base_script
+             {
+                 return "error=operationDispatchStateFailed " + buildOperationStatus(player);
+             }
+-            boolean queued = money.requestPayment(
+-                player,
+-                trainer,
+-                CRAFTING_TRAINER_COST,
+-                "attemptedPayment",
+-                payment,
+-                true);
++            payment.put(money.DICT_PLAYER_ID, player);
++            payment.put(money.DICT_TARGET_ID, trainer);
++            payment.put(money.DICT_AMOUNT, CRAFTING_TRAINER_COST);
++            payment.put(money.DICT_TOTAL, CRAFTING_TRAINER_COST);
++            payment.put(money.DICT_HANDLER, "attemptedPayment");
++            payment.put(money.DICT_NOTIFY, true);
++            boolean queued = messageTo(
++                player,
++                money.HANDLER_PAYMENT_REQUEST,
++                payment,
++                0.01f,
++                isObjectPersisted(player));
+             if (!queued)
+             {
+                 transitionOperationState(
+@@ -546,4 +598,3 @@ public class precu_phase_a_runtime extends script.base_script
+             return "action=trainerPurchase path=skillteacherPaymentHandler conversationUi=false" +
+                 " queued=" + queued + " trainerOid=" + trainer +
+-                " operationId=" + args[4] +
+                 " skill=" + CRAFTING_SKILL + " cost=" + CRAFTING_TRAINER_COST +
+@@ -582,8 +634,17 @@ public class precu_phase_a_runtime extends script.base_script
+                 trainer,
+                 "0 ",
+                 COMMAND_PRIORITY_IMMEDIATE);
++            String queuePath = "commandQueue";
++            if (!queued)
++            {
++                script.npc.skillteacher.skillteacher handler =
++                    new script.npc.skillteacher.skillteacher();
++                handler.OnStartNpcConversation(trainer, player);
++                queued = true;
++                queuePath = "skillteacherHandler";
++            }
+             return "action=queueTrainerConversation queued=" + queued +
+-                " trainerOid=" + trainer +
++                " queuePath=" + queuePath + " trainerOid=" + trainer +
+                 " conversationUi=pending purchaseMutation=false";
+         }
+         if (action.equalsIgnoreCase("clearOperation"))
+@@ -605,6 +666,28 @@ public class precu_phase_a_runtime extends script.base_script
+             return "action=clearOperation cleared=true clearedOperationId=" + args[2] +
+                 " " + buildOperationStatus(player);
+         }
++        if (action.equalsIgnoreCase("clearStalePurchaseEnqueueing"))
++        {
++            if (args.length != 4 || !isValidOperationId(args[2]) ||
++                !isValidLifecycleId(args[3]))
++            {
++                return USAGE;
++            }
++            String operationError = validateExactPurchaseOperation(player, args[2], args[3]);
++            if (operationError != null)
++            {
++                return operationError;
++            }
++            if (!"enqueueing".equals(getStringObjVar(player, OP_STATE)) ||
++                !hasExactPurchasePreVector(player))
++            {
++                return "error=stalePurchaseEnqueueingNotClearable " +
++                    buildCraftingStatus(player);
++            }
++            removeObjVar(player, OP_ROOT);
++            return "action=clearStalePurchaseEnqueueing cleared=" +
++                !hasAnyOperationMarker(player) + " operationId=" + args[2];
++        }
+         if (action.equalsIgnoreCase("requeuePurchaseCallback"))
+         {
+             if (args.length != 4 || !isValidOperationId(args[2]) ||
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_money.java b/sku.0/sys.server/compiled/game/script/player/player_money.java
+--- a/sku.0/sys.server/compiled/game/script/player/player_money.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_money.java
+@@ -386,6 +386,33 @@ public class player_money extends script.base_script
+     }
+     public int OnLogin(obj_id self) throws InterruptedException
+     {
++        if (utils.hasScriptVar(self, PRECU_RELOG_NONCE) &&
++            hasObjVar(self, PRECU_OP_ATTEMPT_ID) && hasObjVar(self, PRECU_OP_ID) &&
++            hasObjVar(self, PRECU_OP_KIND) && hasObjVar(self, PRECU_OP_STATE) &&
++            hasObjVar(self, PRECU_OP_LIFECYCLE_ID) &&
++            hasObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID) &&
++            hasObjVar(self, PRECU_LIFECYCLE_ID) && hasObjVar(self, PRECU_LIFECYCLE_STATE) &&
++            hasObjVar(self, PRECU_OP_PROTOCOL_VERSION) &&
++            hasObjVar(self, PRECU_OP_ACCOUNTING_OUTCOME))
++        {
++            String relogOperationId = utils.getStringScriptVar(self, PRECU_RELOG_NONCE);
++            if (relogOperationId.equals(getStringObjVar(self, PRECU_OP_ATTEMPT_ID)) &&
++                relogOperationId.equals(getStringObjVar(self, PRECU_OP_ID)) &&
++                "purchase".equals(getStringObjVar(self, PRECU_OP_KIND)) &&
++                "purchaseSucceeded".equals(getStringObjVar(self, PRECU_OP_STATE)) &&
++                getStringObjVar(self, PRECU_OP_LIFECYCLE_ID).equals(
++                    getStringObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID)) &&
++                getStringObjVar(self, PRECU_OP_LIFECYCLE_ID).equals(
++                    getStringObjVar(self, PRECU_LIFECYCLE_ID)) &&
++                "established".equals(getStringObjVar(self, PRECU_LIFECYCLE_STATE)) &&
++                getIntObjVar(self, PRECU_OP_PROTOCOL_VERSION) == PRECU_PROTOCOL_VERSION &&
++                "SUCCESS".equals(getStringObjVar(self, PRECU_OP_ACCOUNTING_OUTCOME)) &&
++                hasExactHeldPhaseACraftingVector(self) &&
++                !utils.hasScriptVar(self, PRECU_RESTART_NONCE))
++            {
++                utils.removeScriptVar(self, PRECU_RELOG_NONCE);
++            }
++        }
+         if (!hasObjVar(self, PRECU_OP_STATE) ||
+             !"queued".equals(getStringObjVar(self, PRECU_OP_STATE)) ||
+             !hasObjVar(self, PRECU_OP_ID) || !hasObjVar(self, PRECU_OP_KIND) ||
