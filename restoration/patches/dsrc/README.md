@@ -1118,3 +1118,12 @@ multipliers, 3x damage, 2.0 timing, zero bonus accuracy,
 `firelightningsingle1` spam, a 16-meter range, generated
 `fire_lightning_rifle_single_1` intensity playback, and an exact canonical
 lightning-rifle template gate. The overlay records its 55/70/55 base costs.
+
+`236-p14-core3-special-heavy-family-closure.patch` closes the remaining acid
+and lightning frontier with `fireAcidCone1`, `fireAcidCone2`,
+`fireAcidSingle2`, `fireLightningCone1`, `fireLightningCone2`, and
+`fireLightningSingle2`. It preserves Core3's exact profession ownership,
+RANDOM pool default, damage and HAM multipliers, 16-meter admission, 45- and
+60-degree cone geometry, generated intensity animations, spam keys, and exact
+canonical acid/lightning template gates. The reversible fixture snapshots,
+grants, reports, and restores all six commands.
