@@ -1058,3 +1058,10 @@ and generated `fire_area` intensity playback.
 30-degree/64-meter cone, and generated `fire_7_single` ranged playback. The
 reversible Marksman fixture owns and exactly restores the complete Carbineer
 Ability I-through-III chain.
+
+`227-p14-core3-unarmed-hit-one.patch` restores Brawler Unarmed I's
+`unarmedHit1` with exact RANDOM targeting, 1.0/1.0/1.0 HAM costs, 2x damage,
+1.5 timing, +15 accuracy, `steelhands` spam, unarmed admission, inherited
+melee range, and generated `combo_2d` intensity playback. The reversible
+headshot fixture owns and exactly restores the command without introducing a
+weapon object.
