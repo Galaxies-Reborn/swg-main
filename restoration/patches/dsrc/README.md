@@ -1090,3 +1090,16 @@ II's single-target `unarmedLegHit1` with fixed ACTION targeting,
 `unarmedSpinAttack1` with RANDOM targeting, 1.5/1.5/1.5 HAM costs, 2x damage,
 2.0 timing, +15 accuracy, `leapingveermok` spam, unarmed admission, inherited
 melee range, a 16-meter area, and generated `combo_3c` intensity playback.
+
+`232-p14-core3-unarmed-spin-attack-two.patch` restores Teras Kasi Unarmed
+Ability III's `unarmedSpinAttack2` with RANDOM targeting, 2.0/2.0/2.0 HAM
+costs, 3x damage, 3.0 timing, +15 accuracy, `unarmed_knockdown` spam,
+unarmed admission, inherited melee range, a 16-meter area, and generated
+`combo_3d` intensity playback. This overlay also owns the shared reversible
+fixture additions for both commands in this batch.
+
+`233-p14-core3-overcharge-shot-two.patch` restores Marksman Master's
+`overChargeShot2` with RANDOM targeting, 1.0/1.0/1.0 HAM costs, 3.75x damage,
+2.0 timing, +15 accuracy, `overchargeshot` spam, aggregate ranged admission,
+inherited weapon range, and generated `fire_1_special_single` ranged
+playback.
