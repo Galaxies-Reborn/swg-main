@@ -1065,3 +1065,9 @@ Ability I-through-III chain.
 melee range, and generated `combo_2d` intensity playback. The reversible
 headshot fixture owns and exactly restores the command without introducing a
 weapon object.
+
+`228-p14-core3-unarmed-hit-two.patch` restores Teras Kasi novice's
+`unarmedHit2` with exact RANDOM targeting, 1.5/1.5/1.5 HAM costs, 3x damage,
+2.5 timing, +15 accuracy, `goraxsmash` spam, unarmed admission, inherited
+melee range, and generated `combo_3a` intensity playback. The same reversible
+fixture owns and exactly restores both generic unarmed commands.
