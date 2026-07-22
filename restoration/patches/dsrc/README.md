@@ -1051,3 +1051,10 @@ damage, 2.0 timing, +50 accuracy, `disarmblast` spam, pistol admission, a
 with exact RANDOM targeting, 0.5/1.0/0.5 HAM costs, 4x damage, 2.0 timing,
 +50 accuracy, `fanshot` spam, pistol admission, a 60-degree/64-meter cone,
 and generated `fire_area` intensity playback.
+
+`226-p14-core3-burst-shot-two.patch` restores Carbineer Ability III's
+`burstShot2` with exact RANDOM targeting, 2.0/1.25/0.5 HAM costs, 4x damage,
+2.0 timing, +25 accuracy, `burstblast` spam, carbine admission, a
+30-degree/64-meter cone, and generated `fire_7_single` ranged playback. The
+reversible Marksman fixture owns and exactly restores the complete Carbineer
+Ability I-through-III chain.
