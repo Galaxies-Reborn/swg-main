@@ -1103,3 +1103,18 @@ fixture additions for both commands in this batch.
 2.0 timing, +15 accuracy, `overchargeshot` spam, aggregate ranged admission,
 inherited weapon range, and generated `fire_1_special_single` ranged
 playback.
+
+`234-p14-core3-fire-acid-single-one.patch` restores Commando Support I's
+`fireAcidSingle1` with RANDOM targeting, 1.5/0.5/0.5 HAM multipliers, 5x
+damage, 4.0 timing, zero bonus accuracy, `fireacidsingle1` spam, a 16-meter
+range, generated `fire_acid_rifle_single_1` intensity playback, and an exact
+canonical heavy-acid template gate. It also records the canonical 60/60/15
+weapon costs and adds a reversible fixture-only equip override for the
+ground-targeting acid object.
+
+`235-p14-core3-fire-lightning-single-one.patch` restores Bounty Hunter
+Support I's `fireLightningSingle1` with RANDOM targeting, 1.0/1.0/1.0 HAM
+multipliers, 3x damage, 2.0 timing, zero bonus accuracy,
+`firelightningsingle1` spam, a 16-meter range, generated
+`fire_lightning_rifle_single_1` intensity playback, and an exact canonical
+lightning-rifle template gate. The overlay records its 55/70/55 base costs.
