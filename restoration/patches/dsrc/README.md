@@ -1071,3 +1071,22 @@ weapon object.
 2.5 timing, +15 accuracy, `goraxsmash` spam, unarmed admission, inherited
 melee range, and generated `combo_3a` intensity playback. The same reversible
 fixture owns and exactly restores both generic unarmed commands.
+
+`229-p14-core3-unarmed-body-hit-one.patch` restores Brawler Unarmed Support
+I's single-target `unarmedBodyHit1` with fixed HEALTH targeting,
+1.75/1.75/1.75 HAM costs, 2.5x damage, 2.0 timing, +15 accuracy,
+`rancorrising` spam, unarmed admission, inherited melee range, and generated
+`attack_special_shoulder_bash` intensity playback. This ordered overlay also
+owns the shared reversible fixture additions used by all three batched
+unarmed closures.
+
+`230-p14-core3-unarmed-leg-hit-one.patch` restores Brawler Unarmed Support
+II's single-target `unarmedLegHit1` with fixed ACTION targeting,
+1.75/1.75/1.75 HAM costs, 2.5x damage, 2.0 timing, +15 accuracy,
+`grondastomp` spam, unarmed admission, inherited melee range, and generated
+`attack_special_foot_stomp` intensity playback.
+
+`231-p14-core3-unarmed-spin-attack-one.patch` restores Brawler Unarmed IV's
+`unarmedSpinAttack1` with RANDOM targeting, 1.5/1.5/1.5 HAM costs, 2x damage,
+2.0 timing, +15 accuracy, `leapingveermok` spam, unarmed admission, inherited
+melee range, a 16-meter area, and generated `combo_3c` intensity playback.
