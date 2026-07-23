@@ -1825,3 +1825,14 @@ then restores the full chain, skill points, six current/max attributes, state,
 and expiry idempotently. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkTwoCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 247 restores `formup`, granted by Squad Leader Defense I, as a real
+group support transaction. The persistent player receiver requires group
+leadership, scales base cost 50 by group size, derives Health/Action/Mind
+costs from the leader's live Strength/Quickness/Focus values, and applies the
+strict-pool rule before clearing dizzy and stunned from eligible player group
+members. Two separately rooted protocol-159 clients prove target, invite,
+join, the production nonqueued command, disband, guarded crash recovery, and
+exact idempotent cleanup without touching the user's client process. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14FormupCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

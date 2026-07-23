@@ -1205,3 +1205,11 @@ durable berserk expiry while requiring master ownership, observing the
 authoritative +20 modifier, applying the same adjusted 100/100/50 HAM policy,
 and extending the state to 40 seconds. The reversible fixture grants and
 removes the complete Brawler tree and proves natural expiry and idempotence.
+
+`245-p14-formup-command.patch` restores the exact 94-column Publish 14.1
+`formup` row and the Squad Leader Defense I player receiver. The production
+path requires a real group leader, scales base cost 50 by group size, applies
+Strength/Quickness/Focus adjustments with strict affordability, clears dizzy
+and stunned from eligible player members, and records PvP help. Its two-client
+fixture snapshots both identities, supports guarded crash recovery, proves
+real group formation and dissolution, and restores every owned mutation.
