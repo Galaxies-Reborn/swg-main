@@ -1213,3 +1213,12 @@ Strength/Quickness/Focus adjustments with strict affordability, clears dizzy
 and stunned from eligible player members, and records PvP help. Its two-client
 fixture snapshots both identities, supports guarded crash recovery, proves
 real group formation and dissolution, and restores every owned mutation.
+
+`246-p14-retreat-command.patch` restores the exact 94-column Publish-era
+`retreat` row, Squad Leader Support III ownership, and the pinned Core3 group
+ability lifecycle. The leader pays the group-size-scaled Quickness/Focus HAM
+cost while eligible non-leader players receive composable 1.822 movement and
+acceleration for 30 seconds with a matching cooldown, PvP-help accounting, and
+guarded natural expiry. Its identity-bound two-client fixture proves real group
+formation/dissolution, leader exclusion, exact activation and expiry, and
+reversible idempotent cleanup.

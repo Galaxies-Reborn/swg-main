@@ -1836,3 +1836,15 @@ join, the production nonqueued command, disband, guarded crash recovery, and
 exact idempotent cleanup without touching the user's client process. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14FormupCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 248 restores `retreat`, granted by Squad Leader Support III, from the
+exact Publish-era client command row and pinned Core3 behavior. A real group
+leader pays the Quickness/Focus-adjusted, group-size-scaled Action/Mind cost;
+each eligible non-leader player receives a composable 1.822 movement and
+acceleration multiplier for 30 seconds, a matching cooldown, PvP-help
+accounting, and natural expiry. The identity-bound two-client fixture proves
+activation, leader exclusion, natural speed/acceleration restoration, real
+group dissolution, reversible state restoration, and idempotent cleanup.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RetreatCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
