@@ -1180,3 +1180,13 @@ cost, applies the 60-second 15-percent Health/Action/Mind buff, and writes a
 300-second per-pet cooldown before charging the player. Its identity-bound
 fixture creates a real tamed pet and PCD from owner context, records exact
 resource and maximum-pool deltas, and proves reversible idempotent cleanup.
+
+`242-p14-heal-mind-command.patch` restores the exact 94-column Publish 14.1
+`healMind` row and its persistent player receiver. The production path admits
+another healable player or creature pet, enforces skill, Mind-threshold,
+range, line-of-sight, and PvP-help checks, applies the effectiveness- and
+battle-fatigue-scaled Mind heal, then assigns five-percent Mind/Focus/
+Willpower wounds and battle fatigue to the healer without a separate Mind
+charge. Its identity-bound fixture creates a real tamed pet and durable PCD,
+measures the handler-local Mind delta independently of pet regeneration, and
+proves exact idempotent restoration.

@@ -1786,3 +1786,16 @@ resource and pool deltas, and exactly restores every fixture-owned mutation.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmboldenPetsCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 244 restores `healMind`, owned by Combat Medic Healing Range Speed
+IV, as an actor-routed treatment transaction. The production handler validates
+a living PvP-helpable player or creature-pet target within five meters and
+line of sight, enforces the 250 current-Mind threshold without directly
+charging it, and scales the 800-plus-random treatment by Combat Medic
+effectiveness and battle fatigue. Five percent of the amount healed becomes
+Mind, Focus, and Willpower wounds plus equal battle fatigue on the healer. The
+authenticated protocol-155 proof isolates the exact command delta from normal
+pet regeneration, proves real-client nonqueued dispatch, and restores the pet,
+PCD, skills, pools, wounds, and battle fatigue idempotently. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HealMindCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
