@@ -1171,3 +1171,12 @@ one-second stop heartbeats between phase callbacks and detaches on every exit.
 The identity-bound persistent fixture proves client admission, owner-context
 store/restart/recall continuity, and reversible idempotent cleanup without
 forcing any non-fixture production roll.
+
+`241-p14-embolden-pets-command.patch` restores the authoritative Publish
+14.1 `emboldenpets` command row and completes the retained `ai.pet_master`
+handler. It selects the active owned creature pet, enforces living/range/
+skill/buff/cooldown admission, calculates the Focus-adjusted base-100 Mind
+cost, applies the 60-second 15-percent Health/Action/Mind buff, and writes a
+300-second per-pet cooldown before charging the player. Its identity-bound
+fixture creates a real tamed pet and PCD from owner context, records exact
+resource and maximum-pool deltas, and proves reversible idempotent cleanup.

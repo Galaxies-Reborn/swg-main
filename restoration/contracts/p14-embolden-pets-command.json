@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "feature": "embolden-pets-command",
+  "scope": "Restore the Publish 14.1 Creature Handler emboldenpets command as a real-client, active-pet transaction with Focus-adjusted Mind cost, three-pool pet enhancement, per-pet cooldown, cleanup, and authenticated runtime evidence.",
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "petMaster": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_master.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_embolden_pets_command_fixture.java"
+  },
+  "eraEvidence": {
+    "commandSource": "Source/legacy/precu-restore/precu_client_command_table.tab",
+    "commandSourceSha256": "f7acb20472cbfc78a182703b8cfbf48a3eeaa84af32acd5e638f9342822258d8",
+    "skillSource": "Source/legacy/precu-restore/authentic/skills.precu_merged.tab",
+    "skillSourceSha256": "5d8882200a4061b0086537cd4a18e2d505048e979e830caae777c55ae607dfeb",
+    "publish": "14.1",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/creature/commands/EmboldenpetsCommand.h",
+    "findings": [
+      "The authoritative client table registers emboldenpets to emboldenPets/failPetBuff, with optional other targeting, a 1.5-second default, nonqueued dispatch, and visibility two; the retained callable lifecycle keeps ai.pet_master attached while a creature pet is active.",
+      "outdoors_creaturehandler_healing_02 grants emboldenpets, and the retained pet master plus emboldenPet buff row establish the original server-side ownership surface.",
+      "Pinned Core3 evidence requires a living player, an active living creature pet within 50 meters, Focus-adjusted base Mind cost 100, 15-percent Health/Action/Mind enhancement for 60 seconds, and a 300-second cooldown stored per eligible pet.",
+      "The command charges Mind only after an eligible pet accepts the buff; already-buffed or cooling-down pets are rejected without a resource charge."
+    ]
+  },
+  "commandContract": {
+    "name": "emboldenpets",
+    "scriptHook": "emboldenPets",
+    "failScriptHook": "failPetBuff",
+    "receiverScript": "pre-attached ai.pet_master",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 1.5,
+    "addToCombatQueue": false,
+    "visible": 2,
+    "expectedColumnCount": 94,
+    "grantedBySkill": "outdoors_creaturehandler_healing_02"
+  },
+  "productionContract": {
+    "eligibility": [
+      "living player with outdoors_creaturehandler_healing_02",
+      "living active creature pet owned by the player",
+      "pet within 50 meters and neither already emboldened nor cooling down",
+      "current Mind strictly greater than the calculated cost"
+    ],
+    "baseMindCost": 100,
+    "focusAdjustment": "100 - ((Focus - 300) / 1200) * 100, clamped at zero",
+    "buff": "emboldenPet",
+    "buffDurationSeconds": 60,
+    "healthPercent": 15,
+    "actionPercent": 15,
+    "mindPercent": 15,
+    "cooldownSeconds": 300,
+    "cooldownStorage": "pet.precuEmboldenCooldownUntil on the successfully buffed pet",
+    "chargeOrdering": "apply the buff and cooldown before deducting Mind; no eligible pet means no charge"
+  },
+  "liveFixture": {
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "protocol": 1,
+    "creatureType": "worrt",
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup",
+      "recover"
+    ],
+    "temporarySkills": [
+      "outdoors_creaturehandler",
+      "outdoors_creaturehandler_novice",
+      "outdoors_creaturehandler_healing_01",
+      "outdoors_creaturehandler_healing_02"
+    ],
+    "ownerContextBridge": "the attached fixture creates and tames its worrt from player context, then records the active pet, durable PCD, links, pre-buff maximum pools, and player Mind",
+    "fixtureIsolation": "production telemetry is enabled only for the exact player OID, station ID, protocol, prepared root, and fixture pet",
+    "cleanupPolicy": "remove buff and cooldown, destroy fixture pet/PCD/source, restore current and maximum Mind, Focus, skill points, fixture-granted skills, and the prior pet-master attachment, then prove repeated cleanup idempotence",
+    "recoveryPolicy": "the exact reserved identity may remove exactly one orphaned worrt PCD only when no fixture root, skills, command, or fixture script remains; this repaired the pre-proof parser attempt without weakening ordinary cleanup"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "targets": [
+      "ant compile_java",
+      "ant compile_tab"
+    ],
+    "patch": "restoration/patches/dsrc/241-p14-embolden-pets-command.patch",
+    "patchBytes": 33766,
+    "patchSha256": "a46f763d5b633e75d12fce000422946dbe02d4513deff38866b464eaca8a2ca0",
+    "runtimeRunnerSha256": "38aa97807e806d90f459a8c741692ed72fa9e5041862ff64e762e639252037b4",
+    "sourceSha256": {
+      "command_table.tab": "471f136e9bc9548b0e0b252e2cb09ce16f97e56fabfee28de29c7c2c98cec196",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "buff.tab": "0d2f3fcbf86bc2c937c9f460e86064b7f37c06a42d80f10d97e97abe0d7f1d23",
+      "pet_master.java": "73385b60ded09e2e7eb4d00d1ce1fdb53242fafde423b155717584618c359799",
+      "precu_embolden_pets_command_fixture.java": "d01893e61288584dc19984f2d572090a35730188c4098a376d40fd89318fb320"
+    },
+    "compiledSha256": {
+      "pet_master.class": "bd09dc17be1398d34a385d1e8288ebeec842af20b17475eaf7f0b95221e5a7c0",
+      "precu_embolden_pets_command_fixture.class": "c60e2e26afcd38d1dafb431fb166d15d2a50886239a8810e23e29f6eb7e39477",
+      "buff.iff": "b15f779ed9454ad56a7b7917b663879fc37b1fd085315a81980e28ee4a35bb8e",
+      "command_table.iff": "b4e1404ce92a7e856af2eae47d5bf913a55abbf6155629b1148ac5645b47957c"
+    },
+    "cleanMaterializationPatches": 247,
+    "cleanMaterializationAcceptanceFiles": 712,
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "testedUtc": "2026-07-23T04:55:14Z",
+    "protocolVersion": 155,
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "lifecycle": "63cb56d9776746208f820c7c089c89bd",
+    "clientProcessId": 2084,
+    "petOid": 1061551581,
+    "pcdOid": 1061551588,
+    "petAndPcdLinked": true,
+    "pcdContained": true,
+    "handlerCalls": 1,
+    "focus": 100,
+    "mindCost": 116,
+    "mindDelta": -116,
+    "buffPresent": true,
+    "cooldownRemainingSeconds": 299,
+    "healthMaxBefore": 460,
+    "healthMaxDelta": 69,
+    "actionMaxBefore": 1044,
+    "actionMaxDelta": 156,
+    "mindMaxBefore": 1000,
+    "mindMaxDelta": 150,
+    "poolDeltaPolicy": "each maximum-pool delta equals integer truncation of 15 percent of its pre-buff value",
+    "buffTimerObservation": "getBuffTimeRemaining returned a positive absolute-style legacy value; duration 60 is independently locked by the compiled buff table and production apply call",
+    "cleanup": "action=cleanup alreadyClean=false restored=true",
+    "idempotentCleanup": "action=cleanup alreadyClean=true restored=true",
+    "serverHealth": "healthy",
+    "postProofFatalSevereJavaExceptionDictionaryErrors": 0,
+    "clientExeSha256": "7a41a96b63097a84d5c2d695a9d526f2b1ecba7514e2fe7953dd10b17f13bfe8",
+    "runtimeTreSha256": "04aba4e5111ec290c213be35da882e3336729e4189bff0743f92c215111da1de",
+    "commandTableIffSha256": "b4e1404ce92a7e856af2eae47d5bf913a55abbf6155629b1148ac5645b47957c",
+    "buffIffSha256": "b15f779ed9454ad56a7b7917b663879fc37b1fd085315a81980e28ee4a35bb8e"
+  },
+  "narrowBoundary": {
+    "included": [
+      "authoritative command registration and Creature Handler ownership",
+      "production eligibility, Focus-adjusted Mind charge, three-pool buff, and per-pet cooldown",
+      "real-client nonqueued dispatch, active-pet/PCD linkage, cleanup, idempotence, and health"
+    ],
+    "deferred": [
+      "multiple simultaneous active pets where later server policy permits them",
+      "long-duration wall-clock expiry of the full cooldown",
+      "later-NGE pet class bonuses or expertise modifiers"
+    ]
+  }
+}

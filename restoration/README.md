@@ -1773,3 +1773,16 @@ owner-context recall, exact cleanup, and idempotent cleanup after relogin.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14TameCommandLifecycle.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 243 restores `emboldenpets`, already owned by Creature Handler
+Healing II, as a complete active-pet transaction. The retained
+`ai.pet_master` receiver now validates a living owned creature pet within 50
+meters, charges the Focus-adjusted base-100 Mind cost only after a successful
+buff, enhances all three primary pools by 15 percent for 60 seconds, and
+stores a 300-second cooldown on that pet. The identity-bound fixture creates
+its pet through the real tame/PCD lifecycle, while the authenticated runtime
+runner dispatches the nonqueued command through the real client, proves the
+resource and pool deltas, and exactly restores every fixture-owned mutation.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14EmboldenPetsCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
