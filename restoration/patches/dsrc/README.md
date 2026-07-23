@@ -1254,3 +1254,13 @@ filter, tiered direction/distance details, and results/nothing response. Its
 identity-bound fixture creates an inert worrt 10 meters east, snapshots skill
 points, grants and reverses the exact Ranger chain, tracks both production SUI
 pages, destroys the target, and proves native close plus idempotent cleanup.
+
+`251-p14-core3-flame-dot-family.patch` restores Commando `flameSingle1`,
+`flameSingle2`, `flameCone1`, and `flameCone2` from the pinned Core3 command
+definitions. All four require the canonical directional flame thrower, use
+the historical 16-meter heavy-weapon boundary, resolve a RANDOM target pool,
+generate intensity-specific animations, and apply the historical
+100-strength, 60-second fire DOT. The weapon HAM table restores the
+Core3-derived 80/25/25 base costs. An identity-bound two-client fixture
+temporarily expands and exactly restores maximum HAM so multiple DOT pulses
+can be observed without changing production damage behavior.

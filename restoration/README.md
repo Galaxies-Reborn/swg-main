@@ -1893,3 +1893,14 @@ completion, zero normalized fixture markers, native SUI cleanup, and
 idempotent restoration. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14AreaTrackCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 253 restores the complete Commando flame-thrower command family:
+`flameSingle1`, `flameSingle2`, `flameCone1`, and `flameCone2`. The exact
+pinned Core3 damage, timing, HAM multipliers, cone geometry, RANDOM pool,
+generated animation, combat-spam, and 100-by-60-second fire DOT definitions
+run through the retained production combat engine. Protocol 174 proved all
+four commands with the canonical runtime weapon type 13, successful queue
+removal, generated medium animations, real three-pool drains, live DOT pulses,
+and reversible idempotent two-client cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3FlameDotFamily.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
