@@ -1904,3 +1904,14 @@ removal, generated medium animations, real three-pool drains, live DOT pulses,
 and reversible idempotent two-client cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3FlameDotFamily.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 254 restores Marksman `healthShot1` and `mindShot1` from the pinned
+Core3 definitions and their exact installed Publish-era rows. The combat-data
+bridge now carries an explicit DOT attribute, and retained DOT pulses route
+through the same primary HAM pool as the direct hit. Protocol 175 proved the
+PISTOL and RIFLE gates, exact adjusted three-pool costs, `sapshot` and
+`distractshot` spam, generated ranged animations, successful queue removal,
+and isolated Health-then-Mind bleeding pulses with reversible idempotent
+two-client cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3PoolSpecificBleedingShots.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

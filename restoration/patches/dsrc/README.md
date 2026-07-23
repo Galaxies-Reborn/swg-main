@@ -1264,3 +1264,12 @@ generate intensity-specific animations, and apply the historical
 Core3-derived 80/25/25 base costs. An identity-bound two-client fixture
 temporarily expands and exactly restores maximum HAM so multiple DOT pulses
 can be observed without changing production damage behavior.
+
+`252-p14-core3-pool-specific-bleeding-shots.patch` restores Marksman
+`healthShot1` and `mindShot1` from the pinned Core3 command definitions and
+their exact installed Publish-era rows. Direct damage and retained bleeding
+pulses route to Health and Mind respectively, while the command-specific
+PISTOL/RIFLE gates, three-pool HAM multipliers, accuracy, timing, animation,
+spam, intensity, and duration remain table-driven. The identity-bound
+two-client fixture grants and reverses both tier-IV commands, snapshots HAM,
+clears DOT state, and exposes pool-specific pulse evidence.
