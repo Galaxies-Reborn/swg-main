@@ -1,9 +1,12 @@
 {
   "schemaVersion":1,
   "feature":"nonstandard-profession-matrix-closure",
-  "status":"build-ready-runtime-restricted",
+  "status":"ready",
   "scope":"Exact Publish 14.1 closure of Shipwright, pilot, Force-sensitive, rank, and Jedi profession families.",
-  "sourceFiles":{"skillTable":"dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"},
+  "sourceFiles":{
+    "skillTable":"dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "liveFixture":"dsrc/sku.0/sys.server/compiled/game/script/test/precu_nonstandard_profession_fixture.java"
+  },
   "families":[
     {"root":"crafting_shipwright","rows":19,"bytes":6708,"sha256":"dc42720ab659bdf2882beef56fdf5a05117a85aca2270c4f654e766578857c87"},
     {"root":"force_discipline_defender","rows":19,"bytes":5965,"sha256":"d6eb2c310a9c427144976635f93cb0a4be8f5e74e08d971818c03f6b946cb2fb"},
@@ -36,18 +39,79 @@
     "reverseApplyCheck":"passed",
     "sourceSha256":{"skills.tab":"541b6c8d861af0f81a7ace435ab51aefad3d983b97df75e25e72361d340f83f2"},
     "clientTableBuild":{"result":"passed","compiledBytes":589264,"compiledSha256":"749929dd003cdd075a00de7f2f55d1dc6975290abf59bcb5db331f334b09190b"},
-    "globalProfessionAudit":{"professionRoots":54,"canonicalRows":1002,"divergences":0}
+    "globalProfessionAudit":{"professionRoots":54,"canonicalRows":1002,"divergences":0},
+    "runtimeFixtureOverlay":"restoration/patches/dsrc/238-p14-nonstandard-profession-runtime-fixture.patch",
+    "runtimeFixtureOverlaySha256":"34F806226CBCCDF7CCD978E23372209AAB12AA9673F2F79BEFEDD2F5FB891C5A",
+    "runtimeFixtureSha256":"720F80F789D525F1B1C613693125927770F00F65594041CD352F81F85AB89A41",
+    "runtimeRunner":"restoration/scripts/Invoke-P14NonstandardProfessionRuntime.ps1",
+    "runtimeRunnerSha256":"37A33CF3848606CF7280367EE26E075858CABBCF128D4EEBC7B940C9F980C834"
   },
-  "clientAssetPublication":{"commit":"71931f271eef02b175cc612d4c2c5cc4329db256"},
+  "clientAssetPublication":{
+    "skillMatrixCommit":"71931f271eef02b175cc612d4c2c5cc4329db256",
+    "toolsCommit":"3727433061d0e99f8854c9cdb0434dbebf65642b",
+    "backgroundInputProtocol":154,
+    "publicProfessionRows":33,
+    "canonicalGraphRoots":54,
+    "releaseX64Bytes":32634368,
+    "releaseX64Sha256":"FA9F993DBBCED36BA2E0DD59719430DA8E2DB3F304F044DFAB3CB52B62DE2245"
+  },
+  "runtimeFixture":{
+    "script":"test.precu_nonstandard_profession_fixture",
+    "method":"executeProbe",
+    "container":"swg-precu",
+    "stationId":91001,
+    "playerObjectId":44003778,
+    "protocolVersion":1,
+    "familyCount":21,
+    "persistentAcrossRelogAndRestart":true,
+    "oneFamilyAtATime":true,
+    "exactCleanupRequired":true
+  },
   "runtimeEvidence":{
-    "result":"requires-specialized-characters",
+    "result":"passed",
     "standardAvatarAllProfessionRows":33,
-    "unavailableFamilies":21,
-    "reason":"The ordinary test avatar and standard All Professions list do not expose Shipwright, pilot, Force-sensitive, rank, or Jedi graphs.",
+    "specializedFamilies":21,
+    "familyProof":[
+      {"family":"crafting_shipwright","result":"passed","cleanup":"restored"},
+      {"family":"pilot_imperial_navy","result":"passed","cleanup":"restored"},
+      {"family":"pilot_neutral","result":"passed","cleanup":"restored"},
+      {"family":"pilot_rebel_navy","result":"passed","cleanup":"restored"},
+      {"family":"force_sensitive_combat_prowess","result":"passed","cleanup":"restored"},
+      {"family":"force_sensitive_crafting_mastery","result":"passed","cleanup":"restored"},
+      {"family":"force_sensitive_enhanced_reflexes","result":"passed","cleanup":"restored"},
+      {"family":"force_sensitive_heightened_senses","result":"passed","cleanup":"restored"},
+      {"family":"force_discipline_defender","result":"passed","cleanup":"restored"},
+      {"family":"force_discipline_enhancements","result":"passed","cleanup":"restored"},
+      {"family":"force_discipline_healing","result":"passed","cleanup":"restored"},
+      {"family":"force_discipline_light_saber","result":"passed","cleanup":"restored"},
+      {"family":"force_discipline_powers","result":"passed","cleanup":"restored"},
+      {"family":"force_rank_dark","result":"passed","cleanup":"restored"},
+      {"family":"force_rank_light","result":"passed","cleanup":"restored"},
+      {"family":"force_title_jedi","result":"passed","cleanup":"restored"},
+      {"family":"jedi_dark_side_journeyman","result":"passed","cleanup":"restored"},
+      {"family":"jedi_dark_side_master","result":"passed","cleanup":"restored"},
+      {"family":"jedi_light_side_journeyman","result":"passed","cleanup":"restored"},
+      {"family":"jedi_light_side_master","result":"passed","cleanup":"restored"},
+      {"family":"jedi_padawan","result":"passed","cleanup":"restored"}
+    ],
+    "boundaries":{"relog":"passed","restart":"passed"},
+    "boundaryEvidence":{
+      "relog":{"family":"force_sensitive_heightened_senses","token":"0223321b01574fc7af60dc4f59e4ec15","rootOwned":true,"noviceOwned":true,"cleanup":"restored"},
+      "restart":{"family":"pilot_neutral","token":"e26973aab30844b7aefb36e8a12a4875","rootOwned":true,"noviceOwned":true,"cleanup":"restored"}
+    },
+    "screenshots":[
+      {"kind":"shipwright","path":"research/evidence/nonstandard-professions/milestone-240-shipwright.png","bytes":335794,"sha256":"7F3282ABA8A618C8EAA06FFA3F4AE13EAC88C958EE2C682755FBA0E34B73B93A"},
+      {"kind":"pilot","path":"research/evidence/nonstandard-professions/milestone-240-pilot-imperial.png","bytes":334549,"sha256":"EE1A20BA2356C484A9A28AB0DB03E9E52EB652F1EDF5204256DB6DFE1FB4B812"},
+      {"kind":"force_sensitive","path":"research/evidence/nonstandard-professions/milestone-240-force-sensitive.png","bytes":330926,"sha256":"0F7B19AA940FD3561D64A0DE1F88511B660F08FAD6392558A109C5B61CA07970"},
+      {"kind":"jedi","path":"research/evidence/nonstandard-professions/milestone-240-jedi-padawan.png","bytes":331336,"sha256":"02BF14AEA2D62A4088B83BE57EE1FD8621A172308BF3ED61BF09988909F4B8D3"}
+    ],
+    "additionalGraphProof":[
+      {"kind":"pyramid","family":"force_rank_dark","path":"research/evidence/nonstandard-professions/milestone-240-force-rank-dark.png","bytes":331400,"sha256":"63E8FBF44A772ECFC1C5DD126E45C5196C5F26DB2ABE1715F868C3541C54D794"},
+      {"kind":"one_by_four","family":"force_title_jedi","path":"research/evidence/nonstandard-professions/milestone-240-jedi-title.png","bytes":333012,"sha256":"59A8F7AFB324304A91AEE661AD5620DFA522D87E45F8C63B1AA5752868FC7E22"}
+    ],
+    "exactCleanup":"passed",
     "serverHealthy":true
   },
-  "requiredBeforeReady":[
-    "Provide or authorize creation of pilot and Force-sensitive/Jedi runtime fixtures for live graph screenshots."
-  ],
-  "nextBoundary":"Runtime verification requires specialized pilot and Force-sensitive/Jedi characters."
+  "requiredBeforeReady":[],
+  "nextBoundary":"The Publish 14.1 profession matrix inventory is exhausted; continue only if a new source-backed boundary is discovered."
 }

@@ -1142,3 +1142,11 @@ player-money request asynchronously from ownerless console context, and can
 clear only an exact stale pre-payment enqueue marker. `player_money.OnLogin`
 consumes the matching relog nonce only for a fully settled purchase with
 successful accounting and the complete held Artisan vector.
+
+`238-p14-nonstandard-profession-runtime-fixture.patch` adds the identity-bound
+milestone-240 fixture for all 21 specialized profession families. It snapshots
+the family root, novice box, and Jedi state in a persistent marker; grants the
+minimum reversible presentation state; survives relog and server restart; and
+clears the marker only after exact restoration. Pilot cleanup uses the native
+`revokePilotSkill` guard so validation does not weaken recruiter-only
+production surrender.

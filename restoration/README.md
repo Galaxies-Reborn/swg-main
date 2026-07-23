@@ -1736,3 +1736,14 @@ production command, and returned to its exact 191-point/zero-XP/zero-credit
 baseline. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PhaseARuntimeClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 240 closes the remaining nonstandard profession matrix. A
+station-91001 fixture proved Shipwright, all three pilot affiliations, four
+Force-sensitive families, five Force disciplines, both FRS ranks, Jedi title,
+four light/dark Journeyman/Master families, and Padawan with exact root/novice
+ownership and cleanup. The production x64 Skills mediator rendered the native
+four-by-four, one-by-four, and pyramid templates while preserving the ordinary
+33-row All Professions catalog. The marker survived both a client relog and a
+game-server restart, and the final server remained healthy. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NonstandardProfessionMatrixClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
