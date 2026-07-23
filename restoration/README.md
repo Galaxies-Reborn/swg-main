@@ -1799,3 +1799,18 @@ pet regeneration, proves real-client nonqueued dispatch, and restores the pet,
 PCD, skills, pools, wounds, and battle fatigue idempotently. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14HealMindCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 245 restores `berserk1`, granted by Brawler novice, as a complete
+HAM-to-state transaction. The persistent player receiver requires a melee or
+unarmed weapon, applies the pinned random-plus-berserk threshold, calculates
+the Strength/Quickness/Focus-adjusted 100/100/50 costs, drains all three pools,
+and enters `STATE_BERSERK` for 20 seconds. An absolute durable expiry is
+generation-checked by the callback and rearmed on login, preventing both
+process-loss leakage and stale-timer clears. The authenticated protocol-156
+proof dispatches the real nonqueued client command, proves exact adjusted
+handler-local costs from the character's snapshotted governing attributes,
+observes natural expiration,
+and restores the six current/max attributes, skills, points, state, and expiry
+idempotently. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkOneCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

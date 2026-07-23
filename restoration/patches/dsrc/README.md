@@ -1190,3 +1190,11 @@ Willpower wounds and battle fatigue to the healer without a separate Mind
 charge. Its identity-bound fixture creates a real tamed pet and durable PCD,
 measures the handler-local Mind delta independently of pet regeneration, and
 proves exact idempotent restoration.
+
+`243-p14-berserk-one-command.patch` restores the exact 94-column Publish 14.1
+`berserk1` row and its Brawler-novice player receiver. The production path
+enforces melee/unarmed use, the random-plus-berserk threshold, strict adjusted
+Health/Action/Mind affordability, exact drains, and a 20-second berserk state.
+Its durable absolute expiry is rearmed on login and generation-checks each
+callback so stale timers cannot clear a newer activation. The identity-bound
+fixture proves exact costs, natural expiry, restoration, and idempotence.
