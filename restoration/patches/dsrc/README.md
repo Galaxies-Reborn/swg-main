@@ -1283,3 +1283,12 @@ posture-down state check with immunity, posture-defense, level, and recovery
 semantics. The identity-bound two-client fixture creates a reversible CDEF
 carbine, snapshots posture and recovery state, and exposes application and
 recovery diagnostics before exact idempotent cleanup.
+
+`254-p14-core3-action-shot-two-cone.patch` restores Carbineer
+`actionShot2` from the pinned Core3 definition and exact installed
+Publish-era command row. The CARBINE gate, 15-degree cone, 2.0 damage and
+speed multipliers, Action-only direct damage and bleeding, generated ranged
+animation, `sapblast` spam, and posture-down chance are table-driven. The
+existing identity-bound fixture adds reversible ownership and cost/status
+evidence while reusing the proven CDEF carbine, posture resolver, recovery,
+and exact cleanup lifecycle.

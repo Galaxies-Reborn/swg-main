@@ -1928,3 +1928,14 @@ damage and bleeding, posture application, recovery, and reversible idempotent
 two-client cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionShotPostureDown.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 256 restores Carbineer `actionShot2` from the pinned Core3
+definition and its exact installed Publish-era command row. It reuses the
+proven posture-down resolver while adding the historical 15-degree cone,
+2.0 damage and speed multipliers, `fire_5_special_single` generated ranged
+animation, and `sapblast` combat spam. Protocol 177 proved a concrete CDEF
+carbine, exact adjusted costs, successful queue removal, isolated Action
+damage and bleeding, posture application, recovery, and reversible idempotent
+two-client cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionShotTwoCone.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
