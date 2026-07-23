@@ -1860,3 +1860,12 @@ real group formation and dissolution, reversible restoration, and idempotent
 cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BoostMoraleCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 250 restores `steadyaim`, granted by Squad Leader Offense I. A real
+group leader pays group-size-scaled, adjusted Health/Action/Mind costs before
+eligible ranged player members receive `private_aim` equal to five plus the
+leader modifier for 300 seconds. Protocol 162 proves two reversible CDEF
+rifles, exact 46/110/129 HAM, both +5 effects, grouping, disband, and
+idempotent cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SteadyAimCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

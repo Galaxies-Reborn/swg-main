@@ -1230,3 +1230,9 @@ Health/Action/Mind costs; all nine wounds are cleared from eligible player
 members and their exact total is redistributed with conserved ceiling slices.
 Its identity-bound two-client fixture proves real grouping, exact costs and
 wound vectors, group dissolution, restoration, and idempotent cleanup.
+
+`248-p14-steady-aim-command.patch` restores the exact 94-column Publish-era
+`steadyaim` row and Squad Leader Offense I receiver. The leader pays adjusted
+three-pool HAM; eligible ranged player members receive a five-minute
+`private_aim` modifier. Its two-client fixture creates reversible CDEF rifles
+and proves exact costs, both effects, disband, restoration, and idempotence.
