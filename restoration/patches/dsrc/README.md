@@ -1273,3 +1273,13 @@ PISTOL/RIFLE gates, three-pool HAM multipliers, accuracy, timing, animation,
 spam, intensity, and duration remain table-driven. The identity-bound
 two-client fixture grants and reverses both tier-IV commands, snapshots HAM,
 clears DOT state, and exposes pool-specific pulse evidence.
+
+`253-p14-core3-action-shot-posture-down.patch` restores Marksman
+`actionShot1` from the pinned Core3 command definition and exact installed
+Publish-era row. Its CARBINE gate, three-pool HAM multipliers, Action-only
+direct damage and bleeding, timing, accuracy, animation, and spam remain
+table-driven. The production combat resolver applies the historical
+posture-down state check with immunity, posture-defense, level, and recovery
+semantics. The identity-bound two-client fixture creates a reversible CDEF
+carbine, snapshots posture and recovery state, and exposes application and
+recovery diagnostics before exact idempotent cleanup.

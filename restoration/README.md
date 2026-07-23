@@ -1915,3 +1915,16 @@ and isolated Health-then-Mind bleeding pulses with reversible idempotent
 two-client cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3PoolSpecificBleedingShots.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 255 restores Marksman `actionShot1` from the pinned Core3 definition
+and its exact installed Publish-era row. The table-driven command requires a
+carbine, routes direct damage and its retained bleeding pulse to Action, and
+applies the historical 100-percent posture-down state check after a successful
+hit. The resolver preserves immunity, posture-defense, level, and 30-second
+recovery behavior; an immediate repeat during recovery stands a non-upright
+target back up. Protocol 176 proved the CDEF carbine gate, exact adjusted
+three-pool costs, `sapshot` spam, generated ranged animation, isolated Action
+damage and bleeding, posture application, recovery, and reversible idempotent
+two-client cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionShotPostureDown.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
