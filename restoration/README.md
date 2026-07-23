@@ -1814,3 +1814,14 @@ and restores the six current/max attributes, skills, points, state, and expiry
 idempotently. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkOneCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 246 restores `berserk2`, granted by Brawler master with
+`berserk=20`, on the durable state path proven by `berserk1`. The persistent
+player receiver preserves the same melee/unarmed, adjusted 100/100/50 HAM,
+strict-pool, and random-plus-modifier policies while extending the state to
+40 seconds. Its identity-bound fixture grants the complete Brawler tree,
+proves the master modifier with deterministic roll 5 and total chance 25,
+then restores the full chain, skill points, six current/max attributes, state,
+and expiry idempotently. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkTwoCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

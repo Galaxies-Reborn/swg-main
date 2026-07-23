@@ -1198,3 +1198,10 @@ Health/Action/Mind affordability, exact drains, and a 20-second berserk state.
 Its durable absolute expiry is rearmed on login and generation-checks each
 callback so stale timers cannot clear a newer activation. The identity-bound
 fixture proves exact costs, natural expiry, restoration, and idempotence.
+
+`244-p14-berserk-two-command.patch` restores the exact 94-column Publish 14.1
+`berserk2` row and its Brawler-master player receiver. It reuses the proven
+durable berserk expiry while requiring master ownership, observing the
+authoritative +20 modifier, applying the same adjusted 100/100/50 HAM policy,
+and extending the state to 40 seconds. The reversible fixture grants and
+removes the complete Brawler tree and proves natural expiry and idempotence.
