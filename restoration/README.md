@@ -1747,3 +1747,13 @@ four-by-four, one-by-four, and pyramid templates while preserving the ordinary
 game-server restart, and the final server remained healthy. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NonstandardProfessionMatrixClosure.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 241 restores the authoritative Publish 14.1 `sampleDNA` command
+registration that Bio Engineer novice already grants and reconnects it to the
+retained `cmdHarvestDNA`/`bio_engineer` lifecycle. An authenticated
+protocol-155 proof dispatched the real client command against a disposable
+worrt, entered the production handler once, spent exactly 100 Action and 250
+Mind, created a DNA component, persisted 92 DNA-harvesting XP, preserved the
+creature, and restored every fixture-owned mutation. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SampleDnaCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

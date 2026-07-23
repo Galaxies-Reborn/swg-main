@@ -1150,3 +1150,12 @@ minimum reversible presentation state; survives relog and server restart; and
 clears the marker only after exact restoration. Pilot cleanup uses the native
 `revokePilotSkill` guard so validation does not weaken recruiter-only
 production surrender.
+
+`239-p14-sample-dna-command.patch` restores the Publish 14.1 `sampleDNA`
+registration that Bio Engineer novice grants but the retained 94-column
+command table omitted. It reconnects the existing `cmdHarvestDNA` lifecycle
+without changing its production behavior. An identity-bound fixture creates
+one disposable worrt, owns the minimum Bio Engineer skill vector, shortens the
+ten-second sample only under its marker, records deterministic skill/survival/
+behavior rolls, and exactly restores attributes, DNA XP, skill points, command
+ownership, objects, and the quick-sample marker.
