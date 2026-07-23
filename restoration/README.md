@@ -1757,3 +1757,19 @@ Mind, created a DNA component, persisted 92 DNA-harvesting XP, preserved the
 creature, and restored every fixture-owned mutation. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SampleDnaCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 242 restores `tame` as a complete Creature Handler lifecycle rather
+than an inert command row. The production path owns an exclusive 30-second,
+three-utterance transaction; revalidates range, skill, chance, capacity,
+control level, and datapad at commit; and converts a successful wild baby into
+a persistent growth-stage-one pet with a durable PCD, callable links, default
+commands, saved pet state, follow behavior, and level-times-20 Creature Handler
+XP. A lifecycle-owned task receiver holds the wild target with nonpersistent
+one-second `stop` heartbeats between the three phase callbacks; STOP behavior
+is never written as a persistent default, so process loss cannot strand a wild
+target. The split runtime runner proves authenticated protocol-155 dispatch
+and storage before a real restart, then PCD persistence, login-rearmed
+owner-context recall, exact cleanup, and idempotent cleanup after relogin.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14TameCommandLifecycle.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

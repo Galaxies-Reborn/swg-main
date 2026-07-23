@@ -1159,3 +1159,15 @@ one disposable worrt, owns the minimum Bio Engineer skill vector, shortens the
 ten-second sample only under its marker, records deterministic skill/survival/
 behavior rolls, and exactly restores attributes, DNA XP, skill points, command
 ownership, objects, and the quick-sample marker.
+
+`240-p14-tame-command-lifecycle.patch` restores the authoritative Publish
+14.1 `tame` registration and implements the missing retained-SOE transaction.
+It uses player/target locks and three ten-second phases, revalidates all
+eligibility at commit, preserves production chance/failure semantics, and on
+success persists the wild baby as a growth-stage-one callable pet with a PCD,
+default commands, saved state, follow behavior, and level-times-20 Creature
+Handler XP. A temporarily attached task receiver supplies nonpersistent
+one-second stop heartbeats between phase callbacks and detaches on every exit.
+The identity-bound persistent fixture proves client admission, owner-context
+store/restart/recall continuity, and reversible idempotent cleanup without
+forcing any non-fixture production roll.
