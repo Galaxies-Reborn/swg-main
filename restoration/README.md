@@ -1869,3 +1869,27 @@ rifles, exact 46/110/129 HAM, both +5 effects, grouping, disband, and
 idempotent cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SteadyAimCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 251 restores Combat Medic `applyPoison` and `applyDisease` as the
+shared DOT-pack lifecycle defined by pinned Core3. The actor-routed handler
+validates organic attackable targets, PvP and line of sight, exact skill
+ownership, carried medicine type, range, Focus-adjusted base-150 Mind cost,
+and independent recovery. It then delegates to the retained single/area DOT,
+resistance, combat, XP, and charge-consumption path. Protocol 164 proved one
+production handler entry per command, exact 140-Mind and one-charge costs,
+both strength-108 effects, normalized database cleanup at zero markers, and
+idempotent restoration. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ApplyDotCommands.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 252 restores Ranger `areatrack` from its exact installed Publish 14
+row and the pinned three-part Core3 lifecycle. Ranger novice opens the real
+Animal/NPC/Player option SUI with harvest-tier gating. The selected scan waits
+six seconds, rejects movement beyond one meter or combat, filters visible
+creatures within 512 meters, and exposes harvest-tier direction and distance
+in the production results SUI. Protocol 165 proved the exact option page and
+ordinary selection/OK callbacks, a target 10 meters east, delayed result
+completion, zero normalized fixture markers, native SUI cleanup, and
+idempotent restoration. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14AreaTrackCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

@@ -1236,3 +1236,21 @@ wound vectors, group dissolution, restoration, and idempotent cleanup.
 three-pool HAM; eligible ranged player members receive a five-minute
 `private_aim` modifier. Its two-client fixture creates reversible CDEF rifles
 and proves exact costs, both effects, disband, restoration, and idempotence.
+
+`249-p14-apply-dot-commands.patch` restores the exact 94-column Publish-era
+`applyPoison` and `applyDisease` rows and their shared Combat Medic receiver.
+The production path enforces skill, organic attackability, PvP, line of sight,
+medicine type, range, Focus-adjusted Mind affordability, and independent
+recovery before delegating to the retained single/area DOT, resistance,
+combat, XP, and charge lifecycle. Its identity-bound fixture snapshots Mind
+and maximum Mind, skills, points, XP, cooldowns, packs, target, and DOT state;
+protocol 164 proves both production commands and exact idempotent cleanup.
+
+`250-p14-area-track-command.patch` restores the exact 94-column installed
+Publish-era `areatrack` row and Ranger novice receiver. The persistent-player
+handler owns the outdoor/cooldown gate, harvest-tier Animal/NPC/Player option
+SUI, six-second movement/combat-sensitive task, 512-meter visible-creature
+filter, tiered direction/distance details, and results/nothing response. Its
+identity-bound fixture creates an inert worrt 10 meters east, snapshots skill
+points, grants and reverses the exact Ranger chain, tracks both production SUI
+pages, destroys the target, and proves native close plus idempotent cleanup.

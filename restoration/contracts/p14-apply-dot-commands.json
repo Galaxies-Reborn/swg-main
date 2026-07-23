@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-apply-dot-commands",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/apply_dot.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_apply_dot_command_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "specializations": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ApplyPoisonCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ApplyDiseaseCommand.h"
+    ],
+    "sharedCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/DotPackCommand.h",
+    "lifecycleRule": "validate an attackable organic target and line of sight, select a carried DOT pack by type, apply Focus-adjusted Mind cost and per-command recovery, apply single or area DOT resistance and combat effects, consume one charge, and award medical XP for eligible non-player damage"
+  },
+  "publish14Evidence": {
+    "historicalClientArchive": "PreCU-Client/data_other_00.tre",
+    "historicalRows": {"applyPoison": 158, "applyDisease": 159},
+    "historicalCommandColumns": 66,
+    "restoredCommandColumns": 94,
+    "owners": {"applyPoison": "science_combatmedic_novice", "applyDisease": "science_combatmedic_healing_range_02"},
+    "baseMindCost": 150,
+    "baseRecoverySeconds": 12,
+    "fixturePotency": -1,
+    "fixturePotencyRule": "the retained DOT library reserves -1 for deterministic no-random-resist acceptance; production medicine potency and resistance remain unchanged"
+  },
+  "clientCommandBoundary": {
+    "protocolVersion": 164,
+    "player": {"playerOid": 44003778, "stationId": 91001, "avatar": "PrecuRuntime"},
+    "commands": ["QueueApplyPoison", "QueueApplyDisease"]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T09:24:00-04:00",
+    "overlayPatch": "restoration/patches/dsrc/249-p14-apply-dot-commands.patch",
+    "patchSha256": "8acfc3ddc14c8302dc5c09c0286c255c321fef42907e2af7f0032d39b5e50c30",
+    "runtimeRunner": "restoration/scripts/Invoke-P14ApplyDotRuntime.ps1",
+    "runtimeRunnerSha256": "7923858608918db6aa95e88498522f481d42d263cdd178f37b76591f8cffdb25",
+    "changedFileCount": 4,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "serverJavaBuild": {"result": "passed", "compiledJavaSources": 3},
+    "serverTabBuild": {"result": "passed", "compiledTables": 1, "commandTableIffSha256": "88bc051ed81f4ea7c8f072d5402c492099a4d380f32a4ae6c34f2f6e8c20d9fb"},
+    "clientNativeBuild": {"result": "passed", "configuration": "Release|x64", "platformToolset": "v143", "protocolVersion": 164, "executableBytes": 33798656, "executableSha256": "d14b8eaa288008abc265e4b3f75a9dc914f077b82b02cf8ac32bc321e621bfc1"},
+    "clientSourceTests": {"result": "passed", "bridgeTests": 56},
+    "sourceSha256": {
+      "command_table.tab": "86f07a3866562b6aaf74590c61bd8ed83ece4fdab92ff267297a9f12d9d52c4d",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "healing.java": "b78ab4206dbb1ecdb6d741480aea1bde34cb4f80cfc3454f5b1e7dcbadaf889f",
+      "apply_dot.java": "149f331d2ddb9f89ec0c71ed11fcbe2d4c4c675f6ce4cd39a300144267f00cf3",
+      "precu_apply_dot_command_fixture.java": "b01f63a60fc2d856c5f49f31ad2121114bc6bbed96f2488b761b13e933de1610",
+      "ClientMain.cpp": "839b7b66558e0fa9f86e47eabdeb8e6deaf3744c512966dd48ed62c75d4d21b4",
+      "Invoke-PrecuBackgroundInput.ps1": "9b78f0c12c9b9a1e6d54d52cd3800e13c4e9b03fa442dfb3feff8e7aaa98864f",
+      "test_precu_background_input_bridge.py": "a76a310901f94dcac689c36321b58a394a376f02a173f06dffaaf5254f59b4c7"
+    },
+    "compiledSha256": {
+      "healing.class": "26eaa611fa02be7e93bdb7fcc0480588cec3a56e6e4320a145a2e0e33d7ed2ac",
+      "apply_dot.class": "8d4012035dfe21a2546f2d8235ae0e67614f28d5bd5542b75e37c67d471068c3",
+      "precu_apply_dot_command_fixture.class": "84f839e2784ac4a06e20fd7dcca4b3104e0eaef69902a3fe32ea0988519bcc25"
+    },
+    "clientAssetSha256": {
+      "datatables/command/command_table.iff": "88bc051ed81f4ea7c8f072d5402c492099a4d380f32a4ae6c34f2f6e8c20d9fb",
+      "precu_runtime.tre": "f5e5ea406f6cc07b4c7c54a1d23282ccad42ba6fae3cee2c507194da6466e1ee"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T09:22:00-04:00",
+    "container": "swg-precu",
+    "lifecycle": "f9c08d5cecbf42bf961e7456a0f436c8",
+    "clientProtocolVersion": 164,
+    "clientSha256": "d14b8eaa288008abc265e4b3f75a9dc914f077b82b02cf8ac32bc321e621bfc1",
+    "player": {"playerOid": 44003778, "stationId": 91001, "avatar": "PrecuRuntime", "clientProcessId": 47984},
+    "preparation": {"mind": 500, "expectedMindCost": 140, "expectedStrength": 108, "poisonCharges": 2, "diseaseCharges": 2},
+    "poison": {"handlerCalls": 1, "outcome": "performed", "mindCost": 140, "chargeCost": 1, "strengthAfter": 108, "roundTime": 12, "medicalXpDelta": 0},
+    "disease": {"handlerCalls": 1, "outcome": "performed", "mindCost": 140, "chargeCost": 1, "strengthAfter": 108, "roundTime": 12, "medicalXpDelta": 0},
+    "cleanup": {"restored": true, "idempotent": true, "normalizedDatabaseRelation": "OBJECT_VARIABLES_VIEW", "normalizedDatabaseMarkerCount": 0},
+    "serverHealthyAfterCleanup": true,
+    "proofClientStopped": true,
+    "userClientUntouched": true
+  },
+  "publicationBoundary": {"serverProductionGameplayCodeChanged": true, "serverAcceptanceFixtureChanged": true, "clientToolsChanged": true, "clientAssetsChanged": true, "evidenceRepositoryContainsGameplayCode": false},
+  "narrowBoundary": {"included": ["exact two historical commands", "shared DOT-pack lifecycle", "single-target authenticated proof for poison and disease", "reversible medicine, DOT, skill, HAM, XP, and target cleanup"], "deferred": ["area-pack multi-target proof", "player-versus-player proof", "areatrack"]}
+}

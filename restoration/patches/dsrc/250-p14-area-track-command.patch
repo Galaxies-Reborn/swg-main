@@ -1,0 +1,666 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index 165c3349e..d38516e21 100755
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -67,6 +67,21 @@ public class base_player extends script.base_script
+     private static final int PRECU_STEADY_AIM_PROTOCOL_VERSION = 1;
+     private static final String PRECU_STEADY_AIM_FIXTURE_ROOT =
+         "precu.steadyAimFixture";
++    public static final float PRECU_AREA_TRACK_RANGE = 512.0f;
++    public static final float PRECU_AREA_TRACK_MOVE_LIMIT = 1.0f;
++    public static final int PRECU_AREA_TRACK_DELAY_SECONDS = 6;
++    private static final String PRECU_AREA_TRACK_OPTIONS_PID =
++        "precu.areaTrack.options";
++    private static final String PRECU_AREA_TRACK_RESULTS_PID =
++        "precu.areaTrack.results";
++    private static final String PRECU_AREA_TRACK_PENDING =
++        "precu.areaTrack.pending";
++    private static final String PRECU_AREA_TRACK_COOLDOWN =
++        "precu.areaTrack.cooldownUntil";
++    private static final long PRECU_AREA_TRACK_PLAYER_OID = 44003778L;
++    private static final int PRECU_AREA_TRACK_STATION_ID = 91001;
++    private static final String PRECU_AREA_TRACK_FIXTURE_ROOT =
++        "precu.areaTrackCommandFixture";
+     public static final int PRECU_RETREAT_BASE_COST = 100;
+     public static final int PRECU_RETREAT_DURATION_SECONDS = 30;
+     public static final float PRECU_RETREAT_SPEED_STRENGTH = 82.2f;
+@@ -5938,11 +5953,287 @@ public class base_player extends script.base_script
+     {
+         return SCRIPT_CONTINUE;
+     }
+-    public int failMaskscent(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int milkCreature(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    public int failMaskscent(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        return SCRIPT_CONTINUE;
++    }
++    public int areatrack(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        recordAreaTrackInt(self, ".handlerCalls",
++            readAreaTrackInt(self, ".handlerCalls") + 1);
++        if (!isPlayer(self) ||
++            !hasSkill(self, "outdoors_ranger_novice"))
++        {
++            recordAreaTrackOutcome(self, "missingSkill");
++            return SCRIPT_OVERRIDE;
++        }
++        location current = getLocation(self);
++        if (current == null || isIdValid(current.cell))
++        {
++            sendSystemMessage(self, SID_SYS_SCAN_INSIDE);
++            recordAreaTrackOutcome(self, "inside");
++            return SCRIPT_OVERRIDE;
++        }
++        int now = getGameTime();
++        if ((utils.hasScriptVar(self, PRECU_AREA_TRACK_COOLDOWN) &&
++                now < utils.getIntScriptVar(self,
++                    PRECU_AREA_TRACK_COOLDOWN)) ||
++            utils.hasScriptVar(self, PRECU_AREA_TRACK_PENDING) ||
++            sui.hasPid(self, PRECU_AREA_TRACK_OPTIONS_PID))
++        {
++            sendSystemMessage(self, SID_SYS_SCAN_ALREADY);
++            recordAreaTrackOutcome(self, "alreadyScanning");
++            return SCRIPT_OVERRIDE;
++        }
++        if (utils.hasScriptVar(self, PRECU_AREA_TRACK_COOLDOWN))
++            utils.removeScriptVar(self, PRECU_AREA_TRACK_COOLDOWN);
++
++        Vector choices = new Vector();
++        choices.add("@cmd_n:areatrack_animal");
++        if (hasSkill(self, "outdoors_ranger_harvest_02"))
++            choices.add("@cmd_n:areatrack_npc");
++        if (hasSkill(self, "outdoors_ranger_harvest_04"))
++            choices.add("@cmd_n:areatrack_player");
++        int pid = sui.listbox(self, self, "@skl_use:scan_type_d",
++            sui.OK_CANCEL, "@skl_use:scan_type_t", choices,
++            "handlePrecuAreaTrackChoice", true);
++        if (pid < 0)
++        {
++            recordAreaTrackOutcome(self, "optionSuiFailed");
++            return SCRIPT_OVERRIDE;
++        }
++        sui.setPid(self, pid, PRECU_AREA_TRACK_OPTIONS_PID);
++        recordAreaTrackInt(self, ".optionPid", pid);
++        recordAreaTrackInt(self, ".optionCount", choices.size());
++        recordAreaTrackOutcome(self, "optionsOpen");
++        return SCRIPT_OVERRIDE;
++    }
++    public int failAreatrack(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        recordAreaTrackInt(self, ".failHandlerCalls",
++            readAreaTrackInt(self, ".failHandlerCalls") + 1);
++        return SCRIPT_OVERRIDE;
++    }
++    public int handlePrecuAreaTrackChoice(obj_id self, dictionary params) throws InterruptedException
++    {
++        sui.removePid(self, PRECU_AREA_TRACK_OPTIONS_PID);
++        recordAreaTrackInt(self, ".optionPid", 0);
++        if (params == null || sui.getIntButtonPressed(params) == sui.BP_CANCEL)
++        {
++            recordAreaTrackOutcome(self, "cancelled");
++            return SCRIPT_CONTINUE;
++        }
++        int selectedType = sui.getListboxSelectedRow(params);
++        int maxType = hasSkill(self, "outdoors_ranger_harvest_04") ? 2
++            : (hasSkill(self, "outdoors_ranger_harvest_02") ? 1 : 0);
++        if (selectedType < 0 || selectedType > maxType)
++        {
++            recordAreaTrackOutcome(self, "invalidSelection");
++            return SCRIPT_CONTINUE;
++        }
++        doAnimationAction(self, "search");
++        sendSystemMessage(self, SID_SYS_SCAN_BEGIN);
++        int now = getGameTime();
++        utils.setScriptVar(self, PRECU_AREA_TRACK_PENDING, true);
++        utils.setScriptVar(self, PRECU_AREA_TRACK_COOLDOWN,
++            now + PRECU_AREA_TRACK_DELAY_SECONDS);
++        dictionary scan = new dictionary();
++        scan.put("selectedType", selectedType);
++        scan.put("initialLocation", getWorldLocation(self));
++        messageTo(self, "handlePrecuAreaTrackScan", scan,
++            PRECU_AREA_TRACK_DELAY_SECONDS, true);
++        recordAreaTrackInt(self, ".selectedType", selectedType);
++        recordAreaTrackInt(self, ".scanStartedAt", now);
++        recordAreaTrackInt(self, ".cooldownUntil",
++            now + PRECU_AREA_TRACK_DELAY_SECONDS);
++        recordAreaTrackOutcome(self, "scanPending");
++        return SCRIPT_CONTINUE;
++    }
++    public int handlePrecuAreaTrackScan(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (!utils.hasScriptVar(self, PRECU_AREA_TRACK_PENDING))
++            return SCRIPT_CONTINUE;
++        utils.removeScriptVar(self, PRECU_AREA_TRACK_PENDING);
++        if (params == null)
++        {
++            recordAreaTrackOutcome(self, "missingScanState");
++            return SCRIPT_CONTINUE;
++        }
++        location initial = params.getLocation("initialLocation");
++        location current = getWorldLocation(self);
++        if (initial == null || current == null)
++        {
++            recordAreaTrackOutcome(self, "missingLocation");
++            return SCRIPT_CONTINUE;
++        }
++        if (utils.getDistance2D(initial, current) >
++            PRECU_AREA_TRACK_MOVE_LIMIT)
++        {
++            sendSystemMessage(self, SID_SYS_SCAN_MOVED);
++            recordAreaTrackOutcome(self, "moved");
++            return SCRIPT_CONTINUE;
++        }
++        if (ai_lib.isInCombat(self))
++        {
++            sendSystemMessage(self, SID_SYS_SCAN_COMBAT);
++            recordAreaTrackOutcome(self, "combat");
++            return SCRIPT_CONTINUE;
++        }
++        int selectedType = params.getInt("selectedType");
++        int maxType = hasSkill(self, "outdoors_ranger_harvest_04") ? 2
++            : (hasSkill(self, "outdoors_ranger_harvest_02") ? 1 : 0);
++        if (selectedType < 0 || selectedType > maxType)
++        {
++            recordAreaTrackOutcome(self, "tierChanged");
++            return SCRIPT_CONTINUE;
++        }
++
++        Vector results = new Vector();
++        boolean directionAllowed =
++            hasSkill(self, "outdoors_ranger_harvest_01");
++        boolean distanceAllowed =
++            hasSkill(self, "outdoors_ranger_harvest_03");
++        obj_id fixtureTarget = readAreaTrackTarget(self);
++        boolean fixtureFound = false;
++        String fixtureDirection = "";
++        int fixtureDistance = -1;
++        obj_id[] creatures = getCreaturesInRange(self,
++            PRECU_AREA_TRACK_RANGE);
++        if (creatures != null)
++        {
++            for (obj_id creature : creatures)
++            {
++                if (!isAreaTrackCandidate(self, creature, selectedType))
++                    continue;
++                String direction = directionAllowed
++                    ? getAreaTrackDirection(self, creature) : "";
++                int distance = Math.round(utils.getDistance2D(self, creature));
++                String details = "";
++                if (directionAllowed) details = direction;
++                if (distanceAllowed)
++                    details += (details.length() == 0 ? "" : " ") +
++                        distance + "m";
++                String displayName = getName(creature);
++                if (displayName == null || displayName.length() == 0)
++                    displayName = creature.toString();
++                results.add(displayName + (details.length() == 0 ? ""
++                    : " (" + details + ")"));
++                if (creature == fixtureTarget)
++                {
++                    fixtureFound = true;
++                    fixtureDirection = direction;
++                    fixtureDistance = distance;
++                }
++            }
++        }
++        recordAreaTrackInt(self, ".resultCount", results.size());
++        recordAreaTrackInt(self, ".fixtureTargetFound",
++            fixtureFound ? 1 : 0);
++        recordAreaTrackString(self, ".fixtureDirection",
++            fixtureDirection);
++        recordAreaTrackInt(self, ".fixtureDistance", fixtureDistance);
++        recordAreaTrackInt(self, ".scanCompletedAt", getGameTime());
++        if (results.size() == 0)
++        {
++            sendSystemMessage(self, SID_SYS_SCAN_NOTHING);
++            recordAreaTrackOutcome(self, "nothingFound");
++            return SCRIPT_CONTINUE;
++        }
++        int pid = sui.listbox(self, self, "@skl_use:scan_results_d",
++            sui.OK_ONLY, "@skl_use:scan_results_t", results,
++            "handlePrecuAreaTrackResults", true, false);
++        if (pid < 0)
++        {
++            recordAreaTrackOutcome(self, "resultSuiFailed");
++            return SCRIPT_CONTINUE;
++        }
++        sui.setPid(self, pid, PRECU_AREA_TRACK_RESULTS_PID);
++        recordAreaTrackInt(self, ".resultsPid", pid);
++        recordAreaTrackOutcome(self, "resultsOpen");
++        return SCRIPT_CONTINUE;
++    }
++    public int handlePrecuAreaTrackResults(obj_id self, dictionary params) throws InterruptedException
++    {
++        sui.removePid(self, PRECU_AREA_TRACK_RESULTS_PID);
++        recordAreaTrackInt(self, ".resultsPid", 0);
++        return SCRIPT_CONTINUE;
++    }
++    private boolean isAreaTrackCandidate(obj_id self, obj_id creature,
++        int selectedType) throws InterruptedException
++    {
++        if (!isIdValid(creature) || !creature.isLoaded() ||
++            creature == self || stealth.hasInvisibleBuff(creature))
++            return false;
++        if (selectedType == 2)
++            return isPlayer(creature);
++        if (selectedType == 1)
++            return !isPlayer(creature) && ai_lib.isNpc(creature) &&
++                !hasCondition(creature, CONDITION_VENDOR) &&
++                getSpecies(creature) != SPECIES_PROBOT;
++        int niche = ai_lib.aiGetNiche(creature);
++        return !isPlayer(creature) && !vehicle.isVehicle(creature) &&
++            !ai_lib.isDroid(creature) && !ai_lib.isAndroid(creature) &&
++            (niche == NICHE_MONSTER || niche == NICHE_HERBIVORE ||
++                niche == NICHE_CARNIVORE || niche == NICHE_PREDATOR);
++    }
++    private String getAreaTrackDirection(obj_id tracker, obj_id trackee)
++        throws InterruptedException
++    {
++        location from = getWorldLocation(tracker);
++        location to = getWorldLocation(trackee);
++        if (from == null || to == null) return "";
++        double angle = Math.toDegrees(Math.atan2(to.z - from.z,
++            to.x - from.x));
++        if (angle < 0.0) angle += 360.0;
++        if (angle <= 22.5 || angle >= 337.5) return "east";
++        if (angle <= 67.5) return "northeast";
++        if (angle <= 112.5) return "north";
++        if (angle <= 157.5) return "northwest";
++        if (angle <= 202.5) return "west";
++        if (angle <= 247.5) return "southwest";
++        if (angle <= 292.5) return "south";
++        return "southeast";
++    }
++    private boolean isAreaTrackFixture(obj_id self)
++        throws InterruptedException
++    {
++        return self == obj_id.getObjId(PRECU_AREA_TRACK_PLAYER_OID) &&
++            getPlayerStationId(self) == PRECU_AREA_TRACK_STATION_ID &&
++            hasObjVar(self, PRECU_AREA_TRACK_FIXTURE_ROOT);
++    }
++    private void recordAreaTrackOutcome(obj_id self, String outcome)
++        throws InterruptedException
++    {
++        recordAreaTrackString(self, ".outcome", outcome);
++    }
++    private void recordAreaTrackInt(obj_id self, String suffix, int value)
++        throws InterruptedException
++    {
++        if (isAreaTrackFixture(self))
++            setObjVar(self, PRECU_AREA_TRACK_FIXTURE_ROOT + suffix, value);
++    }
++    private void recordAreaTrackString(obj_id self, String suffix,
++        String value) throws InterruptedException
++    {
++        if (isAreaTrackFixture(self))
++            setObjVar(self, PRECU_AREA_TRACK_FIXTURE_ROOT + suffix,
++                value == null ? "" : value);
++    }
++    private int readAreaTrackInt(obj_id self, String suffix)
++        throws InterruptedException
++    {
++        String name = PRECU_AREA_TRACK_FIXTURE_ROOT + suffix;
++        return isAreaTrackFixture(self) && hasObjVar(self, name)
++            ? getIntObjVar(self, name) : 0;
++    }
++    private obj_id readAreaTrackTarget(obj_id self)
++        throws InterruptedException
++    {
++        String name = PRECU_AREA_TRACK_FIXTURE_ROOT + ".target";
++        return isAreaTrackFixture(self) && hasObjVar(self, name)
++            ? getObjIdObjVar(self, name) : obj_id.NULL_ID;
++    }
++    public int milkCreature(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         obj_id playerCurrentMount = getMountId(self);
+         obj_id intendedTarget = getIntendedTarget(self);
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_area_track_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_area_track_command_fixture.java
+new file mode 100644
+index 000000000..2bee0efc8
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_area_track_command_fixture.java
+@@ -0,0 +1,332 @@
++package script.test;
++
++import script.dictionary;
++import script.location;
++import script.obj_id;
++import script.library.ai_lib;
++import script.library.create;
++import script.library.skill;
++import script.library.sui;
++import script.library.utils;
++
++/** Identity-bound reversible fixture for the Publish 14.1 Area Track lifecycle. */
++public class precu_area_track_command_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 44003778L;
++    private static final int PLAYER_STATION_ID = 91001;
++    private static final int PROTOCOL_VERSION = 1;
++    private static final String ROOT = "precu.areaTrackCommandFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PROTOCOL = ROOT + ".protocol";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String TARGET = ROOT + ".target";
++    private static final String ORIGINAL_POINTS = ROOT + ".originalPoints";
++    private static final String OPTIONS_PID = "precu.areaTrack.options";
++    private static final String RESULTS_PID = "precu.areaTrack.results";
++    private static final String PENDING = "precu.areaTrack.pending";
++    private static final String COOLDOWN = "precu.areaTrack.cooldownUntil";
++    private static final String CREATURE_TYPE = "worrt";
++    private static final String FIXTURE_NAME = "Precu Area Track Worrt";
++    private static final String[] SKILLS =
++    {
++        "outdoors_ranger_novice",
++        "outdoors_ranger_harvest_01",
++        "outdoors_ranger_harvest_02",
++        "outdoors_ranger_harvest_03",
++        "outdoors_ranger_harvest_04"
++    };
++    private static final String USAGE =
++        "usage: prepare|status|cleanup <playerOid> <32-hex-lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null ? new String[0]
++            : params.trim().split("[ ]+");
++        if (args.length != 3 || !isValidLifecycle(args[2]))
++            return USAGE;
++        long oid;
++        try
++        {
++            oid = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayerOid";
++        }
++        if (oid != PLAYER_OID)
++            return "error=playerIdentityRejected";
++        obj_id player = obj_id.getObjId(oid);
++        if (!isAuthoritativePlayer(player))
++            return "error=playerUnavailable";
++        if (args[0].equalsIgnoreCase("prepare"))
++            return prepare(player, args[2]);
++        if (args[0].equalsIgnoreCase("status"))
++            return status(player, args[2]);
++        if (args[0].equalsIgnoreCase("cleanup"))
++            return cleanup(player, args[2]);
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            if (ownership == null && getIntObjVar(player, PREPARED) == 1)
++                return "action=prepare resumed=true " + buildStatus(player);
++            return ownership == null ? "error=fixtureNotPrepared" : ownership;
++        }
++        if (hasAnyFixtureSkill(player) || hasCommand(player, "areatrack") ||
++            sui.hasPid(player, OPTIONS_PID) ||
++            sui.hasPid(player, RESULTS_PID) ||
++            utils.hasScriptVar(player, PENDING) ||
++            utils.hasScriptVar(player, COOLDOWN))
++            return "error=fixtureVectorAlreadyOwned";
++        location playerLocation = getLocation(player);
++        if (playerLocation == null || isIdValid(playerLocation.cell))
++            return "error=playerMustBeOutdoors";
++
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, PROTOCOL, PROTOCOL_VERSION);
++        setObjVar(player, ORIGINAL_POINTS,
++            skill.getAvailableSkillPoints(player));
++        resetTelemetry(player);
++        if (!grantSkills(player) || !hasCommand(player, "areatrack"))
++        {
++            boolean restored = restore(player);
++            return "error=skillPreparationFailed restored=" + restored;
++        }
++
++        location targetLocation = new location(getWorldLocation(player));
++        targetLocation.x += 10.0f;
++        targetLocation.cell = obj_id.NULL_ID;
++        obj_id target = createFixtureTarget(targetLocation);
++        if (!isIdValid(target) || !target.isLoaded())
++        {
++            boolean restored = restore(player);
++            return "error=targetPreparationFailed restored=" + restored;
++        }
++        setObjVar(player, TARGET, target);
++        setObjVar(player, PREPARED, 1);
++        return "action=prepare resumed=false " + buildStatus(player);
++    }
++
++    private obj_id createFixtureTarget(location loc)
++        throws InterruptedException
++    {
++        dictionary data = dataTableGetRow(create.CREATURE_TABLE, CREATURE_TYPE);
++        if (data == null) return obj_id.NULL_ID;
++        String template = data.getString("template");
++        if (template == null || template.length() == 0)
++            return obj_id.NULL_ID;
++        data.put("lootTable", "");
++        obj_id target = createObject(create.TEMPLATE_PREFIX + template, loc);
++        if (!isIdValid(target)) return obj_id.NULL_ID;
++        create.initializeCreature(target, CREATURE_TYPE, data, -1);
++        setName(target, FIXTURE_NAME);
++        return target;
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++            return "action=cleanup alreadyClean=true restored=true";
++        String ownership = validateLifecycle(player, lifecycle);
++        if (ownership != null) return ownership;
++        if (!hasCompleteSnapshot(player))
++            return "action=cleanup alreadyClean=false restored=false" +
++                " incompleteSnapshot=true";
++        return "action=cleanup alreadyClean=false restored=" +
++            restore(player);
++    }
++
++    private boolean restore(obj_id player) throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player)) return false;
++        closeTrackedSui(player, OPTIONS_PID);
++        closeTrackedSui(player, RESULTS_PID);
++        removeScriptVar(player, PENDING);
++        removeScriptVar(player, COOLDOWN);
++        obj_id target = readTarget(player);
++        if (isIdValid(target) && target.isLoaded()) destroyObject(target);
++        revokeSkills(player);
++        boolean restored =
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) &&
++            !hasAnyFixtureSkill(player) &&
++            !hasCommand(player, "areatrack") &&
++            !sui.hasPid(player, OPTIONS_PID) &&
++            !sui.hasPid(player, RESULTS_PID) &&
++            !utils.hasScriptVar(player, PENDING) &&
++            !utils.hasScriptVar(player, COOLDOWN);
++        removeObjVar(player, ROOT);
++        return restored;
++    }
++
++    private void closeTrackedSui(obj_id player, String pidName)
++        throws InterruptedException
++    {
++        if (!sui.hasPid(player, pidName)) return;
++        int pid = sui.getPid(player, pidName);
++        if (pid > 0) forceCloseSUIPage(pid);
++        sui.removePid(player, pidName);
++    }
++
++    private void removeScriptVar(obj_id player, String name)
++        throws InterruptedException
++    {
++        if (utils.hasScriptVar(player, name))
++            utils.removeScriptVar(player, name);
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        obj_id target = readTarget(player);
++        return "player=" + player +
++            " command=" + hasCommand(player, "areatrack") +
++            " rangerNovice=" + hasSkill(player,
++                "outdoors_ranger_novice") +
++            " directionTier=" + hasSkill(player,
++                "outdoors_ranger_harvest_01") +
++            " npcTier=" + hasSkill(player,
++                "outdoors_ranger_harvest_02") +
++            " distanceTier=" + hasSkill(player,
++                "outdoors_ranger_harvest_03") +
++            " playerTier=" + hasSkill(player,
++                "outdoors_ranger_harvest_04") +
++            " target=" + target +
++            " targetAvailable=" +
++                (isIdValid(target) && target.isLoaded()) +
++            " targetNiche=" + (isIdValid(target) && target.isLoaded()
++                ? ai_lib.aiGetNiche(target) : -1) +
++            " handlerCalls=" + readInt(player, ".handlerCalls") +
++            " failHandlerCalls=" + readInt(player,
++                ".failHandlerCalls") +
++            " outcome=" + readString(player, ".outcome") +
++            " optionPid=" + readInt(player, ".optionPid") +
++            " optionCount=" + readInt(player, ".optionCount") +
++            " selectedType=" + readInt(player, ".selectedType") +
++            " scanStartedAt=" + readInt(player, ".scanStartedAt") +
++            " cooldownUntil=" + readInt(player, ".cooldownUntil") +
++            " scanCompletedAt=" + readInt(player,
++                ".scanCompletedAt") +
++            " resultCount=" + readInt(player, ".resultCount") +
++            " resultsPid=" + readInt(player, ".resultsPid") +
++            " fixtureTargetFound=" + readInt(player,
++                ".fixtureTargetFound") +
++            " fixtureDirection=" + readString(player,
++                ".fixtureDirection") +
++            " fixtureDistance=" + readInt(player,
++                ".fixtureDistance") +
++            " pending=" + utils.hasScriptVar(player, PENDING) +
++            " cooldownActive=" + (utils.hasScriptVar(player, COOLDOWN) &&
++                getGameTime() < utils.getIntScriptVar(player, COOLDOWN));
++    }
++
++    private void resetTelemetry(obj_id player) throws InterruptedException
++    {
++        String[] suffixes =
++        {
++            ".handlerCalls", ".failHandlerCalls", ".outcome",
++            ".optionPid", ".optionCount", ".selectedType",
++            ".scanStartedAt", ".cooldownUntil", ".scanCompletedAt",
++            ".resultCount", ".resultsPid", ".fixtureTargetFound",
++            ".fixtureDirection", ".fixtureDistance"
++        };
++        for (String suffix : suffixes)
++            if (hasObjVar(player, ROOT + suffix))
++                removeObjVar(player, ROOT + suffix);
++    }
++
++    private boolean grantSkills(obj_id player) throws InterruptedException
++    {
++        for (String name : SKILLS)
++            if (!grantSkill(player, name) || !hasSkill(player, name))
++                return false;
++        return true;
++    }
++
++    private void revokeSkills(obj_id player) throws InterruptedException
++    {
++        for (int index = SKILLS.length - 1; index >= 0; --index)
++            if (hasSkill(player, SKILLS[index]))
++                revokeSkill(player, SKILLS[index]);
++    }
++
++    private boolean hasAnyFixtureSkill(obj_id player)
++        throws InterruptedException
++    {
++        for (String name : SKILLS)
++            if (hasSkill(player, name)) return true;
++        return false;
++    }
++
++    private boolean isAuthoritativePlayer(obj_id player)
++        throws InterruptedException
++    {
++        return player != null && player != obj_id.NULL_ID &&
++            player.isLoaded() && player.isAuthoritative() && isPlayer(player) &&
++            getPlayerStationId(player) == PLAYER_STATION_ID;
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String lifecycleError = validateLifecycle(player, lifecycle);
++        if (lifecycleError != null) return lifecycleError;
++        obj_id target = readTarget(player);
++        return isIdValid(target) && target.isLoaded()
++            ? null : "error=fixtureTargetUnavailable";
++    }
++
++    private String validateLifecycle(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) || !hasObjVar(player, LIFECYCLE))
++            return "error=fixtureAbsent";
++        return lifecycle.equals(getStringObjVar(player, LIFECYCLE))
++            ? null : "error=lifecycleMismatch";
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE) && hasObjVar(player, PROTOCOL) &&
++            hasObjVar(player, ORIGINAL_POINTS);
++    }
++
++    private obj_id readTarget(obj_id player) throws InterruptedException
++    {
++        return hasObjVar(player, TARGET) ? getObjIdObjVar(player, TARGET)
++            : obj_id.NULL_ID;
++    }
++
++    private int readInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String name = ROOT + suffix;
++        return hasObjVar(player, name) ? getIntObjVar(player, name) : 0;
++    }
++
++    private String readString(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String name = ROOT + suffix;
++        return hasObjVar(player, name) ? getStringObjVar(player, name) : "none";
++    }
++
++    private boolean isValidLifecycle(String value)
++    {
++        return value != null && value.matches("[0-9a-fA-F]{32}");
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 0dab68b65..3b56b9a21 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1987,3 +1987,4 @@ steadyaim	combat	normal	steadyaim	failSpecialAttack			1.5	steadyaim	1	0	1	1	0	0
+ retreat	combat	normal	retreat	failSpecialAttack			1.5	retreat	1	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	0	1	0	1	1	1	1	1	1	1	0	1	0	0	0	0	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	none		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ applyPoison	combat	normal	applyPoison				5	applyPoison	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.apply_dot	other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
+ applyDisease	combat	normal	applyDisease				5	applyDisease	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.apply_dot	other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
++areatrack		normal	areatrack	failAreatrack			1	areatrack	1	1	1	1	1	1	1	1	1	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	1	1	0	0	0	0	0	0	0	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	0	0	0	0	0	0		other	none	0	2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	0	0		0	0	0
