@@ -1848,3 +1848,15 @@ group dissolution, reversible state restoration, and idempotent cleanup.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14RetreatCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 249 restores `boostmorale`, granted by Squad Leader Defense IV,
+from the exact Publish-era client command row and pinned Core3 behavior. A
+real group leader pays the group-size-scaled, Strength/Quickness/Focus-adjusted
+Health/Action/Mind cost. The handler clears all nine wound attributes from
+eligible player members, then redistributes the exact conserved total using
+ceiling per-member and per-attribute slices. The identity-bound protocol-161
+two-client fixture proves a 91-wound transaction, exact 46/110/129 HAM drain,
+real group formation and dissolution, reversible restoration, and idempotent
+cleanup. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BoostMoraleCommand.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

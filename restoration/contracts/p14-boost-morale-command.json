@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-boost-morale-command",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_boost_morale_command_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/BoostmoraleCommand.h",
+    "leaderRule": "the actor must lead a real group",
+    "costRule": "base 100 multiplied by one plus group size divided by 20, then Strength/Quickness/Focus adjusted with strict current-pool affordability",
+    "woundRule": "clear all nine wounds from every eligible group player, then redistribute the exact conserved total using ceiling per-member and per-attribute slices"
+  },
+  "publish14Evidence": {
+    "command": "boostmorale",
+    "ownerSkill": "outdoors_squadleader_defense_04",
+    "historicalClientArchive": "PreCU-Client/data_other_00.tre",
+    "historicalCommandRow": 274,
+    "historicalCommandColumns": 66,
+    "restoredCommandColumns": 94,
+    "baseCost": 100,
+    "groupSize": 2,
+    "adjustedBaseCost": 110,
+    "totalWounds": 91,
+    "woundsPerMember": 46,
+    "woundsPerAttribute": 6,
+    "leaderFinalWounds": [6, 6, 6, 6, 6, 6, 6, 4, 0],
+    "memberFinalWounds": [6, 6, 6, 6, 6, 6, 6, 3, 0]
+  },
+  "clientCommandBoundary": {
+    "protocolVersion": 161,
+    "leader": {"playerOid": 44003778, "stationId": 91001, "avatar": "PrecuRuntime"},
+    "member": {"playerOid": 207005062, "stationId": 1391050504, "avatar": "Isot Spogik"},
+    "commands": ["TargetSquadCounterpart", "InviteTarget", "JoinGroup", "QueueBoostMorale", "DisbandGroup"],
+    "serverAuthority": ["identity and command ownership", "group membership, size, and leadership", "adjusted HAM affordability and charge", "nine-attribute wound conservation and redistribution", "PvP-help accounting"]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T07:58:00-04:00",
+    "overlayPatch": "restoration/patches/dsrc/247-p14-boost-morale-command.patch",
+    "patchSha256": "a40310b63404e97d38daf553cfea1eee4a57e034bb2a02f7ffd092c9ce9748b4",
+    "runtimeRunner": "restoration/scripts/Invoke-P14BoostMoraleRuntime.ps1",
+    "runtimeRunnerSha256": "fea0d15d14945a05de02eb0a1ee710bce4c9de0cb703f603dca6f24e6bca906a",
+    "changedFileCount": 3,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "serverJavaBuild": {"result": "passed", "compiledJavaSources": 2},
+    "serverTabBuild": {"result": "passed", "compiledTables": 1, "commandTableIffSha256": "18ca944c3107c786d4e804342a441412220b369eeeafffa3914364077c0686fb"},
+    "clientNativeBuild": {"result": "passed", "configuration": "Release|x64", "platformToolset": "v143", "protocolVersion": 161, "executableBytes": 33798144, "executableSha256": "7ba823fe21f7842ddcd908619cc4fdd49f52f1c3aa6121190df9e1c8cf5fb2df"},
+    "clientSourceTests": {"result": "passed", "bridgeTests": 56},
+    "sourceSha256": {
+      "command_table.tab": "cfff1e60a74fd44acb2af99bae8e576edd9ade5fc73873804496f254e554a271",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "base_player.java": "0051e170433b8fed507422fb108498e695a062ea85249d411fe3bd9f34443404",
+      "precu_boost_morale_command_fixture.java": "6fffc1126d9afe7d204d6bb8f276c3c5de7c47b48ec57f6dffc83c29a5931b99",
+      "ClientMain.cpp": "d28828a1bfe8ff304e9a02a4ea2c57aad6fd056782f4eca3eb08697cac97e61c",
+      "Invoke-PrecuBackgroundInput.ps1": "3f77d5d2b37ae494cdc6684c45630eea320d475b915ae8dd05a553d739591a17",
+      "test_precu_background_input_bridge.py": "485fa1eab9b0b3eec7ce87481aba35d0e7d9a8cddebe2f0de161ef13f5fe6bdf"
+    },
+    "compiledSha256": {
+      "base_player.class": "e4dec6d8627a3b61aa31ce6884989f534449cf4ecd94f490a555d7cb446d67e4",
+      "precu_boost_morale_command_fixture.class": "aa52f191f3577a07d42a9b655130c712ccffe18230dd8407ceea94e0b6511e1c"
+    },
+    "clientAssetSha256": {
+      "datatables/command/command_table.iff": "18ca944c3107c786d4e804342a441412220b369eeeafffa3914364077c0686fb",
+      "precu_runtime.tre": "267f4a695010ae443f655fab84d6827fc1a8c1c3e98fa790eb0e5ade6ae62e91"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T07:52:00-04:00",
+    "container": "swg-precu",
+    "lifecycle": "f2cf9cdcd433450c80ce92af32058bb1",
+    "clientProtocolVersion": 161,
+    "clientSha256": "7ba823fe21f7842ddcd908619cc4fdd49f52f1c3aa6121190df9e1c8cf5fb2df",
+    "leader": {"playerOid": 44003778, "stationId": 91001, "avatar": "PrecuRuntime", "clientProcessId": 68760},
+    "member": {"playerOid": 207005062, "stationId": 1391050504, "avatar": "Isot Spogik", "clientProcessId": 60740},
+    "preflightRecovery": {"restored": true, "alreadyClean": true},
+    "groupLifecycle": {"inviteAccepted": true, "joinAccepted": true, "sameGroupObserved": true, "leaderObserved": true, "groupSize": 2, "disbandAccepted": true, "ungroupedObserved": true},
+    "command": {
+      "accepted": true,
+      "handlerCalls": 1,
+      "adjustedBaseCost": 110,
+      "healthCost": 46,
+      "actionCost": 110,
+      "mindCost": 129,
+      "membersApplied": 2,
+      "totalWounds": 91,
+      "woundsPerMember": 46,
+      "woundsPerAttribute": 6,
+      "totalWoundsApplied": 91,
+      "leaderHealthBefore": 500,
+      "leaderHealthAfter": 454,
+      "leaderActionBefore": 500,
+      "leaderActionAfter": 390,
+      "leaderMindBefore": 500,
+      "leaderMindAfter": 371,
+      "leaderFinalWounds": 46,
+      "memberFinalWounds": 45
+    },
+    "cleanup": {"restored": true, "idempotent": true, "normalizedDatabaseRelation": "OBJECT_VARIABLES_VIEW", "normalizedDatabaseMarkerCount": 0, "legacyFlattenedCompatibilityMarkerCount": 39, "legacyFlattenedCompatibilityColumnsAuthoritative": false},
+    "serverHealthyAfterCleanup": true,
+    "bothProofClientsStopped": true,
+    "userClientUntouched": true
+  },
+  "publicationBoundary": {"serverProductionGameplayCodeChanged": true, "serverAcceptanceFixtureChanged": true, "clientToolsChanged": true, "clientAssetsChanged": true, "evidenceRepositoryContainsGameplayCode": false},
+  "narrowBoundary": {
+    "included": ["exact retained 94-column command registration", "Squad Leader Defense IV ownership", "group-size adjusted three-pool HAM charge", "exact nine-attribute wound conservation and redistribution", "identity-bound reversible cleanup"],
+    "deferred": ["groups larger than two", "mixed building contexts", "PvP-enemy group policy", "applyDisease", "applyPoison", "areatrack", "steadyaim"]
+  }
+}

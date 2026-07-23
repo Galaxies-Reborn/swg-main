@@ -1222,3 +1222,11 @@ acceleration for 30 seconds with a matching cooldown, PvP-help accounting, and
 guarded natural expiry. Its identity-bound two-client fixture proves real group
 formation/dissolution, leader exclusion, exact activation and expiry, and
 reversible idempotent cleanup.
+
+`247-p14-boost-morale-command.patch` restores the exact 94-column Publish-era
+`boostmorale` row, Squad Leader Defense IV ownership, and the pinned Core3
+group wound transaction. The leader pays group-size-scaled, adjusted
+Health/Action/Mind costs; all nine wounds are cleared from eligible player
+members and their exact total is redistributed with conserved ceiling slices.
+Its identity-bound two-client fixture proves real grouping, exact costs and
+wound vectors, group dissolution, restoration, and idempotent cleanup.
