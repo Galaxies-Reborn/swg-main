@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-take-cover",
+  "status": "ready",
+  "scope": "Restore retained Marksman takeCover with exact Rifle II ownership, historical command admission, Core3 Quickness-adjusted Action debit, insufficient-HAM failure, combat-only chance, dizzy-fall branch, cover state, persistence observation, and reversible identity-bound proof.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Command": "TakeCoverCommand",
+    "skillOwner": "combat_marksman_rifle_02",
+    "command": {
+      "name": "takeCover",
+      "defaultTime": 4.0,
+      "executeTime": 4.0,
+      "validWeapon": "ALL",
+      "targetType": "optional",
+      "commandGroup": -560185247,
+      "addToCombatQueue": true
+    },
+    "behavior": {
+      "baseActionCost": 50,
+      "costAttribute": "QUICKNESS",
+      "costFormula": "baseCost - (((currentQuickness - 300) / 1200) * baseCost), clamped to zero and truncated",
+      "insufficientComparison": "currentAction < adjustedActionCost",
+      "debitBeforeChance": true,
+      "dizzyFallChance": 85,
+      "combatChance": "10 + take_cover",
+      "combatFailureComparison": "roll > chance",
+      "outOfCombatSuccess": "unconditional after debit",
+      "successState": "STATE_COVER"
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T23:29:10-04:00",
+    "overlay": "restoration/patches/dsrc/260-p14-core3-take-cover.patch",
+    "overlaySha256": "c4012fb180eabeb99db615983546928cfe76737cb776ad9c9f1ed5918a4f43a1",
+    "changedFileCount": 3,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaCompile": "passed-focused-two-production-sources",
+    "datatableCompile": "passed-focused-command-table",
+    "clientBridgeTests": 66,
+    "clientTestSuite": {"passed": 195, "skipped": 6, "failed": 0, "subtestsPassed": 968},
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 183,
+    "clientBytes": 32641536,
+    "clientSha256": "20220c0fccd49158d09522a88a25a4926b33a2daea8466cfbafd21f00a04e8eb",
+    "materializedOverlayCount": 266,
+    "materializedRestorationFileCount": 778,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "6141743630a654dd34c1b20f19f963284e608462e6c0c0ec29d2ee8f9244b348",
+      "precu_headshot1_fixture.java": "47ca0bbb337432dab314167be89eefd21303a6282539e89d8fca46eb41307ad1",
+      "command_table.tab": "1e4cd611f331eb87c4f5f2b78b07628d1b5c36c8db64185d5155fc74b3aca8b5",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "ClientMain.cpp": "c5e82a31bcb8d3d0b43af9fb7c04171153cf423ac3301d9ba325cd73bed85bbc",
+      "Invoke-PrecuBackgroundInput.ps1": "4b496aad1ec0ca1bd232873c7c7fd7d721bd1fcecd0cac768b608a07e9c5b79d",
+      "test_precu_background_input_bridge.py": "e87ef24e87777f36ef9885d1d62c86a27a644dbb734495edc7ade0b9822ffa54"
+    },
+    "compiledSha256": {
+      "combat_actions.class": "524b5c59cc772abe96037e1bf9bb2e6c339ce53f6ff1c900a376c9a35b781e03",
+      "precu_headshot1_fixture.class": "e2357ad9d947ac1e6ff72901f61e4445b7cc9c900956278fdc04703fa2d003f1",
+      "command_table.iff": "5abef694bdff453dfa9b9e68234b3a240384a7edc7bcae63716cbc1f5ed4d37b"
+    },
+    "clientAssetsSha256": {
+      "datatables/command/command_table.iff": "5abef694bdff453dfa9b9e68234b3a240384a7edc7bcae63716cbc1f5ed4d37b",
+      "precu_runtime.tre": "ed97b6b419985e6485eaa90cdfb7e0d4c33578d3a9d70ab50d7f80b8085f3e8e"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T23:29:10-04:00",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 183,
+    "lifecycle": "26220000000000000000000000000001",
+    "attacker": {"stationId": 91001, "objectId": 44003778, "avatar": "PrecuRuntime"},
+    "defender": {"stationId": 1001, "objectId": 39008597, "avatar": "Icai Darkwave"},
+    "weaponAdmission": {
+      "heldWeaponType": 6,
+      "validMask": "0x20000000",
+      "commandFound": true,
+      "satisfies": true
+    },
+    "queueRemoval": "Success",
+    "outOfCombat": true,
+    "quickness": 300,
+    "actionCost": 50,
+    "actionBefore": 20000,
+    "actionAfter": 19950,
+    "actionDebitExact": true,
+    "chance": 100,
+    "roll": -1,
+    "coverStateBefore": 0,
+    "coverStateAfter": 1,
+    "diagnosticResult": "SUCCESS",
+    "persistence": {
+      "observed": true,
+      "mode": "authentic-transient-reset-after-server-restart-and-client-reconnect",
+      "lifecycleSnapshotSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "coverStateBeforeRestart": 1,
+      "coverStateAfterReconnect": 0,
+      "actionAfterReconnect": 20000,
+      "note": "STATE_COVER and current HAM are transient creature state; the durable fixture snapshot and recorded command evidence persisted and were then reversibly cleaned."
+    },
+    "cleanup": {"restored": true, "idempotent": true},
+    "serverHealthy": true,
+    "userClientUntouched": true,
+    "userClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}
