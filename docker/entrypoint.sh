@@ -68,7 +68,8 @@ sync_source_tree() {
         touch "${SWG_WORK_DIR}/.swg-source-synced"
     else
         rsync -a --delete \
-            --exclude='.git/' \
+            --exclude='.git' \
+            --exclude='*/.git' \
             --exclude='.swg-source-synced' \
             --exclude='build/' \
             --exclude='chat/' \
@@ -101,8 +102,24 @@ normalize_executable_text() {
 
 normalize_executable_text
 
+SWG_SERVER_BITS="${SWG_SERVER_BITS:-32}"
+case "${SWG_SERVER_BITS}" in
+    32|64)
+        ;;
+    *)
+        echo "Invalid SWG_SERVER_BITS='${SWG_SERVER_BITS}'; expected 32 or 64." >&2
+        exit 2
+        ;;
+esac
+
 export ORACLE_HOME="${ORACLE_HOME:-/opt/oracle/instantclient_19_31}"
-export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-11-openjdk-i386}"
+if [ -z "${JAVA_HOME:-}" ]; then
+    if [ "${SWG_SERVER_BITS}" = "64" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
+    else
+        export JAVA_HOME="/usr/lib/jvm/java-11-openjdk-i386"
+    fi
+fi
 export PATH="${ORACLE_HOME}:${JAVA_HOME}/bin:${PATH}"
 export LD_LIBRARY_PATH="${ORACLE_HOME}:${JAVA_HOME}/lib:${JAVA_HOME}/lib/server:${LD_LIBRARY_PATH:-}"
 export NLS_LANG="${NLS_LANG:-american_america.utf8}"
@@ -144,6 +161,13 @@ db_password = ${SWG_DB_PASSWORD}
 db_service = ${SWG_DB_SERVICE}
 dbip = ${SWG_DB_HOST}
 compiler = gcc
+bits = ${SWG_SERVER_BITS}
+oracle_home.32 = ${ORACLE_HOME}
+oracle_home.64 = ${ORACLE_HOME}
+oracle_include.32 = ${ORACLE_HOME}/sdk/include
+oracle_include.64 = ${ORACLE_HOME}/sdk/include
+java_home.32 = ${JAVA_HOME}
+java_home.64 = ${JAVA_HOME}
 src_build_type = Release
 EOF
 }
@@ -367,12 +391,57 @@ run_ant() {
     ant "$@"
 }
 
+verify_server_architecture() {
+    local expected
+    local binary
+    local description
+    local checked=0
+
+    if [ "${SWG_SERVER_BITS}" = "64" ]; then
+        expected="ELF 64-bit"
+    else
+        expected="ELF 32-bit"
+    fi
+
+    for binary in \
+        build/bin/LoginServer \
+        build/bin/TaskManager \
+        build/bin/CentralServer \
+        build/bin/ConnectionServer \
+        build/bin/SwgDatabaseServer \
+        build/bin/SwgGameServer; do
+        if [ ! -f "${binary}" ]; then
+            continue
+        fi
+
+        description="$(file -L "${binary}")"
+        echo "${description}"
+        case "${description}" in
+            *"${expected}"*)
+                ;;
+            *)
+                echo "Architecture verification failed: expected ${expected}: ${binary}" >&2
+                return 1
+                ;;
+        esac
+        checked=$((checked + 1))
+    done
+
+    if [ "${checked}" -eq 0 ]; then
+        echo "Architecture verification failed: no core server binaries were found." >&2
+        return 1
+    fi
+
+    echo "Verified ${checked} core server binaries as ${SWG_SERVER_BITS}-bit."
+}
+
 init_server() {
     write_local_properties true
     wait_for_oracle
     ensure_oracle_prereqs
     # Avoid ant swg here; it checks out submodule branches and dirties pointers.
     run_ant ${SWG_ANT_INIT_TARGETS}
+    verify_server_architecture
     ensure_runtime_symlinks
     write_runtime_network_config
     sync_runtime_config_files
@@ -386,6 +455,7 @@ build_server() {
     wait_for_oracle
     ensure_oracle_prereqs
     run_ant ${SWG_ANT_BUILD_TARGETS}
+    verify_server_architecture
     ensure_runtime_symlinks
 }
 
@@ -430,6 +500,10 @@ case "${1:-run}" in
         write_local_properties false
         wait_for_oracle
         run_ant "$@"
+        ;;
+    verify-arch)
+        shift
+        verify_server_architecture
         ;;
     shell)
         shift
