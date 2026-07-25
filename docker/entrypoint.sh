@@ -49,9 +49,14 @@ sync_source_tree() {
 
         echo "Populating first-time Linux build volume..."
         find "${SWG_WORK_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+        # GNU tar exclusions are --no-anchored by default, and these options
+        # are positional: --anchored applies only to the patterns that follow,
+        # so .git/*/.git above still match at any depth while the build-product
+        # patterns below match only at the top level.
         tar -C "${SWG_SOURCE_DIR}" \
             --exclude='.git' \
             --exclude='*/.git' \
+            --anchored \
             --exclude='./.swg-source-synced' \
             --exclude='./build' \
             --exclude='./chat' \
@@ -67,20 +72,27 @@ sync_source_tree() {
             -cf - . | tar -C "${SWG_WORK_DIR}" -xf -
         touch "${SWG_WORK_DIR}/.swg-source-synced"
     else
+        # Build-product exclusions must be anchored with a leading '/'. An
+        # unanchored rsync pattern matches at every depth, so 'chat/' also
+        # stripped dsrc/sku.0/sys.shared/compiled/game/chat (spatial chat
+        # types), and 'build/' and 'data/' would strip
+        # src/game/server/database/{build,data}. Only .git and *.log are
+        # meant to match at any depth.
         rsync -a --delete \
-            --exclude='.git/' \
-            --exclude='.swg-source-synced' \
-            --exclude='build/' \
-            --exclude='chat/' \
-            --exclude='client-assets/' \
-            --exclude='data/' \
-            --exclude='dependencies/' \
-            --exclude='exe/linux/bin' \
-            --exclude='exe/linux/logs/' \
-            --exclude='miff/' \
+            --exclude='.git' \
+            --exclude='*/.git' \
+            --exclude='/.swg-source-synced' \
+            --exclude='/build/' \
+            --exclude='/chat/' \
+            --exclude='/client-assets/' \
+            --exclude='/data/' \
+            --exclude='/dependencies/' \
+            --exclude='/exe/linux/bin' \
+            --exclude='/exe/linux/logs/' \
+            --exclude='/miff/' \
             --exclude='*.log' \
-            --exclude='local.properties' \
-            --exclude='webcfg.properties' \
+            --exclude='/local.properties' \
+            --exclude='/webcfg.properties' \
             "${SWG_SOURCE_DIR}/" "${SWG_WORK_DIR}/"
     fi
 
