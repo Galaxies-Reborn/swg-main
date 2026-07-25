@@ -1,3 +1,12 @@
+# Pin a project namespace distinct from the default 32-bit project. Without
+# this, Compose derives the project from the directory name (swg-main), which
+# already owns the 32-bit oracle-data and swg-work volumes, and the x64 server
+# would silently attach to the 32-bit database.
+#
+# Containers become swg-main-x64-swg-server-1 and swg-main-x64-oracle-1;
+# volumes become swg-main-x64_swg-work-x64 and swg-main-x64_oracle-data.
+name: swg-main-x64
+
 services:
   swg-server:
     build:
