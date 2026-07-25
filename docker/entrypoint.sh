@@ -340,6 +340,14 @@ write_client_asset_tree_config() {
 [SharedFile]
 searchTree0=${SWG_STAGED_CLIENT_ASSETS_TRE}
 
+[SharedNetwork]
+# The database server legitimately backs up its send queue while streaming the
+# preload to the game servers. Each of those warnings walks the call stack, and
+# at ~1000 warnings that cost slows the frame enough to grow the backlog
+# further. The condition is reported by the queue size itself; the per-frame
+# warning only amplifies it.
+logSendingTooMuchData=false
+
 [CentralServer]
 gameServiceBindInterface=eth0
 connectionServiceBindInterface=eth0
