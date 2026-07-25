@@ -1,3 +1,13 @@
+# This branch builds a 64-bit client and server by default: the server image is
+# docker/Dockerfile.x64, SWG_SERVER_BITS is 64, and the build volume is
+# swg-work-x64. Use docker-compose.32.yml as an override for the 32-bit
+# fallback.
+#
+# The project name is pinned because Compose would otherwise derive it from the
+# directory name (swg-main), which is the namespace the legacy 32-bit volumes
+# already occupy; the 64-bit server would then attach to the 32-bit database.
+name: swg-main-x64
+
 services:
   oracle:
     image: gvenzl/oracle-xe:21-slim-faststart
@@ -19,7 +29,7 @@ services:
   swg-server:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.x64
     depends_on:
       oracle:
         condition: service_healthy
@@ -38,6 +48,7 @@ services:
       SWG_SOURCE_DIR: /swg-main-source
       SWG_WORK_DIR: /swg-main
       SWG_CLIENT_ASSETS_TRE: /client-assets/swgsource_3.0.tre
+      SWG_SERVER_BITS: "64"
     ports:
       - "44450-44465:44450-44465/tcp"
       - "44450-44465:44450-44465/udp"
@@ -46,7 +57,7 @@ services:
     volumes:
       - .:/swg-main-source:ro
       - ../client-assets:/client-assets:ro
-      - swg-work:/swg-main
+      - swg-work-x64:/swg-main
     working_dir: /swg-main
     command: ["run"]
     tty: true
@@ -67,4 +78,4 @@ services:
 
 volumes:
   oracle-data:
-  swg-work:
+  swg-work-x64:

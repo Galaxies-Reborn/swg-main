@@ -1,0 +1,21 @@
+# 32-bit fallback override.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.32.yml build swg-server
+#   docker compose -f docker-compose.yml -f docker-compose.32.yml run --rm swg-server init
+#
+# The base compose file builds 64-bit by default on this branch. This override
+# selects the 32-bit image and gives it its own project namespace and build
+# volume, so CMake products from the two architectures can never mix.
+name: swg-main-32
+
+services:
+  swg-server:
+    build:
+      dockerfile: docker/Dockerfile
+    environment:
+      SWG_SERVER_BITS: "32"
+    volumes:
+      - swg-work-32:/swg-main
+
+volumes:
+  swg-work-32:

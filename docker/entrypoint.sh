@@ -113,7 +113,7 @@ normalize_executable_text() {
 
 normalize_executable_text
 
-SWG_SERVER_BITS="${SWG_SERVER_BITS:-32}"
+SWG_SERVER_BITS="${SWG_SERVER_BITS:-64}"
 case "${SWG_SERVER_BITS}" in
     32|64)
         ;;
