@@ -1,0 +1,529 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 02c01a9..5fe187b 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14779,6 +14779,16 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int startleShot1(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction(
++            "startleShot1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int scatterShot1(obj_id self, obj_id target, String params,
+         float defaultTime) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index e09b19f..eb66d14 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -49,6 +49,8 @@ public class combat_base extends script.base_script
+         PRECU_LIVE_DIAGNOSTIC_ROOT + ".enabled";
+     public static final String PRECU_POSTURE_DOWN_RECOVERY =
+         "combat.precuPostureDownTime";
++    public static final String PRECU_POSTURE_UP_RECOVERY =
++        "combat.precuPostureUpTime";
+     public static final String PRECU_KNOCKDOWN_RECOVERY =
+         "combat.intKnockdownTime";
+     public static final String PRECU_KNOCKDOWN_ORIGINAL_POSTURE =
+@@ -59,6 +61,7 @@ public class combat_base extends script.base_script
+     public static final int PRECU_STATE_EFFECT_BLIND = 2;
+     public static final int PRECU_STATE_EFFECT_STUN = 3;
+     public static final int PRECU_STATE_EFFECT_REMOVE_COVER = 4;
++    public static final int PRECU_STATE_EFFECT_POSTURE_UP = 5;
+     public static final String PRECU_NEXT_ATTACK_DELAY_UNTIL =
+         "combat.precuNextAttackDelayUntil";
+     public static final String PRECU_NEXT_ATTACK_DELAY_RESULT =
+@@ -1586,6 +1589,11 @@ public class combat_base extends script.base_script
+                     {
+                         applyPrecuStateEffects(
+                             attackerData.id, defenderData[i].id, actionData);
++                        defenderResults[i].endPosture = applyPrecuPostureUp(
++                            attackerData.id,
++                            defenderData[i].id,
++                            actionData,
++                            defenderResults[i].endPosture);
+                         defenderResults[i].endPosture = applyPrecuKnockdown(
+                             attackerData.id,
+                             defenderData[i].id,
+@@ -2251,6 +2259,106 @@ public class combat_base extends script.base_script
+         recordPrecuLiveDiagnostic(
+             attacker, "stateEffect.appliedTotal", appliedTotal + applied);
+     }
++    public int applyPrecuPostureUp(obj_id attacker, obj_id defender,
++        combat_data actionData, int currentPosture) throws InterruptedException
++    {
++        dictionary row =
++            dataTableGetRow(PRECU_COMBAT_OVERRIDES, actionData.actionName);
++        int slot = 0;
++        if (row != null)
++        {
++            for (int i = 1; i <= 3; ++i)
++            {
++                if (row.getInt("stateEffect" + i) ==
++                    PRECU_STATE_EFFECT_POSTURE_UP)
++                {
++                    slot = i;
++                    break;
++                }
++            }
++        }
++        recordPrecuLiveDiagnostic(attacker, "postureUp.slot", slot);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.start", currentPosture);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.end", currentPosture);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.defense", -1);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.roll", -1);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.threshold", -1);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.recoverySeconds", 30);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.result", "INELIGIBLE");
++        if (slot == 0 || !isIdValid(defender))
++        {
++            return currentPosture;
++        }
++        int chance = row.getInt("stateChance" + slot);
++        String defenseMod = row.getString("stateDefense" + slot);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.chance", chance);
++        if (chance <= 0 || isDead(defender) || isIncapacitated(defender))
++        {
++            recordPrecuLiveDiagnostic(attacker, "postureUp.result", "POST_DAMAGE");
++            return currentPosture;
++        }
++        if (isImmuneToStateChange(defender))
++        {
++            recordPrecuLiveDiagnostic(attacker, "postureUp.result", "IMMUNE");
++            return currentPosture;
++        }
++        int currentTime = getGameTime();
++        if (utils.hasScriptVar(defender, PRECU_POSTURE_UP_RECOVERY) &&
++            currentTime - utils.getIntScriptVar(
++                defender, PRECU_POSTURE_UP_RECOVERY) < 30)
++        {
++            int recoveryPosture = currentPosture == POSTURE_UPRIGHT ?
++                currentPosture : POSTURE_UPRIGHT;
++            recordPrecuLiveDiagnostic(
++                attacker, "postureUp.end", recoveryPosture);
++            recordPrecuLiveDiagnostic(attacker, "postureUp.result", "RECOVERY");
++            sendSystemMessage(
++                attacker, new string_id("cbt_spam", "posture_change_fail"));
++            return recoveryPosture;
++        }
++        int playerLevel = isPlayer(defender) ? getLevel(defender) - 5 : 0;
++        int defense = defenseMod == null || defenseMod.equals("") ? 0 :
++            getSkillStatisticModifier(defender, defenseMod);
++        int roll = rand(0, 100);
++        int threshold =
++            (int)(chance - ((float)defense / 1.5f) - playerLevel);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.playerLevel", playerLevel);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.defense", defense);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.roll", roll);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.threshold", threshold);
++        if (roll > threshold)
++        {
++            recordPrecuLiveDiagnostic(attacker, "postureUp.result", "RESISTED");
++            sendSystemMessage(
++                attacker, new string_id("cbt_spam", "posture_change_fail"));
++            return currentPosture;
++        }
++        int endPosture = currentPosture == POSTURE_PRONE ?
++            POSTURE_CROUCHED :
++            (currentPosture == POSTURE_CROUCHED ?
++                POSTURE_UPRIGHT : currentPosture);
++        utils.setScriptVar(defender, PRECU_POSTURE_UP_RECOVERY, currentTime);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.end", endPosture);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.result", "APPLIED");
++        recordPrecuLiveDiagnostic(attacker, "postureUp.appliedRoll", roll);
++        recordPrecuLiveDiagnostic(
++            attacker, "postureUp.appliedThreshold", threshold);
++        recordPrecuLiveDiagnostic(
++            attacker, "postureUp.appliedStart", currentPosture);
++        recordPrecuLiveDiagnostic(attacker, "postureUp.appliedEnd", endPosture);
++        buff.removeBuff(defender, "burstrun");
++        buff.removeBuff(defender, "retreat");
++        if (endPosture != currentPosture)
++        {
++            sendSystemMessage(
++                defender,
++                new string_id(
++                    "cbt_spam",
++                    endPosture == POSTURE_CROUCHED ?
++                        "force_posture_change_1" : "force_posture_change_0"));
++        }
++        return endPosture;
++    }
+     public int applyPrecuPostureDown(obj_id attacker, obj_id defender,
+         combat_data actionData, int currentPosture) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 3d78f22..96b6e98 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -155,6 +155,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String CHARGE_SHOT_TWO_COMMAND = "chargeShot2";
+     private static final String STRAFE_SHOT_ONE_COMMAND = "strafeShot1";
+     private static final String STRAFE_SHOT_TWO_COMMAND = "strafeShot2";
++    private static final String STARTLE_SHOT_ONE_COMMAND = "startleShot1";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
+@@ -406,6 +407,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalStrafeShotOneCommand";
+     private static final String ORIGINAL_STRAFE_SHOT_TWO_COMMAND =
+         ROOT + ".originalStrafeShotTwoCommand";
++    private static final String ORIGINAL_STARTLE_SHOT_ONE_COMMAND =
++        ROOT + ".originalStartleShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_TWO_COMMAND =
+@@ -488,6 +491,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalPostureDownRecoveryPresent";
+     private static final String ORIGINAL_POSTURE_DOWN_RECOVERY =
+         ROOT + ".originalPostureDownRecovery";
++    private static final String ORIGINAL_POSTURE_UP_RECOVERY_PRESENT =
++        ROOT + ".originalPostureUpRecoveryPresent";
++    private static final String ORIGINAL_POSTURE_UP_RECOVERY =
++        ROOT + ".originalPostureUpRecovery";
+     private static final String ORIGINAL_KNOCKDOWN_RECOVERY_PRESENT =
+         ROOT + ".originalKnockdownRecoveryPresent";
+     private static final String ORIGINAL_KNOCKDOWN_RECOVERY =
+@@ -532,7 +539,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armConceal|armStrafeCover|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -605,6 +612,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armStrafeCover(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armPostureUp"))
++        {
++            return armPostureUp(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("probeStrafeDelay"))
+         {
+             return probeStrafeDelay(attacker, defender, args[3]);
+@@ -962,6 +973,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean strafeShotTwoCommandGranted =
+             hasCommand(attacker, STRAFE_SHOT_TWO_COMMAND) ||
+             grantCommand(attacker, STRAFE_SHOT_TWO_COMMAND);
++        boolean startleShotOneCommandGranted =
++            hasCommand(attacker, STARTLE_SHOT_ONE_COMMAND) ||
++            grantCommand(attacker, STARTLE_SHOT_ONE_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -1106,6 +1120,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, STRAFE_SHOT_ONE_COMMAND) ||
+             !strafeShotTwoCommandGranted ||
+             !hasCommand(attacker, STRAFE_SHOT_TWO_COMMAND) ||
++            !startleShotOneCommandGranted ||
++            !hasCommand(attacker, STARTLE_SHOT_ONE_COMMAND) ||
+             !hasCommand(attacker, COMMAND) ||
+             !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             !headShotThreeGranted || !hasCommand(attacker, HEAD_SHOT_THREE_COMMAND) ||
+@@ -1829,6 +1845,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 STRAFE_SHOT_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_STRAFE_SHOT_TWO_COMMAND,
+                 STRAFE_SHOT_TWO_COMMAND);
++            restoreCommand(attacker, ORIGINAL_STARTLE_SHOT_ONE_COMMAND,
++                STARTLE_SHOT_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -2523,6 +2541,7 @@ public class precu_headshot1_fixture extends script.base_script
+             dot.removeDotEffect(defender, bleedingDotId, false);
+         }
+         utils.removeScriptVar(defender, combat_base.PRECU_POSTURE_DOWN_RECOVERY);
++        utils.removeScriptVar(defender, combat_base.PRECU_POSTURE_UP_RECOVERY);
+         utils.removeScriptVar(defender, combat_base.PRECU_KNOCKDOWN_RECOVERY);
+         utils.removeScriptVar(
+             defender, combat_base.PRECU_KNOCKDOWN_ORIGINAL_POSTURE);
+@@ -2537,6 +2556,24 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armPostureUp(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        utils.removeScriptVar(defender, combat_base.PRECU_POSTURE_UP_RECOVERY);
++        boolean prone = setPostureClientImmediate(defender, POSTURE_PRONE) &&
++            getPosture(defender) == POSTURE_PRONE;
++        return prone ?
++            "action=armPostureUp defenderPosture=prone " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=postureUpPreparationFailed " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armConceal(obj_id attacker, obj_id defender, String lifecycle)
+         throws InterruptedException
+     {
+@@ -2978,6 +3015,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, STRAFE_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_STRAFE_SHOT_TWO_COMMAND,
+             hasCommand(player, STRAFE_SHOT_TWO_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_STARTLE_SHOT_ONE_COMMAND,
++            hasCommand(player, STARTLE_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3066,6 +3105,14 @@ public class precu_headshot1_fixture extends script.base_script
+             hadPostureDownRecovery ?
+                 utils.getIntScriptVar(
+                     player, combat_base.PRECU_POSTURE_DOWN_RECOVERY) : 0);
++        boolean hadPostureUpRecovery =
++            utils.hasScriptVar(player, combat_base.PRECU_POSTURE_UP_RECOVERY);
++        setObjVar(player, ORIGINAL_POSTURE_UP_RECOVERY_PRESENT,
++            hadPostureUpRecovery ? 1 : 0);
++        setObjVar(player, ORIGINAL_POSTURE_UP_RECOVERY,
++            hadPostureUpRecovery ?
++                utils.getIntScriptVar(
++                    player, combat_base.PRECU_POSTURE_UP_RECOVERY) : 0);
+         boolean hadKnockdownRecovery =
+             utils.hasScriptVar(player, combat_base.PRECU_KNOCKDOWN_RECOVERY);
+         setObjVar(player, ORIGINAL_KNOCKDOWN_RECOVERY_PRESENT,
+@@ -3372,6 +3419,8 @@ public class precu_headshot1_fixture extends script.base_script
+             STRAFE_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_STRAFE_SHOT_TWO_COMMAND,
+             STRAFE_SHOT_TWO_COMMAND);
++        restoreCommand(attacker, ORIGINAL_STARTLE_SHOT_ONE_COMMAND,
++            STARTLE_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -3881,6 +3930,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 STRAFE_SHOT_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_STRAFE_SHOT_TWO_COMMAND,
+                 STRAFE_SHOT_TWO_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_STARTLE_SHOT_ONE_COMMAND,
++                STARTLE_SHOT_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4095,6 +4146,8 @@ public class precu_headshot1_fixture extends script.base_script
+             STRAFE_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_STRAFE_SHOT_TWO_COMMAND,
+             STRAFE_SHOT_TWO_COMMAND);
++        restoreCommand(attacker, ORIGINAL_STARTLE_SHOT_ONE_COMMAND,
++            STARTLE_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4243,6 +4296,17 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             utils.removeScriptVar(player, combat_base.PRECU_POSTURE_DOWN_RECOVERY);
+         }
++        if (getIntObjVar(player, ORIGINAL_POSTURE_UP_RECOVERY_PRESENT) == 1)
++        {
++            utils.setScriptVar(
++                player,
++                combat_base.PRECU_POSTURE_UP_RECOVERY,
++                getIntObjVar(player, ORIGINAL_POSTURE_UP_RECOVERY));
++        }
++        else
++        {
++            utils.removeScriptVar(player, combat_base.PRECU_POSTURE_UP_RECOVERY);
++        }
+         if (getIntObjVar(player, ORIGINAL_KNOCKDOWN_RECOVERY_PRESENT) == 1)
+         {
+             utils.setScriptVar(
+@@ -4633,6 +4697,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean strafeShotTwoCommandReady =
+             hasCommand(attacker, STRAFE_SHOT_TWO_COMMAND) ||
+             grantCommand(attacker, STRAFE_SHOT_TWO_COMMAND);
++        boolean startleShotOneCommandReady =
++            hasCommand(attacker, STARTLE_SHOT_ONE_COMMAND) ||
++            grantCommand(attacker, STARTLE_SHOT_ONE_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -4800,6 +4867,7 @@ public class precu_headshot1_fixture extends script.base_script
+             chargeShotTwoCommandReady &&
+             strafeShotOneCommandReady &&
+             strafeShotTwoCommandReady &&
++            startleShotOneCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -5204,6 +5272,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_CHARGE_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_STRAFE_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_STRAFE_SHOT_TWO_COMMAND) &&
++            hasObjVar(player, ORIGINAL_STARTLE_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
+@@ -5245,6 +5314,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_COMBAT_ACTIONS) &&
+             hasObjVar(player, ORIGINAL_POSTURE_DOWN_RECOVERY_PRESENT) &&
+             hasObjVar(player, ORIGINAL_POSTURE_DOWN_RECOVERY) &&
++            hasObjVar(player, ORIGINAL_POSTURE_UP_RECOVERY_PRESENT) &&
++            hasObjVar(player, ORIGINAL_POSTURE_UP_RECOVERY) &&
+             hasObjVar(player, ORIGINAL_KNOCKDOWN_RECOVERY_PRESENT) &&
+             hasObjVar(player, ORIGINAL_KNOCKDOWN_RECOVERY) &&
+             hasObjVar(player, ORIGINAL_KNOCKDOWN_POSTURE_PRESENT) &&
+@@ -5412,6 +5483,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(STRAFE_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformStrafeShotTwo = isIdValid(weapon) ?
+             combat.canPerformAction(STRAFE_SHOT_TWO_COMMAND, attacker) : -1;
++        int canPerformStartleShotOne = isIdValid(weapon) ?
++            combat.canPerformAction(STARTLE_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotTwo = isIdValid(weapon) ?
+@@ -5543,6 +5616,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(STRAFE_SHOT_ONE_COMMAND);
+         combat_data strafeShotTwoData =
+             combat_engine.getCombatData(STRAFE_SHOT_TWO_COMMAND);
++        combat_data startleShotOneData =
++            combat_engine.getCombatData(STARTLE_SHOT_ONE_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+         combat_data scatterShotTwoData =
+@@ -5663,6 +5738,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, flameWeaponData, strafeShotTwoData) :
+             new int[] {-1, -1, -1};
++        int[] startleShotOneCosts =
++            startleShotOneData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, startleShotOneData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -5888,6 +5968,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, STRAFE_SHOT_ONE_COMMAND) +
+             " strafeShotTwoCommand=" +
+                 hasCommand(attacker, STRAFE_SHOT_TWO_COMMAND) +
++            " startleShotOneCommand=" +
++                hasCommand(attacker, STARTLE_SHOT_ONE_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+             " scatterShotTwoCommand=" +
+@@ -6007,6 +6089,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformChargeShotTwo=" + canPerformChargeShotTwo +
+             " canPerformStrafeShotOne=" + canPerformStrafeShotOne +
+             " canPerformStrafeShotTwo=" + canPerformStrafeShotTwo +
++            " canPerformStartleShotOne=" + canPerformStartleShotOne +
+             " canPerformScatterShotOne=" + canPerformScatterShotOne +
+             " canPerformScatterShotTwo=" + canPerformScatterShotTwo +
+             " canPerformWildShotOne=" + canPerformWildShotOne +
+@@ -6207,6 +6290,15 @@ public class precu_headshot1_fixture extends script.base_script
+             " strafeShotTwoDamageMultiplier=" +
+                 (strafeShotTwoData == null ? -1.0f :
+                     strafeShotTwoData.percentAddFromWeapon) +
++            " startleShotOneHealthCost=" + startleShotOneCosts[0] +
++            " startleShotOneActionCost=" + startleShotOneCosts[1] +
++            " startleShotOneMindCost=" + startleShotOneCosts[2] +
++            " startleShotOnePrecuHamCostModel=" +
++                (startleShotOneData == null ? -1 :
++                    startleShotOneData.precuHamCostModel) +
++            " startleShotOneDamageMultiplier=" +
++                (startleShotOneData == null ? -1.0f :
++                    startleShotOneData.percentAddFromWeapon) +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+             " scatterShotOneMindCost=" + scatterShotOneCosts[2] +
+@@ -6594,6 +6686,29 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "postureDown.end", -1) +
+             " diagnosticPostureDownResult=" +
+                 readDiagnosticString(attacker, "postureDown.result", "none") +
++            " diagnosticPostureUpChance=" +
++                readDiagnosticInt(attacker, "postureUp.chance", -1) +
++            " diagnosticPostureUpDefense=" +
++                readDiagnosticInt(attacker, "postureUp.defense", -1) +
++            " diagnosticPostureUpRoll=" +
++                readDiagnosticInt(attacker, "postureUp.roll", -1) +
++            " diagnosticPostureUpThreshold=" +
++                readDiagnosticInt(attacker, "postureUp.threshold", -1) +
++            " diagnosticPostureUpStart=" +
++                readDiagnosticInt(attacker, "postureUp.start", -1) +
++            " diagnosticPostureUpEnd=" +
++                readDiagnosticInt(attacker, "postureUp.end", -1) +
++            " diagnosticPostureUpResult=" +
++                readDiagnosticString(attacker, "postureUp.result", "none") +
++            " diagnosticPostureUpAppliedRoll=" +
++                readDiagnosticInt(attacker, "postureUp.appliedRoll", -1) +
++            " diagnosticPostureUpAppliedThreshold=" +
++                readDiagnosticInt(
++                    attacker, "postureUp.appliedThreshold", -1) +
++            " diagnosticPostureUpAppliedStart=" +
++                readDiagnosticInt(attacker, "postureUp.appliedStart", -1) +
++            " diagnosticPostureUpAppliedEnd=" +
++                readDiagnosticInt(attacker, "postureUp.appliedEnd", -1) +
+             " diagnosticAttackerPostureAction=" +
+                 readDiagnosticString(attacker, "attackerPosture.action", "none") +
+             " diagnosticAttackerPostureStart=" +
+@@ -6610,6 +6725,14 @@ public class precu_headshot1_fixture extends script.base_script
+                     defender, combat_base.PRECU_POSTURE_DOWN_RECOVERY) ?
+                     utils.getIntScriptVar(
+                         defender, combat_base.PRECU_POSTURE_DOWN_RECOVERY) : -1) +
++            " postureUpRecoveryPresent=" +
++                utils.hasScriptVar(
++                    defender, combat_base.PRECU_POSTURE_UP_RECOVERY) +
++            " postureUpRecovery=" +
++                (utils.hasScriptVar(
++                    defender, combat_base.PRECU_POSTURE_UP_RECOVERY) ?
++                    utils.getIntScriptVar(
++                        defender, combat_base.PRECU_POSTURE_UP_RECOVERY) : -1) +
+             " diagnosticKnockdownChance=" +
+                 readDiagnosticInt(attacker, "knockdown.chance", -1) +
+             " diagnosticKnockdownDefense=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 1344de9..32598c1 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1377,3 +1377,4 @@ concealShot	concealShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				obj
+ flurryShot1	flurryShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single								fire_5_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ flurryShot2	flurryShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area								fire_area						OFF	OFF	OFF	OFF	OFF	CONE	64	15	0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ strafeShot2	strafeShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area								fire_area						OFF	OFF	OFF	OFF	OFF	CONE	64	60	0	64	0	0	5.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
++startleShot1	startleShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_defender_posture_change_up								fire_defender_posture_change_up						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index f668812..199dc26 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -1,5 +1,5 @@
+ actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus	animationType	dotAttribute	postureDownChance	stateEffect1	stateChance1	stateStrength1	stateDuration1	stateDefense1	stateJediDefense1	stateResistance1	stateEffect2	stateChance2	stateStrength2	stateDuration2	stateDefense2	stateJediDefense2	stateResistance2	stateEffect3	stateChance3	stateStrength3	stateDuration3	stateDefense3	stateJediDefense3	stateResistance3	poolDamageRolls	poolDamageIncrement	knockdownChance	hitIncapacitatedTarget	fixedMinDamage	fixedMaxDamage
+-s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2,RANDOM=3,MULTI=4)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4)[NONE]"	i[0]	i[0]	i[0]	s	s	s	i[0]	f[0]	i[0]	i[0]	i[-1]	i[-1]
++s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2,RANDOM=3,MULTI=4)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5)[NONE]"	i[0]	i[0]	i[0]	s	s	s	i[0]	f[0]	i[0]	i[0]	i[-1]	i[-1]
+ __precu_runtime_probe	0	0	0	HEALTH	0	0	NONE
+ headShot1	0.5	0.5	1	MIND	1.5	5	RANGED
+ bodyShot1	0.5	0.75	0.5	HEALTH	1	50	RANGED
+@@ -93,3 +93,4 @@ concealShot	0.5	0.5	1.5	RANDOM	2.0	5	RANGED
+ flurryShot1	0.5	0.5	1.5	RANDOM	2.0	5	RANGED			DIZZY	85	0	45	dizzy_defense	jedi_state_defense	resistance_states
+ flurryShot2	0.5	0.5	2.0	RANDOM	2.0	5	INTENSITY			DIZZY	100	0	30	dizzy_defense	jedi_state_defense	resistance_states
+ strafeShot2	0.5	0.5	2.0	RANDOM	2.0	5	INTENSITY			REMOVE_COVER	75	0	10
++startleShot1	0.5	0.5	1.5	RANDOM	2.0	5	NONE			POSTURE_UP	100	0	0	posture_change_up_defense
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 151bdf4..4503bbe 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -92,3 +92,4 @@ concealShot	concealedshot
+ flurryShot1	flurryshot
+ flurryShot2	flurry
+ strafeShot2	advancedstrafe
++startleShot1	startle
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 67cf226..638f00f 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2027,3 +2027,4 @@ concealShot	combat	normal	concealShot	failSpecialAttack			1.5	concealShot	1	0	1
+ flurryShot1	combat	normal	flurryShot1	failSpecialAttack			1.5	flurryShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ flurryShot2	combat	normal	flurryShot2	failSpecialAttack			1.5	flurryShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ strafeShot2	combat	normal	strafeShot2	failSpecialAttack			1.5	strafeShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++startleShot1	combat	normal	startleShot1	failSpecialAttack			1.5	startleShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
