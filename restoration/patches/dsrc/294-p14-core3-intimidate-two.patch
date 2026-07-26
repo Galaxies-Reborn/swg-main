@@ -1,0 +1,636 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 859e552fb79134438f1dc6e7dd8a58def93e9273..35bb2abfcab590e2b3cf67e9ba32175f9e075b21 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14949,6 +14949,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int intimidate2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("intimidate2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int unarmedHeadHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("unarmedHeadHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 2afe65def5f771ab03ea2705db3c23fd2a7ee6db..8017e38f570307e66622b99db3060003cbbc9807 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -38,24 +38,33 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_brawler_1handmelee_02";
+     private static final String BRAWLER_ONE_HAND_THREE =
+         "combat_brawler_1handmelee_03";
++    private static final String BRAWLER_ONE_HAND_FOUR =
++        "combat_brawler_1handmelee_04";
+     private static final String BRAWLER_TWO_HAND_ONE =
+         "combat_brawler_2handmelee_01";
+     private static final String BRAWLER_TWO_HAND_TWO =
+         "combat_brawler_2handmelee_02";
+     private static final String BRAWLER_TWO_HAND_THREE =
+         "combat_brawler_2handmelee_03";
++    private static final String BRAWLER_TWO_HAND_FOUR =
++        "combat_brawler_2handmelee_04";
+     private static final String BRAWLER_POLEARM_ONE =
+         "combat_brawler_polearm_01";
+     private static final String BRAWLER_POLEARM_TWO =
+         "combat_brawler_polearm_02";
+     private static final String BRAWLER_POLEARM_THREE =
+         "combat_brawler_polearm_03";
++    private static final String BRAWLER_POLEARM_FOUR =
++        "combat_brawler_polearm_04";
+     private static final String BRAWLER_UNARMED_ONE =
+         "combat_brawler_unarmed_01";
+     private static final String BRAWLER_UNARMED_TWO =
+         "combat_brawler_unarmed_02";
+     private static final String BRAWLER_UNARMED_THREE =
+         "combat_brawler_unarmed_03";
++    private static final String BRAWLER_UNARMED_FOUR =
++        "combat_brawler_unarmed_04";
++    private static final String BRAWLER_MASTER = "combat_brawler_master";
+     private static final String RIFLEMAN_ACCURACY_ONE =
+         "combat_rifleman_accuracy_01";
+     private static final String RIFLEMAN_ACCURACY_TWO =
+@@ -196,6 +205,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String UNARMED_BLIND_ONE_COMMAND = "unarmedBlind1";
+     private static final String UNARMED_STUN_ONE_COMMAND = "unarmedStun1";
+     private static final String INTIMIDATE_ONE_COMMAND = "intimidate1";
++    private static final String INTIMIDATE_TWO_COMMAND = "intimidate2";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
+@@ -287,24 +297,34 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalBrawlerOneHandTwo";
+     private static final String ORIGINAL_BRAWLER_ONE_HAND_THREE =
+         ROOT + ".originalBrawlerOneHandThree";
++    private static final String ORIGINAL_BRAWLER_ONE_HAND_FOUR =
++        ROOT + ".originalBrawlerOneHandFour";
+     private static final String ORIGINAL_BRAWLER_TWO_HAND_ONE =
+         ROOT + ".originalBrawlerTwoHandOne";
+     private static final String ORIGINAL_BRAWLER_TWO_HAND_TWO =
+         ROOT + ".originalBrawlerTwoHandTwo";
+     private static final String ORIGINAL_BRAWLER_TWO_HAND_THREE =
+         ROOT + ".originalBrawlerTwoHandThree";
++    private static final String ORIGINAL_BRAWLER_TWO_HAND_FOUR =
++        ROOT + ".originalBrawlerTwoHandFour";
+     private static final String ORIGINAL_BRAWLER_POLEARM_ONE =
+         ROOT + ".originalBrawlerPolearmOne";
+     private static final String ORIGINAL_BRAWLER_POLEARM_TWO =
+         ROOT + ".originalBrawlerPolearmTwo";
+     private static final String ORIGINAL_BRAWLER_POLEARM_THREE =
+         ROOT + ".originalBrawlerPolearmThree";
++    private static final String ORIGINAL_BRAWLER_POLEARM_FOUR =
++        ROOT + ".originalBrawlerPolearmFour";
+     private static final String ORIGINAL_BRAWLER_UNARMED_ONE =
+         ROOT + ".originalBrawlerUnarmedOne";
+     private static final String ORIGINAL_BRAWLER_UNARMED_TWO =
+         ROOT + ".originalBrawlerUnarmedTwo";
+     private static final String ORIGINAL_BRAWLER_UNARMED_THREE =
+         ROOT + ".originalBrawlerUnarmedThree";
++    private static final String ORIGINAL_BRAWLER_UNARMED_FOUR =
++        ROOT + ".originalBrawlerUnarmedFour";
++    private static final String ORIGINAL_BRAWLER_MASTER =
++        ROOT + ".originalBrawlerMaster";
+     private static final String ORIGINAL_RIFLEMAN_ACCURACY_ONE =
+         ROOT + ".originalRiflemanAccuracyOne";
+     private static final String ORIGINAL_RIFLEMAN_ACCURACY_TWO =
+@@ -505,6 +525,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalUnarmedStunOneCommand";
+     private static final String ORIGINAL_INTIMIDATE_ONE_COMMAND =
+         ROOT + ".originalIntimidateOneCommand";
++    private static final String ORIGINAL_INTIMIDATE_TWO_COMMAND =
++        ROOT + ".originalIntimidateTwoCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_TWO_COMMAND =
+@@ -835,6 +857,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerOneHandThreeGranted = brawlerOneHandTwoGranted &&
+             (hasSkill(attacker, BRAWLER_ONE_HAND_THREE) ||
+                 grantSkill(attacker, BRAWLER_ONE_HAND_THREE));
++        boolean brawlerOneHandFourGranted = brawlerOneHandThreeGranted &&
++            (hasSkill(attacker, BRAWLER_ONE_HAND_FOUR) ||
++                grantSkill(attacker, BRAWLER_ONE_HAND_FOUR));
+         boolean brawlerTwoHandOneGranted = brawlerNoviceGranted &&
+             (hasSkill(attacker, BRAWLER_TWO_HAND_ONE) ||
+                 grantSkill(attacker, BRAWLER_TWO_HAND_ONE));
+@@ -844,6 +869,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerTwoHandThreeGranted = brawlerTwoHandTwoGranted &&
+             (hasSkill(attacker, BRAWLER_TWO_HAND_THREE) ||
+                 grantSkill(attacker, BRAWLER_TWO_HAND_THREE));
++        boolean brawlerTwoHandFourGranted = brawlerTwoHandThreeGranted &&
++            (hasSkill(attacker, BRAWLER_TWO_HAND_FOUR) ||
++                grantSkill(attacker, BRAWLER_TWO_HAND_FOUR));
+         boolean brawlerPolearmOneGranted = brawlerNoviceGranted &&
+             (hasSkill(attacker, BRAWLER_POLEARM_ONE) ||
+                 grantSkill(attacker, BRAWLER_POLEARM_ONE));
+@@ -853,6 +881,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerPolearmThreeGranted = brawlerPolearmTwoGranted &&
+             (hasSkill(attacker, BRAWLER_POLEARM_THREE) ||
+                 grantSkill(attacker, BRAWLER_POLEARM_THREE));
++        boolean brawlerPolearmFourGranted = brawlerPolearmThreeGranted &&
++            (hasSkill(attacker, BRAWLER_POLEARM_FOUR) ||
++                grantSkill(attacker, BRAWLER_POLEARM_FOUR));
+         boolean brawlerUnarmedOneGranted = brawlerNoviceGranted &&
+             (hasSkill(attacker, BRAWLER_UNARMED_ONE) ||
+                 grantSkill(attacker, BRAWLER_UNARMED_ONE));
+@@ -862,6 +893,14 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerUnarmedThreeGranted = brawlerUnarmedTwoGranted &&
+             (hasSkill(attacker, BRAWLER_UNARMED_THREE) ||
+                 grantSkill(attacker, BRAWLER_UNARMED_THREE));
++        boolean brawlerUnarmedFourGranted = brawlerUnarmedThreeGranted &&
++            (hasSkill(attacker, BRAWLER_UNARMED_FOUR) ||
++                grantSkill(attacker, BRAWLER_UNARMED_FOUR));
++        boolean brawlerMasterGranted =
++            brawlerOneHandFourGranted && brawlerTwoHandFourGranted &&
++            brawlerPolearmFourGranted && brawlerUnarmedFourGranted &&
++            (hasSkill(attacker, BRAWLER_MASTER) ||
++                grantSkill(attacker, BRAWLER_MASTER));
+         boolean riflemanAccuracyOneGranted = riflemanNoviceGranted &&
+             (hasSkill(attacker, RIFLEMAN_ACCURACY_ONE) ||
+                 grantSkill(attacker, RIFLEMAN_ACCURACY_ONE));
+@@ -1154,6 +1193,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean intimidateOneCommandGranted =
+             hasCommand(attacker, INTIMIDATE_ONE_COMMAND) ||
+             grantCommand(attacker, INTIMIDATE_ONE_COMMAND);
++        boolean intimidateTwoCommandGranted =
++            hasCommand(attacker, INTIMIDATE_TWO_COMMAND) ||
++            grantCommand(attacker, INTIMIDATE_TWO_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -1314,24 +1356,34 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasSkill(attacker, BRAWLER_ONE_HAND_TWO) ||
+             !brawlerOneHandThreeGranted ||
+             !hasSkill(attacker, BRAWLER_ONE_HAND_THREE) ||
++            !brawlerOneHandFourGranted ||
++            !hasSkill(attacker, BRAWLER_ONE_HAND_FOUR) ||
+             !brawlerTwoHandOneGranted ||
+             !hasSkill(attacker, BRAWLER_TWO_HAND_ONE) ||
+             !brawlerTwoHandTwoGranted ||
+             !hasSkill(attacker, BRAWLER_TWO_HAND_TWO) ||
+             !brawlerTwoHandThreeGranted ||
+             !hasSkill(attacker, BRAWLER_TWO_HAND_THREE) ||
++            !brawlerTwoHandFourGranted ||
++            !hasSkill(attacker, BRAWLER_TWO_HAND_FOUR) ||
+             !brawlerPolearmOneGranted ||
+             !hasSkill(attacker, BRAWLER_POLEARM_ONE) ||
+             !brawlerPolearmTwoGranted ||
+             !hasSkill(attacker, BRAWLER_POLEARM_TWO) ||
+             !brawlerPolearmThreeGranted ||
+             !hasSkill(attacker, BRAWLER_POLEARM_THREE) ||
++            !brawlerPolearmFourGranted ||
++            !hasSkill(attacker, BRAWLER_POLEARM_FOUR) ||
+             !brawlerUnarmedOneGranted ||
+             !hasSkill(attacker, BRAWLER_UNARMED_ONE) ||
+             !brawlerUnarmedTwoGranted ||
+             !hasSkill(attacker, BRAWLER_UNARMED_TWO) ||
+             !brawlerUnarmedThreeGranted ||
+             !hasSkill(attacker, BRAWLER_UNARMED_THREE) ||
++            !brawlerUnarmedFourGranted ||
++            !hasSkill(attacker, BRAWLER_UNARMED_FOUR) ||
++            !brawlerMasterGranted ||
++            !hasSkill(attacker, BRAWLER_MASTER) ||
+             !polearmLungeOneCommandGranted ||
+             !hasCommand(attacker, POLEARM_LUNGE_ONE_COMMAND) ||
+             !unarmedLungeOneCommandGranted ||
+@@ -1352,6 +1404,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, UNARMED_STUN_ONE_COMMAND) ||
+             !intimidateOneCommandGranted ||
+             !hasCommand(attacker, INTIMIDATE_ONE_COMMAND) ||
++            !intimidateTwoCommandGranted ||
++            !hasCommand(attacker, INTIMIDATE_TWO_COMMAND) ||
+             !hasCommand(attacker, COMMAND) ||
+             !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             !headShotThreeGranted || !hasCommand(attacker, HEAD_SHOT_THREE_COMMAND) ||
+@@ -2103,6 +2157,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 UNARMED_STUN_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
+                 INTIMIDATE_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_INTIMIDATE_TWO_COMMAND,
++                INTIMIDATE_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -2528,6 +2584,36 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, RIFLEMAN_NOVICE);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_BRAWLER_MASTER) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_MASTER) == 0 &&
++            hasSkill(attacker, BRAWLER_MASTER))
++        {
++            revokeSkill(attacker, BRAWLER_MASTER);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_TWO_HAND_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_TWO_HAND_FOUR);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_BRAWLER_POLEARM_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_POLEARM_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_POLEARM_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_POLEARM_FOUR);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_BRAWLER_UNARMED_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_UNARMED_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_UNARMED_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_UNARMED_FOUR);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_BRAWLER_ONE_HAND_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_ONE_HAND_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_ONE_HAND_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_ONE_HAND_FOUR);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_THREE) == 0 &&
+             hasSkill(attacker, BRAWLER_TWO_HAND_THREE))
+@@ -3191,24 +3277,34 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, BRAWLER_ONE_HAND_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_ONE_HAND_THREE,
+             hasSkill(player, BRAWLER_ONE_HAND_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_BRAWLER_ONE_HAND_FOUR,
++            hasSkill(player, BRAWLER_ONE_HAND_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_ONE,
+             hasSkill(player, BRAWLER_TWO_HAND_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_TWO,
+             hasSkill(player, BRAWLER_TWO_HAND_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_THREE,
+             hasSkill(player, BRAWLER_TWO_HAND_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_FOUR,
++            hasSkill(player, BRAWLER_TWO_HAND_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_POLEARM_ONE,
+             hasSkill(player, BRAWLER_POLEARM_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_POLEARM_TWO,
+             hasSkill(player, BRAWLER_POLEARM_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_POLEARM_THREE,
+             hasSkill(player, BRAWLER_POLEARM_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_BRAWLER_POLEARM_FOUR,
++            hasSkill(player, BRAWLER_POLEARM_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_UNARMED_ONE,
+             hasSkill(player, BRAWLER_UNARMED_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_UNARMED_TWO,
+             hasSkill(player, BRAWLER_UNARMED_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_UNARMED_THREE,
+             hasSkill(player, BRAWLER_UNARMED_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_BRAWLER_UNARMED_FOUR,
++            hasSkill(player, BRAWLER_UNARMED_FOUR) ? 1 : 0);
++        setObjVar(player, ORIGINAL_BRAWLER_MASTER,
++            hasSkill(player, BRAWLER_MASTER) ? 1 : 0);
+         setObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_ONE,
+             hasSkill(player, RIFLEMAN_ACCURACY_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_TWO,
+@@ -3413,6 +3509,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, UNARMED_STUN_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_INTIMIDATE_ONE_COMMAND,
+             hasCommand(player, INTIMIDATE_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_INTIMIDATE_TWO_COMMAND,
++            hasCommand(player, INTIMIDATE_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3843,6 +3941,8 @@ public class precu_headshot1_fixture extends script.base_script
+             UNARMED_STUN_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
+             INTIMIDATE_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_INTIMIDATE_TWO_COMMAND,
++            INTIMIDATE_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4231,6 +4331,36 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, RIFLEMAN_NOVICE);
+         }
++        if (hasObjVar(attacker, ORIGINAL_BRAWLER_MASTER) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_MASTER) == 0 &&
++            hasSkill(attacker, BRAWLER_MASTER))
++        {
++            revokeSkill(attacker, BRAWLER_MASTER);
++        }
++        if (hasObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_TWO_HAND_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_TWO_HAND_FOUR);
++        }
++        if (hasObjVar(attacker, ORIGINAL_BRAWLER_POLEARM_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_POLEARM_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_POLEARM_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_POLEARM_FOUR);
++        }
++        if (hasObjVar(attacker, ORIGINAL_BRAWLER_UNARMED_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_UNARMED_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_UNARMED_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_UNARMED_FOUR);
++        }
++        if (hasObjVar(attacker, ORIGINAL_BRAWLER_ONE_HAND_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_BRAWLER_ONE_HAND_FOUR) == 0 &&
++            hasSkill(attacker, BRAWLER_ONE_HAND_FOUR))
++        {
++            revokeSkill(attacker, BRAWLER_ONE_HAND_FOUR);
++        }
+         if (hasObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_BRAWLER_TWO_HAND_THREE) == 0 &&
+             hasSkill(attacker, BRAWLER_TWO_HAND_THREE))
+@@ -4465,6 +4595,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 UNARMED_STUN_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
+                 INTIMIDATE_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_INTIMIDATE_TWO_COMMAND,
++                INTIMIDATE_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4534,24 +4666,34 @@ public class precu_headshot1_fixture extends script.base_script
+                 BRAWLER_ONE_HAND_TWO) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_ONE_HAND_THREE,
+                 BRAWLER_ONE_HAND_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_BRAWLER_ONE_HAND_FOUR,
++                BRAWLER_ONE_HAND_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_TWO_HAND_ONE,
+                 BRAWLER_TWO_HAND_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_TWO_HAND_TWO,
+                 BRAWLER_TWO_HAND_TWO) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_TWO_HAND_THREE,
+                 BRAWLER_TWO_HAND_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_BRAWLER_TWO_HAND_FOUR,
++                BRAWLER_TWO_HAND_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_POLEARM_ONE,
+                 BRAWLER_POLEARM_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_POLEARM_TWO,
+                 BRAWLER_POLEARM_TWO) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_POLEARM_THREE,
+                 BRAWLER_POLEARM_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_BRAWLER_POLEARM_FOUR,
++                BRAWLER_POLEARM_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_UNARMED_ONE,
+                 BRAWLER_UNARMED_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_UNARMED_TWO,
+                 BRAWLER_UNARMED_TWO) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_UNARMED_THREE,
+                 BRAWLER_UNARMED_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_BRAWLER_UNARMED_FOUR,
++                BRAWLER_UNARMED_FOUR) &&
++            isSkillRestored(attacker, ORIGINAL_BRAWLER_MASTER,
++                BRAWLER_MASTER) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_ROOT,
+                 BRAWLER_ROOT) &&
+             isSkillRestored(attacker, ORIGINAL_RIFLE_FOUR, RIFLE_FOUR) &&
+@@ -4735,6 +4877,8 @@ public class precu_headshot1_fixture extends script.base_script
+             UNARMED_STUN_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
+             INTIMIDATE_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_INTIMIDATE_TWO_COMMAND,
++            INTIMIDATE_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -5067,6 +5211,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerOneHandThreeReady = brawlerOneHandTwoReady &&
+             (hasSkill(attacker, BRAWLER_ONE_HAND_THREE) ||
+                 grantSkill(attacker, BRAWLER_ONE_HAND_THREE));
++        boolean brawlerOneHandFourReady = brawlerOneHandThreeReady &&
++            (hasSkill(attacker, BRAWLER_ONE_HAND_FOUR) ||
++                grantSkill(attacker, BRAWLER_ONE_HAND_FOUR));
+         boolean brawlerTwoHandOneReady = brawlerNoviceReady &&
+             (hasSkill(attacker, BRAWLER_TWO_HAND_ONE) ||
+                 grantSkill(attacker, BRAWLER_TWO_HAND_ONE));
+@@ -5076,6 +5223,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerTwoHandThreeReady = brawlerTwoHandTwoReady &&
+             (hasSkill(attacker, BRAWLER_TWO_HAND_THREE) ||
+                 grantSkill(attacker, BRAWLER_TWO_HAND_THREE));
++        boolean brawlerTwoHandFourReady = brawlerTwoHandThreeReady &&
++            (hasSkill(attacker, BRAWLER_TWO_HAND_FOUR) ||
++                grantSkill(attacker, BRAWLER_TWO_HAND_FOUR));
+         boolean brawlerPolearmOneReady = brawlerNoviceReady &&
+             (hasSkill(attacker, BRAWLER_POLEARM_ONE) ||
+                 grantSkill(attacker, BRAWLER_POLEARM_ONE));
+@@ -5085,6 +5235,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerPolearmThreeReady = brawlerPolearmTwoReady &&
+             (hasSkill(attacker, BRAWLER_POLEARM_THREE) ||
+                 grantSkill(attacker, BRAWLER_POLEARM_THREE));
++        boolean brawlerPolearmFourReady = brawlerPolearmThreeReady &&
++            (hasSkill(attacker, BRAWLER_POLEARM_FOUR) ||
++                grantSkill(attacker, BRAWLER_POLEARM_FOUR));
+         boolean brawlerUnarmedOneReady = brawlerNoviceReady &&
+             (hasSkill(attacker, BRAWLER_UNARMED_ONE) ||
+                 grantSkill(attacker, BRAWLER_UNARMED_ONE));
+@@ -5094,6 +5247,14 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean brawlerUnarmedThreeReady = brawlerUnarmedTwoReady &&
+             (hasSkill(attacker, BRAWLER_UNARMED_THREE) ||
+                 grantSkill(attacker, BRAWLER_UNARMED_THREE));
++        boolean brawlerUnarmedFourReady = brawlerUnarmedThreeReady &&
++            (hasSkill(attacker, BRAWLER_UNARMED_FOUR) ||
++                grantSkill(attacker, BRAWLER_UNARMED_FOUR));
++        boolean brawlerMasterReady =
++            brawlerOneHandFourReady && brawlerTwoHandFourReady &&
++            brawlerPolearmFourReady && brawlerUnarmedFourReady &&
++            (hasSkill(attacker, BRAWLER_MASTER) ||
++                grantSkill(attacker, BRAWLER_MASTER));
+         boolean riflemanAccuracyOneReady = riflemanNoviceReady &&
+             (hasSkill(attacker, RIFLEMAN_ACCURACY_ONE) ||
+                 grantSkill(attacker, RIFLEMAN_ACCURACY_ONE));
+@@ -5383,6 +5544,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean intimidateOneCommandReady =
+             hasCommand(attacker, INTIMIDATE_ONE_COMMAND) ||
+             grantCommand(attacker, INTIMIDATE_ONE_COMMAND);
++        boolean intimidateTwoCommandReady =
++            hasCommand(attacker, INTIMIDATE_TWO_COMMAND) ||
++            grantCommand(attacker, INTIMIDATE_TWO_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -5501,13 +5665,14 @@ public class precu_headshot1_fixture extends script.base_script
+             rifleFourReady && riflemanNoviceReady &&
+             brawlerRootReady && brawlerNoviceReady &&
+             brawlerOneHandOneReady && brawlerOneHandTwoReady &&
+-            brawlerOneHandThreeReady &&
++            brawlerOneHandThreeReady && brawlerOneHandFourReady &&
+             brawlerTwoHandOneReady && brawlerTwoHandTwoReady &&
+-            brawlerTwoHandThreeReady &&
++            brawlerTwoHandThreeReady && brawlerTwoHandFourReady &&
+             brawlerPolearmOneReady && brawlerPolearmTwoReady &&
+-            brawlerPolearmThreeReady &&
++            brawlerPolearmThreeReady && brawlerPolearmFourReady &&
+             brawlerUnarmedOneReady && brawlerUnarmedTwoReady &&
+-            brawlerUnarmedThreeReady &&
++            brawlerUnarmedThreeReady && brawlerUnarmedFourReady &&
++            brawlerMasterReady &&
+             riflemanAccuracyOneReady && riflemanAccuracyTwoReady &&
+             riflemanAccuracyThreeReady && riflemanAccuracyFourReady &&
+             riflemanSpeedOneReady && riflemanSpeedTwoReady &&
+@@ -5573,6 +5738,7 @@ public class precu_headshot1_fixture extends script.base_script
+             unarmedBlindOneCommandReady &&
+             unarmedStunOneCommandReady &&
+             intimidateOneCommandReady &&
++            intimidateTwoCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -5895,15 +6061,20 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_BRAWLER_ONE_HAND_ONE) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_ONE_HAND_TWO) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_ONE_HAND_THREE) &&
++            hasObjVar(player, ORIGINAL_BRAWLER_ONE_HAND_FOUR) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_ONE) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_TWO) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_THREE) &&
++            hasObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_FOUR) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_POLEARM_ONE) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_POLEARM_TWO) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_POLEARM_THREE) &&
++            hasObjVar(player, ORIGINAL_BRAWLER_POLEARM_FOUR) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_UNARMED_ONE) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_UNARMED_TWO) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_UNARMED_THREE) &&
++            hasObjVar(player, ORIGINAL_BRAWLER_UNARMED_FOUR) &&
++            hasObjVar(player, ORIGINAL_BRAWLER_MASTER) &&
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_ONE) &&
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_TWO) &&
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_THREE) &&
+@@ -6006,6 +6177,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_UNARMED_BLIND_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_UNARMED_STUN_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_INTIMIDATE_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_INTIMIDATE_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
+@@ -6244,6 +6416,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(UNARMED_STUN_ONE_COMMAND, attacker);
+         int canPerformIntimidateOne =
+             combat.canPerformAction(INTIMIDATE_ONE_COMMAND, attacker);
++        int canPerformIntimidateTwo =
++            combat.canPerformAction(INTIMIDATE_TWO_COMMAND, attacker);
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotTwo = isIdValid(weapon) ?
+@@ -6403,6 +6577,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(UNARMED_STUN_ONE_COMMAND);
+         combat_data intimidateOneData =
+             combat_engine.getCombatData(INTIMIDATE_ONE_COMMAND);
++        combat_data intimidateTwoData =
++            combat_engine.getCombatData(INTIMIDATE_TWO_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+         combat_data scatterShotTwoData =
+@@ -6595,6 +6771,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, currentWeaponData, intimidateOneData) :
+             new int[] {-1, -1, -1};
++        int[] intimidateTwoCosts =
++            intimidateTwoData != null && currentWeaponData != null ?
++            combat.getActionCost(
++                attacker, currentWeaponData, intimidateTwoData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -6689,24 +6870,33 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasSkill(attacker, BRAWLER_ONE_HAND_TWO) +
+             " brawlerOneHandThree=" +
+                 hasSkill(attacker, BRAWLER_ONE_HAND_THREE) +
++            " brawlerOneHandFour=" +
++                hasSkill(attacker, BRAWLER_ONE_HAND_FOUR) +
+             " brawlerTwoHandOne=" +
+                 hasSkill(attacker, BRAWLER_TWO_HAND_ONE) +
+             " brawlerTwoHandTwo=" +
+                 hasSkill(attacker, BRAWLER_TWO_HAND_TWO) +
+             " brawlerTwoHandThree=" +
+                 hasSkill(attacker, BRAWLER_TWO_HAND_THREE) +
++            " brawlerTwoHandFour=" +
++                hasSkill(attacker, BRAWLER_TWO_HAND_FOUR) +
+             " brawlerPolearmOne=" +
+                 hasSkill(attacker, BRAWLER_POLEARM_ONE) +
+             " brawlerPolearmTwo=" +
+                 hasSkill(attacker, BRAWLER_POLEARM_TWO) +
+             " brawlerPolearmThree=" +
+                 hasSkill(attacker, BRAWLER_POLEARM_THREE) +
++            " brawlerPolearmFour=" +
++                hasSkill(attacker, BRAWLER_POLEARM_FOUR) +
+             " brawlerUnarmedOne=" +
+                 hasSkill(attacker, BRAWLER_UNARMED_ONE) +
+             " brawlerUnarmedTwo=" +
+                 hasSkill(attacker, BRAWLER_UNARMED_TWO) +
+             " brawlerUnarmedThree=" +
+                 hasSkill(attacker, BRAWLER_UNARMED_THREE) +
++            " brawlerUnarmedFour=" +
++                hasSkill(attacker, BRAWLER_UNARMED_FOUR) +
++            " brawlerMaster=" + hasSkill(attacker, BRAWLER_MASTER) +
+             " riflemanAccuracyOne=" +
+                 hasSkill(attacker, RIFLEMAN_ACCURACY_ONE) +
+             " riflemanAccuracyTwo=" +
+@@ -6874,6 +7064,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, UNARMED_STUN_ONE_COMMAND) +
+             " intimidateOneCommand=" +
+                 hasCommand(attacker, INTIMIDATE_ONE_COMMAND) +
++            " intimidateTwoCommand=" +
++                hasCommand(attacker, INTIMIDATE_TWO_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+             " scatterShotTwoCommand=" +
+@@ -7338,6 +7530,18 @@ public class precu_headshot1_fixture extends script.base_script
+                     intimidateOneData.percentAddFromWeapon) +
+             " intimidateOneAccuracySkill=" +
+                 getSkillStatisticModifier(attacker, "intimidate") +
++            " intimidateTwoCanPerform=" + canPerformIntimidateTwo +
++            " intimidateTwoHealthCost=" + intimidateTwoCosts[0] +
++            " intimidateTwoActionCost=" + intimidateTwoCosts[1] +
++            " intimidateTwoMindCost=" + intimidateTwoCosts[2] +
++            " intimidateTwoPrecuHamCostModel=" +
++                (intimidateTwoData == null ? -1 :
++                    intimidateTwoData.precuHamCostModel) +
++            " intimidateTwoDamageMultiplier=" +
++                (intimidateTwoData == null ? -1.0f :
++                    intimidateTwoData.percentAddFromWeapon) +
++            " intimidateTwoAccuracySkill=" +
++                getSkillStatisticModifier(attacker, "intimidate") +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+             " scatterShotOneMindCost=" + scatterShotOneCosts[2] +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index b0b7c0135854e6932e2b1b700f0c4c6b67aa3b42..5f5d0223c8d7caef47c1f2a6b08e6d010c1cfb45 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1391,3 +1391,4 @@ flushingShot2	flushingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1
+ unarmedBlind1	unarmedBlind1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_center_light_1	attack_high_center_light_1													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ unarmedStun1	unarmedStun1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_4c	combo_4c													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.25	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ intimidate1	intimidate1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_intimidate.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	intimidate	intimidate													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++intimidate2	intimidate2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_intimidate.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	intimidate	intimidate													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 354a37a62615ff1842938f5d93d28ffc5c2e7507..002c77b4480173643045c9a08ca033b914a4659b 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -107,3 +107,4 @@ flushingShot2	0.5	0.5	2.0	RANDOM	2.0	5	INTENSITY			STUN	100	0	35	stun_defense	je
+ unarmedBlind1	1.5	1.5	1.5	RANDOM	2.0	15	NONE		0	BLIND	100	0	50	blind_defense	jedi_state_defense	resistance_states
+ unarmedStun1	1.5	1.5	1.5	RANDOM	2.0	15	INTENSITY		0	STUN	100	0	60	stun_defense	jedi_state_defense	resistance_states
+ intimidate1	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	INTIMIDATE	100	0	30																								intimidate
++intimidate2	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	INTIMIDATE	100	0	120																								intimidate
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 8fd97317898e0fd64e417bfd619350a5931ecc89..8f4c5c770601cd36d3b34aa3a360f380b345c31e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -106,3 +106,4 @@ flushingShot2	flushingvolley
+ unarmedBlind1	aryxslash
+ unarmedStun1	screamingsquill
+ intimidate1	intim
++intimidate2	intim
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 45a998a5dba050f4dc5e9a6ca91a211331f03eec..5a0d5cd417fa153e85b0c0e026a2d4a76517eda4 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2041,3 +2041,4 @@ flushingShot2	combat	normal	flushingShot2	failSpecialAttack			1.5	flushingShot2
+ unarmedBlind1	combat	normal	unarmedBlind1	failSpecialAttack			1.5	unarmedBlind1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedStun1	combat	normal	unarmedStun1	failSpecialAttack			1.5	unarmedStun1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ intimidate1	combat	normal	intimidate1	failSpecialAttack			1.5	intimidate1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++intimidate2	combat	normal	intimidate2	failSpecialAttack			1.5	intimidate2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
