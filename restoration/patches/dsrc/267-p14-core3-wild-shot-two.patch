@@ -1,0 +1,353 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index fabddbb..1c9943a 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14931,6 +14931,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int wildShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("wildShot2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     private void applyPrecuAcrobaticPosture(obj_id self, int posture, String action) throws InterruptedException
+     {
+         int startPosture = getPosture(self);
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 40cf5aa..3808ac8 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -40,6 +40,8 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_carbine_accuracy_02";
+     private static final String CARBINE_ACCURACY_THREE =
+         "combat_carbine_accuracy_03";
++    private static final String CARBINE_ACCURACY_FOUR =
++        "combat_carbine_accuracy_04";
+     private static final String CARBINE_SPEED_ONE = "combat_carbine_speed_01";
+     private static final String CARBINE_ABILITY_ONE =
+         "combat_carbine_ability_01";
+@@ -96,6 +98,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
++    private static final String WILD_SHOT_TWO_COMMAND = "wildShot2";
+     private static final String LEG_SHOT_TWO_COMMAND = "legShot2";
+     private static final String LEG_SHOT_THREE_COMMAND = "legShot3";
+     private static final String ACID_SINGLE_ONE_COMMAND = "fireAcidSingle1";
+@@ -181,6 +184,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalCarbineAccuracyTwo";
+     private static final String ORIGINAL_CARBINE_ACCURACY_THREE =
+         ROOT + ".originalCarbineAccuracyThree";
++    private static final String ORIGINAL_CARBINE_ACCURACY_FOUR =
++        ROOT + ".originalCarbineAccuracyFour";
+     private static final String ORIGINAL_CARBINE_SPEED_ONE =
+         ROOT + ".originalCarbineSpeedOne";
+     private static final String ORIGINAL_CARBINE_ABILITY_ONE =
+@@ -275,6 +280,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalScatterShotTwoCommand";
+     private static final String ORIGINAL_WILD_SHOT_ONE_COMMAND =
+         ROOT + ".originalWildShotOneCommand";
++    private static final String ORIGINAL_WILD_SHOT_TWO_COMMAND =
++        ROOT + ".originalWildShotTwoCommand";
+     private static final String ORIGINAL_LEG_SHOT_TWO_COMMAND =
+         ROOT + ".originalLegShotTwoCommand";
+     private static final String ORIGINAL_LEG_SHOT_THREE_COMMAND =
+@@ -554,6 +561,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean carbineAccuracyThreeGranted = carbineAccuracyTwoGranted &&
+             (hasSkill(attacker, CARBINE_ACCURACY_THREE) ||
+                 grantSkill(attacker, CARBINE_ACCURACY_THREE));
++        boolean carbineAccuracyFourGranted = carbineAccuracyThreeGranted &&
++            (hasSkill(attacker, CARBINE_ACCURACY_FOUR) ||
++                grantSkill(attacker, CARBINE_ACCURACY_FOUR));
+         boolean carbineSpeedOneGranted = carbineNoviceGranted &&
+             (hasSkill(attacker, CARBINE_SPEED_ONE) ||
+                 grantSkill(attacker, CARBINE_SPEED_ONE));
+@@ -685,6 +695,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean wildShotOneCommandGranted =
+             hasCommand(attacker, WILD_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, WILD_SHOT_ONE_COMMAND);
++        boolean wildShotTwoCommandGranted =
++            hasCommand(attacker, WILD_SHOT_TWO_COMMAND) ||
++            grantCommand(attacker, WILD_SHOT_TWO_COMMAND);
+         boolean legShotTwoCommandGranted =
+             hasCommand(attacker, LEG_SHOT_TWO_COMMAND) ||
+             grantCommand(attacker, LEG_SHOT_TWO_COMMAND);
+@@ -792,6 +805,7 @@ public class precu_headshot1_fixture extends script.base_script
+             !carbineThreeGranted || !carbineFourGranted ||
+             !carbineNoviceGranted || !carbineAccuracyOneGranted ||
+             !carbineAccuracyTwoGranted || !carbineAccuracyThreeGranted ||
++            !carbineAccuracyFourGranted ||
+             !carbineSpeedOneGranted ||
+             !carbineAbilityFourGranted ||
+             !pistolOneGranted ||
+@@ -867,6 +881,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, SCATTER_SHOT_TWO_COMMAND) ||
+             !wildShotOneCommandGranted ||
+             !hasCommand(attacker, WILD_SHOT_ONE_COMMAND) ||
++            !wildShotTwoCommandGranted ||
++            !hasCommand(attacker, WILD_SHOT_TWO_COMMAND) ||
+             !legShotTwoCommandGranted ||
+             !hasCommand(attacker, LEG_SHOT_TWO_COMMAND) ||
+             !legShotThreeCommandGranted ||
+@@ -1446,6 +1462,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 SCATTER_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_WILD_SHOT_ONE_COMMAND,
+                 WILD_SHOT_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_WILD_SHOT_TWO_COMMAND,
++                WILD_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_LEG_SHOT_TWO_COMMAND,
+                 LEG_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_LEG_SHOT_THREE_COMMAND,
+@@ -1641,6 +1659,13 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, CARBINE_ABILITY_FOUR);
+         }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_FOUR) == 0 &&
++            hasSkill(attacker, CARBINE_ACCURACY_FOUR))
++        {
++            revokeSkill(attacker, CARBINE_ACCURACY_FOUR);
++        }
+         if (attackerRoot &&
+             hasObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_THREE) == 0 &&
+@@ -2047,6 +2072,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, CARBINE_ACCURACY_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_ACCURACY_THREE,
+             hasSkill(player, CARBINE_ACCURACY_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_CARBINE_ACCURACY_FOUR,
++            hasSkill(player, CARBINE_ACCURACY_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_SPEED_ONE,
+             hasSkill(player, CARBINE_SPEED_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_ABILITY_ONE,
+@@ -2145,6 +2172,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, SCATTER_SHOT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND,
+             hasCommand(player, WILD_SHOT_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_WILD_SHOT_TWO_COMMAND,
++            hasCommand(player, WILD_SHOT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_LEG_SHOT_TWO_COMMAND,
+             hasCommand(player, LEG_SHOT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_LEG_SHOT_THREE_COMMAND,
+@@ -2464,6 +2493,8 @@ public class precu_headshot1_fixture extends script.base_script
+             SCATTER_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_WILD_SHOT_ONE_COMMAND,
+             WILD_SHOT_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_WILD_SHOT_TWO_COMMAND,
++            WILD_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_LEG_SHOT_TWO_COMMAND,
+             LEG_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_LEG_SHOT_THREE_COMMAND,
+@@ -2646,6 +2677,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, CARBINE_ABILITY_FOUR);
+         }
++        if (hasObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_FOUR) == 0 &&
++            hasSkill(attacker, CARBINE_ACCURACY_FOUR))
++        {
++            revokeSkill(attacker, CARBINE_ACCURACY_FOUR);
++        }
+         if (hasObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_CARBINE_ACCURACY_THREE) == 0 &&
+             hasSkill(attacker, CARBINE_ACCURACY_THREE))
+@@ -2755,6 +2792,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 CARBINE_ABILITY_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_CARBINE_SPEED_ONE,
+                 CARBINE_SPEED_ONE) &&
++            isSkillRestored(attacker, ORIGINAL_CARBINE_ACCURACY_FOUR,
++                CARBINE_ACCURACY_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_CARBINE_ACCURACY_THREE,
+                 CARBINE_ACCURACY_THREE) &&
+             isSkillRestored(attacker, ORIGINAL_CARBINE_ACCURACY_TWO,
+@@ -2785,6 +2824,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 SCATTER_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_WILD_SHOT_ONE_COMMAND,
+                 WILD_SHOT_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_WILD_SHOT_TWO_COMMAND,
++                WILD_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_LEG_SHOT_TWO_COMMAND,
+                 LEG_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_LEG_SHOT_THREE_COMMAND,
+@@ -2856,6 +2897,8 @@ public class precu_headshot1_fixture extends script.base_script
+             CARBINE_ABILITY_ONE);
+         restoreSkill(attacker, ORIGINAL_CARBINE_SPEED_ONE,
+             CARBINE_SPEED_ONE);
++        restoreSkill(attacker, ORIGINAL_CARBINE_ACCURACY_FOUR,
++            CARBINE_ACCURACY_FOUR);
+         restoreSkill(attacker, ORIGINAL_CARBINE_ACCURACY_THREE,
+             CARBINE_ACCURACY_THREE);
+         restoreSkill(attacker, ORIGINAL_CARBINE_ACCURACY_TWO,
+@@ -2879,6 +2922,8 @@ public class precu_headshot1_fixture extends script.base_script
+             SCATTER_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_WILD_SHOT_ONE_COMMAND,
+             WILD_SHOT_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_WILD_SHOT_TWO_COMMAND,
++            WILD_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_LEG_SHOT_TWO_COMMAND,
+             LEG_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_LEG_SHOT_THREE_COMMAND,
+@@ -3104,6 +3149,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean carbineAccuracyThreeReady = carbineAccuracyTwoReady &&
+             (hasSkill(attacker, CARBINE_ACCURACY_THREE) ||
+                 grantSkill(attacker, CARBINE_ACCURACY_THREE));
++        boolean carbineAccuracyFourReady = carbineAccuracyThreeReady &&
++            (hasSkill(attacker, CARBINE_ACCURACY_FOUR) ||
++                grantSkill(attacker, CARBINE_ACCURACY_FOUR));
+         boolean carbineSpeedOneReady = carbineNoviceReady &&
+             (hasSkill(attacker, CARBINE_SPEED_ONE) ||
+                 grantSkill(attacker, CARBINE_SPEED_ONE));
+@@ -3232,6 +3280,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean wildShotOneCommandReady =
+             hasCommand(attacker, WILD_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, WILD_SHOT_ONE_COMMAND);
++        boolean wildShotTwoCommandReady =
++            hasCommand(attacker, WILD_SHOT_TWO_COMMAND) ||
++            grantCommand(attacker, WILD_SHOT_TWO_COMMAND);
+         boolean legShotTwoCommandReady =
+             hasCommand(attacker, LEG_SHOT_TWO_COMMAND) ||
+             grantCommand(attacker, LEG_SHOT_TWO_COMMAND);
+@@ -3339,6 +3390,7 @@ public class precu_headshot1_fixture extends script.base_script
+             carbineThreeReady && carbineFourReady &&
+             carbineNoviceReady && carbineAccuracyOneReady &&
+             carbineAccuracyTwoReady && carbineAccuracyThreeReady &&
++            carbineAccuracyFourReady &&
+             carbineSpeedOneReady &&
+             carbineAbilityFourReady &&
+             supportOneReady && supportFourReady &&
+@@ -3365,7 +3417,7 @@ public class precu_headshot1_fixture extends script.base_script
+             fullAutoSingleOneCommandReady &&
+             fullAutoSingleTwoCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+-            wildShotOneCommandReady &&
++            wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+             acidSingleOneCommandReady &&
+             acidConeOneCommandReady && acidConeTwoCommandReady &&
+@@ -3652,6 +3704,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_CARBINE_ACCURACY_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ACCURACY_TWO) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ACCURACY_THREE) &&
++            hasObjVar(player, ORIGINAL_CARBINE_ACCURACY_FOUR) &&
+             hasObjVar(player, ORIGINAL_CARBINE_SPEED_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ABILITY_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ABILITY_TWO) &&
+@@ -3701,6 +3754,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_WILD_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_LEG_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_LEG_SHOT_THREE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACID_SINGLE_ONE_COMMAND) &&
+@@ -3875,6 +3929,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(SCATTER_SHOT_TWO_COMMAND, attacker) : -1;
+         int canPerformWildShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(WILD_SHOT_ONE_COMMAND, attacker) : -1;
++        int canPerformWildShotTwo = isIdValid(weapon) ?
++            combat.canPerformAction(WILD_SHOT_TWO_COMMAND, attacker) : -1;
+         int canPerformLegShotTwo = isIdValid(weapon) ?
+             combat.canPerformAction(LEG_SHOT_TWO_COMMAND, attacker) : -1;
+         int canPerformLegShotThree = isIdValid(weapon) ?
+@@ -3992,6 +4048,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(SCATTER_SHOT_TWO_COMMAND);
+         combat_data wildShotOneData =
+             combat_engine.getCombatData(WILD_SHOT_ONE_COMMAND);
++        combat_data wildShotTwoData =
++            combat_engine.getCombatData(WILD_SHOT_TWO_COMMAND);
+         combat_data legShotTwoData =
+             combat_engine.getCombatData(LEG_SHOT_TWO_COMMAND);
+         combat_data legShotThreeData =
+@@ -4077,6 +4135,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, flameWeaponData, wildShotOneData) :
+             new int[] {-1, -1, -1};
++        int[] wildShotTwoCosts =
++            wildShotTwoData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, wildShotTwoData) :
++            new int[] {-1, -1, -1};
+         int[] legShotTwoCosts =
+             legShotTwoData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -4117,6 +4180,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasSkill(attacker, CARBINE_ACCURACY_TWO) +
+             " carbineAccuracyThree=" +
+                 hasSkill(attacker, CARBINE_ACCURACY_THREE) +
++            " carbineAccuracyFour=" +
++                hasSkill(attacker, CARBINE_ACCURACY_FOUR) +
+             " carbineSpeedOne=" + hasSkill(attacker, CARBINE_SPEED_ONE) +
+             " carbineAbilityOne=" + hasSkill(attacker, CARBINE_ABILITY_ONE) +
+             " carbineAbilityTwo=" + hasSkill(attacker, CARBINE_ABILITY_TWO) +
+@@ -4191,6 +4256,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, SCATTER_SHOT_TWO_COMMAND) +
+             " wildShotOneCommand=" +
+                 hasCommand(attacker, WILD_SHOT_ONE_COMMAND) +
++            " wildShotTwoCommand=" +
++                hasCommand(attacker, WILD_SHOT_TWO_COMMAND) +
+             " legShotTwoCommand=" + hasCommand(attacker, LEG_SHOT_TWO_COMMAND) +
+             " legShotThreeCommand=" +
+                 hasCommand(attacker, LEG_SHOT_THREE_COMMAND) +
+@@ -4295,6 +4362,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformScatterShotOne=" + canPerformScatterShotOne +
+             " canPerformScatterShotTwo=" + canPerformScatterShotTwo +
+             " canPerformWildShotOne=" + canPerformWildShotOne +
++            " canPerformWildShotTwo=" + canPerformWildShotTwo +
+             " canPerformLegShotTwo=" + canPerformLegShotTwo +
+             " canPerformLegShotThree=" + canPerformLegShotThree +
+             " canPerformAcidSingleOne=" + canPerformAcidSingleOne +
+@@ -4476,6 +4544,12 @@ public class precu_headshot1_fixture extends script.base_script
+             " wildShotOnePrecuHamCostModel=" +
+                 (wildShotOneData == null ? -1 :
+                     wildShotOneData.precuHamCostModel) +
++            " wildShotTwoHealthCost=" + wildShotTwoCosts[0] +
++            " wildShotTwoActionCost=" + wildShotTwoCosts[1] +
++            " wildShotTwoMindCost=" + wildShotTwoCosts[2] +
++            " wildShotTwoPrecuHamCostModel=" +
++                (wildShotTwoData == null ? -1 :
++                    wildShotTwoData.precuHamCostModel) +
+             " legShotTwoHealthCost=" + legShotTwoCosts[0] +
+             " legShotTwoActionCost=" + legShotTwoCosts[1] +
+             " legShotTwoMindCost=" + legShotTwoCosts[2] +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index dea2edf..b3027e4 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1364,3 +1364,4 @@ legShot3	legShot3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/ta
+ fullAutoSingle2	fullAutoSingle2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single							fire_7_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ suppressionFire2	suppressionFire2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_defender_posture_change_down														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	150	0.0	0	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ wildShot1	wildShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single						fire_7_single								OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.25	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				carbineer	0		ACTION_NAME	0	0	1
++wildShot2	wildShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single						fire_7_single								OFF	OFF	OFF	OFF	OFF	CONE	64	30	0	64	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				carbineer	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 7f5c9fb..377032e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -80,3 +80,4 @@ legShot3	.5	2	2	ACTION	2	25	NONE			STUN	100	0	30	stun_defense	jedi_state_defense
+ fullAutoSingle2	2	2.5	.5	RANDOM	1.5	25	RANGED			DIZZY	30	0	30	dizzy_defense	jedi_state_defense	resistance_states	BLIND	30	0	40	blind_defense	jedi_state_defense	resistance_states	STUN	30	0	30	stun_defense	jedi_state_defense	resistance_states
+ suppressionFire2	2	1.25	.5	RANDOM	1.5	25	NONE		100
+ wildShot1	1.75	1.25	.5	RANDOM	2	25	RANGED			STUN	50	0	30	stun_defense	jedi_state_defense	resistance_states
++wildShot2	2.0	1.25	.5	RANDOM	2	25	RANGED			STUN	50	0	30	stun_defense	jedi_state_defense	resistance_states
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index c091006..04ccf38 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -79,3 +79,4 @@ legShot3	kneecapshot
+ fullAutoSingle2	s_auto
+ suppressionFire2	sup_fire
+ wildShot1	wildshot
++wildShot2	widewildshot
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 0c69541..a914e16 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2014,3 +2014,4 @@ legShot3	combat	normal	legShot3	failSpecialAttack			1.5	legShot3	1	0	1	1	1	0	1	1
+ fullAutoSingle2	combat	normal	fullAutoSingle2	failSpecialAttack			1.5	fullAutoSingle2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ suppressionFire2	combat	normal	suppressionFire2	failSpecialAttack			1.5	suppressionFire2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ wildShot1	combat	normal	wildShot1	failSpecialAttack			1.5	wildShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++wildShot2	combat	normal	wildShot2	failSpecialAttack			1.5	wildShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+
