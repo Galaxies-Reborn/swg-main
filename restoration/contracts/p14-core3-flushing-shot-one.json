@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-flushing-shot-one",
+  "status": "ready",
+  "scope": "Restore retained Rifleman Ability I flushingShot1 with exact Patch 12 queue admission, pinned Core3 random-pool rifle damage, ordered STUN and posture-up semantics, authenticated runtime, expiry, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Command": "flushingShot1.lua",
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "skillOwner": "combat_rifleman_ability_01",
+    "skillPrerequisites": ["combat_rifleman_novice"],
+    "command": {
+      "name": "flushingShot1",
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "validWeapon": "RIFLE",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "allowedLocomotion": ["standing", "walking", "running", "kneeling", "prone", "crawling"],
+      "disallowedState": ["berserk"]
+    },
+    "combat": {
+      "damageMultiplier": 2.0,
+      "speedMultiplier": 2.0,
+      "healthCostMultiplier": 0.5,
+      "actionCostMultiplier": 0.5,
+      "mindCostMultiplier": 1.5,
+      "accuracyBonus": 5,
+      "targetPool": "RANDOM_ATTRIBUTE",
+      "attackType": "SINGLE_TARGET",
+      "maxRange": 64,
+      "animation": "fire_3_special_single",
+      "animationType": "GENERATE_RANGED",
+      "combatSpam": "flushingshot",
+      "weaponType": "RIFLE"
+    },
+    "orderedEffects": [
+      {"slot": 1, "type": "STUN", "chance": 100, "durationSeconds": 35, "defense": "stun_defense", "jediDefense": "jedi_state_defense", "resistance": "resistance_states"},
+      {"slot": 2, "type": "POSTURE_UP", "chance": 100, "recoverySeconds": 30, "defense": "posture_change_up_defense"}
+    ],
+    "postureUpBoundary": {
+      "firstTransition": "PRONE_TO_CROUCHED",
+      "activeRecoveryTransition": "NON_UPRIGHT_TO_UPRIGHT",
+      "core3PostureChangeDelayMilliseconds": 2500,
+      "runtimeBoundary": "The Java script API exposes posture and recovery but not Core3's internal postureChangeDelay cooldown timer."
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T10:40:00-04:00",
+    "overlay": "restoration/patches/dsrc/282-p14-core3-flushing-shot-one.patch",
+    "overlaySha256": "c93d0f5c69b0dff5fefa8ab460415b436d927e60509530de9878455fa23fa76e",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 8,
+    "javaCompile": "passed-focused-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss16m",
+    "datatableCompile": "passed-focused-four-tables-linux",
+    "clientBridgeTests": 69,
+    "clientTestSuite": {"passed": 199, "skipped": 3, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient",
+    "clientBuildErrors": 0,
+    "unrelatedAggregateBuild": {"status": "known-pre-existing-failure", "project": "SwgLoadClient", "reason": "missing server-network header and pre-existing chatText identifier"},
+    "clientProtocolVersion": 205,
+    "clientBytes": 33805824,
+    "clientSha256": "9ea7afba97d23c533095f36ad1f0148e08b337c442f09040f604d73fcfc18136",
+    "materializedOverlayCount": 288,
+    "materializedRestorationFileCount": 844,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "base": "def777b6cdde3f6950af3e1480a21b5a8e3f5c384733d84ebee49e41a9bc40c2",
+      "actions": "938ee383e26fd021749f6dbcc6389cb46054ba965bc390caa6a107dce66f4b6e",
+      "fixture": "c46fadb920858e0b99235df37da164ec2e8eb2f047686a85ef1bd70d58383645",
+      "combat": "663a4faa1c00f01ec5e393a527267b2211f4a3984ef628279807e310ef90424b",
+      "override": "0888a37a092ba6e983ab73f44167c66bda74115749b719eab71c0e7176b336a1",
+      "spam": "d003e75c58144b4ff6e4ad146d8f038ccd525c716d624efe7a1e96ce3a7ff2b2",
+      "command": "1eee220ccd716b1d2852805f3bade10b8da03583bc834c36408172335750297d"
+    },
+    "compiledClassSha256": {
+      "combat_base.class": "5a29b71943907c7c9dab66c9a34a85196c23932cceb6bb6d329b559da5511de3",
+      "combat_actions.class": "3656345e232df082aff62bd7bc47348bee1414fac9ae7b45edd1449d909f2821",
+      "precu_headshot1_fixture.class": "421f4924b0cde3ff69623f3c81b2560ec392bbbcaf7f5a4a345cb07e522418b9"
+    },
+    "compiledTableSha256": {
+      "datatables/combat/combat_data.iff": "806feeccf99b7ad53cee14c43e89c1111a8a29505be0243e1c3128709a235e12",
+      "datatables/combat/precu_combat_overrides.iff": "61458e0949f32217620f64c612827c7f4fab65a870ebaa561807636783fadc1b",
+      "datatables/combat/precu_combat_spam.iff": "e5a4a11ee17a6155f17683ff2ff6bb3a3344fb4886d13f9f38c7bd8aed19c055",
+      "datatables/command/command_table.iff": "945a8784d56d33e0edeedb93d2e7eed093b4ff817ecefaa21965d9b2666f3138"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "806feeccf99b7ad53cee14c43e89c1111a8a29505be0243e1c3128709a235e12",
+      "datatables/command/command_table.iff": "945a8784d56d33e0edeedb93d2e7eed093b4ff817ecefaa21965d9b2666f3138",
+      "precu_runtime.tre": "53782ce58f70522957108afd39f7a26cda5ac786494854383f5c3dc403cb3f94"
+    },
+    "assetArchiveRebuild": {"deterministic": true, "runs": 2, "bytes": 133356, "fileCount": 3}
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T10:44:00-04:00",
+    "clientProtocolVersion": 205,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime"},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave"},
+    "lifecycleId": "28400000000000000000000000000001",
+    "admission": {
+      "riflemanAbilityOne": true,
+      "riflemanMaster": true,
+      "command": true,
+      "weaponType": 0,
+      "validMask": "0x00000001",
+      "satisfies": true,
+      "canPerform": 0,
+      "costs": {"health": 2, "action": 7, "mind": 17}
+    },
+    "firstAttack": {
+      "queueStatus": "Success",
+      "damage": 36,
+      "damagePool": "ACTION",
+      "configuredPool": 3,
+      "resolvedPool": 1,
+      "hitLocation": 5,
+      "combatSpam": "flushingshot_hit",
+      "animation": "fire_3_special_single_medium",
+      "animationType": 1,
+      "stun": {"type": 3, "result": "APPLIED", "roll": 62, "threshold": 103, "durationSeconds": 35, "stateBefore": 0, "stateAfter": 1, "buffPresent": true},
+      "postureUp": {"result": "APPLIED", "roll": 36, "threshold": 103, "postureStart": 2, "postureEnd": 1, "recoveryPresent": true}
+    },
+    "recoveryAttack": {
+      "queueStatus": "Success",
+      "damage": 40,
+      "damagePool": "MIND",
+      "configuredPool": 3,
+      "resolvedPool": 2,
+      "stun": {"result": "APPLIED", "roll": 6, "threshold": 103, "durationSeconds": 35, "stateBefore": 1, "stateAfter": 1},
+      "postureStart": 1,
+      "postureEnd": 0,
+      "postureResult": "RECOVERY",
+      "postureRoll": -1,
+      "appliedPostureSnapshotPreserved": true
+    },
+    "expiry": {"nativeStunCleared": true, "stunBuffCleared": true},
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "ownershipSurvived": true,
+      "commandSurvived": true,
+      "weaponSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "transientRecoveryAbsent": true,
+      "transientStunAbsent": true
+    },
+    "cleanup": {
+      "restoredOriginalAbilityOne": false,
+      "restoredOriginalMaster": false,
+      "restoredOriginalCommand": false,
+      "restoredOriginalWeapon": "none",
+      "recoveryAbsent": true,
+      "stunAbsent": true,
+      "idempotent": true
+    },
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  }
+}
