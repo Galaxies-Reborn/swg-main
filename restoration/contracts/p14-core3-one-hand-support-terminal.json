@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-one-hand-support-terminal",
+  "status": "ready",
+  "scope": "Complete the retained one-hand Support I-IV ownership branch by adding explicit Support IV persistence and cleanup proof around the already-restored melee1hBlindHit1 and melee1hBlindHit2 production attacks.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skillChain": [
+      {"name": "combat_1hsword_novice", "requires": "combat_brawler_1handmelee_04"},
+      {"name": "combat_1hsword_support_01", "requires": "combat_1hsword_novice", "commands": ["private_1hand_support_1", "melee1hBlindHit1"]},
+      {"name": "combat_1hsword_support_02", "requires": "combat_1hsword_support_01", "commands": ["private_1hand_support_2"], "skillMods": {"combat_equillibrium": 10, "onehandmelee_accuracy": 30}},
+      {"name": "combat_1hsword_support_03", "requires": "combat_1hsword_support_02", "commands": ["private_1hand_support_3", "melee1hBlindHit2"]},
+      {"name": "combat_1hsword_support_04", "requires": "combat_1hsword_support_03", "commands": ["private_1hand_support_4"], "skillMods": {"combat_equillibrium": 10, "onehandmelee_accuracy": 30}}
+    ],
+    "retainedAttackContract": "restoration/contracts/p14-core3-one-hand-blind-family.json"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T09:29:48-04:00",
+    "scratchCommit": "8151bb1ce427f092b95acd590e3cb40f73082c45",
+    "overlay": "restoration/patches/dsrc/306-p14-core3-one-hand-support-terminal.patch",
+    "overlaySha256": "e305a2f63f41bbf994d672b465ef1164fe4453892d9dccf777654b987f3bf866",
+    "changedFileCount": 1,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "javaCompilerStack": "-J-Xss64m",
+    "compiledFixtureSha256": "8ffdf2391da9944240fe7bfb9971a07d95036f30b509dc2b6a71f80235f13458",
+    "materializedOverlayCount": 312,
+    "materializedRestorationFileCount": 916,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "precu_headshot1_fixture.java": "8171a9f5ad74edae31a86df7af5295c5e2122dcbc07d84a822ced25fb881628e",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97"
+    },
+    "inheritedValidatedArtifacts": {
+      "command_table.iff": "61322966603965593402157404021a429012ec60c81e150e5295e718abb89d1c",
+      "combat_data.iff": "b7f6c4c0cb921eccc44d381e88904406d7fc2c521f7f990888cc6bcabdb7aaab",
+      "precu_runtime.tre": "8c8fbd285e8f24549dfe503f4a2cecc9a212289d971c824bc5721d7d87863226",
+      "clientProtocolVersion": 227,
+      "clientSha256": "b4e1d1416b15c115b04916be862712c3ef284f2ee2075ea17d3f2a520bc7ad2c"
+    },
+    "unchangedAssetBoundary": "M308 changes only the reversible server fixture; Support IV is a passive historical skill box and its already-published blind attacks and client artifacts were re-used without mutation."
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T09:29:48-04:00",
+    "clientProtocolVersion": 227,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "30800000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "oneHandNovice": true,
+      "oneHandSupportOne": true,
+      "oneHandSupportTwo": true,
+      "oneHandSupportThree": true,
+      "oneHandSupportFour": true,
+      "commands": ["melee1hBlindHit1", "melee1hBlindHit2"],
+      "canPerform": {"melee1hBlindHit1": 0, "melee1hBlindHit2": 0},
+      "weapon": "object/weapon/melee/sword/sword_rantok.iff",
+      "distanceCentimeters": 201,
+      "defenderBlindDefense": 0
+    },
+    "command": {
+      "name": "melee1hBlindHit2",
+      "queueRemoval": "Success",
+      "packedQueueStatus": "0x010000004351c000",
+      "combatResult": 1,
+      "directDamage": 1742,
+      "configuredPool": "RANDOM",
+      "resolvedPool": "ACTION",
+      "hitLocation": 5,
+      "hamCost": {"health": 8, "action": 30, "mind": 36},
+      "combatSpam": "blindingslash_hit",
+      "animation": "combo_2b_medium",
+      "animationType": 2,
+      "attackType": "AREA",
+      "areaRange": 16,
+      "state": {"type": 2, "chance": 100, "duration": 50, "roll": 66, "threshold": 103, "result": "APPLIED", "before": 0, "after": 1}
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "supportFourSurvived": true,
+      "commandsSurvived": true,
+      "canPerformSurvived": true,
+      "weaponSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "terminalDamage": 1742,
+      "terminalSpam": "blindingslash_hit",
+      "terminalAnimation": "combo_2b_medium",
+      "transientBlindAbsent": true,
+      "memberScreenshotSha256": "e32b115bdddb386959e21499a8365a4daf084a9f0e4e5677cf6752d8bd8a0601",
+      "defenderScreenshotSha256": "35e9da2344dec5fdc109b7ffab9d09c10c76c2205dc6bad1c62e1fcb03dc10c0"
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "preparedAfterCleanup": false,
+      "temporaryOneHandSkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "fixtureWeaponAbsent": true,
+      "terminalDiagnosticsAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000"
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "isolatedClientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": false,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}
