@@ -1,0 +1,528 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index d1af61fdf280da0c6eac39fd30b1b42f20c59973..bd83ec19a1cec43123cde8b9591702c993c941ad 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -16129,6 +16129,24 @@ public class combat_actions extends script.systems.combat.combat_base
+         return SCRIPT_CONTINUE;
+     }
+ 
++    public int polearmActionHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("polearmActionHit1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++
++    public int polearmActionHit2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("polearmActionHit2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++
+     public int polearmHit2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("polearmHit2", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 69a01266c607c97d65afea4e75a81ad5238fea1c..6085d978cc24400702e0746cb60d4f0df4ddeb2f 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -82,6 +82,14 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_polearm_ability_03";
+     private static final String POLEARM_ABILITY_FOUR =
+         "combat_polearm_ability_04";
++    private static final String POLEARM_SUPPORT_ONE =
++        "combat_polearm_support_01";
++    private static final String POLEARM_SUPPORT_TWO =
++        "combat_polearm_support_02";
++    private static final String POLEARM_SUPPORT_THREE =
++        "combat_polearm_support_03";
++    private static final String POLEARM_SUPPORT_FOUR =
++        "combat_polearm_support_04";
+     private static final String BRAWLER_UNARMED_ONE =
+         "combat_brawler_unarmed_01";
+     private static final String BRAWLER_UNARMED_TWO =
+@@ -250,6 +258,10 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String POLEARM_AREA_TWO_COMMAND = "polearmArea2";
+     private static final String POLEARM_SWEEP_ONE_COMMAND = "polearmSweep1";
+     private static final String POLEARM_SWEEP_TWO_COMMAND = "polearmSweep2";
++    private static final String POLEARM_ACTION_HIT_ONE_COMMAND =
++        "polearmActionHit1";
++    private static final String POLEARM_ACTION_HIT_TWO_COMMAND =
++        "polearmActionHit2";
+     private static final String UNARMED_COMMAND = "unarmedHeadHit1";
+     private static final String UNARMED_HIT_ONE_COMMAND = "unarmedHit1";
+     private static final String UNARMED_HIT_TWO_COMMAND = "unarmedHit2";
+@@ -492,6 +504,14 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalPolearmAbilityThree";
+     private static final String ORIGINAL_POLEARM_ABILITY_FOUR =
+         ROOT + ".originalPolearmAbilityFour";
++    private static final String ORIGINAL_POLEARM_SUPPORT_ONE =
++        ROOT + ".originalPolearmSupportOne";
++    private static final String ORIGINAL_POLEARM_SUPPORT_TWO =
++        ROOT + ".originalPolearmSupportTwo";
++    private static final String ORIGINAL_POLEARM_SUPPORT_THREE =
++        ROOT + ".originalPolearmSupportThree";
++    private static final String ORIGINAL_POLEARM_SUPPORT_FOUR =
++        ROOT + ".originalPolearmSupportFour";
+     private static final String ORIGINAL_BRAWLER_UNARMED_ONE =
+         ROOT + ".originalBrawlerUnarmedOne";
+     private static final String ORIGINAL_BRAWLER_UNARMED_TWO =
+@@ -657,6 +677,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalPolearmSweepOneCommand";
+     private static final String ORIGINAL_POLEARM_SWEEP_TWO_COMMAND =
+         ROOT + ".originalPolearmSweepTwoCommand";
++    private static final String ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND =
++        ROOT + ".originalPolearmActionHitOneCommand";
++    private static final String ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND =
++        ROOT + ".originalPolearmActionHitTwoCommand";
+     private static final String ORIGINAL_UNARMED_COMMAND =
+         ROOT + ".originalUnarmedCommand";
+     private static final String ORIGINAL_UNARMED_HIT_ONE_COMMAND =
+@@ -903,7 +927,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -1020,6 +1044,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armPolearmAbility(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armPolearmSupport"))
++        {
++            return armPolearmSupport(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armWarcryOne"))
+         {
+             return armWarcryOne(attacker, defender, args[3]);
+@@ -1298,6 +1326,18 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean polearmAbilityFourGranted = polearmAbilityThreeGranted &&
+             (hasSkill(attacker, POLEARM_ABILITY_FOUR) ||
+                 grantSkill(attacker, POLEARM_ABILITY_FOUR));
++        boolean polearmSupportOneGranted = polearmNoviceGranted &&
++            (hasSkill(attacker, POLEARM_SUPPORT_ONE) ||
++                grantSkill(attacker, POLEARM_SUPPORT_ONE));
++        boolean polearmSupportTwoGranted = polearmSupportOneGranted &&
++            (hasSkill(attacker, POLEARM_SUPPORT_TWO) ||
++                grantSkill(attacker, POLEARM_SUPPORT_TWO));
++        boolean polearmSupportThreeGranted = polearmSupportTwoGranted &&
++            (hasSkill(attacker, POLEARM_SUPPORT_THREE) ||
++                grantSkill(attacker, POLEARM_SUPPORT_THREE));
++        boolean polearmSupportFourGranted = polearmSupportThreeGranted &&
++            (hasSkill(attacker, POLEARM_SUPPORT_FOUR) ||
++                grantSkill(attacker, POLEARM_SUPPORT_FOUR));
+         boolean brawlerUnarmedOneGranted = brawlerNoviceGranted &&
+             (hasSkill(attacker, BRAWLER_UNARMED_ONE) ||
+                 grantSkill(attacker, BRAWLER_UNARMED_ONE));
+@@ -1542,6 +1582,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean polearmSweepTwoCommandGranted =
+             hasCommand(attacker, POLEARM_SWEEP_TWO_COMMAND) ||
+             grantCommand(attacker, POLEARM_SWEEP_TWO_COMMAND);
++        boolean polearmActionHitOneCommandGranted =
++            hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND) ||
++            grantCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND);
++        boolean polearmActionHitTwoCommandGranted =
++            hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND) ||
++            grantCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND);
+         boolean unarmedCommandGranted = hasCommand(attacker, UNARMED_COMMAND) ||
+             grantCommand(attacker, UNARMED_COMMAND);
+         boolean unarmedHitOneCommandGranted =
+@@ -1958,6 +2004,14 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasSkill(attacker, POLEARM_ABILITY_THREE) ||
+             !polearmAbilityFourGranted ||
+             !hasSkill(attacker, POLEARM_ABILITY_FOUR) ||
++            !polearmSupportOneGranted ||
++            !hasSkill(attacker, POLEARM_SUPPORT_ONE) ||
++            !polearmSupportTwoGranted ||
++            !hasSkill(attacker, POLEARM_SUPPORT_TWO) ||
++            !polearmSupportThreeGranted ||
++            !hasSkill(attacker, POLEARM_SUPPORT_THREE) ||
++            !polearmSupportFourGranted ||
++            !hasSkill(attacker, POLEARM_SUPPORT_FOUR) ||
+             !brawlerUnarmedOneGranted ||
+             !hasSkill(attacker, BRAWLER_UNARMED_ONE) ||
+             !brawlerUnarmedTwoGranted ||
+@@ -2083,6 +2137,10 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, POLEARM_SWEEP_ONE_COMMAND) ||
+             !polearmSweepTwoCommandGranted ||
+             !hasCommand(attacker, POLEARM_SWEEP_TWO_COMMAND) ||
++            !polearmActionHitOneCommandGranted ||
++            !hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND) ||
++            !polearmActionHitTwoCommandGranted ||
++            !hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND) ||
+             !unarmedCommandGranted || !hasCommand(attacker, UNARMED_COMMAND) ||
+             !unarmedHitOneCommandGranted ||
+             !hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) ||
+@@ -2260,6 +2318,10 @@ public class precu_headshot1_fixture extends script.base_script
+                     hasCommand(attacker, POLEARM_SWEEP_ONE_COMMAND) +
+                 " polearmSweepTwoCommand=" +
+                     hasCommand(attacker, POLEARM_SWEEP_TWO_COMMAND) +
++                " polearmActionHitOneCommand=" +
++                    hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND) +
++                " polearmActionHitTwoCommand=" +
++                    hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND) +
+                 " unarmedCommand=" + hasCommand(attacker, UNARMED_COMMAND) +
+                 " unarmedHitOneCommand=" +
+                     hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) +
+@@ -2741,6 +2803,18 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, POLEARM_SWEEP_TWO_COMMAND);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND) == 0 &&
++            hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND))
++        {
++            revokeCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND))
++        {
++            revokeCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_UNARMED_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_UNARMED_COMMAND) == 0 &&
+             hasCommand(attacker, UNARMED_COMMAND))
+@@ -3487,6 +3561,30 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, POLEARM_ABILITY_ONE);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_FOUR) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_FOUR))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_FOUR);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_THREE) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_THREE) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_THREE))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_THREE);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_TWO) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_TWO))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_TWO);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_ONE) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_ONE))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_ONE);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_NOVICE) &&
+             getIntObjVar(attacker, ORIGINAL_POLEARM_NOVICE) == 0 &&
+             hasSkill(attacker, POLEARM_NOVICE))
+@@ -4465,6 +4563,36 @@ public class precu_headshot1_fixture extends script.base_script
+                 " " + buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armPolearmSupport(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armPolearmNovice(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armPolearmNovice"))
++        {
++            return armed;
++        }
++        String bleedingDotId = dot.DOT_BLEEDING + attacker;
++        if (dot.getDotStrength(defender, bleedingDotId) >= 0)
++        {
++            dot.removeDotEffect(defender, bleedingDotId, false);
++        }
++        boolean boundary =
++            hasSkill(attacker, POLEARM_NOVICE) &&
++            hasSkill(attacker, POLEARM_SUPPORT_ONE) &&
++            hasSkill(attacker, POLEARM_SUPPORT_TWO) &&
++            hasSkill(attacker, POLEARM_SUPPORT_THREE) &&
++            hasSkill(attacker, POLEARM_SUPPORT_FOUR) &&
++            hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND) &&
++            hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND) &&
++            dot.getDotStrength(defender, bleedingDotId) < 0;
++        return boundary ?
++            "action=armPolearmSupport equipped=true bleedingDotStrength=" +
++                dot.getDotStrength(defender, bleedingDotId) + " " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=polearmSupportOwnershipBoundaryFailed " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armWarcryOne(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+@@ -4972,6 +5100,14 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, POLEARM_ABILITY_THREE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_POLEARM_ABILITY_FOUR,
+             hasSkill(player, POLEARM_ABILITY_FOUR) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_SUPPORT_ONE,
++            hasSkill(player, POLEARM_SUPPORT_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_SUPPORT_TWO,
++            hasSkill(player, POLEARM_SUPPORT_TWO) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_SUPPORT_THREE,
++            hasSkill(player, POLEARM_SUPPORT_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_SUPPORT_FOUR,
++            hasSkill(player, POLEARM_SUPPORT_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_UNARMED_ONE,
+             hasSkill(player, BRAWLER_UNARMED_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_UNARMED_TWO,
+@@ -5142,6 +5278,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, POLEARM_SWEEP_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_POLEARM_SWEEP_TWO_COMMAND,
+             hasCommand(player, POLEARM_SWEEP_TWO_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND,
++            hasCommand(player, POLEARM_ACTION_HIT_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND,
++            hasCommand(player, POLEARM_ACTION_HIT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_UNARMED_COMMAND,
+             hasCommand(player, UNARMED_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_UNARMED_HIT_ONE_COMMAND,
+@@ -5623,6 +5763,18 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, POLEARM_SWEEP_TWO_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND) == 0 &&
++            hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND))
++        {
++            revokeCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND))
++        {
++            revokeCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_UNARMED_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_UNARMED_COMMAND) == 0 &&
+             hasCommand(attacker, UNARMED_COMMAND))
+@@ -6312,6 +6464,30 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, POLEARM_ABILITY_ONE);
+         }
++        if (hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_FOUR) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_FOUR))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_FOUR);
++        }
++        if (hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_THREE) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_THREE) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_THREE))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_THREE);
++        }
++        if (hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_TWO) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_TWO))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_TWO);
++        }
++        if (hasObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_SUPPORT_ONE) == 0 &&
++            hasSkill(attacker, POLEARM_SUPPORT_ONE))
++        {
++            revokeSkill(attacker, POLEARM_SUPPORT_ONE);
++        }
+         if (hasObjVar(attacker, ORIGINAL_POLEARM_NOVICE) &&
+             getIntObjVar(attacker, ORIGINAL_POLEARM_NOVICE) == 0 &&
+             hasSkill(attacker, POLEARM_NOVICE))
+@@ -6914,6 +7090,14 @@ public class precu_headshot1_fixture extends script.base_script
+                 POLEARM_ABILITY_THREE) &&
+             isSkillRestored(attacker, ORIGINAL_POLEARM_ABILITY_FOUR,
+                 POLEARM_ABILITY_FOUR) &&
++            isSkillRestored(attacker, ORIGINAL_POLEARM_SUPPORT_ONE,
++                POLEARM_SUPPORT_ONE) &&
++            isSkillRestored(attacker, ORIGINAL_POLEARM_SUPPORT_TWO,
++                POLEARM_SUPPORT_TWO) &&
++            isSkillRestored(attacker, ORIGINAL_POLEARM_SUPPORT_THREE,
++                POLEARM_SUPPORT_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_POLEARM_SUPPORT_FOUR,
++                POLEARM_SUPPORT_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_UNARMED_ONE,
+                 BRAWLER_UNARMED_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_UNARMED_TWO,
+@@ -6943,6 +7127,11 @@ public class precu_headshot1_fixture extends script.base_script
+                 POLEARM_SWEEP_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_POLEARM_SWEEP_TWO_COMMAND,
+                 POLEARM_SWEEP_TWO_COMMAND);
++        boolean polearmSupportCommandsRestored =
++            isCommandRestored(attacker, ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND,
++                POLEARM_ACTION_HIT_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND,
++                POLEARM_ACTION_HIT_TWO_COMMAND);
+         boolean restored = fixtureWeaponDestroyed && fixturePistolDestroyed &&
+             fixtureCarbineDestroyed &&
+             fixturePolearmDestroyed &&
+@@ -6954,7 +7143,8 @@ public class precu_headshot1_fixture extends script.base_script
+             marksmanTumbleSkillsRestored && marksmanTumbleCommandsRestored &&
+             carbineSkillsRestored && carbineCommandsRestored &&
+             riflemanSkillsRestored && polearmAccuracyCommandsRestored &&
+-            polearmSpeedCommandsRestored && polearmAbilityCommandsRestored;
++            polearmSpeedCommandsRestored && polearmAbilityCommandsRestored &&
++            polearmSupportCommandsRestored;
+         setObjVar(attacker,
+             "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.fixtureWeapon",
+             fixtureWeaponDestroyed ? 1 : 0);
+@@ -7661,6 +7851,18 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean polearmAbilityFourReady = polearmAbilityThreeReady &&
+             (hasSkill(attacker, POLEARM_ABILITY_FOUR) ||
+                 grantSkill(attacker, POLEARM_ABILITY_FOUR));
++        boolean polearmSupportOneReady = polearmNoviceReady &&
++            (hasSkill(attacker, POLEARM_SUPPORT_ONE) ||
++                grantSkill(attacker, POLEARM_SUPPORT_ONE));
++        boolean polearmSupportTwoReady = polearmSupportOneReady &&
++            (hasSkill(attacker, POLEARM_SUPPORT_TWO) ||
++                grantSkill(attacker, POLEARM_SUPPORT_TWO));
++        boolean polearmSupportThreeReady = polearmSupportTwoReady &&
++            (hasSkill(attacker, POLEARM_SUPPORT_THREE) ||
++                grantSkill(attacker, POLEARM_SUPPORT_THREE));
++        boolean polearmSupportFourReady = polearmSupportThreeReady &&
++            (hasSkill(attacker, POLEARM_SUPPORT_FOUR) ||
++                grantSkill(attacker, POLEARM_SUPPORT_FOUR));
+         boolean brawlerUnarmedOneReady = brawlerNoviceReady &&
+             (hasSkill(attacker, BRAWLER_UNARMED_ONE) ||
+                 grantSkill(attacker, BRAWLER_UNARMED_ONE));
+@@ -7899,6 +8101,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean polearmSweepTwoCommandReady =
+             hasCommand(attacker, POLEARM_SWEEP_TWO_COMMAND) ||
+             grantCommand(attacker, POLEARM_SWEEP_TWO_COMMAND);
++        boolean polearmActionHitOneCommandReady =
++            hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND) ||
++            grantCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND);
++        boolean polearmActionHitTwoCommandReady =
++            hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND) ||
++            grantCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND);
+         boolean unarmedCommandReady = hasCommand(attacker, UNARMED_COMMAND) ||
+             grantCommand(attacker, UNARMED_COMMAND);
+         boolean unarmedHitOneCommandReady =
+@@ -8204,6 +8412,8 @@ public class precu_headshot1_fixture extends script.base_script
+             polearmSpeedThreeReady && polearmSpeedFourReady &&
+             polearmAbilityOneReady && polearmAbilityTwoReady &&
+             polearmAbilityThreeReady && polearmAbilityFourReady &&
++            polearmSupportOneReady && polearmSupportTwoReady &&
++            polearmSupportThreeReady && polearmSupportFourReady &&
+             brawlerUnarmedOneReady && brawlerUnarmedTwoReady &&
+             brawlerUnarmedThreeReady && brawlerUnarmedFourReady &&
+             brawlerMasterReady &&
+@@ -8249,6 +8459,8 @@ public class precu_headshot1_fixture extends script.base_script
+             polearmSpinTwoCommandReady &&
+             polearmAreaOneCommandReady && polearmAreaTwoCommandReady &&
+             polearmSweepOneCommandReady && polearmSweepTwoCommandReady &&
++            polearmActionHitOneCommandReady &&
++            polearmActionHitTwoCommandReady &&
+             unarmedCommandReady &&
+             unarmedHitOneCommandReady && unarmedHitTwoCommandReady &&
+             unarmedBodyOneCommandReady && unarmedLegOneCommandReady &&
+@@ -8681,6 +8893,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_POLEARM_ABILITY_TWO) &&
+             hasObjVar(player, ORIGINAL_POLEARM_ABILITY_THREE) &&
+             hasObjVar(player, ORIGINAL_POLEARM_ABILITY_FOUR) &&
++            hasObjVar(player, ORIGINAL_POLEARM_SUPPORT_ONE) &&
++            hasObjVar(player, ORIGINAL_POLEARM_SUPPORT_TWO) &&
++            hasObjVar(player, ORIGINAL_POLEARM_SUPPORT_THREE) &&
++            hasObjVar(player, ORIGINAL_POLEARM_SUPPORT_FOUR) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_UNARMED_ONE) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_UNARMED_TWO) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_UNARMED_THREE) &&
+@@ -8766,6 +8982,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_POLEARM_AREA_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_SWEEP_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_SWEEP_TWO_COMMAND) &&
++            hasObjVar(player, ORIGINAL_POLEARM_ACTION_HIT_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_POLEARM_ACTION_HIT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_UNARMED_COMMAND) &&
+             hasObjVar(player, ORIGINAL_UNARMED_HIT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_UNARMED_HIT_TWO_COMMAND) &&
+@@ -9010,6 +9228,10 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(POLEARM_SWEEP_ONE_COMMAND, attacker) : -1;
+         int canPerformPolearmSweepTwo = isIdValid(weapon) ?
+             combat.canPerformAction(POLEARM_SWEEP_TWO_COMMAND, attacker) : -1;
++        int canPerformPolearmActionHitOne = isIdValid(weapon) ?
++            combat.canPerformAction(POLEARM_ACTION_HIT_ONE_COMMAND, attacker) : -1;
++        int canPerformPolearmActionHitTwo = isIdValid(weapon) ?
++            combat.canPerformAction(POLEARM_ACTION_HIT_TWO_COMMAND, attacker) : -1;
+         int canPerformUnarmed =
+             combat.canPerformAction(UNARMED_COMMAND, attacker);
+         int canPerformUnarmedHitOne =
+@@ -9772,6 +9994,10 @@ public class precu_headshot1_fixture extends script.base_script
+             " polearmAbilityThree=" +
+                 hasSkill(attacker, POLEARM_ABILITY_THREE) +
+             " polearmAbilityFour=" + hasSkill(attacker, POLEARM_ABILITY_FOUR) +
++            " polearmSupportOne=" + hasSkill(attacker, POLEARM_SUPPORT_ONE) +
++            " polearmSupportTwo=" + hasSkill(attacker, POLEARM_SUPPORT_TWO) +
++            " polearmSupportThree=" + hasSkill(attacker, POLEARM_SUPPORT_THREE) +
++            " polearmSupportFour=" + hasSkill(attacker, POLEARM_SUPPORT_FOUR) +
+             " brawlerUnarmedOne=" +
+                 hasSkill(attacker, BRAWLER_UNARMED_ONE) +
+             " brawlerUnarmedTwo=" +
+@@ -9907,6 +10133,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, POLEARM_SWEEP_ONE_COMMAND) +
+             " polearmSweepTwoCommand=" +
+                 hasCommand(attacker, POLEARM_SWEEP_TWO_COMMAND) +
++            " polearmActionHitOneCommand=" +
++                hasCommand(attacker, POLEARM_ACTION_HIT_ONE_COMMAND) +
++            " polearmActionHitTwoCommand=" +
++                hasCommand(attacker, POLEARM_ACTION_HIT_TWO_COMMAND) +
+             " unarmedCommand=" + hasCommand(attacker, UNARMED_COMMAND) +
+             " unarmedHitOneCommand=" +
+                 hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) +
+@@ -10120,6 +10350,10 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformPolearmAreaTwo=" + canPerformPolearmAreaTwo +
+             " canPerformPolearmSweepOne=" + canPerformPolearmSweepOne +
+             " canPerformPolearmSweepTwo=" + canPerformPolearmSweepTwo +
++            " canPerformPolearmActionHitOne=" +
++                canPerformPolearmActionHitOne +
++            " canPerformPolearmActionHitTwo=" +
++                canPerformPolearmActionHitTwo +
+             " canPerformUnarmed=" + canPerformUnarmed +
+             " canPerformUnarmedHitOne=" + canPerformUnarmedHitOne +
+             " canPerformUnarmedHitTwo=" + canPerformUnarmedHitTwo +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index b4ae679f95bcd615134fb801a56b528a1717c31e..b93cce20f90915deb9be5551dda620fa9ce59c8f 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1417,3 +1417,5 @@ polearmSpinAttack2	polearmSpinAttack2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	H
+ polearmArea2	polearmArea2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_2hmelee_6				lower_posture_2hmelee_6										OFF	OFF	OFF	OFF	OFF	AREA	16		0	3	0	0	2.75	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ polearmSweep1	polearmSweep1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	knockdown_polearm_1				knockdown_polearm_1										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ polearmSweep2	polearmSweep2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	knockdown_polearm_2				knockdown_polearm_2										OFF	OFF	OFF	OFF	OFF	AREA	16		0	3	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++polearmActionHit1	polearmActionHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_low_right_medium_0				attack_low_right_medium_0										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	1.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	bleeding	30	30		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++polearmActionHit2	polearmActionHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_2hmelee_2				lower_posture_2hmelee_2										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	bleeding	60	60		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 081d95db1015b7f1970723b74ab0816e8a80ac5d..215d4f15bb9978f545a0fbf7c14eb31ddeb2aeb1 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -133,3 +133,5 @@ polearmSpinAttack2	2.0	1.5	1.5	RANDOM	2.5	10	INTENSITY		0	DIZZY	75	0	25	dizzy_de
+ polearmArea2	2.0	1.5	1.5	RANDOM	2.5	10			0	DIZZY	75	0	30	dizzy_defense	jedi_state_defense	resistance_states	STUN	75	0	30	stun_defense	jedi_state_defense	resistance_states
+ polearmSweep1	1.5	1.0	1.0	RANDOM	1.5	10			100
+ polearmSweep2	2.0	1.5	1.5	RANDOM	2.5	15			100
++polearmActionHit1	1.0	0.5	0.5	ACTION	1.5	10		ACTION
++polearmActionHit2	1.5	1.0	1.0	ACTION	2.0	10		ACTION
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 6b6822bd086450899f730742c1f06ce243ed1d6d..759e128cfb805ba9aff809ef835fe7eb3c92bf9d 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -132,3 +132,5 @@ polearmSpinAttack2	limbbreaker
+ polearmArea2	tornado
+ polearmSweep1	backcracker
+ polearmSweep2	backbreaker
++polearmActionHit1	kneecracker
++polearmActionHit2	kneesmasher
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index ad320c5b47380ba602c00b4bc291b6372a334cc0..bdb1a7bb98bd06edbf4ccb52fdca7213b36d69b2 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2070,3 +2070,5 @@ polearmSpinAttack2	combat	normal	polearmSpinAttack2	failSpecialAttack			1.5	pole
+ polearmArea2	combat	normal	polearmArea2	failSpecialAttack			1.5	polearmArea2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ polearmSweep1	combat	normal	polearmSweep1	failSpecialAttack			1.5	polearmSweep1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ polearmSweep2	combat	normal	polearmSweep2	failSpecialAttack			1.5	polearmSweep2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++polearmActionHit1	combat	normal	polearmActionHit1	failSpecialAttack			1.5	polearmActionHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++polearmActionHit2	combat	normal	polearmActionHit2	failSpecialAttack			1.5	polearmActionHit2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
