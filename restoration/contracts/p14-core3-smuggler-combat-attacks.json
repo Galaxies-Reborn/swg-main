@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-smuggler-combat-attacks",
+  "status": "ready",
+  "scope": "Restore the three evidence-pinned Smuggler combat-branch pistol attacks: panicShot, lowBlow, and lastDitch, including Core3 timing, damage, costs, control effects, client admission, persistence, and reversible ownership cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/panicShot.lua",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/PanicShotCommand.h",
+      "MMOCoreORB/bin/scripts/commands/lowBlow.lua",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/LowBlowCommand.h",
+      "MMOCoreORB/bin/scripts/commands/lastDitch.lua",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/LastDitchCommand.h"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skills": {
+      "prerequisiteCount": 12,
+      "professionSkillCount": 6,
+      "owners": {
+        "panicShot": "combat_smuggler_combat_02",
+        "lowBlow": "combat_smuggler_combat_03",
+        "lastDitch": "combat_smuggler_combat_04"
+      }
+    },
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "maxRangeToTarget": 0,
+      "addToCombatQueue": true,
+      "validWeapon": "PISTOL",
+      "failScriptHook": "failSpecialAttack"
+    },
+    "combat": [
+      {
+        "command": "panicShot",
+        "scriptHook": "coneDelay",
+        "attackType": "CONE",
+        "coneLength": 64,
+        "coneWidth": 45,
+        "damageMultiplier": 2.0,
+        "speedMultiplier": 3.0,
+        "hamCostMultipliers": [0.5, 1.25, 0.5],
+        "targetPool": "RANDOM",
+        "accuracyBonus": 50,
+        "animation": "fire_1_special_single",
+        "animationType": "RANGED",
+        "combatSpam": "panicshot",
+        "state": {"type": "NEXT_ATTACK_DELAY", "chance": 100, "strength": 0, "duration": 10, "defense": "warcry_defense"}
+      },
+      {
+        "command": "lowBlow",
+        "scriptHook": "lowBlow",
+        "attackType": "SINGLE_TARGET",
+        "damageMultiplier": 2.0,
+        "speedMultiplier": 2.5,
+        "hamCostMultipliers": [0.5, 1.0, 0.5],
+        "targetPool": "RANDOM",
+        "accuracyBonus": 50,
+        "animation": "fire_5_single",
+        "animationType": "RANGED",
+        "combatSpam": "lowblow",
+        "knockdownChance": 100
+      },
+      {
+        "command": "lastDitch",
+        "scriptHook": "lastDitch",
+        "attackType": "SINGLE_TARGET",
+        "damageMultiplier": 6.0,
+        "speedMultiplier": 4.0,
+        "hamCostMultipliers": [0.5, 1.25, 0.5],
+        "targetPool": "RANDOM",
+        "accuracyBonus": 60,
+        "accuracyComposition": "Core3 accuracyBonus 50 plus pistol_accuracy 10",
+        "animation": "fire_1_special_single",
+        "animationType": "RANGED",
+        "combatSpam": "lastditch",
+        "state": {"type": "STUN", "chance": 100, "strength": 0, "duration": 30, "defense": "stun_defense", "jediDefense": "jedi_state_defense", "resistance": "resistance_states"}
+      }
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T13:24:06-04:00",
+    "scratchCommit": "97b89617fda6322b48d1329119c7357dcdf45e58",
+    "overlay": "restoration/patches/dsrc/326-p14-core3-smuggler-combat-attacks.patch",
+    "overlaySha256": "b654427a17e823efcd0283bb711adb6cafe292237f8d4110a585e7f5882a1803",
+    "changedFileCount": 6,
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "cleanMaterialization": {
+      "result": "passed",
+      "overlayCount": 332,
+      "restorationFileCount": 978,
+      "fingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+    },
+    "focusedVerifier": "passed-ready",
+    "phaseA": "passed-ready",
+    "javaCompile": "passed-focused-clean-materialization",
+    "compiledClassSha256": {
+      "script/combat_engine.class": "b21e53e77ee739ac474261946e3efdfd18e874feb22f694e052cb76a82640020",
+      "script/systems/combat/combat_base.class": "41c1859f0cf306f309194076fb4167ba68c8d113c9fe236afd732b66bff2e541",
+      "script/systems/combat/combat_actions.class": "ca797113ed2ad0d4bdc96cbd0acb224277f10fb218fb763cc9d1e8dd91244f76",
+      "script/test/precu_headshot1_fixture.class": "67e433e4e813bdf8ee0a6d042a60d68db9a1e8c5d633d552cd2b361243172e65"
+    },
+    "sourceSha256": {
+      "combat_engine.java": "faa6449616a5639a9b0f32e3df7485859e2524531a639b37358a35e29a005186",
+      "combat_actions.java": "2949ea367b8824f7247f622e48c3f98e3706d5ada82a3ac26122acb01a171c55",
+      "combat_base.java": "2ea619c670dd1f0290e99743cd00c56c92fa40a8dee7322dd879a8842c2ce690",
+      "precu_headshot1_fixture.java": "b9b227545c666710789ada1cca786ffffd0cd3b055fff13ccbe49ea2a9eb49ff",
+      "command_table.tab": "2d31c6033688daecccaca7e6a09d39c92c546178671bf5c8bac22acda7b749df",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "62356947ad39a4521f2b692558d41343e0bd606fdeb8b607ec94c61ec69ac059",
+      "precu_combat_overrides.tab": "bf9b5567c547d5c49ecf1970930f44c00b660cede1a423691e35ea7a59de8fb4",
+      "precu_combat_spam.tab": "ab3c11aadadfbf4fe48c9757e9a8165fac8da88f0ff0f3349596a2c4ffad52d4"
+    },
+    "client": {
+      "protocolVersion": 246,
+      "focusedTests": {"passed": 69, "failed": 0},
+      "fullTests": {"passed": 199, "failed": 0, "skipped": 3},
+      "releaseBuild": {
+        "result": "passed",
+        "bytes": 32737792,
+        "sha256": "0b8a810ae44f4cea1a3baee65cc29e69589fd34d6c508a2d0ff83d7f88ae3a9c"
+      }
+    },
+    "nativeDataTables": {
+      "independentBuilds": 2,
+      "byteIdentical": true,
+      "commandTable": {"bytes": 858347, "sha256": "c154cdc9f9bc4a337088cb0679def0c16e4eecacf3e632ae1c168976c619607a"},
+      "combatData": {"bytes": 772110, "sha256": "d69a62678d86cd11911d42e26f04751bec672985ae6a519d03f22cccf1327097"},
+      "combatOverrides": {"bytes": 26352, "sha256": "3075ad52d37ca9164e084640965f061544a86e8b197b6707be0f35728b7ba7b4"},
+      "combatSpam": {"bytes": 4006, "sha256": "2765f3132c03f44cdaafa0dce656123d8bfb5953d694ff93b57fa2fe59dd1d0c"}
+    },
+    "runtimeTree": {
+      "independentBuilds": 2,
+      "byteIdentical": true,
+      "fileCount": 3,
+      "bytes": 149047,
+      "sha256": "baee0045162189338762b1cb0e50c416b3465f19ff08bc4bc2e3d7d5bf0a101c"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T13:24:06-04:00",
+    "lifecycle": "32800000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "attacker": {"stationId": 91001, "playerOid": 44003778, "avatar": "PrecuRuntime"},
+      "defender": {"stationId": 1001, "playerOid": 39008597, "avatar": "Icai Darkwave"},
+      "prerequisiteBits": "111111111111",
+      "skillBits": "111111",
+      "commandBits": "111",
+      "pistolEquipment": 1413048229,
+      "canPerform": {"panicShot": 0, "lowBlow": 0, "lastDitch": 0},
+      "costs": {"panicShot": [2,18,5], "lowBlow": [2,15,5], "lastDitch": [2,18,5]}
+    },
+    "commands": {
+      "panicShot": {
+        "serverAccepted": true,
+        "clientCommandFound": true,
+        "weaponType": 2,
+        "validWeaponMask": "0x00000004",
+        "weaponSatisfied": true,
+        "canPerform": 0,
+        "spam": "panicshot_hit",
+        "damage": 18,
+        "configuredTargetPool": 3,
+        "resolvedTargetPool": 0,
+        "resolvedPool": "HEALTH",
+        "stateEffectAppliedCount": 1,
+        "nextAttackDelayApplied": true,
+        "nextAttackDelaySeconds": 10,
+        "nextAttackDelayResult": "ARMED",
+        "animation": "fire_1_special_single_medium",
+        "animationType": 1
+      },
+      "lowBlow": {
+        "serverAccepted": true,
+        "clientCommandFound": true,
+        "weaponSatisfied": true,
+        "canPerform": 0,
+        "spam": "lowblow_hit",
+        "damage": 24,
+        "configuredTargetPool": 3,
+        "resolvedTargetPool": 1,
+        "resolvedPool": "ACTION",
+        "knockdownChance": 100,
+        "knockdownRoll": 71,
+        "knockdownStartPosture": 0,
+        "knockdownEndPosture": 12,
+        "knockdownApplied": true,
+        "recoveryScheduled": true,
+        "animation": "fire_5_single_medium",
+        "animationType": 1
+      },
+      "lastDitch": {
+        "serverAccepted": true,
+        "clientCommandFound": true,
+        "weaponSatisfied": true,
+        "canPerform": 0,
+        "spam": "lastditch_hit",
+        "damage": 111,
+        "configuredTargetPool": 3,
+        "resolvedTargetPool": 1,
+        "resolvedPool": "ACTION",
+        "stateEffectAppliedCount": 1,
+        "stunApplied": true,
+        "stunDurationSeconds": 30,
+        "defenderStunState": 1,
+        "defenderStunBuff": true,
+        "animation": "fire_1_special_single_medium",
+        "animationType": 1
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualReauthentication": true,
+      "lifecycleSurvived": true,
+      "prerequisiteBitsAfterRestart": "111111111111",
+      "skillBitsAfterRestart": "111111",
+      "commandBitsAfterRestart": "111",
+      "pistolEquipmentSurvived": true,
+      "costsSurvived": true,
+      "postRestartExecution": {
+        "command": "lastDitch",
+        "serverAccepted": true,
+        "clientStatus": "Success",
+        "damage": 57,
+        "stunApplied": true,
+        "defenderStunState": 1,
+        "defenderStunBuff": true
+      }
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "temporaryPrerequisitesAbsent": true,
+      "temporarySkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "statusAfterCleanup": "fixtureAbsent",
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupQueueCount": 0
+    },
+    "rollback": {
+      "baseline": "M323",
+      "serverFileCount": 17,
+      "clientFileCount": 4,
+      "verifiedFileCount": 21,
+      "allHashesExact": true,
+      "completeCombatEngineClassFamilyRestored": true,
+      "serverHealthy": true,
+      "oracleHealthy": true
+    },
+    "isolatedClientsStopped": true,
+    "protectedUserClient": {"processId": 58328, "preserved": true},
+    "connectionServerCount": 1
+  }
+}
