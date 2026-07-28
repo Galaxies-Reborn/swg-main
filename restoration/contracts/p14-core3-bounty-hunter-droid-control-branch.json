@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-bounty-hunter-droid-control-branch",
+  "status": "ready",
+  "scope": "Restore Bounty Hunter Droid Control I-IV ownership and its three retained carbine attacks with pinned Core3 RANDOM-pool, defended state, knockdown, client admission, persistence, and reversible identity-bound cleanup semantics.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/underHandShot.lua",
+      "MMOCoreORB/bin/scripts/commands/knockdownFire.lua",
+      "MMOCoreORB/bin/scripts/commands/confusionShot.lua"
+    ],
+    "core3NativeCommands": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/UnderHandShotCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/KnockdownFireCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ConfusionShotCommand.h"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skills": {
+      "chain": [
+        "combat_bountyhunter",
+        "combat_bountyhunter_novice",
+        "combat_bountyhunter_droidcontrol_01",
+        "combat_bountyhunter_droidcontrol_02",
+        "combat_bountyhunter_droidcontrol_03",
+        "combat_bountyhunter_droidcontrol_04"
+      ],
+      "commandsByTier": {
+        "combat_bountyhunter_droidcontrol_01": ["underHandShot"],
+        "combat_bountyhunter_droidcontrol_02": [],
+        "combat_bountyhunter_droidcontrol_03": ["knockdownFire"],
+        "combat_bountyhunter_droidcontrol_04": ["confusionShot"]
+      },
+      "branchCarbineAccuracy": 50,
+      "branchCarbineSpeed": 50
+    },
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "maxRangeToTarget": 0,
+      "addToCombatQueue": true,
+      "validWeapon": "CARBINE",
+      "failScriptHook": "failSpecialAttack"
+    },
+    "combat": [
+      {
+        "command": "underHandShot",
+        "damageMultiplier": 3.0,
+        "speedMultiplier": 1.5,
+        "hamCostMultipliers": [1.0, 1.0, 1.0],
+        "accuracyBonus": 0,
+        "targetPool": "RANDOM",
+        "animation": "fire_7_single",
+        "animationType": "RANGED",
+        "combatSpam": "underhandshot",
+        "knockdownChance": 85,
+        "knockdownDefense": "knockdown_defense"
+      },
+      {
+        "command": "knockdownFire",
+        "damageMultiplier": 2.5,
+        "speedMultiplier": 2.0,
+        "hamCostMultipliers": [1.0, 1.0, 1.0],
+        "accuracyBonus": 0,
+        "targetPool": "RANDOM",
+        "animation": "fire_3_single",
+        "animationType": "RANGED",
+        "combatSpam": "knockdownfire",
+        "state": {"type": "DIZZY", "chance": 85, "strength": 0, "duration": 10, "defenses": ["dizzy_defense", "jedi_state_defense", "resistance_states"]},
+        "knockdownChance": 85,
+        "knockdownDefense": "knockdown_defense"
+      },
+      {
+        "command": "confusionShot",
+        "damageMultiplier": 3.0,
+        "speedMultiplier": 2.3,
+        "hamCostMultipliers": [1.0, 1.0, 1.0],
+        "accuracyBonus": 0,
+        "targetPool": "RANDOM",
+        "animation": "fire_5_special_single",
+        "animationType": "RANGED",
+        "combatSpam": "confusionshot",
+        "states": [
+          {"type": "DIZZY", "chance": 100, "strength": 0, "duration": 10, "defenses": ["dizzy_defense", "jedi_state_defense", "resistance_states"]},
+          {"type": "STUN", "chance": 100, "strength": 0, "duration": 10, "defenses": ["stun_defense", "jedi_state_defense", "resistance_states"]}
+        ]
+      }
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T06:41:54-04:00",
+    "scratchCommit": "2e682ceb2",
+    "overlay": "restoration/patches/dsrc/323-p14-core3-bounty-hunter-droid-control-branch.patch",
+    "overlaySha256": "db76da3ac9f3a1683711af2fbea79a96c6cc71313183213587841717b1ef2c49",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "compiledClassSha256": {
+      "script/systems/combat/combat_actions.class": "d3067de2db0d44398a6ca9d683ea81154395fdc18877551034697c24d246d502",
+      "script/test/precu_headshot1_fixture.class": "b935493b27889afc6044a1aec242131726390b2b6d4b6f5a331dce186c0f50c1"
+    },
+    "datatableCompile": "passed-two-independent-native-linux-builds",
+    "datatableBuildsDeterministic": true,
+    "datatableRowCounts": {
+      "command_table.iff": 2086,
+      "combat_data.iff": 1433,
+      "precu_combat_overrides.iff": 149,
+      "precu_combat_spam.iff": 148
+    },
+    "compiledTableBytes": {
+      "datatables/command/command_table.iff": 855102,
+      "datatables/combat/combat_data.iff": 768714,
+      "datatables/combat/precu_combat_overrides.iff": 23111,
+      "datatables/combat/precu_combat_spam.iff": 3848
+    },
+    "compiledTableSha256": {
+      "datatables/command/command_table.iff": "a608b70a5bd6c61fcd5844f637d767be2980d9694d83f8bcf3e97e530dba9a72",
+      "datatables/combat/combat_data.iff": "a542f2c5a6423f6eab5386d9daca85decbe2947ee6cb09e2c050858c5bad8e8f",
+      "datatables/combat/precu_combat_overrides.iff": "3e7286b76ee1cfa75601f40fac74634dbf22fded746ca3502c20fd408d9c694c",
+      "datatables/combat/precu_combat_spam.iff": "6b0808c128f77c2d7976bf70253b25b1461d62a591b7a5b11a1f3a0f86b707fa"
+    },
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "runs": 2,
+      "bytes": 148655,
+      "fileCount": 3,
+      "sha256": "e08c128d765961d5db10d7f32e37cca12355e79bc45df7e0618ef104bafba9e1"
+    },
+    "clientBridgeTests": {"passed": 69, "failed": 0, "subtests": 1354},
+    "clientTestSuite": {"passed": 198, "skipped": 6, "failed": 0, "subtests": 1578},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 243,
+    "clientBytes": 33811456,
+    "clientSha256": "3fa2265102a9ee00b2aee273a7e6bd546c0a996d3a717d4c5e03955a342af525",
+    "materializedOverlayCount": 329,
+    "materializedRestorationFileCount": 969,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "a8ef5dd7267cdd1b6ec937d7d0218260a5898b2d9773d177368390bd02970ce8",
+      "precu_headshot1_fixture.java": "f40a5ff57b5b0016fc32d9c760e09f830025551a262bbd07fc77f6553cdd85ce",
+      "command_table.tab": "a4f72a844175812e0d826e191ebc67c40bd762f2b0529586651e9af20a0827ee",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "30ab4c3375c50e12ce592f1b08dfdb3d0bae5bbf87638a0345807c43896605bf",
+      "precu_combat_overrides.tab": "761f41737926423b0663d06600f7ce272f2904214477d24f1d53cfb93a6f56e5",
+      "precu_combat_spam.tab": "a37698fdf7a1582bb4724b143761cce8cb5cb2c1212ecf7559aa776b0c41061a"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T06:41:54-04:00",
+    "clientProtocolVersion": 243,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "32500000000000000000000000000002",
+    "prepublicationRecovery": {
+      "lifecycleId": "32500000000000000000000000000001",
+      "recoveredInterruptedPrerequisiteSnapshot": true,
+      "cleanupRestored": true,
+      "secondCleanupAlreadyClean": true
+    },
+    "admission": {
+      "freshDualAuthentication": true,
+      "distanceCentimeters": 200,
+      "prerequisiteBits": "1111111",
+      "skillBits": "111111",
+      "commandBits": "111",
+      "marksmanMaster": true,
+      "scoutMovementFour": true,
+      "canPerform": {"underHandShot": 0, "knockdownFire": 0, "confusionShot": 0},
+      "carbineAccuracy": 120,
+      "carbineSpeed": 105,
+      "heldWeapon": "fixture-carbine",
+      "clientWeaponStatus": {"underHandShot": true, "knockdownFire": true, "confusionShot": true, "weaponType": 1, "validMask": "0x00000002", "satisfies": true, "packed": "0x0000000000025701"}
+    },
+    "commands": {
+      "underHandShot": {
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 110,
+        "configuredPool": "RANDOM",
+        "resolvedPool": "ACTION",
+        "hitLocation": 5,
+        "combatSpam": "underhandshot_hit",
+        "animation": "fire_7_single_medium",
+        "animationType": 1,
+        "knockdown": {"chance": 85, "defense": 0, "roll": 50, "result": "APPLIED", "before": 0, "after": 12}
+      },
+      "knockdownFire": {
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 48,
+        "configuredPool": "RANDOM",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 2,
+        "combatSpam": "knockdownfire_hit",
+        "animation": "fire_3_single_medium",
+        "animationType": 1,
+        "knockdown": {"chance": 85, "defense": 0, "roll": 59, "result": "APPLIED", "before": 0, "after": 12},
+        "state": {"type": "DIZZY", "chance": 85, "strength": 0, "duration": 10, "roll": 73, "threshold": 88, "resolvedDuration": 10, "result": "APPLIED"}
+      },
+      "confusionShot": {
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 53,
+        "configuredPool": "RANDOM",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 2,
+        "combatSpam": "confusionshot_hit",
+        "animation": "fire_5_special_single_medium",
+        "animationType": 1,
+        "states": [
+          {"type": "DIZZY", "chance": 100, "strength": 0, "duration": 10, "roll": 40, "threshold": 103, "resolvedDuration": 10, "result": "APPLIED"},
+          {"type": "STUN", "chance": 100, "strength": 0, "duration": 10, "roll": 68, "threshold": 103, "resolvedDuration": 10, "result": "APPLIED"}
+        ]
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "allPrerequisitesSurvived": true,
+      "allSkillsSurvived": true,
+      "allCommandsSurvived": true,
+      "allCanPerformSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "transientDizzyAbsent": true,
+      "transientStunAbsent": true,
+      "postRestartExecution": {
+        "command": "confusionShot",
+        "presentationRearmed": true,
+        "distanceCentimeters": 204,
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 59,
+        "configuredPool": "RANDOM",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 3,
+        "combatSpam": "confusionshot_hit",
+        "animation": "fire_5_special_single_medium",
+        "states": [
+          {"type": "DIZZY", "roll": 37, "threshold": 103, "resolvedDuration": 10, "result": "APPLIED"},
+          {"type": "STUN", "roll": 73, "threshold": 103, "resolvedDuration": 10, "result": "APPLIED"}
+        ]
+      }
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "identityBoundSnapshotsRestored": true,
+      "prerequisiteSnapshotRestored": true,
+      "temporaryPrerequisitesAbsent": true,
+      "temporarySkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000",
+      "rejectionTargetabilityLifecycle": "32500000000000000000000000000003",
+      "rejectionTargetabilityDistanceCentimeters": 204,
+      "rejectionTargetabilityLifecycleRestored": true,
+      "rejectionTargetabilityCleanupIdempotent": true
+    },
+    "isolatedClientsStopped": true,
+    "isolatedClientFilesRestoredToM323": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "configuredClusterPortRestored": 44452,
+    "connectionServerCount": 1,
+    "restoredServerSha256": {
+      "combat_actions.class": "ca8865e374f9f89d2051daa87626b9a57f421f1563f71d8cac52dbd8d4216779",
+      "precu_headshot1_fixture.class": "f32127231cbcb403db98c335e03e3bd949f70e9dd39c4e1eef61293e5689cc76",
+      "command_table.iff": "b35818dbe130b7ba45f7b71553c624de2561ae15994dc1c6f738ae01cc38e0ef",
+      "combat_data.iff": "7db2d31cad033724ef292a92482c44aa021b8ec0c340314ddf9e354bbc5cfc46",
+      "precu_combat_overrides.iff": "b14f2503c6a78d28038879c4448f691ffd447058889544b198382554d7c30b6f",
+      "precu_combat_spam.iff": "164658699b83d32593f7affaa436014ea3523ca46da23c663a6306ab24a3d892"
+    },
+    "restoredIsolatedClientSha256": {
+      "SwgClient_r.exe": "065d19d4326a543292c0d31a04cf1eca613d85aaf6dcd3f6590bc02ad6310599",
+      "precu_runtime.tre": "d27d5958470106ff1d593580988a7f5ccb2e87998018b9ebd4778d3f4860dff7",
+      "command_table.iff": "b68434725de6a7e808a8a1dd8da94ab27195d82ef68ff62b522ee97a2d3f8d6d",
+      "combat_data.iff": "7db2d31cad033724ef292a92482c44aa021b8ec0c340314ddf9e354bbc5cfc46"
+    }
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}
