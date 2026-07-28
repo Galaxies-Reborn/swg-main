@@ -145,6 +145,18 @@ SWG_DB_ADMIN_PASSWORD="${SWG_DB_ADMIN_PASSWORD:-swg}"
 SWG_DB_DATAFILE_DIR="${SWG_DB_DATAFILE_DIR:-/opt/oracle/oradata/XE/XEPDB1}"
 SWG_CLUSTER_NAME="${SWG_CLUSTER_NAME:-swg}"
 SWG_PUBLIC_ADDRESS="${SWG_PUBLIC_ADDRESS:-127.0.0.1}"
+
+# The container's own eth0 address. Several services bind to eth0 rather than to all interfaces, so
+# anything connecting to them from inside this container has to use this rather than loopback.
+SWG_CONTAINER_ADDRESS="$(ip -4 addr show eth0 2>/dev/null | awk '/inet /{split($2, a, "/"); print a[1]; exit}')"
+if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then
+    SWG_CONTAINER_ADDRESS="$(hostname -i 2>/dev/null | awk '{print $1}')"
+fi
+if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then
+    echo "WARNING: could not determine the container's eth0 address; falling back to 127.0.0.1." >&2
+    SWG_CONTAINER_ADDRESS="127.0.0.1"
+fi
+echo "Container address for eth0-bound services: ${SWG_CONTAINER_ADDRESS}"
 SWG_CLIENT_ASSETS_TRE="${SWG_CLIENT_ASSETS_TRE:-/client-assets/swgsource_3.0.tre}"
 SWG_START_CHAT="${SWG_START_CHAT:-true}"
 SWG_ANT_INIT_TARGETS="${SWG_ANT_INIT_TARGETS:-clean update_configs create_database compile}"
@@ -375,8 +387,20 @@ customerServiceBindInterface=eth0
 altPublicBindAddress=${SWG_PUBLIC_ADDRESS}
 
 [CommodityServer]
-cmServerServiceBindInterface=eth0
+# Bind the game-server listening service to loopback, not eth0. The game servers reach it through
+# ConfigServerGame's commoditiesServerServiceBindInterface, which defaults to "localhost", so a
+# service bound only to eth0 refuses them and every bazaar terminal reports "market is unavailable".
+# Everything in this cluster shares one container, so loopback is sufficient and it means the game
+# servers need no override of their own -- which matters because they only read config at startup.
+cmServerServiceBindInterface=127.0.0.1
 databaseServerAddress=127.0.0.1
+# CentralServer binds its commodities service to eth0 (commodityServerServiceBindInterface above),
+# so it is not reachable on loopback. ConfigCommodityServer defaults centralServerAddress to
+# "localhost", and CentralServerConnection::onConnectionClosed calls exit(0) -- a clean exit, no
+# core, nothing on stdout. TaskManager then respawns it, so the only visible symptom was its load
+# sequence repeating in the log (1748 times when this was found) while ps never showed the process
+# and every bazaar terminal reported "market is unavailable".
+centralServerAddress=${SWG_CONTAINER_ADDRESS}
 
 [LoginServer]
 easyExternalAccess=true
