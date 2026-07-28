@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-two-hand-accuracy-branch",
+  "status": "ready",
+  "scope": "Restore the Swordsman Accuracy I-IV ownership branch and melee2hArea1, melee2hArea2, and melee2hArea3 with pinned Core3 RANDOM-pool area damage, defended posture-down, terminal DIZZY, authenticated client execution, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/melee2hArea1.lua",
+      "MMOCoreORB/bin/scripts/commands/melee2hArea2.lua",
+      "MMOCoreORB/bin/scripts/commands/melee2hArea3.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skills": [
+      {"name": "combat_2hsword_accuracy_01", "requires": ["combat_2hsword_novice"], "commands": ["private_2hand_accuracy_1", "melee2hArea1"]},
+      {"name": "combat_2hsword_accuracy_02", "requires": ["combat_2hsword_accuracy_01"], "commands": ["private_2hand_accuracy_2", "melee2hArea2"]},
+      {"name": "combat_2hsword_accuracy_03", "requires": ["combat_2hsword_accuracy_02"], "commands": ["private_2hand_accuracy_3"]},
+      {"name": "combat_2hsword_accuracy_04", "requires": ["combat_2hsword_accuracy_03"], "commands": ["private_2hand_accuracy_4", "melee2hArea3"]}
+    ],
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "validWeapon": "2HAND_MELEE",
+      "failScriptHook": "failSpecialAttack"
+    },
+    "combat": [
+      {"command": "melee2hArea1", "damageMultiplier": 2.0, "speedMultiplier": 1.5, "hamCostMultipliers": [0.5, 1.5, 0.5], "accuracyBonus": 10, "targetPool": "RANDOM", "attackType": "AREA", "areaRange": 16, "maximumRange": 5, "animation": "lower_posture_2hmelee_2", "animationType": "NONE", "combatSpam": "descendingstrike", "postureDownChance": 100},
+      {"command": "melee2hArea2", "damageMultiplier": 3.0, "speedMultiplier": 2.0, "hamCostMultipliers": [1.0, 2.0, 1.0], "accuracyBonus": 10, "targetPool": "RANDOM", "attackType": "AREA", "areaRange": 16, "maximumRange": 5, "animation": "lower_posture_2hmelee_4", "animationType": "NONE", "combatSpam": "descendingslam", "postureDownChance": 100},
+      {"command": "melee2hArea3", "damageMultiplier": 3.0, "speedMultiplier": 2.5, "hamCostMultipliers": [1.5, 2.5, 1.5], "accuracyBonus": 10, "targetPool": "RANDOM", "attackType": "AREA", "areaRange": 16, "maximumRange": 5, "animation": "lower_posture_2hmelee_5", "animationType": "NONE", "combatSpam": "domination", "postureDownChance": 100, "state": "DIZZY", "stateChance": 30, "stateStrength": 0, "stateDuration": 30, "stateDefenses": ["dizzy_defense", "jedi_state_defense", "resistance_states"]}
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T20:44:07-04:00",
+    "scratchCommit": "cdaf88eef392eaafb1e98d4e8dae938d0725c9ea",
+    "overlay": "restoration/patches/dsrc/314-p14-core3-two-hand-accuracy-branch.patch",
+    "overlaySha256": "44f9eb884de51ca01036c095739e01cff97cb98311ac3d5f7a4ec840fcbaafdd",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "javaCompilerStack": "-J-Xss64m",
+    "compiledClassSha256": {
+      "script/systems/combat/combat_actions.class": "74388d57d1f7d7df0a7fb2283445f1c5809e6e045c81d23326fbc6c8a60a0ef5",
+      "script/test/precu_headshot1_fixture.class": "fe4457606438cc82679022d7fefc2445b4c4f10de0fe48b9e7f9fb0275ac38d6"
+    },
+    "datatableCompiler": {"platform": "Release|x64", "bytes": 1231872, "sha256": "657d2747bcdb55f78fbc4f392205566345bb9b7cd8129d7c591fd4dc6716ef51"},
+    "datatableCompile": "passed-prefix-preserving-rebuild",
+    "datatableRowCounts": {"command_table.iff": 2076, "combat_data.iff": 1423, "precu_combat_overrides.iff": 139, "precu_combat_spam.iff": 138},
+    "compiledTableSha256": {
+      "datatables/command/command_table.iff": "23641f396c343100c44c74c2f8e568a3a39b4d689a1796b86c6c88960e8810ed",
+      "datatables/combat/combat_data.iff": "ffdabdf8fa28344e49ec50584cece64e130cd23f3585ad602dbbc91ed0ece4f7",
+      "datatables/combat/precu_combat_overrides.iff": "df388a34a6ec2cb55e3254e80f70f217d77082aa13b13aa70ddf03a979127661",
+      "datatables/combat/precu_combat_spam.iff": "f147c18197203c8434ebcbe87d5099b7b4a45b7198d815218bc1d9e355349ff3"
+    },
+    "assetArchiveRebuild": {"deterministic": true, "runs": 2, "bytes": 135623, "fileCount": 3, "sha256": "d1fb5911736c7f8b375e626e3ca3d90d30b07bd3716d3da1063e2b31cc544909"},
+    "clientBridgeTests": 69,
+    "clientTestSuite": {"passed": 199, "skipped": 3, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 235,
+    "clientBytes": 33809920,
+    "clientSha256": "360b7e965f58993e70f5184acac870157ebbb44808938c70af91cfbc358c34ce",
+    "materializedOverlayCount": 320,
+    "materializedRestorationFileCount": 940,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "ceb7a36443223b1e0a5bee3e423df208d53df510ffcabdf7ce8590018bd89128",
+      "precu_headshot1_fixture.java": "38c9c7f52b514c26916e2e1b38b592b7ee5d0c9b5b85943af422b453a6753638",
+      "command_table.tab": "7cd2ee298d8e717caf73c345a11bdd0e6769e9a82a245620b2a910b5314c1eec",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "4900ebb3a977157a89e78fb68e1e42bc0fa29bc15e8c19009e78fd68f235fc03",
+      "precu_combat_overrides.tab": "8152bd6997fae254dc2295502791025fbc4208dd36e518de2d1b7964bd9443c9",
+      "precu_combat_spam.tab": "c9d4e662aa8496ed65cf1b47edb91afb2c7e3ab1b87211d590ded0d58bd7fc24"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T20:44:07-04:00",
+    "clientProtocolVersion": 235,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "31600000000000000000000000000003",
+    "admission": {
+      "freshDualAuthentication": true,
+      "brawlerTwoHandFour": true,
+      "twoHandSwordNovice": true,
+      "twoHandSwordAccuracyOne": true,
+      "twoHandSwordAccuracyTwo": true,
+      "twoHandSwordAccuracyThree": true,
+      "twoHandSwordAccuracyFour": true,
+      "commands": ["melee2hArea1", "melee2hArea2", "melee2hArea3"],
+      "canPerform": {"melee2hArea1": 0, "melee2hArea2": 0, "melee2hArea3": 0},
+      "weapon": "object/weapon/melee/2h_sword/2h_sword_cleaver.iff",
+      "distanceCentimeters": 197,
+      "clientWeaponStatus": {"commandFound": true, "weaponType": 5, "validMask": "0x00000020", "satisfies": true, "packed": "0x0000000000205705"}
+    },
+    "commands": [
+      {"name": "melee2hArea1", "queueRemoval": "Success", "packedQueueStatus": "0x010000004351c000", "combatResult": 1, "directDamage": 681, "configuredPool": "RANDOM", "resolvedPool": "MIND", "hitLocation": 1, "combatSpam": "descendingstrike_hit", "animation": "lower_posture_2hmelee_2", "animationType": 0, "postureDown": {"chance": 100, "result": "APPLIED"}},
+      {"name": "melee2hArea2", "queueRemoval": "Success", "packedQueueStatus": "0x010000004351c000", "combatResult": 1, "directDamage": 1091, "configuredPool": "RANDOM", "resolvedPool": "ACTION", "hitLocation": 5, "combatSpam": "descendingslam_hit", "animation": "lower_posture_2hmelee_4", "animationType": 0, "postureDown": {"chance": 100, "result": "APPLIED"}},
+      {"name": "melee2hArea3", "queueRemoval": "Success", "packedQueueStatus": "0x0100000043510000", "combatResult": 1, "directDamage": 1043, "configuredPool": "RANDOM", "resolvedPool": "HEALTH", "hitLocation": 0, "combatSpam": "domination_hit", "animation": "lower_posture_2hmelee_5", "animationType": 0, "state": {"type": 1, "chance": 30, "duration": 30, "result": "RESISTED"}, "postureDown": {"chance": 100, "result": "APPLIED"}}
+    ],
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "branchSurvived": true,
+      "commandsSurvived": true,
+      "canPerformSurvived": true,
+      "weaponSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "terminalDamage": 1043,
+      "terminalSpam": "domination_hit",
+      "terminalAnimation": "lower_posture_2hmelee_5",
+      "transientDizzyAbsent": true,
+      "defenderPosturePersisted": 1,
+      "postRestartExecution": {"queueRemoval": "Success", "packedQueueStatus": "0x0100000043510000", "directDamage": 810, "stateResult": "RESISTED", "postureDownResult": "APPLIED"}
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "masterPrerequisiteOrderingRepaired": true,
+      "temporaryTwoHandSkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "fixtureWeaponAbsent": true,
+      "transientDizzyAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000",
+      "postCleanupClientWeaponSatisfies": false
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "isolatedClientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "configuredClusterPortRestored": 44452,
+    "connectionServerCount": 1,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}
