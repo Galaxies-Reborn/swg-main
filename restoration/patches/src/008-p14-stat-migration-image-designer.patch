@@ -1,0 +1,305 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h
+@@ -15,10 +15,12 @@ class NetworkId;
+ class CommandCppFuncs // static class
+ {
+ public:
+ 	static void install();
+ 	static void remove();
++	static bool canCommitStatMigration(NetworkId const & actor);
++	static bool commitStatMigration(NetworkId const & actor);
+ 
+ 	static void commandFuncTransferMisc(Command const & c, NetworkId const &actor, NetworkId const &target, Unicode::String const & params);
+ };
+ 
+ #endif // INCLUDED_CommandCppFuncs_H
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -224,7 +224,7 @@ namespace CommandCppFuncsNamespace
+ 		return assigned == total;
+ 	}
+ 
+-	void applyTutorialStatMigration(CreatureObject & creature, std::vector<int> const & targets)
++	void applyStatMigration(CreatureObject & creature, std::vector<int> const & targets)
+ 	{
+ 		for (int attribute = 0; attribute < Attributes::NumberOfAttributes; ++attribute)
+ 		{
+@@ -6290,8 +6290,11 @@ static void commandFuncRequestSetStatMigrationData(Command const &, NetworkId co
+ 	// Retail applies migration immediately in the tutorial. Outside the
+ 	// newbie hall these values remain pending for the Image Designer workflow.
+ 	if (creature->getSceneId() == "newbie_hall")
+-		applyTutorialStatMigration(*creature, targets);
++	{
++		applyStatMigration(*creature, targets);
++		s_statMigrationSessions.erase(actor);
++	}
+ }
+ 
+ // ----------------------------------------------------------------------
+ 
+@@ -9842,6 +9845,39 @@ static void commandFuncRoomPickRandomPlayer(Command const &, NetworkId const &ac
+ 
+ // ======================================================================
+ 
++bool CommandCppFuncs::canCommitStatMigration(NetworkId const & actor)
++{
++	CreatureObject * const creature = CreatureObject::getCreatureObject(actor);
++	if (!creature || !creature->isAuthoritative())
++		return false;
++
++	CommandCppFuncsNamespace::StatMigrationSessionMap::const_iterator const session =
++		CommandCppFuncsNamespace::s_statMigrationSessions.find(actor);
++	return session != CommandCppFuncsNamespace::s_statMigrationSessions.end() &&
++		session->second.pointsLeft == 0 &&
++		CommandCppFuncsNamespace::validateStatMigrationTargets(*creature, session->second.targets);
++}
++
++// ----------------------------------------------------------------------
++
++bool CommandCppFuncs::commitStatMigration(NetworkId const & actor)
++{
++	if (!canCommitStatMigration(actor))
++		return false;
++
++	CreatureObject * const creature = CreatureObject::getCreatureObject(actor);
++	CommandCppFuncsNamespace::StatMigrationSessionMap::iterator const session =
++		CommandCppFuncsNamespace::s_statMigrationSessions.find(actor);
++	if (!creature || session == CommandCppFuncsNamespace::s_statMigrationSessions.end())
++		return false;
++
++	CommandCppFuncsNamespace::applyStatMigration(*creature, session->second.targets);
++	CommandCppFuncsNamespace::s_statMigrationSessions.erase(session);
++	return true;
++}
++
++// ----------------------------------------------------------------------
++
+ void CommandCppFuncs::install()
+ {
+ 	// console style commands
+diff --git a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
+--- a/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
++++ b/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp
+@@ -1150,10 +1150,22 @@ void PlayerCreatureController::handleMessage (const int message, const float val
+ 			if (inMsg)
+ 			{
+ 				NetworkId const & myId = owner->getNetworkId();
+ 				NetworkId const & designerId = inMsg->getDesignerId();
+ 				NetworkId const & recipientId = inMsg->getRecipientId();
++				SharedImageDesignerManager::Session authenticatedSession;
++				bool const authenticated = SharedImageDesignerManager::getSession(designerId, authenticatedSession) &&
++					authenticatedSession.designerId == designerId &&
++					authenticatedSession.recipientId == recipientId &&
++					authenticatedSession.terminalId == inMsg->getTerminalId();
++				bool const statMigrationAllowed = inMsg->getDesignType() != ImageDesignChangeMessage::DT_STAT_MIGRATION ||
++					(authenticatedSession.terminalId != NetworkId::cms_invalid && designerId != recipientId);
++				if(!authenticated || !statMigrationAllowed || (myId != designerId && myId != recipientId))
++				{
++					WARNING(true, ("Rejected unauthenticated Image Designer change from %s", myId.getValueString().c_str()));
++					break;
++				}
+ 				Object const * const designerObj = NetworkIdManager::getObjectById(designerId);
+ 				ServerObject const * const designerServer = designerObj ? designerObj->asServerObject() : nullptr;
+ 				CreatureObject const * const designer = designerServer ? designerServer->asCreatureObject() : nullptr;
+ 				Object * const recipientObj = NetworkIdManager::getObjectById(recipientId);
+ 				ServerObject * const recipientServer = recipientObj ? recipientObj->asServerObject() : nullptr;
+@@ -1215,14 +1227,11 @@ void PlayerCreatureController::handleMessage (const int message, const float val
+ 						{
+ 							//check and apply this data once the designer also accepts
+ 							SharedImageDesignerManager::Session session(*inMsg);
+ 
+ 							//get the server-stored session, so we can get the real starting time
+-							SharedImageDesignerManager::Session serverSession;
+-							bool const result = SharedImageDesignerManager::getSession(session.designerId, serverSession);
+-							if(result)
+-								session.startingTime = serverSession.startingTime;
++							session.startingTime = authenticatedSession.startingTime;
+ 							//ensure we validate against the server's skill mod data
+ 							SharedImageDesignerManager::SkillMods const skillMods = ServerImageDesignerManager::getSkillModsForDesigner(session.designerId);
+ 							session.bodySkillMod = skillMods.bodySkillMod;
+ 							session.faceSkillMod = skillMods.faceSkillMod;
+ 							session.markingsSkillMod = skillMods.markingsSkillMod;
+@@ -1279,19 +1288,23 @@ void PlayerCreatureController::handleMessage (const int message, const float val
+ 			if (inMsg)
+ 			{
+ 				//cancel the session on the server
+ 				SharedImageDesignerManager::Session session;
+ 				bool const result = SharedImageDesignerManager::getSession(inMsg->getDesignerId(), session);
+-				if(result)
++				bool const authenticated = result &&
++					session.designerId == inMsg->getDesignerId() &&
++					session.recipientId == inMsg->getRecipientId() &&
++					(owner->getNetworkId() == session.designerId || owner->getNetworkId() == session.recipientId);
++				if(authenticated)
+ 				{
+ 					//if the recipient canceled the session, tell the designer
+ 					Object const * const designerObject = NetworkIdManager::getObjectById(session.designerId);
+ 					ServerObject const * const designer = designerObject ? designerObject->asServerObject() : nullptr;
+ 					if(designer && (owner->getNetworkId() != session.designerId))
+ 						Chat::sendSystemMessage(*designer, SharedStringIds::imagedesigner_canceled_by_recip, Unicode::emptyString);
+ 
+-					ServerImageDesignerManager::cancelSession(inMsg->getDesignerId(), inMsg->getRecipientId());
++					ServerImageDesignerManager::cancelSession(session.designerId, session.recipientId);
+ 				}
+ 			}
+ 		}
+ 		break;
+ 
+diff --git a/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp b/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
+--- a/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
++++ b/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
+@@ -7,10 +7,11 @@
+ 
+ #include "serverGame/FirstServerGame.h"
+ #include "serverGame/ServerImageDesignerManager.h"
+ 
+ #include "serverGame/Chat.h"
++#include "serverGame/CommandCppFuncs.h"
+ #include "serverGame/ContainerInterface.h"
+ #include "serverGame/CreatureObject.h"
+ #include "serverGame/ServerObject.h"
+ #include "serverGame/ServerObjectTemplate.h"
+ #include "serverGame/ServerWorld.h"
+@@ -178,10 +179,25 @@ bool ServerImageDesignerManager::makeChanges(SharedImageDesignerManager::Session
+ 	Object * const designerObj = NetworkIdManager::getObjectById(designerId);
+ 	ServerObject * const designerServerObj = designerObj ? designerObj->asServerObject() : nullptr;
+ 	CreatureObject * const designer = designerServerObj ? designerServerObj->asCreatureObject() : nullptr;
+ 	if(designer && recipient)
+ 	{
++		bool const statMigration = session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION;
++		Object const * const designerTopmost = ContainerInterface::getTopmostContainer(*designer);
++		Object const * const recipientTopmost = ContainerInterface::getTopmostContainer(*recipient);
++		bool const statMigrationSessionValid = !statMigration ||
++			(designer != recipient &&
++			session.terminalId != NetworkId::cms_invalid &&
++			designerTopmost && designerTopmost->getNetworkId() == session.terminalId &&
++			recipientTopmost && recipientTopmost->getNetworkId() == session.terminalId &&
++			CommandCppFuncs::canCommitStatMigration(recipient->getNetworkId()));
++		if(!statMigrationSessionValid)
++		{
++			WARNING(true, ("Rejected invalid Publish 14 stat migration Image Designer transaction for recipient %s",
++				recipient->getNetworkId().getValueString().c_str()));
++			return false;
++		}
+ 
+ 		//validate that any selected hair can go on this character
+ 		if(session.newHairSet)
+ 		{
+ 			//check new hair
+@@ -311,10 +327,16 @@ bool ServerImageDesignerManager::makeChanges(SharedImageDesignerManager::Session
+ 				Chat::sendSystemMessage(*designer, prosePackage);
+ 			}
+ 		}
+ 
+ 		//OK, everything checks out, make all the changes NOW!
++		if(statMigration && !CommandCppFuncs::commitStatMigration(recipient->getNetworkId()))
++		{
++			WARNING(true, ("Unable to commit validated Publish 14 stat migration for recipient %s",
++				recipient->getNetworkId().getValueString().c_str()));
++			return false;
++		}
+ 
+ 		for(std::map<std::string, float>::const_iterator i = session.morphChanges.begin(); i != session.morphChanges.end(); ++i)
+ 		{
+ 			setMorphCustomization(*recipient, i->first, i->second);
+ 		}
+diff --git a/engine/server/library/serverScript/src/shared/ScriptMethodsImageDesign.cpp b/engine/server/library/serverScript/src/shared/ScriptMethodsImageDesign.cpp
+--- a/engine/server/library/serverScript/src/shared/ScriptMethodsImageDesign.cpp
++++ b/engine/server/library/serverScript/src/shared/ScriptMethodsImageDesign.cpp
+@@ -155,10 +155,24 @@ jboolean JNICALL ScriptMethodsImageDesignNamespace::imagedesignValidated(JNIEnv
+ 	session.hairCustomizationData = hairCustomizationData;
+ 	session.designerRequiredCredits = jdesignerRequiredCredits;
+ 	session.recipientPaidCredits = jrecipientPaidCredits;
+ 	session.accepted = jaccepted;
+ 
++	SharedImageDesignerManager::Session authenticatedSession;
++	bool const authenticated = SharedImageDesignerManager::getSession(session.designerId, authenticatedSession) &&
++		authenticatedSession.designerId == session.designerId &&
++		authenticatedSession.recipientId == session.recipientId &&
++		authenticatedSession.terminalId == session.terminalId &&
++		authenticatedSession.startingTime == session.startingTime &&
++		authenticatedSession.designType == session.designType;
++	if(!authenticated)
++	{
++		WARNING(true, ("Rejected unauthenticated Image Designer script validation for designer %s",
++			session.designerId.getValueString().c_str()));
++		return JNI_FALSE;
++	}
++
+ 	//if the session isn't valid, cancel it and don't apply changes
+ 	if(!session.accepted)
+ 	{
+ 		Chat::sendSystemMessage(*designerObj, SharedStringIds::imagedesigner_session_not_valid, Unicode::emptyString);
+ 		if(designerObj != recipientObj)
+diff --git a/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp b/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp
+--- a/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp
++++ b/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp
+@@ -297,13 +297,16 @@ time_t SharedImageDesignerManager::getTimeRemaining(NetworkId const & designerId
+ 			minimumPhysicalTime = 0;
+ 		}
+ 
+ 		endTime = session.startingTime + minimumPhysicalTime;
+ 	}
++	else if(session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION)
++	{
++		endTime = session.startingTime + ConfigSharedGame::getImageDesignerStatMigrationSessionTimeSeconds();
++	}
+ 	else
+ 	{
+-		//this was for stat migration, and shouldn't be called anymore
+ 		endTime = session.startingTime;
+ 	}
+ 
+ 	time_t timeLeft = (endTime - session.startingTime) - elapsedTime;
+ 	if(timeLeft < 0)
+@@ -656,23 +659,25 @@ bool SharedImageDesignerManager::hasSkillForHoloemote(std::string const & holoem
+     If any of the changes are "physical", the session's overall change type is "physical".
+ 		If stat migration is set, then the type is "stta migration"
+ */
+ void SharedImageDesignerManager::updateDesignType(SharedImageDesignerManager::Session & /*IN OUT*/ session, std::string const & recipientSpeciesGender)
+ {
++	bool const statMigrationRequested = session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION;
+ 	CustomizationManager::Customization customization;
+ 	bool result = false;
+ 
+-	session.designType = ImageDesignChangeMessage::DT_COSMETIC;
++	session.designType = statMigrationRequested ? ImageDesignChangeMessage::DT_STAT_MIGRATION : ImageDesignChangeMessage::DT_COSMETIC;
+ 
+ 	for(std::map<std::string, float>::iterator i = session.morphChanges.begin(); i != session.morphChanges.end(); ++i)
+ 	{
+ 		result = CustomizationManager::getCustomization(recipientSpeciesGender, i->first, customization);
+ 		if(result)
+ 		{
+ 			if(customization.modificationType == cms_physicalType)
+ 			{
+-				session.designType = ImageDesignChangeMessage::DT_PHYSICAL;
++				if(!statMigrationRequested)
++					session.designType = ImageDesignChangeMessage::DT_PHYSICAL;
+ 				return;
+ 			}
+ 		}
+ 	}
+ 
+@@ -681,15 +686,19 @@ void SharedImageDesignerManager::updateDesignType(SharedImageDesignerManager::Se
+ 		result = CustomizationManager::getCustomization(recipientSpeciesGender, j->first, customization);
+ 		if(result)
+ 		{
+ 			if(customization.modificationType == cms_physicalType)
+ 			{
+-				session.designType = ImageDesignChangeMessage::DT_PHYSICAL;
++				if(!statMigrationRequested)
++					session.designType = ImageDesignChangeMessage::DT_PHYSICAL;
+ 				return;
+ 			}
+ 		}
+ 	}
++
++	if(statMigrationRequested)
++		session.designType = ImageDesignChangeMessage::DT_STAT_MIGRATION;
+ }
+ 
+ //----------------------------------------------------------------------
+ 
+ bool SharedImageDesignerManager::hasSkillForCustomization(std::string const & customizationName, std::string const & recipientSpeciesGender, SkillMods const & designerSkills)

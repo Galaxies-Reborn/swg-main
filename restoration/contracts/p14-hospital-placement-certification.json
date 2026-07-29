@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "feature": "hospital-placement-certification",
+  "status": "ready",
+  "scope": "Publish 14.1 Master Doctor hospital-placement certification across the retained SWGSource structure ownership and placement path. The certification is an ability/modifier gate, not a slash-command handler.",
+  "sourceFiles": {
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_hospital_placement_fixture.java",
+    "playerStructureLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/player_structure.java",
+    "structureTable": "dsrc/sku.0/sys.server/compiled/game/datatables/structure/player_structure.tab",
+    "skillsTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "structureManager": "MMOCoreORB/src/server/zone/managers/structure/StructureManager.cpp",
+    "templates": [
+      "MMOCoreORB/bin/scripts/object/building/player/city/hospital_tatooine.lua",
+      "MMOCoreORB/bin/scripts/object/building/player/city/hospital_corellia.lua",
+      "MMOCoreORB/bin/scripts/object/building/player/city/hospital_naboo.lua"
+    ],
+    "core3AbilityRequired": "place_hospital",
+    "core3CityRankRequired": 3,
+    "publish": "14.1"
+  },
+  "swgSourcePlacementContract": {
+    "entryPoint": "player_structure.tryEnterPlacementMode",
+    "admissionPath": "tryEnterPlacementMode -> canPlaceStructure -> canOwnStructure",
+    "requiredSkillModifier": "private_place_hospital",
+    "requiredSkillModifierValue": 100,
+    "failureMessage": "place_hospital",
+    "cityRankRequired": 3,
+    "commandTableRowExpected": false,
+    "masterSkill": "science_doctor_master",
+    "masterAbility": "place_hospital",
+    "templates": [
+      "object/building/player/city/hospital_tatooine.iff",
+      "object/building/player/city/hospital_corellia.iff",
+      "object/building/player/city/hospital_naboo.iff"
+    ],
+    "retainedStructureValues": {
+      "maintenanceRate": 13,
+      "decayRate": 5,
+      "condition": 7200,
+      "redeedCost": 2500,
+      "hasSign": 1,
+      "version": 4
+    }
+  },
+  "fixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "grant",
+      "status",
+      "cleanup"
+    ],
+    "lifecycleRoot": "precu.hospitalPlacementFixture",
+    "negativeGateBits": "000",
+    "positiveGateBits": "111",
+    "rowBits": "111",
+    "cleanupPolicy": "Revoke the fixture-owned Master Doctor skill, restore the original private hospital modifier and ability state, prove all three ownership gates closed again, then remove the fixture root. Repeated cleanup is idempotent."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-hospital-placement-ready-20260718-139",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "materializedPatchCount": 71,
+    "acceptanceFileCount": 167,
+    "sourceCommit": "98e22e91e3445e649f49bee4df87167c8f95fa94",
+    "isolatedBuildVolume": "swg-precu-hospital-placement-clean-build-140",
+    "target": "clean compile_java of all 5671 materialized Java sources",
+    "patchSha256": "b8c064e5ffab20910353f4b9514d52b9f494c31bbeffe449cf821ccc6b357c30",
+    "fixtureSourceSha256": "b1c798896cb182fd604ff0b52ed033f1214d0ad315ff47ba49c56341aeb55f74",
+    "fixtureClassSha256": "59e7be02d24abb4f19a512bb0e8df0d849e0beaa602b7592a0d3a25e47c4dea4",
+    "tableBuildPolicy": "Patch 055 changes Java fixture source only. It consumes the clean materialized tables already produced and validated by the preceding restoration stack."
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T14:15:00-04:00",
+    "lifecycle": "f21412f5a9b34b22a9650e0077cd1f3a",
+    "container": "swg-precu",
+    "oracleContainer": "swg-precu-oracle",
+    "clientProcessId": 59132,
+    "clientProtocolVersion": 29,
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "prepare": {
+      "master": false,
+      "command": false,
+      "modifier": 0,
+      "modifierDelta": 0,
+      "rowBits": "111",
+      "gateBits": "000"
+    },
+    "grant": {
+      "granted": true,
+      "master": true,
+      "command": true,
+      "modifier": 100,
+      "modifierDelta": 100,
+      "rowBits": "111",
+      "gateBits": "111"
+    },
+    "status": {
+      "master": true,
+      "command": true,
+      "modifier": 100,
+      "modifierDelta": 100,
+      "rowBits": "111",
+      "gateBits": "111"
+    },
+    "cleanup": {
+      "restored": true,
+      "master": false,
+      "command": false,
+      "modifier": 0,
+      "modifierDelta": 0,
+      "rowBits": "111",
+      "gateBits": "000",
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": false,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "reason": "SWGSource already retained the production ownership/placement gate and all three hospital rows. This milestone adds only reversible certification evidence."
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "all three player-city hospital rows",
+      "Master Doctor ability and private hospital modifier",
+      "retained city-rank-three and structure-value contract",
+      "negative unskilled ownership admission",
+      "positive Master Doctor ownership admission",
+      "exact and idempotent cleanup"
+    ],
+    "deferred": [
+      "architect crafting of a hospital deed",
+      "physical footprint placement on live terrain",
+      "player-city rank-three administration lifecycle",
+      "hospital maintenance, decay, redeed, and destruction lifecycle"
+    ]
+  }
+}

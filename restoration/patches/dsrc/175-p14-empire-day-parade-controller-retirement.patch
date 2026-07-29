@@ -1,0 +1,65 @@
+diff --git a/sku.0/sys.server/compiled/game/script/event/emperorsday/emperor_statue.java b/sku.0/sys.server/compiled/game/script/event/emperorsday/emperor_statue.java
+index 142c41a..6ca029d 100644
+--- a/sku.0/sys.server/compiled/game/script/event/emperorsday/emperor_statue.java
++++ b/sku.0/sys.server/compiled/game/script/event/emperorsday/emperor_statue.java
+@@ -35,16 +35,19 @@ public class emperor_statue extends script.base_script
+     public static final float LAMBDA_YAW = -0.01f;
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        CustomerServiceLog("holidayEvent", "emperor_statue.OnInitialize: Init.");
+-        if (utils.hasScriptVar(self, "musicObject")) {
+-            obj_id oldSoundObject = utils.getObjIdScriptVar(self, "musicObject");
+-            if ((isIdValid(oldSoundObject)) && exists(oldSoundObject)) {
+-                destroyObject(oldSoundObject);
+-            }
++        OnDestroy(self);
++        obj_id lambda = utils.getObjIdScriptVar(self, "lambdaShuttle");
++        if ((isIdValid(lambda)) && exists(lambda))
++        {
++            messageTo(lambda, "takeOff", null, 20.0f, false);
++            utils.removeScriptVar(self, "lambdaShuttle");
+         }
+-        utils.setScriptVar(self, "musicObject", createObject(MUSIC_IMPERIAL_ATTACK, getLocation(self)));
+-        CustomerServiceLog("holidayEvent", "emperor_statue.OnInitialize: Preparing Parade.");
+-        messageTo(self, "prepareParade", null, 30.0f, false);
++        detachScript(self, "event.emperorsday.emperor_statue");
++        return SCRIPT_CONTINUE;
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        detachScript(self, "event.emperorsday.emperor_statue");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnGetAttributes(obj_id self, obj_id player, String[] names, String[] attribs) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/event/emperorsday/yoda_fountain.java b/sku.0/sys.server/compiled/game/script/event/emperorsday/yoda_fountain.java
+index 9f9f617..bbad16f 100644
+--- a/sku.0/sys.server/compiled/game/script/event/emperorsday/yoda_fountain.java
++++ b/sku.0/sys.server/compiled/game/script/event/emperorsday/yoda_fountain.java
+@@ -41,20 +41,13 @@ public class yoda_fountain extends script.base_script
+     public static final string_id WINNER_HELP = new string_id(EMP_DAY, "winner_help_rebel");
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        CustomerServiceLog("holidayEvent", "yoda_fountain.OnInitialize: Fountain is initializing.");
+-
+-        if (utils.hasScriptVar(self, "musicObject"))
+-        {
+-            obj_id oldSoundObject = utils.getObjIdScriptVar(self, "musicObject");
+-            if ((isIdValid(oldSoundObject)) && exists(oldSoundObject))
+-            {
+-                destroyObject(oldSoundObject);
+-            }
+-        }
+-        utils.setScriptVar(self, "musicObject", createObject(MUSIC_HAN_LEIA, getLocation(self)));
+-
+-        CustomerServiceLog("holidayEvent", "yoda_fountain.OnInitialize: Preparing Parade.");
+-        messageTo(self, "prepareParade", null, 30.0f, false);
++        OnDestroy(self);
++        detachScript(self, "event.emperorsday.yoda_fountain");
++        return SCRIPT_CONTINUE;
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        detachScript(self, "event.emperorsday.yoda_fountain");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnGetAttributes(obj_id self, obj_id player, String[] names, String[] attribs) throws InterruptedException

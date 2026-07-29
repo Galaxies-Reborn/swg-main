@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-bounty-hunter-master-attack",
+  "status": "ready",
+  "scope": "Restore the Bounty Hunter master boundary and its missing sprayShot and fastBlast production attacks with pinned Core3 defended states, equal three-pool damage, client admission, persistence, and reversible full-profession cleanup semantics.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/sprayShot.lua",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/SprayShotCommand.h",
+      "MMOCoreORB/bin/scripts/commands/fastBlast.lua",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/FastBlastCommand.h"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skills": {
+      "prerequisiteCount": 7,
+      "professionSkillCount": 19,
+      "master": "combat_bountyhunter_master",
+      "commands": ["sprayShot", "fastBlast", "fireLightningCone2", "ranged_damage_mitigation_3"]
+    },
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "maxRangeToTarget": 0,
+      "addToCombatQueue": true,
+      "failScriptHook": "failSpecialAttack"
+    },
+    "combat": [
+      {
+        "command": "sprayShot",
+        "validWeapon": "CARBINE",
+        "damageMultiplier": 4.0,
+        "speedMultiplier": 3.5,
+        "hamCostMultipliers": [1.0, 1.0, 1.0],
+        "targetPool": "RANDOM",
+        "accuracyBonus": 0,
+        "animation": "fire_7_single",
+        "animationType": "RANGED",
+        "combatSpam": "sprayshot",
+        "states": [
+          {"type": "DIZZY", "chance": 60, "strength": 0, "duration": 30, "defense": "dizzy_defense"},
+          {"type": "BLIND", "chance": 100, "strength": 0, "duration": 30, "defense": "blind_defense"},
+          {"type": "STUN", "chance": 30, "strength": 0, "duration": 10, "defense": "stun_defense"}
+        ]
+      },
+      {
+        "command": "fastBlast",
+        "validWeapon": "PISTOL",
+        "damageMultiplier": 6.0,
+        "speedMultiplier": 3.05,
+        "hamCostMultipliers": [1.5, 1.5, 1.0],
+        "targetPool": "MULTI",
+        "poolDamageMultipliers": [0.33, 0.33, 0.33],
+        "accuracyBonus": 95,
+        "animation": "fire_5_special_single",
+        "animationType": "RANGED",
+        "combatSpam": "fastblast"
+      }
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T12:20:50-04:00",
+    "scratchCommit": "c567f7ceb7fd78a7ab475e9de88f49ae6c5d7110",
+    "overlay": "restoration/patches/dsrc/325-p14-core3-bounty-hunter-master-attack.patch",
+    "overlaySha256": "b9f8eb6c32a2446d73bf742ed0bf00b42aafbe1b5854cc9e26b092cc41063da1",
+    "changedFileCount": 8,
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "cleanMaterialization": {
+      "result": "passed",
+      "overlayCount": 331,
+      "restorationFileCount": 975,
+      "fingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+    },
+    "focusedVerifier": "passed-ready",
+    "phaseA": "passed-ready",
+    "javaCompile": "passed-focused-clean-materialization",
+    "compiledClassSha256": {
+      "script/combat_engine.class": "b21e53e77ee739ac474261946e3efdfd18e874feb22f694e052cb76a82640020",
+      "script/systems/combat/combat_base.class": "41c1859f0cf306f309194076fb4167ba68c8d113c9fe236afd732b66bff2e541",
+      "script/systems/combat/combat_actions.class": "88213645f7f2b979004fed2d11651775185ef43825bae2e69a564cf18c25fc40",
+      "script/test/precu_headshot1_fixture.class": "cb75082dca80fe22f3bf672dc9c5c90ac585635d5d703965584783962aa1e6d8"
+    },
+    "sourceSha256": {
+      "combat_engine.java": "faa6449616a5639a9b0f32e3df7485859e2524531a639b37358a35e29a005186",
+      "combat_actions.java": "4542da97bc4cbd552c2d49a105c55cbd26dd26b7c1c77e17241224ffd9f5d77a",
+      "combat_base.java": "2ea619c670dd1f0290e99743cd00c56c92fa40a8dee7322dd879a8842c2ce690",
+      "precu_headshot1_fixture.java": "f83571da7b60108738eaa8051a8815feb66c484a32c54fa2a9bb43b2a2c6fc3e",
+      "command_table.tab": "864af3f6d0759af944c16652ab2d9972dad3e0872ad707e5960e375150846609",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "0476ffdf666af2b26f11640da482cc14096b6504650c4541df1957f8a99050a9",
+      "precu_combat_overrides.tab": "b43b3b49ce1efe3c0589f3cbc8327ff685bb3ee9277e6d45fe9d177a47076c26",
+      "precu_combat_spam.tab": "ce0922e9adc57fe8f41fcfc60aea3ec03a419a4d0729d54cb423fc4e1290db1a"
+    },
+    "nativeDataTables": {
+      "independentBuilds": 2,
+      "byteIdentical": true,
+      "commandTable": {"bytes": 857135, "sha256": "5065825914df4c11574a5ae2be0fc86610ae32eef9049405787b2fbef7fe3dcc"},
+      "combatData": {"bytes": 770850, "sha256": "13da1bd607bee31319e9de6b1cc9551e697233aae9147a1583fcd08657d7de3c"},
+      "combatOverrides": {"bytes": 25873, "sha256": "04a52d2cf419a637e29da8e711754efc7865f7aa1179c9d1d72f82c24969d7e8"},
+      "combatSpam": {"bytes": 3950, "sha256": "db78d6a743a80acac379b31e034381f692e62cd7b27923f7f464becf7315b67d"}
+    },
+    "runtimeTree": {
+      "independentBuilds": 2,
+      "byteIdentical": true,
+      "fileCount": 3,
+      "bytes": 148889,
+      "sha256": "f007496d85f822d79662c9c6c85d03560599416575524d4163b7e0674940ebd1"
+    },
+    "client": {
+      "protocolVersion": 245,
+      "focusedTests": {"passed": 69, "failed": 0},
+      "fullTests": {"passed": 199, "failed": 0, "skipped": 3},
+      "releaseBuild": {"result": "passed", "bytes": 33811456, "sha256": "f8f46f6ee42a7854a48829c51551fb5c5befbef51ab9a1689cff1f5e2edaab75"}
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T12:20:50-04:00",
+    "lifecycle": "32700000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "attacker": {"stationId": 91001, "playerOid": 44003778, "avatar": "PrecuRuntime"},
+      "defender": {"stationId": 1001, "playerOid": 39008597, "avatar": "Icai Darkwave"},
+      "prerequisiteBits": "1111111",
+      "skillBits": "1111111111111111111",
+      "commandBits": "11"
+    },
+    "commands": {
+      "sprayShot": {
+        "serverAccepted": true,
+        "clientCommandFound": true,
+        "weaponType": 1,
+        "validWeaponMask": "0x00000002",
+        "weaponSatisfied": true,
+        "canPerform": 0,
+        "spam": "sprayshot_hit",
+        "damage": 89,
+        "configuredTargetPool": 3,
+        "resolvedTargetPool": 1,
+        "resolvedPool": "ACTION",
+        "stateEffectAppliedCount": 3,
+        "dizzyApplied": true,
+        "blindApplied": true,
+        "stunApplied": true,
+        "animation": "fire_7_single_medium",
+        "animationType": 1
+      },
+      "fastBlast": {
+        "serverAccepted": true,
+        "clientCommandFound": true,
+        "weaponType": 2,
+        "validWeaponMask": "0x00000004",
+        "weaponSatisfied": true,
+        "canPerform": 0,
+        "spam": "fastblast_hit",
+        "damage": 63,
+        "configuredTargetPool": 4,
+        "resolvedTargetPool": 4,
+        "poolDamageActiveMask": 7,
+        "healthMultiplier": 0.33,
+        "actionMultiplier": 0.33,
+        "mindMultiplier": 0.33,
+        "healthApplied": 21,
+        "actionApplied": 21,
+        "mindApplied": 21,
+        "animation": "fire_5_special_single_medium",
+        "animationType": 1
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualReauthentication": true,
+      "lifecycleSurvived": true,
+      "prerequisiteBitsAfterRestart": "1111111",
+      "skillBitsAfterRestart": "1111111111111111111",
+      "commandBitsAfterRestart": "11",
+      "pistolEquipmentSurvived": true,
+      "poolMultipliersSurvived": true,
+      "postRestartExecution": {
+        "command": "fastBlast",
+        "serverAccepted": true,
+        "poolDamageActiveMask": 7,
+        "healthApplied": 21,
+        "actionApplied": 21,
+        "mindApplied": 21
+      }
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "temporaryPrerequisitesAbsent": true,
+      "temporarySkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "statusAfterCleanup": "fixtureAbsent",
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupQueueCount": 0
+    },
+    "rollback": {
+      "baseline": "M323",
+      "serverFileCount": 17,
+      "clientFileCount": 4,
+      "verifiedFileCount": 21,
+      "allHashesExact": true,
+      "completeCombatEngineClassFamilyRestored": true,
+      "serverHealthy": true,
+      "oracleHealthy": true
+    },
+    "isolatedClientsStopped": true,
+    "protectedUserClient": {"processId": 58328, "preserved": true},
+    "connectionServerCount": 1
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "buildFile": "build.xml",
+    "dockerEntrypoint": "docker/entrypoint.sh",
+    "packageData": "src/engine/server/library/codegen/package_data.txt",
+    "databaseConfig": "src/engine/server/library/serverDatabase/src/shared/ConfigServerDatabase.cpp",
+    "generatedPackager": "src/engine/server/library/serverGame/src/shared/generated/Packager.cpp",
+    "creatureHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
+    "creatureSource": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp",
+    "attributeNatives": "src/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp",
+    "databaseVersionQuery": "src/game/server/database/build/linux/getversion.sql",
+    "databaseMigration": "src/game/server/database/updates/271.sql",
+    "baseClass": "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+    "utils": "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatPlayer": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "rollMinimum": 0,
+    "rollMaximum": 100,
+    "successComparator": "roll < woundsRatio",
+    "woundsPerSuccessfulEvent": 3,
+    "shockAttemptsPerSuccessfulEvent": 3,
+    "linkedAttributeOffsets": [0, 1, 2],
+    "maximumWound": "baseHAM-1",
+    "profiles": {
+      "object/weapon/ranged/rifle/rifle_cdef.iff": 4,
+      "object/weapon/ranged/pistol/pistol_cdef.iff": 4,
+      "object/weapon/ranged/carbine/carbine_cdef.iff": 4,
+      "object/weapon/melee/unarmed/unarmed_default_player.iff": 5
+    }
+  },
+  "nativeContract": {
+    "persistentStorage": "CreatureObject.m_wounds AutoDeltaVector",
+    "databaseColumns": "creature_objects.attribute_18 through attribute_26",
+    "databaseVersion": 271,
+    "primaryCurrentPolicy": "cap-only",
+    "secondaryCurrentPolicy": "track-wounded-maximum",
+    "healingScope": "requested persistent wound attribute only",
+    "scriptOperations": ["addWound", "healWound"]
+  },
+  "runtimeContract": {
+    "requiresPositiveAppliedDamage": true,
+    "requiresExactPrecuTargetPool": true,
+    "requiresExactWeaponProfile": true,
+    "skipsDeadOrIncapacitatedDefender": true,
+    "unknownProfileDisposition": "wound-inert",
+    "productionRandomRollRetained": true
+  },
+  "liveFixture": {
+    "attackerOid": 44003778,
+    "defenderOid": 39008597,
+    "snapshotsAllNineWounds": true,
+    "snapshotsShockWounds": true,
+    "commandExecutionOwner": "connected Publish 14.1 ClientCommandQueue",
+    "cleanupPolicy": "heal exact positive lifecycle delta and restore shock snapshot"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "targets": [
+      "compile_src",
+      "compile_java",
+      "compile_tab"
+    ],
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "compiledSha256": {
+      "SwgGameServer": "02d03f409cb16d81e9333d3b39888a2569646667dacdb6325e61f637144a8baf",
+      "SwgDatabaseServer": "1a28869e10cb39508bde612cc8bf9a25f33110bd068817fda1ee2b49f2dfa931",
+      "base_class.class": "f2680eb021e9b29aeebd3e49148f7b3861240b0a4aeeeb7b71888fc8395a4ae6",
+      "utils.class": "e72d93b7594c518803d466e6a311b4bf2b174c4081b1c7bb15b7d4bd6aeb887d",
+      "base_player.class": "caedb79da948a6d5be66b3741d7d2e45923ddb7eaa9d8a9ce0c65c72e11268e3",
+      "combat_base.class": "a804a4e389c5e577ad0acc9e9ff0ec3ca26a5350be5b0434ab72949e871fe3e8",
+      "combat_player.class": "ae84443f6dd3df80571446c7c49a495165ec1be91f003a9be9d10006d01b1978",
+      "precu_marksman_tier1_fixture.class": "07544b3f1fb85f5de30b2d5fac00219d7904075fb83c2f3739361bc2e0bedaa4",
+      "precu_weapon_profiles.iff": "16ddd3bf199f461b845c02acdf4633d9ac78191e825d900d8d9b1eb37ce3b37d"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "lifecycle": "63d88e2b15c942fcbd609fbab11022b5",
+    "woundEvent": {
+      "weaponProfile": "object/weapon/ranged/rifle/rifle_cdef.iff",
+      "woundsRatio": 4,
+      "roll": 1,
+      "primaryAttribute": 6,
+      "linkedAttributes": ["Mind", "Focus", "Willpower"],
+      "woundsApplied": 3,
+      "shockAdded": 3
+    },
+    "restartPersistence": {
+      "retained": true,
+      "databaseBeforeRestart": "Mind/Focus/Willpower=1/1/1 shock=3",
+      "databaseAfterRestart": "Mind/Focus/Willpower=1/1/1 shock=3",
+      "afterLogin": "Mind/Focus/Willpower=1/1/1 shock=3"
+    },
+    "cleanup": {
+      "restored": true,
+      "fixtureRootsAbsent": true,
+      "databaseBaseline": "Mind/Focus/Willpower=0/0/0 shock=0"
+    }
+  },
+  "narrowBoundary": {
+    "included": [
+      "persistent native wound add and exact healing",
+      "unwounded versus wounded maximum script semantics",
+      "authenticated post-damage linked wound generation",
+      "three shock-wound attempts",
+      "CDEF rifle pistol carbine and player-unarmed ratios",
+      "reversible live fixture and restart boundary"
+    ],
+    "deferred": [
+      "battle-fatigue scaling of medical treatment power",
+      "doctor and entertainer profession loops",
+      "full medicine and camp treatment matrix",
+      "armor condition wear",
+      "damage-over-time wounds",
+      "broader crafted and looted weapon wound ratios"
+    ]
+  }
+}

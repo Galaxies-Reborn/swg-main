@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "feature": "sample-dna-command",
+  "scope": "Restore the Publish 14.1 sampleDNA command row and prove the retained cmdHarvestDNA/bio_engineer path through the authenticated client with identity-bound reversible telemetry.",
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "bioEngineer": "dsrc/sku.0/sys.server/compiled/game/script/library/bio_engineer.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_sample_dna_command_fixture.java"
+  },
+  "eraEvidence": {
+    "commandSource": "Source/legacy/precu-restore/precu_client_command_table.tab",
+    "commandSourceSha256": "f7acb20472cbfc78a182703b8cfbf48a3eeaa84af32acd5e638f9342822258d8",
+    "skillSource": "Source/legacy/precu-restore/authentic/skills.precu_merged.tab",
+    "skillSourceSha256": "5d8882200a4061b0086537cd4a18e2d505048e979e830caae777c55ae607dfeb",
+    "publish": "14.1",
+    "findings": [
+      "The authoritative client command table contains sampleDNA and maps it to cmdHarvestDNA/cmdHarvestDNAFail.",
+      "outdoors_bio_engineer_novice grants sampleDNA.",
+      "The retained server already implements cmdHarvestDNA and bio_engineer.harvestCreatureDNA; only command registration was absent from the restored 94-column table."
+    ]
+  },
+  "commandContract": {
+    "name": "sampleDNA",
+    "scriptHook": "cmdHarvestDNA",
+    "failScriptHook": "cmdHarvestDNAFail",
+    "target": "other",
+    "targetType": "required",
+    "defaultTimeSeconds": 1,
+    "maximumRangeMeters": 16,
+    "validWeapon": "ALL",
+    "expectedColumnCount": 94,
+    "grantedBySkill": "outdoors_bio_engineer_novice"
+  },
+  "productionContract": {
+    "actionCost": 100,
+    "mindCost": 250,
+    "minimumDnaHarvestingSkill": 1,
+    "maximumRangeMeters": 16,
+    "targetMustBeLivingCreature": true,
+    "targetMustNotBePetBabyCorpseOrInCombat": true,
+    "dnaExperienceType": "bio_engineer_dna_harvesting",
+    "xpFormula": "truncate(pow(targetLevel, 1.2) * 5) + 50, capped at 2500",
+    "fixtureIsolation": "production random rolls and behavior remain unchanged unless the exact player, station, protocol, lifecycle root, prepared flag, and target all match"
+  },
+  "liveFixture": {
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "protocol": 1,
+    "creatureType": "worrt",
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporarySkills": [
+      "outdoors_bio_engineer_master",
+      "outdoors_bio_engineer_novice",
+      "outdoors_bio_engineer_dna_harvesting_01"
+    ],
+    "deterministicRolls": {
+      "skill": 1,
+      "survival": 1,
+      "behavior": 100
+    },
+    "disposableTargetPolicy": "fully initialize a worrt at the authenticated player location with loot disabled only because ownerless ServerConsole logging requires getSelf; destroy it during cleanup",
+    "cleanupPolicy": "restore Action/Mind values and maxima, DNA XP, available skill points, skills, command ownership, and quick-sample marker; destroy fixture DNA and target; repeated cleanup must report alreadyClean=true and restored=true"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "targets": [
+      "ant compile_java",
+      "ant compile_tab",
+      "Release x64 client"
+    ],
+    "patch": "restoration/patches/dsrc/239-p14-sample-dna-command.patch",
+    "patchBytes": 35557,
+    "patchSha256": "b5b6586841d7438d0cb84226fc38f1592cccbe62ea4e87796b32946f6233cfed",
+    "runtimeRunnerSha256": "60686b1fd1afbf429c4f3cb699ab79763decf55aa86c7e4e49a72f4fb134b180",
+    "sourceSha256": {
+      "command_table.tab": "47255c45276c0d9bb386d80b8d019377bb9340c1db4fdafac1c612d0a79f4573",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "bio_engineer.java": "4ca3969cafc731da2646d44aa44a3051682bfe2092a4333c377135b8676c3407",
+      "precu_sample_dna_command_fixture.java": "2591d1026531d497cdd6cf35c8a13c058d3c3db9cff03d100a9d4b2f4cb50e16"
+    },
+    "compiledSha256": {
+      "bio_engineer.class": "f172a96ad6a0248d2e0bb8aa4850e8754d5b11924e51a7cdf5106bc8415c074b",
+      "precu_sample_dna_command_fixture.class": "46fc392e83b2d084dc2ad6ed421318a09d3a54861a0bcc4d4291a09ed75b2c81",
+      "command_table.iff": "e84666212c46a5c9d9eb77de71d0f1ec98da4e4d3d19f9a4d68e5293bae63b93"
+    },
+    "clientSha256": "10c740e65497f175a6b2adfc176c5b5350ee1eb0863789946b4c735ded0ae38d",
+    "runtimeTreSha256": "13a3184e900a2437fc6a625a96cb807f9fb00321b54dd8833e1e8d7587e653b4",
+    "cleanMaterializationPatches": 245,
+    "cleanMaterializationAcceptanceFiles": 704,
+    "cleanMaterializationFingerprint": "17780ffb50a72930696b7ea3b8b30e65a185c1c482301cba118e46bd9e80a16a"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 60540,
+    "clientProtocolVersion": 155,
+    "lifecycle": "1b134a659eca424095ac833989be64ee",
+    "playerOid": 44003778,
+    "targetOid": 1048548256,
+    "targetLevel": 6,
+    "handlerCalls": 1,
+    "actionCost": 100,
+    "mindCost": 250,
+    "skillRoll": 1,
+    "survivalRoll": 1,
+    "behaviorRoll": 100,
+    "dnaOid": 1048548468,
+    "dnaTemplate": "object/tangible/component/dna/dna_sample_average.iff",
+    "xpGranted": 92,
+    "xpPersisted": 92,
+    "creatureSurvived": true,
+    "cleanupRestored": true,
+    "idempotentCleanupRestored": true,
+    "serverHealthy": true,
+    "postProofFatalSevereJavaErrorExceptionCount": 0
+  },
+  "narrowBoundary": {
+    "included": [
+      "authoritative 94-column command registration",
+      "novice Bio-Engineer command ownership",
+      "real protocol-155 client command dispatch",
+      "retained production handler, DNA creation, XP, survival, and resource-cost behavior",
+      "identity-bound deterministic telemetry and reversible disposable target"
+    ],
+    "deferred": [
+      "statistical validation of unforced random DNA quality and creature reactions",
+      "every creature gene profile",
+      "later Bio-Engineer crafting progression"
+    ]
+  }
+}

@@ -1,0 +1,366 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index e62cc9cc4f7ba7b54a12f98ffc2858873646289a..0b3a3f2e67322342033ff1da9cd86e3ee160cc68 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15369,6 +15369,30 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int coneDelay(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("panicShot", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int lowBlow(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("lowBlow", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int lastDitch(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("lastDitch", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int unarmedBodyHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("unarmedBodyHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 31daf1e601211cdcd12f2ce9e2554e28675428c3..3fe02d58ef127af6525fd82e36746ed0cfc2a904 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -156,6 +156,21 @@ public class precu_headshot1_fixture extends script.base_script
+     };
+     private static final String[] BOUNTY_HUNTER_MASTER_PREREQUISITES =
+         BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES;
++    private static final String[] SMUGGLER_COMBAT_SKILLS =
++    {
++        "combat_smuggler", "combat_smuggler_novice",
++        "combat_smuggler_combat_01", "combat_smuggler_combat_02",
++        "combat_smuggler_combat_03", "combat_smuggler_combat_04"
++    };
++    private static final String[] SMUGGLER_COMBAT_PREREQUISITES =
++    {
++        "combat_marksman", "combat_marksman_novice",
++        "combat_marksman_pistol_01", "combat_marksman_pistol_02",
++        "combat_marksman_pistol_03", "combat_marksman_pistol_04",
++        "combat_brawler", "combat_brawler_novice",
++        "combat_brawler_unarmed_01", "combat_brawler_unarmed_02",
++        "combat_brawler_unarmed_03", "combat_brawler_unarmed_04"
++    };
+     private static final String BRAWLER_POLEARM_ONE =
+         "combat_brawler_polearm_01";
+     private static final String BRAWLER_POLEARM_TWO =
+@@ -453,6 +468,10 @@ public class precu_headshot1_fixture extends script.base_script
+     {
+         "sprayShot", "fastBlast"
+     };
++    private static final String[] SMUGGLER_COMBAT_COMMANDS =
++    {
++        "panicShot", "lowBlow", "lastDitch"
++    };
+     private static final String UNARMED_KNOCKDOWN_ONE_COMMAND =
+         "unarmedKnockdown1";
+     private static final String UNARMED_KNOCKDOWN_TWO_COMMAND =
+@@ -678,6 +697,12 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".m327.originalBountyHunterMasterPrerequisiteBits";
+     private static final String ORIGINAL_BOUNTY_HUNTER_MASTER_COMMAND_BITS =
+         ROOT + ".m327.originalBountyHunterMasterCommandBits";
++    private static final String ORIGINAL_SMUGGLER_COMBAT_SKILL_BITS =
++        ROOT + ".m328.originalSmugglerCombatSkillBits";
++    private static final String ORIGINAL_SMUGGLER_COMBAT_PREREQUISITE_BITS =
++        ROOT + ".m328.originalSmugglerCombatPrerequisiteBits";
++    private static final String ORIGINAL_SMUGGLER_COMBAT_COMMAND_BITS =
++        ROOT + ".m328.originalSmugglerCombatCommandBits";
+     private static final String ORIGINAL_BRAWLER_POLEARM_ONE =
+         ROOT + ".originalBrawlerPolearmOne";
+     private static final String ORIGINAL_BRAWLER_POLEARM_TWO =
+@@ -1157,7 +1182,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|prepareUnarmedMaster|statusUnarmedMaster|armUnarmedMaster|cleanupUnarmedMaster|prepareBountyHunterDroidControl|statusBountyHunterDroidControl|armBountyHunterDroidControl|cleanupBountyHunterDroidControl|recoverBountyHunterDroidControl|prepareBountyHunterDroidResponse|statusBountyHunterDroidResponse|armBountyHunterDroidResponse|cleanupBountyHunterDroidResponse|prepareBountyHunterMaster|statusBountyHunterMaster|armBountyHunterMasterCarbine|armBountyHunterMasterPistol|cleanupBountyHunterMaster|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|prepareUnarmedMaster|statusUnarmedMaster|armUnarmedMaster|cleanupUnarmedMaster|prepareBountyHunterDroidControl|statusBountyHunterDroidControl|armBountyHunterDroidControl|cleanupBountyHunterDroidControl|recoverBountyHunterDroidControl|prepareBountyHunterDroidResponse|statusBountyHunterDroidResponse|armBountyHunterDroidResponse|cleanupBountyHunterDroidResponse|prepareBountyHunterMaster|statusBountyHunterMaster|armBountyHunterMasterCarbine|armBountyHunterMasterPistol|cleanupBountyHunterMaster|prepareSmugglerCombat|statusSmugglerCombat|armSmugglerCombat|cleanupSmugglerCombat|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -1297,6 +1322,22 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return cleanupBountyHunterMaster(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("prepareSmugglerCombat"))
++        {
++            return prepareSmugglerCombat(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("statusSmugglerCombat"))
++        {
++            return statusSmugglerCombat(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("armSmugglerCombat"))
++        {
++            return armSmugglerCombat(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("cleanupSmugglerCombat"))
++        {
++            return cleanupSmugglerCombat(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("status"))
+         {
+             validation = validateOwnership(attacker, defender, args[3], true);
+@@ -6410,6 +6451,202 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "poolDamage.applied2", -1);
+     }
+ 
++    private String prepareSmugglerCombat(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String prepared = prepare(attacker, defender, lifecycle);
++        if (!prepared.startsWith("action=prepare"))
++        {
++            return prepared;
++        }
++        boolean skillSnapshot = hasObjVar(attacker,
++            ORIGINAL_SMUGGLER_COMBAT_SKILL_BITS);
++        boolean prerequisiteSnapshot = hasObjVar(attacker,
++            ORIGINAL_SMUGGLER_COMBAT_PREREQUISITE_BITS);
++        boolean commandSnapshot = hasObjVar(attacker,
++            ORIGINAL_SMUGGLER_COMBAT_COMMAND_BITS);
++        if (skillSnapshot != prerequisiteSnapshot ||
++            skillSnapshot != commandSnapshot)
++        {
++            return "error=smugglerCombatSnapshotPartial " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        if (!skillSnapshot)
++        {
++            setObjVar(attacker, ORIGINAL_SMUGGLER_COMBAT_SKILL_BITS,
++                buildOwnershipBits(attacker, SMUGGLER_COMBAT_SKILLS, true));
++            setObjVar(attacker,
++                ORIGINAL_SMUGGLER_COMBAT_PREREQUISITE_BITS,
++                buildOwnershipBits(attacker, SMUGGLER_COMBAT_PREREQUISITES,
++                    true));
++            setObjVar(attacker, ORIGINAL_SMUGGLER_COMBAT_COMMAND_BITS,
++                buildOwnershipBits(attacker, SMUGGLER_COMBAT_COMMANDS,
++                    false));
++        }
++        boolean prerequisitesReady = grantOwnershipChain(attacker,
++            SMUGGLER_COMBAT_PREREQUISITES, true);
++        boolean skillsReady = prerequisitesReady && grantOwnershipChain(
++            attacker, SMUGGLER_COMBAT_SKILLS, true);
++        boolean commandsReady = grantOwnershipChain(attacker,
++            SMUGGLER_COMBAT_COMMANDS, false);
++        if (!prerequisitesReady || !skillsReady || !commandsReady ||
++            !"111111111111".equals(buildOwnershipBits(attacker,
++                SMUGGLER_COMBAT_PREREQUISITES, true)) ||
++            !"111111".equals(buildOwnershipBits(attacker,
++                SMUGGLER_COMBAT_SKILLS, true)) ||
++            !"111".equals(buildOwnershipBits(attacker,
++                SMUGGLER_COMBAT_COMMANDS, false)))
++        {
++            return "error=smugglerCombatGrantFailed " +
++                buildSmugglerCombatStatus(attacker, defender, lifecycle);
++        }
++        return "action=prepareSmugglerCombat resumed=" + skillSnapshot +
++            " " + buildSmugglerCombatStatus(attacker, defender, lifecycle);
++    }
++
++    private String statusSmugglerCombat(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle,
++            false);
++        return ownership == null ? "action=statusSmugglerCombat " +
++            buildSmugglerCombatStatus(attacker, defender, lifecycle) :
++            ownership;
++    }
++
++    private String armSmugglerCombat(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        obj_id weapon = hasObjVar(attacker, FIXTURE_PISTOL) ?
++            getObjIdObjVar(attacker, FIXTURE_PISTOL) : obj_id.NULL_ID;
++        if (!isIdValid(weapon) ||
++            !CDEF_PISTOL_TEMPLATE.equals(getTemplateName(weapon)))
++        {
++            return "error=fixtureSmugglerPistolMissing " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        obj_id current = getObjectInSlot(attacker, "hold_r");
++        if (current != weapon && isIdValid(current))
++        {
++            obj_id inventory = getObjectInSlot(attacker, "inventory");
++            if (!isIdValid(inventory) || !putInOverloaded(current, inventory))
++            {
++                return "error=unexpectedAttackerWeapon " +
++                    buildStatus(attacker, defender, lifecycle);
++            }
++        }
++        boolean scriptAttached = hasScript(weapon,
++            "systems.combat.combat_weapon");
++        if (scriptAttached)
++        {
++            detachScript(weapon, "systems.combat.combat_weapon");
++        }
++        boolean equipped = getObjectInSlot(attacker, "hold_r") == weapon ||
++            equipOverride(weapon, attacker);
++        if (scriptAttached)
++        {
++            attachScript(weapon, "systems.combat.combat_weapon");
++        }
++        boolean statesCleared = clearProofStateBuffs(defender);
++        boolean boundary = equipped && statesCleared &&
++            "111111".equals(buildOwnershipBits(attacker,
++                SMUGGLER_COMBAT_SKILLS, true)) &&
++            "111".equals(buildOwnershipBits(attacker,
++                SMUGGLER_COMBAT_COMMANDS, false)) &&
++            combat.canPerformAction("panicShot", attacker) == 0 &&
++            combat.canPerformAction("lowBlow", attacker) == 0 &&
++            combat.canPerformAction("lastDitch", attacker) == 0;
++        return boundary ? "action=armSmugglerCombat equipped=true " +
++            buildSmugglerCombatStatus(attacker, defender, lifecycle) :
++            "error=smugglerCombatOwnershipBoundaryFailed " +
++            buildSmugglerCombatStatus(attacker, defender, lifecycle);
++    }
++
++    private String cleanupSmugglerCombat(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle,
++            true);
++        if ("fixtureAbsent".equals(ownership))
++        {
++            return "action=cleanupSmugglerCombat alreadyClean=true restored=true";
++        }
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasObjVar(attacker, ORIGINAL_SMUGGLER_COMBAT_SKILL_BITS) ||
++            !hasObjVar(attacker,
++                ORIGINAL_SMUGGLER_COMBAT_PREREQUISITE_BITS) ||
++            !hasObjVar(attacker, ORIGINAL_SMUGGLER_COMBAT_COMMAND_BITS))
++        {
++            return "error=smugglerCombatSnapshotMissing " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        String skillBits = getStringObjVar(attacker,
++            ORIGINAL_SMUGGLER_COMBAT_SKILL_BITS);
++        String prerequisiteBits = getStringObjVar(attacker,
++            ORIGINAL_SMUGGLER_COMBAT_PREREQUISITE_BITS);
++        String commandBits = getStringObjVar(attacker,
++            ORIGINAL_SMUGGLER_COMBAT_COMMAND_BITS);
++        boolean restored = restoreOwnershipBits(attacker,
++            SMUGGLER_COMBAT_COMMANDS, commandBits, false) &&
++            restoreOwnershipBits(attacker, SMUGGLER_COMBAT_SKILLS,
++                skillBits, true) &&
++            restoreOwnershipBits(attacker, SMUGGLER_COMBAT_PREREQUISITES,
++                prerequisiteBits, true);
++        if (!restored)
++        {
++            return "error=smugglerCombatRestorationFailed " +
++                buildSmugglerCombatStatus(attacker, defender, lifecycle);
++        }
++        String baseCleanup = cleanup(attacker, defender, lifecycle);
++        return baseCleanup.startsWith("action=cleanup") ?
++            "action=cleanupSmugglerCombat alreadyClean=false restored=true " +
++                baseCleanup : baseCleanup;
++    }
++
++    private String buildSmugglerCombatStatus(obj_id attacker,
++        obj_id defender, String lifecycle) throws InterruptedException
++    {
++        int[] panicCosts = getFixtureActionCosts(attacker, "panicShot");
++        int[] lowCosts = getFixtureActionCosts(attacker, "lowBlow");
++        int[] ditchCosts = getFixtureActionCosts(attacker, "lastDitch");
++        obj_id held = getObjectInSlot(attacker, "hold_r");
++        return buildStatus(attacker, defender, lifecycle) +
++            " smugglerCombatSkillBits=" + buildOwnershipBits(attacker,
++                SMUGGLER_COMBAT_SKILLS, true) +
++            " smugglerCombatPrerequisiteBits=" +
++                buildOwnershipBits(attacker,
++                    SMUGGLER_COMBAT_PREREQUISITES, true) +
++            " smugglerCombatCommandBits=" + buildOwnershipBits(attacker,
++                SMUGGLER_COMBAT_COMMANDS, false) +
++            " panicShotCanPerform=" +
++                combat.canPerformAction("panicShot", attacker) +
++            " lowBlowCanPerform=" +
++                combat.canPerformAction("lowBlow", attacker) +
++            " lastDitchCanPerform=" +
++                combat.canPerformAction("lastDitch", attacker) +
++            " panicShotCosts=" + panicCosts[0] + "," + panicCosts[1] +
++                "," + panicCosts[2] +
++            " lowBlowCosts=" + lowCosts[0] + "," + lowCosts[1] + "," +
++                lowCosts[2] +
++            " lastDitchCosts=" + ditchCosts[0] + "," + ditchCosts[1] +
++                "," + ditchCosts[2] +
++            " feignDeathModifier=" +
++                getSkillStatisticModifier(attacker, "feign_death") +
++            " pistolAccuracy=" +
++                getSkillStatisticModifier(attacker, "pistol_accuracy") +
++            " heldWeapon=" + (isIdValid(held) ? held : "none") +
++            " defenderStunState=" + getState(defender, STATE_STUNNED) +
++            " defenderPosture=" + getPosture(defender);
++    }
++
+     private String buildOwnershipBits(obj_id player, String[] names,
+         boolean skills) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index ce45fd08be8349345f062fe3543b6e3a334ddb16..ba9c2dcd642b82bd40c0098dd0e75ca7379b9ed6 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1437,4 +1437,7 @@ bleedingShot	bleedingShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				o
+ eyeShot	eyeShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_3_special_single					fire_3_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
+ torsoShot	torsoShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_3_special_single					fire_3_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	fire	30	30		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
+ sprayShot	sprayShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single							fire_7_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
+-fastBlast	fastBlast			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single					fire_5_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	6	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
++fastBlast	fastBlast			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single					fire_5_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	6	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
++panicShot	panicShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single					fire_1_special_single									OFF	OFF	OFF	OFF	OFF	CONE	64	45	0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				smuggler	0		ACTION_NAME	0	0	1
++lowBlow	lowBlow			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_single					fire_5_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				smuggler	0		ACTION_NAME	0	0	1
++lastDitch	lastDitch			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single					fire_1_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	6	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				smuggler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index a67d2eaac56cd2b409649efb1279c0db9b9c863e..5657a78945cc882aa74d0875fd4ab624841837d9 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -154,3 +154,6 @@ eyeShot	1	1	1	MIND	2	0	RANGED		0	BLIND	100	0	40	blind_defense	jedi_state_defense
+ torsoShot	1	1	1	HEALTH	2.3	0	RANGED	HEALTH
+ sprayShot	1	1	1	RANDOM	3.5	0	RANGED		0	DIZZY	60	0	30	dizzy_defense	jedi_state_defense	resistance_states	BLIND	100	0	30	blind_defense	jedi_state_defense	resistance_states	STUN	30	0	10	stun_defense	jedi_state_defense	resistance_states
+ fastBlast	1.5	1.5	1	MULTI	3.05	95	RANGED	NONE	0	NONE	0	0	0				NONE	0	0	0				NONE	0	0	0				0	0	0	0	-1	-1		0.33	0.33	0.33
++panicShot	.5	1.25	.5	RANDOM	3	50	RANGED			NEXT_ATTACK_DELAY	100	0	10	warcry_defense																										
++lowBlow	.5	1	.5	RANDOM	2.5	50	RANGED																										100							
++lastDitch	.5	1.25	.5	RANDOM	4	60	RANGED			STUN	100	0	30	stun_defense	jedi_state_defense	resistance_states																								
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 9eb7556ab3065a849de157201f61d1ed74d09eef..33eef072881e7f32e06e3595f9575d568699a485 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -153,3 +153,6 @@ eyeShot	eyeshot
+ torsoShot	torsoshot
+ sprayShot	sprayshot
+ fastBlast	fastblast
++panicShot	panicshot
++lowBlow	lowblow
++lastDitch	lastditch
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 9da237de44097ea319391906329c1af4ad69a549..1c8e4cb8afbe1d0afd975a8c230bcc549e12efe7 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2091,3 +2091,6 @@ eyeShot		normal	eyeShot	failSpecialAttack			1.5	eyeShot	1	0	1	1	1	0	1	1	1	0	0	0
+ torsoShot		normal	torsoShot	failSpecialAttack			1.5	torsoShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ sprayShot		normal	sprayShot	failSpecialAttack			1.5	sprayShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ fastBlast		normal	fastBlast	failSpecialAttack			1.5	fastBlast	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++panicShot		normal	coneDelay	failSpecialAttack			1.5	panicShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++lowBlow		normal	lowBlow	failSpecialAttack			1.5	lowBlow	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++lastDitch		normal	lastDitch	failSpecialAttack			1.5	lastDitch	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

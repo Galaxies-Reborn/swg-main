@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "feature": "berserk-one-command",
+  "scope": "Restore the Publish 14.1 Brawler berserk1 command as an authenticated real-client HAM-to-timed-state transaction with restart-safe expiration and reversible evidence.",
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java"
+  },
+  "eraEvidence": {
+    "commandSource": "Source/legacy/precu-restore/precu_command_table_additions.tab",
+    "commandSourceSha256": "29e2954f766b2835a6b11d983a0a70aa87791ba82ed29d151767dd6a9e5c19bd",
+    "skillSource": "Source/legacy/precu-restore/authentic/skills.precu_merged.tab",
+    "skillSourceSha256": "5d8882200a4061b0086537cd4a18e2d505048e979e830caae777c55ae607dfeb",
+    "publish": "14.1",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/creature/commands/Berserk1Command.h",
+    "findings": [
+      "The exact retained 94-column row routes berserk1 to the actor hook, permits optional other targeting, executes outside the combat queue, rejects an already-berserk actor through the state mask, and is visible at client level two.",
+      "combat_brawler_novice grants berserk1 and no berserk modifier; the master box later grants berserk2 and berserk=20.",
+      "Pinned Core3 requires melee or unarmed combat, succeeds when random 0..100 plus berserk is at least 25, and charges Strength-, Quickness-, and Focus-adjusted base costs of 100 Health, 100 Action, and 50 Mind only when every current pool is strictly greater than its cost.",
+      "Success sets the berserk state for 20 seconds. The restored player receiver persists an absolute expiry and generation-checks callbacks so relogin can rearm the remaining interval and stale timers cannot clear a newer activation."
+    ]
+  },
+  "commandContract": {
+    "name": "berserk1",
+    "scriptHook": "berserk1",
+    "failScriptHook": "failSpecialAttack",
+    "receiverScript": "persistent player.base.base_player",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 1.5,
+    "executeTimeSeconds": 1.5,
+    "addToCombatQueue": false,
+    "visible": 2,
+    "expectedColumnCount": 94,
+    "grantedBySkill": "combat_brawler_novice"
+  },
+  "productionContract": {
+    "eligibility": [
+      "living player with combat_brawler_novice",
+      "current weapon classified as melee or unarmed",
+      "actor not already in STATE_BERSERK",
+      "random 0..100 plus berserk skill modifier at least 25",
+      "current Health, Action, and Mind each strictly greater than adjusted cost"
+    ],
+    "randomRollInclusive": [0, 100],
+    "successThreshold": 25,
+    "skillModifier": "berserk",
+    "baseCosts": {
+      "Health": 100,
+      "Action": 100,
+      "Mind": 50
+    },
+    "governingAttributes": {
+      "Health": "Strength",
+      "Action": "Quickness",
+      "Mind": "Focus"
+    },
+    "durationSeconds": 20,
+    "durability": "absolute server-game-time expiry objvar plus generation-checked callback and OnLogin rearm"
+  },
+  "liveFixture": {
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "protocol": 1,
+    "actions": ["prepare", "status", "cleanup"],
+    "temporarySkills": ["combat_brawler", "combat_brawler_novice"],
+    "preparedAttributes": {
+      "Health": 500,
+      "Action": 500,
+      "Mind": 500
+    },
+    "deterministicRoll": 25,
+    "expectedCosts": "calculated from the fixture character's snapshotted Strength, Quickness, and Focus using the production adjustment formula",
+    "fixtureIsolation": "deterministic roll and telemetry require exact player OID, station ID, fixture protocol, and prepared root",
+    "cleanupPolicy": "clear fixture berserk state and expiry; restore the six snapshotted current values and maxima, accepting only monotonic primary current/max increases from ordinary regeneration or the retained skill system's legacy stat-layout repair; restore skill points and fixture skills; retain the lifecycle marker on any incomplete restoration; then prove repeated cleanup idempotence"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "targets": ["ant compile_java", "ant compile_tab"],
+    "patch": "restoration/patches/dsrc/243-p14-berserk-one-command.patch",
+    "patchBytes": 30008,
+    "patchSha256": "67c8a26a05bcdfb09011551286d325cc4bc391e0c40aedcd2759e5fc13ca6b28",
+    "runtimeRunnerSha256": "176bdb0b76460feaec4f2b9695224ac09dcbc986f3da590e94cf41d1a4eb72f0",
+    "sourceSha256": {
+      "command_table.tab": "4f995738132d358903f32bc499bac629b791a3722553ba1b482f629959f5411c",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "base_player.java": "1efd0269ffc0f8f9826960eac49844495e6d697f14301a5c76067ef3f79103ec",
+      "precu_berserk_one_command_fixture.java": "5eb600b4a3c89d3e3f05a8942873de1965e3feacc62e209c96adf8ab879fcf0e"
+    },
+    "compiledSha256": {
+      "base_player.class": "e21057348837bfc3581c14b508a65e12b3df3bfdab19d73af86e2968356dd3c7",
+      "precu_berserk_one_command_fixture.class": "24dc258fa8db8a5af54d6ed556be0908c318e2c4fb778f556837ad96d384a3fd",
+      "command_table.iff": "3e7bddf658f85a166deaba24d5fc1c923caeb3e9305ed0688775bb31abedff83"
+    },
+    "cleanMaterializationPatches": 249,
+    "cleanMaterializationAcceptanceFiles": 720,
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "testedUtc": "2026-07-23T07:03:44Z",
+    "protocolVersion": 156,
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "lifecycle": "431974fec0074c9686b70bf9a2772464",
+    "clientProcessId": 31216,
+    "weaponOid": 44003785,
+    "weaponType": 6,
+    "meleeWeapon": true,
+    "handlerCalls": 1,
+    "berserkModifier": 0,
+    "randomRoll": 25,
+    "chanceTotal": 25,
+    "strength": 1000,
+    "quickness": 300,
+    "focus": 100,
+    "healthCost": 41,
+    "actionCost": 100,
+    "mindCost": 58,
+    "healthBefore": 502,
+    "healthAfter": 461,
+    "actionBefore": 500,
+    "actionAfter": 400,
+    "mindBefore": 500,
+    "mindAfter": 442,
+    "berserkStateAfterActivation": 1,
+    "remainingSecondsAfterActivation": 19,
+    "durationSeconds": 20,
+    "berserkStateAfterExpiration": 0,
+    "expiryCleared": true,
+    "cleanup": "action=cleanup alreadyClean=false restored=true",
+    "idempotentCleanup": "action=cleanup alreadyClean=true restored=true",
+    "serverHealth": "healthy",
+    "postProofFatalSevereJavaExceptionDictionaryErrors": 0,
+    "clientExeSha256": "7c98eb99c831828238ff69d939ce2c24ca45c3e02fdc2942e55d683f0b411ea2",
+    "runtimeTreSha256": "f7a5e7def562c32d1be5438d63bd078394932b64d9aa17f71fb1f18210992a1c",
+    "commandTableIffSha256": "3e7bddf658f85a166deaba24d5fc1c923caeb3e9305ed0688775bb31abedff83"
+  },
+  "narrowBoundary": {
+    "included": [
+      "authoritative command registration and Brawler novice ownership",
+      "production chance, weapon, adjusted HAM, strict-pool, state, persistence, relogin-rearm, and stale-timer semantics",
+      "real-client nonqueued activation, natural 20-second expiry, cleanup, idempotence, and server health"
+    ],
+    "deferred": [
+      "statistical random-roll sampling",
+      "every melee weapon-family permutation",
+      "berserk2 master behavior, which is the next shared-state milestone"
+    ]
+  }
+}

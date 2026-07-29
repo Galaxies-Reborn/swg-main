@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-polearm-accuracy-branch",
+  "status": "ready",
+  "scope": "Restore Pikeman Accuracy I-IV with polearmStun2 and polearmSpinAttack2, pinned Core3 state semantics, authenticated client admission, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": ["polearmStun2.lua", "polearmSpinAttack2.lua"],
+    "skillBranch": [
+      "combat_polearm_accuracy_01",
+      "combat_polearm_accuracy_02",
+      "combat_polearm_accuracy_03",
+      "combat_polearm_accuracy_04"
+    ],
+    "skillPrerequisite": "combat_polearm_novice",
+    "skillCommands": {
+      "combat_polearm_accuracy_01": ["private_polearm_accuracy_01", "polearmStun2"],
+      "combat_polearm_accuracy_03": ["private_polearm_accuracy_03", "polearmSpinAttack2"]
+    },
+    "commands": {
+      "polearmStun2": {
+        "damageMultiplier": 2.0,
+        "speedMultiplier": 2.0,
+        "hamCostMultipliers": [1.5, 1.0, 1.0],
+        "accuracyBonus": 10,
+        "targetPool": "RANDOM",
+        "attackType": "AREA",
+        "areaRange": 16,
+        "animation": "lower_posture_2hmelee_5",
+        "animationType": "",
+        "combatSpam": "breathstealer",
+        "weaponType": "POLEARM",
+        "range": -1,
+        "state": {
+          "effect": "STUN",
+          "chance": 60,
+          "strength": 0,
+          "durationSeconds": 30,
+          "defense": "stun_defense",
+          "jediDefense": "jedi_state_defense",
+          "resistance": "resistance_states"
+        }
+      },
+      "polearmSpinAttack2": {
+        "damageMultiplier": 2.5,
+        "speedMultiplier": 2.5,
+        "hamCostMultipliers": [2.0, 1.5, 1.5],
+        "accuracyBonus": 10,
+        "targetPool": "RANDOM",
+        "attackType": "AREA",
+        "areaRange": 16,
+        "animation": "combo_2c",
+        "animationType": "INTENSITY",
+        "combatSpam": "limbbreaker",
+        "weaponType": "POLEARM",
+        "range": -1,
+        "state": {
+          "effect": "DIZZY",
+          "chance": 75,
+          "strength": 0,
+          "durationSeconds": 25,
+          "defense": "dizzy_defense",
+          "jediDefense": "jedi_state_defense",
+          "resistance": "resistance_states"
+        }
+      }
+    },
+    "patch12Command": {
+      "defaultPriority": "normal",
+      "failScriptHook": "failSpecialAttack",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "validWeapon": "POLEARM"
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "scratchCommit": "a637dc7ed2397491c3abe8004ea577eb46d9d93e",
+    "overlay": "restoration/patches/dsrc/309-p14-core3-polearm-accuracy-branch.patch",
+    "overlaySha256": "1c825b69b529e542917dfe42acf3aaf885ada231671f93c2e231c55e296922f7",
+    "reverseApply": "passed",
+    "cleanApply": "passed",
+    "javaCompile": "passed",
+    "combatActionsSourceSha256": "f5c054674551f7f3c22284d43141eea23648d9cd6f4c63a479b57278d21fbc12",
+    "fixtureSourceSha256": "6ae2cfd7e2c58d021d19dd12f8e1c019297ca47b9fde45b2ef0f7d73d2aae21e",
+    "combatActionsClassSha256": "b6aabc4ed1b816acd91b8a52f64ae0823975e82dfad2d49f1f71a43732d18295",
+    "fixtureClassSha256": "8970284a70bff8d2f2cd96fd27aae813ed387b273729139f7501ca9f3b8e9cee",
+    "datatableCompile": "passed",
+    "commandTableRows": 2067,
+    "commandTableSha256": "e35257be771fcef6511fcc73e7f45501460b42c5f8b13bf83219175bd8f2a0f6",
+    "combatDataRows": 1414,
+    "combatDataSha256": "d40eb2cf2acabed70cdc71bbe446c1488b5cc0e00d7da63c5de312290fbf3be4",
+    "overrideRows": 130,
+    "overrideTableSha256": "77ba238a77b000ce1fd8ab404f9e06553f6434e8a1d328ad8f35f05ddee5e1be",
+    "spamRows": 129,
+    "spamTableSha256": "86cfafbd97f60ad334df6adee19f27608fe363c3ab7cc245235299de4b364090",
+    "deterministicTreBuild": true,
+    "runtimeTreFiles": 3,
+    "runtimeTreBytes": 135225,
+    "runtimeTreSha256": "ee5e0662f9ec20349f6beb2d3497a42467aff98038cac567bb381367e1fbc5d5",
+    "bridgeFocusedTests": 69,
+    "toolsTestsPassed": 199,
+    "toolsTestsSkipped": 3,
+    "clientBuild": "Release x64 passed with installed v143 override",
+    "backgroundInputProtocol": 230,
+    "clientBytes": 33808896,
+    "clientSha256": "30ffea5eeb9489304b614fedde58d73fa672e17b390e7bd0cce0cec54af2484f",
+    "materializedOverlayCount": 315,
+    "materializedRestorationFileCount": 925,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T12:17:54-04:00",
+    "clientProtocolVersion": 230,
+    "attacker": {
+      "stationId": 91001,
+      "playerOid": "44003778",
+      "name": "PrecuRuntime",
+      "godLevel": 0
+    },
+    "defender": {
+      "stationId": 1001,
+      "playerOid": "39008597",
+      "name": "Icai Darkwave",
+      "godLevel": 0
+    },
+    "lifecycleId": "31100000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "polearmNovice": true,
+      "accuracyBranch": true,
+      "skills": [
+        "combat_polearm_accuracy_01",
+        "combat_polearm_accuracy_02",
+        "combat_polearm_accuracy_03",
+        "combat_polearm_accuracy_04"
+      ],
+      "commands": ["polearmStun2", "polearmSpinAttack2"],
+      "canPerform": {
+        "polearmStun2": 0,
+        "polearmSpinAttack2": 0
+      },
+      "weapon": "object/weapon/melee/polearm/lance_staff_wood_s2.iff",
+      "distanceCentimeters": 204,
+      "defenderStunDefense": 0,
+      "defenderDizzyDefense": 0,
+      "clientWeaponStatus": {
+        "polearmStun2": {
+          "commandFound": true,
+          "weaponType": 7,
+          "validMask": "0x00000080",
+          "satisfies": true,
+          "packed": "0x0000000000805707"
+        },
+        "polearmSpinAttack2": {
+          "commandFound": true,
+          "weaponType": 7,
+          "validMask": "0x00000080",
+          "satisfies": true,
+          "packed": "0x0000000000805707"
+        }
+      }
+    },
+    "commands": {
+      "polearmStun2": {
+        "queueRemoval": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 265,
+        "configuredPool": "RANDOM",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 0,
+        "hamCost": {
+          "health": 12,
+          "action": 38,
+          "mind": 17
+        },
+        "combatSpam": "breathstealer_hit",
+        "animation": "lower_posture_2hmelee_5",
+        "animationType": 0,
+        "attackType": "AREA",
+        "areaRange": 16,
+        "state": {
+          "type": 3,
+          "effect": "STUN",
+          "chance": 60,
+          "strength": 0,
+          "duration": 30,
+          "roll": 46,
+          "threshold": 63,
+          "result": "APPLIED",
+          "before": 0,
+          "after": 1
+        },
+        "memberScreenshotSha256": "0bcc7b28a007501abc44ab0c2bb393c22944a7a14b3969973551598893bfbe79",
+        "defenderScreenshotSha256": "db2070da5a47c99b13987635582d085a135218eed03d8580e79d1ff4ba113683"
+      },
+      "polearmSpinAttack2": {
+        "queueRemoval": "Success",
+        "packedQueueStatus": "0x0100000043510000",
+        "combatResult": 1,
+        "directDamage": 369,
+        "configuredPool": "RANDOM",
+        "resolvedPool": "MIND",
+        "hitLocation": 1,
+        "hamCost": {
+          "health": 16,
+          "action": 57,
+          "mind": 26
+        },
+        "combatSpam": "limbbreaker_hit",
+        "animation": "combo_2c_medium",
+        "animationType": 2,
+        "attackType": "AREA",
+        "areaRange": 16,
+        "state": {
+          "type": 1,
+          "effect": "DIZZY",
+          "chance": 75,
+          "strength": 0,
+          "duration": 25,
+          "roll": 87,
+          "threshold": 78,
+          "result": "RESISTED",
+          "before": 0,
+          "after": 0
+        },
+        "memberScreenshotSha256": "59f4c9920bb3ad750776914f64b9fac35ce6de26373c68d769a89fc9a8090586",
+        "defenderScreenshotSha256": "21124dae6b1d96af1253cd5bdf16d4e97d9b0721bec72ec69e1dc6bf0f7290c5"
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "accuracyBranchSurvived": true,
+      "commandsSurvived": true,
+      "canPerformSurvived": true,
+      "weaponSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "terminalCommand": "polearmSpinAttack2",
+      "terminalDamage": 369,
+      "terminalSpam": "limbbreaker_hit",
+      "terminalAnimation": "combo_2c_medium",
+      "terminalStateResult": "RESISTED",
+      "transientStatesAbsent": true,
+      "memberScreenshotSha256": "4cd5dffd8de4e9b47781904899a1dc474a162db2d1dd4b03cef07efc55313615",
+      "defenderScreenshotSha256": "1e990c6ee116fdb2d580a6cf9d851e0b5736173c51f0ad4b54bd9c156dbbb305"
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "preparedAfterCleanup": false,
+      "temporaryPolearmNoviceAbsent": true,
+      "temporaryAccuracyBranchAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "fixtureWeaponAbsent": true,
+      "terminalDiagnosticsAbsent": true,
+      "transientStatesAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000"
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "isolatedClientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  }
+}

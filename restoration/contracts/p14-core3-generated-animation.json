@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-generated-animation",
+  "status": "ready",
+  "scope": "Restore Core3 GENERATE_RANGED and GENERATE_INTENSITY suffix generation without synthesizing animation families or changing commands that declare GENERATE_NONE.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.h",
+    "threshold": "damage > (weapon.maxDamage >> 2)",
+    "suffixes": {
+      "aboveThreshold": "_medium",
+      "atOrBelowThreshold": "_light",
+      "rangedHead": "_face"
+    }
+  },
+  "implementation": {
+    "overlay": "restoration/patches/dsrc/204-p14-core3-generated-animation.patch",
+    "metadata": "precu_combat_overrides.animationType",
+    "none": 0,
+    "ranged": 1,
+    "intensity": 2,
+    "creatureAnimationGuard": true
+  },
+  "buildEvidence": {
+    "javaCompile": "passed",
+    "datatableCompile": "passed",
+    "staticContract": "passed",
+    "materializedOverlayCount": 210,
+    "materializedRestorationFileCount": 599,
+    "materializedFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 99,
+    "attackerObjectId": 44003778,
+    "defenderObjectId": 39008597,
+    "lifecycle": "20620620620620620620620620620621",
+    "command": "headShot1",
+    "animationType": 1,
+    "hitLocation": 1,
+    "damage": 50,
+    "generatedAnimation": "fire_1_special_single_medium_face",
+    "spamKey": "headshot_hit",
+    "targetPool": 2,
+    "fixtureCleanup": "passed",
+    "serverHealthy": true
+  },
+  "guardrails": [
+    "Commands without explicit animationType metadata retain their existing playback token.",
+    "GENERATE_INTENSITY never appends the ranged-only face suffix.",
+    "Creature wildcard animation routing remains ahead of generated player-special suffix logic.",
+    "State, dot, Force, visibility, splash, and custom-header families remain fail-closed."
+  ]
+}

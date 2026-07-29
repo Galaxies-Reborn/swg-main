@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "feature": "real-client-band-music-session",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "performanceTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/performance/performance.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "instrumentTable": "dsrc/sku.0/sys.server/compiled/game/datatables/tangible/instrument_datatable.tab",
+    "performanceLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/performance.java",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_real_client_band_music_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "startBandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/StartBandCommand.h",
+    "stopBandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/StopBandCommand.h",
+    "bandFlourishSource": "MMOCoreORB/src/server/zone/objects/creature/commands/BandFlourishCommand.h",
+    "startRule": "the group initiator and eligible equipped members within 50 metres start matching music performances",
+    "flourishRule": "eligible active performers in range receive the same band flourish through their authoritative sessions",
+    "stopRule": "every group member playing music receives the band stop and outro",
+    "swgSourceCompatibility": "the retained Publish 14.1 scripts synchronize performanceStartTime, apply per-member Action cost, and schedule the authentic fifteen-second outro"
+  },
+  "publish14Evidence": {
+    "song": "starwars1",
+    "instrument": "slitherhorn",
+    "instrumentTemplate": "object/tangible/instrument/slitherhorn.iff",
+    "instrumentAudioId": 2,
+    "performanceIndex": 1,
+    "bandMemberRangeMeters": 50,
+    "outroSeconds": 15,
+    "leaderQuickness": 400,
+    "memberQuickness": 300,
+    "startingAction": 100,
+    "leaderFlourishCost": 9,
+    "memberFlourishCost": 10,
+    "leaderOutroHeartbeatCost": 25,
+    "memberOutroHeartbeatCost": 28,
+    "leaderActionAfterFlourish": 91,
+    "memberActionAfterFlourish": 90,
+    "leaderActionAfterOutro": 66,
+    "memberActionAfterOutro": 62
+  },
+  "clientCommandBoundary": {
+    "protocolVersion": 34,
+    "leader": {
+      "playerOid": 39008597,
+      "stationId": 1001,
+      "avatar": "Icai Darkwave"
+    },
+    "member": {
+      "playerOid": 44003778,
+      "stationId": 91001,
+      "avatar": "PrecuRuntime"
+    },
+    "commands": [
+      {
+        "helperAction": "StartBandStarwars1",
+        "clientCommand": "startBand",
+        "parameters": "starwars1"
+      },
+      {
+        "helperAction": "BandFlourishOne",
+        "clientCommand": "bandFlourish",
+        "parameters": "1"
+      },
+      {
+        "helperAction": "StopBand",
+        "clientCommand": "stopBand",
+        "parameters": ""
+      }
+    ],
+    "groupCommands": [
+      "TargetCounterpart",
+      "InviteTarget",
+      "JoinGroup",
+      "DisbandGroup"
+    ],
+    "serverAuthority": [
+      "group membership and leadership",
+      "member range and active performance eligibility",
+      "instrument equip state and song abilities",
+      "synchronized performance start time",
+      "per-member Action calculation",
+      "band outro lifecycle"
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T02:41:16-04:00",
+    "overlayPatch": "restoration/patches/dsrc/066-p14-real-client-band-music-session.patch",
+    "overlayPatchSha256": "9a8916d072dc6b0026ec99d7aebfbbb5a7e557e4b6e719e8f96c46177d767aa2",
+    "cleanApplyBaseCommit": "b0f92541d9b213137ffd33a294660ea90a43fc05",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 1,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledJavaSources": 1
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "configuration": "Release|x64",
+      "protocolVersion": 34,
+      "executableBytes": 32557568,
+      "executableSha256": "ce91e5d8086dfe00bfca0b56eba8677a6c1b44930907491b582ec2c8be2635a4"
+    },
+    "sourceSha256": {
+      "precu_real_client_band_music_fixture.java": "4af3551a05a7ddb64d29218d01131775334012c059223fe0bd32ac5c86a6b9fb",
+      "ClientMain.cpp": "f17d337dc7b032751f53480df78625e21b85914271c6bcf5370262335bd5e9c5",
+      "Invoke-PrecuBackgroundInput.ps1": "17cc695d33279d5d08ebab97dff6d621c8b0ffb747ffefbee8cbc276049143c6",
+      "test_precu_background_input_bridge.py": "e7f9d93db92ae44d34116fac1cd4ff604b01413803763a14590882d9e965b096"
+    },
+    "compiledSha256": {
+      "precu_real_client_band_music_fixture.class": "829fe04099028872406d2e557a1e6ffcf0ff1d0cc48439b96e8b1c42744eee70"
+    },
+    "clientSourceTests": {
+      "result": "passed",
+      "bridgeTests": 22,
+      "fullSuiteTests": 143,
+      "expectedSourceDataSkips": 1
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T02:41:16-04:00",
+    "container": "swg-precu",
+    "lifecycle": "e7414cf5a78c4285887ba5c80a8eb066",
+    "clientProtocolVersion": 34,
+    "clientSha256": "ce91e5d8086dfe00bfca0b56eba8677a6c1b44930907491b582ec2c8be2635a4",
+    "leader": {
+      "playerOid": 39008597,
+      "stationId": 1001,
+      "avatar": "Icai Darkwave",
+      "clientProcessId": 70824,
+      "authoritativeQuickness": 400
+    },
+    "member": {
+      "playerOid": 44003778,
+      "stationId": 91001,
+      "avatar": "PrecuRuntime",
+      "clientProcessId": 59076,
+      "authoritativeQuickness": 300
+    },
+    "groupLifecycle": {
+      "inviteAccepted": true,
+      "joinAccepted": true,
+      "sameGroupObserved": true,
+      "leaderObserved": true,
+      "distanceCentimeters": 200,
+      "disbandAccepted": true,
+      "ungroupedObserved": true
+    },
+    "bandSession": {
+      "startAccepted": true,
+      "synchronizedStartTime": true,
+      "leaderActionBeforeFlourish": 100,
+      "memberActionBeforeFlourish": 100,
+      "bandFlourishAccepted": true,
+      "leaderActionAfterFlourish": 91,
+      "memberActionAfterFlourish": 90,
+      "stopAccepted": true,
+      "bothOutrosObserved": true,
+      "leaderActionAfterOutro": 66,
+      "memberActionAfterOutro": 62,
+      "leaderPerformanceAfterOutro": 0,
+      "memberPerformanceAfterOutro": 0,
+      "bothMusicScriptsDetached": true,
+      "bothPostPerformanceScriptsDetached": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "leaderFinalAction": 500,
+      "memberFinalAction": 500,
+      "leaderFinalQuickness": 400,
+      "memberFinalQuickness": 300,
+      "leaderFinalActionRegen": 6.190476,
+      "memberFinalActionRegen": 6.190476,
+      "leaderFinalInstrumentAudioId": 0,
+      "memberFinalInstrumentAudioId": 0,
+      "leaderNoviceRestoredAbsent": true,
+      "memberNoviceRestoredPresent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "bothClientBridgesHealthyAfterCleanup": true
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": false,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": false,
+    "evidenceRepositoryContainsGameplayCode": false
+  },
+  "narrowBoundary": {
+    "included": [
+      "real-client group formation and dissolution",
+      "two equipped slitherhorn performers",
+      "synchronized startBand starwars1",
+      "per-member bandFlourish Action charge",
+      "group-wide stopBand outro",
+      "identity-bound reversible live acceptance"
+    ],
+    "deferred": [
+      "mixed-instrument matching",
+      "band membership changes during an active song",
+      "playback droids",
+      "remaining Musician profession rows"
+    ]
+  }
+}

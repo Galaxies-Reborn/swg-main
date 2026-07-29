@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "scope": "Generic opt-in three-pool combat-cost and target-pool damage runtime. Individual combat commands remain separately gated.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "commit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "costFlow": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "costAdjustment": "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp"
+  },
+  "sourceFiles": {
+    "baseClass": "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+    "combatEngineScript": "dsrc/sku.0/sys.server/compiled/game/script/combat_engine.java",
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "weaponCosts": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "creatureHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
+    "creatureCpp": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp",
+    "scriptAttributes": "src/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp",
+    "scriptCombat": "src/engine/server/library/serverScript/src/shared/ScriptMethodsCombat.cpp",
+    "combatEngineHeader": "src/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.h",
+    "combatEngineCpp": "src/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.cpp"
+  },
+  "primaryPools": [
+    "Health",
+    "Action",
+    "Mind"
+  ],
+  "governingAttributes": [
+    "Strength",
+    "Quickness",
+    "Focus"
+  ],
+  "costAdjustment": "baseCost * multiplier - (((governingAttribute - 300) / 1200) * (baseCost * multiplier)), clamped to zero and truncated to an integer",
+  "governingAttributeSource": {
+    "mode": "authoritativeNineAttributeRuntime",
+    "attributes": [
+      "Strength",
+      "Quickness",
+      "Focus"
+    ],
+    "dynamicNineAttributeValuesReady": true,
+    "contract": "contracts/p14-nine-attribute-runtime.json"
+  },
+  "executionRules": {
+    "strictPositiveRemainder": true,
+    "atomicPreflight": true,
+    "individualCommandOptIn": true,
+    "legacyDefaultTargetPool": -1,
+    "incapacitateWhenAnyPrimaryPoolIsEmpty": true,
+    "recapacitateWhenAllPrimaryPoolsArePositive": true
+  },
+  "initialWeaponFixture": {
+    "template": "object/weapon/ranged/rifle/rifle_cdef.iff",
+    "healthCost": 10,
+    "actionCost": 15,
+    "mindCost": 10
+  },
+  "knownLimitations": {
+    "commandActivation": "Production overrides are limited to the authenticated Marksman tier-I headShot1, bodyShot1, and legShot1 matrix. Every additional command remains separately gated.",
+    "weaponCoverage": "Pinned CDEF rifle, pistol, and carbine 10/15/10 fixtures cover the authenticated Marksman tier-I matrix. Additional weapon templates require provenance before activation.",
+    "woundsAndBattleFatigue": "Wounds, battle fatigue, stance-specific regeneration balance, healing balance, deathblow, and cloning remain later M3 work.",
+    "statMigrationUi": "The nine-value stat-migration message is wire-ready, but the Publish 14 client mediator remains a separate restoration slice."
+  }
+}

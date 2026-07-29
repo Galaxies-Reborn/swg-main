@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-formup-command",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_formup_command_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "formupSource": "MMOCoreORB/src/server/zone/objects/creature/commands/FormupCommand.h",
+    "squadLeaderSource": "MMOCoreORB/src/server/zone/objects/creature/commands/SquadLeaderCommand.h",
+    "leaderRule": "the actor must lead a real group",
+    "costRule": "base 50 multiplied by one plus group size divided by 20, then adjusted by Strength, Quickness, and Focus with strict current-pool affordability",
+    "memberRule": "living healable player group members in the same outdoor or building context have dizzy and stunned cleared and receive PvP-help accounting"
+  },
+  "publish14Evidence": {
+    "command": "formup",
+    "ownerSkill": "outdoors_squadleader_defense_01",
+    "baseCost": 50,
+    "groupSize": 2,
+    "adjustedBaseCost": 55,
+    "preparedStrength": 1000,
+    "preparedQuickness": 300,
+    "preparedFocus": 100,
+    "healthCost": 22,
+    "actionCost": 55,
+    "mindCost": 64,
+    "leaderBefore": {
+      "health": 9552,
+      "action": 500,
+      "mind": 100
+    },
+    "leaderAfter": {
+      "health": 9530,
+      "action": 445,
+      "mind": 36
+    },
+    "memberBefore": {
+      "health": 1000,
+      "action": 500,
+      "mind": 100
+    },
+    "memberAfter": {
+      "health": 1000,
+      "action": 500,
+      "mind": 100
+    },
+    "statesCleared": [
+      "dizzy",
+      "stunned"
+    ]
+  },
+  "clientCommandBoundary": {
+    "protocolVersion": 159,
+    "leader": {
+      "playerOid": 44003778,
+      "stationId": 91001,
+      "avatar": "PrecuRuntime"
+    },
+    "member": {
+      "playerOid": 207005062,
+      "stationId": 1391050504,
+      "avatar": "Isot Spogik"
+    },
+    "commands": [
+      "TargetSquadCounterpart",
+      "InviteTarget",
+      "JoinGroup",
+      "QueueFormup",
+      "DisbandGroup"
+    ],
+    "serverAuthority": [
+      "identity and command ownership",
+      "group membership, size, and leadership",
+      "adjusted HAM affordability and charge",
+      "member eligibility and state clearing",
+      "PvP-help accounting"
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T05:51:00-04:00",
+    "overlayPatch": "restoration/patches/dsrc/245-p14-formup-command.patch",
+    "patchSha256": "41d23c64173bf87c3b7a0a53dec778c8a6276223c2b68697b771e0d0f47f3206",
+    "runtimeRunner": "restoration/scripts/Invoke-P14FormupRuntime.ps1",
+    "runtimeRunnerSha256": "5596d2c3ea839b7539fc34d373a6446d8ad16730b6b0b2a9b02c6364fd374626",
+    "changedFileCount": 3,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledJavaSources": 2,
+      "ownershipCorrectionRecompiledSources": 1,
+      "cleanupCorrectionRecompiledSources": 1
+    },
+    "serverTabBuild": {
+      "result": "passed",
+      "compiledTables": 1,
+      "commandTableIffSha256": "8b8dd747fe677c9b9e9f91667540018ecc8e20b69a043462423c5fe3a1d66fbb"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "configuration": "Release|x64",
+      "platformToolset": "v143",
+      "protocolVersion": 159,
+      "executableBytes": 33797632,
+      "executableSha256": "c5a0888716594f60a1891d53c52ea54df727b1ad138358ab3207d8f7c9e7cd58"
+    },
+    "clientSourceTests": {
+      "result": "passed",
+      "bridgeTests": 56
+    },
+    "sourceSha256": {
+      "command_table.tab": "555a65cc4ad0af92b2c4f025556d87cd12363b5ebd548a50882ebce13e4d5a80",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "base_player.java": "8651377ff7d0565e1f5b3c7e5f6f33b1e6343838af5717a73bb78e4f54047603",
+      "precu_formup_command_fixture.java": "1c55bbbb02553c0e42f4bb5e9d1096bfdd91d7f2e3aa1b0c685e5029dc664b49",
+      "ClientMain.cpp": "dccbfedd0943aaabc8a60d5c1c4e3be4a3041d9d416fe341ae815eac7416f21f",
+      "Invoke-PrecuBackgroundInput.ps1": "8d655bfb2ecede8db61ac0cf9925ca949f5e3cdd5298b6cce5ff1927a6f49bfd",
+      "test_precu_background_input_bridge.py": "24234ec0cc4e283acf5d95e103037c488abad59ca07fde71e12bf8535f49fbdc"
+    },
+    "compiledSha256": {
+      "base_player.class": "3ac519df7d20d2e6a8b550bab10533e94737aa926e25e3566a0a5bad5176d568",
+      "precu_formup_command_fixture.class": "983a466e1cbc38665a9a8a99d0bae69f57eb6d0bd68d64c5a0adbb75a79ce3a2"
+    },
+    "clientAssetSha256": {
+      "datatables/command/command_table.iff": "8b8dd747fe677c9b9e9f91667540018ecc8e20b69a043462423c5fe3a1d66fbb",
+      "precu_runtime.tre": "7faa6c748d647326d7c74c81635ede7a81ab1bbbd2cbd6f76d86d1e8ab4f7985"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T05:50:00-04:00",
+    "container": "swg-precu",
+    "lifecycle": "9c244bf7e7a14c69ac6eda416a56a65c",
+    "clientProtocolVersion": 159,
+    "clientSha256": "c5a0888716594f60a1891d53c52ea54df727b1ad138358ab3207d8f7c9e7cd58",
+    "leader": {
+      "playerOid": 44003778,
+      "stationId": 91001,
+      "avatar": "PrecuRuntime",
+      "clientProcessId": 59976
+    },
+    "member": {
+      "playerOid": 207005062,
+      "stationId": 1391050504,
+      "avatar": "Isot Spogik",
+      "clientProcessId": 10356
+    },
+    "preflightRecovery": {
+      "restored": true,
+      "alreadyClean": true
+    },
+    "groupLifecycle": {
+      "inviteAccepted": true,
+      "joinAccepted": true,
+      "sameGroupObserved": true,
+      "leaderObserved": true,
+      "groupSize": 2,
+      "disbandAccepted": true,
+      "ungroupedObserved": true
+    },
+    "command": {
+      "accepted": true,
+      "handlerCalls": 1,
+      "adjustedBaseCost": 55,
+      "healthCost": 22,
+      "actionCost": 55,
+      "mindCost": 64,
+      "membersApplied": 2,
+      "leaderHealthAfter": 9530,
+      "leaderActionAfter": 445,
+      "leaderMindAfter": 36,
+      "memberPoolsUnchanged": true,
+      "bothDizzyCleared": true,
+      "bothStunnedCleared": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "settledBeforeClientExitSeconds": 15,
+      "normalizedDatabaseRelation": "OBJECT_VARIABLES_VIEW",
+      "normalizedDatabaseMarkerCount": 0,
+      "legacyFlattenedCompatibilityMarkerCount": 17,
+      "legacyFlattenedCompatibilityColumnsAuthoritative": false
+    },
+    "serverHealthyAfterCleanup": true,
+    "bothProofClientsStopped": true,
+    "userClientUntouched": true
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  },
+  "narrowBoundary": {
+    "included": [
+      "exact retained 94-column command registration",
+      "Defense I command ownership",
+      "real two-client group formation and dissolution",
+      "group-size-scaled adjusted leader HAM charge",
+      "eligible member dizzy and stunned clearing",
+      "identity-bound reversible cleanup"
+    ],
+    "deferred": [
+      "groups larger than two",
+      "mixed building contexts",
+      "PvP-enemy group policy",
+      "boostmorale, retreat, and steadyaim"
+    ]
+  }
+}

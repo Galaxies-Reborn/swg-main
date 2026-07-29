@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "scope": "Publish 14.1 stat-migration tables, server-owned allocation sessions, tutorial commit path, authenticated Image Designer commit, and retained client command protocol.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "commit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "purpose": "Behavioral reference for nine-attribute bounds, totals, and server-authoritative migration validation."
+  },
+  "authenticClientData": {
+    "era": "Publish 14.1",
+    "source": "operator-owned retail patch archives",
+    "attributeLimitsIffSha256": "7ED1FAC4B58567A619D1411F78F8B721152B6629552A021B410806CFC837B9A5",
+    "racialModsIffSha256": "D6AB5F717A249E1B2CC192D3258A2C6CE9B397D79B5E5873450126EAF66500BB",
+    "professionModsIffSha256": "EF1B9F01294ADEC6C96CC5B92976A741500A657F11DAE611179460586D0AB5D5"
+  },
+  "wireOrder": [
+    "health",
+    "strength",
+    "constitution",
+    "action",
+    "quickness",
+    "stamina",
+    "mind",
+    "focus",
+    "willpower"
+  ],
+  "commands": [
+    "requestSetStatMigrationData",
+    "requestStatMigrationData",
+    "requestStatMigrationStart",
+    "requestStatMigrationStop"
+  ],
+  "racialTotals": {
+    "bothan_male": 5400,
+    "human_male": 5400,
+    "moncal_male": 5400,
+    "rodian_male": 5400,
+    "trandoshan_male": 5550,
+    "twilek_male": 5400,
+    "wookiee_male": 6100,
+    "zabrak_male": 5400,
+    "sullustan_male": 5400,
+    "ithorian_male": 5400
+  },
+  "sourceFiles": {
+    "commandCpp": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp",
+    "commandHeader": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h",
+    "playerController": "src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp",
+    "imageDesignerManager": "src/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp",
+    "imageDesignerNative": "src/engine/server/library/serverScript/src/shared/ScriptMethodsImageDesign.cpp",
+    "sharedImageDesigner": "src/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp",
+    "imageDesignerWireMessage": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/ImageDesignChangeMessage.cpp",
+    "imageDesignerScript": "dsrc/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java",
+    "persistenceFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_stat_migration_persistence_fixture.java",
+    "attributeLimits": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/attribute_limits.tab",
+    "racialMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/racial_mods.tab",
+    "professionMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/profession_mods.tab"
+  },
+  "commitBoundaries": {
+    "tutorial": "Validated targets are applied immediately in newbie_hall and consumed once.",
+    "normalWorld": "Validated targets remain server-owned until an authenticated, non-self Image Designer transaction commits them in the original salon structure."
+  },
+  "imageDesignerCommit": {
+    "designType": "DT_STAT_MIGRATION",
+    "minimumSessionSeconds": 240,
+    "experience": 2000,
+    "requirements": [
+      "existing server-owned designer session",
+      "exact designer, recipient, terminal, and starting-time identity",
+      "designer and recipient are distinct",
+      "both participants remain in the original salon structure",
+      "recipient has a valid zero-points-left nine-stat allocation"
+    ],
+    "consumption": "The allocation is revalidated immediately before mutation and erased after one successful commit.",
+    "rewardGuard": "DT_STAT_MIGRATION enters the 2,000 XP reward path even when no cosmetic hair, morph, index, or holo-emote field changed.",
+    "rewardRouting": "The completion script grants directly to the dedicated imagedesigner pool; the NGE social-style template router is intentionally bypassed."
+  },
+  "wireCompatibility": {
+    "startingTime": "Signed 32-bit retail-era epoch field, explicitly encoded independent of host time_t width.",
+    "liveFinding": "An x64 Windows client writing raw 64-bit time_t shifts the remaining controller payload and is rejected by the 32-bit game server as an invalid network stream."
+  },
+  "persistentSession": {
+    "storage": "Recipient creature object variables under precu.statMigration.",
+    "record": "A nine-integer targets vector followed by a pending state marker written last.",
+    "recovery": "The authoritative game server reloads and revalidates the record when no process-local session exists.",
+    "consumption": "A committing marker is persisted before mutation; successful tutorial and salon commits remove the complete record.",
+    "failurePolicy": "Partial, invalid, or interrupted-commit records fail closed and are never replayed."
+  },
+  "knownLimitations": {
+    "imageDesignerCommit": "Restored for authenticated normal-world salon transactions.",
+    "sessionPersistence": "Validated pending allocations survive a graceful game-server restart; an interruption after the committing marker is written fails closed rather than replaying the service."
+  }
+}

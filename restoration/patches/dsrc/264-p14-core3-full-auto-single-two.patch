@@ -1,0 +1,173 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 1263aaf..98c3d41 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14703,4 +14703,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         return SCRIPT_CONTINUE;
+     }
++    public int fullAutoSingle2(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction(
++            "fullAutoSingle2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int scatterShot1(obj_id self, obj_id target, String params,
+         float defaultTime) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 12c350b..7ce842f 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -83,4 +83,6 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String FULL_AUTO_SINGLE_ONE_COMMAND =
+         "fullAutoSingle1";
++    private static final String FULL_AUTO_SINGLE_TWO_COMMAND =
++        "fullAutoSingle2";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+@@ -246,4 +248,6 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND =
+         ROOT + ".originalFullAutoSingleOneCommand";
++    private static final String ORIGINAL_FULL_AUTO_SINGLE_TWO_COMMAND =
++        ROOT + ".originalFullAutoSingleTwoCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+@@ -642,4 +646,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) ||
+             grantCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND);
++        boolean fullAutoSingleTwoCommandGranted =
++            hasCommand(attacker, FULL_AUTO_SINGLE_TWO_COMMAND) ||
++            grantCommand(attacker, FULL_AUTO_SINGLE_TWO_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+@@ -819,4 +826,6 @@ public class precu_headshot1_fixture extends script.base_script
+             !fullAutoSingleOneCommandGranted ||
+             !hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) ||
++            !fullAutoSingleTwoCommandGranted ||
++            !hasCommand(attacker, FULL_AUTO_SINGLE_TWO_COMMAND) ||
+             !scatterShotOneCommandGranted ||
+             !hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+@@ -1387,4 +1396,6 @@ public class precu_headshot1_fixture extends script.base_script
+             restoreCommand(attacker, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND,
+                 FULL_AUTO_SINGLE_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_FULL_AUTO_SINGLE_TWO_COMMAND,
++                FULL_AUTO_SINGLE_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+                 SCATTER_SHOT_ONE_COMMAND);
+@@ -2055,4 +2066,6 @@ public class precu_headshot1_fixture extends script.base_script
+         setObjVar(player, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND,
+             hasCommand(player, FULL_AUTO_SINGLE_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_FULL_AUTO_SINGLE_TWO_COMMAND,
++            hasCommand(player, FULL_AUTO_SINGLE_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+@@ -2364,4 +2377,6 @@ public class precu_headshot1_fixture extends script.base_script
+         restoreCommand(attacker, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND,
+             FULL_AUTO_SINGLE_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_FULL_AUTO_SINGLE_TWO_COMMAND,
++            FULL_AUTO_SINGLE_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             SCATTER_SHOT_ONE_COMMAND);
+@@ -2995,4 +3010,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) ||
+             grantCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND);
++        boolean fullAutoSingleTwoCommandReady =
++            hasCommand(attacker, FULL_AUTO_SINGLE_TWO_COMMAND) ||
++            grantCommand(attacker, FULL_AUTO_SINGLE_TWO_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+@@ -3130,4 +3148,5 @@ public class precu_headshot1_fixture extends script.base_script
+             kipUpShotCommandReady && takeCoverCommandReady &&
+             fullAutoSingleOneCommandReady &&
++            fullAutoSingleTwoCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -3457,4 +3476,5 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_TAKE_COVER_COMMAND) &&
+             hasObjVar(player, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_FULL_AUTO_SINGLE_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+@@ -3623,4 +3643,6 @@ public class precu_headshot1_fixture extends script.base_script
+         int canPerformFullAutoSingleOne = isIdValid(weapon) ?
+             combat.canPerformAction(FULL_AUTO_SINGLE_ONE_COMMAND, attacker) : -1;
++        int canPerformFullAutoSingleTwo = isIdValid(weapon) ?
++            combat.canPerformAction(FULL_AUTO_SINGLE_TWO_COMMAND, attacker) : -1;
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+@@ -3734,4 +3756,6 @@ public class precu_headshot1_fixture extends script.base_script
+         combat_data fullAutoSingleOneData =
+             combat_engine.getCombatData(FULL_AUTO_SINGLE_ONE_COMMAND);
++        combat_data fullAutoSingleTwoData =
++            combat_engine.getCombatData(FULL_AUTO_SINGLE_TWO_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+@@ -3798,4 +3822,9 @@ public class precu_headshot1_fixture extends script.base_script
+                 attacker, flameWeaponData, fullAutoSingleOneData) :
+             new int[] {-1, -1, -1};
++        int[] fullAutoSingleTwoCosts =
++            fullAutoSingleTwoData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, fullAutoSingleTwoData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+@@ -3906,4 +3935,6 @@ public class precu_headshot1_fixture extends script.base_script
+             " fullAutoSingleOneCommand=" +
+                 hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) +
++            " fullAutoSingleTwoCommand=" +
++                hasCommand(attacker, FULL_AUTO_SINGLE_TWO_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+@@ -4009,4 +4040,5 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformTakeCover=" + canPerformTakeCover +
+             " canPerformFullAutoSingleOne=" + canPerformFullAutoSingleOne +
++            " canPerformFullAutoSingleTwo=" + canPerformFullAutoSingleTwo +
+             " canPerformScatterShotOne=" + canPerformScatterShotOne +
+             " canPerformScatterShotTwo=" + canPerformScatterShotTwo +
+@@ -4150,4 +4182,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 (fullAutoSingleOneData == null ? -1 :
+                     fullAutoSingleOneData.precuHamCostModel) +
++            " fullAutoSingleTwoHealthCost=" + fullAutoSingleTwoCosts[0] +
++            " fullAutoSingleTwoActionCost=" + fullAutoSingleTwoCosts[1] +
++            " fullAutoSingleTwoMindCost=" + fullAutoSingleTwoCosts[2] +
++            " fullAutoSingleTwoPrecuHamCostModel=" +
++                (fullAutoSingleTwoData == null ? -1 :
++                    fullAutoSingleTwoData.precuHamCostModel) +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index a56b84e..3ce3a1c 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1362,2 +1362,3 @@ scatterShot2	scatterShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				o
+ legShot2	legShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	test_homing							test_homing							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ legShot3	legShot3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	test_homing							test_homing							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
++fullAutoSingle2	fullAutoSingle2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single							fire_7_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 4a67787..2559a6f 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -78,2 +78,3 @@ scatterShot2	2	1.25	0.5	MULTI	2	25	RANGED																																	3	0.34
+ legShot2	.5	1.5	1.5	ACTION	2	25	NONE			STUN	85	0	45	stun_defense	jedi_state_defense	resistance_states
+ legShot3	.5	2	2	ACTION	2	25	NONE			STUN	100	0	30	stun_defense	jedi_state_defense	resistance_states
++fullAutoSingle2	2	2.5	.5	RANDOM	1.5	25	RANGED			DIZZY	30	0	30	dizzy_defense	jedi_state_defense	resistance_states	BLIND	30	0	40	blind_defense	jedi_state_defense	resistance_states	STUN	30	0	30	stun_defense	jedi_state_defense	resistance_states
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 065a3f8..1595f2a 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -77,2 +77,3 @@ scatterShot2	scatterblast
+ legShot2	legshot
+ legShot3	kneecapshot
++fullAutoSingle2	s_auto
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 0fdd4d2..e2add9d 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2012,2 +2012,3 @@ scatterShot2	combat	normal	scatterShot2	failSpecialAttack			1.5	scatterShot2	1	0
+ legShot2	combat	normal	legShot2	failSpecialAttack			1.5	legShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ legShot3	combat	normal	legShot3	failSpecialAttack			1.5	legShot3	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++fullAutoSingle2	combat	normal	fullAutoSingle2	failSpecialAttack			1.5	fullAutoSingle2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

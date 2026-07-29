@@ -1,0 +1,64 @@
+diff --git a/sku.0/sys.server/compiled/game/script/combat_engine.java b/sku.0/sys.server/compiled/game/script/combat_engine.java
+index ebbcd288e..905beeba1 100644
+--- a/sku.0/sys.server/compiled/game/script/combat_engine.java
++++ b/sku.0/sys.server/compiled/game/script/combat_engine.java
+@@ -572,6 +572,7 @@ public class combat_engine
+ 		public int block = 0;				// Ammount of damage mitigated on a block
+ 		public boolean precuBlock = false;	// Core3 block: retain the hit and halve damage
+ 		public boolean precuCounter = false;	// Core3 counter: negate damage and queue a basic response
++		public boolean precuRicochet = false;	// Core3 saber block: negate a ranged hit without NGE reflect logic
+ 	}
+ 
+ 	public static class combatant_data
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 19e7fcdc6..e78b8f1ca 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -33,6 +33,7 @@ public class combat_base extends script.base_script
+     public static final int HIT_RESULT_EVADE = 8;
+     public static final int HIT_RESULT_STRIKETHROUGH = 9;
+     public static final int HIT_RESULT_PRECU_COUNTER = 10;
++    public static final int HIT_RESULT_PRECU_RICOCHET = 11;
+     public static final String PROGRESSIVE_DAMAGE_COUNTER = "hitData.progressive.counter";
+     public static final string_id SID_NONE = new string_id();
+     public static final String PRECU_COMBAT_OVERRIDES = "datatables/combat/precu_combat_overrides.iff";
+@@ -1322,6 +1323,10 @@ public class combat_base extends script.base_script
+                     hitData[i].success = false;
+                     hitData[i].precuCounter = true;
+                     break;
++                    case HIT_RESULT_PRECU_RICOCHET:
++                    hitData[i].success = false;
++                    hitData[i].precuRicochet = true;
++                    break;
+                     case HIT_RESULT_EVADE:
+                     hitData[i].success = true;
+                     hitData[i].evadeResult = true;
+@@ -1556,6 +1561,10 @@ public class combat_base extends script.base_script
+                 doPrecuCounterAttack(attackerData.id, defenderData[i].id);
+                 defenderResults[i].result = COMBAT_RESULT_COUNTER;
+             }
++            else if (hitData[i].precuRicochet)
++            {
++                defenderResults[i].result = COMBAT_RESULT_LIGHTSABER_BLOCK;
++            }
+             else 
+             {
+                 defenderResults[i].result = COMBAT_RESULT_MISS;
+@@ -1760,6 +1769,17 @@ public class combat_base extends script.base_script
+         {
+             return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
++        if (jedi.isLightsaber(defenderWeapon))
++        {
++            boolean canRicochet = !ai_lib.isTurret(attackerData.id) &&
++                (combat.isRangedWeapon(weaponData.weaponType) || combat.isHeavyWeapon(weaponData.weaponType));
++            if (!canRicochet)
++            {
++                return HIT_RESULT_HIT;
++            }
++            int saberBlock = getEnhancedSkillStatisticModifierUncapped(defenderData.id, "saber_block");
++            return saberBlock > 0 && rand(0, 100) <= saberBlock ? HIT_RESULT_PRECU_RICOCHET : HIT_RESULT_HIT;
++        }
+         int defenderWeaponRow = dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES);
+         if (defenderWeaponRow < 0)
+         {

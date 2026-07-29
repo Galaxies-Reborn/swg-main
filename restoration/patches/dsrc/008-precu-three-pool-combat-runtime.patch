@@ -1,0 +1,371 @@
+diff --git a/sku.0/sys.server/compiled/game/script/base_class.java b/sku.0/sys.server/compiled/game/script/base_class.java
+index dae7378..d065618 100644
+--- a/sku.0/sys.server/compiled/game/script/base_class.java
++++ b/sku.0/sys.server/compiled/game/script/base_class.java
+@@ -8231,10 +8231,20 @@ public class base_class
+     public static boolean drainAttributes(obj_id target, int action, int mind)
+     {
+         return _drainAttributes(getLongWithNull(target), action, mind);
+     }
+ 
++    /**
++     * Atomically drains a creature's three primary combat pools without
++     * allowing the cost itself to incapacitate the creature.
++     */
++    private static native boolean _drainCombatAttributes(long target, int health, int action, int mind);
++    public static boolean drainCombatAttributes(obj_id target, int health, int action, int mind)
++    {
++        return _drainCombatAttributes(getLongWithNull(target), health, action, mind);
++    }
++
+     /**
+      * Determines how much a creature's attributes would be drained.
+      * @param target        creature we want to drain
+      * @param attribute     the attribute to test (ACTION, MIND only)
+      * @param value         the amount to drain the sa by
+@@ -13066,10 +13076,20 @@ public class base_class
+ 		public static boolean doDamage(obj_id attacker, obj_id defender, combat_engine.hit_result hitResult)
+ 		{
+ 			return __doDamageNoWeapon(getLongWithNull(attacker), getLongWithNull(defender), (hitResult.damage + hitResult.elementalDamage), hitResult.hitLocation);
+ 		}	// doDamage()
+ 
++		/**
++		 * Applies combat damage to an explicit primary HAM pool. Pool is the
++		 * compact Pre-CU ordinal: Health=0, Action=1, Mind=2.
++		 */
++		private static native boolean __doDamageNoWeaponToPool(long attacker, long defender, int damage, int hitLocation, int pool);
++		public static boolean doDamageToPool(obj_id attacker, obj_id defender, combat_engine.hit_result hitResult, int pool)
++		{
++			return __doDamageNoWeaponToPool(getLongWithNull(attacker), getLongWithNull(defender), (hitResult.damage + hitResult.elementalDamage), hitResult.hitLocation, pool);
++		}
++
+ 		/**
+ 		 * Creates a package to be sent to the client for displaying combat results.
+ 		 *
+ 		 * @param animationId				name of animation script to play
+ 		 * @param attackerStartPosture		the attacker's start posture
+diff --git a/sku.0/sys.server/compiled/game/script/combat_engine.java b/sku.0/sys.server/compiled/game/script/combat_engine.java
+index 0b65fd2..f2a2916 100644
+--- a/sku.0/sys.server/compiled/game/script/combat_engine.java
++++ b/sku.0/sys.server/compiled/game/script/combat_engine.java
+@@ -111,11 +111,22 @@ public class combat_engine
+ 			dat.hateDamageModifier 				= d.getFloat("hateDamageModifier");
+ 			dat.maxHate 						= d.getInt("maxHate");
+ 			dat.hateAdd 						= d.getInt("hateAdd");
+ 			dat.hateAddTime 					= d.getInt("hateAddTime");
+ 			dat.hateReduce						= d.getInt("hateReduce");
++			dat.healthCost 						= d.getFloat("healthCost");
+ 			dat.actionCost 						= d.getFloat("actionCost");
++			dat.mindCost 						= d.getFloat("mindCost");
++			dictionary precu = base_class.dataTableGetRow("datatables/combat/precu_combat_overrides.iff", actionName);
++			if (precu != null)
++			{
++				dat.precuHamCostModel			= 1;
++				dat.precuTargetPool				= precu.getInt("targetPool");
++				dat.healthCost					= precu.getFloat("healthCostMultiplier");
++				dat.actionCost					= precu.getFloat("actionCostMultiplier");
++				dat.mindCost					= precu.getFloat("mindCostMultiplier");
++			}
+ 			dat.vigorCost 						= d.getFloat("vigorCost");
+ 			dat.scaleByDefenderWeaponSpeed				= d.getFloat("scaleByDefenderWeaponSpeed");
+ 			dat.dotType 						= d.getString("dotType");
+ 			dat.dotIntensity 					= d.getInt("dotIntensity");
+ 			dat.dotDuration 					= d.getInt("dotDuration");
+@@ -219,11 +230,15 @@ public class combat_engine
+ 			dict.put("hateDamageModifier", actionData.hateDamageModifier);
+ 			dict.put("maxHate", actionData.maxHate);
+ 			dict.put("hateAdd", actionData.hateAdd);
+ 			dict.put("hateAddTime", actionData.hateAddTime);
+ 			dict.put("hateReduce", actionData.hateReduce);
++			dict.put("healthCost", actionData.healthCost);
+ 			dict.put("actionCost", actionData.actionCost);
++			dict.put("mindCost", actionData.mindCost);
++			dict.put("precuHamCostModel", actionData.precuHamCostModel);
++			dict.put("precuTargetPool", actionData.precuTargetPool);
+ 			dict.put("vigorCost", actionData.vigorCost);
+ 			dict.put("scaleByDefenderWeaponSpeed", actionData.scaleByDefenderWeaponSpeed);
+ 			dict.put("dotType", actionData.dotType);
+ 			dict.put("dotIntensity", actionData.dotIntensity);
+ 			dict.put("dotDuration", actionData.dotDuration);
+@@ -319,11 +334,15 @@ public class combat_engine
+ 				dat.hateDamageModifier 				= dict.getFloat("hateDamageModifier");
+ 				dat.maxHate 						= dict.getInt("maxHate");
+ 				dat.hateAdd 						= dict.getInt("hateAdd");
+ 				dat.hateAddTime 					= dict.getInt("hateAddTime");
+ 				dat.hateReduce						= dict.getInt("hateReduce");
++				dat.healthCost 						= dict.getFloat("healthCost");
+ 				dat.actionCost 						= dict.getFloat("actionCost");
++				dat.mindCost 						= dict.getFloat("mindCost");
++				dat.precuHamCostModel				= dict.getInt("precuHamCostModel");
++				dat.precuTargetPool					= dict.getInt("precuTargetPool");
+ 				dat.vigorCost 						= dict.getFloat("vigorCost");
+ 				dat.scaleByDefenderWeaponSpeed		= dict.getFloat("scaleByDefenderWeaponSpeed");
+ 				dat.dotType 						= dict.getString("dotType");
+ 				dat.dotIntensity 					= dict.getInt("dotIntensity");
+ 				dat.dotDuration 					= dict.getInt("dotDuration");
+@@ -437,11 +456,15 @@ public class combat_engine
+ 			public float 	hateDamageModifier 				= 1.0f;
+ 			public int 		maxHate 						= 0;
+ 			public int 		hateAdd 						= 0;
+ 			public int 		hateAddTime 					= 0;
+ 			public int		hateReduce						= 0;
++			public float	healthCost 						= 0;
+ 			public float	actionCost 						= 0;
++			public float	mindCost 						= 0;
++			public int		precuHamCostModel				= 0;
++			public int		precuTargetPool					= -1;
+ 			public float 	vigorCost						= 0;
+ 			public float	scaleByDefenderWeaponSpeed				= 0;
+ 			public String 	dotType 						= "";
+ 			public int 		dotIntensity 					= 0;
+ 			public int 		dotDuration 					= 0;
+diff --git a/sku.0/sys.server/compiled/game/script/library/combat.java b/sku.0/sys.server/compiled/game/script/library/combat.java
+index 7ca2fb9..eec7f51 100644
+--- a/sku.0/sys.server/compiled/game/script/library/combat.java
++++ b/sku.0/sys.server/compiled/game/script/library/combat.java
+@@ -5,10 +5,12 @@ import script.combat_engine.*;
+ 
+ import java.util.Vector;
+ 
+ public class combat extends script.base_script
+ {
++    public static final String PRECU_WEAPON_HAM_COST_TABLE = "datatables/combat/precu_weapon_ham_costs.iff";
++    public static final int PRECU_NEUTRAL_GOVERNING_ATTRIBUTE = 300;
+     public combat()
+     {
+     }
+     public static final float IN_COMBAT_REGEN_MULT = 1.0f;
+     public static final float OUT_COMBAT_REGEN_MULT = 4.0f;
+@@ -671,10 +673,19 @@ public class combat extends script.base_script
+         {
+             return false;
+         }
+         return true;
+     }
++    public static boolean drainCombatActionAttributes(obj_id self, int[] actionCost, boolean usePrecuHam) throws InterruptedException
++    {
++        if (!usePrecuHam)
++        {
++            return drainCombatActionAttributes(self, actionCost);
++        }
++        return actionCost != null && actionCost.length == 3 &&
++            drainCombatAttributes(self, actionCost[0], actionCost[1], actionCost[2]);
++    }
+     public static boolean canDrainCombatActionAttributes(obj_id self, int actionCost) throws InterruptedException
+     {
+         int[] tempArray = 
+         {
+             0,
+@@ -692,10 +703,64 @@ public class combat extends script.base_script
+                 return false;
+             }
+         }
+         return true;
+     }
++
++    public static boolean canDrainCombatActionAttributes(obj_id self, int[] actionCost, boolean usePrecuHam) throws InterruptedException
++    {
++        if (!usePrecuHam)
++        {
++            return canDrainCombatActionAttributes(self, actionCost);
++        }
++        if (actionCost == null || actionCost.length != 3)
++        {
++            return false;
++        }
++        int[] pools = { HEALTH, ACTION, MIND };
++        for (int i = 0; i < pools.length; ++i)
++        {
++            if (actionCost[i] < 0 || (actionCost[i] > 0 && getAttrib(self, pools[i]) <= actionCost[i]))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private static int calculatePrecuHamCost(int governingValue, int baseCost, float multiplier) throws InterruptedException
++    {
++        if (baseCost < 0 || multiplier < 0.0f)
++        {
++            return -1;
++        }
++        float cost = baseCost * multiplier;
++        cost -= ((governingValue - 300.0f) / 1200.0f) * cost;
++        return Math.max(0, (int)cost);
++    }
++
++    private static int[] getPrecuHamActionCost(obj_id self, weapon_data weaponData, float healthMultiplier, float actionMultiplier, float mindMultiplier) throws InterruptedException
++    {
++        int[] invalid = { -1, -1, -1 };
++        if (weaponData == null || !isIdValid(weaponData.id))
++        {
++            return invalid;
++        }
++        dictionary weaponCosts = dataTableGetRow(PRECU_WEAPON_HAM_COST_TABLE, getTemplateName(weaponData.id));
++        if (weaponCosts == null)
++        {
++            return invalid;
++        }
++        int[] costs = new int[3];
++        // SWGSource currently persists only six attributes and has no authoritative
++        // Strength, Quickness, or Focus values. Use the authentic neutral baseline
++        // until the nine-attribute persistence/network slice supplies those stats.
++        costs[0] = calculatePrecuHamCost(PRECU_NEUTRAL_GOVERNING_ATTRIBUTE, weaponCosts.getInt("healthCost"), healthMultiplier);
++        costs[1] = calculatePrecuHamCost(PRECU_NEUTRAL_GOVERNING_ATTRIBUTE, weaponCosts.getInt("actionCost"), actionMultiplier);
++        costs[2] = calculatePrecuHamCost(PRECU_NEUTRAL_GOVERNING_ATTRIBUTE, weaponCosts.getInt("mindCost"), mindMultiplier);
++        return costs;
++    }
+     public static final int ACTION_SUCCESS = 0;
+     public static final int ACTION_INVALID_DATA = 1;
+     public static final int ACTION_INVALID_WEAPON = 2;
+     public static final int ACTION_TOO_TIRED = 3;
+     public static int canPerformAction(String actionName, obj_id self) throws InterruptedException
+@@ -711,11 +776,11 @@ public class combat extends script.base_script
+         if (!canUseWeaponWithAbility(self, weaponData, actionData, true))
+         {
+             return ACTION_INVALID_WEAPON;
+         }
+         int[] actionCost = getActionCost(self, weaponData, actionData);
+-        if (!canDrainCombatActionAttributes(self, actionCost))
++        if (!canDrainCombatActionAttributes(self, actionCost, actionData.precuHamCostModel > 0))
+         {
+             return ACTION_TOO_TIRED;
+         }
+         return ACTION_SUCCESS;
+     }
+@@ -723,10 +788,14 @@ public class combat extends script.base_script
+     {
+         return isPlayer(self) && utils.isProfession(self, utils.COMMANDO) && isHeavyWeapon(weaponData) && (commandType == LEFT_CLICK_DEFAULT);
+     }
+     public static int[] getActionCost(obj_id self, weapon_data weaponData, dictionary actionData) throws InterruptedException
+     {
++        if (actionData.getInt("precuHamCostModel") > 0)
++        {
++            return getPrecuHamActionCost(self, weaponData, actionData.getFloat("healthCost"), actionData.getFloat("actionCost"), actionData.getFloat("mindCost"));
++        }
+         int[] cost = new int[3];
+         float healthCost = 0;
+         float actionCost;
+         float mindCost;
+         actionCost = actionData.getFloat("actionCost");
+@@ -878,10 +947,14 @@ public class combat extends script.base_script
+         cost[2] = (int)(0);
+         return cost;
+     }
+     public static int[] getActionCost(obj_id self, weapon_data weaponData, combat_data actionData) throws InterruptedException
+     {
++        if (actionData.precuHamCostModel > 0)
++        {
++            return getPrecuHamActionCost(self, weaponData, actionData.healthCost, actionData.actionCost, actionData.mindCost);
++        }
+         int[] cost = new int[3];
+         float healthCost = 0;
+         float actionCost;
+         float mindCost;
+         actionCost = actionData.actionCost;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 7fb7192..ad2e1d4 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -297,11 +297,11 @@ public class combat_base extends script.base_script
+         }
+         int[] actionCost = null;
+         if (!isTangibleAttacking)
+         {
+             actionCost = combat.getActionCost(self, weaponData, actionData);
+-            if (!combat.canDrainCombatActionAttributes(self, actionCost))
++            if (!combat.canDrainCombatActionAttributes(self, actionCost, actionData.precuHamCostModel > 0))
+             {
+                 showFlyTextPrivate(self, self, new string_id("combat_effects", "action_too_tired"), 1.5f, colors.GOLDENROD);
+                 if (verbose)
+                 {
+                     combat.sendCombatSpamMessage(self, new string_id("cbt_spam", "pool_drain_fail"));
+@@ -334,11 +334,11 @@ public class combat_base extends script.base_script
+             {
+                 combat.combatLog(self, combatTarget, "combatStandardAction", "Attack Failed - Healing precheck failed");
+                 stealth.reinstateInvisFromCombat(self);
+                 return false;
+             }
+-            if (!combat.canDrainCombatActionAttributes(self, actionCost))
++            if (!combat.canDrainCombatActionAttributes(self, actionCost, actionData.precuHamCostModel > 0))
+             {
+                 stealth.reinstateInvisFromCombat(self);
+                 return false;
+             }
+             if (actionData.performanceSpamStrId.isValid() && !isTangibleAttacking)
+@@ -359,11 +359,11 @@ public class combat_base extends script.base_script
+                 stealth.testInvisNonCombatAction(self, target, actionData);
+             }
+             if (success)
+             {
+                 LOG("combat_base", "combatStandardAction 7 success " + actionName);
+-                if (!combat.drainCombatActionAttributes(self, actionCost))
++                if (!combat.drainCombatActionAttributes(self, actionCost, actionData.precuHamCostModel > 0))
+                 {
+                     combat.combatLog(self, combatTarget, "combatStandardAction", "ERROR:Insufficient action not caught in canDrainCombatActionAttributes()");
+                     stealth.reinstateInvisFromCombat(self);
+                     return false;
+                 }
+@@ -394,11 +394,11 @@ public class combat_base extends script.base_script
+                 combat.combatLog(self, combatTarget, "combatStandardAction", "Attack Failed - Combat precheck failed");
+                 stealth.reinstateInvisFromCombat(self);
+                 return false;
+             }
+             boolean isSingleTargetAttack = actionData.hitType == -1 && actionData.attackType == combat.SINGLE_TARGET;
+-            if (!isSingleTargetAttack && !combat.drainCombatActionAttributes(self, actionCost))
++            if (!isSingleTargetAttack && !combat.drainCombatActionAttributes(self, actionCost, actionData.precuHamCostModel > 0))
+             {
+                 showFlyTextPrivate(self, self, new string_id("combat_effects", "action_too_tired"), 1.5f, colors.GOLDENROD);
+                 combat.combatLog(self, combatTarget, "combatStandardAction", "ERROR:Insufficient action not caught in canDrainCombatActionAttributes()");
+                 stealth.reinstateInvisFromCombat(self);
+                 return false;
+@@ -1330,11 +1330,11 @@ public class combat_base extends script.base_script
+                         break;
+                     }
+                 }
+             }
+             int[] actionCost = combat.getSuccessBasedSingleTargetActionCost(hitData[i], actionData, attackerData.id, weaponData);
+-            combat.drainCombatActionAttributes(attackerData.id, actionCost);
++            combat.drainCombatActionAttributes(attackerData.id, actionCost, actionData.precuHamCostModel > 0);
+             int validTargetType = actionData.validTarget;
+             if (validTargetType == combat.VALID_TARGET_FRIEND && pvpCanHelp(attackerData.id, defenderData[i].id))
+             {
+                 pvpHelpPerformed(attackerData.id, defenderData[i].id);
+             }
+@@ -2480,11 +2480,18 @@ public class combat_base extends script.base_script
+             {
+                 playClientEffectObj(attacker, "appearance/pt_jedi_tempt_hatred.prt", attacker, "");
+             }
+         }
+         target_dummy.sendTargetDummyCombatData(attacker, defender, actionData, hitData);
+-        doDamage(attacker, defender, hitData);
++        if (actionData.precuTargetPool >= 0)
++        {
++            doDamageToPool(attacker, defender, hitData, actionData.precuTargetPool);
++        }
++        else
++        {
++            doDamage(attacker, defender, hitData);
++        }
+         int expertiseActionDamage = 0;
+         if (specialLine != null && specialLine.length() > 0)
+         {
+             expertiseActionDamage = getSkillStatisticModifier(attacker, "expertise_action_damage_line_" + specialLine);
+         }
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -0,0 +1,3 @@
++actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool
++s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2)[HEALTH]"
++__precu_runtime_probe	0	0	0	HEALTH
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+@@ -0,0 +1,3 @@
++templateName	healthCost	actionCost	mindCost
++s	i	i	i
++object/weapon/ranged/rifle/rifle_cdef.iff	10	15	10

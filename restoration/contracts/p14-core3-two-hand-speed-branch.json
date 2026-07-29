@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-two-hand-speed-branch",
+  "status": "ready",
+  "scope": "Close Swordsman Speed I-IV ownership around the already-published melee2hHeadHit2 and melee2hHeadHit3 production attacks with exact Patch 12/Core3 contracts, fresh authenticated execution, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/melee2hHeadHit2.lua",
+      "MMOCoreORB/bin/scripts/commands/melee2hHeadHit3.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skills": [
+      {"name": "combat_2hsword_speed_01", "requires": ["combat_2hsword_novice"], "commands": ["private_2hand_speed_1", "melee2hHeadHit2"]},
+      {"name": "combat_2hsword_speed_02", "requires": ["combat_2hsword_speed_01"], "commands": ["private_2hand_speed_2"]},
+      {"name": "combat_2hsword_speed_03", "requires": ["combat_2hsword_speed_02"], "commands": ["melee2hHeadHit3"]},
+      {"name": "combat_2hsword_speed_04", "requires": ["combat_2hsword_speed_03"], "commands": []}
+    ],
+    "commands": [
+      {"name": "melee2hHeadHit2", "owner": "combat_2hsword_speed_01", "damageMultiplier": 2.5, "speedMultiplier": 1.75, "hamCostMultipliers": [1.0, 1.5, 1.0], "accuracyBonus": 10, "targetPool": "MIND", "animation": "combo_2d", "animationType": "INTENSITY", "combatSpam": "scalpstrike", "defaultTime": 1.75, "executeTime": 1.5},
+      {"name": "melee2hHeadHit3", "owner": "combat_2hsword_speed_03", "damageMultiplier": 3.5, "speedMultiplier": 2.25, "hamCostMultipliers": [1.5, 2.0, 1.5], "accuracyBonus": 10, "targetPool": "MIND", "animation": "combo_2d", "animationType": "INTENSITY", "combatSpam": "scalpslam", "defaultTime": 2.25, "executeTime": 1.5}
+    ],
+    "commandDefaults": {"priority": "normal", "target": "other", "targetType": "optional", "commandGroup": 391413347, "combatQueue": true, "validWeapon": "2HAND_MELEE", "failScriptHook": "failSpecialAttack"}
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T21:34:30-04:00",
+    "scratchCommit": "c7d082bdc17122c56a5e4bd67ee78798ea4fa7d1",
+    "overlay": "restoration/patches/dsrc/315-p14-core3-two-hand-speed-branch.patch",
+    "overlaySha256": "48bb51a3780b0f5c63632da177a4c4ab787b9483282c513d1804e0e1ebfa7afd",
+    "changedFileCount": 1,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "fixtureClassSha256": "c49cb21e02fde74798af4b0d42972f21da951c5a42b7a45d5be36c16a37c8344",
+    "inheritedProductionArtifacts": "unchanged-from-m316",
+    "datatableRowsUnchanged": true,
+    "clientAssetsUnchanged": true,
+    "clientBridgeUnchanged": true,
+    "clientProtocolVersion": 235,
+    "clientBytes": 33809920,
+    "clientSha256": "360b7e965f58993e70f5184acac870157ebbb44808938c70af91cfbc358c34ce",
+    "runtimeTreSha256": "d1fb5911736c7f8b375e626e3ca3d90d30b07bd3716d3da1063e2b31cc544909",
+    "materializedOverlayCount": 321,
+    "materializedRestorationFileCount": 943,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "precu_headshot1_fixture.java": "a08b1f1439619519db5370c7c0500ee89aae22fae3d7e3ada0ba372754853f4a",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T21:34:30-04:00",
+    "clientProtocolVersion": 235,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "31700000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "distanceCentimeters": 207,
+      "twoHandSwordNovice": true,
+      "twoHandSwordAccuracyFour": true,
+      "speedOne": true,
+      "speedTwo": true,
+      "speedThree": true,
+      "speedFour": true,
+      "commands": ["melee2hHeadHit2", "melee2hHeadHit3"],
+      "canPerform": {"melee2hHeadHit2": 0, "melee2hHeadHit3": 0},
+      "weapon": "object/weapon/melee/2h_sword/2h_sword_cleaver.iff",
+      "clientWeaponStatus": {"commandFound": true, "weaponType": 5, "validMask": "0x00000020", "satisfies": true, "packed": "0x0000000000205705"}
+    },
+    "commands": [
+      {"name": "melee2hHeadHit2", "queueRemoval": "Success", "packedQueueStatus": "0x010000004351c000", "combatResult": 1, "directDamage": 647, "configuredPool": "MIND", "resolvedPool": "MIND", "hitLocation": 1, "combatSpam": "scalpstrike_hit", "animation": "combo_2d_medium", "animationType": 2},
+      {"name": "melee2hHeadHit3", "queueRemoval": "Success", "packedQueueStatus": "0x010000004351c000", "combatResult": 1, "directDamage": 1038, "configuredPool": "MIND", "resolvedPool": "MIND", "hitLocation": 1, "combatSpam": "scalpslam_hit", "animation": "combo_2d_medium", "animationType": 2}
+    ],
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "speedBranchSurvived": true,
+      "commandsSurvived": true,
+      "canPerformSurvived": true,
+      "weaponSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "terminalDamage": 1038,
+      "terminalSpam": "scalpslam_hit",
+      "terminalAnimation": "combo_2d_medium",
+      "postRestartExecution": {"queueRemoval": "Success", "packedQueueStatus": "0x010000004351c000", "combatResult": 1, "directDamage": 1371, "combatSpam": "scalpslam_hit", "resolvedPool": "MIND", "animation": "combo_2d_medium"}
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "temporarySpeedBranchAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "fixtureWeaponAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000",
+      "postCleanupClientWeaponSatisfies": false
+    },
+    "isolatedClientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "configuredClusterPortRestored": 44452,
+    "connectionServerCount": 1,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": false,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

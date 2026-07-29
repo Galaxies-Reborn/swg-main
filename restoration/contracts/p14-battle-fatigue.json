@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "consumable": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_battle_fatigue_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "scope": "patient-side medical treatment power",
+    "formula": "(1250-shockWounds)/1000",
+    "unmodifiedThroughShock": 250,
+    "minimumMultiplier": 0.25,
+    "boundaries": [
+      {
+        "shock": 250,
+        "multiplier": 1.0,
+        "scaledMedicine100": 100
+      },
+      {
+        "shock": 251,
+        "multiplier": 0.999,
+        "scaledMedicine100": 99
+      },
+      {
+        "shock": 500,
+        "multiplier": 0.75,
+        "scaledMedicine100": 75
+      },
+      {
+        "shock": 1000,
+        "multiplier": 0.25,
+        "scaledMedicine100": 25
+      }
+    ]
+  },
+  "integrationContract": {
+    "patientIsTarget": true,
+    "calledAfterHealerAndItemMultiplier": true,
+    "calledBeforeModifyMedicineAttributes": true,
+    "healDamageAndHealWoundModsScaled": true,
+    "combatAccuracyModifier": false
+  },
+  "liveFixture": {
+    "patientOid": 39008597,
+    "patientStationId": 1001,
+    "actions": [
+      "prepare",
+      "arm250",
+      "arm251",
+      "arm500",
+      "arm1000",
+      "status",
+      "cleanup"
+    ],
+    "mutationScope": "bound patient shock wounds only",
+    "cleanupPolicy": "restore exact original shock and remove fixture root"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java",
+    "compiledSha256": {
+      "precu_battle_fatigue_fixture.class": "4b6c1acab785043687ad74f0ab89980a2b7e6845a53d4929989143ed4719ba2a"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "lifecycle": "5e3f53ae663b4bb5b026a116d50af40a",
+    "observations": [
+      "shock=250 multiplier=1.0 scaledMedicine100=100",
+      "shock=251 multiplier=0.999 scaledMedicine100=99",
+      "shock=500 multiplier=0.75 scaledMedicine100=75",
+      "shock=1000 multiplier=0.25 scaledMedicine100=25"
+    ],
+    "cleanup": {
+      "restored": true,
+      "originalShock": 0,
+      "finalShock": 0,
+      "fixtureRootAbsent": true
+    }
+  },
+  "narrowBoundary": {
+    "included": [
+      "retained battle-fatigue equation",
+      "patient-side consumable integration order",
+      "heal-damage and heal-wound medicine scaling",
+      "exact boundary modeling and live observation",
+      "identity-bound reversible shock fixture"
+    ],
+    "deferred": [
+      "full medicine item consumption fixture",
+      "doctor and entertainer profession loops",
+      "tending and enhancement command restoration",
+      "medicine-use cooldowns and environment bonuses",
+      "healer-side wound and shock costs"
+    ]
+  }
+}

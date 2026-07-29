@@ -1,0 +1,178 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/pgc_quests.java b/sku.0/sys.server/compiled/game/script/library/pgc_quests.java
+--- a/sku.0/sys.server/compiled/game/script/library/pgc_quests.java
++++ b/sku.0/sys.server/compiled/game/script/library/pgc_quests.java
+@@ -1323,48 +1323,10 @@ public class pgc_quests extends script.base_script
+     }
+     public static void grantPgcNonChroniclesQuestXp(obj_id player, obj_id questHolocron) throws InterruptedException
+     {
+-        int questLevel = getIntObjVar(questHolocron, pgc_quests.PCG_QUEST_LEVEL_OBJVAR);
+-        obj_id questCreatorObjId = getObjIdObjVar(questHolocron, PCG_QUEST_CREATOR_ID_OBJVAR);
+-        int questCreatorStationId = getIntObjVar(questHolocron, PCG_QUEST_CREATOR_STATIONID_OBJVAR);
+-        float questWeight = getFloatObjVar(questHolocron, PCG_QUEST_WEIGHT_OBJVAR);
+-        pgc_quests.grantPgcNonChroniclesQuestXp(player, questLevel, questWeight, questCreatorObjId, questCreatorStationId);
+         return;
+     }
+     public static void grantPgcNonChroniclesQuestXp(obj_id player, int questLevel, float questWeight, obj_id questCreatorObjId, int questCreatorStationId) throws InterruptedException
+     {
+-        float xpWeight = questWeight * 0.5f;
+-        if (xpWeight < 5.0f)
+-        {
+-            xpWeight = 5.0f;
+-        }
+-        else if (xpWeight > 25.0f)
+-        {
+-            xpWeight = 25.0f;
+-        }
+-        int xpAmount = (int)(groundquests.getQuestExperienceReward(player, questLevel, 1, 0) * xpWeight);
+-        int playerStationId = getPlayerStationId(player);
+-        if (playerStationId == questCreatorStationId)
+-        {
+-            xpAmount *= 0.5;
+-        }
+-        String template = getSkillTemplate(player);
+-        String xpType = xp.QUEST_COMBAT;
+-        if (template.startsWith("trader"))
+-        {
+-            xpAmount = xp.grantCraftingQuestXp(player, xpAmount);
+-            xpType = xp.QUEST_CRAFTING;
+-        }
+-        else if (template.startsWith("entertainer"))
+-        {
+-            xpAmount = xp.grantSocialStyleXp(player, xp.QUEST_SOCIAL, xpAmount);
+-            xpType = xp.QUEST_SOCIAL;
+-        }
+-        else 
+-        {
+-            xpAmount = xp.grantCombatStyleXp(player, xp.QUEST_COMBAT, xpAmount);
+-            xpType = xp.QUEST_COMBAT;
+-        }
+-        xp.displayXpFlyText(player, player, xpAmount);
+         return;
+     }
+     public static void showPgcXpGrantedMessage(obj_id player, String xpType, int xpAmount) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_pgc_quest_xp_retirement_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_pgc_quest_xp_retirement_fixture.java
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_pgc_quest_xp_retirement_fixture.java
+@@ -0,0 +1,121 @@
++package script.test;
++
++import script.obj_id;
++import script.library.pgc_quests;
++
++/**
++ * Identity-bound proof that later Player Generated Chronicles quest
++ * completion cannot mutate restored Publish 14.1 experience pools.
++ */
++public class precu_pgc_quest_xp_retirement_fixture
++    extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++    private static final String[] XP_TYPES =
++    {
++        "combat_general",
++        "crafting_general",
++        "entertainer"
++    };
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        long value;
++        try
++        {
++            value = Long.parseLong(params == null ? "" : params.trim());
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (value != PLAYER_OID)
++        {
++            return "error=identityNotAllowed";
++        }
++        obj_id player = obj_id.getObjId(value);
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded() || !player.isAuthoritative() ||
++            !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        int[] before = snapshot(player);
++        String result = "error=probeIncomplete";
++        try
++        {
++            pgc_quests.grantPgcNonChroniclesQuestXp(
++                player,
++                90,
++                25.0f,
++                obj_id.NULL_ID,
++                -1);
++            int[] after = snapshot(player);
++            boolean unchanged = equal(before, after);
++            result =
++                "action=probe authoritative=true" +
++                " before=" + join(before) +
++                " after=" + join(after) +
++                " unchanged=" + unchanged +
++                " passed=" + unchanged;
++        }
++        finally
++        {
++            int[] current = snapshot(player);
++            for (int index = 0; index < XP_TYPES.length; ++index)
++            {
++                int delta = before[index] - current[index];
++                if (delta != 0)
++                {
++                    grantExperiencePoints(player, XP_TYPES[index], delta);
++                }
++            }
++            boolean restored = equal(before, snapshot(player));
++            result += " restored=" + restored;
++            if (!restored)
++            {
++                result = "error=pgcXpRestoreFailed " + result;
++            }
++        }
++        return result;
++    }
++
++    private int[] snapshot(obj_id player) throws InterruptedException
++    {
++        int[] values = new int[XP_TYPES.length];
++        for (int index = 0; index < XP_TYPES.length; ++index)
++        {
++            values[index] = getExperiencePoints(player, XP_TYPES[index]);
++        }
++        return values;
++    }
++
++    private boolean equal(int[] left, int[] right)
++    {
++        if (left.length != right.length)
++        {
++            return false;
++        }
++        for (int index = 0; index < left.length; ++index)
++        {
++            if (left[index] != right[index])
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private String join(int[] values)
++    {
++        String result = "";
++        for (int index = 0; index < values.length; ++index)
++        {
++            result += (index == 0 ? "" : ",") + values[index];
++        }
++        return result;
++    }
++}

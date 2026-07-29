@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-flushing-shot-two",
+  "status": "ready",
+  "scope": "Restore retained Rifleman Ability III flushingShot2 with exact Patch 12 queue admission, pinned Core3 random-pool rifle cone damage, ordered STUN and posture-up semantics, authenticated runtime, expiry, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Command": "flushingShot2.lua",
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "skillOwner": "combat_rifleman_ability_03",
+    "skillPrerequisites": ["combat_rifleman_ability_02"],
+    "command": {
+      "name": "flushingShot2",
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "validWeapon": "RIFLE",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "allowedLocomotion": ["standing", "walking", "running", "kneeling", "prone", "crawling"],
+      "disallowedState": ["berserk"]
+    },
+    "combat": {
+      "damageMultiplier": 4.0,
+      "speedMultiplier": 2.0,
+      "healthCostMultiplier": 0.5,
+      "actionCostMultiplier": 0.5,
+      "mindCostMultiplier": 2.0,
+      "accuracyBonus": 5,
+      "targetPool": "RANDOM_ATTRIBUTE",
+      "attackType": "CONE",
+      "maxRange": 64,
+      "coneAngleDegrees": 15,
+      "animation": "fire_area",
+      "animationType": "GENERATE_INTENSITY",
+      "combatSpam": "flushingvolley",
+      "weaponType": "RIFLE"
+    },
+    "orderedEffects": [
+      {"slot": 1, "type": "STUN", "chance": 100, "durationSeconds": 35, "defense": "stun_defense", "jediDefense": "jedi_state_defense", "resistance": "resistance_states"},
+      {"slot": 2, "type": "POSTURE_UP", "chance": 100, "recoverySeconds": 30, "defense": "posture_change_up_defense"}
+    ],
+    "postureUpBoundary": {
+      "firstTransition": "PRONE_TO_CROUCHED",
+      "activeRecoveryTransition": "NON_UPRIGHT_TO_UPRIGHT",
+      "core3PostureChangeDelayMilliseconds": 2500,
+      "runtimeBoundary": "The Java script API exposes posture and recovery but not Core3's internal postureChangeDelay cooldown timer."
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T15:16:00-04:00",
+    "overlay": "restoration/patches/dsrc/283-p14-core3-flushing-shot-two.patch",
+    "overlaySha256": "56d972cecc32313e90421ee69d5eb1e764c1900e793f83ff23fc29814e8aeff2",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 8,
+    "javaCompile": "passed-focused-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss16m",
+    "datatableCompile": "passed-focused-four-tables-linux",
+    "clientBridgeTests": 69,
+    "clientTestSuite": {"passed": 199, "skipped": 3, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient",
+    "clientBuildErrors": 0,
+    "unrelatedAggregateBuild": {"status": "known-pre-existing-failure", "project": "SwgLoadClient", "reason": "missing server-network header and pre-existing chatText identifier"},
+    "clientProtocolVersion": 206,
+    "clientBytes": 33805824,
+    "clientSha256": "190a8f8f6f664ca67aa58de9d142718ed7dd752db59d1136d6f62baa95a35dfe",
+    "materializedOverlayCount": 289,
+    "materializedRestorationFileCount": 847,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "base": "def777b6cdde3f6950af3e1480a21b5a8e3f5c384733d84ebee49e41a9bc40c2",
+      "actions": "5ac100efaaef7ee430a865feb8ac6f75fecf9ed8d7350def4ddf2f9aea2176d2",
+      "fixture": "93a5245c19f063bbec651f236bce9e06194f20eca3903612ee906063b4c09df5",
+      "combat": "3bd6d637a0a0b5d5fa7cf35f0ba4ef3e5d4c90936b55e1f5096f7d49c3968115",
+      "override": "3ba5e32dc24fdc27c1d0f645b98f587eeb7416aacfdad50b4c2b11807e7abae1",
+      "spam": "99d343867f10c30755f3ca3790add0c9aaadf842d2cf91e94aeb34258211df05",
+      "command": "d418e506a9e7c76d28284bab95f9e0c05ec31e27c26dedbc8cdab606611b9e3c"
+    },
+    "compiledClassSha256": {
+      "combat_base.class": "bec2a5d09b4c215cfa55da0530d8940c1cfa80e8358ea420f6a5c604e36e8093",
+      "combat_actions.class": "a13baa3a18f03debef018677c5eac3ee025860df72eefd55872c9657b9111f04",
+      "precu_headshot1_fixture.class": "115faf4f75c5dd8335acad83d0795d1795d55cfd6ed8eb42ee64b02027e24ce9"
+    },
+    "compiledTableSha256": {
+      "datatables/combat/combat_data.iff": "f5a4e6d68cd565265861c6cce8d8ba48842b82fee2b031b24ecc8452a9eb0f6d",
+      "datatables/combat/precu_combat_overrides.iff": "5836d5aa9c4d70a14b2bf77642c7ee16071cf4746d6266cb5cf5a5b5f27269aa",
+      "datatables/combat/precu_combat_spam.iff": "7195488f4e9a8a93970fbb0f432ba5ff74bcaf4bc4e3921200ca2e865b72331b",
+      "datatables/command/command_table.iff": "ee298c0b9e2f53b201a48fae1b4a7c4aa73f641b6c68fcceb89c6e84ece159f8"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "f5a4e6d68cd565265861c6cce8d8ba48842b82fee2b031b24ecc8452a9eb0f6d",
+      "datatables/command/command_table.iff": "ee298c0b9e2f53b201a48fae1b4a7c4aa73f641b6c68fcceb89c6e84ece159f8",
+      "precu_runtime.tre": "803d4fb424450865ec4c74a99781bc8227b727c5f6866283fe971636dd9f3fe4"
+    },
+    "assetArchiveRebuild": {"deterministic": true, "runs": 2, "bytes": 133395, "fileCount": 3}
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T15:14:00-04:00",
+    "clientProtocolVersion": 206,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime"},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave"},
+    "lifecycleId": "28500000000000000000000000000001",
+    "admission": {
+      "riflemanAbilityThree": true,
+      "riflemanMaster": true,
+      "command": true,
+      "weaponType": 0,
+      "validMask": "0x00000001",
+      "satisfies": true,
+      "canPerform": 0,
+      "costs": {"health": 2, "action": 7, "mind": 23}
+    },
+    "firstAttack": {
+      "queueStatus": "Accepted",
+      "damage": 88,
+      "damagePool": "ACTION",
+      "configuredPool": 3,
+      "resolvedPool": 1,
+      "hitLocation": 5,
+      "combatSpam": "flushingvolley_hit",
+      "animation": "fire_area_medium",
+      "animationType": 2,
+      "stun": {"type": 3, "result": "APPLIED", "roll": 24, "threshold": 103, "durationSeconds": 35, "stateBefore": 0, "stateAfter": 1, "buffPresent": true},
+      "postureUp": {"result": "APPLIED", "roll": 89, "threshold": 103, "postureStart": 2, "postureEnd": 1, "recoveryPresent": true}
+    },
+    "recoveryAttack": {
+      "queueStatus": "Accepted",
+      "damage": 78,
+      "damagePool": "ACTION",
+      "configuredPool": 3,
+      "resolvedPool": 1,
+      "hitLocation": 5,
+      "stun": {"result": "APPLIED", "roll": 71, "threshold": 103, "durationSeconds": 35, "stateBefore": 1, "stateAfter": 1},
+      "postureStart": 1,
+      "postureEnd": 0,
+      "postureResult": "RECOVERY",
+      "postureRoll": -1,
+      "appliedPostureSnapshotPreserved": true
+    },
+    "expiry": {"nativeStunCleared": true, "stunBuffCleared": true},
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "ownershipSurvived": true,
+      "commandSurvived": true,
+      "weaponSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "transientRecoveryAbsent": true,
+      "transientStunAbsent": true
+    },
+    "cleanup": {
+      "restoredOriginalAbilityThree": false,
+      "restoredOriginalMaster": false,
+      "restoredOriginalCommand": false,
+      "restoredOriginalWeapon": "none",
+      "recoveryAbsent": true,
+      "stunAbsent": true,
+      "idempotent": true
+    },
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "feature": "dancer-wound-two-progression",
+  "status": "ready",
+  "scope": "Exact Publish 14.1 Dancer Wound II data, production purchase, actor-routed client surrender, Wound I retention, modifier and dual-XP-cap recomputation, and reversible live acceptance.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "woundTwo": {
+      "name": "social_dancer_wound_02",
+      "parent": "social_dancer_wound_01",
+      "graphType": "fourByFour",
+      "isTitle": "0",
+      "isProfession": "0",
+      "moneyRequired": "7000",
+      "pointsRequired": "4",
+      "skillsRequired": "social_dancer_wound_01",
+      "xpType": "entertainer_healing",
+      "xpCost": "50000",
+      "xpCap": "400000",
+      "commands": "",
+      "skillMods": "healing_dance_wound=10",
+      "schematics": "",
+      "searchable": "1"
+    },
+    "removedNgeSurface": {
+      "graphType": "",
+      "xpType": "dance",
+      "xpCost": "125000",
+      "xpCap": "400000",
+      "skillMods": "healing_dance_wound=10",
+      "searchable": "0"
+    }
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "contract": "Qualification precedes point and XP costs; purchase applies only archived commands, modifiers, and schematics; actor-routed surrender returns points, removes only unshared grants, retains the parent box, and recomputes the relevant XP cap without refund."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlayPatch": "restoration/patches/dsrc/086-p14-dancer-wound-two-progression.patch",
+    "overlayPatchSha256": "693fa6df7f58e22f4006dc581e3cd8a24ae2969f8072df15cedc3850ac8730bd",
+    "cleanApplyServerCommit": "0807d5991cf292af29edcfc1c4b35531f9478927",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 2,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledBytes": 51299,
+      "compiledSha256": "8023afd22ed8e0c1b4e601d55250e71542eae909918c91a3321a797d02172add"
+    },
+    "clientTableBuild": {
+      "result": "passed",
+      "compiledBytes": 578209,
+      "compiledSha256": "613f9d88c0812014735a01ff454d9fca3523d7b398171349dcf1cffd4d8a863c"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "protocolVersion": 54,
+      "testCount": 144,
+      "expectedSkipCount": 1,
+      "sourceCommit": "bc1f57fae31ff3dce47fd7a2effa106033384217",
+      "executableBytes": 32577024,
+      "executableSha256": "748aa2c9aaf8ed3b1b0250707fd111c03b4268b879b293d64485eb2340814ba3",
+      "clientMainSha256": "fa07cd845799c5fb2210231abc418be29ce26c96c2813964935902bd1cfee726"
+    },
+    "sourceSha256": {
+      "precu_entertainer_dance_one_fixture.java": "2a6de784bba0ea414adf125490e3537777e7ad7cc58655a23362c835e377a69e",
+      "skills.tab": "99320dd500b58d1e8f1c0e1b51762dfbdf24e16bb16816a08398b67eadd46697"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "352d23c5dba4e977dd6eb04a8bbe0f1ca6288987",
+    "skillsIffSha256": "613f9d88c0812014735a01ff454d9fca3523d7b398171349dcf1cffd4d8a863c"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "c128dfbf4efd4b27a2f68a7177804f0b",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 42900,
+    "clientProtocolVersion": 54,
+    "purchase": {
+      "passed": true,
+      "healingXpBefore": 50000,
+      "healingXpAfter": 0,
+      "pointCost": 4,
+      "availablePointsBefore": 205,
+      "availablePointsAfter": 201,
+      "danceWoundDelta": 10,
+      "healingXpCapAfter": 400000,
+      "danceXpCapAfter": 350000
+    },
+    "surrender": {
+      "clientSubmitted": true,
+      "serverRemoved": true,
+      "dancerWoundOneRetained": true,
+      "dancerNoviceCommandsAfter": "111",
+      "pointsRecovered": 4,
+      "healingXpRefund": 0,
+      "woundOneXpCapAfter": 200000,
+      "danceXpCapAfter": 350000,
+      "modifierDeltasAfter": "0,0,0,0"
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "availablePoints": 250,
+      "performanceType": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "nextBoundary": "Dancer Wound III progression"
+}

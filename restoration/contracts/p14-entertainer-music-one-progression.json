@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "feature": "entertainer-music-one-progression",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Entertainer root and novice data plus Music I purchase, Rock use, Fizz grant, production surrender, and exact reversible live acceptance.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "performanceTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/performance/performance.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "skillSourceSha256": "ca5275d226361e8ae9aefe1ccf24c9432f58e5d3bc043bb3217d15674bf17136",
+    "root": {
+      "name": "social_entertainer",
+      "parent": "social",
+      "graphType": "fourByFour",
+      "isProfession": "1",
+      "searchable": "1"
+    },
+    "novice": {
+      "name": "social_entertainer_novice",
+      "parent": "social_entertainer",
+      "graphType": "fourByFour",
+      "moneyRequired": "100",
+      "pointsRequired": "15",
+      "xpType": "",
+      "xpCost": "0",
+      "xpCap": "0",
+      "commands": "private_entertainer_novice,musician,dancer,imagedesigner,startDance,stopDance,startMusic,stopMusic,flourish+1,flourish+2,flourish+3,flourish+4,flourish+5,flourish+6,flourish+7,flourish+8,startDance+basic,startDance+rhythmic,startMusic+starwars1,slitherhorn",
+      "skillMods": "healing_dance_wound=5,healing_music_wound=5,healing_music_ability=5,healing_dance_ability=5,hair=1,face=1",
+      "schematics": "craftInstrumentGroupA",
+      "searchable": "1"
+    },
+    "musicOne": {
+      "name": "social_entertainer_music_01",
+      "parent": "social_entertainer",
+      "graphType": "fourByFour",
+      "moneyRequired": "1000",
+      "pointsRequired": "2",
+      "skillsRequired": "social_entertainer_novice",
+      "xpType": "music",
+      "xpCost": "1000",
+      "xpCap": "10000",
+      "commands": "private_entertainer_music_1,startMusic+rock,fizz",
+      "skillMods": "healing_music_ability=5",
+      "schematics": "",
+      "searchable": "1"
+    },
+    "rockSlitherhorn": {
+      "performanceIndex": 15,
+      "instrumentAudioId": 2,
+      "requiredSong": "startMusic+rock",
+      "requiredInstrument": "slitherhorn",
+      "actionPointsPerLoop": 32,
+      "loopDuration": 5
+    }
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "skillManagerSource": "MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+    "trainerSource": "MMOCoreORB/bin/scripts/screenplays/trainers/trainerConvHandler.lua",
+    "surrenderCommandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/SurrenderSkillCommand.h",
+    "contract": "Learning checks qualification before deducting points and XP, applies abilities/modifiers/schematics, and recomputes XP limits; successful trainer award alone debits credits. Surrender returns points, removes only unshared grants, and recomputes XP limits."
+  },
+  "fixtureBoundary": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "noviceSetup": "administrative prerequisite only",
+    "purchaseOperations": [
+      "skill.getAvailableSkillPoints",
+      "skill.hasRequiredSkillsForSkillPurchase",
+      "skill.hasRequiredXpForSkillPurchase",
+      "skill.grantSkillToPlayer",
+      "skill.deductXpCostForSkillPurchase"
+    ],
+    "realClientOperations": [
+      "startMusic rock",
+      "stopMusic",
+      "surrenderSkill social_entertainer_music_01"
+    ],
+    "cleanupPolicy": "Destroy only the fixture-owned slitherhorn, revoke Music I and the fixture-granted novice, restore XP, points, HAM, regen, posture, locomotion, and remove the fixture namespace."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlayPatch": "restoration/patches/dsrc/067-p14-entertainer-music-one-progression.patch",
+    "overlayPatchSha256": "d19bb1a81efd02098285b7a7c511d7e83d64ccab9cae044772837212131a8f54",
+    "cleanApplyBase": "b0f92541d9b213137ffd33a294660ea90a43fc05",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 2,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledBytes": 15898,
+      "compiledSha256": "d25503e7be25f459fdba20d94afbd5cb73e632bd8e596818953f0d7af4842646"
+    },
+    "clientTableBuild": {
+      "result": "passed",
+      "compiledBytes": 578407,
+      "compiledSha256": "91b6e1f1c8f6146f7ed1f8e8d00684336a496838fb566f4bea3db1c42645654c"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "protocolVersion": 35,
+      "testCount": 143,
+      "expectedSkipCount": 1,
+      "sourceCommit": "f9e057b265aa71247caaeae36ae5f6db5b8a4295",
+      "executableBytes": 32558080,
+      "executableSha256": "72e693b1ba74ea66cb2d2fb612244abc22d1df31396513d0a4f4a72b85efb1af",
+      "skillsMediatorSha256": "3ff3167abc906dc3b8718903aa181027547d05191654f8f4d05e74f3e271f569",
+      "actorOnlySurrenderTarget": "NetworkId::cms_invalid"
+    },
+    "sourceSha256": {
+      "precu_entertainer_music_one_fixture.java": "1c1872da1d50bb4ea7d0167e70f6c09617d95187a353c9eff328edc933dfe5a5",
+      "skills.tab": "591a42e5bc819064de44dc9d62a982754fdfca6cfa1916cb30d57de886e0ffaa"
+    },
+    "compiledSha256": {
+      "precu_entertainer_music_one_fixture.class": "d25503e7be25f459fdba20d94afbd5cb73e632bd8e596818953f0d7af4842646",
+      "skills.iff": "91b6e1f1c8f6146f7ed1f8e8d00684336a496838fb566f4bea3db1c42645654c"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "c653585c68f63346a3de51537910dcc8f7967b69",
+    "skillsIffSha256": "91b6e1f1c8f6146f7ed1f8e8d00684336a496838fb566f4bea3db1c42645654c"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "7e543b1f4d214eedb8b35617d18ac2e3",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 21732,
+    "clientProtocolVersion": 35,
+    "purchase": {
+      "passed": true,
+      "musicXpBefore": 1000,
+      "musicXpAfter": 0,
+      "pointCost": 2,
+      "availablePointsBefore": 235,
+      "availablePointsAfter": 233,
+      "commandsAfter": "111",
+      "musicAbilityDelta": 5,
+      "xpCapAfter": 10000
+    },
+    "rock": {
+      "startAccepted": true,
+      "performanceIndex": 15,
+      "instrumentAudioId": 2,
+      "actionAtStart": 100,
+      "stopAccepted": true,
+      "outroObserved": true,
+      "stopCompleted": true,
+      "actionAfterOutro": 71
+    },
+    "surrender": {
+      "clientSubmitted": true,
+      "clientLastStatus": "Success",
+      "serverRemoved": true,
+      "commandsAfter": "000",
+      "musicAbilityDelta": 0,
+      "pointsRecovered": 2,
+      "musicXpRefund": 0,
+      "xpCapAfter": 2000
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "availablePoints": 250,
+      "performanceIndex": 0,
+      "instrumentAudioId": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "Entertainer root and novice authentic data correction",
+      "Music I exact cost, grants, modifier, XP cap, and visibility",
+      "production purchase service",
+      "real-client Rock start and stop",
+      "real-client production surrender and authoritative revocation",
+      "reversible fixture and compiled client skill table"
+    ],
+    "deferred": [
+      "visible trainer conversation and 1000-credit debit",
+      "Entertainer Music II through master",
+      "Entertainer dance and hairstyle tracks",
+      "Dancer and Musician profession trees"
+    ]
+  }
+}

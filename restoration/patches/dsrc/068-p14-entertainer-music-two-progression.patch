@@ -1,0 +1,444 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
+index b82a358b9..a6a456385 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java
+@@ -7,7 +7,7 @@ import script.obj_id;
+ 
+ /**
+  * Identity-bound reversible fixture for authentic Publish 14.1 Entertainer
+- * Music I purchase, real-client Rock use, and production surrender.
++ * Music I or II purchase, real-client song use, and production surrender.
+  */
+ public class precu_entertainer_music_one_fixture
+     extends script.base_script
+@@ -18,19 +18,32 @@ public class precu_entertainer_music_one_fixture
+         "social_entertainer_novice";
+     private static final String MUSIC_ONE =
+         "social_entertainer_music_01";
++    private static final String MUSIC_TWO =
++        "social_entertainer_music_02";
+     private static final String MUSIC_XP = "music";
+     private static final String ROCK_ABILITY = "startMusic+rock";
+     private static final String FIZZ_ABILITY = "fizz";
+     private static final String PRIVATE_ABILITY =
+         "private_entertainer_music_1";
++    private static final String STARWARS_TWO_ABILITY =
++        "startMusic+starwars2";
++    private static final String PRIVATE_TWO_ABILITY =
++        "private_entertainer_music_2";
++    private static final String FIZZ_SCHEMATIC =
++        "object/draft_schematic/instrument/instrument_fizz.iff";
++    private static final String FIZZ_CLASSIC_SCHEMATIC =
++        "object/draft_schematic/instrument/instrument_fizz_classic.iff";
+     private static final String INSTRUMENT_ABILITY = "slitherhorn";
+     private static final String INSTRUMENT_TEMPLATE =
+         "object/tangible/instrument/slitherhorn.iff";
+     private static final String MUSIC_MOD = "healing_music_ability";
+     private static final int ROCK_INDEX = 15;
++    private static final int STARWARS_TWO_INDEX = 29;
+     private static final int SLITHERHORN_AUDIO_ID = 2;
+     private static final int MUSIC_ONE_XP_COST = 1000;
+     private static final int MUSIC_ONE_POINT_COST = 2;
++    private static final int MUSIC_TWO_XP_COST = 5000;
++    private static final int MUSIC_TWO_POINT_COST = 3;
+     private static final int REFERENCE_QUICKNESS = 400;
+     private static final int START_ACTION = 100;
+ 
+@@ -67,7 +80,11 @@ public class precu_entertainer_music_one_fixture
+     private static final String USAGE =
+         "usage: prepare|purchase|observeRockStart|" +
+         "observeRockStopRequested|observeRockStopComplete|" +
+-        "observeSurrender|status|cleanup <playerOid> <lifecycle>";
++        "observeSurrender|prepareTwo|purchaseTwo|" +
++        "observeStarwarsTwoStart|" +
++        "observeStarwarsTwoStopRequested|" +
++        "observeStarwarsTwoStopComplete|observeSurrenderTwo|" +
++        "status|cleanup <playerOid> <lifecycle>";
+ 
+     public String executeFixture(String params)
+         throws InterruptedException
+@@ -112,6 +129,10 @@ public class precu_entertainer_music_one_fixture
+         {
+             return prepare(player, args[2]);
+         }
++        if (action.equalsIgnoreCase("prepareTwo"))
++        {
++            return prepareTwo(player, args[2]);
++        }
+         if (action.equalsIgnoreCase("cleanup") &&
+             !hasObjVar(player, ROOT))
+         {
+@@ -126,6 +147,10 @@ public class precu_entertainer_music_one_fixture
+         {
+             return purchase(player);
+         }
++        if (action.equalsIgnoreCase("purchaseTwo"))
++        {
++            return purchaseTwo(player);
++        }
+         if (action.equalsIgnoreCase("observeRockStart"))
+         {
+             return observeRockStart(player);
+@@ -142,6 +167,24 @@ public class precu_entertainer_music_one_fixture
+         {
+             return observeSurrender(player);
+         }
++        if (action.equalsIgnoreCase("observeStarwarsTwoStart"))
++        {
++            return observeStarwarsTwoStart(player);
++        }
++        if (action.equalsIgnoreCase(
++            "observeStarwarsTwoStopRequested"))
++        {
++            return observeStarwarsTwoStopRequested(player);
++        }
++        if (action.equalsIgnoreCase(
++            "observeStarwarsTwoStopComplete"))
++        {
++            return observeStarwarsTwoStopComplete(player);
++        }
++        if (action.equalsIgnoreCase("observeSurrenderTwo"))
++        {
++            return observeSurrenderTwo(player);
++        }
+         if (action.equalsIgnoreCase("status"))
+         {
+             return "action=status " + buildStatus(player);
+@@ -165,9 +208,14 @@ public class precu_entertainer_music_one_fixture
+         }
+         if (hasSkill(player, NOVICE) ||
+             hasSkill(player, MUSIC_ONE) ||
++            hasSkill(player, MUSIC_TWO) ||
+             hasCommand(player, ROCK_ABILITY) ||
+             hasCommand(player, FIZZ_ABILITY) ||
+-            hasCommand(player, PRIVATE_ABILITY))
++            hasCommand(player, PRIVATE_ABILITY) ||
++            hasCommand(player, STARWARS_TWO_ABILITY) ||
++            hasCommand(player, PRIVATE_TWO_ABILITY) ||
++            hasSchematic(player, FIZZ_SCHEMATIC) ||
++            hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC))
+         {
+             return "error=fixtureRequiresUntrainedEntertainer";
+         }
+@@ -284,6 +332,67 @@ public class precu_entertainer_music_one_fixture
+             buildStatus(player);
+     }
+ 
++    private String prepareTwo(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String preparedOne = prepare(player, lifecycle);
++        if (preparedOne.startsWith("error="))
++        {
++            return preparedOne;
++        }
++        if (hasSkill(player, MUSIC_TWO))
++        {
++            return "action=prepareTwo resumed=true " +
++                buildStatus(player);
++        }
++
++        boolean prerequisiteGranted =
++            hasSkill(player, MUSIC_ONE) ||
++            (skill.grantSkillToPlayer(player, MUSIC_ONE) &&
++                hasSkill(player, MUSIC_ONE));
++        setObjVar(
++            player,
++            BASE_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(
++            player,
++            BASE_MUSIC_MOD,
++            getSkillStatMod(player, MUSIC_MOD));
++        boolean xpReady =
++            setXpExact(player, MUSIC_XP, MUSIC_TWO_XP_COST);
++        resetTelemetry(player);
++
++        boolean prepared =
++            prerequisiteGranted &&
++            xpReady &&
++            hasSkill(player, NOVICE) &&
++            hasSkill(player, MUSIC_ONE) &&
++            !hasSkill(player, MUSIC_TWO) &&
++            hasCommand(player, ROCK_ABILITY) &&
++            hasCommand(player, FIZZ_ABILITY) &&
++            hasCommand(player, PRIVATE_ABILITY) &&
++            !hasCommand(player, STARWARS_TWO_ABILITY) &&
++            !hasCommand(player, PRIVATE_TWO_ABILITY) &&
++            !hasSchematic(player, FIZZ_SCHEMATIC) &&
++            !hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) -
++                    15 - MUSIC_ONE_POINT_COST;
++        if (!prepared)
++        {
++            String detail = buildStatus(player);
++            boolean restored = restoreSnapshot(player);
++            if (restored)
++            {
++                removeObjVar(player, ROOT);
++            }
++            return "error=fixtureTwoSetupFailed restored=" +
++                restored + " " + detail;
++        }
++        return "action=prepareTwo resumed=false " +
++            buildStatus(player);
++    }
++
+     private String purchase(obj_id player)
+         throws InterruptedException
+     {
+@@ -293,7 +402,10 @@ public class precu_entertainer_music_one_fixture
+                 buildStatus(player);
+         }
+         boolean purchased =
+-            purchaseWithoutHolocron(player, MUSIC_ONE);
++            purchaseWithoutHolocron(
++                player,
++                MUSIC_ONE,
++                MUSIC_ONE_POINT_COST);
+         boolean passed =
+             purchased &&
+             hasSkill(player, MUSIC_ONE) &&
+@@ -311,13 +423,46 @@ public class precu_entertainer_music_one_fixture
+             " purchased=" + purchased + " " + buildStatus(player);
+     }
+ 
++    private String purchaseTwo(obj_id player)
++        throws InterruptedException
++    {
++        if (readFlag(player, PURCHASED))
++        {
++            return "action=purchaseTwo resumed=true " +
++                buildStatus(player);
++        }
++        boolean purchased =
++            purchaseWithoutHolocron(
++                player,
++                MUSIC_TWO,
++                MUSIC_TWO_POINT_COST);
++        boolean passed =
++            purchased &&
++            hasSkill(player, MUSIC_TWO) &&
++            hasCommand(player, STARWARS_TWO_ABILITY) &&
++            hasCommand(player, PRIVATE_TWO_ABILITY) &&
++            hasSchematic(player, FIZZ_SCHEMATIC) &&
++            hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC) &&
++            getSkillStatMod(player, MUSIC_MOD) -
++                getIntObjVar(player, BASE_MUSIC_MOD) == 5 &&
++            getExperiencePoints(player, MUSIC_XP) == 0 &&
++            getExperienceCap(player, MUSIC_XP) == 30000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS) -
++                    MUSIC_TWO_POINT_COST;
++        setObjVar(player, PURCHASED, passed ? 1 : 0);
++        return "action=purchaseTwo passed=" + passed +
++            " purchased=" + purchased + " " + buildStatus(player);
++    }
++
+     private boolean purchaseWithoutHolocron(
+         obj_id player,
+-        String skillName)
++        String skillName,
++        int expectedPointCost)
+         throws InterruptedException
+     {
+         int pointsRequired = skill.getSkillPointCost(skillName);
+-        if (pointsRequired != MUSIC_ONE_POINT_COST ||
++        if (pointsRequired != expectedPointCost ||
+             skill.getAvailableSkillPoints(player) < pointsRequired ||
+             !skill.hasRequiredSkillsForSkillPurchase(
+                 player,
+@@ -364,10 +509,22 @@ public class precu_entertainer_music_one_fixture
+ 
+     private String observeRockStopRequested(obj_id player)
+         throws InterruptedException
++    {
++        return observeStopRequested(
++            player,
++            ROCK_INDEX,
++            "observeRockStopRequested");
++    }
++
++    private String observeStopRequested(
++        obj_id player,
++        int performanceIndex,
++        String action)
++        throws InterruptedException
+     {
+         boolean passed =
+             readFlag(player, STARTED) &&
+-            getPerformanceType(player) == ROCK_INDEX &&
++            getPerformanceType(player) == performanceIndex &&
+             hasScript(
+                 player,
+                 performance.MUSIC_HEARTBEAT_SCRIPT) &&
+@@ -377,12 +534,22 @@ public class precu_entertainer_music_one_fixture
+                 player,
+                 performance.VAR_PERFORM_OUTRO) == 1;
+         setObjVar(player, STOP_REQUESTED, passed ? 1 : 0);
+-        return "action=observeRockStopRequested passed=" +
++        return "action=" + action + " passed=" +
+             passed + " " + buildStatus(player);
+     }
+ 
+     private String observeRockStopComplete(obj_id player)
+         throws InterruptedException
++    {
++        return observeStopComplete(
++            player,
++            "observeRockStopComplete");
++    }
++
++    private String observeStopComplete(
++        obj_id player,
++        String action)
++        throws InterruptedException
+     {
+         boolean passed =
+             readFlag(player, STOP_REQUESTED) &&
+@@ -393,7 +560,7 @@ public class precu_entertainer_music_one_fixture
+             !hasScript(player, performance.POST_PERFORMANCE) &&
+             !hasObjVar(player, performance.VAR_PERFORM_OUTRO);
+         setObjVar(player, STOPPED, passed ? 1 : 0);
+-        return "action=observeRockStopComplete passed=" +
++        return "action=" + action + " passed=" +
+             passed + " " + buildStatus(player);
+     }
+ 
+@@ -416,6 +583,69 @@ public class precu_entertainer_music_one_fixture
+             " " + buildStatus(player);
+     }
+ 
++    private String observeStarwarsTwoStart(obj_id player)
++        throws InterruptedException
++    {
++        int lookup =
++            performance.lookupPerformanceIndex(
++                866729052,
++                "starwars2",
++                SLITHERHORN_AUDIO_ID);
++        boolean passed =
++            readFlag(player, PURCHASED) &&
++            lookup == STARWARS_TWO_INDEX &&
++            getPerformanceType(player) == STARWARS_TWO_INDEX &&
++            hasScript(
++                player,
++                performance.MUSIC_HEARTBEAT_SCRIPT) &&
++            getInstrumentAudioId(player) ==
++                SLITHERHORN_AUDIO_ID &&
++            getAttrib(player, ACTION) == START_ACTION;
++        setObjVar(player, STARTED, passed ? 1 : 0);
++        return "action=observeStarwarsTwoStart passed=" +
++            passed + " lookup=" + lookup + " " +
++            buildStatus(player);
++    }
++
++    private String observeStarwarsTwoStopRequested(obj_id player)
++        throws InterruptedException
++    {
++        return observeStopRequested(
++            player,
++            STARWARS_TWO_INDEX,
++            "observeStarwarsTwoStopRequested");
++    }
++
++    private String observeStarwarsTwoStopComplete(obj_id player)
++        throws InterruptedException
++    {
++        return observeStopComplete(
++            player,
++            "observeStarwarsTwoStopComplete");
++    }
++
++    private String observeSurrenderTwo(obj_id player)
++        throws InterruptedException
++    {
++        boolean passed =
++            readFlag(player, STOPPED) &&
++            !hasSkill(player, MUSIC_TWO) &&
++            hasSkill(player, MUSIC_ONE) &&
++            !hasCommand(player, STARWARS_TWO_ABILITY) &&
++            !hasCommand(player, PRIVATE_TWO_ABILITY) &&
++            !hasSchematic(player, FIZZ_SCHEMATIC) &&
++            !hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC) &&
++            getSkillStatMod(player, MUSIC_MOD) ==
++                getIntObjVar(player, BASE_MUSIC_MOD) &&
++            getExperiencePoints(player, MUSIC_XP) == 0 &&
++            getExperienceCap(player, MUSIC_XP) == 10000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS);
++        setObjVar(player, SURRENDERED, passed ? 1 : 0);
++        return "action=observeSurrenderTwo passed=" +
++            passed + " " + buildStatus(player);
++    }
++
+     private String cleanup(obj_id player)
+         throws InterruptedException
+     {
+@@ -443,6 +673,10 @@ public class precu_entertainer_music_one_fixture
+         }
+         clearPerformanceState(player);
+         boolean instrumentRemoved = removeFixtureInstrument(player);
++        if (hasSkill(player, MUSIC_TWO))
++        {
++            revokeSkill(player, MUSIC_TWO);
++        }
+         if (hasSkill(player, MUSIC_ONE))
+         {
+             revokeSkill(player, MUSIC_ONE);
+@@ -486,9 +720,14 @@ public class precu_entertainer_music_one_fixture
+             locomotionRestored &&
+             postureRestored &&
+             !hasSkill(player, MUSIC_ONE) &&
++            !hasSkill(player, MUSIC_TWO) &&
+             !hasSkill(player, NOVICE) &&
+             !hasCommand(player, ROCK_ABILITY) &&
+             !hasCommand(player, FIZZ_ABILITY) &&
++            !hasCommand(player, STARWARS_TWO_ABILITY) &&
++            !hasCommand(player, PRIVATE_TWO_ABILITY) &&
++            !hasSchematic(player, FIZZ_SCHEMATIC) &&
++            !hasSchematic(player, FIZZ_CLASSIC_SCHEMATIC) &&
+             skill.getAvailableSkillPoints(player) ==
+                 getIntObjVar(player, ORIGINAL_POINTS) &&
+             getPerformanceType(player) == 0 &&
+@@ -598,10 +837,26 @@ public class precu_entertainer_music_one_fixture
+             " novice=" + (hasSkill(player, NOVICE) ? "1" : "0") +
+             " musicOne=" +
+                 (hasSkill(player, MUSIC_ONE) ? "1" : "0") +
++            " musicTwo=" +
++                (hasSkill(player, MUSIC_TWO) ? "1" : "0") +
+             " commands=" +
+                 (hasCommand(player, ROCK_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, FIZZ_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, PRIVATE_ABILITY) ? "1" : "0") +
++            " commandsTwo=" +
++                (hasCommand(
++                    player,
++                    STARWARS_TWO_ABILITY) ? "1" : "0") +
++                (hasCommand(
++                    player,
++                    PRIVATE_TWO_ABILITY) ? "1" : "0") +
++            " schematicsTwo=" +
++                (hasSchematic(
++                    player,
++                    FIZZ_SCHEMATIC) ? "1" : "0") +
++                (hasSchematic(
++                    player,
++                    FIZZ_CLASSIC_SCHEMATIC) ? "1" : "0") +
+             " musicModDelta=" +
+                 (getSkillStatMod(player, MUSIC_MOD) - baseMod) +
+             " musicXp=" + getExperiencePoints(player, MUSIC_XP) +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index 6b8d0dc19..283aa11c3 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -357,7 +357,7 @@ social_entertainer_hairstyle_02	social_entertainer_hairstyle_01		0	0	0	0	2000	3
+ social_entertainer_hairstyle_03	social_entertainer_hairstyle_02		0	0	0	0	3000	4		social_entertainer_hairstyle_02		imagedesigner	10000	30000							private_entertainer_hair_3	hair=1			0	0
+ social_entertainer_hairstyle_04	social_entertainer_hairstyle_03		0	1	0	0	4000	5		social_entertainer_hairstyle_03		imagedesigner	15000	30000							private_entertainer_hair_4	"hair=1,face=1"			0	0
+ social_entertainer_music_01	social_entertainer	fourByFour	0	0	0	0	1000	2	0	social_entertainer_novice		music	1000	10000		0			none		"private_entertainer_music_1,startMusic+rock,fizz"	healing_music_ability=5			1	0
+-social_entertainer_music_02	social_entertainer_music_01		0	0	0	0	2000	3		social_entertainer_music_01		music	5000	30000							"private_entertainer_music_2,startMusic+starwars2"	"healing_music_ability=5,healing_music_wound=5"			0	0
++social_entertainer_music_02	social_entertainer_music_01	fourByFour	0	0	0	0	2000	3	0	social_entertainer_music_01		music	5000	30000		0			none		"private_entertainer_music_2,startMusic+starwars2"	healing_music_ability=5	craftInstrumentGroupB		1	0
+ social_entertainer_music_03	social_entertainer_music_02		0	0	0	0	3000	4		social_entertainer_music_02		music	15000	90000							"private_entertainer_music_3,startMusic+folk"	"healing_music_ability=5,healing_music_wound=5"			0	0
+ social_entertainer_music_04	social_entertainer_music_03		0	1	0	0	4000	5		social_entertainer_music_03		music	45000	150000							"private_entertainer_music_4,startMusic+starwars3"	"healing_music_ability=10,healing_music_wound=5"			0	0
+ social_entertainer_dance_01	social_entertainer		0	0	0	0	1000	2		social_entertainer_novice		dance	1000	10000							"private_entertainer_dance_1,startDance+basic2"	"healing_dance_ability=5,healing_dance_wound=5"			0	0

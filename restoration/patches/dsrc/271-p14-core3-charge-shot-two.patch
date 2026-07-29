@@ -1,0 +1,382 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 055d9de..f1f5296 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14748,6 +14748,17 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++
++    public int chargeShot2(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction(
++            "chargeShot2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int scatterShot1(obj_id self, obj_id target, String params,
+         float defaultTime) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 40bda44..0550a5e 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -48,6 +48,8 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_carbine_support_02";
+     private static final String CARBINE_SUPPORT_THREE =
+         "combat_carbine_support_03";
++    private static final String CARBINE_SUPPORT_FOUR =
++        "combat_carbine_support_04";
+     private static final String CARBINE_SPEED_ONE = "combat_carbine_speed_01";
+     private static final String CARBINE_ABILITY_ONE =
+         "combat_carbine_ability_01";
+@@ -106,6 +108,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String FULL_AUTO_AREA_TWO_COMMAND =
+         "fullAutoArea2";
+     private static final String CHARGE_SHOT_ONE_COMMAND = "chargeShot1";
++    private static final String CHARGE_SHOT_TWO_COMMAND = "chargeShot2";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
+@@ -203,6 +206,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalCarbineSupportTwo";
+     private static final String ORIGINAL_CARBINE_SUPPORT_THREE =
+         ROOT + ".originalCarbineSupportThree";
++    private static final String ORIGINAL_CARBINE_SUPPORT_FOUR =
++        ROOT + ".originalCarbineSupportFour";
+     private static final String ORIGINAL_CARBINE_SPEED_ONE =
+         ROOT + ".originalCarbineSpeedOne";
+     private static final String ORIGINAL_CARBINE_ABILITY_ONE =
+@@ -297,6 +302,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalFullAutoAreaTwoCommand";
+     private static final String ORIGINAL_CHARGE_SHOT_ONE_COMMAND =
+         ROOT + ".originalChargeShotOneCommand";
++    private static final String ORIGINAL_CHARGE_SHOT_TWO_COMMAND =
++        ROOT + ".originalChargeShotTwoCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_TWO_COMMAND =
+@@ -604,6 +611,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean carbineSupportThreeGranted = carbineSupportTwoGranted &&
+             (hasSkill(attacker, CARBINE_SUPPORT_THREE) ||
+                 grantSkill(attacker, CARBINE_SUPPORT_THREE));
++        boolean carbineSupportFourGranted = carbineSupportThreeGranted &&
++            (hasSkill(attacker, CARBINE_SUPPORT_FOUR) ||
++                grantSkill(attacker, CARBINE_SUPPORT_FOUR));
+         boolean carbineSpeedOneGranted = carbineNoviceGranted &&
+             (hasSkill(attacker, CARBINE_SPEED_ONE) ||
+                 grantSkill(attacker, CARBINE_SPEED_ONE));
+@@ -735,6 +745,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean chargeShotOneCommandGranted =
+             hasCommand(attacker, CHARGE_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, CHARGE_SHOT_ONE_COMMAND);
++        boolean chargeShotTwoCommandGranted =
++            hasCommand(attacker, CHARGE_SHOT_TWO_COMMAND) ||
++            grantCommand(attacker, CHARGE_SHOT_TWO_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -858,6 +871,7 @@ public class precu_headshot1_fixture extends script.base_script
+             !carbineSupportOneGranted ||
+             !carbineSupportTwoGranted ||
+             !carbineSupportThreeGranted ||
++            !carbineSupportFourGranted ||
+             !carbineSpeedOneGranted ||
+             !carbineAbilityFourGranted ||
+             !pistolOneGranted ||
+@@ -933,6 +947,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, FULL_AUTO_AREA_TWO_COMMAND) ||
+             !chargeShotOneCommandGranted ||
+             !hasCommand(attacker, CHARGE_SHOT_ONE_COMMAND) ||
++            !chargeShotTwoCommandGranted ||
++            !hasCommand(attacker, CHARGE_SHOT_TWO_COMMAND) ||
+             !scatterShotOneCommandGranted ||
+             !hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             !scatterShotTwoCommandGranted ||
+@@ -1520,6 +1536,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 FULL_AUTO_AREA_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_CHARGE_SHOT_ONE_COMMAND,
+                 CHARGE_SHOT_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_CHARGE_SHOT_TWO_COMMAND,
++                CHARGE_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+                 SCATTER_SHOT_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -1751,6 +1769,13 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, CARBINE_ACCURACY_ONE);
+         }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_FOUR) == 0 &&
++            hasSkill(attacker, CARBINE_SUPPORT_FOUR))
++        {
++            revokeSkill(attacker, CARBINE_SUPPORT_FOUR);
++        }
+         if (attackerRoot &&
+             hasObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_THREE) == 0 &&
+@@ -2168,6 +2193,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, CARBINE_SUPPORT_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_SUPPORT_THREE,
+             hasSkill(player, CARBINE_SUPPORT_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_CARBINE_SUPPORT_FOUR,
++            hasSkill(player, CARBINE_SUPPORT_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_SPEED_ONE,
+             hasSkill(player, CARBINE_SPEED_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_ABILITY_ONE,
+@@ -2266,6 +2293,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, FULL_AUTO_AREA_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CHARGE_SHOT_ONE_COMMAND,
+             hasCommand(player, CHARGE_SHOT_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_CHARGE_SHOT_TWO_COMMAND,
++            hasCommand(player, CHARGE_SHOT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -2609,6 +2638,8 @@ public class precu_headshot1_fixture extends script.base_script
+             FULL_AUTO_AREA_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_CHARGE_SHOT_ONE_COMMAND,
+             CHARGE_SHOT_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_CHARGE_SHOT_TWO_COMMAND,
++            CHARGE_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             SCATTER_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -2823,6 +2854,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, CARBINE_ACCURACY_ONE);
+         }
++        if (hasObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_FOUR) == 0 &&
++            hasSkill(attacker, CARBINE_SUPPORT_FOUR))
++        {
++            revokeSkill(attacker, CARBINE_SUPPORT_FOUR);
++        }
+         if (hasObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_CARBINE_SUPPORT_THREE) == 0 &&
+             hasSkill(attacker, CARBINE_SUPPORT_THREE))
+@@ -2944,6 +2981,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 CARBINE_SUPPORT_TWO) &&
+             isSkillRestored(attacker, ORIGINAL_CARBINE_SUPPORT_THREE,
+                 CARBINE_SUPPORT_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_CARBINE_SUPPORT_FOUR,
++                CARBINE_SUPPORT_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_CARBINE_SUPPORT_ONE,
+                 CARBINE_SUPPORT_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_CARBINE_NOVICE,
+@@ -2970,6 +3009,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 FULL_AUTO_AREA_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_CHARGE_SHOT_ONE_COMMAND,
+                 CHARGE_SHOT_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_CHARGE_SHOT_TWO_COMMAND,
++                CHARGE_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+                 SCATTER_SHOT_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3096,10 +3137,12 @@ public class precu_headshot1_fixture extends script.base_script
+             CARBINE_ACCURACY_TWO);
+         restoreSkill(attacker, ORIGINAL_CARBINE_ACCURACY_ONE,
+             CARBINE_ACCURACY_ONE);
+-        restoreSkill(attacker, ORIGINAL_CARBINE_SUPPORT_TWO,
+-            CARBINE_SUPPORT_TWO);
++        restoreSkill(attacker, ORIGINAL_CARBINE_SUPPORT_FOUR,
++            CARBINE_SUPPORT_FOUR);
+         restoreSkill(attacker, ORIGINAL_CARBINE_SUPPORT_THREE,
+             CARBINE_SUPPORT_THREE);
++        restoreSkill(attacker, ORIGINAL_CARBINE_SUPPORT_TWO,
++            CARBINE_SUPPORT_TWO);
+         restoreSkill(attacker, ORIGINAL_CARBINE_SUPPORT_ONE,
+             CARBINE_SUPPORT_ONE);
+         restoreSkill(attacker, ORIGINAL_CARBINE_NOVICE, CARBINE_NOVICE);
+@@ -3119,6 +3162,8 @@ public class precu_headshot1_fixture extends script.base_script
+             FULL_AUTO_AREA_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_CHARGE_SHOT_ONE_COMMAND,
+             CHARGE_SHOT_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_CHARGE_SHOT_TWO_COMMAND,
++            CHARGE_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             SCATTER_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3229,6 +3274,18 @@ public class precu_headshot1_fixture extends script.base_script
+             setAttribAndVerify(player, ACTION, getIntObjVar(player, ORIGINAL_ACTION));
+         boolean mindRestored =
+             setAttribAndVerify(player, MIND, getIntObjVar(player, ORIGINAL_MIND));
++        if (!healthRestored || !actionRestored || !mindRestored)
++        {
++            healthRestored =
++                setAttribAndVerify(player, HEALTH,
++                    getIntObjVar(player, ORIGINAL_HEALTH));
++            actionRestored =
++                setAttribAndVerify(player, ACTION,
++                    getIntObjVar(player, ORIGINAL_ACTION));
++            mindRestored =
++                setAttribAndVerify(player, MIND,
++                    getIntObjVar(player, ORIGINAL_MIND));
++        }
+         setRegenRate(player, HEALTH, getFloatObjVar(player, ORIGINAL_HEALTH_REGEN));
+         setRegenRate(player, ACTION, getFloatObjVar(player, ORIGINAL_ACTION_REGEN));
+         setRegenRate(player, MIND, getFloatObjVar(player, ORIGINAL_MIND_REGEN));
+@@ -3413,6 +3470,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean carbineSupportThreeReady = carbineSupportTwoReady &&
+             (hasSkill(attacker, CARBINE_SUPPORT_THREE) ||
+                 grantSkill(attacker, CARBINE_SUPPORT_THREE));
++        boolean carbineSupportFourReady = carbineSupportThreeReady &&
++            (hasSkill(attacker, CARBINE_SUPPORT_FOUR) ||
++                grantSkill(attacker, CARBINE_SUPPORT_FOUR));
+         boolean carbineSpeedOneReady = carbineNoviceReady &&
+             (hasSkill(attacker, CARBINE_SPEED_ONE) ||
+                 grantSkill(attacker, CARBINE_SPEED_ONE));
+@@ -3541,6 +3601,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean chargeShotOneCommandReady =
+             hasCommand(attacker, CHARGE_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, CHARGE_SHOT_ONE_COMMAND);
++        boolean chargeShotTwoCommandReady =
++            hasCommand(attacker, CHARGE_SHOT_TWO_COMMAND) ||
++            grantCommand(attacker, CHARGE_SHOT_TWO_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -3664,6 +3727,7 @@ public class precu_headshot1_fixture extends script.base_script
+             carbineSupportOneReady &&
+             carbineSupportTwoReady &&
+             carbineSupportThreeReady &&
++            carbineSupportFourReady &&
+             carbineSpeedOneReady &&
+             carbineAbilityFourReady &&
+             supportOneReady && supportFourReady &&
+@@ -3692,6 +3756,7 @@ public class precu_headshot1_fixture extends script.base_script
+             fullAutoAreaOneCommandReady &&
+             fullAutoAreaTwoCommandReady &&
+             chargeShotOneCommandReady &&
++            chargeShotTwoCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -3984,6 +4049,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_CARBINE_SUPPORT_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_SUPPORT_TWO) &&
+             hasObjVar(player, ORIGINAL_CARBINE_SUPPORT_THREE) &&
++            hasObjVar(player, ORIGINAL_CARBINE_SUPPORT_FOUR) &&
+             hasObjVar(player, ORIGINAL_CARBINE_SPEED_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ABILITY_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ABILITY_TWO) &&
+@@ -4033,6 +4099,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_FULL_AUTO_AREA_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_FULL_AUTO_AREA_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_CHARGE_SHOT_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_CHARGE_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
+@@ -4215,6 +4282,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(FULL_AUTO_AREA_TWO_COMMAND, attacker) : -1;
+         int canPerformChargeShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(CHARGE_SHOT_ONE_COMMAND, attacker) : -1;
++        int canPerformChargeShotTwo = isIdValid(weapon) ?
++            combat.canPerformAction(CHARGE_SHOT_TWO_COMMAND, attacker) : -1;
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotTwo = isIdValid(weapon) ?
+@@ -4340,6 +4409,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(FULL_AUTO_AREA_TWO_COMMAND);
+         combat_data chargeShotOneData =
+             combat_engine.getCombatData(CHARGE_SHOT_ONE_COMMAND);
++        combat_data chargeShotTwoData =
++            combat_engine.getCombatData(CHARGE_SHOT_TWO_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+         combat_data scatterShotTwoData =
+@@ -4433,6 +4504,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, flameWeaponData, chargeShotOneData) :
+             new int[] {-1, -1, -1};
++        int[] chargeShotTwoCosts =
++            chargeShotTwoData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, chargeShotTwoData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -4501,6 +4577,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasSkill(attacker, CARBINE_SUPPORT_TWO) +
+             " carbineSupportThree=" +
+                 hasSkill(attacker, CARBINE_SUPPORT_THREE) +
++            " carbineSupportFour=" +
++                hasSkill(attacker, CARBINE_SUPPORT_FOUR) +
+             " carbineSpeedOne=" + hasSkill(attacker, CARBINE_SPEED_ONE) +
+             " carbineAbilityOne=" + hasSkill(attacker, CARBINE_ABILITY_ONE) +
+             " carbineAbilityTwo=" + hasSkill(attacker, CARBINE_ABILITY_TWO) +
+@@ -4575,6 +4653,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, FULL_AUTO_AREA_TWO_COMMAND) +
+             " chargeShotOneCommand=" +
+                 hasCommand(attacker, CHARGE_SHOT_ONE_COMMAND) +
++            " chargeShotTwoCommand=" +
++                hasCommand(attacker, CHARGE_SHOT_TWO_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+             " scatterShotTwoCommand=" +
+@@ -4687,6 +4767,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformFullAutoAreaOne=" + canPerformFullAutoAreaOne +
+             " canPerformFullAutoAreaTwo=" + canPerformFullAutoAreaTwo +
+             " canPerformChargeShotOne=" + canPerformChargeShotOne +
++            " canPerformChargeShotTwo=" + canPerformChargeShotTwo +
+             " canPerformScatterShotOne=" + canPerformScatterShotOne +
+             " canPerformScatterShotTwo=" + canPerformScatterShotTwo +
+             " canPerformWildShotOne=" + canPerformWildShotOne +
+@@ -4863,6 +4944,15 @@ public class precu_headshot1_fixture extends script.base_script
+             " chargeShotOneKnockdownChance=" +
+                 (chargeShotOneData == null ? -1 :
+                     chargeShotOneData.precuKnockdownChance) +
++            " chargeShotTwoHealthCost=" + chargeShotTwoCosts[0] +
++            " chargeShotTwoActionCost=" + chargeShotTwoCosts[1] +
++            " chargeShotTwoMindCost=" + chargeShotTwoCosts[2] +
++            " chargeShotTwoPrecuHamCostModel=" +
++                (chargeShotTwoData == null ? -1 :
++                    chargeShotTwoData.precuHamCostModel) +
++            " chargeShotTwoKnockdownChance=" +
++                (chargeShotTwoData == null ? -1 :
++                    chargeShotTwoData.precuKnockdownChance) +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+             " scatterShotOneMindCost=" + scatterShotOneCosts[2] +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index ee8b608..eb8eae9 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1368,3 +1368,4 @@ wildShot2	wildShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/
+ fullAutoArea1	fullAutoArea1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area							fire_area							OFF	OFF	OFF	OFF	OFF	CONE	64	30	0	64	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ fullAutoArea2	fullAutoArea2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area							fire_area							OFF	OFF	OFF	OFF	OFF	CONE	64	30	0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ chargeShot1	chargeShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	charge														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
++chargeShot2	chargeShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	charge														OFF	OFF	OFF	OFF	OFF	CONE	64	30	0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 0efa8cb..2b7facc 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -84,3 +84,4 @@ wildShot2	2.0	1.25	.5	RANDOM	2	25	RANGED			STUN	50	0	30	stun_defense	jedi_state_
+ fullAutoArea1	1.75	2.5	0.5	RANDOM	1.5	25	INTENSITY			DIZZY	30	0	30	dizzy_defense	jedi_state_defense	resistance_states	BLIND	30	0	40	blind_defense	jedi_state_defense	resistance_states	STUN	30	0	30	stun_defense	jedi_state_defense	resistance_states
+ fullAutoArea2	2.5	2.5	0.5	RANDOM	1.5	25	INTENSITY			DIZZY	30	0	30	dizzy_defense	jedi_state_defense	resistance_states	BLIND	30	0	40	blind_defense	jedi_state_defense	resistance_states	STUN	30	0	30	stun_defense	jedi_state_defense	resistance_states
+ chargeShot1	0.5	2.0	0.5	RANDOM	2.0	25	NONE																										100
++chargeShot2	0.5	1.5	0.5	RANDOM	2.0	25	NONE																										100
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index c549be3..1f230fd 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -83,3 +83,4 @@ wildShot2	widewildshot
+ fullAutoArea1	areashot
+ fullAutoArea2	a_auto
+ chargeShot1	chargeshot
++chargeShot2	chargeblast
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index af5b703..92aa464 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2018,3 +2018,4 @@ wildShot2	combat	normal	wildShot2	failSpecialAttack			1.5	wildShot2	1	0	1	1	1	0
+ fullAutoArea1	combat	normal	fullAutoArea1	failSpecialAttack			0.0	fullAutoArea1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	0.0	0		0	0	0
+ fullAutoArea2	combat	normal	fullAutoArea2	failSpecialAttack			0.0	fullAutoArea2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	0.0	0		0	0	0
+ chargeShot1	combat	normal	chargeShot1	failSpecialAttack			1.5	chargeShot1	1	0	1	1	0	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++chargeShot2	combat	normal	chargeShot2	failSpecialAttack			1.5	chargeShot2	1	0	1	1	0	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

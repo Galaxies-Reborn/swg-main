@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "feature": "armor-mitigation-ordering",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "legacyCombatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base_old.java",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_armor_mitigation_fixture.java",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "cdefRifle": "MMOCoreORB/bin/scripts/object/weapon/ranged/rifle/rifle_cdef.lua",
+    "publish": "14.1",
+    "poolHitLocations": {
+      "health": ["BODY", "BODY", "LEFT_ARM", "RIGHT_ARM"],
+      "action": ["LEFT_LEG", "RIGHT_LEG"],
+      "mind": ["HEAD"]
+    },
+    "playerLayerOrder": [
+      "personal shield generator",
+      "hit-location armor piece",
+      "food mitigate_damage",
+      "target HAM pool",
+      "wound roll"
+    ],
+    "armorPiercingFormula": {
+      "weaponHigherThanArmor": "1.25 ^ absolute rating difference",
+      "weaponLowerThanArmor": "0.50 ^ absolute rating difference",
+      "equalRating": 1.0
+    },
+    "conditionWearRatio": 0.2,
+    "cdefArmorPiercing": 0
+  },
+  "runtimeContract": {
+    "admission": "combat_data.precuTargetPool >= 0",
+    "defaultNgePathUnchanged": true,
+    "playerArmorSelection": "combat.getArmorPieceHit(defender, hitData.hitLocation)",
+    "psgBeforeArmor": true,
+    "foodAfterArmor": true,
+    "legacyFoodScriptvars": [
+      "food.mitigate_damage.eff",
+      "food.mitigate_damage.dur"
+    ],
+    "migratedFoodSkillMod": "mitigate_damage",
+    "armorLevelMapping": {
+      "none": 0,
+      "basic": 1,
+      "standard": 2,
+      "advanced": 3
+    },
+    "npcFallback": "retained SWGSource aggregate armor path"
+  },
+  "weaponProfiles": {
+    "object/weapon/ranged/rifle/rifle_cdef.iff": 0,
+    "object/weapon/ranged/pistol/pistol_cdef.iff": 0,
+    "object/weapon/ranged/carbine/carbine_cdef.iff": 0,
+    "object/weapon/melee/unarmed/unarmed_default_player.iff": 0
+  },
+  "fixture": {
+    "attackerOid": 44003778,
+    "attackerStationId": 91001,
+    "defenderOid": 39008597,
+    "defenderStationId": 1001,
+    "armorTemplate": "object/tangible/wearables/armor/bone/armor_bone_s01_helmet.iff",
+    "armorRating": 1,
+    "energyProtection": 0.2,
+    "armorCondition": 1000,
+    "foodEffectiveness": 25,
+    "probe": {
+      "rawDamage": 1000,
+      "armorPiercing": 0,
+      "hitLocation": 1,
+      "postArmorDamage": 400,
+      "finalDamage": 300,
+      "conditionDelta": 200,
+      "foodDurationDelta": 1
+    },
+    "actions": [
+      "prepare",
+      "probe1000",
+      "armLive",
+      "status",
+      "cleanup"
+    ],
+    "cleanupPolicy": "Destroy only the fixture-owned helmet, restore the original hat and food scriptvars exactly, then remove both identity-bound fixture roots. Repeated cleanup is idempotent."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "sourceCommit": "cd54de43e",
+    "isolatedBuildVolume": "swg-precu-armor-mitigation-clean-build-143",
+    "targets": [
+      "clean compile_java of all 5672 materialized Java sources",
+      "compile_tab for precu_weapon_profiles.iff"
+    ],
+    "patchSha256": "502aa72ebf0225ec8bf946fff820e80335eec7973fbcee59f57c1f264636e356",
+    "compiledSha256": {
+      "combat.class": "d23fec479e4548b71f10d6d77ca4e44d00caa7c97090263d11853730449f226a",
+      "combat_base.class": "2bcffe7f4f124b6df612ca70170081a50d16929a6ca8ef0bd056cbbd4c921a9a",
+      "precu_armor_mitigation_fixture.class": "4e2817ecdeac96b41f269bf861310e33156c08540372cdf85426cd4cfb3c81d0",
+      "precu_weapon_profiles.iff": "c49fe0881fc837387616973d6658d6e67c18940724a9a0ed85e6dbb26eb58bf0"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "verifiedAt": "2026-07-18T15:11:50-04:00",
+    "clientProtocolVersion": 29,
+    "lifecycle": "84758edbe6074399a79dd9e342aaf8cb",
+    "attackerClientProcessId": 63500,
+    "defenderClientProcessId": 65300,
+    "probe": {
+      "rawDamage": 1000,
+      "hitLocation": 1,
+      "armorPiercing": 0,
+      "armorRating": 1,
+      "protection": 0.2,
+      "postArmorDamage": 400,
+      "foodMitigated": 100,
+      "finalDamage": 300,
+      "conditionBefore": 999,
+      "conditionAfter": 799,
+      "conditionDelta": 200,
+      "foodDurationBefore": 10,
+      "foodDurationAfter": 9,
+      "foodDurationDelta": 1
+    },
+    "headShot": {
+      "queueCommand": "headShot1",
+      "queueStatus": "Success",
+      "primaryResult": "HIT",
+      "primaryHitChance": 100.0,
+      "primaryRoll": 95,
+      "rawDamage": 16,
+      "hitLocation": 1,
+      "armorPiercing": 0,
+      "armorRating": 1,
+      "protection": 0.2,
+      "postArmorDamage": 6,
+      "expectedPostArmorDamage": 6,
+      "foodMitigated": 1,
+      "finalDamage": 5,
+      "expectedFinalDamage": 5,
+      "mindBefore": 400,
+      "mindAfter": 395,
+      "mindDelta": 5,
+      "conditionBefore": 999,
+      "conditionAfter": 996,
+      "conditionDelta": 3,
+      "foodDurationBefore": 20,
+      "foodDurationAfter": 19,
+      "foodDurationDelta": 1
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "headShotLayerClean": true,
+      "marksmanLayerClean": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "rollbackVolume": "swg-precu-work-pre-armor-mitigation-20260718"
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "reason": "The retained Java combat seam required a narrow pre-CU route. Existing protocol-29 combat queue actions are sufficient for live acceptance."
+  },
+  "narrowBoundary": {
+    "included": [
+      "authenticated pre-CU pool-to-hit-location selection",
+      "player PSG then hit-location armor ordering",
+      "NONE/LIGHT/MEDIUM/HEAVY rating multiplier",
+      "damage-type protection and armor condition wear",
+      "post-armor legacy and migrated food mitigation",
+      "CDEF and player-unarmed armor-piercing profiles",
+      "deterministic and live reversible certification"
+    ],
+    "deferred": [
+      "Force Armor and Force Shield absorption",
+      "crafted and looted weapon armor-piercing expansion",
+      "creature-template armor-rating remap",
+      "full elemental and DOT mitigation matrix",
+      "combat spam localization parity for separate armor and food values"
+    ]
+  }
+}

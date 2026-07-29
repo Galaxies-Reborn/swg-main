@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "feature": "clone-decay-report",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "cloningLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/cloninglib.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "source": "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+    "windowType": "CLONE_REQUEST_DECAY",
+    "deathType": 0,
+    "title": "DECAY REPORT",
+    "prompt": "The following report summarizes the status of your items after the decay event.",
+    "header": "\\#00FF00DECAYED ITEMS",
+    "rowContract": " - <displayed item name> (@<post-decay condition percent>%)",
+    "buttonContract": "single OK button",
+    "noReportForPlayerDeathBlow": true
+  },
+  "runtimeContract": {
+    "producer": "The existing authoritative PvE clone item-decay loop.",
+    "itemSet": "Only items admitted by isDamagedOnClone and actually processed by the retained one/five-percent decay path.",
+    "conditionTiming": "Compute each percentage from current/max hitpoints after decay.",
+    "stalePagePolicy": "Force-close an existing tracked report and clear its script-var tree before creating another.",
+    "handler": "player.base.base_player.handleDecayReport",
+    "cleanup": "The close handler removes the entire decayReport script-var tree.",
+    "fixtureObservation": "The identity-bound fixture reports decayReportActive and closes only its lifecycle-owned report during cleanup.",
+    "pvpExclusion": "Player death blows do not enter applyPrecuCloneItemDecay and therefore do not create a report."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-18T22:53:01-04:00",
+    "overlayPatch": "restoration/patches/dsrc/061-p14-clone-decay-report.patch",
+    "overlayPatchSha256": "9e95b466ae0aeed9e9d3a3623e6155440d7b8e03ac99df3062cc61489794789",
+    "cleanApplyBaseCommit": "360955a40",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedSourceCount": 2,
+    "buildPasses": [
+      {
+        "name": "producerBuild",
+        "target": "docker compose run --rm swg-precu build",
+        "elapsed": "3 minutes 7 seconds",
+        "compiledSourceCount": 1,
+        "result": "passed"
+      },
+      {
+        "name": "fixtureObserverBuild",
+        "target": "docker compose run --rm swg-precu build",
+        "compiledSourceCount": 1,
+        "result": "passed"
+      }
+    ],
+    "compiledSha256": {
+      "cloninglib.class": "8cc9c3f1df58b0e36219700b6f47ceadd9aa5fb3b295196af5c0477fa586c9a1",
+      "precu_clone_penalty_fixture.class": "f7ae12ccb9fee16758b8a8395a4726858481a1d36ac43539839357f74b55b9d5"
+    },
+    "runtimeLoad": {
+      "result": "passed",
+      "serverReady": true,
+      "serverHealthy": true,
+      "fixtureObserverLoaded": true
+    },
+    "finalValidation": {
+      "target": "docker compose run --rm swg-precu build",
+      "elapsed": "4 minutes 46 seconds",
+      "compiledSourceCount": 0,
+      "result": "passed"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-18T22:53:01-04:00",
+    "container": "swg-precu",
+    "lifecycle": "ef38260c73784a59b2ebd0cd6f02bdb0",
+    "playerOid": 39008597,
+    "clientProtocolVersion": 31,
+    "realListRendered": true,
+    "authenticTitle": true,
+    "authenticPrompt": true,
+    "greenHeader": true,
+    "insuredConditionPercent": 99,
+    "uninsuredConditionPercent": 95,
+    "autoInsuredItemExcluded": true,
+    "postDecayStatus": {
+      "healthWound": 100,
+      "actionWound": 100,
+      "mindWound": 100,
+      "shock": 100,
+      "insuredHp": 990,
+      "uninsuredHp": 950,
+      "autoInsuredHp": 1000,
+      "decayReportActive": true
+    },
+    "postCloseStatus": {
+      "healthWound": 100,
+      "actionWound": 100,
+      "mindWound": 100,
+      "shock": 100,
+      "insuredHp": 990,
+      "uninsuredHp": 950,
+      "autoInsuredHp": 1000,
+      "decayReportActive": false
+    },
+    "closeRemovedScriptVars": true,
+    "screenshot": {
+      "path": "E:/SWG/SWGSource/PreCU-Client/logs/victim-clone-decay-report-final.png",
+      "bytes": 1131199,
+      "sha256": "281d7ca07bf8b83fe2d3d4730744d288bc769359fb3464e9bced6f58c6492457"
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "healthWound": 0,
+      "actionWound": 0,
+      "mindWound": 0,
+      "shock": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "clientProtocolVersion": 31
+  },
+  "narrowBoundary": {
+    "included": [
+      "Core3-authentic decay report title prompt header and condition rows",
+      "post-decay condition percentage",
+      "single-button client list",
+      "stale-page and close cleanup"
+    ],
+    "deferred": [
+      "pet-master death-type parity",
+      "Jedi clone XP loss and FRS handling"
+    ]
+  }
+}

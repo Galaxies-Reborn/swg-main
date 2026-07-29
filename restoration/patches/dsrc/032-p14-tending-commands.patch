@@ -1,0 +1,1369 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/healing.java b/sku.0/sys.server/compiled/game/script/library/healing.java
+index c7bfdb83b6d33f4d7671f7914c618c3b5a925d28..c0d9cdfcf4f9dd334c2437906a6a09088780c516 100755
+--- a/sku.0/sys.server/compiled/game/script/library/healing.java
++++ b/sku.0/sys.server/compiled/game/script/library/healing.java
+@@ -61,14 +61,14 @@ public class healing extends script.base_script
+     public static final int VAR_APPLY_POISON_COST = 150;
+     public static final int VAR_APPLY_DISEASE_COST = 150;
+     public static final int VAR_QUICK_HEAL_COST = 500;
+-    public static final int VAR_TEND_WOUND_COST = 500;
+-    public static final int VAR_TEND_DAMAGE_COST = 250;
++    public static final int VAR_TEND_WOUND_COST = 400;
++    public static final int VAR_TEND_DAMAGE_COST = 200;
+     public static final int VAR_QUICK_HEAL_WOUND_COST = 10;
+     public static final int VAR_QUICK_HEAL_BASE_POWER = 400;
+-    public static final int VAR_TEND_WOUND_WOUND_COST = 7;
+-    public static final int VAR_TEND_WOUND_BASE_POWER = 15;
+-    public static final int VAR_TEND_DAMAGE_WOUND_COST = 5;
+-    public static final int VAR_TEND_DAMAGE_BASE_POWER = 75;
++    public static final int VAR_TEND_WOUND_WOUND_COST = 5;
++    public static final int VAR_TEND_WOUND_BASE_POWER = 20;
++    public static final int VAR_TEND_DAMAGE_WOUND_COST = 5;
++    public static final int VAR_TEND_DAMAGE_BASE_POWER = 20;
+     public static final int VAR_HEAL_MIND_COST = 100;
+     public static final int VAR_HEAL_MIND_WOUND_COST = 40;
+     public static final int VAR_HEAL_MIND_BASE_POWER = 500;
+@@ -3880,7 +3880,9 @@ public class healing extends script.base_script
+         }
+         cost = (int)(cost * modifier);
+         if (heal_type.equals(HEAL_TYPE_MEDICAL_DAMAGE) ||
+-            heal_type.equals(HEAL_TYPE_MEDICAL_WOUND))
++            heal_type.equals(HEAL_TYPE_MEDICAL_WOUND) ||
++            heal_type.equals(HEAL_TYPE_MEDICAL_TEND_WOUND) ||
++            heal_type.equals(HEAL_TYPE_MEDICAL_TEND_DAMAGE))
+         {
+             cost = getMedicalMindCost(player, cost);
+         }
+@@ -4376,9 +4378,20 @@ public class healing extends script.base_script
+     {
+         return -1;
+     }
+-    public static int findLargestTendWound(obj_id patient) throws InterruptedException
+-    {
+-        return -1;
++    public static int findLargestTendWound(obj_id patient) throws InterruptedException
++    {
++        if (!isIdValid(patient))
++        {
++            return -1;
++        }
++        for (int attribute = HEALTH; attribute < MIND; ++attribute)
++        {
++            if (getAttribWound(patient, attribute) > 0)
++            {
++                return attribute;
++            }
++        }
++        return -1;
+     }
+     public static int findWorstState(obj_id patient, obj_id doctor) throws InterruptedException
+     {
+@@ -4387,26 +4400,38 @@ public class healing extends script.base_script
+     public static int stringToAttribute(String attribute_str) throws InterruptedException
+     {
+         int attribute_int = -1;
+-        if (attribute_str.equals("HEALTH"))
+-        {
+-            attribute_int = HEALTH;
+-        }
+-        if (attribute_str.equals("CONSTITUTION"))
+-        {
+-            attribute_int = CONSTITUTION;
+-        }
+-        if (attribute_str.equals("ACTION"))
+-        {
+-            attribute_int = ACTION;
+-        }
+-        if (attribute_str.equals("STAMINA"))
+-        {
+-            attribute_int = STAMINA;
+-        }
+-        if (attribute_str.equals("MIND"))
+-        {
+-            attribute_int = MIND;
+-        }
++        if (attribute_str.equals("HEALTH"))
++        {
++            attribute_int = HEALTH;
++        }
++        if (attribute_str.equals("STRENGTH"))
++        {
++            attribute_int = STRENGTH;
++        }
++        if (attribute_str.equals("CONSTITUTION"))
++        {
++            attribute_int = CONSTITUTION;
++        }
++        if (attribute_str.equals("ACTION"))
++        {
++            attribute_int = ACTION;
++        }
++        if (attribute_str.equals("QUICKNESS"))
++        {
++            attribute_int = QUICKNESS;
++        }
++        if (attribute_str.equals("STAMINA"))
++        {
++            attribute_int = STAMINA;
++        }
++        if (attribute_str.equals("MIND"))
++        {
++            attribute_int = MIND;
++        }
++        if (attribute_str.equals("FOCUS"))
++        {
++            attribute_int = FOCUS;
++        }
+         if (attribute_str.equals("WILLPOWER"))
+         {
+             attribute_int = WILLPOWER;
+@@ -4648,6 +4673,223 @@ public class healing extends script.base_script
+     {
+         return getMedicalMindCost(medic, baseCost);
+     }
++    public static int getTendMindCost(obj_id medic, boolean tendWound)
++        throws InterruptedException
++    {
++        return getMedicalMindCost(
++            medic,
++            tendWound ? VAR_TEND_WOUND_COST : VAR_TEND_DAMAGE_COST);
++    }
++    public static int getTendTreatmentPower(
++        obj_id medic,
++        obj_id target,
++        boolean tendWound)
++        throws InterruptedException
++    {
++        if (!isIdValid(medic) || !isIdValid(target))
++        {
++            return 0;
++        }
++        String skillMod = tendWound
++            ? "healing_wound_treatment"
++            : "healing_injury_treatment";
++        float power =
++            getSkillStatMod(medic, skillMod) / 3.0f +
++            (tendWound
++                ? VAR_TEND_WOUND_BASE_POWER
++                : VAR_TEND_DAMAGE_BASE_POWER);
++        return Math.max(
++            0,
++            Math.round(applyShockWoundModifier(power, target)));
++    }
++    public static boolean performTendDamage(
++        obj_id medic,
++        obj_id target,
++        boolean payCost)
++        throws InterruptedException
++    {
++        if (!isIdValid(medic) || !isIdValid(target) ||
++            getSkillStatMod(medic, "healing_injury_treatment") <= 0)
++        {
++            return false;
++        }
++        int healthBefore = getAttrib(target, HEALTH);
++        int actionBefore = getAttrib(target, ACTION);
++        if (healthBefore >= getWoundedMaxAttrib(target, HEALTH) &&
++            actionBefore >= getWoundedMaxAttrib(target, ACTION))
++        {
++            return false;
++        }
++        if (payCost &&
++            !canPayHealingCost(
++                medic,
++                HEAL_TYPE_MEDICAL_TEND_DAMAGE,
++                1.0f))
++        {
++            sendMedicalSpam(
++                medic,
++                SID_NOT_ENOUGH_MIND,
++                COMBAT_RESULT_MEDICAL);
++            return false;
++        }
++
++        int power = getTendTreatmentPower(medic, target, false);
++        if (healthBefore < getWoundedMaxAttrib(target, HEALTH))
++        {
++            utils.addAttribMod(
++                target,
++                utils.createHealDamageAttribMod(HEALTH, power));
++        }
++        if (actionBefore < getWoundedMaxAttrib(target, ACTION))
++        {
++            utils.addAttribMod(
++                target,
++                utils.createHealDamageAttribMod(ACTION, power));
++        }
++        int healthHealed = getAttrib(target, HEALTH) - healthBefore;
++        int actionHealed = getAttrib(target, ACTION) - actionBefore;
++        if (healthHealed <= 0 && actionHealed <= 0)
++        {
++            return false;
++        }
++        if (payCost &&
++            !applyHealingCost(
++                medic,
++                HEAL_TYPE_MEDICAL_TEND_DAMAGE,
++                1.0f))
++        {
++            return false;
++        }
++        addWound(medic, FOCUS, VAR_TEND_DAMAGE_WOUND_COST);
++        addWound(medic, WILLPOWER, VAR_TEND_DAMAGE_WOUND_COST);
++
++        int[] attributes = { HEALTH, ACTION };
++        int[] delta = { healthHealed, actionHealed };
++        String[] healMessage =
++            assembleHealingMessage(attributes, delta, medic, target, null);
++        if (healMessage != null)
++        {
++            sendCombatSpamMessageOob(
++                medic,
++                target,
++                healMessage[0],
++                true,
++                false,
++                false,
++                COMBAT_RESULT_MEDICAL);
++        }
++        if (medic != target)
++        {
++            if (healMessage != null)
++            {
++                sendCombatSpamMessageOob(
++                    medic,
++                    target,
++                    healMessage[1],
++                    false,
++                    true,
++                    false,
++                    COMBAT_RESULT_MEDICAL);
++            }
++            pvpHelpPerformed(medic, target);
++            addHealingKillCredit(medic, target, delta);
++        }
++        return true;
++    }
++    public static boolean performTendWound(
++        obj_id medic,
++        obj_id target,
++        int attribute,
++        boolean payCost)
++        throws InterruptedException
++    {
++        if (!isIdValid(medic) || !isIdValid(target) ||
++            getSkillStatMod(medic, "healing_wound_treatment") <= 0 ||
++            attribute < HEALTH || attribute >= MIND)
++        {
++            return false;
++        }
++        int woundBefore = getAttribWound(target, attribute);
++        if (woundBefore <= 0)
++        {
++            return false;
++        }
++        if (payCost &&
++            !canPayHealingCost(
++                medic,
++                HEAL_TYPE_MEDICAL_TEND_WOUND,
++                1.0f))
++        {
++            sendMedicalSpam(
++                medic,
++                SID_NOT_ENOUGH_MIND,
++                COMBAT_RESULT_MEDICAL);
++            return false;
++        }
++
++        int power = getTendTreatmentPower(medic, target, true);
++        healWound(target, attribute, Math.min(power, woundBefore));
++        int woundHealed =
++            woundBefore - getAttribWound(target, attribute);
++        if (woundHealed <= 0)
++        {
++            return false;
++        }
++        if (payCost &&
++            !applyHealingCost(
++                medic,
++                HEAL_TYPE_MEDICAL_TEND_WOUND,
++                1.0f))
++        {
++            return false;
++        }
++        addWound(medic, FOCUS, VAR_TEND_WOUND_WOUND_COST);
++        addWound(medic, WILLPOWER, VAR_TEND_WOUND_WOUND_COST);
++
++        String[] healMessage =
++            assembleHealingMessage(
++                attribute,
++                woundHealed,
++                medic,
++                target,
++                2);
++        if (healMessage != null)
++        {
++            sendCombatSpamMessageOob(
++                medic,
++                target,
++                healMessage[0],
++                true,
++                false,
++                false,
++                COMBAT_RESULT_MEDICAL);
++        }
++        if (medic != target)
++        {
++            if (healMessage != null)
++            {
++                sendCombatSpamMessageOob(
++                    medic,
++                    target,
++                    healMessage[1],
++                    false,
++                    true,
++                    false,
++                    COMBAT_RESULT_MEDICAL);
++            }
++            grantHealingExperience(
++                woundHealed,
++                medic,
++                target,
++                HEAL_TYPE_MEDICAL_TEND_WOUND);
++            pvpHelpPerformed(medic, target);
++            addHealingKillCredit(
++                medic,
++                target,
++                new int[] { woundHealed });
++        }
++        return true;
++    }
+     public static boolean performMedicalHealWound(
+         obj_id medic,
+         obj_id target,
+@@ -4873,7 +5115,9 @@ public class healing extends script.base_script
+         }
+         cost = (int)(cost * modifier);
+         if (heal_type.equals(HEAL_TYPE_MEDICAL_DAMAGE) ||
+-            heal_type.equals(HEAL_TYPE_MEDICAL_WOUND))
++            heal_type.equals(HEAL_TYPE_MEDICAL_WOUND) ||
++            heal_type.equals(HEAL_TYPE_MEDICAL_TEND_WOUND) ||
++            heal_type.equals(HEAL_TYPE_MEDICAL_TEND_DAMAGE))
+         {
+             cost = getMedicalMindCost(player, cost);
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/player/cmd/tend_damage.java b/sku.0/sys.server/compiled/game/script/player/cmd/tend_damage.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..b44642bb34aa96c9b85f2ff5ac36b2a71032a94d
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/player/cmd/tend_damage.java
+@@ -0,0 +1,208 @@
++package script.player.cmd;
++
++import script.obj_id;
++import script.string_id;
++import script.library.ai_lib;
++import script.library.factions;
++import script.library.healing;
++import script.library.pet_lib;
++import script.library.xp;
++
++/**
++ * Publish 14.1 organic tend-damage command.
++ *
++ * Tending intentionally uses no medicine object. It heals Health and Action
++ * from skill and patient battle fatigue, then charges Mind and adds Focus and
++ * Willpower wounds.
++ */
++public class tend_damage extends script.base_script
++{
++    private static final float TEND_RANGE = 6.0f;
++    private static final string_id SID_NO_DAMAGE =
++        new string_id("healing_response", "healing_response_61");
++    private static final string_id SID_NO_LINE_OF_SIGHT =
++        new string_id("healing", "no_line_of_sight");
++    private static final String FIXTURE_ROOT =
++        "precu.tendingCommandFixture";
++
++    public int cmdTendDamage(
++        obj_id self,
++        obj_id target,
++        String params,
++        float defaultTime)
++        throws InterruptedException
++    {
++        boolean fixture =
++            isIdValid(self) && hasObjVar(self, FIXTURE_ROOT);
++        markEntry(self, fixture);
++        if (!isIdValid(self) || !isPlayer(self) ||
++            isDead(self) || isIncapacitated(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        if (!isValidPatient(self, target))
++        {
++            target = self;
++        }
++        if (!validateOtherPatient(self, target))
++        {
++            recordOutcome(self, fixture, "patientRejected");
++            return SCRIPT_CONTINUE;
++        }
++        if (getAttrib(target, HEALTH) >=
++                getWoundedMaxAttrib(target, HEALTH) &&
++            getAttrib(target, ACTION) >=
++                getWoundedMaxAttrib(target, ACTION))
++        {
++            healing.sendMedicalSpam(
++                self,
++                SID_NO_DAMAGE,
++                COMBAT_RESULT_MEDICAL);
++            recordOutcome(self, fixture, "noDamage");
++            return SCRIPT_CONTINUE;
++        }
++
++        int healthBefore = getAttrib(target, HEALTH);
++        int actionBefore = getAttrib(target, ACTION);
++        int mindBefore = getAttrib(self, MIND);
++        int focusWoundBefore = getAttribWound(self, FOCUS);
++        int willpowerWoundBefore = getAttribWound(self, WILLPOWER);
++        int xpBefore = getExperiencePoints(self, xp.MEDICAL);
++        if (fixture)
++        {
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendDamageExpectedMindCost",
++                healing.getTendMindCost(self, false));
++        }
++        boolean performed =
++            healing.performTendDamage(self, target, true);
++        if (performed)
++        {
++            doAnimationAction(
++                self,
++                self == target ? "heal_self" : "heal_other");
++            healing.playHealDamageEffect(getLocation(target));
++        }
++        if (fixture)
++        {
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendDamageHealthHeal",
++                getAttrib(target, HEALTH) - healthBefore);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendDamageActionHeal",
++                getAttrib(target, ACTION) - actionBefore);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendDamageMindCost",
++                mindBefore - getAttrib(self, MIND));
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendDamageFocusWoundCost",
++                getAttribWound(self, FOCUS) - focusWoundBefore);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendDamageWillpowerWoundCost",
++                getAttribWound(self, WILLPOWER) -
++                    willpowerWoundBefore);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendDamageMedicalXp",
++                getExperiencePoints(self, xp.MEDICAL) - xpBefore);
++        }
++        recordOutcome(
++            self,
++            fixture,
++            performed ? "performed" : "performRejected");
++        return SCRIPT_CONTINUE;
++    }
++
++    private void markEntry(obj_id healer, boolean fixture)
++        throws InterruptedException
++    {
++        if (!fixture)
++        {
++            return;
++        }
++        setObjVar(
++            healer,
++            FIXTURE_ROOT + ".tendDamageEntered",
++            getGameTime());
++        int calls = hasObjVar(healer, FIXTURE_ROOT + ".handlerCalls")
++            ? getIntObjVar(healer, FIXTURE_ROOT + ".handlerCalls")
++            : 0;
++        setObjVar(healer, FIXTURE_ROOT + ".handlerCalls", calls + 1);
++        recordOutcome(healer, true, "entered");
++    }
++
++    private void recordOutcome(
++        obj_id healer,
++        boolean fixture,
++        String outcome)
++        throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(
++                healer,
++                FIXTURE_ROOT + ".tendDamageOutcome",
++                outcome);
++        }
++    }
++
++    private boolean validateOtherPatient(obj_id healer, obj_id target)
++        throws InterruptedException
++    {
++        if (healer == target)
++        {
++            return true;
++        }
++        if (getDistance(healer, target) > TEND_RANGE)
++        {
++            healing.sendMedicalSpam(
++                healer,
++                script.library.consumable.SID_TARGET_OUT_OF_RANGE,
++                COMBAT_RESULT_OUT_OF_RANGE);
++            return false;
++        }
++        if (!canSee(healer, target))
++        {
++            healing.sendMedicalSpam(
++                healer,
++                SID_NO_LINE_OF_SIGHT,
++                COMBAT_RESULT_MEDICAL);
++            return false;
++        }
++        if (!pvpCanHelp(healer, target) ||
++            !factions.pvpDoAllowedHelpCheck(healer, target))
++        {
++            healing.sendMedicalSpam(
++                healer,
++                healing.SID_PVP_NO_HELP,
++                COMBAT_RESULT_MEDICAL);
++            return false;
++        }
++        return true;
++    }
++
++    private boolean isValidPatient(obj_id healer, obj_id target)
++        throws InterruptedException
++    {
++        if (!isIdValid(target) || !exists(target) ||
++            isDead(target) || isIncapacitated(target))
++        {
++            return false;
++        }
++        if (isPlayer(target))
++        {
++            return true;
++        }
++        return
++            (pet_lib.isCreaturePet(target) || pet_lib.isNpcPet(target)) &&
++            !ai_lib.isAndroid(target) &&
++            !pet_lib.isVehiclePet(target) &&
++            !pvpCanAttack(healer, target);
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/player/cmd/tend_wound.java b/sku.0/sys.server/compiled/game/script/player/cmd/tend_wound.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ea4fd12ba13103d8411d753eb9587da890c5e1fa
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/player/cmd/tend_wound.java
+@@ -0,0 +1,226 @@
++package script.player.cmd;
++
++import script.obj_id;
++import script.string_id;
++import script.library.ai_lib;
++import script.library.factions;
++import script.library.healing;
++import script.library.pet_lib;
++import script.library.xp;
++
++/**
++ * Publish 14.1 organic tend-wound command.
++ *
++ * With no argument the command chooses the first wounded Health-through-
++ * Stamina pool. Mind, Focus, and Willpower wounds are intentionally excluded.
++ */
++public class tend_wound extends script.base_script
++{
++    private static final float TEND_RANGE = 6.0f;
++    private static final string_id SID_NO_WOUND =
++        new string_id("healing_response", "healing_response_67");
++    private static final string_id SID_NO_LINE_OF_SIGHT =
++        new string_id("healing", "no_line_of_sight");
++    private static final String FIXTURE_ROOT =
++        "precu.tendingCommandFixture";
++
++    public int cmdTendWound(
++        obj_id self,
++        obj_id target,
++        String params,
++        float defaultTime)
++        throws InterruptedException
++    {
++        boolean fixture =
++            isIdValid(self) && hasObjVar(self, FIXTURE_ROOT);
++        markEntry(self, fixture);
++        if (!isIdValid(self) || !isPlayer(self) ||
++            isDead(self) || isIncapacitated(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        if (!isValidPatient(self, target))
++        {
++            target = self;
++        }
++        if (!validateOtherPatient(self, target))
++        {
++            recordOutcome(self, fixture, "patientRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        int attribute = parseAttribute(params);
++        if (attribute < HEALTH || attribute >= MIND)
++        {
++            attribute = healing.findLargestTendWound(target);
++        }
++        if (attribute < HEALTH || attribute >= MIND ||
++            getAttribWound(target, attribute) <= 0)
++        {
++            healing.sendMedicalSpam(
++                self,
++                SID_NO_WOUND,
++                COMBAT_RESULT_MEDICAL);
++            recordOutcome(self, fixture, "noWound");
++            return SCRIPT_CONTINUE;
++        }
++
++        int woundBefore = getAttribWound(target, attribute);
++        int mindBefore = getAttrib(self, MIND);
++        int focusWoundBefore = getAttribWound(self, FOCUS);
++        int willpowerWoundBefore = getAttribWound(self, WILLPOWER);
++        int xpBefore = getExperiencePoints(self, xp.MEDICAL);
++        if (fixture)
++        {
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendWoundExpectedMindCost",
++                healing.getTendMindCost(self, true));
++        }
++        boolean performed =
++            healing.performTendWound(
++                self,
++                target,
++                attribute,
++                true);
++        if (performed)
++        {
++            doAnimationAction(
++                self,
++                self == target ? "heal_self" : "heal_other");
++            healing.playHealWoundEffect(getLocation(target));
++        }
++        if (fixture)
++        {
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendWoundAttribute",
++                attribute);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendWoundHeal",
++                woundBefore - getAttribWound(target, attribute));
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendWoundMindCost",
++                mindBefore - getAttrib(self, MIND));
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendWoundFocusWoundCost",
++                getAttribWound(self, FOCUS) - focusWoundBefore);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendWoundWillpowerWoundCost",
++                getAttribWound(self, WILLPOWER) -
++                    willpowerWoundBefore);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".tendWoundMedicalXp",
++                getExperiencePoints(self, xp.MEDICAL) - xpBefore);
++        }
++        recordOutcome(
++            self,
++            fixture,
++            performed ? "performed" : "performRejected");
++        return SCRIPT_CONTINUE;
++    }
++
++    private int parseAttribute(String params) throws InterruptedException
++    {
++        if (params == null || params.trim().length() == 0)
++        {
++            return -1;
++        }
++        String[] tokens = params.trim().split("[| ]+");
++        return tokens.length == 0
++            ? -1
++            : healing.stringToAttribute(tokens[0].toUpperCase());
++    }
++
++    private void markEntry(obj_id healer, boolean fixture)
++        throws InterruptedException
++    {
++        if (!fixture)
++        {
++            return;
++        }
++        setObjVar(
++            healer,
++            FIXTURE_ROOT + ".tendWoundEntered",
++            getGameTime());
++        int calls = hasObjVar(healer, FIXTURE_ROOT + ".handlerCalls")
++            ? getIntObjVar(healer, FIXTURE_ROOT + ".handlerCalls")
++            : 0;
++        setObjVar(healer, FIXTURE_ROOT + ".handlerCalls", calls + 1);
++        recordOutcome(healer, true, "entered");
++    }
++
++    private void recordOutcome(
++        obj_id healer,
++        boolean fixture,
++        String outcome)
++        throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(
++                healer,
++                FIXTURE_ROOT + ".tendWoundOutcome",
++                outcome);
++        }
++    }
++
++    private boolean validateOtherPatient(obj_id healer, obj_id target)
++        throws InterruptedException
++    {
++        if (healer == target)
++        {
++            return true;
++        }
++        if (getDistance(healer, target) > TEND_RANGE)
++        {
++            healing.sendMedicalSpam(
++                healer,
++                script.library.consumable.SID_TARGET_OUT_OF_RANGE,
++                COMBAT_RESULT_OUT_OF_RANGE);
++            return false;
++        }
++        if (!canSee(healer, target))
++        {
++            healing.sendMedicalSpam(
++                healer,
++                SID_NO_LINE_OF_SIGHT,
++                COMBAT_RESULT_MEDICAL);
++            return false;
++        }
++        if (!pvpCanHelp(healer, target) ||
++            !factions.pvpDoAllowedHelpCheck(healer, target))
++        {
++            healing.sendMedicalSpam(
++                healer,
++                healing.SID_PVP_NO_HELP,
++                COMBAT_RESULT_MEDICAL);
++            return false;
++        }
++        return true;
++    }
++
++    private boolean isValidPatient(obj_id healer, obj_id target)
++        throws InterruptedException
++    {
++        if (!isIdValid(target) || !exists(target) ||
++            isDead(target) || isIncapacitated(target))
++        {
++            return false;
++        }
++        if (isPlayer(target))
++        {
++            return true;
++        }
++        return
++            (pet_lib.isCreaturePet(target) || pet_lib.isNpcPet(target)) &&
++            !ai_lib.isAndroid(target) &&
++            !pet_lib.isVehiclePet(target) &&
++            !pvpCanAttack(healer, target);
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_tending_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_tending_command_fixture.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e8a96f9bedd34b62fbb83bbee020733c30cfcf5
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_tending_command_fixture.java
+@@ -0,0 +1,550 @@
++package script.test;
++
++import script.library.healing;
++import script.library.xp;
++import script.obj_id;
++
++/**
++ * Identity-bound ServerConsole fixture for Publish 14.1 tendDamage and
++ * tendWound.
++ *
++ * The fixture owns healer-state snapshots and command telemetry only. The
++ * established healDamage and healWound fixtures provide disposable patients,
++ * while the connected client remains the sole queue owner.
++ */
++public class precu_tending_command_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++    private static final String MEDIC_NOVICE = "science_medic_novice";
++    private static final String TEND_DAMAGE = "tendDamage";
++    private static final String TEND_WOUND = "tendWound";
++    private static final String ROOT = "precu.tendingCommandFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String ORIGINAL_NOVICE = ROOT + ".originalNovice";
++    private static final String ORIGINAL_TEND_DAMAGE =
++        ROOT + ".originalTendDamage";
++    private static final String ORIGINAL_TEND_WOUND =
++        ROOT + ".originalTendWound";
++    private static final String ORIGINAL_MIND = ROOT + ".originalMind";
++    private static final String ORIGINAL_FOCUS = ROOT + ".originalFocus";
++    private static final String ORIGINAL_WILLPOWER =
++        ROOT + ".originalWillpower";
++    private static final String ORIGINAL_FOCUS_WOUND =
++        ROOT + ".originalFocusWound";
++    private static final String ORIGINAL_WILLPOWER_WOUND =
++        ROOT + ".originalWillpowerWound";
++    private static final String ORIGINAL_MEDICAL_XP =
++        ROOT + ".originalMedicalXp";
++    private static final String EXPECTED_DAMAGE_COST =
++        ROOT + ".expectedDamageCost";
++    private static final String EXPECTED_WOUND_COST =
++        ROOT + ".expectedWoundCost";
++    private static final String USAGE =
++        "usage: prepare|status|cleanup <playerOid> <lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args =
++            params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++        long playerValue;
++        try
++        {
++            playerValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (playerValue != PLAYER_OID || !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id player = obj_id.getObjId(playerValue);
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded())
++        {
++            return "error=playerNotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        String action = args[0];
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, args[2]);
++        }
++        if (action.equalsIgnoreCase("status"))
++        {
++            return status(player, args[2]);
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, args[2]);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            if (ownership == null && isFixtureActive(player))
++            {
++                return "action=prepare resumed=true " +
++                    buildStatus(player);
++            }
++            if (ownership != null &&
++                !ownership.equals("error=fixtureAbsent") &&
++                isFixtureActive(player))
++            {
++                return ownership;
++            }
++            // Packed player objvars retain their leaf values after removal.
++            // An inactive fixture owns no live state, so preparation safely
++            // overwrites its lifecycle, snapshots, and telemetry.
++        }
++
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(
++            player,
++            ORIGINAL_NOVICE,
++            hasSkill(player, MEDIC_NOVICE) ? 1 : 0);
++        setObjVar(
++            player,
++            ORIGINAL_TEND_DAMAGE,
++            hasCommand(player, TEND_DAMAGE) ? 1 : 0);
++        setObjVar(
++            player,
++            ORIGINAL_TEND_WOUND,
++            hasCommand(player, TEND_WOUND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_MIND, getAttrib(player, MIND));
++        setObjVar(player, ORIGINAL_FOCUS, getAttrib(player, FOCUS));
++        setObjVar(
++            player,
++            ORIGINAL_WILLPOWER,
++            getAttrib(player, WILLPOWER));
++        setObjVar(
++            player,
++            ORIGINAL_FOCUS_WOUND,
++            getAttribWound(player, FOCUS));
++        setObjVar(
++            player,
++            ORIGINAL_WILLPOWER_WOUND,
++            getAttribWound(player, WILLPOWER));
++        setObjVar(
++            player,
++            ORIGINAL_MEDICAL_XP,
++            getExperiencePoints(player, xp.MEDICAL));
++        resetTelemetry(player);
++
++        boolean skillReady =
++            hasSkill(player, MEDIC_NOVICE) ||
++            grantSkill(player, MEDIC_NOVICE);
++        if (!skillReady ||
++            !hasCommand(player, TEND_DAMAGE) ||
++            !hasCommand(player, TEND_WOUND) ||
++            getSkillStatMod(player, "healing_injury_treatment") <= 0 ||
++            getSkillStatMod(player, "healing_wound_treatment") <= 0)
++        {
++            boolean restored = restore(player);
++            return "error=medicPreparationFailed restored=" + restored;
++        }
++
++        setWoundExact(player, FOCUS, 0);
++        setWoundExact(player, WILLPOWER, 0);
++        setAttrib(player, MIND, getMaxAttrib(player, MIND));
++        setAttrib(player, FOCUS, getMaxAttrib(player, FOCUS));
++        setAttrib(player, WILLPOWER, getMaxAttrib(player, WILLPOWER));
++        if (getAttribWound(player, FOCUS) != 0 ||
++            getAttribWound(player, WILLPOWER) != 0 ||
++            getAttrib(player, MIND) != getMaxAttrib(player, MIND) ||
++            getAttrib(player, FOCUS) != getMaxAttrib(player, FOCUS) ||
++            getAttrib(player, WILLPOWER) !=
++                getMaxAttrib(player, WILLPOWER))
++        {
++            String failed = buildStatus(player).replace(' ', '_');
++            boolean restored = restore(player);
++            return "error=hamPreparationFailed restored=" + restored +
++                " failedStatus=" + failed;
++        }
++
++        setObjVar(
++            player,
++            EXPECTED_DAMAGE_COST,
++            healing.getTendMindCost(player, false));
++        setObjVar(
++            player,
++            EXPECTED_WOUND_COST,
++            healing.getTendMindCost(player, true));
++        return "action=prepare resumed=false " +
++            buildStatus(player);
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null
++            ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        if (!hasObjVar(player, LIFECYCLE) ||
++            !lifecycle.equals(getStringObjVar(player, LIFECYCLE)))
++        {
++            return "error=lifecycleMismatch";
++        }
++        if (getCurrentCommand(player) != 0)
++        {
++            return "error=commandPending " + buildStatus(player);
++        }
++        return "action=cleanup alreadyClean=false restored=" +
++            restore(player);
++    }
++
++    private boolean restore(obj_id player) throws InterruptedException
++    {
++        boolean complete =
++            hasObjVar(player, ORIGINAL_NOVICE) &&
++            hasObjVar(player, ORIGINAL_TEND_DAMAGE) &&
++            hasObjVar(player, ORIGINAL_TEND_WOUND) &&
++            hasObjVar(player, ORIGINAL_MIND) &&
++            hasObjVar(player, ORIGINAL_FOCUS) &&
++            hasObjVar(player, ORIGINAL_WILLPOWER) &&
++            hasObjVar(player, ORIGINAL_FOCUS_WOUND) &&
++            hasObjVar(player, ORIGINAL_WILLPOWER_WOUND) &&
++            hasObjVar(player, ORIGINAL_MEDICAL_XP);
++        if (!complete)
++        {
++            return false;
++        }
++
++        setWoundExact(
++            player,
++            FOCUS,
++            getIntObjVar(player, ORIGINAL_FOCUS_WOUND));
++        setWoundExact(
++            player,
++            WILLPOWER,
++            getIntObjVar(player, ORIGINAL_WILLPOWER_WOUND));
++        setAttrib(player, MIND, getIntObjVar(player, ORIGINAL_MIND));
++        setAttrib(player, FOCUS, getIntObjVar(player, ORIGINAL_FOCUS));
++        setAttrib(
++            player,
++            WILLPOWER,
++            getIntObjVar(player, ORIGINAL_WILLPOWER));
++
++        int originalXp = getIntObjVar(player, ORIGINAL_MEDICAL_XP);
++        int currentXp = getExperiencePoints(player, xp.MEDICAL);
++        if (currentXp != originalXp)
++        {
++            grantExperiencePoints(
++                player,
++                xp.MEDICAL,
++                originalXp - currentXp);
++        }
++        boolean restored =
++            getAttribWound(player, FOCUS) ==
++                getIntObjVar(player, ORIGINAL_FOCUS_WOUND) &&
++            getAttribWound(player, WILLPOWER) ==
++                getIntObjVar(player, ORIGINAL_WILLPOWER_WOUND) &&
++            getAttrib(player, MIND) ==
++                getIntObjVar(player, ORIGINAL_MIND) &&
++            getAttrib(player, FOCUS) ==
++                getIntObjVar(player, ORIGINAL_FOCUS) &&
++            getAttrib(player, WILLPOWER) ==
++                getIntObjVar(player, ORIGINAL_WILLPOWER) &&
++            getExperiencePoints(player, xp.MEDICAL) == originalXp;
++
++        if (getIntObjVar(player, ORIGINAL_NOVICE) == 0 &&
++            hasSkill(player, MEDIC_NOVICE))
++        {
++            revokeSkill(player, MEDIC_NOVICE);
++        }
++        restoreCommand(
++            player,
++            TEND_DAMAGE,
++            getIntObjVar(player, ORIGINAL_TEND_DAMAGE) == 1);
++        restoreCommand(
++            player,
++            TEND_WOUND,
++            getIntObjVar(player, ORIGINAL_TEND_WOUND) == 1);
++
++        clearFixtureVariables(player);
++        return restored;
++    }
++
++    private void restoreCommand(
++        obj_id player,
++        String command,
++        boolean originallyPresent)
++        throws InterruptedException
++    {
++        if (originallyPresent && !hasCommand(player, command))
++        {
++            grantCommand(player, command);
++        }
++        else if (!originallyPresent && hasCommand(player, command))
++        {
++            revokeCommand(player, command);
++        }
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) ||
++            !hasObjVar(player, LIFECYCLE))
++        {
++            return "error=fixtureAbsent";
++        }
++        if (!lifecycle.equals(getStringObjVar(player, LIFECYCLE)))
++        {
++            return "error=lifecycleMismatch";
++        }
++        return null;
++    }
++
++    private boolean isFixtureActive(obj_id player)
++        throws InterruptedException
++    {
++        return hasSkill(player, MEDIC_NOVICE) &&
++            hasCommand(player, TEND_DAMAGE) &&
++            hasCommand(player, TEND_WOUND) &&
++            getSkillStatMod(player, "healing_injury_treatment") > 0 &&
++            getSkillStatMod(player, "healing_wound_treatment") > 0 &&
++            hasObjVar(player, EXPECTED_DAMAGE_COST) &&
++            hasObjVar(player, EXPECTED_WOUND_COST) &&
++            getIntObjVar(player, EXPECTED_DAMAGE_COST) > 0 &&
++            getIntObjVar(player, EXPECTED_WOUND_COST) > 0;
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        int damageEntered = readInt(player, ".tendDamageEntered");
++        int woundEntered = readInt(player, ".tendWoundEntered");
++        return "player=" + player +
++            " currentCommand=" + getCurrentCommand(player) +
++            " novice=" + hasSkill(player, MEDIC_NOVICE) +
++            " tendDamageCommand=" + hasCommand(player, TEND_DAMAGE) +
++            " tendWoundCommand=" + hasCommand(player, TEND_WOUND) +
++            " injuryTreatment=" +
++                getSkillStatMod(player, "healing_injury_treatment") +
++            " woundTreatment=" +
++                getSkillStatMod(player, "healing_wound_treatment") +
++            " healerMind=" + getAttrib(player, MIND) +
++            " healerFocus=" + getAttrib(player, FOCUS) +
++            " healerWillpower=" + getAttrib(player, WILLPOWER) +
++            " healerFocusWound=" + getAttribWound(player, FOCUS) +
++            " healerWillpowerWound=" +
++                getAttribWound(player, WILLPOWER) +
++            " medicalXp=" + getExperiencePoints(player, xp.MEDICAL) +
++            " medicalXpDelta=" +
++                (hasObjVar(player, ORIGINAL_MEDICAL_XP)
++                    ? getExperiencePoints(player, xp.MEDICAL) -
++                        getIntObjVar(player, ORIGINAL_MEDICAL_XP)
++                    : 0) +
++            " expectedDamageCost=" +
++                readKey(player, EXPECTED_DAMAGE_COST) +
++            " expectedWoundCost=" +
++                readKey(player, EXPECTED_WOUND_COST) +
++            " handlerCalls=" + readInt(player, ".handlerCalls") +
++            " tendDamageEntered=" + damageEntered +
++            " tendDamageOutcome=" +
++                readString(player, ".tendDamageOutcome") +
++            " tendDamageHealthHeal=" +
++                readInt(player, ".tendDamageHealthHeal") +
++            " tendDamageActionHeal=" +
++                readInt(player, ".tendDamageActionHeal") +
++            " tendDamageMindCost=" +
++                readInt(player, ".tendDamageMindCost") +
++            " tendDamageExpectedMindCost=" +
++                readInt(player, ".tendDamageExpectedMindCost") +
++            " tendDamageFocusWoundCost=" +
++                readInt(player, ".tendDamageFocusWoundCost") +
++            " tendDamageWillpowerWoundCost=" +
++                readInt(player, ".tendDamageWillpowerWoundCost") +
++            " tendDamageMedicalXp=" +
++                readInt(player, ".tendDamageMedicalXp") +
++            " tendWoundEntered=" + woundEntered +
++            " queueDelta=" +
++                (damageEntered > 0 && woundEntered > 0
++                    ? woundEntered - damageEntered
++                    : 0) +
++            " tendWoundOutcome=" +
++                readString(player, ".tendWoundOutcome") +
++            " tendWoundAttribute=" +
++                readInt(player, ".tendWoundAttribute") +
++            " tendWoundHeal=" +
++                readInt(player, ".tendWoundHeal") +
++            " tendWoundMindCost=" +
++                readInt(player, ".tendWoundMindCost") +
++            " tendWoundExpectedMindCost=" +
++                readInt(player, ".tendWoundExpectedMindCost") +
++            " tendWoundFocusWoundCost=" +
++                readInt(player, ".tendWoundFocusWoundCost") +
++            " tendWoundWillpowerWoundCost=" +
++                readInt(player, ".tendWoundWillpowerWoundCost") +
++            " tendWoundMedicalXp=" +
++                readInt(player, ".tendWoundMedicalXp");
++    }
++
++    private int readInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        return readKey(player, ROOT + suffix);
++    }
++
++    private int readKey(obj_id player, String key)
++        throws InterruptedException
++    {
++        return hasObjVar(player, key) ? getIntObjVar(player, key) : 0;
++    }
++
++    private String readString(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String key = ROOT + suffix;
++        return hasObjVar(player, key)
++            ? getStringObjVar(player, key)
++            : "none";
++    }
++
++    private void resetTelemetry(obj_id player)
++        throws InterruptedException
++    {
++        String[] integerKeys =
++        {
++            EXPECTED_DAMAGE_COST,
++            EXPECTED_WOUND_COST,
++            ROOT + ".handlerCalls",
++            ROOT + ".tendDamageEntered",
++            ROOT + ".tendDamageHealthHeal",
++            ROOT + ".tendDamageActionHeal",
++            ROOT + ".tendDamageMindCost",
++            ROOT + ".tendDamageExpectedMindCost",
++            ROOT + ".tendDamageFocusWoundCost",
++            ROOT + ".tendDamageWillpowerWoundCost",
++            ROOT + ".tendDamageMedicalXp",
++            ROOT + ".tendWoundEntered",
++            ROOT + ".tendWoundAttribute",
++            ROOT + ".tendWoundHeal",
++            ROOT + ".tendWoundMindCost",
++            ROOT + ".tendWoundExpectedMindCost",
++            ROOT + ".tendWoundFocusWoundCost",
++            ROOT + ".tendWoundWillpowerWoundCost",
++            ROOT + ".tendWoundMedicalXp"
++        };
++        for (String key : integerKeys)
++        {
++            setObjVar(player, key, 0);
++        }
++        setObjVar(player, ROOT + ".tendDamageOutcome", "none");
++        setObjVar(player, ROOT + ".tendWoundOutcome", "none");
++    }
++
++    private void clearFixtureVariables(obj_id player)
++        throws InterruptedException
++    {
++        String[] keys =
++        {
++            LIFECYCLE,
++            ORIGINAL_NOVICE,
++            ORIGINAL_TEND_DAMAGE,
++            ORIGINAL_TEND_WOUND,
++            ORIGINAL_MIND,
++            ORIGINAL_FOCUS,
++            ORIGINAL_WILLPOWER,
++            ORIGINAL_FOCUS_WOUND,
++            ORIGINAL_WILLPOWER_WOUND,
++            ORIGINAL_MEDICAL_XP,
++            EXPECTED_DAMAGE_COST,
++            EXPECTED_WOUND_COST,
++            ROOT + ".handlerCalls",
++            ROOT + ".tendDamageEntered",
++            ROOT + ".tendDamageOutcome",
++            ROOT + ".tendDamageHealthHeal",
++            ROOT + ".tendDamageActionHeal",
++            ROOT + ".tendDamageMindCost",
++            ROOT + ".tendDamageExpectedMindCost",
++            ROOT + ".tendDamageFocusWoundCost",
++            ROOT + ".tendDamageWillpowerWoundCost",
++            ROOT + ".tendDamageMedicalXp",
++            ROOT + ".tendWoundEntered",
++            ROOT + ".tendWoundOutcome",
++            ROOT + ".tendWoundAttribute",
++            ROOT + ".tendWoundHeal",
++            ROOT + ".tendWoundMindCost",
++            ROOT + ".tendWoundExpectedMindCost",
++            ROOT + ".tendWoundFocusWoundCost",
++            ROOT + ".tendWoundWillpowerWoundCost",
++            ROOT + ".tendWoundMedicalXp"
++        };
++        for (String key : keys)
++        {
++            if (hasObjVar(player, key))
++            {
++                removeObjVar(player, key);
++            }
++        }
++        if (hasObjVar(player, ROOT))
++        {
++            removeObjVar(player, ROOT);
++        }
++    }
++
++    private boolean setWoundExact(
++        obj_id target,
++        int attribute,
++        int requested)
++        throws InterruptedException
++    {
++        int current = getAttribWound(target, attribute);
++        if (current > requested)
++        {
++            healWound(target, attribute, current - requested);
++        }
++        else if (current < requested)
++        {
++            addWound(target, attribute, requested - current);
++        }
++        return getAttribWound(target, attribute) == requested;
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            boolean digit = value >= '0' && value <= '9';
++            boolean lowerHex = value >= 'a' && value <= 'f';
++            if (!digit && !lowerHex)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 57d876fa098bc7bab37583a29b9f6d57a25d712b..e068f4f785d6b485dc95732ecb7f0149f018f4f4 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1040,6 +1040,8 @@ teach		immediate	teach				0		1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	0	0	0	0			0	0	0	0	1	0
+ teleport		immediate		failAdmin	admin_teleport			admin																				1	1		0	1												1																														none	0				0		5	csr	0										
+ teleportTarget		immediate		failAdmin	admin_teleport			admin																				1	1		0	1												1																														required	0				0		5	csr	0										
+ teleportTo		immediate		failAdmin	admin_teleportTo			admin																				1	1		0	1												1																														none	0				0		5	csr	0										
++tendDamage	combat	normal	cmdTendDamage				5	tendDamage	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.tend_damage	other	optional		2	0	0	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
++tendWound	combat	normal	cmdTendWound				5	tendWound	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.tend_wound	other	optional		2	0	0	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
+ tellpet		immediate	cmdTellPet				1																								0	1						0						1				0	0																							player.skill.taming		optional									0										
+ tip		immediate	cmdTip																												0	1												1																														optional		2			0				0										
+ toggleAwayFromKeyBoard		immediate			toggleAwayFromKeyBoard																							1	1		0	1												1																														none					0				0										

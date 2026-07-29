@@ -1,0 +1,271 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index f89e447ba..e50d5a956 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -59,6 +59,14 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_2hsword_accuracy_03";
+     private static final String TWO_HAND_SWORD_ACCURACY_FOUR =
+         "combat_2hsword_accuracy_04";
++    private static final String TWO_HAND_SWORD_SPEED_ONE =
++        "combat_2hsword_speed_01";
++    private static final String TWO_HAND_SWORD_SPEED_TWO =
++        "combat_2hsword_speed_02";
++    private static final String TWO_HAND_SWORD_SPEED_THREE =
++        "combat_2hsword_speed_03";
++    private static final String TWO_HAND_SWORD_SPEED_FOUR =
++        "combat_2hsword_speed_04";
+     private static final String BRAWLER_POLEARM_ONE =
+         "combat_brawler_polearm_01";
+     private static final String BRAWLER_POLEARM_TWO =
+@@ -498,6 +506,14 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalTwoHandSwordAccuracyThree";
+     private static final String ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR =
+         ROOT + ".originalTwoHandSwordAccuracyFour";
++    private static final String ORIGINAL_TWO_HAND_SWORD_SPEED_ONE =
++        ROOT + ".originalTwoHandSwordSpeedOne";
++    private static final String ORIGINAL_TWO_HAND_SWORD_SPEED_TWO =
++        ROOT + ".originalTwoHandSwordSpeedTwo";
++    private static final String ORIGINAL_TWO_HAND_SWORD_SPEED_THREE =
++        ROOT + ".originalTwoHandSwordSpeedThree";
++    private static final String ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR =
++        ROOT + ".originalTwoHandSwordSpeedFour";
+     private static final String ORIGINAL_BRAWLER_POLEARM_ONE =
+         ROOT + ".originalBrawlerPolearmOne";
+     private static final String ORIGINAL_BRAWLER_POLEARM_TWO =
+@@ -965,7 +981,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -1070,6 +1086,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armTwoHandAccuracy(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armTwoHandSpeed"))
++        {
++            return armTwoHandSpeed(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armPolearmNovice"))
+         {
+             return armPolearmNovice(attacker, defender, args[3]);
+@@ -1339,6 +1359,18 @@ public class precu_headshot1_fixture extends script.base_script
+             twoHandSwordAccuracyThreeGranted &&
+             (hasSkill(attacker, TWO_HAND_SWORD_ACCURACY_FOUR) ||
+                 grantSkill(attacker, TWO_HAND_SWORD_ACCURACY_FOUR));
++        boolean twoHandSwordSpeedOneGranted = twoHandSwordNoviceGranted &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_ONE) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_ONE));
++        boolean twoHandSwordSpeedTwoGranted = twoHandSwordSpeedOneGranted &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_TWO) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_TWO));
++        boolean twoHandSwordSpeedThreeGranted = twoHandSwordSpeedTwoGranted &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_THREE) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_THREE));
++        boolean twoHandSwordSpeedFourGranted = twoHandSwordSpeedThreeGranted &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR));
+         boolean brawlerPolearmOneGranted = brawlerNoviceGranted &&
+             (hasSkill(attacker, BRAWLER_POLEARM_ONE) ||
+                 grantSkill(attacker, BRAWLER_POLEARM_ONE));
+@@ -2061,6 +2093,14 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasSkill(attacker, TWO_HAND_SWORD_ACCURACY_THREE) ||
+             !twoHandSwordAccuracyFourGranted ||
+             !hasSkill(attacker, TWO_HAND_SWORD_ACCURACY_FOUR) ||
++            !twoHandSwordSpeedOneGranted ||
++            !hasSkill(attacker, TWO_HAND_SWORD_SPEED_ONE) ||
++            !twoHandSwordSpeedTwoGranted ||
++            !hasSkill(attacker, TWO_HAND_SWORD_SPEED_TWO) ||
++            !twoHandSwordSpeedThreeGranted ||
++            !hasSkill(attacker, TWO_HAND_SWORD_SPEED_THREE) ||
++            !twoHandSwordSpeedFourGranted ||
++            !hasSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR) ||
+             !brawlerPolearmOneGranted ||
+             !hasSkill(attacker, BRAWLER_POLEARM_ONE) ||
+             !brawlerPolearmTwoGranted ||
+@@ -3616,6 +3656,34 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, BRAWLER_MASTER);
+         }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR);
++        }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_THREE) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_THREE) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_THREE))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_THREE);
++        }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_TWO) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_TWO))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_TWO);
++        }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_ONE) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_ONE))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_ONE);
++        }
+         if (attackerRoot &&
+             hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR) &&
+             getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR) == 0 &&
+@@ -4651,6 +4719,30 @@ public class precu_headshot1_fixture extends script.base_script
+                 equipped + " " + buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armTwoHandSpeed(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armTwoHandAccuracy(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armTwoHandAccuracy"))
++        {
++            return armed;
++        }
++        boolean boundary =
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_ONE) &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_TWO) &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_THREE) &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR) &&
++            hasCommand(attacker, TWO_HAND_HEAD_TWO_COMMAND) &&
++            hasCommand(attacker, TWO_HAND_HEAD_THREE_COMMAND) &&
++            combat.canPerformAction(TWO_HAND_HEAD_TWO_COMMAND, attacker) == 0 &&
++            combat.canPerformAction(TWO_HAND_HEAD_THREE_COMMAND, attacker) == 0;
++        return boundary ?
++            "action=armTwoHandSpeed equipped=true " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=twoHandSpeedOwnershipBoundaryFailed " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armPolearmNovice(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+@@ -5350,6 +5442,14 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, TWO_HAND_SWORD_ACCURACY_THREE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR,
+             hasSkill(player, TWO_HAND_SWORD_ACCURACY_FOUR) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_ONE,
++            hasSkill(player, TWO_HAND_SWORD_SPEED_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_TWO,
++            hasSkill(player, TWO_HAND_SWORD_SPEED_TWO) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_THREE,
++            hasSkill(player, TWO_HAND_SWORD_SPEED_THREE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR,
++            hasSkill(player, TWO_HAND_SWORD_SPEED_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_POLEARM_ONE,
+             hasSkill(player, BRAWLER_POLEARM_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_POLEARM_TWO,
+@@ -6708,6 +6808,30 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, BRAWLER_MASTER);
+         }
++        if (hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR);
++        }
++        if (hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_THREE) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_THREE) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_THREE))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_THREE);
++        }
++        if (hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_TWO) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_TWO))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_TWO);
++        }
++        if (hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_ONE) == 0 &&
++            hasSkill(attacker, TWO_HAND_SWORD_SPEED_ONE))
++        {
++            revokeSkill(attacker, TWO_HAND_SWORD_SPEED_ONE);
++        }
+         if (hasObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR) &&
+             getIntObjVar(attacker, ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR) == 0 &&
+             hasSkill(attacker, TWO_HAND_SWORD_ACCURACY_FOUR))
+@@ -7426,6 +7550,14 @@ public class precu_headshot1_fixture extends script.base_script
+                 TWO_HAND_SWORD_ACCURACY_THREE) &&
+             isSkillRestored(attacker, ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR,
+                 TWO_HAND_SWORD_ACCURACY_FOUR) &&
++            isSkillRestored(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_ONE,
++                TWO_HAND_SWORD_SPEED_ONE) &&
++            isSkillRestored(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_TWO,
++                TWO_HAND_SWORD_SPEED_TWO) &&
++            isSkillRestored(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_THREE,
++                TWO_HAND_SWORD_SPEED_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR,
++                TWO_HAND_SWORD_SPEED_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_POLEARM_ONE,
+                 BRAWLER_POLEARM_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_POLEARM_TWO,
+@@ -8217,6 +8349,18 @@ public class precu_headshot1_fixture extends script.base_script
+             twoHandSwordAccuracyThreeReady &&
+             (hasSkill(attacker, TWO_HAND_SWORD_ACCURACY_FOUR) ||
+                 grantSkill(attacker, TWO_HAND_SWORD_ACCURACY_FOUR));
++        boolean twoHandSwordSpeedOneReady = twoHandSwordNoviceReady &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_ONE) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_ONE));
++        boolean twoHandSwordSpeedTwoReady = twoHandSwordSpeedOneReady &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_TWO) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_TWO));
++        boolean twoHandSwordSpeedThreeReady = twoHandSwordSpeedTwoReady &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_THREE) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_THREE));
++        boolean twoHandSwordSpeedFourReady = twoHandSwordSpeedThreeReady &&
++            (hasSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR) ||
++                grantSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR));
+         boolean brawlerPolearmOneReady = brawlerNoviceReady &&
+             (hasSkill(attacker, BRAWLER_POLEARM_ONE) ||
+                 grantSkill(attacker, BRAWLER_POLEARM_ONE));
+@@ -8839,7 +8983,9 @@ public class precu_headshot1_fixture extends script.base_script
+             brawlerTwoHandThreeReady && brawlerTwoHandFourReady &&
+             twoHandSwordNoviceReady && twoHandSwordAccuracyOneReady &&
+             twoHandSwordAccuracyTwoReady && twoHandSwordAccuracyThreeReady &&
+-            twoHandSwordAccuracyFourReady &&
++            twoHandSwordAccuracyFourReady && twoHandSwordSpeedOneReady &&
++            twoHandSwordSpeedTwoReady && twoHandSwordSpeedThreeReady &&
++            twoHandSwordSpeedFourReady &&
+             brawlerPolearmOneReady && brawlerPolearmTwoReady &&
+             brawlerPolearmThreeReady && brawlerPolearmFourReady &&
+             polearmNoviceReady && polearmAccuracyOneReady &&
+@@ -9322,6 +9468,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_TWO_HAND_SWORD_ACCURACY_TWO) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_SWORD_ACCURACY_THREE) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_SWORD_ACCURACY_FOUR) &&
++            hasObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_ONE) &&
++            hasObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_TWO) &&
++            hasObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_THREE) &&
++            hasObjVar(player, ORIGINAL_TWO_HAND_SWORD_SPEED_FOUR) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_POLEARM_ONE) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_POLEARM_TWO) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_POLEARM_THREE) &&
+@@ -10440,6 +10590,14 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasSkill(attacker, TWO_HAND_SWORD_ACCURACY_THREE) +
+             " twoHandSwordAccuracyFour=" +
+                 hasSkill(attacker, TWO_HAND_SWORD_ACCURACY_FOUR) +
++            " twoHandSwordSpeedOne=" +
++                hasSkill(attacker, TWO_HAND_SWORD_SPEED_ONE) +
++            " twoHandSwordSpeedTwo=" +
++                hasSkill(attacker, TWO_HAND_SWORD_SPEED_TWO) +
++            " twoHandSwordSpeedThree=" +
++                hasSkill(attacker, TWO_HAND_SWORD_SPEED_THREE) +
++            " twoHandSwordSpeedFour=" +
++                hasSkill(attacker, TWO_HAND_SWORD_SPEED_FOUR) +
+             " brawlerPolearmOne=" +
+                 hasSkill(attacker, BRAWLER_POLEARM_ONE) +
+             " brawlerPolearmTwo=" +

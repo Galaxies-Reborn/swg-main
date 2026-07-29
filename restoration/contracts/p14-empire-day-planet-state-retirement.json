@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "feature": "empire-day-planet-state-retirement",
+  "status": "ready",
+  "scope": "Remove persistent later Empire Day planet leaderboard state and fail closed on queued setup/reset callbacks while retaining Life Day planet data.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "No Empire Day planet leaderboard, score namespace, or delayed reset lifecycle exists in the pinned Publish 14.1 Core3 tree.",
+    "cleanupBoundary": "Attach/initialize configuration checks remove the Empire Day root, score, and score timestamp; exact setup and reset callbacks do the same and return.",
+    "sharedBoundary": "Life Day daily score data and alarms remain unchanged for their separate content-era audit."
+  },
+  "expected": {
+    "empireDayLeaderboardSetupReachable": false,
+    "queuedResetCanRecreateState": false,
+    "rootScoreAndTimestampRemoved": true,
+    "lifeDayPlanetStateRetained": true
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/179-p14-empire-day-planet-state-retirement.patch",
+    "overlayPatchBytes": 3404,
+    "overlayPatchSha256": "7e50061934046a54e8b3fd42516afd53645c6aedb5e4cc857e00f3ec3a17b3f4",
+    "sourceSha256": {
+      "planet_event_handler.java": "2db592755325ee21dfbcedfb065af80c98579ec24c8693d8d11ce85bb16c2369"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "planet_event_handler.class": "c7fd38db7c6e4d8322fbeb7b76375e069522dc09894d54754f759db572dc650d"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 65524,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

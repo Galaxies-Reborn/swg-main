@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "feature": "storyteller-token-lifecycle-retirement",
+  "status": "ready",
+  "scope": "Detach nine player-owned Storyteller token scripts at attach and initialization while preserving serialized item data, loadable classes, and deployed-world cleanup controllers.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "No Storyteller blueprint, theater, NPC, prop, destructible-prop, effect, jukebox-converter, or NPC-difficulty token lifecycle exists in the pinned Publish 14.1 Core3 tree.",
+    "linkBoundary": "Persisted token classes and their serialized data remain loadable, but both attach and initialize synchronously detach the token script before its menu, alarm, or deployment handlers can remain active.",
+    "cleanupBoundary": "Already-deployed controller scripts are intentionally retained because they own timers and cleanup for existing world objects; acquisition and player-token paths can no longer reach them."
+  },
+  "expected": {
+    "tokenScriptsAttachedAfterLifecycle": false,
+    "tokenMenusReachableAfterLifecycle": false,
+    "tokenAlarmHandlersReachableAfterLifecycle": false,
+    "tokenDeploymentHandlersReachableAfterLifecycle": false,
+    "deployedCleanupControllersRetained": true,
+    "retiredSourceCount": 9
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/169-p14-storyteller-token-lifecycle-retirement.patch",
+    "overlayPatchBytes": 9357,
+    "overlayPatchSha256": "d5be9806e6496c8e20852ca39c0373fc09c43bacf3c87f951742e2e7d845aa2b",
+    "sourceEvidenceEncoding": "UTF-8 with LF line endings",
+    "sourceSha256": {
+      "blueprint.java": "7d0602c274ab7558a040e17b6db2ff658aa9ea04d99fcbcb070f1ca111a560bf",
+      "blueprint_blank.java": "f6feb43e4ac5a8abf74bbe100635b4c856fa25ed85f70b80df9b732dcd487865",
+      "destructible_prop_token.java": "f04fe07981d4c8fafc797afbaa6e5e6083724a0a26721e5b8ae29714a24854cb",
+      "effect_token.java": "b25044de52c952e926b80717245796cf049a1feb034232ce1999d8f9b695c113",
+      "jukebox_converter_prop_token.java": "36fd30d15d13a3f15b4f2235398be1ac9e03ab9f0be74667aa95154fa981e0c9",
+      "npc_difficulty_token.java": "0a762d7f4c383791bc7ff864cb853a97629060cad8a0a47dbded7619ea2e3c11",
+      "npc_token.java": "764b3c705d4068994d40ab962cb54b059ec5e0b74fc487f5777afa31353b6538",
+      "prop_token.java": "29d666077aacd150ae3fca25911c183b2f5fc08dec9e37f6501c46609bc23ce0",
+      "theater_token.java": "5dec7fa4a623dfa887e644b03a67fc0c15953b16b20f25a6f440bdc2cc5ebf97"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "blueprint.class": "e8a208a673dfbc640a8794b79d4c4cac062d0eae4e56dafc5fffafed4ebb2565",
+      "blueprint_blank.class": "ac18dbc53a4d4b363e44b7322f45ee7db44c7e6a8adfe7cfff4a3820a461304c",
+      "destructible_prop_token.class": "e4d7bb9a1ba3e6b7cbf60c0c53e04648a1bcafddb5e2acc348e8a10a2f057208",
+      "effect_token.class": "0d242d688e6ece1f348ca8c050acf36d8f4eeea9bd10079eb73bf1962b0024ce",
+      "jukebox_converter_prop_token.class": "fe9763375991da971e301c91dfe3c69dd2cdaa2c1e887c6bba950d615cf7f6aa",
+      "npc_difficulty_token.class": "11666518d26e14bd83b2d2ee1cc28c3dbe5bcbc38b3ea042ba4d6eebfb66cec0",
+      "npc_token.class": "bd1b02b1b66395d77b7842ac71bec52b48c917448c30c094763582963540a6d0",
+      "prop_token.class": "a13334a1c4cbd78203b6edc18186ae846880f490b9b023c5238bf57614e9dcfd",
+      "theater_token.class": "4d462a72f8c9d29e6dc9fb94b592fa58e5dabb8ca6c156814205ea2bc81a8450"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 63276,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

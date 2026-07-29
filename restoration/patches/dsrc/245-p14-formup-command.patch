@@ -1,0 +1,887 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index 0fa65e7..aa6b397 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -40,6 +40,14 @@ public class base_player extends script.base_script
+     private static final int PRECU_BERSERK_TWO_PROTOCOL_VERSION = 1;
+     private static final String PRECU_BERSERK_TWO_FIXTURE_ROOT =
+         "precu.b2Fixture";
++    public static final int PRECU_FORMUP_BASE_COST = 50;
++    private static final long PRECU_FORMUP_LEADER_OID = 44003778L;
++    private static final int PRECU_FORMUP_LEADER_STATION_ID = 91001;
++    private static final long PRECU_FORMUP_MEMBER_OID = 207005062L;
++    private static final int PRECU_FORMUP_MEMBER_STATION_ID = 1391050504;
++    private static final int PRECU_FORMUP_PROTOCOL_VERSION = 1;
++    private static final String PRECU_FORMUP_FIXTURE_ROOT =
++        "precu.formupFixture";
+     public static final float RANGE_COUP_DE_GRACE = 5.0f;
+     public static final String JEDI_CLOAK_TEMPLATE = "object/tangible/wearable/robe/robe_s05.iff";
+     public static final String MSG_REVIVE_TITLE = "@base_player:revive_title";
+@@ -4032,6 +4040,150 @@ public class base_player extends script.base_script
+         recordPrecuBerserkTwoOutcome(self, fixture, "passed");
+         return SCRIPT_CONTINUE;
+     }
++    public int formup(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        boolean fixture = isPrecuFormupFixture(self);
++        if (fixture)
++        {
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".handlerEntered", 1);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".handlerCalls",
++                readPrecuFormupInt(self, ".handlerCalls") + 1);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".outcome", "entered");
++        }
++        if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
++            isDead(self) || isIncapacitated(self) ||
++            !hasSkill(self, "outdoors_squadleader_defense_01"))
++        {
++            recordPrecuFormupOutcome(self, fixture, "playerRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        obj_id groupId = getGroupObject(self);
++        if (!isIdValid(groupId) || !self.equals(getGroupLeaderId(groupId)))
++        {
++            sendSystemMessage(self, new string_id("error_message",
++                isIdValid(groupId) ? "not_group_leader" : "not_grouped"));
++            recordPrecuFormupOutcome(self, fixture, "leaderRejected");
++            return SCRIPT_CONTINUE;
++        }
++        obj_id[] members = getGroupMemberIds(groupId);
++        if (members == null || members.length == 0)
++        {
++            recordPrecuFormupOutcome(self, fixture, "groupRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        int adjustedBaseCost = (int)(PRECU_FORMUP_BASE_COST *
++            (1.0f + members.length / 20.0f));
++        int healthCost = calculatePrecuBerserkCost(
++            getAttrib(self, STRENGTH), adjustedBaseCost);
++        int actionCost = calculatePrecuBerserkCost(
++            getAttrib(self, QUICKNESS), adjustedBaseCost);
++        int mindCost = calculatePrecuBerserkCost(
++            getAttrib(self, FOCUS), adjustedBaseCost);
++        if (getAttrib(self, HEALTH) <= healthCost ||
++            getAttrib(self, ACTION) <= actionCost ||
++            getAttrib(self, MIND) <= mindCost)
++        {
++            recordPrecuFormupOutcome(self, fixture, "hamRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        int healthBefore = getAttrib(self, HEALTH);
++        int actionBefore = getAttrib(self, ACTION);
++        int mindBefore = getAttrib(self, MIND);
++        if (!drainCombatAttributes(self, healthCost, actionCost, mindCost))
++        {
++            recordPrecuFormupOutcome(self, fixture, "hamDrainFailed");
++            return SCRIPT_CONTINUE;
++        }
++
++        int membersApplied = 0;
++        for (obj_id member : members)
++        {
++            if (!isValidPrecuSquadTarget(self, member))
++            {
++                continue;
++            }
++            setState(member, STATE_DIZZY, false);
++            setState(member, STATE_STUNNED, false);
++            pvpHelpPerformed(self, member);
++            ++membersApplied;
++        }
++
++        if (fixture)
++        {
++            obj_id fixtureMember = obj_id.getObjId(PRECU_FORMUP_MEMBER_OID);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".groupSize",
++                members.length);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".adjustedBaseCost",
++                adjustedBaseCost);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".healthCost",
++                healthCost);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".actionCost",
++                actionCost);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".mindCost", mindCost);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".healthBefore",
++                healthBefore);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".healthAfter",
++                getAttrib(self, HEALTH));
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".actionBefore",
++                actionBefore);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".actionAfter",
++                getAttrib(self, ACTION));
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".mindBefore",
++                mindBefore);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".mindAfter",
++                getAttrib(self, MIND));
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".membersApplied",
++                membersApplied);
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".leaderDizzyAfter",
++                getState(self, STATE_DIZZY));
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".leaderStunnedAfter",
++                getState(self, STATE_STUNNED));
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".memberDizzyAfter",
++                getState(fixtureMember, STATE_DIZZY));
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".memberStunnedAfter",
++                getState(fixtureMember, STATE_STUNNED));
++            setObjVar(self, PRECU_FORMUP_FIXTURE_ROOT + ".completedAt",
++                getGameTime());
++        }
++        recordPrecuFormupOutcome(self, fixture, "passed");
++        return SCRIPT_CONTINUE;
++    }
++    private boolean isValidPrecuSquadTarget(obj_id leader, obj_id member)
++        throws InterruptedException
++    {
++        if (!isIdValid(member) || !exists(member) || !member.isLoaded() ||
++            !isPlayer(member) || isDead(member) || isIncapacitated(member))
++        {
++            return false;
++        }
++        if (leader.equals(member))
++        {
++            return true;
++        }
++        location leaderLocation = getLocation(leader);
++        location memberLocation = getLocation(member);
++        if (leaderLocation == null || memberLocation == null ||
++            !leaderLocation.area.equals(memberLocation.area) ||
++            !hasSamePrecuBuildingContext(leader, member))
++        {
++            return false;
++        }
++        return pvpCanHelp(leader, member);
++    }
++    private boolean hasSamePrecuBuildingContext(obj_id first, obj_id second)
++        throws InterruptedException
++    {
++        obj_id firstTop = getTopMostContainer(first);
++        obj_id secondTop = getTopMostContainer(second);
++        boolean firstOutdoors = !isIdValid(firstTop) || first.equals(firstTop);
++        boolean secondOutdoors = !isIdValid(secondTop) || second.equals(secondTop);
++        return (firstOutdoors && secondOutdoors) ||
++            (!firstOutdoors && !secondOutdoors && firstTop.equals(secondTop));
++    }
+     public int handlePrecuBerserkExpiry(obj_id self, dictionary params)
+         throws InterruptedException
+     {
+@@ -4160,6 +4312,42 @@ public class base_player extends script.base_script
+                 PRECU_BERSERK_TWO_FIXTURE_ROOT + ".outcome", outcome);
+         }
+     }
++    private boolean isPrecuFormupFixture(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !isPlayer(player) ||
++            player.getValue() != PRECU_FORMUP_LEADER_OID ||
++            getPlayerStationId(player) != PRECU_FORMUP_LEADER_STATION_ID ||
++            !hasObjVar(player, PRECU_FORMUP_FIXTURE_ROOT + ".protocol") ||
++            getIntObjVar(player, PRECU_FORMUP_FIXTURE_ROOT + ".protocol") !=
++                PRECU_FORMUP_PROTOCOL_VERSION ||
++            !hasObjVar(player, PRECU_FORMUP_FIXTURE_ROOT + ".prepared") ||
++            getIntObjVar(player, PRECU_FORMUP_FIXTURE_ROOT + ".prepared") != 1 ||
++            !hasObjVar(player, PRECU_FORMUP_FIXTURE_ROOT + ".peer"))
++        {
++            return false;
++        }
++        obj_id member = getObjIdObjVar(player,
++            PRECU_FORMUP_FIXTURE_ROOT + ".peer");
++        return isIdValid(member) && member.isLoaded() &&
++            member.getValue() == PRECU_FORMUP_MEMBER_OID &&
++            getPlayerStationId(member) == PRECU_FORMUP_MEMBER_STATION_ID;
++    }
++    private int readPrecuFormupInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = PRECU_FORMUP_FIXTURE_ROOT + suffix;
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++    private void recordPrecuFormupOutcome(obj_id player, boolean fixture,
++        String outcome) throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(player,
++                PRECU_FORMUP_FIXTURE_ROOT + ".outcome", outcome);
++        }
++    }
+     public int cmdUseSkillBuff(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         LOG("skillBuff", "cmdUseSkillBuff");
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_formup_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_formup_command_fixture.java
+new file mode 100644
+index 0000000..cd3e7d0
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_formup_command_fixture.java
+@@ -0,0 +1,659 @@
++package script.test;
++
++import script.location;
++import script.obj_id;
++import script.library.group;
++import script.library.skill;
++
++/**
++ * Identity-bound reversible acceptance fixture for Publish 14.1 formup.
++ * Two real clients own group formation, command submission, and dissolution.
++ */
++public class precu_formup_command_fixture extends script.base_script
++{
++    private static final long LEADER_OID = 44003778L;
++    private static final int LEADER_STATION_ID = 91001;
++    private static final long MEMBER_OID = 207005062L;
++    private static final int MEMBER_STATION_ID = 1391050504;
++    private static final int EXPECTED_GROUP_SIZE = 2;
++    private static final int EXPECTED_BASE_COST = 55;
++    private static final String ROOT = "precu.formupFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PEER = ROOT + ".peer";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String PROTOCOL = ROOT + ".protocol";
++    private static final String ORIGINAL_LOCATION = ROOT + ".originalLocation";
++    private static final String ORIGINAL_POSTURE = ROOT + ".originalPosture";
++    private static final String ORIGINAL_LOCOMOTION = ROOT + ".originalLocomotion";
++    private static final String ORIGINAL_ATTRIBUTES = ROOT + ".originalAttributes";
++    private static final String ORIGINAL_MAXIMUM = ROOT + ".originalMaximum";
++    private static final String ORIGINAL_REGEN = ROOT + ".originalRegen";
++    private static final String ORIGINAL_STATES = ROOT + ".originalStates";
++    private static final String ORIGINAL_SKILLS = ROOT + ".originalSkills";
++    private static final String GROUPED = ROOT + ".grouped";
++    private static final String COMMAND_OBSERVED = ROOT + ".commandObserved";
++    private static final String UNGROUPED = ROOT + ".ungrouped";
++    private static final String PASSED = ROOT + ".passed";
++    private static final String[] SKILLS =
++    {
++        "outdoors_squadleader",
++        "outdoors_squadleader_novice",
++        "outdoors_squadleader_defense_01"
++    };
++    private static final int[] ATTRIBUTES =
++    {
++        HEALTH, STRENGTH, ACTION, QUICKNESS, MIND, FOCUS
++    };
++    private static final int[] PRIMARY_ATTRIBUTES =
++    {
++        HEALTH, ACTION, MIND
++    };
++    private static final int[] STATES =
++    {
++        STATE_DIZZY, STATE_STUNNED
++    };
++    private static final String[] OWNED_SUFFIXES =
++    {
++        ".lifecycle", ".peer", ".prepared", ".protocol",
++        ".originalLocation", ".originalPosture", ".originalLocomotion",
++        ".originalAttributes", ".originalMaximum", ".originalRegen",
++        ".originalStates", ".originalSkills", ".grouped",
++        ".commandObserved", ".ungrouped", ".passed", ".outcome",
++        ".handlerEntered", ".handlerCalls", ".groupSize",
++        ".adjustedBaseCost", ".healthCost", ".actionCost", ".mindCost",
++        ".healthBefore", ".healthAfter", ".actionBefore", ".actionAfter",
++        ".mindBefore", ".mindAfter", ".membersApplied",
++        ".leaderDizzyAfter", ".leaderStunnedAfter", ".memberDizzyAfter",
++        ".memberStunnedAfter", ".completedAt"
++    };
++    private static final String USAGE =
++        "usage: inspect|recover|prepare|observeGrouped|observeCommand|" +
++        "observeUngrouped|status|cleanup 44003778 207005062 <lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null
++            ? new String[0]
++            : params.trim().split("[ ]+");
++        if (args.length != 4 || !isValidLifecycle(args[3]))
++        {
++            return USAGE;
++        }
++        long leaderValue;
++        long memberValue;
++        try
++        {
++            leaderValue = Long.parseLong(args[1]);
++            memberValue = Long.parseLong(args[2]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (leaderValue != LEADER_OID || memberValue != MEMBER_OID)
++        {
++            return "error=identityNotAllowed";
++        }
++        obj_id leader = obj_id.getObjId(leaderValue);
++        obj_id member = obj_id.getObjId(memberValue);
++        String validation = validatePlayer(leader, LEADER_STATION_ID, "leader");
++        if (validation != null)
++        {
++            return validation;
++        }
++        validation = validatePlayer(member, MEMBER_STATION_ID, "member");
++        if (validation != null)
++        {
++            return validation;
++        }
++
++        String action = args[0];
++        String lifecycle = args[3];
++        if (action.equalsIgnoreCase("inspect"))
++        {
++            return "action=inspect leaderRoot=" + hasObjVar(leader, ROOT) +
++                " memberRoot=" + hasObjVar(member, ROOT) + " " +
++                buildStatus(leader, member);
++        }
++        if (action.equalsIgnoreCase("recover"))
++        {
++            return recover(leader, member);
++        }
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            return prepare(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeGrouped"))
++        {
++            return observeGrouped(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeCommand"))
++        {
++            return observeCommand(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeUngrouped"))
++        {
++            return observeUngrouped(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("status"))
++        {
++            validation = validateOwnership(leader, member, lifecycle, false);
++            return validation == null
++                ? "action=status " + buildStatus(leader, member)
++                : validation;
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(leader, member, lifecycle);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id leader, obj_id member, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(leader, member, lifecycle, true);
++        if (ownership == null)
++        {
++            return "action=prepare resumed=true " + buildStatus(leader, member);
++        }
++        if (!"fixtureAbsent".equals(ownership))
++        {
++            return ownership;
++        }
++        if (isIdValid(getGroupObject(leader)) ||
++            isIdValid(getGroupObject(member)))
++        {
++            return "error=fixtureRequiresUngroupedPlayers";
++        }
++        snapshot(leader, member, lifecycle, true);
++        snapshot(member, leader, lifecycle, false);
++        boolean leaderPrepared =
++            preparePlayer(leader, 3500.0f, -4800.0f, true);
++        boolean memberPrepared =
++            preparePlayer(member, 3502.0f, -4800.0f, false);
++        boolean prepared = leaderPrepared && memberPrepared;
++        if (!prepared)
++        {
++            String diagnostic = buildPreparationDiagnostic(leader, member,
++                leaderPrepared, memberPrepared);
++            boolean restored = restorePair(leader, member);
++            return "error=fixtureSetupFailed restored=" + restored + " " +
++                diagnostic;
++        }
++        setFlagPair(leader, member, GROUPED, false);
++        setFlagPair(leader, member, COMMAND_OBSERVED, false);
++        setFlagPair(leader, member, UNGROUPED, false);
++        setFlagPair(leader, member, PASSED, false);
++        return "action=prepare resumed=false " + buildStatus(leader, member);
++    }
++
++    private boolean preparePlayer(obj_id player, float x, float z,
++        boolean leader) throws InterruptedException
++    {
++        stopCombat(player);
++        setCombatTarget(player, obj_id.NULL_ID);
++        location destination = new location(
++            x, getHeightAtLocation(x, z), z, "tatooine", null);
++        setLocation(player, destination);
++        setPostureClientImmediate(player, POSTURE_UPRIGHT);
++        for (int attribute : PRIMARY_ATTRIBUTES)
++        {
++            setRegenRate(player, attribute, 0.0f);
++        }
++        setState(player, STATE_DIZZY, !leader);
++        setState(player, STATE_STUNNED, true);
++        boolean skills = !leader || grantSkills(player);
++        location observed = getLocation(player);
++        return skills &&
++            observed != null && "tatooine".equals(observed.area) &&
++            !isIdValid(observed.cell) &&
++            Math.abs(observed.x - x) < 0.1f &&
++            Math.abs(observed.z - z) < 0.1f &&
++            getPosture(player) == POSTURE_UPRIGHT &&
++            getState(player, STATE_DIZZY) == (leader ? 0 : 1) &&
++            getState(player, STATE_STUNNED) == 1 &&
++            (!leader || (hasSkill(player, SKILLS[2]) &&
++                hasCommand(player, "formup")));
++    }
++
++    private String observeGrouped(obj_id leader, obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        obj_id groupId = getGroupObject(leader);
++        boolean passed = isIdValid(groupId) &&
++            group.inSameGroup(leader, member) &&
++            leader.equals(getGroupLeaderId(groupId)) &&
++            getGroupSize(groupId) == EXPECTED_GROUP_SIZE;
++        setFlagPair(leader, member, GROUPED, passed);
++        return "action=observeGrouped passed=" + passed + " " +
++            buildStatus(leader, member);
++    }
++
++    private String observeCommand(obj_id leader, obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        int expectedHealthCost = calculateExpectedCost(
++            getAttrib(leader, STRENGTH), EXPECTED_BASE_COST);
++        int expectedActionCost = calculateExpectedCost(
++            getAttrib(leader, QUICKNESS), EXPECTED_BASE_COST);
++        int expectedMindCost = calculateExpectedCost(
++            getAttrib(leader, FOCUS), EXPECTED_BASE_COST);
++        int[] originalLeader = getIntArrayObjVar(leader, ORIGINAL_ATTRIBUTES);
++        int[] originalMember = getIntArrayObjVar(member, ORIGINAL_ATTRIBUTES);
++        boolean passed = readFlag(leader, GROUPED) &&
++            "passed".equals(readString(leader, ROOT + ".outcome")) &&
++            readInt(leader, ROOT + ".handlerEntered") == 1 &&
++            readInt(leader, ROOT + ".handlerCalls") == 1 &&
++            readInt(leader, ROOT + ".groupSize") == EXPECTED_GROUP_SIZE &&
++            readInt(leader, ROOT + ".adjustedBaseCost") == EXPECTED_BASE_COST &&
++            readInt(leader, ROOT + ".healthCost") == expectedHealthCost &&
++            readInt(leader, ROOT + ".actionCost") == expectedActionCost &&
++            readInt(leader, ROOT + ".mindCost") == expectedMindCost &&
++            readInt(leader, ROOT + ".membersApplied") == EXPECTED_GROUP_SIZE &&
++            readInt(leader, ROOT + ".healthBefore") == originalLeader[0] &&
++            readInt(leader, ROOT + ".actionBefore") == originalLeader[2] &&
++            readInt(leader, ROOT + ".mindBefore") == originalLeader[4] &&
++            originalLeader[0] > expectedHealthCost &&
++            originalLeader[2] > expectedActionCost &&
++            originalLeader[4] > expectedMindCost &&
++            getAttrib(leader, HEALTH) == originalLeader[0] - expectedHealthCost &&
++            getAttrib(leader, ACTION) == originalLeader[2] - expectedActionCost &&
++            getAttrib(leader, MIND) == originalLeader[4] - expectedMindCost &&
++            getAttrib(member, HEALTH) == originalMember[0] &&
++            getAttrib(member, ACTION) == originalMember[2] &&
++            getAttrib(member, MIND) == originalMember[4] &&
++            statesCleared(leader) && statesCleared(member);
++        setFlagPair(leader, member, COMMAND_OBSERVED, passed);
++        return "action=observeCommand passed=" + passed + " " +
++            buildStatus(leader, member);
++    }
++
++    private String observeUngrouped(obj_id leader, obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        boolean ungrouped = !isIdValid(getGroupObject(leader)) &&
++            !isIdValid(getGroupObject(member));
++        setFlagPair(leader, member, UNGROUPED, ungrouped);
++        boolean passed = ungrouped && readFlag(leader, GROUPED) &&
++            readFlag(leader, COMMAND_OBSERVED);
++        setFlagPair(leader, member, PASSED, passed);
++        return "action=observeUngrouped passed=" + passed + " " +
++            buildStatus(leader, member);
++    }
++
++    private String cleanup(obj_id leader, obj_id member, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(leader, ROOT) && !hasObjVar(member, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (isIdValid(getGroupObject(leader)) ||
++            isIdValid(getGroupObject(member)))
++        {
++            return "error=groupStillActiveUseRealClientDisband";
++        }
++        boolean restored = restorePair(leader, member);
++        return restored
++            ? "action=cleanup alreadyClean=false restored=true"
++            : "error=cleanupRestoreFailed";
++    }
++
++    private String recover(obj_id leader, obj_id member)
++        throws InterruptedException
++    {
++        if (!hasObjVar(leader, ROOT) && !hasObjVar(member, ROOT))
++        {
++            return "action=recover alreadyClean=true restored=true";
++        }
++        if (isIdValid(getGroupObject(leader)) ||
++            isIdValid(getGroupObject(member)))
++        {
++            return "error=recoveryRequiresUngroupedPlayers";
++        }
++        if (!hasCompleteSnapshot(leader) || !hasCompleteSnapshot(member))
++        {
++            if (!hasPreparedState(leader, 3500.0f) &&
++                !hasPreparedState(member, 3502.0f))
++            {
++                clearFixtureVariables(leader);
++                clearFixtureVariables(member);
++                boolean purged = !hasObjVar(leader, ROOT) &&
++                    !hasObjVar(member, ROOT);
++                return purged
++                    ? "action=recover alreadyClean=false restored=true " +
++                        "purgedOrphanedMarker=true"
++                    : "error=orphanedMarkerPurgeFailed";
++            }
++            return "error=partialRecoveryNotProvablyClean";
++        }
++        boolean restored = restorePair(leader, member);
++        return "action=recover alreadyClean=false restored=" + restored;
++    }
++
++    private void snapshot(obj_id player, obj_id peer, String lifecycle,
++        boolean leader) throws InterruptedException
++    {
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, PEER, peer);
++        setObjVar(player, PREPARED, 1);
++        setObjVar(player, PROTOCOL, 1);
++        setObjVar(player, ORIGINAL_LOCATION, getLocation(player));
++        setObjVar(player, ORIGINAL_POSTURE, getPosture(player));
++        setObjVar(player, ORIGINAL_LOCOMOTION, getLocomotion(player));
++        int[] attributes = new int[ATTRIBUTES.length];
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            attributes[index] = getAttrib(player, ATTRIBUTES[index]);
++        }
++        setObjVar(player, ORIGINAL_ATTRIBUTES, attributes);
++        int[] maximum = new int[ATTRIBUTES.length];
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            maximum[index] = getMaxAttrib(player, ATTRIBUTES[index]);
++        }
++        setObjVar(player, ORIGINAL_MAXIMUM, maximum);
++        float[] regen = new float[PRIMARY_ATTRIBUTES.length];
++        for (int index = 0; index < PRIMARY_ATTRIBUTES.length; ++index)
++        {
++            regen[index] = getRegenRate(player, PRIMARY_ATTRIBUTES[index]);
++        }
++        setObjVar(player, ORIGINAL_REGEN, regen);
++        int[] states = new int[STATES.length];
++        for (int index = 0; index < STATES.length; ++index)
++        {
++            states[index] = getState(player, STATES[index]);
++        }
++        setObjVar(player, ORIGINAL_STATES, states);
++        int[] skills = new int[SKILLS.length];
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            skills[index] = leader && hasSkill(player, SKILLS[index]) ? 1 : 0;
++        }
++        setObjVar(player, ORIGINAL_SKILLS, skills);
++    }
++
++    private boolean restorePair(obj_id leader, obj_id member)
++        throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(leader) || !hasCompleteSnapshot(member))
++        {
++            return false;
++        }
++        boolean restored = restorePlayer(leader, true) &&
++            restorePlayer(member, false);
++        if (!restored)
++        {
++            return false;
++        }
++        clearFixtureVariables(leader);
++        clearFixtureVariables(member);
++        return !hasObjVar(leader, ROOT) && !hasObjVar(member, ROOT);
++    }
++
++    private void clearFixtureVariables(obj_id player)
++        throws InterruptedException
++    {
++        for (String suffix : OWNED_SUFFIXES)
++        {
++            String path = ROOT + suffix;
++            if (hasObjVar(player, path))
++            {
++                removeObjVar(player, path);
++            }
++        }
++        if (hasObjVar(player, ROOT))
++        {
++            removeObjVar(player, ROOT);
++        }
++    }
++
++    private boolean restorePlayer(obj_id player, boolean leader)
++        throws InterruptedException
++    {
++        if (leader)
++        {
++            int[] originalSkills = getIntArrayObjVar(player, ORIGINAL_SKILLS);
++            for (int index = SKILLS.length - 1; index >= 0; --index)
++            {
++                if (originalSkills[index] == 0 && hasSkill(player, SKILLS[index]))
++                {
++                    revokeSkill(player, SKILLS[index]);
++                }
++            }
++        }
++        int[] attributes = getIntArrayObjVar(player, ORIGINAL_ATTRIBUTES);
++        setAttrib(player, HEALTH, attributes[0]);
++        setAttrib(player, ACTION, attributes[2]);
++        setAttrib(player, MIND, attributes[4]);
++        float[] regen = getFloatArrayObjVar(player, ORIGINAL_REGEN);
++        for (int index = 0; index < PRIMARY_ATTRIBUTES.length; ++index)
++        {
++            setRegenRate(player, PRIMARY_ATTRIBUTES[index], regen[index]);
++        }
++        int[] states = getIntArrayObjVar(player, ORIGINAL_STATES);
++        for (int index = 0; index < STATES.length; ++index)
++        {
++            setState(player, STATES[index], states[index] == 1);
++        }
++        boolean moved = setLocation(player,
++            getLocationObjVar(player, ORIGINAL_LOCATION));
++        boolean posture = setPostureClientImmediate(player,
++            getIntObjVar(player, ORIGINAL_POSTURE));
++        boolean locomotion = setLocomotion(player,
++            getIntObjVar(player, ORIGINAL_LOCOMOTION));
++        return moved && posture && locomotion;
++    }
++
++    private boolean grantSkills(obj_id player) throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (!hasSkill(player, skillName) &&
++                !skill.grantSkillToPlayer(player, skillName))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private boolean hasPreparedState(obj_id player, float preparedX)
++        throws InterruptedException
++    {
++        location current = getLocation(player);
++        boolean preparedLocation = current != null &&
++            "tatooine".equals(current.area) && !isIdValid(current.cell) &&
++            Math.abs(current.x - preparedX) < 0.1f &&
++            Math.abs(current.z + 4800.0f) < 0.1f;
++        return preparedLocation;
++    }
++
++    private String buildPreparationDiagnostic(obj_id leader, obj_id member,
++        boolean leaderPrepared, boolean memberPrepared)
++        throws InterruptedException
++    {
++        location leaderLocation = getLocation(leader);
++        location memberLocation = getLocation(member);
++        return "leaderPrepared=" + leaderPrepared +
++            " memberPrepared=" + memberPrepared +
++            " leaderX=" + leaderLocation.x +
++            " leaderZ=" + leaderLocation.z +
++            " memberX=" + memberLocation.x +
++            " memberZ=" + memberLocation.z +
++            " leaderPosture=" + getPosture(leader) +
++            " leaderLocomotion=" + getLocomotion(leader) +
++            " memberPosture=" + getPosture(member) +
++            " memberLocomotion=" + getLocomotion(member) +
++            " leaderDizzy=" + getState(leader, STATE_DIZZY) +
++            " leaderStunned=" + getState(leader, STATE_STUNNED) +
++            " memberDizzy=" + getState(member, STATE_DIZZY) +
++            " memberStunned=" + getState(member, STATE_STUNNED) +
++            " leaderHealth=" + getAttrib(leader, HEALTH) +
++            " leaderAction=" + getAttrib(leader, ACTION) +
++            " leaderMind=" + getAttrib(leader, MIND) +
++            " memberHealth=" + getAttrib(member, HEALTH) +
++            " memberAction=" + getAttrib(member, ACTION) +
++            " memberMind=" + getAttrib(member, MIND) +
++            " rootSkill=" + hasSkill(leader, SKILLS[0]) +
++            " noviceSkill=" + hasSkill(leader, SKILLS[1]) +
++            " defenseSkill=" + hasSkill(leader, SKILLS[2]) +
++            " formupCommand=" + hasCommand(leader, "formup");
++    }
++
++    private int calculateExpectedCost(int governingAttribute, int baseCost)
++    {
++        int adjusted = (int)(baseCost -
++            ((governingAttribute - 300) / 1200.0f) * baseCost);
++        return Math.max(0, adjusted);
++    }
++
++    private boolean statesCleared(obj_id player) throws InterruptedException
++    {
++        return getState(player, STATE_DIZZY) == 0 &&
++            getState(player, STATE_STUNNED) == 0;
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE) && hasObjVar(player, PEER) &&
++            hasObjVar(player, PREPARED) && hasObjVar(player, PROTOCOL) &&
++            hasObjVar(player, ORIGINAL_LOCATION) &&
++            hasObjVar(player, ORIGINAL_POSTURE) &&
++            hasObjVar(player, ORIGINAL_LOCOMOTION) &&
++            hasObjVar(player, ORIGINAL_ATTRIBUTES) &&
++            hasObjVar(player, ORIGINAL_MAXIMUM) &&
++            hasObjVar(player, ORIGINAL_REGEN) &&
++            hasObjVar(player, ORIGINAL_STATES) &&
++            hasObjVar(player, ORIGINAL_SKILLS);
++    }
++
++    private String validateOwnership(obj_id leader, obj_id member,
++        String lifecycle, boolean allowAbsent) throws InterruptedException
++    {
++        boolean leaderRoot = hasObjVar(leader, ROOT);
++        boolean memberRoot = hasObjVar(member, ROOT);
++        if (!leaderRoot && !memberRoot)
++        {
++            return allowAbsent ? "fixtureAbsent" : "error=fixtureAbsent";
++        }
++        if (!leaderRoot || !memberRoot || !hasCompleteSnapshot(leader) ||
++            !hasCompleteSnapshot(member))
++        {
++            return "error=fixturePartial";
++        }
++        if (!lifecycle.equals(getStringObjVar(leader, LIFECYCLE)) ||
++            !lifecycle.equals(getStringObjVar(member, LIFECYCLE)) ||
++            !member.equals(getObjIdObjVar(leader, PEER)) ||
++            !leader.equals(getObjIdObjVar(member, PEER)))
++        {
++            return "error=fixtureOwnershipMismatch";
++        }
++        return null;
++    }
++
++    private String validatePlayer(obj_id player, int stationId, String role)
++        throws InterruptedException
++    {
++        if (player == null || player == obj_id.NULL_ID || !player.isLoaded())
++        {
++            return "error=" + role + "NotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != stationId)
++        {
++            return "error=" + role + "NotAuthoritative";
++        }
++        return null;
++    }
++
++    private void setFlagPair(obj_id leader, obj_id member, String key,
++        boolean value) throws InterruptedException
++    {
++        setObjVar(leader, key, value ? 1 : 0);
++        setObjVar(member, key, value ? 1 : 0);
++    }
++
++    private boolean readFlag(obj_id player, String key)
++        throws InterruptedException
++    {
++        return readInt(player, key) == 1;
++    }
++
++    private int readInt(obj_id player, String key) throws InterruptedException
++    {
++        return hasObjVar(player, key) ? getIntObjVar(player, key) : 0;
++    }
++
++    private String readString(obj_id player, String key)
++        throws InterruptedException
++    {
++        return hasObjVar(player, key) ? getStringObjVar(player, key) : "";
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        return lifecycle != null && lifecycle.matches("[A-Za-z0-9_-]{8,64}");
++    }
++
++    private String buildStatus(obj_id leader, obj_id member)
++        throws InterruptedException
++    {
++        obj_id groupId = getGroupObject(leader);
++        return "leader=" + leader + " member=" + member +
++            " grouped=" + group.inSameGroup(leader, member) +
++            " leaderOwnsGroup=" + (isIdValid(groupId) &&
++                leader.equals(getGroupLeaderId(groupId))) +
++            " groupSize=" + (isIdValid(groupId) ? getGroupSize(groupId) : 0) +
++            " leaderPosture=" + getPosture(leader) +
++            " memberPosture=" + getPosture(member) +
++            " leaderHealth=" + getAttrib(leader, HEALTH) +
++            " leaderAction=" + getAttrib(leader, ACTION) +
++            " leaderMind=" + getAttrib(leader, MIND) +
++            " leaderStrength=" + getAttrib(leader, STRENGTH) +
++            " leaderQuickness=" + getAttrib(leader, QUICKNESS) +
++            " leaderFocus=" + getAttrib(leader, FOCUS) +
++            " memberHealth=" + getAttrib(member, HEALTH) +
++            " memberAction=" + getAttrib(member, ACTION) +
++            " memberMind=" + getAttrib(member, MIND) +
++            " leaderDizzy=" + getState(leader, STATE_DIZZY) +
++            " leaderStunned=" + getState(leader, STATE_STUNNED) +
++            " memberDizzy=" + getState(member, STATE_DIZZY) +
++            " memberStunned=" + getState(member, STATE_STUNNED) +
++            " formupSkill=" + hasSkill(leader, SKILLS[2]) +
++            " formupCommand=" + hasCommand(leader, "formup") +
++            " outcome=" + readString(leader, ROOT + ".outcome") +
++            " handlerCalls=" + readInt(leader, ROOT + ".handlerCalls") +
++            " adjustedBaseCost=" + readInt(leader, ROOT + ".adjustedBaseCost") +
++            " healthCost=" + readInt(leader, ROOT + ".healthCost") +
++            " actionCost=" + readInt(leader, ROOT + ".actionCost") +
++            " mindCost=" + readInt(leader, ROOT + ".mindCost") +
++            " membersApplied=" + readInt(leader, ROOT + ".membersApplied") +
++            " groupedObserved=" + readFlag(leader, GROUPED) +
++            " commandObserved=" + readFlag(leader, COMMAND_OBSERVED) +
++            " ungroupedObserved=" + readFlag(leader, UNGROUPED) +
++            " lifecyclePassed=" + readFlag(leader, PASSED);
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index e3acf2a..020e191 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1981,3 +1981,4 @@ tame	combat	normal	cmdTame				0.5		1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	0	0	0	0	1	0
+ emboldenpets	combat	normal	emboldenPets	failPetBuff			1.5	emboldenpets	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	0	0	0	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ berserk1	combat	normal	berserk1	failSpecialAttack			1.5	berserk1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ berserk2	combat	normal	berserk2	failSpecialAttack			1.5	berserk2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++formup	combat	normal	formup	failSpecialAttack			1.5	formup	1	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	1	0	1	1	1	1	1	1	1	0	1	0	0	0	0	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	none		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

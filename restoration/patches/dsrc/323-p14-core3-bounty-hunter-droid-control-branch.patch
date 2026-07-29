@@ -1,0 +1,545 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 3ab00e956..8482d3234 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15305,6 +15305,30 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int underHandShot(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("underHandShot", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int knockdownFire(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("knockdownFire", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int confusionShot(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("confusionShot", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int unarmedBodyHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("unarmedBodyHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index b1a06ac35..731623bb0 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -108,6 +108,21 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_unarmed_support_03", "combat_unarmed_support_04",
+         "combat_unarmed_master"
+     };
++    private static final String[] BOUNTY_HUNTER_DROID_CONTROL_SKILLS =
++    {
++        "combat_bountyhunter", "combat_bountyhunter_novice",
++        "combat_bountyhunter_droidcontrol_01",
++        "combat_bountyhunter_droidcontrol_02",
++        "combat_bountyhunter_droidcontrol_03",
++        "combat_bountyhunter_droidcontrol_04"
++    };
++    private static final String[] BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES =
++    {
++        "combat_marksman_master", "outdoors_scout",
++        "outdoors_scout_novice", "outdoors_scout_movement_01",
++        "outdoors_scout_movement_02", "outdoors_scout_movement_03",
++        "outdoors_scout_movement_04"
++    };
+     private static final String BRAWLER_POLEARM_ONE =
+         "combat_brawler_polearm_01";
+     private static final String BRAWLER_POLEARM_TWO =
+@@ -393,6 +408,10 @@ public class precu_headshot1_fixture extends script.base_script
+         "melee2hMindHit2";
+     private static final String TWO_HAND_HIT_THREE_COMMAND = "melee2hHit3";
+     private static final String UNARMED_HIT_THREE_COMMAND = "unarmedHit3";
++    private static final String[] BOUNTY_HUNTER_DROID_CONTROL_COMMANDS =
++    {
++        "underHandShot", "knockdownFire", "confusionShot"
++    };
+     private static final String UNARMED_KNOCKDOWN_ONE_COMMAND =
+         "unarmedKnockdown1";
+     private static final String UNARMED_KNOCKDOWN_TWO_COMMAND =
+@@ -600,6 +619,12 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".m324.originalTerasKasiMasterSkillBits";
+     private static final String ORIGINAL_UNARMED_HIT_THREE_COMMAND =
+         ROOT + ".m324.originalUnarmedHitThreeCommand";
++    private static final String ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_SKILL_BITS =
++        ROOT + ".m325.originalBountyHunterDroidControlSkillBits";
++    private static final String ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS =
++        ROOT + ".m325.originalBountyHunterDroidControlPrerequisiteBits";
++    private static final String ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_COMMAND_BITS =
++        ROOT + ".m325.originalBountyHunterDroidControlCommandBits";
+     private static final String ORIGINAL_BRAWLER_POLEARM_ONE =
+         ROOT + ".originalBrawlerPolearmOne";
+     private static final String ORIGINAL_BRAWLER_POLEARM_TWO =
+@@ -1079,7 +1104,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|prepareUnarmedMaster|statusUnarmedMaster|armUnarmedMaster|cleanupUnarmedMaster|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|prepareUnarmedMaster|statusUnarmedMaster|armUnarmedMaster|cleanupUnarmedMaster|prepareBountyHunterDroidControl|statusBountyHunterDroidControl|armBountyHunterDroidControl|cleanupBountyHunterDroidControl|recoverBountyHunterDroidControl|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -1163,6 +1188,26 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return cleanupUnarmedMaster(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("prepareBountyHunterDroidControl"))
++        {
++            return prepareBountyHunterDroidControl(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("statusBountyHunterDroidControl"))
++        {
++            return statusBountyHunterDroidControl(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("armBountyHunterDroidControl"))
++        {
++            return armBountyHunterDroidControl(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("cleanupBountyHunterDroidControl"))
++        {
++            return cleanupBountyHunterDroidControl(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("recoverBountyHunterDroidControl"))
++        {
++            return recoverBountyHunterDroidControl(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("status"))
+         {
+             validation = validateOwnership(attacker, defender, args[3], true);
+@@ -5593,6 +5638,377 @@ public class precu_headshot1_fixture extends script.base_script
+             " defenderPosture=" + getPosture(defender);
+     }
+ 
++    private String prepareBountyHunterDroidControl(obj_id attacker,
++        obj_id defender, String lifecycle) throws InterruptedException
++    {
++        String prepared = prepare(attacker, defender, lifecycle);
++        if (!prepared.startsWith("action=prepare"))
++        {
++            return prepared;
++        }
++        boolean skillSnapshot = hasObjVar(attacker,
++            ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_SKILL_BITS);
++        boolean prerequisiteSnapshot = hasObjVar(attacker,
++            ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS);
++        boolean commandSnapshot = hasObjVar(attacker,
++            ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_COMMAND_BITS);
++        if (skillSnapshot != prerequisiteSnapshot ||
++            skillSnapshot != commandSnapshot)
++        {
++            return "error=bountyHunterDroidControlSnapshotPartial " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        if (!skillSnapshot)
++        {
++            setObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_SKILL_BITS,
++                buildOwnershipBits(attacker,
++                    BOUNTY_HUNTER_DROID_CONTROL_SKILLS, true));
++            setObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS,
++                buildOwnershipBits(attacker,
++                    BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES, true));
++            setObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_COMMAND_BITS,
++                buildOwnershipBits(attacker,
++                    BOUNTY_HUNTER_DROID_CONTROL_COMMANDS, false));
++        }
++        boolean prerequisitesReady = grantOwnershipChain(attacker,
++            BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES, true);
++        boolean skillsReady = prerequisitesReady && grantOwnershipChain(attacker,
++            BOUNTY_HUNTER_DROID_CONTROL_SKILLS, true);
++        boolean commandsReady = grantOwnershipChain(attacker,
++            BOUNTY_HUNTER_DROID_CONTROL_COMMANDS, false);
++        if (!prerequisitesReady || !skillsReady || !commandsReady ||
++            !"1111111".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES, true)) ||
++            !"111111".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_SKILLS, true)) ||
++            !"111".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_COMMANDS, false)))
++        {
++            return "error=bountyHunterDroidControlGrantFailed prerequisitesReady=" +
++                prerequisitesReady + " skillsReady=" + skillsReady +
++                " commandsReady=" + commandsReady + " " +
++                buildBountyHunterDroidControlStatus(
++                    attacker, defender, lifecycle);
++        }
++        return "action=prepareBountyHunterDroidControl resumed=" +
++            skillSnapshot + " " + buildBountyHunterDroidControlStatus(
++                attacker, defender, lifecycle);
++    }
++
++    private String statusBountyHunterDroidControl(obj_id attacker,
++        obj_id defender, String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        return ownership == null ?
++            "action=statusBountyHunterDroidControl " +
++                buildBountyHunterDroidControlStatus(
++                    attacker, defender, lifecycle) :
++            ownership;
++    }
++
++    private String armBountyHunterDroidControl(obj_id attacker,
++        obj_id defender, String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        obj_id weapon = hasObjVar(attacker, FIXTURE_CARBINE) ?
++            getObjIdObjVar(attacker, FIXTURE_CARBINE) : obj_id.NULL_ID;
++        if (!isIdValid(weapon) ||
++            !CDEF_CARBINE_TEMPLATE.equals(getTemplateName(weapon)))
++        {
++            return "error=fixtureCarbineMissing " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        obj_id current = getObjectInSlot(attacker, "hold_r");
++        if (current != weapon && isIdValid(current))
++        {
++            obj_id inventory = getObjectInSlot(attacker, "inventory");
++            if (!isIdValid(inventory) || !putInOverloaded(current, inventory))
++            {
++                return "error=unexpectedAttackerWeapon " +
++                    buildStatus(attacker, defender, lifecycle);
++            }
++        }
++        boolean combatWeaponAttached =
++            hasScript(weapon, "systems.combat.combat_weapon");
++        if (combatWeaponAttached)
++        {
++            detachScript(weapon, "systems.combat.combat_weapon");
++        }
++        boolean equipped = getObjectInSlot(attacker, "hold_r") == weapon ||
++            equipOverride(weapon, attacker);
++        if (combatWeaponAttached)
++        {
++            attachScript(weapon, "systems.combat.combat_weapon");
++        }
++        boolean proofStateBuffsCleared = clearProofStateBuffs(defender);
++        utils.removeScriptVar(defender, combat_base.PRECU_KNOCKDOWN_RECOVERY);
++        utils.removeScriptVar(
++            defender, combat_base.PRECU_KNOCKDOWN_ORIGINAL_POSTURE);
++        boolean boundary = equipped && proofStateBuffsCleared &&
++            "111111".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_SKILLS, true)) &&
++            "111".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_COMMANDS, false)) &&
++            combat.canPerformAction("underHandShot", attacker) == 0 &&
++            combat.canPerformAction("knockdownFire", attacker) == 0 &&
++            combat.canPerformAction("confusionShot", attacker) == 0 &&
++            getState(defender, STATE_DIZZY) == 0 &&
++            getState(defender, STATE_STUNNED) == 0 &&
++            getPosture(defender) == POSTURE_UPRIGHT;
++        return boundary ?
++            "action=armBountyHunterDroidControl equipped=true " +
++                buildBountyHunterDroidControlStatus(
++                    attacker, defender, lifecycle) :
++            "error=bountyHunterDroidControlOwnershipBoundaryFailed " +
++                buildBountyHunterDroidControlStatus(
++                    attacker, defender, lifecycle);
++    }
++
++    private String cleanupBountyHunterDroidControl(obj_id attacker,
++        obj_id defender, String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, true);
++        if ("fixtureAbsent".equals(ownership))
++        {
++            return "action=cleanupBountyHunterDroidControl alreadyClean=true restored=true";
++        }
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_SKILL_BITS) ||
++            !hasObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS) ||
++            !hasObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_COMMAND_BITS))
++        {
++            return "error=bountyHunterDroidControlSnapshotMissing " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        String skillBits = getStringObjVar(attacker,
++            ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_SKILL_BITS);
++        String prerequisiteBits = getStringObjVar(attacker,
++            ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS);
++        String commandBits = getStringObjVar(attacker,
++            ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_COMMAND_BITS);
++        boolean restored = restoreOwnershipBits(attacker,
++            BOUNTY_HUNTER_DROID_CONTROL_COMMANDS, commandBits, false) &&
++            restoreOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_SKILLS, skillBits, true) &&
++            restoreOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES,
++                prerequisiteBits, true);
++        if (!restored)
++        {
++            return "error=bountyHunterDroidControlRestorationFailed " +
++                buildBountyHunterDroidControlStatus(
++                    attacker, defender, lifecycle);
++        }
++        String baseCleanup = cleanup(attacker, defender, lifecycle);
++        return baseCleanup.startsWith("action=cleanup") ?
++            "action=cleanupBountyHunterDroidControl alreadyClean=false restored=true " +
++                baseCleanup :
++            baseCleanup;
++    }
++
++    private String recoverBountyHunterDroidControl(obj_id attacker,
++        obj_id defender, String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, true);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (hasObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS))
++        {
++            String recorded = getStringObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS);
++            String current = buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES, true);
++            if (!"0000000".equals(recorded) || !"0011111".equals(current))
++            {
++                return "error=bountyHunterDroidControlRecoveryNotRequired " +
++                    buildBountyHunterDroidControlStatus(
++                        attacker, defender, lifecycle);
++            }
++            setObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS,
++                "0011111");
++            String resumedCleanup = cleanupBountyHunterDroidControl(
++                attacker, defender, lifecycle);
++            return resumedCleanup.startsWith(
++                    "action=cleanupBountyHunterDroidControl") ?
++                "action=recoverBountyHunterDroidControl restored=true " +
++                    resumedCleanup : resumedCleanup;
++        }
++        if (!hasObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_SKILL_BITS) ||
++            !hasObjVar(attacker,
++                ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_COMMAND_BITS) ||
++            !"000000".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_SKILLS, true)) ||
++            !"000".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_COMMANDS, false)) ||
++            !("1011111".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES, true)) ||
++              "0011111".equals(buildOwnershipBits(attacker,
++                BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES, true))) ||
++            getIntObjVar(attacker, ORIGINAL_RIFLE_FOUR) != 0 ||
++            getIntObjVar(attacker, ORIGINAL_PISTOL_FOUR) != 0 ||
++            getIntObjVar(attacker, ORIGINAL_CARBINE_FOUR) != 0)
++        {
++            return "error=bountyHunterDroidControlRecoveryBoundaryFailed " +
++                buildBountyHunterDroidControlStatus(
++                    attacker, defender, lifecycle);
++        }
++        setObjVar(attacker,
++            ORIGINAL_BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITE_BITS,
++            "0011111");
++        String cleanup = cleanupBountyHunterDroidControl(
++            attacker, defender, lifecycle);
++        return cleanup.startsWith("action=cleanupBountyHunterDroidControl") ?
++            "action=recoverBountyHunterDroidControl restored=true " + cleanup :
++            cleanup;
++    }
++
++    private String buildOwnershipBits(obj_id player, String[] names,
++        boolean skills) throws InterruptedException
++    {
++        String bits = "";
++        for (String name : names)
++        {
++            bits += skills ? (hasSkill(player, name) ? "1" : "0") :
++                (hasCommand(player, name) ? "1" : "0");
++        }
++        return bits;
++    }
++
++    private boolean grantOwnershipChain(obj_id player, String[] names,
++        boolean skills) throws InterruptedException
++    {
++        for (String name : names)
++        {
++            boolean owned = skills ? hasSkill(player, name) :
++                hasCommand(player, name);
++            if (!owned && !(skills ? grantSkill(player, name) :
++                grantCommand(player, name)))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private boolean restoreOwnershipBits(obj_id player, String[] names,
++        String bits, boolean skills) throws InterruptedException
++    {
++        if (bits == null || bits.length() != names.length)
++        {
++            return false;
++        }
++        for (int index = names.length - 1; index >= 0; --index)
++        {
++            boolean expected = bits.charAt(index) == '1';
++            boolean owned = skills ? hasSkill(player, names[index]) :
++                hasCommand(player, names[index]);
++            if (!expected && owned)
++            {
++                if (skills)
++                {
++                    revokeSkill(player, names[index]);
++                }
++                else
++                {
++                    revokeCommand(player, names[index]);
++                }
++            }
++        }
++        for (int index = 0; index < names.length; ++index)
++        {
++            boolean expected = bits.charAt(index) == '1';
++            boolean owned = skills ? hasSkill(player, names[index]) :
++                hasCommand(player, names[index]);
++            if (expected && !owned && !(skills ? grantSkill(player,
++                names[index]) : grantCommand(player, names[index])))
++            {
++                return false;
++            }
++            if ((skills ? hasSkill(player, names[index]) :
++                hasCommand(player, names[index])) != expected)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private int[] getFixtureActionCosts(obj_id attacker, String action)
++        throws InterruptedException
++    {
++        combat_data data = combat_engine.getCombatData(action);
++        weapon_data weaponData = getWeaponData(getCurrentWeapon(attacker));
++        return data != null && weaponData != null ?
++            combat.getActionCost(attacker, weaponData, data) :
++            new int[] {-1, -1, -1};
++    }
++
++    private String buildBountyHunterDroidControlStatus(obj_id attacker,
++        obj_id defender, String lifecycle) throws InterruptedException
++    {
++        int[] underHandCosts = getFixtureActionCosts(attacker,
++            "underHandShot");
++        int[] knockdownCosts = getFixtureActionCosts(attacker,
++            "knockdownFire");
++        int[] confusionCosts = getFixtureActionCosts(attacker,
++            "confusionShot");
++        obj_id held = getObjectInSlot(attacker, "hold_r");
++        return buildStatus(attacker, defender, lifecycle) +
++            " bountyHunterDroidControlSkillBits=" +
++                buildOwnershipBits(attacker,
++                    BOUNTY_HUNTER_DROID_CONTROL_SKILLS, true) +
++            " bountyHunterDroidControlPrerequisiteBits=" +
++                buildOwnershipBits(attacker,
++                    BOUNTY_HUNTER_DROID_CONTROL_PREREQUISITES, true) +
++            " bountyHunterDroidControlCommandBits=" +
++                buildOwnershipBits(attacker,
++                    BOUNTY_HUNTER_DROID_CONTROL_COMMANDS, false) +
++            " underHandShotCanPerform=" +
++                combat.canPerformAction("underHandShot", attacker) +
++            " knockdownFireCanPerform=" +
++                combat.canPerformAction("knockdownFire", attacker) +
++            " confusionShotCanPerform=" +
++                combat.canPerformAction("confusionShot", attacker) +
++            " underHandShotCosts=" + underHandCosts[0] + "," +
++                underHandCosts[1] + "," + underHandCosts[2] +
++            " knockdownFireCosts=" + knockdownCosts[0] + "," +
++                knockdownCosts[1] + "," + knockdownCosts[2] +
++            " confusionShotCosts=" + confusionCosts[0] + "," +
++                confusionCosts[1] + "," + confusionCosts[2] +
++            " carbineAccuracy=" +
++                getSkillStatisticModifier(attacker, "carbine_accuracy") +
++            " carbineSpeed=" +
++                getSkillStatisticModifier(attacker, "carbine_speed") +
++            " marksmanMaster=" +
++                hasSkill(attacker, "combat_marksman_master") +
++            " scoutMovementFour=" +
++                hasSkill(attacker, "outdoors_scout_movement_04") +
++            " heldWeapon=" + (isIdValid(held) ? held : "none") +
++            " defenderDizzyState=" + getState(defender, STATE_DIZZY) +
++            " defenderStunState=" + getState(defender, STATE_STUNNED) +
++            " defenderPosture=" + getPosture(defender) +
++            " knockdownRecovery=" + utils.hasScriptVar(
++                defender, combat_base.PRECU_KNOCKDOWN_RECOVERY);
++    }
++
+     private String armPolearmNovice(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index bb7295b89..f2edf8f36 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1429,4 +1429,7 @@ melee2hArea2	melee2hArea2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				o
+ melee2hArea3	melee2hArea3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_2hmelee_5			lower_posture_2hmelee_5											OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee2hMindHit1	melee2hMindHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_2b			combo_2b											OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	1	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	bleeding	30	30		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee2hMindHit2	melee2hMindHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3c			combo_3c											OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	bleeding	60	60		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+-melee2hHit3	melee2hHit3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_4a				combo_4a										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	4.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++melee2hHit3	melee2hHit3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_4a				combo_4a										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	4.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++underHandShot	underHandShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single							fire_7_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
++knockdownFire	knockdownFire			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_3_single							fire_3_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
++confusionShot	confusionShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single							fire_5_special_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 47e02b0d4..14faa00ea 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -146,3 +146,6 @@ melee2hMindHit2	1	1.5	1	MIND	2	10	INTENSITY	MIND
+ melee2hHit3	1.25	2	1.25	RANDOM	2.5	10	INTENSITY		0	DIZZY	50	0	30	dizzy_defense	jedi_state_defense	resistance_states
+ unarmedKnockdown1	1	1	1	RANDOM	1.5	15	NONE		0																								100
+ unarmedKnockdown2	1.5	1.5	1.5	RANDOM	2	15	NONE		0	DIZZY	75	0	40	dizzy_defense	jedi_state_defense	resistance_states																	100
++underHandShot	1	1	1	RANDOM	1.5	0	RANGED		0																								85
++knockdownFire	1	1	1	RANDOM	2	0	RANGED		0	DIZZY	85	0	10	dizzy_defense	jedi_state_defense	resistance_states																	85
++confusionShot	1	1	1	RANDOM	2.3	0	RANGED		0	DIZZY	100	0	10	dizzy_defense	jedi_state_defense	resistance_states	STUN	100	0	10	stun_defense	jedi_state_defense	resistance_states
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index c5efcba8c..251164ee1 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -145,3 +145,6 @@ melee2hMindHit2	mindslam
+ melee2hHit3	viciousstrike
+ unarmedKnockdown1	sleepingkrayt
+ unarmedKnockdown2	chargingwampa
++underHandShot	underhandshot
++knockdownFire	knockdownfire
++confusionShot	confusionshot
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 010cb5f57..534bcf9a4 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2083,3 +2083,6 @@ melee2hMindHit2	combat	normal	melee2hMindHit2	failSpecialAttack			1.5	melee2hMin
+ melee2hHit3	combat	normal	melee2hHit3	failSpecialAttack			1.5	melee2hHit3	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedKnockdown1	combat	normal	unarmedKnockdown1	failSpecialAttack			1.5	unarmedKnockdown1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedKnockdown2	combat	normal	unarmedKnockdown2	failSpecialAttack			1.5	unarmedKnockdown2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++underHandShot		normal	underHandShot	failSpecialAttack			1.5	underHandShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++knockdownFire		normal	knockdownFire	failSpecialAttack			1.5	knockdownFire	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++confusionShot		normal	confusionShot	failSpecialAttack			1.5	confusionShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

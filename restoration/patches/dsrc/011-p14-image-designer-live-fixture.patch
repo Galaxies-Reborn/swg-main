@@ -1,0 +1,279 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_image_designer_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_image_designer_fixture.java
+new file mode 100644
+index 000000000..f68da39a0
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_image_designer_fixture.java
+@@ -0,0 +1,273 @@
++package script.test;
++
++import script.location;
++import script.obj_id;
++
++/**
++ * ServerConsole-only, identity-bound fixture for the Publish 14 Image
++ * Designer live gate. It moves the two disposable clients into an authentic
++ * Tatooine salon and owns exact, persistent location snapshots for cleanup.
++ * It does not start, accept, or commit the gameplay transaction.
++ */
++public class precu_image_designer_fixture extends script.base_script
++{
++    private static final long DESIGNER_OID = 44003778L;
++    private static final int DESIGNER_STATION_ID = 91001;
++    private static final long RECIPIENT_OID = 39008597L;
++    private static final int RECIPIENT_STATION_ID = 1001;
++    private static final long SALON_OID = 7106005L;
++    private static final String SALON_CELL = "r1";
++    private static final String IMAGE_DESIGNER_SKILL = "social_imagedesigner_novice";
++    private static final String IMAGE_DESIGNER_COMMAND = "imagedesign";
++    private static final String PHASE_A_LIFECYCLE_ID = "precu.phaseA.lifecycle.id";
++    private static final String PHASE_A_LIFECYCLE_STATE = "precu.phaseA.lifecycle.state";
++    private static final String ROOT = "precu.p14.imageDesignerFixture";
++    private static final String LIFECYCLE_ID = ROOT + ".lifecycleId";
++    private static final String PEER_OID = ROOT + ".peerOid";
++    private static final String ORIGINAL_LOCATION = ROOT + ".originalLocation";
++    private static final String USAGE =
++        "usage: prepare|status|cleanup <designerOid> <recipientOid> <lifecycleId>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 4 || !isValidLifecycleId(args[3]))
++        {
++            return USAGE;
++        }
++
++        long designerValue;
++        long recipientValue;
++        try
++        {
++            designerValue = Long.parseLong(args[1]);
++            recipientValue = Long.parseLong(args[2]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (designerValue != DESIGNER_OID || recipientValue != RECIPIENT_OID ||
++            designerValue == recipientValue)
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id designer = obj_id.getObjId(designerValue);
++        obj_id recipient = obj_id.getObjId(recipientValue);
++        String validation = validatePlayer(designer, DESIGNER_STATION_ID, "designer");
++        if (validation != null)
++        {
++            return validation;
++        }
++        validation = validatePlayer(recipient, RECIPIENT_STATION_ID, "recipient");
++        if (validation != null)
++        {
++            return validation;
++        }
++        validation = validateLifecycle(designer, args[3]);
++        if (validation != null)
++        {
++            return validation;
++        }
++
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(designer, recipient, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            return buildStatus(designer, recipient, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(designer, recipient, args[3]);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id designer, obj_id recipient, String lifecycleId)
++        throws InterruptedException
++    {
++        String fixtureState = validateFixtureOwnership(designer, recipient, lifecycleId, false);
++        if (fixtureState == null)
++        {
++            return "action=prepare resumed=true " + buildStatus(designer, recipient, lifecycleId);
++        }
++        if (!"fixtureAbsent".equals(fixtureState))
++        {
++            return fixtureState;
++        }
++
++        obj_id salon = obj_id.getObjId(SALON_OID);
++        if (salon == null || salon == obj_id.NULL_ID || !salon.isLoaded())
++        {
++            return "error=salonNotLoaded salonOid=" + SALON_OID;
++        }
++        if (!salon.isAuthoritative() || !hasObjVar(salon, "salon"))
++        {
++            return "error=salonNotAuthoritative salonOid=" + SALON_OID;
++        }
++
++        location designerOriginal = getLocation(designer);
++        location recipientOriginal = getLocation(recipient);
++        location salonWorld = getLocation(salon);
++        location salonCenter = getGoodLocation(salon, SALON_CELL);
++        if (designerOriginal == null || recipientOriginal == null || salonWorld == null ||
++            salonCenter == null ||
++            salonCenter.cell == null || salonCenter.cell == obj_id.NULL_ID)
++        {
++            return "error=locationUnavailable salonOid=" + SALON_OID;
++        }
++
++        setObjVar(designer, ORIGINAL_LOCATION, designerOriginal);
++        setObjVar(designer, PEER_OID, recipient);
++        setObjVar(designer, LIFECYCLE_ID, lifecycleId);
++        setObjVar(recipient, ORIGINAL_LOCATION, recipientOriginal);
++        setObjVar(recipient, PEER_OID, designer);
++        setObjVar(recipient, LIFECYCLE_ID, lifecycleId);
++
++        String ownership = validateFixtureOwnership(designer, recipient, lifecycleId, true);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++
++        location designerDestination = new location(salonCenter);
++        location recipientDestination = new location(salonCenter);
++        designerDestination.x -= 0.75f;
++        recipientDestination.x += 0.75f;
++        boolean designerMoved = setLocation(designer, designerDestination);
++        boolean recipientMoved = setLocation(recipient, recipientDestination);
++        if (!designerMoved || !recipientMoved)
++        {
++            setLocation(designer, designerOriginal);
++            setLocation(recipient, recipientOriginal);
++            removeObjVar(designer, ROOT);
++            removeObjVar(recipient, ROOT);
++            return "error=salonMoveFailed designerMoved=" + designerMoved +
++                " recipientMoved=" + recipientMoved;
++        }
++
++        return "action=prepare resumed=false " +
++            buildStatus(designer, recipient, lifecycleId);
++    }
++
++    private String cleanup(obj_id designer, obj_id recipient, String lifecycleId)
++        throws InterruptedException
++    {
++        String ownership = validateFixtureOwnership(designer, recipient, lifecycleId, true);
++        if (ownership != null)
++        {
++            if ("error=fixtureAbsent".equals(ownership))
++            {
++                return "action=cleanup alreadyClean=true " +
++                    buildStatus(designer, recipient, lifecycleId);
++            }
++            return ownership;
++        }
++
++        location designerOriginal = getLocationObjVar(designer, ORIGINAL_LOCATION);
++        location recipientOriginal = getLocationObjVar(recipient, ORIGINAL_LOCATION);
++        if (designerOriginal == null || recipientOriginal == null)
++        {
++            return "error=fixtureSnapshotMissing";
++        }
++
++        boolean designerRestored = setLocation(designer, designerOriginal);
++        boolean recipientRestored = setLocation(recipient, recipientOriginal);
++        if (!designerRestored || !recipientRestored)
++        {
++            return "error=fixtureRestoreFailed designerRestored=" + designerRestored +
++                " recipientRestored=" + recipientRestored;
++        }
++        removeObjVar(designer, ROOT);
++        removeObjVar(recipient, ROOT);
++
++        return "action=cleanup alreadyClean=false " +
++            buildStatus(designer, recipient, lifecycleId);
++    }
++
++    private String validatePlayer(obj_id player, int stationId, String role)
++        throws InterruptedException
++    {
++        if (player == null || player == obj_id.NULL_ID || !player.isLoaded())
++        {
++            return "error=" + role + "NotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player))
++        {
++            return "error=" + role + "NotAuthoritative oid=" + player;
++        }
++        if (getPlayerStationId(player) != stationId)
++        {
++            return "error=" + role + "StationNotAllowed oid=" + player;
++        }
++        return null;
++    }
++
++    private String validateLifecycle(obj_id designer, String lifecycleId)
++        throws InterruptedException
++    {
++        if (!hasObjVar(designer, PHASE_A_LIFECYCLE_ID) ||
++            !lifecycleId.equals(getStringObjVar(designer, PHASE_A_LIFECYCLE_ID)) ||
++            !hasObjVar(designer, PHASE_A_LIFECYCLE_STATE) ||
++            !"established".equals(getStringObjVar(designer, PHASE_A_LIFECYCLE_STATE)))
++        {
++            return "error=lifecycleNotEstablished lifecycleId=" + lifecycleId;
++        }
++        return null;
++    }
++
++    private String validateFixtureOwnership(obj_id designer, obj_id recipient,
++        String lifecycleId, boolean required) throws InterruptedException
++    {
++        boolean designerPresent = hasObjVar(designer, ROOT);
++        boolean recipientPresent = hasObjVar(recipient, ROOT);
++        if (!designerPresent && !recipientPresent)
++        {
++            return required ? "error=fixtureAbsent" : "fixtureAbsent";
++        }
++        if (!designerPresent || !recipientPresent)
++        {
++            return "error=fixturePartial";
++        }
++        if (!hasObjVar(designer, ORIGINAL_LOCATION) ||
++            !hasObjVar(recipient, ORIGINAL_LOCATION) ||
++            !lifecycleId.equals(getStringObjVar(designer, LIFECYCLE_ID)) ||
++            !lifecycleId.equals(getStringObjVar(recipient, LIFECYCLE_ID)) ||
++            getObjIdObjVar(designer, PEER_OID) != recipient ||
++            getObjIdObjVar(recipient, PEER_OID) != designer)
++        {
++            return "error=fixtureOwnershipMismatch";
++        }
++        return null;
++    }
++
++    private String buildStatus(obj_id designer, obj_id recipient, String lifecycleId)
++        throws InterruptedException
++    {
++        obj_id salon = obj_id.getObjId(SALON_OID);
++        obj_id designerTop = getTopMostContainer(designer);
++        obj_id recipientTop = getTopMostContainer(recipient);
++        obj_id designerGroup = getGroupObject(designer);
++        obj_id recipientGroup = getGroupObject(recipient);
++        boolean prepared = hasObjVar(designer, ROOT) && hasObjVar(recipient, ROOT);
++        boolean inSalon = designerTop == salon && recipientTop == salon;
++        boolean grouped = designerGroup != null && designerGroup != obj_id.NULL_ID &&
++            designerGroup == recipientGroup;
++        return "lifecycleId=" + lifecycleId +
++            " prepared=" + prepared +
++            " inSalon=" + inSalon +
++            " grouped=" + grouped +
++            " hasSkill=" + hasSkill(designer, IMAGE_DESIGNER_SKILL) +
++            " hasCommand=" + hasCommand(designer, IMAGE_DESIGNER_COMMAND) +
++            " designerTop=" + designerTop +
++            " recipientTop=" + recipientTop;
++    }
++
++    private boolean isValidLifecycleId(String lifecycleId)
++    {
++        return lifecycleId != null && lifecycleId.matches("[a-f0-9]{32}");
++    }
++}

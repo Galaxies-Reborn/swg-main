@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "scope": "Atomic server/client restoration of the Publish 14 nine-attribute persistence and replication layout.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "commit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "attributeDefinition": "MMOCoreORB/src/server/zone/objects/creature/variables/CreatureAttribute.cpp",
+    "regeneration": "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
+    "replication": "MMOCoreORB/src/server/zone/packets/scene/CreatureObjectMessage6.h"
+  },
+  "wireOrder": [
+    "Health",
+    "Strength",
+    "Constitution",
+    "Action",
+    "Quickness",
+    "Stamina",
+    "Mind",
+    "Focus",
+    "Willpower"
+  ],
+  "primaryPools": [
+    "Health",
+    "Action",
+    "Mind"
+  ],
+  "regenerationGovernors": [
+    "Constitution",
+    "Stamina",
+    "Willpower"
+  ],
+  "costGovernors": [
+    "Strength",
+    "Quickness",
+    "Focus"
+  ],
+  "legacySixAttributeMigration": {
+    "oldOrder": [
+      "Health",
+      "HealthRegenSlot",
+      "Action",
+      "ActionRegenSlot",
+      "Mind",
+      "MindRegenSlot"
+    ],
+    "poolSource": "old current vector",
+    "constitutionStaminaWillpowerSource": "old maximum vector",
+    "strengthQuicknessFocusDefault": 300
+  },
+  "regenerationFormula": "max(1.0, max(0, governingAttribute) * 13 / 2100)",
+  "sourceFiles": {
+    "tdf": "dsrc/sku.0/sys.server/compiled/game/object/object_template.tdf",
+    "baseClass": "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+   "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "skillLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "basePlayerScript": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "basePlayerTemplate": "dsrc/sku.0/sys.server/compiled/game/object/creature/player/base/base_player.tpf",
+    "baseCreatureTemplate": "dsrc/sku.0/sys.server/compiled/game/object/creature/base/base_creature.tpf",
+    "baseNpcTemplate": "dsrc/sku.0/sys.server/compiled/game/object/creature/npc/base/base_npc.tpf",
+    "attributes": "src/game/shared/library/swgSharedUtility/src/shared/Attributes.def",
+    "serverObjectTemplate": "src/engine/server/library/serverGame/src/shared/objectTemplate/ServerObjectTemplate.h",
+    "serverCreatureTemplateHeader": "src/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.h",
+    "serverCreatureTemplateCpp": "src/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.cpp",
+    "compilerObjectTemplate": "src/engine/shared/library/sharedTemplate/src/shared/template/ServerObjectTemplate.h",
+    "compilerCreatureTemplateHeader": "src/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.h",
+    "compilerCreatureTemplateCpp": "src/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.cpp",
+    "creatureHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
+    "creatureCpp": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp",
+    "tangibleCpp": "src/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp",
+    "playerCreation": "src/engine/shared/library/sharedGame/src/shared/core/PlayerCreationManager.cpp",
+    "statMessageHeader": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.h",
+    "statMessageCpp": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.cpp"
+  },
+  "knownLimitations": {
+    "statMigrationImageDesignerCommit": "The client mediator and server-owned allocation session are restored by the p14-stat-migration contract; the normal-world Image Designer commit boundary remains a separate slice.",
+    "persistedItemBonuses": "The dedicated fresh shard is the supported deployment. Numeric six-layout attribute bonuses from an imported NGE database are not automatically remapped.",
+    "stanceRegeneration": "Core3 stance-specific regeneration modifiers remain later combat-balance work."
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-meditate-lifecycle",
+  "status": "ready",
+  "scope": "Restore Teras Kasi novice meditate as a production lifecycle with pinned Core3 admission, cadence, DOT priority and reduction, wound-healing semantics, authenticated execution, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Sources": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/MeditateCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/MeditateTask.h",
+      "MMOCoreORB/bin/scripts/commands/meditate.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skill": {
+      "name": "combat_unarmed_novice",
+      "requires": "combat_brawler_unarmed_04",
+      "command": "meditate",
+      "meditateModifier": 15,
+      "privateMeditateDotModifier": 5
+    },
+    "command": {
+      "scriptHook": "cmdMeditate",
+      "failScriptHook": "cmdMeditateFail",
+      "defaultPriority": "normal",
+      "characterAbility": "meditate",
+      "requiredLocomotion": "sitting",
+      "targetType": "none",
+      "addToCombatQueue": false,
+      "combatRejectedExplicitlyByHandler": true
+    },
+    "execution": {
+      "initialDelaySeconds": 3.5,
+      "tickSeconds": 5.0,
+      "dotPriority": ["bleeding", "poison", "disease"],
+      "dotThresholds": {"bleeding": 15, "poison": 30, "disease": 45},
+      "dotReductionFormula": "15 + floor(meditateModifier / 3)",
+      "woundHealingThreshold": 75,
+      "woundHealingPools": ["health", "strength", "constitution", "action", "quickness", "stamina", "mind", "focus", "willpower"],
+      "woundHealingFormula": "20 + random(0,10)",
+      "masterWoundHealingThreshold": 100,
+      "masterWoundHealingFormula": "30 + random(0,20)",
+      "noWoundsStopsMeditationTickChain": true
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T02:20:00-04:00",
+    "scratchCommit": "910949fc7067f1189bc59afc884cf2ce251e9050",
+    "overlay": "restoration/patches/dsrc/320-p14-core3-meditate-lifecycle.patch",
+    "overlaySha256": "45f33977ed076a498b8707ae15a90a9cc5dc9e03f20208d6e642c1fbca06ab80",
+    "changedFileCount": 3,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "compiledClassSha256": {
+      "script/library/meditation.class": "327f047bf06d7fcefdcfa8b77d1feff12955f503c1aca773c6cc2ddf81c8aeaf",
+      "script/player/base/base_player.class": "63da36409d4f3aed48e9fa18d68f719639cf92e0f2d9d8d73a3079c0d7f3eff0",
+      "script/test/precu_meditate_fixture.class": "b7135c11191a74b53c40c0ec809933be4cb935e085e25a891a292f02c75cbcc7"
+    },
+    "clientBridgeTests": {"passed": 69, "failed": 0, "subtests": 1544},
+    "clientTestSuite": {"passed": 198, "skipped": 6, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientBuildWarnings": 82,
+    "clientProtocolVersion": 240,
+    "clientBytes": 33810432,
+    "clientSha256": "98bba3e9859c9c9a5ec06224b7a9c3cbb7c45b8baf3179526d9b25133db39050",
+    "materializedOverlayCount": 326,
+    "materializedRestorationFileCount": 959,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "datatableMutation": "none-inherited-publish12-rows-verified",
+    "assetArchiveMutation": "none",
+    "sourceSha256": {
+      "meditation.java": "946225306339d7c30ab18b23d2d13ce3a8b058a014c40cb22fbe9ee1dc9dcf6f",
+      "base_player.java": "91e47db3cf31f45870d4aa0c7e13127b4328a66d91386d94a6e0a13bbc0647d8",
+      "precu_meditate_fixture.java": "809bc75db90d2dea46cfc9b934c32cc8b163540e4f93ca80f998cfd9e551323e",
+      "command_table.tab": "71931ce1ab7488b0ffcb43eb2979c07f17d2e0544ba874b247b67f83209a5ce9",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T02:20:00-04:00",
+    "clientProtocolVersion": 240,
+    "player": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "lifecycleId": "32200000000000000000000000000001",
+    "admission": {
+      "freshAuthentication": true,
+      "command": true,
+      "fixtureSkillBits": "11111111",
+      "meditateModifier": 15,
+      "posture": 8,
+      "locomotionBeforeCommand": 0,
+      "bleedingStrength": 100,
+      "availablePoints": 65,
+      "originalPoints": 100,
+      "snapshotComplete": true,
+      "queuePackedImmediate": "0x0000000043510000"
+    },
+    "execution": {
+      "serverAccepted": true,
+      "meditating": true,
+      "posture": 8,
+      "locomotion": 14,
+      "initialBleedingStrength": 100,
+      "firstObservedBleedingStrength": 80,
+      "exactReductionPerTick": 20,
+      "subsequentObservedBleedingStrength": 40
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshAuthentication": true,
+      "lifecycleSurvived": true,
+      "allFixtureSkillsSurvived": true,
+      "commandSurvived": true,
+      "meditateModifierSurvived": true,
+      "availablePointsSurvived": true,
+      "identityBoundSnapshotsSurvived": true,
+      "transientMeditationAbsent": true,
+      "transientBleedingAbsent": true,
+      "postRestartExecution": {
+        "rearmed": true,
+        "serverAccepted": true,
+        "meditating": true,
+        "bleedingStrengthBefore": 100,
+        "firstObservedBleedingStrength": 80
+      }
+    },
+    "cleanup": {
+      "clientInputResetBeforeRestore": true,
+      "clientStandBeforeRestore": true,
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "fixtureSkillsAbsent": true,
+      "commandAbsent": true,
+      "meditateModifier": 0,
+      "posture": 0,
+      "locomotion": 0,
+      "bleedingAbsent": true,
+      "availablePoints": 100,
+      "identityBoundSnapshotsRestored": true,
+      "fixtureAbsentAfterCleanup": true
+    },
+    "isolatedClientStopped": true,
+    "isolatedClientFilesRestoredToM321": true,
+    "loginClientIdRestored": 1001,
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "connectionServerCount": 1,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": false,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

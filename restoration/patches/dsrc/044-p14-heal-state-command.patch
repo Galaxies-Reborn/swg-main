@@ -1,0 +1,1173 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/cmd/heal_state.java b/sku.0/sys.server/compiled/game/script/player/cmd/heal_state.java
+new file mode 100644
+index 000000000..48db69412
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/player/cmd/heal_state.java
+@@ -0,0 +1,484 @@
++package script.player.cmd;
++
++import script.obj_id;
++import script.string_id;
++import script.library.ai_lib;
++import script.library.buff;
++import script.library.consumable;
++import script.library.factions;
++import script.library.healing;
++import script.library.pet_lib;
++import script.library.utils;
++
++/**
++ * Publish 14.1 Heal State compatibility adapter.
++ *
++ * Retail owned this command in the native server. SWGSource dispatches it
++ * through this narrow script while preserving the pinned Core3 behavior.
++ */
++public class heal_state extends script.base_script
++{
++    public static final String COOLDOWN_VAR =
++        "healing.can_heal_state";
++    private static final float RANGE = 6.0f;
++    private static final int BASE_MIND_COST = 20;
++    private static final int MIN_ROUND_TIME = 4;
++    private static final int[] HEALABLE_STATES =
++    {
++        STATE_STUNNED,
++        STATE_DIZZY,
++        STATE_BLINDED,
++        STATE_INTIMIDATED
++    };
++    private static final string_id SID_INVALID_TARGET =
++        new string_id(
++            "healing_response",
++            "healing_response_73");
++    private static final string_id SID_NO_MEDICINE =
++        new string_id(
++            "healing_response",
++            "healing_response_60");
++    private static final string_id SID_NO_STATE_SELF =
++        new string_id(
++            "healing_response",
++            "healing_response_72");
++    private static final string_id SID_MUST_WAIT =
++        new string_id(
++            "healing_response",
++            "healing_must_wait");
++    private static final string_id SID_NOT_ENOUGH_MIND =
++        new string_id(
++            "healing_response",
++            "not_enough_mind");
++    private static final string_id SID_NO_LINE_OF_SIGHT =
++        new string_id("healing", "no_line_of_sight");
++    private static final String FIXTURE_ROOT =
++        "precu.healStateCommandFixture";
++
++    public int healState(
++        obj_id self,
++        obj_id target,
++        String params,
++        float defaultTime)
++        throws InterruptedException
++    {
++        boolean fixture =
++            isIdValid(self) && hasObjVar(self, FIXTURE_ROOT);
++        markEntry(self, fixture);
++        if (!isIdValid(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        if (!isPlayer(self))
++        {
++            recordOutcome(self, fixture, "notPlayer");
++            return SCRIPT_CONTINUE;
++        }
++        if (isDead(self))
++        {
++            recordOutcome(self, fixture, "dead");
++            return SCRIPT_CONTINUE;
++        }
++        if (isIncapacitated(self))
++        {
++            recordOutcome(self, fixture, "incapacitated");
++            return SCRIPT_CONTINUE;
++        }
++        if (getSkillStatMod(
++                self,
++                "healing_injury_treatment") <= 0)
++        {
++            recordOutcome(self, fixture, "noTreatmentSkill");
++            return SCRIPT_CONTINUE;
++        }
++        if (!isEligiblePatient(self, target))
++        {
++            target = self;
++        }
++        if (!isEligiblePatient(self, target))
++        {
++            sendSystemMessage(self, SID_INVALID_TARGET);
++            recordOutcome(self, fixture, "targetRejected");
++            return SCRIPT_CONTINUE;
++        }
++        if (self != target)
++        {
++            if (getDistance(self, target) > RANGE)
++            {
++                healing.sendMedicalSpam(
++                    self,
++                    consumable.SID_TARGET_OUT_OF_RANGE,
++                    COMBAT_RESULT_OUT_OF_RANGE);
++                recordOutcome(self, fixture, "outOfRange");
++                return SCRIPT_CONTINUE;
++            }
++            if (!canSee(self, target))
++            {
++                healing.sendMedicalSpam(
++                    self,
++                    SID_NO_LINE_OF_SIGHT,
++                    COMBAT_RESULT_MEDICAL);
++                recordOutcome(
++                    self,
++                    fixture,
++                    "lineOfSightRejected");
++                return SCRIPT_CONTINUE;
++            }
++            if (!pvpCanHelp(self, target) ||
++                !factions.pvpDoAllowedHelpCheck(self, target))
++            {
++                healing.sendMedicalSpam(
++                    self,
++                    healing.SID_PVP_NO_HELP,
++                    COMBAT_RESULT_MEDICAL);
++                recordOutcome(self, fixture, "pvpRejected");
++                return SCRIPT_CONTINUE;
++            }
++        }
++        if (!canTreatState(self))
++        {
++            sendSystemMessage(self, SID_MUST_WAIT);
++            recordOutcome(self, fixture, "cooldownRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        int state = parseState(params);
++        obj_id medicine = parseMedicine(self, params);
++        if (isIdValid(medicine) &&
++            healing.isHealStateMedicine(medicine))
++        {
++            int medicineState = healing.stringToState(
++                healing.getHealingState(medicine));
++            if (medicineState >= 0)
++            {
++                state = medicineState;
++            }
++        }
++        else
++        {
++            medicine = obj_id.NULL_ID;
++        }
++
++        boolean foundState = false;
++        if (state >= 0)
++        {
++            foundState = getState(target, state) == 1;
++            if (!isIdValid(medicine))
++            {
++                medicine =
++                    healing.findHealStateMedicine(self, state);
++            }
++        }
++        else
++        {
++            for (int candidate : HEALABLE_STATES)
++            {
++                if (getState(target, candidate) != 1)
++                {
++                    continue;
++                }
++                foundState = true;
++                obj_id candidateMedicine =
++                    healing.findHealStateMedicine(
++                        self,
++                        candidate);
++                if (isIdValid(candidateMedicine))
++                {
++                    state = candidate;
++                    medicine = candidateMedicine;
++                    break;
++                }
++            }
++        }
++        if (!foundState || state < 0 ||
++            getState(target, state) != 1)
++        {
++            if (self == target)
++            {
++                sendSystemMessage(self, SID_NO_STATE_SELF);
++            }
++            else
++            {
++                sendSystemMessage(
++                    self,
++                    new string_id(
++                        "healing",
++                        "no_state_to_heal"));
++            }
++            recordOutcome(self, fixture, "noState");
++            return SCRIPT_CONTINUE;
++        }
++        if (!isIdValid(medicine) ||
++            !healing.isHealStateMedicine(medicine) ||
++            utils.getContainingPlayer(medicine) != self)
++        {
++            sendSystemMessage(self, SID_NO_MEDICINE);
++            recordOutcome(self, fixture, "noMedicine");
++            return SCRIPT_CONTINUE;
++        }
++
++        int mindCost =
++            healing.getMedicalMindCost(self, BASE_MIND_COST);
++        int mindBefore = getAttrib(self, MIND);
++        if (mindCost < 0 || mindBefore < mindCost)
++        {
++            sendSystemMessage(self, SID_NOT_ENOUGH_MIND);
++            recordOutcome(self, fixture, "notEnoughMind");
++            return SCRIPT_CONTINUE;
++        }
++
++        int chargesBefore = getCount(medicine);
++        int xpBefore = getExperiencePoints(self, "medical");
++        if (!consumable.consumeItem(
++                self,
++                target,
++                medicine,
++                true,
++                RANGE))
++        {
++            recordOutcome(self, fixture, "consumeRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        buff.removeAllBuffsOfStateType(target, state);
++        setState(target, state, false);
++        if (getState(target, state) != 0)
++        {
++            recordOutcome(self, fixture, "removeRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        setAttrib(self, MIND, mindBefore - mindCost);
++        int roundTime = getRoundTime(self);
++        setObjVar(
++            self,
++            COOLDOWN_VAR,
++            getGameTime() + roundTime);
++        if (self != target && isPlayer(target))
++        {
++            grantExperiencePoints(self, "medical", 50);
++        }
++
++        doAnimationAction(
++            self,
++            self == target ? "heal_self" : "heal_other");
++        healing.playHealStateEffect(getLocation(target));
++        if (self != target)
++        {
++            pvpHelpPerformed(self, target);
++        }
++        sendStateMessage(self, target, state);
++
++        if (fixture)
++        {
++            int chargesAfter =
++                isIdValid(medicine) && exists(medicine)
++                    ? getCount(medicine)
++                    : 0;
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".target",
++                target.toString());
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".state",
++                state);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".mindCost",
++                mindBefore - getAttrib(self, MIND));
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".chargeCost",
++                chargesBefore - chargesAfter);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".stateRemoved",
++                getState(target, state) == 0 ? 1 : 0);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".medicalXpDelta",
++                getExperiencePoints(self, "medical") -
++                    xpBefore);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".roundTime",
++                roundTime);
++        }
++        recordOutcome(self, fixture, "performed");
++        return SCRIPT_CONTINUE;
++    }
++
++    private boolean isEligiblePatient(
++        obj_id medic,
++        obj_id target)
++        throws InterruptedException
++    {
++        if (!isIdValid(target) || !exists(target) ||
++            !isMob(target) || isDead(target) ||
++            pet_lib.isMounted(target) ||
++            pvpCanAttack(medic, target))
++        {
++            return false;
++        }
++        if (isPlayer(target))
++        {
++            return true;
++        }
++        return
++            (pet_lib.isCreaturePet(target) ||
++                pet_lib.isNpcPet(target)) &&
++            !ai_lib.isDroid(target) &&
++            !ai_lib.isAndroid(target) &&
++            !pet_lib.isVehiclePet(target);
++    }
++
++    private boolean canTreatState(obj_id medic)
++        throws InterruptedException
++    {
++        if (!hasObjVar(medic, COOLDOWN_VAR))
++        {
++            return true;
++        }
++        int readyAt = getIntObjVar(medic, COOLDOWN_VAR);
++        if (readyAt > getGameTime())
++        {
++            return false;
++        }
++        removeObjVar(medic, COOLDOWN_VAR);
++        return true;
++    }
++
++    private int getRoundTime(obj_id medic)
++        throws InterruptedException
++    {
++        int injurySpeed =
++            getSkillStatMod(
++                medic,
++                "healing_injury_speed");
++        int roundTime =
++            Math.round(20.0f - injurySpeed / 5.0f);
++        int recovery =
++            getSkillStatMod(medic, "heal_recovery");
++        if (recovery > 0)
++        {
++            roundTime = Math.round(
++                roundTime *
++                    (100.0f - recovery) /
++                    100.0f);
++        }
++        return Math.max(MIN_ROUND_TIME, roundTime);
++    }
++
++    private int parseState(String params)
++        throws InterruptedException
++    {
++        if (params == null || params.trim().length() == 0)
++        {
++            return -1;
++        }
++        String[] tokens = params.trim().split("[| ]+");
++        return tokens.length == 0
++            ? -1
++            : healing.stringToState(tokens[0]);
++    }
++
++    private obj_id parseMedicine(
++        obj_id medic,
++        String params)
++        throws InterruptedException
++    {
++        if (params == null || params.trim().length() == 0)
++        {
++            return obj_id.NULL_ID;
++        }
++        String[] tokens = params.trim().split("[| ]+");
++        for (int index = 1; index < tokens.length; ++index)
++        {
++            try
++            {
++                obj_id medicine = obj_id.getObjId(
++                    Long.parseLong(tokens[index]));
++                if (isIdValid(medicine) &&
++                    utils.getContainingPlayer(medicine) == medic)
++                {
++                    return medicine;
++                }
++            }
++            catch (NumberFormatException exception)
++            {
++            }
++        }
++        return obj_id.NULL_ID;
++    }
++
++    private void sendStateMessage(
++        obj_id medic,
++        obj_id target,
++        int state)
++        throws InterruptedException
++    {
++        String stateName =
++            healing.stateTypeToString(state).toLowerCase();
++        if (medic == target)
++        {
++            sendSystemMessageTestingOnly(
++                medic,
++                "You remove the " + stateName +
++                    " state from yourself.");
++        }
++        else
++        {
++            sendSystemMessageTestingOnly(
++                medic,
++                "You remove the " + stateName +
++                    " state from " + getFirstName(target) + ".");
++            if (isPlayer(target))
++            {
++                sendSystemMessageTestingOnly(
++                    target,
++                    getFirstName(medic) + " removes the " +
++                        stateName + " state from you.");
++            }
++        }
++    }
++
++    private void markEntry(obj_id medic, boolean fixture)
++        throws InterruptedException
++    {
++        if (!fixture)
++        {
++            return;
++        }
++        setObjVar(
++            medic,
++            FIXTURE_ROOT + ".handlerEntered",
++            getGameTime());
++        int calls =
++            hasObjVar(medic, FIXTURE_ROOT + ".handlerCalls")
++                ? getIntObjVar(
++                    medic,
++                    FIXTURE_ROOT + ".handlerCalls")
++                : 0;
++        setObjVar(
++            medic,
++            FIXTURE_ROOT + ".handlerCalls",
++            calls + 1);
++        recordOutcome(medic, true, "entered");
++    }
++
++    private void recordOutcome(
++        obj_id medic,
++        boolean fixture,
++        String outcome)
++        throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(
++                medic,
++                FIXTURE_ROOT + ".outcome",
++                outcome);
++        }
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_heal_state_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_heal_state_command_fixture.java
+new file mode 100644
+index 000000000..1e13bbcc7
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_heal_state_command_fixture.java
+@@ -0,0 +1,667 @@
++package script.test;
++
++import script.attrib_mod;
++import script.library.consumable;
++import script.library.healing;
++import script.library.skill;
++import script.library.utils;
++import script.obj_id;
++
++/**
++ * Identity-bound fixture for the Publish 14.1 Heal State command.
++ *
++ * The fixture prepares a deterministic self-treatment boundary. The connected
++ * client remains the sole command-queue owner.
++ */
++public class precu_heal_state_command_fixture
++    extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++    private static final int TEST_STATE = STATE_DIZZY;
++    private static final int QUEUE_SAFETY_SECONDS = 8;
++    private static final int BASE_MIND_COST = 20;
++    private static final String COMMAND = "healState";
++    private static final String MEDICINE_TEMPLATE =
++        "object/tangible/medicine/crafted/crafted_medpack_dizzy_a.iff";
++    private static final String COOLDOWN_VAR =
++        "healing.can_heal_state";
++    private static final String ROOT =
++        "precu.healStateCommandFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String ITEM = ROOT + ".item";
++    private static final String ORIGINAL_MIND =
++        ROOT + ".originalMind";
++    private static final String ORIGINAL_SHOCK =
++        ROOT + ".originalShock";
++    private static final String ORIGINAL_MEDICAL_XP =
++        ROOT + ".originalMedicalXp";
++    private static final String ORIGINAL_POINTS =
++        ROOT + ".originalPoints";
++    private static final String ORIGINAL_STATES =
++        ROOT + ".originalStates";
++    private static final String ORIGINAL_COOLDOWN_PRESENT =
++        ROOT + ".originalCooldownPresent";
++    private static final String ORIGINAL_COOLDOWN =
++        ROOT + ".originalCooldown";
++    private static final String BEFORE_STATE =
++        ROOT + ".beforeState";
++    private static final String BEFORE_MIND =
++        ROOT + ".beforeMind";
++    private static final String BEFORE_CHARGES =
++        ROOT + ".beforeCharges";
++    private static final String BEFORE_XP =
++        ROOT + ".beforeXp";
++    private static final String EXPECTED_COST =
++        ROOT + ".expectedCost";
++    private static final String EXPECTED_ROUND_TIME =
++        ROOT + ".expectedRoundTime";
++    private static final String LAST_QUEUE_TIME =
++        ROOT + ".lastQueueTime";
++    private static final int[] HEALABLE_STATES =
++    {
++        STATE_STUNNED,
++        STATE_DIZZY,
++        STATE_BLINDED,
++        STATE_INTIMIDATED
++    };
++    private static final String[] SKILLS =
++    {
++        "science_medic_novice",
++        "science_medic_injury_01",
++        "science_medic_injury_speed_01",
++        "science_medic_ability_01",
++        "science_medic_crafting_01",
++        "science_medic_injury_02",
++        "science_medic_injury_speed_02",
++        "science_medic_ability_02",
++        "science_medic_crafting_02",
++        "science_medic_injury_03",
++        "science_medic_injury_speed_03",
++        "science_medic_ability_03",
++        "science_medic_crafting_03",
++        "science_medic_injury_04",
++        "science_medic_injury_speed_04",
++        "science_medic_ability_04",
++        "science_medic_crafting_04",
++        "science_medic_master",
++        "science_doctor_novice"
++    };
++    private static final String USAGE =
++        "usage: prepare|markQueue|status|cleanup " +
++        "<playerOid> <lifecycle>";
++
++    public String executeFixture(String params)
++        throws InterruptedException
++    {
++        String[] args = params == null
++            ? new String[0]
++            : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++        long playerValue;
++        try
++        {
++            playerValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (playerValue != PLAYER_OID ||
++            !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id player = obj_id.getObjId(playerValue);
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded())
++        {
++            return "error=playerNotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("markQueue"))
++        {
++            return markQueue(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            return status(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, args[2]);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership =
++                validateOwnership(player, lifecycle);
++            return ownership == null
++                ? "action=prepare resumed=true " +
++                    buildStatus(player)
++                : ownership;
++        }
++        if (hasAnyFixtureSkill(player) ||
++            hasCommand(player, COMMAND))
++        {
++            return "error=fixtureVectorAlreadyOwned";
++        }
++
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, ORIGINAL_MIND, getAttrib(player, MIND));
++        setObjVar(player, ORIGINAL_SHOCK, getShockWound(player));
++        setObjVar(
++            player,
++            ORIGINAL_MEDICAL_XP,
++            getExperiencePoints(player, "medical"));
++        setObjVar(
++            player,
++            ORIGINAL_POINTS,
++            skill.getAvailableSkillPoints(player));
++        int[] states = new int[HEALABLE_STATES.length];
++        for (int index = 0; index < HEALABLE_STATES.length; ++index)
++        {
++            states[index] =
++                getState(player, HEALABLE_STATES[index]);
++        }
++        setObjVar(player, ORIGINAL_STATES, states);
++        setObjVar(
++            player,
++            ORIGINAL_COOLDOWN_PRESENT,
++            hasObjVar(player, COOLDOWN_VAR) ? 1 : 0);
++        setObjVar(
++            player,
++            ORIGINAL_COOLDOWN,
++            hasObjVar(player, COOLDOWN_VAR)
++                ? getIntObjVar(player, COOLDOWN_VAR)
++                : 0);
++
++        if (!grantSkills(player) ||
++            !hasCommand(player, COMMAND))
++        {
++            boolean restored = restore(player);
++            return "error=skillPreparationFailed restored=" +
++                restored;
++        }
++        if (hasObjVar(player, COOLDOWN_VAR))
++        {
++            removeObjVar(player, COOLDOWN_VAR);
++        }
++        if (!setShockWound(player, 0) ||
++            !setAttrib(
++                player,
++                MIND,
++                getMaxAttrib(player, MIND)) ||
++            !setState(player, TEST_STATE, true) ||
++            getState(player, TEST_STATE) != 1)
++        {
++            boolean restored = restore(player);
++            return "error=statePreparationFailed restored=" +
++                restored;
++        }
++
++        obj_id inventory = utils.getInventoryContainer(player);
++        obj_id medicine = isIdValid(inventory)
++            ? createObject(MEDICINE_TEMPLATE, inventory, "")
++            : obj_id.NULL_ID;
++        if (!isIdValid(medicine))
++        {
++            boolean restored = restore(player);
++            return "error=medicineCreationFailed restored=" +
++                restored;
++        }
++        setObjVar(player, ITEM, medicine);
++        attrib_mod[] modifiers =
++        {
++            utils.createHealDamageAttribMod(HEALTH, 1)
++        };
++        setObjVar(
++            medicine,
++            consumable.VAR_CONSUMABLE_MODS,
++            modifiers);
++        setObjVar(
++            medicine,
++            consumable.VAR_CONSUMABLE_MEDICINE,
++            true);
++        setObjVar(
++            medicine,
++            consumable.VAR_CONSUMABLE_STOMACH_VALUES,
++            new int[] { 0, 0, 0 });
++        setObjVar(
++            medicine,
++            consumable.VAR_SKILL_MOD_REQUIRED,
++            new String[] { "healing_ability" });
++        setObjVar(
++            medicine,
++            consumable.VAR_SKILL_MOD_MIN,
++            new int[] { 0 });
++        setObjVar(
++            medicine,
++            healing.VAR_HEALING_STATE,
++            "dizzy");
++        setCount(medicine, 2);
++
++        setObjVar(
++            player,
++            EXPECTED_COST,
++            healing.getMedicalMindCost(
++                player,
++                BASE_MIND_COST));
++        setObjVar(
++            player,
++            EXPECTED_ROUND_TIME,
++            calculateRoundTime(player));
++        markBefore(player);
++        return "action=prepare resumed=false " +
++            buildStatus(player);
++    }
++
++    private String markQueue(
++        obj_id player,
++        String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (hasObjVar(player, LAST_QUEUE_TIME) &&
++            getGameTime() -
++                getIntObjVar(player, LAST_QUEUE_TIME) <
++                    QUEUE_SAFETY_SECONDS)
++        {
++            return "error=priorQueuePending " +
++                buildStatus(player);
++        }
++        markBefore(player);
++        setObjVar(player, LAST_QUEUE_TIME, getGameTime());
++        return "action=markQueue executeTime=5 " +
++            "pendingClientQueue=true " + buildStatus(player);
++    }
++
++    private void markBefore(obj_id player)
++        throws InterruptedException
++    {
++        obj_id medicine = getObjIdObjVar(player, ITEM);
++        setObjVar(
++            player,
++            BEFORE_STATE,
++            getState(player, TEST_STATE));
++        setObjVar(
++            player,
++            BEFORE_MIND,
++            getAttrib(player, MIND));
++        setObjVar(
++            player,
++            BEFORE_CHARGES,
++            getCount(medicine));
++        setObjVar(
++            player,
++            BEFORE_XP,
++            getExperiencePoints(player, "medical"));
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null
++            ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        if (!hasObjVar(player, LIFECYCLE) ||
++            !lifecycle.equals(
++                getStringObjVar(player, LIFECYCLE)))
++        {
++            return "error=lifecycleMismatch";
++        }
++        if (hasObjVar(player, LAST_QUEUE_TIME) &&
++            getGameTime() -
++                getIntObjVar(player, LAST_QUEUE_TIME) <
++                    QUEUE_SAFETY_SECONDS)
++        {
++            return "error=queuePendingPotential " +
++                buildStatus(player);
++        }
++        return "action=cleanup alreadyClean=false restored=" +
++            restore(player);
++    }
++
++    private boolean restore(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return false;
++        }
++        if (hasObjVar(player, ITEM))
++        {
++            obj_id medicine = getObjIdObjVar(player, ITEM);
++            if (isIdValid(medicine) && medicine.isLoaded())
++            {
++                destroyObject(medicine);
++            }
++        }
++
++        boolean restored =
++            setAttrib(
++                player,
++                MIND,
++                getIntObjVar(player, ORIGINAL_MIND));
++        restored =
++            setShockWound(
++                player,
++                getIntObjVar(player, ORIGINAL_SHOCK)) &&
++            restored;
++        int originalXp =
++            getIntObjVar(player, ORIGINAL_MEDICAL_XP);
++        int currentXp =
++            getExperiencePoints(player, "medical");
++        if (currentXp != originalXp)
++        {
++            grantExperiencePoints(
++                player,
++                "medical",
++                originalXp - currentXp);
++        }
++
++        int[] states =
++            getIntArrayObjVar(player, ORIGINAL_STATES);
++        for (int index = 0; index < HEALABLE_STATES.length; ++index)
++        {
++            setState(
++                player,
++                HEALABLE_STATES[index],
++                states[index] == 1);
++        }
++        if (getIntObjVar(
++                player,
++                ORIGINAL_COOLDOWN_PRESENT) == 1)
++        {
++            setObjVar(
++                player,
++                COOLDOWN_VAR,
++                getIntObjVar(player, ORIGINAL_COOLDOWN));
++        }
++        else if (hasObjVar(player, COOLDOWN_VAR))
++        {
++            removeObjVar(player, COOLDOWN_VAR);
++        }
++
++        revokeSkills(player);
++        restored =
++            getExperiencePoints(player, "medical") ==
++                originalXp &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) &&
++            !hasAnyFixtureSkill(player) &&
++            !hasCommand(player, COMMAND) &&
++            restored;
++        removeObjVar(player, ROOT);
++        return restored;
++    }
++
++    private boolean grantSkills(obj_id player)
++        throws InterruptedException
++    {
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            if (!grantSkill(player, SKILLS[index]) ||
++                !hasSkill(player, SKILLS[index]))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private void revokeSkills(obj_id player)
++        throws InterruptedException
++    {
++        for (int index = SKILLS.length - 1; index >= 0; --index)
++        {
++            if (hasSkill(player, SKILLS[index]))
++            {
++                revokeSkill(player, SKILLS[index]);
++            }
++        }
++    }
++
++    private boolean hasAnyFixtureSkill(obj_id player)
++        throws InterruptedException
++    {
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            if (hasSkill(player, SKILLS[index]))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private String validateOwnership(
++        obj_id player,
++        String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) ||
++            !hasObjVar(player, LIFECYCLE) ||
++            !hasObjVar(player, ITEM))
++        {
++            return "error=fixtureAbsent";
++        }
++        if (!lifecycle.equals(
++                getStringObjVar(player, LIFECYCLE)))
++        {
++            return "error=lifecycleMismatch";
++        }
++        obj_id medicine = getObjIdObjVar(player, ITEM);
++        if (!isIdValid(medicine) ||
++            utils.getContainingPlayer(medicine) != player)
++        {
++            return "error=fixtureMedicineUnavailable";
++        }
++        return null;
++    }
++
++    private String buildStatus(obj_id player)
++        throws InterruptedException
++    {
++        obj_id medicine = hasObjVar(player, ITEM)
++            ? getObjIdObjVar(player, ITEM)
++            : obj_id.NULL_ID;
++        int charges =
++            isIdValid(medicine) ? getCount(medicine) : -1;
++        int state = getState(player, TEST_STATE);
++        int mind = getAttrib(player, MIND);
++        int medicalXp =
++            getExperiencePoints(player, "medical");
++        int cooldown =
++            hasObjVar(player, COOLDOWN_VAR)
++                ? getIntObjVar(player, COOLDOWN_VAR) -
++                    getGameTime()
++                : 0;
++        return "player=" + player +
++            " currentCommand=" + getCurrentCommand(player) +
++            " dead=" + isDead(player) +
++            " incapacitated=" + isIncapacitated(player) +
++            " skills=" + buildSkillBits(player) +
++            " command=" + hasCommand(player, COMMAND) +
++            " treatment=" +
++                getSkillStatMod(
++                    player,
++                    "healing_injury_treatment") +
++            " injurySpeed=" +
++                getSkillStatMod(
++                    player,
++                    "healing_injury_speed") +
++            " healingAbility=" +
++                getSkillStatMod(player, "healing_ability") +
++            " state=" + state +
++            " mind=" + mind +
++            " focus=" + getAttrib(player, FOCUS) +
++            " charges=" + charges +
++            " medicalXp=" + medicalXp +
++            " cooldownRemaining=" + cooldown +
++            " handlerEntered=" +
++                readInt(player, ".handlerEntered") +
++            " handlerCalls=" +
++                readInt(player, ".handlerCalls") +
++            " handlerOutcome=" +
++                (hasObjVar(player, ROOT + ".outcome")
++                    ? getStringObjVar(
++                        player,
++                        ROOT + ".outcome")
++                    : "none") +
++            " appliedState=" +
++                readInt(player, ".state") +
++            " appliedStateRemoved=" +
++                readInt(player, ".stateRemoved") +
++            " appliedMindCost=" +
++                readInt(player, ".mindCost") +
++            " appliedChargeCost=" +
++                readInt(player, ".chargeCost") +
++            " appliedMedicalXpDelta=" +
++                readInt(player, ".medicalXpDelta") +
++            " appliedRoundTime=" +
++                readInt(player, ".roundTime") +
++            " expectedCost=" +
++                readInt(player, ".expectedCost") +
++            " expectedRoundTime=" +
++                readInt(player, ".expectedRoundTime") +
++            " stateDelta=" +
++                reverseDelta(player, BEFORE_STATE, state) +
++            " mindDelta=" +
++                reverseDelta(player, BEFORE_MIND, mind) +
++            " chargeDelta=" +
++                reverseDelta(player, BEFORE_CHARGES, charges) +
++            " medicalXpDelta=" +
++                delta(player, BEFORE_XP, medicalXp) +
++            " availablePoints=" +
++                skill.getAvailableSkillPoints(player);
++    }
++
++    private String buildSkillBits(obj_id player)
++        throws InterruptedException
++    {
++        String bits = "";
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            bits += hasSkill(player, SKILLS[index])
++                ? "1"
++                : "0";
++        }
++        return bits;
++    }
++
++    private int calculateRoundTime(obj_id player)
++        throws InterruptedException
++    {
++        int injurySpeed =
++            getSkillStatMod(
++                player,
++                "healing_injury_speed");
++        int roundTime =
++            Math.round(20.0f - injurySpeed / 5.0f);
++        int recovery =
++            getSkillStatMod(player, "heal_recovery");
++        if (recovery > 0)
++        {
++            roundTime = Math.round(
++                roundTime *
++                    (100.0f - recovery) /
++                    100.0f);
++        }
++        return Math.max(4, roundTime);
++    }
++
++    private int readInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        return hasObjVar(player, ROOT + suffix)
++            ? getIntObjVar(player, ROOT + suffix)
++            : 0;
++    }
++
++    private int delta(
++        obj_id player,
++        String key,
++        int current)
++        throws InterruptedException
++    {
++        return hasObjVar(player, key)
++            ? current - getIntObjVar(player, key)
++            : 0;
++    }
++
++    private int reverseDelta(
++        obj_id player,
++        String key,
++        int current)
++        throws InterruptedException
++    {
++        return hasObjVar(player, key)
++            ? getIntObjVar(player, key) - current
++            : 0;
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        return
++            hasObjVar(player, ORIGINAL_MIND) &&
++            hasObjVar(player, ORIGINAL_SHOCK) &&
++            hasObjVar(player, ORIGINAL_MEDICAL_XP) &&
++            hasObjVar(player, ORIGINAL_POINTS) &&
++            hasObjVar(player, ORIGINAL_STATES) &&
++            hasObjVar(player, ORIGINAL_COOLDOWN_PRESENT) &&
++            hasObjVar(player, ORIGINAL_COOLDOWN);
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            boolean digit = value >= '0' && value <= '9';
++            boolean lowerHex = value >= 'a' && value <= 'f';
++            if (!digit && !lowerHex)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index a2dfa4654..b955af177 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1919,4 +1919,4 @@ healDamage	combat	normal	cmdHealDamage				5	healDamage	1	1	1	1	1	0	1	0	0	0	0	1	1
+ healWound	combat	normal	cmdHealWound				7	healWound	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.heal_wound	other	optional		2	0	0	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	7	0		0	0	0
+ firstAid	combat	normal	cmdFirstAid				5	firstAid	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.first_aid	other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
+ dragIncapacitatedPlayer	combat	normal	cmdDragIncapPlayer				2	dragIncapacitatedPlayer	1	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	1	1	1	0	0	0	0	0	0	0	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.drag_incap_player	other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	2	0		0	0	0
+-healState	combat	normal	healState				5	healState	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	optional		2	0	0	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
++healState	combat	normal	healState				5	healState	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.heal_state	other	optional		2	0	0	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0

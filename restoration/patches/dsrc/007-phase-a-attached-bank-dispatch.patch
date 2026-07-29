@@ -1,0 +1,284 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
+--- a/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_runtime.java
+@@ -420,15 +420,14 @@ public class precu_phase_a_runtime extends script.base_script
+-            boolean queued = transferBankCreditsFromNamedAccount(
+-                money.ACCT_CUSTOMER_SERVICE,
+-                player,
+-                CRAFTING_TRAINER_COST,
+-                money.HANDLER_BANK_SUCCESS,
+-                money.HANDLER_BANK_TRANSFER_ERROR,
+-                transfer);
+-            if (!queued)
++            if (!transitionOperationState(
++                    player, args[2], "fund", "enqueueing", "queued"))
+             {
+-                transitionOperationState(
+-                    player, args[2], "fund", "enqueueing", "fundQueueFailed");
++                return "error=operationQueueStateFailed " + buildOperationStatus(player);
+             }
++            if (hasScript(player, "test.precu_phase_a_bank_dispatch"))
++            {
++                detachScript(player, "test.precu_phase_a_bank_dispatch");
++            }
++            attachScript(player, "test.precu_phase_a_bank_dispatch");
++            boolean queued = true;
+             return "action=fundTrainerCost setup=administrative queued=" + queued +
+                 " operationId=" + args[2] + " amount=" + CRAFTING_TRAINER_COST +
+                 " " + buildBalances(player);
+@@ -472,15 +471,14 @@ public class precu_phase_a_runtime extends script.base_script
+-            boolean queued = transferBankCreditsToNamedAccount(
+-                player,
+-                money.ACCT_CUSTOMER_SERVICE,
+-                CRAFTING_TRAINER_COST,
+-                money.HANDLER_BANK_SUCCESS,
+-                money.HANDLER_BANK_TRANSFER_ERROR,
+-                transfer);
+-            if (!queued)
++            if (!transitionOperationState(
++                    player, args[2], "drain", "enqueueing", "queued"))
+             {
+-                transitionOperationState(
+-                    player, args[2], "drain", "enqueueing", "drainQueueFailed");
++                return "error=operationQueueStateFailed " + buildOperationStatus(player);
+             }
++            if (hasScript(player, "test.precu_phase_a_bank_dispatch"))
++            {
++                detachScript(player, "test.precu_phase_a_bank_dispatch");
++            }
++            attachScript(player, "test.precu_phase_a_bank_dispatch");
++            boolean queued = true;
+             return "action=drainTrainerCost cleanup=administrative queued=" + queued +
+                 " operationId=" + args[2] + " amount=" + CRAFTING_TRAINER_COST +
+                 " " + buildBalances(player);
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_money.java b/sku.0/sys.server/compiled/game/script/player/player_money.java
+--- a/sku.0/sys.server/compiled/game/script/player/player_money.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_money.java
+@@ -349,6 +349,104 @@ public class player_money extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int precuPhaseADispatchBankTransfer(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!isExactPhaseABankDispatch(self, params))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        String kind = params.getString(PRECU_PARAM_KIND);
++        boolean queued;
++        if ("fund".equals(kind))
++        {
++            queued = transferBankCreditsFromNamedAccount(
++                money.ACCT_CUSTOMER_SERVICE,
++                self,
++                PRECU_CRAFTING_TRAINER_COST,
++                money.HANDLER_BANK_SUCCESS,
++                money.HANDLER_BANK_TRANSFER_ERROR,
++                params);
++        }
++        else
++        {
++            queued = transferBankCreditsToNamedAccount(
++                self,
++                money.ACCT_CUSTOMER_SERVICE,
++                PRECU_CRAFTING_TRAINER_COST,
++                money.HANDLER_BANK_SUCCESS,
++                money.HANDLER_BANK_TRANSFER_ERROR,
++                params);
++        }
++        if (!queued)
++        {
++            transitionPhaseAOperation(self, params, false);
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        if (!hasObjVar(self, PRECU_OP_STATE) ||
++            !"queued".equals(getStringObjVar(self, PRECU_OP_STATE)) ||
++            !hasObjVar(self, PRECU_OP_ID) || !hasObjVar(self, PRECU_OP_KIND) ||
++            !hasObjVar(self, PRECU_OP_LIFECYCLE_ID))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        dictionary params = new dictionary();
++        params.put(PRECU_PARAM_ID, getStringObjVar(self, PRECU_OP_ID));
++        params.put(PRECU_PARAM_KIND, getStringObjVar(self, PRECU_OP_KIND));
++        params.put(PRECU_LIFECYCLE_PARAM_ID,
++            getStringObjVar(self, PRECU_OP_LIFECYCLE_ID));
++        params.put(PRECU_PROTOCOL_PARAM_VERSION, PRECU_PROTOCOL_VERSION);
++        params.put(money.DICT_TOTAL, PRECU_CRAFTING_TRAINER_COST);
++        return precuPhaseADispatchBankTransfer(self, params);
++    }
++    private boolean isExactPhaseABankDispatch(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!isIdValid(self) || !isPlayer(self) || !self.isLoaded() ||
++            !self.isAuthoritative() || params == null || params.isEmpty() ||
++            !hasObjVar(self, PRECU_OP_ATTEMPT_ID) || !hasObjVar(self, PRECU_OP_ID) ||
++            !hasObjVar(self, PRECU_OP_KIND) || !hasObjVar(self, PRECU_OP_STATE) ||
++            !hasObjVar(self, PRECU_OP_LIFECYCLE_ID) ||
++            !hasObjVar(self, PRECU_OP_COST) || !hasObjVar(self, PRECU_OP_PROTOCOL_VERSION) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_ID) || !hasObjVar(self, PRECU_LIFECYCLE_STATE) ||
++            !hasObjVar(self, PRECU_LIFECYCLE_BASE_XP))
++        {
++            return false;
++        }
++        String operationId = params.getString(PRECU_PARAM_ID);
++        String kind = params.getString(PRECU_PARAM_KIND);
++        String lifecycleId = params.getString(PRECU_LIFECYCLE_PARAM_ID);
++        int currentXp = getExperiencePoints(self, PRECU_CRAFTING_XP_TYPE);
++        boolean exactXp = currentXp == PRECU_CRAFTING_XP_COST ||
++            ("drain".equals(kind) && currentXp == getIntObjVar(self, PRECU_LIFECYCLE_BASE_XP));
++        if (operationId == null || lifecycleId == null ||
++            (!"fund".equals(kind) && !"drain".equals(kind)) ||
++            !operationId.equals(getStringObjVar(self, PRECU_OP_ATTEMPT_ID)) ||
++            !operationId.equals(getStringObjVar(self, PRECU_OP_ID)) ||
++            !kind.equals(getStringObjVar(self, PRECU_OP_KIND)) ||
++            !"queued".equals(getStringObjVar(self, PRECU_OP_STATE)) ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_OP_LIFECYCLE_ID)) ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_LIFECYCLE_ATTEMPT_ID)) ||
++            !lifecycleId.equals(getStringObjVar(self, PRECU_LIFECYCLE_ID)) ||
++            !"established".equals(getStringObjVar(self, PRECU_LIFECYCLE_STATE)) ||
++            params.getInt(PRECU_PROTOCOL_PARAM_VERSION) != PRECU_PROTOCOL_VERSION ||
++            getIntObjVar(self, PRECU_OP_PROTOCOL_VERSION) != PRECU_PROTOCOL_VERSION ||
++            params.getInt(money.DICT_TOTAL) != PRECU_CRAFTING_TRAINER_COST ||
++            getIntObjVar(self, PRECU_OP_COST) != PRECU_CRAFTING_TRAINER_COST ||
++            !hasSkill(self, PRECU_CRAFTING_NOVICE_SKILL) ||
++            hasSkill(self, PRECU_CRAFTING_SKILL) ||
++            !exactXp)
++        {
++            return false;
++        }
++        int credits = getTotalMoney(self);
++        return ("fund".equals(kind) && credits == 0) ||
++            ("drain".equals(kind) && credits == PRECU_CRAFTING_TRAINER_COST);
++    }
+     public int precuPhaseARequestAccounting(obj_id self, dictionary params)
+         throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_phase_a_bank_dispatch.java b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_bank_dispatch.java
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_phase_a_bank_dispatch.java
+@@ -0,0 +1,118 @@
++package script.test;
++
++import script.dictionary;
++import script.library.money;
++import script.obj_id;
++
++/** One-shot owner-context bridge for fixture-bound Phase-A bank dispatch. */
++public class precu_phase_a_bank_dispatch extends script.base_script
++{
++    private static final String SCRIPT_NAME = "test.precu_phase_a_bank_dispatch";
++    private static final String OP_ROOT = "precu.phaseA.operation";
++    private static final String OP_ATTEMPT_ID = OP_ROOT + ".attemptId";
++    private static final String OP_ID = OP_ROOT + ".id";
++    private static final String OP_KIND = OP_ROOT + ".kind";
++    private static final String OP_STATE = OP_ROOT + ".state";
++    private static final String OP_COST = OP_ROOT + ".cost";
++    private static final String OP_LIFECYCLE_ID = OP_ROOT + ".lifecycleId";
++    private static final String OP_PROTOCOL_VERSION = OP_ROOT + ".protocolVersion";
++    private static final String PARAM_ID = "precuPhaseAOperationId";
++    private static final String PARAM_KIND = "precuPhaseAOperationKind";
++    private static final String PARAM_LIFECYCLE_ID = "precuPhaseALifecycleId";
++    private static final String PARAM_PROTOCOL_VERSION = "precuPhaseAProtocolVersion";
++    private static final String LOCATION_DISPATCH = "precuPhaseABankDispatch";
++    private static final int PROTOCOL_VERSION = 64;
++
++    public String executeDispatch(String params) throws InterruptedException
++    {
++        String[] args = params == null ? new String[0] : params.trim().split("\\s+");
++        if (args.length != 2)
++        {
++            return "error=usage";
++        }
++        obj_id player;
++        try
++        {
++            player = obj_id.getObjId(Long.parseLong(args[0]));
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayer";
++        }
++        if (!isIdValid(player) || !isPlayer(player) || !player.isLoaded() ||
++            !player.isAuthoritative() || !hasObjVar(player, OP_LIFECYCLE_ID) ||
++            !args[1].equals(getStringObjVar(player, OP_LIFECYCLE_ID)) ||
++            !hasObjVar(player, OP_STATE) ||
++            !"queued".equals(getStringObjVar(player, OP_STATE)))
++        {
++            return "error=dispatchOwnership";
++        }
++        if (hasScript(player, SCRIPT_NAME))
++        {
++            detachScript(player, SCRIPT_NAME);
++            return "action=detachBankDispatch queued=false";
++        }
++        attachScript(player, SCRIPT_NAME);
++        return "action=attachBankDispatch queued=true";
++    }
++
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        return dispatchQueuedBankOperation(self);
++    }
++
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        return dispatchQueuedBankOperation(self);
++    }
++
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        return dispatchQueuedBankOperation(self);
++    }
++
++    public int OnArrivedAtLocation(obj_id self, String name) throws InterruptedException
++    {
++        if (!LOCATION_DISPATCH.equals(name))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        return dispatchQueuedBankOperation(self);
++    }
++
++    private int dispatchQueuedBankOperation(obj_id self) throws InterruptedException
++    {
++        try
++        {
++            if (!isIdValid(self) || !isPlayer(self) || !self.isLoaded() ||
++                !self.isAuthoritative() ||
++                !hasObjVar(self, OP_ATTEMPT_ID) || !hasObjVar(self, OP_ID) ||
++                !hasObjVar(self, OP_KIND) || !hasObjVar(self, OP_STATE) ||
++                !hasObjVar(self, OP_COST) || !hasObjVar(self, OP_LIFECYCLE_ID) ||
++                !hasObjVar(self, OP_PROTOCOL_VERSION))
++            {
++                return SCRIPT_CONTINUE;
++            }
++            String operationId = getStringObjVar(self, OP_ID);
++            String kind = getStringObjVar(self, OP_KIND);
++            if (!operationId.equals(getStringObjVar(self, OP_ATTEMPT_ID)) ||
++                (!"fund".equals(kind) && !"drain".equals(kind)) ||
++                !"queued".equals(getStringObjVar(self, OP_STATE)) ||
++                getIntObjVar(self, OP_PROTOCOL_VERSION) != PROTOCOL_VERSION)
++            {
++                return SCRIPT_CONTINUE;
++            }
++            dictionary params = new dictionary();
++            params.put(PARAM_ID, operationId);
++            params.put(PARAM_KIND, kind);
++            params.put(PARAM_LIFECYCLE_ID, getStringObjVar(self, OP_LIFECYCLE_ID));
++            params.put(PARAM_PROTOCOL_VERSION, PROTOCOL_VERSION);
++            params.put(money.DICT_TOTAL, getIntObjVar(self, OP_COST));
++            messageTo(self, "precuPhaseADispatchBankTransfer", params, 0, true);
++        }
++        finally
++        {
++        }
++        return SCRIPT_CONTINUE;
++    }
++}

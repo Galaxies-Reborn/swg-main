@@ -1,0 +1,418 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 433842d12a9cb45e8a47007792b3ed8fa1222c2b..7bbdfad5f07e2cd5cf3ee8c47dadd8c306873c15 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15197,6 +15197,24 @@ public class combat_actions extends script.systems.combat.combat_base
+         return SCRIPT_CONTINUE;
+     }
+ 
++    public int unarmedKnockdown1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("unarmedKnockdown1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++
++    public int unarmedKnockdown2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("unarmedKnockdown2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++
+     public int polearmStun1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("polearmStun1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 6b29c32f8ecb5b2fa6317b4629584524226721c9..78627a7188de39db4f2abb9abc3cab454e22f174 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -85,6 +85,16 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_2hsword_support_04";
+     private static final String TWO_HAND_SWORD_MASTER =
+         "combat_2hsword_master";
++    private static final String TERAS_KASI_ROOT = "combat_unarmed";
++    private static final String TERAS_KASI_NOVICE = "combat_unarmed_novice";
++    private static final String TERAS_KASI_SPEED_ONE =
++        "combat_unarmed_speed_01";
++    private static final String TERAS_KASI_SPEED_TWO =
++        "combat_unarmed_speed_02";
++    private static final String TERAS_KASI_SPEED_THREE =
++        "combat_unarmed_speed_03";
++    private static final String TERAS_KASI_SPEED_FOUR =
++        "combat_unarmed_speed_04";
+     private static final String BRAWLER_POLEARM_ONE =
+         "combat_brawler_polearm_01";
+     private static final String BRAWLER_POLEARM_TWO =
+@@ -369,6 +379,10 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String TWO_HAND_MIND_HIT_TWO_COMMAND =
+         "melee2hMindHit2";
+     private static final String TWO_HAND_HIT_THREE_COMMAND = "melee2hHit3";
++    private static final String UNARMED_KNOCKDOWN_ONE_COMMAND =
++        "unarmedKnockdown1";
++    private static final String UNARMED_KNOCKDOWN_TWO_COMMAND =
++        "unarmedKnockdown2";
+     private static final String POLEARM_STUN_ONE_COMMAND = "polearmStun1";
+     private static final String UNARMED_BLIND_ONE_COMMAND = "unarmedBlind1";
+     private static final String UNARMED_STUN_ONE_COMMAND = "unarmedStun1";
+@@ -556,6 +570,18 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalTwoHandSwordSupportFour";
+     private static final String ORIGINAL_TWO_HAND_SWORD_MASTER =
+         ROOT + ".originalTwoHandSwordMaster";
++    private static final String ORIGINAL_TERAS_KASI_ROOT =
++        ROOT + ".m321.originalTerasKasiRoot";
++    private static final String ORIGINAL_TERAS_KASI_NOVICE =
++        ROOT + ".m321.originalTerasKasiNovice";
++    private static final String ORIGINAL_TERAS_KASI_SPEED_ONE =
++        ROOT + ".m321.originalTerasKasiSpeedOne";
++    private static final String ORIGINAL_TERAS_KASI_SPEED_TWO =
++        ROOT + ".m321.originalTerasKasiSpeedTwo";
++    private static final String ORIGINAL_TERAS_KASI_SPEED_THREE =
++        ROOT + ".m321.originalTerasKasiSpeedThree";
++    private static final String ORIGINAL_TERAS_KASI_SPEED_FOUR =
++        ROOT + ".m321.originalTerasKasiSpeedFour";
+     private static final String ORIGINAL_BRAWLER_POLEARM_ONE =
+         ROOT + ".originalBrawlerPolearmOne";
+     private static final String ORIGINAL_BRAWLER_POLEARM_TWO =
+@@ -879,6 +905,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalTwoHandMindHitTwoCommand";
+     private static final String ORIGINAL_TWO_HAND_HIT_THREE_COMMAND =
+         ROOT + ".originalTwoHandHitThreeCommand";
++    private static final String ORIGINAL_UNARMED_KNOCKDOWN_ONE_COMMAND =
++        ROOT + ".m321.originalUnarmedKnockdownOneCommand";
++    private static final String ORIGINAL_UNARMED_KNOCKDOWN_TWO_COMMAND =
++        ROOT + ".m321.originalUnarmedKnockdownTwoCommand";
+     private static final String ORIGINAL_POLEARM_STUN_ONE_COMMAND =
+         ROOT + ".originalPolearmStunOneCommand";
+     private static final String ORIGINAL_UNARMED_BLIND_ONE_COMMAND =
+@@ -1031,7 +1061,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -1083,6 +1113,22 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return prepare(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("prepareUnarmedSpeed"))
++        {
++            return prepareUnarmedSpeed(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("statusUnarmedSpeed"))
++        {
++            return statusUnarmedSpeed(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("armUnarmedSpeed"))
++        {
++            return armUnarmedSpeed(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("cleanupUnarmedSpeed"))
++        {
++            return cleanupUnarmedSpeed(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("status"))
+         {
+             validation = validateOwnership(attacker, defender, args[3], true);
+@@ -5046,6 +5092,251 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String prepareUnarmedSpeed(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String prepared = prepare(attacker, defender, lifecycle);
++        if (!prepared.startsWith("action=prepare"))
++        {
++            return prepared;
++        }
++
++        boolean anySnapshot =
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_ROOT) ||
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_NOVICE) ||
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_ONE) ||
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_TWO) ||
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_THREE) ||
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_FOUR) ||
++            hasObjVar(attacker, ORIGINAL_UNARMED_KNOCKDOWN_ONE_COMMAND) ||
++            hasObjVar(attacker, ORIGINAL_UNARMED_KNOCKDOWN_TWO_COMMAND);
++        boolean completeSnapshot =
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_ROOT) &&
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_NOVICE) &&
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_ONE) &&
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_TWO) &&
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_THREE) &&
++            hasObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_FOUR) &&
++            hasObjVar(attacker, ORIGINAL_UNARMED_KNOCKDOWN_ONE_COMMAND) &&
++            hasObjVar(attacker, ORIGINAL_UNARMED_KNOCKDOWN_TWO_COMMAND);
++        if (anySnapshot && !completeSnapshot)
++        {
++            return "error=unarmedSpeedSnapshotPartial " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        if (!completeSnapshot)
++        {
++            setObjVar(attacker, ORIGINAL_TERAS_KASI_ROOT,
++                hasSkill(attacker, TERAS_KASI_ROOT) ? 1 : 0);
++            setObjVar(attacker, ORIGINAL_TERAS_KASI_NOVICE,
++                hasSkill(attacker, TERAS_KASI_NOVICE) ? 1 : 0);
++            setObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_ONE,
++                hasSkill(attacker, TERAS_KASI_SPEED_ONE) ? 1 : 0);
++            setObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_TWO,
++                hasSkill(attacker, TERAS_KASI_SPEED_TWO) ? 1 : 0);
++            setObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_THREE,
++                hasSkill(attacker, TERAS_KASI_SPEED_THREE) ? 1 : 0);
++            setObjVar(attacker, ORIGINAL_TERAS_KASI_SPEED_FOUR,
++                hasSkill(attacker, TERAS_KASI_SPEED_FOUR) ? 1 : 0);
++            setObjVar(attacker, ORIGINAL_UNARMED_KNOCKDOWN_ONE_COMMAND,
++                hasCommand(attacker, UNARMED_KNOCKDOWN_ONE_COMMAND) ? 1 : 0);
++            setObjVar(attacker, ORIGINAL_UNARMED_KNOCKDOWN_TWO_COMMAND,
++                hasCommand(attacker, UNARMED_KNOCKDOWN_TWO_COMMAND) ? 1 : 0);
++        }
++
++        boolean rootReady = hasSkill(attacker, TERAS_KASI_ROOT) ||
++            grantSkill(attacker, TERAS_KASI_ROOT);
++        boolean noviceReady = rootReady &&
++            (hasSkill(attacker, TERAS_KASI_NOVICE) ||
++                grantSkill(attacker, TERAS_KASI_NOVICE));
++        boolean speedOneReady = noviceReady &&
++            (hasSkill(attacker, TERAS_KASI_SPEED_ONE) ||
++                grantSkill(attacker, TERAS_KASI_SPEED_ONE));
++        boolean speedTwoReady = speedOneReady &&
++            (hasSkill(attacker, TERAS_KASI_SPEED_TWO) ||
++                grantSkill(attacker, TERAS_KASI_SPEED_TWO));
++        boolean speedThreeReady = speedTwoReady &&
++            (hasSkill(attacker, TERAS_KASI_SPEED_THREE) ||
++                grantSkill(attacker, TERAS_KASI_SPEED_THREE));
++        boolean speedFourReady = speedThreeReady &&
++            (hasSkill(attacker, TERAS_KASI_SPEED_FOUR) ||
++                grantSkill(attacker, TERAS_KASI_SPEED_FOUR));
++        boolean knockdownOneReady =
++            hasCommand(attacker, UNARMED_KNOCKDOWN_ONE_COMMAND) ||
++            grantCommand(attacker, UNARMED_KNOCKDOWN_ONE_COMMAND);
++        boolean knockdownTwoReady =
++            hasCommand(attacker, UNARMED_KNOCKDOWN_TWO_COMMAND) ||
++            grantCommand(attacker, UNARMED_KNOCKDOWN_TWO_COMMAND);
++        if (!speedFourReady || !knockdownOneReady || !knockdownTwoReady)
++        {
++            return "error=unarmedSpeedGrantFailed rootReady=" + rootReady +
++                " noviceReady=" + noviceReady +
++                " speedFourReady=" + speedFourReady +
++                " knockdownOneReady=" + knockdownOneReady +
++                " knockdownTwoReady=" + knockdownTwoReady + " " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        return "action=prepareUnarmedSpeed resumed=" + completeSnapshot + " " +
++            buildUnarmedSpeedStatus(attacker, defender, lifecycle);
++    }
++
++    private String statusUnarmedSpeed(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        return ownership == null ?
++            "action=statusUnarmedSpeed " +
++                buildUnarmedSpeedStatus(attacker, defender, lifecycle) :
++            ownership;
++    }
++
++    private String armUnarmedSpeed(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        obj_id current = getObjectInSlot(attacker, "hold_r");
++        if (isIdValid(current))
++        {
++            obj_id inventory = utils.getInventoryContainer(attacker);
++            if (!isIdValid(inventory) || !putInOverloaded(current, inventory))
++            {
++                return "error=unarmedSpeedUnequipFailed " +
++                    buildUnarmedSpeedStatus(attacker, defender, lifecycle);
++            }
++        }
++        boolean proofStateBuffsCleared = clearProofStateBuffs(defender);
++        utils.removeScriptVar(defender, combat_base.PRECU_KNOCKDOWN_RECOVERY);
++        utils.removeScriptVar(
++            defender, combat_base.PRECU_KNOCKDOWN_ORIGINAL_POSTURE);
++        boolean boundary =
++            hasSkill(attacker, BRAWLER_UNARMED_FOUR) &&
++            hasSkill(attacker, TERAS_KASI_ROOT) &&
++            hasSkill(attacker, TERAS_KASI_NOVICE) &&
++            hasSkill(attacker, TERAS_KASI_SPEED_ONE) &&
++            hasSkill(attacker, TERAS_KASI_SPEED_TWO) &&
++            hasSkill(attacker, TERAS_KASI_SPEED_THREE) &&
++            hasSkill(attacker, TERAS_KASI_SPEED_FOUR) &&
++            hasCommand(attacker, UNARMED_KNOCKDOWN_ONE_COMMAND) &&
++            hasCommand(attacker, UNARMED_KNOCKDOWN_TWO_COMMAND) &&
++            combat.canPerformAction(
++                UNARMED_KNOCKDOWN_ONE_COMMAND, attacker) == 0 &&
++            combat.canPerformAction(
++                UNARMED_KNOCKDOWN_TWO_COMMAND, attacker) == 0 &&
++            !isIdValid(getObjectInSlot(attacker, "hold_r")) &&
++            proofStateBuffsCleared &&
++            getState(defender, STATE_DIZZY) == 0 &&
++            !buff.hasBuff(defender, "dizzy") &&
++            getPosture(defender) == POSTURE_UPRIGHT;
++        return boundary ?
++            "action=armUnarmedSpeed unarmed=true defenderPosture=" +
++                getPosture(defender) + " " +
++                buildUnarmedSpeedStatus(attacker, defender, lifecycle) :
++            "error=unarmedSpeedOwnershipBoundaryFailed " +
++                buildUnarmedSpeedStatus(attacker, defender, lifecycle);
++    }
++
++    private String cleanupUnarmedSpeed(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, true);
++        if ("fixtureAbsent".equals(ownership))
++        {
++            return "action=cleanupUnarmedSpeed alreadyClean=true restored=true";
++        }
++        if (ownership != null)
++        {
++            return ownership;
++        }
++
++        restoreCommand(attacker,
++            ORIGINAL_UNARMED_KNOCKDOWN_ONE_COMMAND,
++            UNARMED_KNOCKDOWN_ONE_COMMAND);
++        restoreCommand(attacker,
++            ORIGINAL_UNARMED_KNOCKDOWN_TWO_COMMAND,
++            UNARMED_KNOCKDOWN_TWO_COMMAND);
++        restoreSkill(attacker, ORIGINAL_TERAS_KASI_SPEED_FOUR,
++            TERAS_KASI_SPEED_FOUR);
++        restoreSkill(attacker, ORIGINAL_TERAS_KASI_SPEED_THREE,
++            TERAS_KASI_SPEED_THREE);
++        restoreSkill(attacker, ORIGINAL_TERAS_KASI_SPEED_TWO,
++            TERAS_KASI_SPEED_TWO);
++        restoreSkill(attacker, ORIGINAL_TERAS_KASI_SPEED_ONE,
++            TERAS_KASI_SPEED_ONE);
++        restoreSkill(attacker, ORIGINAL_TERAS_KASI_NOVICE,
++            TERAS_KASI_NOVICE);
++        restoreSkill(attacker, ORIGINAL_TERAS_KASI_ROOT,
++            TERAS_KASI_ROOT);
++        boolean restored =
++            isCommandRestored(attacker,
++                ORIGINAL_UNARMED_KNOCKDOWN_ONE_COMMAND,
++                UNARMED_KNOCKDOWN_ONE_COMMAND) &&
++            isCommandRestored(attacker,
++                ORIGINAL_UNARMED_KNOCKDOWN_TWO_COMMAND,
++                UNARMED_KNOCKDOWN_TWO_COMMAND) &&
++            isSkillRestored(attacker, ORIGINAL_TERAS_KASI_SPEED_FOUR,
++                TERAS_KASI_SPEED_FOUR) &&
++            isSkillRestored(attacker, ORIGINAL_TERAS_KASI_SPEED_THREE,
++                TERAS_KASI_SPEED_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_TERAS_KASI_SPEED_TWO,
++                TERAS_KASI_SPEED_TWO) &&
++            isSkillRestored(attacker, ORIGINAL_TERAS_KASI_SPEED_ONE,
++                TERAS_KASI_SPEED_ONE) &&
++            isSkillRestored(attacker, ORIGINAL_TERAS_KASI_NOVICE,
++                TERAS_KASI_NOVICE) &&
++            isSkillRestored(attacker, ORIGINAL_TERAS_KASI_ROOT,
++                TERAS_KASI_ROOT);
++        if (!restored)
++        {
++            return "error=unarmedSpeedRestorationFailed " +
++                buildUnarmedSpeedStatus(attacker, defender, lifecycle);
++        }
++        String baseCleanup = cleanup(attacker, defender, lifecycle);
++        return baseCleanup.startsWith("action=cleanup") ?
++            "action=cleanupUnarmedSpeed alreadyClean=false restored=true " +
++                baseCleanup :
++            baseCleanup;
++    }
++
++    private String buildUnarmedSpeedStatus(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        obj_id weapon = getObjectInSlot(attacker, "hold_r");
++        return buildStatus(attacker, defender, lifecycle) +
++            " terasKasiRoot=" + hasSkill(attacker, TERAS_KASI_ROOT) +
++            " terasKasiNovice=" + hasSkill(attacker, TERAS_KASI_NOVICE) +
++            " terasKasiSpeedOne=" +
++                hasSkill(attacker, TERAS_KASI_SPEED_ONE) +
++            " terasKasiSpeedTwo=" +
++                hasSkill(attacker, TERAS_KASI_SPEED_TWO) +
++            " terasKasiSpeedThree=" +
++                hasSkill(attacker, TERAS_KASI_SPEED_THREE) +
++            " terasKasiSpeedFour=" +
++                hasSkill(attacker, TERAS_KASI_SPEED_FOUR) +
++            " unarmedKnockdownOneCommand=" +
++                hasCommand(attacker, UNARMED_KNOCKDOWN_ONE_COMMAND) +
++            " unarmedKnockdownTwoCommand=" +
++                hasCommand(attacker, UNARMED_KNOCKDOWN_TWO_COMMAND) +
++            " unarmedKnockdownOneCanPerform=" +
++                combat.canPerformAction(
++                    UNARMED_KNOCKDOWN_ONE_COMMAND, attacker) +
++            " unarmedKnockdownTwoCanPerform=" +
++                combat.canPerformAction(
++                    UNARMED_KNOCKDOWN_TWO_COMMAND, attacker) +
++            " unarmedSpeedModifier=" +
++                getSkillStatisticModifier(attacker, "unarmed_speed") +
++            " heldWeapon=" + (isIdValid(weapon) ? weapon : "none") +
++            " defenderDizzyState=" + getState(defender, STATE_DIZZY) +
++            " defenderDizzyBuff=" + buff.hasBuff(defender, "dizzy") +
++            " defenderPosture=" + getPosture(defender) +
++            " knockdownRecovery=" +
++                utils.hasScriptVar(
++                    defender, combat_base.PRECU_KNOCKDOWN_RECOVERY);
++    }
++
+     private String armPolearmNovice(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index de195caf2d0c8930dd804890fc8a9dfd5ef05d60..2f139d31dd84ef58077b33b9cc1a154acc7babff 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1305,6 +1305,8 @@ polearmLunge1	polearmLunge1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1
+ polearmLunge2	polearmLunge2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_polearm_2				lower_posture_polearm_2										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ unarmedLunge1	unarmedLunge1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_unarmed_1	lower_posture_unarmed_1													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ unarmedLunge2	unarmedLunge2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	knockdown_unarmed_1	knockdown_unarmed_1													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++unarmedKnockdown1	unarmedKnockdown1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	knockdown_unarmed_2	knockdown_unarmed_2													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
++unarmedKnockdown2	unarmedKnockdown2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	knockdown_unarmed_3	knockdown_unarmed_3													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+ melee1hLunge1	melee1hLunge1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_1hmelee_1		lower_posture_1hmelee_1												OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee1hLunge2	melee1hLunge2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	knockdown_1hmelee_1		knockdown_1hmelee_1												OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee2hLunge1	melee2hLunge1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_2hmelee_1			lower_posture_2hmelee_1											OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	1.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 2733c22759c88b5e44b87dd833c9ce67bfe9e310..18d190fdb509e82fbeaf61b4fb2e7ca02ba58d13 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -143,3 +143,5 @@ melee2hArea3	1.5	2.5	1.5	RANDOM	2.5	10	NONE		100	DIZZY	30	0	30	dizzy_defense	jed
+ melee2hMindHit1	0.5	1	0.5	MIND	1.25	10	INTENSITY	MIND
+ melee2hMindHit2	1	1.5	1	MIND	2	10	INTENSITY	MIND
+ melee2hHit3	1.25	2	1.25	RANDOM	2.5	10	INTENSITY		0	DIZZY	50	0	30	dizzy_defense	jedi_state_defense	resistance_states
++unarmedKnockdown1	1	1	1	RANDOM	1.5	15	NONE		0																								100
++unarmedKnockdown2	1.5	1.5	1.5	RANDOM	2	15	NONE		0	DIZZY	75	0	40	dizzy_defense	jedi_state_defense	resistance_states																	100
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 149f22f9989140baf3d7ba38d4f4416a9cd5ddb0..06b8c67026d397cfdef9d4f8049781fbb69385f5 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -142,3 +142,5 @@ melee2hArea3	domination
+ melee2hMindHit1	mindstrike
+ melee2hMindHit2	mindslam
+ melee2hHit3	viciousstrike
++unarmedKnockdown1	sleepingkrayt
++unarmedKnockdown2	chargingwampa
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 74ba4b699351eeb3624cf21e9f9f8a89800d01f8..795cc5e2c96254eb025b496ecac5328c78d40d74 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2080,3 +2080,5 @@ melee2hArea3	combat	normal	melee2hArea3	failSpecialAttack			1.5	melee2hArea3	1	0
+ melee2hMindHit1	combat	normal	melee2hMindHit1	failSpecialAttack			1.5	melee2hMindHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee2hMindHit2	combat	normal	melee2hMindHit2	failSpecialAttack			1.5	melee2hMindHit2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee2hHit3	combat	normal	melee2hHit3	failSpecialAttack			1.5	melee2hHit3	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++unarmedKnockdown1	combat	normal	unarmedKnockdown1	failSpecialAttack			1.5	unarmedKnockdown1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++unarmedKnockdown2	combat	normal	unarmedKnockdown2	failSpecialAttack			1.5	unarmedKnockdown2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

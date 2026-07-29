@@ -1,0 +1,351 @@
+diff --git a/engine/server/library/codegen/package_data.txt b/engine/server/library/codegen/package_data.txt
+index 296a24f..917544d 100644
+--- a/engine/server/library/codegen/package_data.txt
++++ b/engine/server/library/codegen/package_data.txt
+@@ -74,6 +74,7 @@ CreatureObject              m_attributes             server               Attrib
+ CreatureObject              m_baseRunSpeed           server               float
+ CreatureObject              m_baseWalkSpeed          server               float
+ CreatureObject              m_persistedBuffs         server               packed_map<uint32,Buff::PackedBuff> - encodePersistedBuffs(data,row->persisted_buffs); decodePersistedBuffs(data,row->persisted_buffs);
++CreatureObject              m_wounds                 server               Attributes::Value - encodeAttributes(objectId,data,18); decodeAttributes(objectId,data,isBaseline,18);
+ 
+ CreatureObject              m_attributeModList       server_np            std::vector<AttribMod>
+ CreatureObject              m_baseSlopeModPercent    server_np            float
+diff --git a/engine/server/library/serverDatabase/src/shared/ConfigServerDatabase.cpp b/engine/server/library/serverDatabase/src/shared/ConfigServerDatabase.cpp
+index 969835a..81c8bca 100644
+--- a/engine/server/library/serverDatabase/src/shared/ConfigServerDatabase.cpp
++++ b/engine/server/library/serverDatabase/src/shared/ConfigServerDatabase.cpp
+@@ -54,7 +54,7 @@ void ConfigServerDatabase::install(void)
+ 	KEY_STRING  (commoditiesServerAddress, "localhost");
+ 	KEY_INT     (commoditiesServerPort, 44457);	//todo: confirm that this is a good port MSH
+ 	KEY_INT     (taskManagerPort, 60001);
+-	KEY_INT     (expectedDBVersion, 270);
++	KEY_INT     (expectedDBVersion, 271);
+ 	KEY_BOOL    (correctDBVersionRequired,true);
+ 	KEY_INT     (saveFrequencyLimit,0);
+ 	KEY_STRING  (schemaOwner, "");
+diff --git a/engine/server/library/serverGame/src/shared/generated/Packager.cpp b/engine/server/library/serverGame/src/shared/generated/Packager.cpp
+index 6e04cb0..455b1a6 100644
+--- a/engine/server/library/serverGame/src/shared/generated/Packager.cpp
++++ b/engine/server/library/serverGame/src/shared/generated/Packager.cpp
+@@ -113,6 +113,7 @@ void CreatureObject::addMembersToPackages()
+ 	addServerVariable    (m_baseRunSpeed);
+ 	addServerVariable    (m_baseWalkSpeed);
+ 	addServerVariable    (m_persistedBuffs);
++	addServerVariable    (m_wounds);
+ 	addServerVariable    (m_wsX);
+ 	addServerVariable    (m_wsY);
+ 	addServerVariable    (m_wsZ);
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+index feea500..16f7a59 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+@@ -670,6 +670,7 @@ CreatureObject::CreatureObject(const ServerCreatureObjectTemplate* newTemplate)
+ 	m_regenerationTime(0),
+ 	m_attributes(Attributes::NumberOfAttributes),
+ 	m_maxAttributes(Attributes::NumberOfAttributes),
++	m_wounds(Attributes::NumberOfAttributes),
+ 	m_totalAttributes(Attributes::NumberOfAttributes),
+ 	m_totalMaxAttributes(Attributes::NumberOfAttributes),
+ 	m_attribBonus(Attributes::NumberOfAttributes),
+@@ -788,6 +789,7 @@ CreatureObject::CreatureObject(const ServerCreatureObjectTemplate* newTemplate)
+ 				newTemplate->getAttributes(static_cast<
+ 				ServerCreatureObjectTemplate::Attributes>(i))));
+ 			m_maxAttributes.set(i, m_attributes.get(i));
++			m_wounds.set(i, 0);
+ 			m_cachedCurrentAttributeModValues.set(i, 0);
+ 			m_cachedMaxAttributeModValues.set(i, 0);
+ 			m_regeneration[i] = 0;
+@@ -3176,6 +3178,8 @@ Attributes::Value CreatureObject::getAdjustedAttribute(Attributes::Enumerator at
+ 	// modify the attribute for attrib mods
+ 	value = static_cast<Attributes::Value>(
+ 		value + m_cachedCurrentAttributeModValues[attribute]);
++	if (!Attributes::isAttribPool(attribute))
++		value = static_cast<Attributes::Value>(value - m_wounds[attribute]);
+ 
+ 	// modify for partial regeneration
+ 	value = static_cast<Attributes::Value>(value + static_cast<int>(floor(m_regeneration[attribute])));
+@@ -3205,7 +3209,8 @@ Attributes::Value CreatureObject::getMaxAttribute(Attributes::Enumerator attribu
+ 
+ 	Attributes::Value value = getUnmodifiedMaxAttribute(attribute);
+ 	value = static_cast<Attributes::Value>(
+-		value + m_cachedMaxAttributeModValues[attribute] + m_attribBonus[attribute]);
++		value + m_cachedMaxAttributeModValues[attribute] +
++		m_attribBonus[attribute] - m_wounds[attribute]);
+ 
+ 	if (capStat)
+ 	{
+@@ -4277,6 +4282,7 @@ static char internalTagBuf[] = {'_','_','i','n','t','e','r','n','a','l','T','a',
+ static const int internalTagBufLen = strlen(internalTagBuf);
+ 
+ 	int damage = 0;
++	bool appliedWound = false;
+ 
+ 	if (isAuthoritative())
+ 	{
+@@ -4330,6 +4336,15 @@ static const int internalTagBufLen = strlen(internalTagBuf);
+ 				newMod.maxVal = 0;
+ 				newMod.currentVal = 0;
+ 				newMod.mod = mod;
++				if (AttribMod::isAttribMod(mod) && mod.decay == AttribMod::AMDS_wound)
++				{
++					newMod.maxVal = mod.value;
++					if (!Attributes::isAttribPool(mod.attrib) ||
++						(mod.flags & AttribMod::AMF_attackCurrent))
++					{
++						newMod.currentVal = mod.value;
++					}
++				}
+ 				if (newMod.mod.tag == 0)
+ 				{
+ 					// we need to have some sort of tag, so we use an internal
+@@ -4347,6 +4362,7 @@ static const int internalTagBufLen = strlen(internalTagBuf);
+ 							insertResult = m_attributeModList.insert(newMod.mod.tag, newMod);
+ 						}
+ 					} while (!insertResult.second);
++					appliedWound = newMod.mod.decay == AttribMod::AMDS_wound;
+ 
+ 					// clear any flags that assume we have a valid tag.
+ 					if (newMod.mod.flags & AttribMod::AMF_triggerOnDone)
+@@ -4368,7 +4384,10 @@ static const int internalTagBufLen = strlen(internalTagBuf);
+ 				}
+ 				else
+ 				{
+-					m_attributeModList.insert(mod.tag, newMod);
++					std::pair<Archive::AutoDeltaMap<uint32, CreatureMod>::const_iterator, bool> const insertResult =
++						m_attributeModList.insert(mod.tag, newMod);
++					appliedWound = insertResult.second &&
++						newMod.mod.decay == AttribMod::AMDS_wound;
+ 				}
+ 
+ 				if ((mod.flags & AttribMod::AMF_visible) && isPlayerControlled())
+@@ -4399,6 +4418,11 @@ static const int internalTagBufLen = strlen(internalTagBuf);
+ 		}
+ 
+ 		--m_deferComputeTotalAttributes;
++		if (appliedWound)
++		{
++			recomputeAttribModTotals(true);
++			computeTotalAttributes();
++		}
+ 	}
+ 	else
+ 	{
+@@ -5036,6 +5060,12 @@ void CreatureObject::decayAttributes(float time)
+ 			decayBegin = -1.0f;
+ 			totalTime = -1.0f;
+ 		}
++		else if (m.mod.decay == AttribMod::AMDS_wound)
++		{
++			// Wounds persist until an explicit medical or entertainer heal.
++			decayBegin = -1.0f;
++			totalTime = -1.0f;
++		}
+ 		int modValue = 0;
+ 
+ 		if (deltaTime >= totalTime && totalTime != -1.0f)
+@@ -8245,6 +8275,67 @@ static const StringId SHOCK_WOUND_ID("cbt_spam", "shock_wound");
+ 
+ //----------------------------------------------------------------------
+ 
++int CreatureObject::getWoundAmount(Attributes::Enumerator attribute) const
++{
++	if (attribute < 0 || attribute >= Attributes::NumberOfAttributes)
++		return 0;
++	return m_wounds[attribute];
++}
++
++//----------------------------------------------------------------------
++
++int CreatureObject::addWound(Attributes::Enumerator attribute, int value)
++{
++	if (!isAuthoritative() ||
++		attribute < 0 || attribute >= Attributes::NumberOfAttributes ||
++		value <= 0 || isDead() || TangibleObject::isInvulnerable())
++	{
++		return 0;
++	}
++
++	int const woundLimit = getUnmodifiedMaxAttribute(attribute) - 1;
++	int const woundRoom = woundLimit - getWoundAmount(attribute);
++	int const applied = value < woundRoom ? value : woundRoom;
++	if (applied <= 0)
++		return 0;
++
++	m_wounds.set(attribute, static_cast<Attributes::Value>(
++		getWoundAmount(attribute) + applied));
++	if (Attributes::isAttribPool(attribute))
++	{
++		int const current = getUnmodifiedAttribute(attribute) +
++			m_cachedCurrentAttributeModValues[attribute];
++		int const woundedMax = getMaxAttribute(attribute);
++		if (current > woundedMax)
++			IGNORE_RETURN(alterAttribute(attribute, woundedMax - current, true));
++	}
++	computeTotalAttributes();
++	return applied;
++}
++
++//----------------------------------------------------------------------
++
++int CreatureObject::healWound(Attributes::Enumerator attribute, int value)
++{
++	if (!isAuthoritative() ||
++		attribute < 0 || attribute >= Attributes::NumberOfAttributes ||
++		value <= 0)
++	{
++		return 0;
++	}
++
++	int const wound = getWoundAmount(attribute);
++	int const healed = value < wound ? value : wound;
++	if (healed > 0)
++	{
++		m_wounds.set(attribute, static_cast<Attributes::Value>(wound - healed));
++		computeTotalAttributes();
++	}
++	return healed;
++}
++
++//----------------------------------------------------------------------
++
+ void CreatureObject::setLookAtTarget(const NetworkId& id)
+ {
+ 	if(isAuthoritative())
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.h b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+index 555cf0b..a0ad601 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.h
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+@@ -229,6 +229,9 @@ public:
+ 	int                 testDrainAttribute       (Attributes::Enumerator attribute, Attributes::Value value) const;
+ 	int                 getShockWounds           () const;
+ 	void                setShockWounds           (int wound);
++	int                 getWoundAmount           (Attributes::Enumerator attribute) const;
++	int                 addWound                 (Attributes::Enumerator attribute, int value);
++	int                 healWound                (Attributes::Enumerator attribute, int value);
+ 	void                setAttribute             (Attributes::Enumerator attribute, Attributes::Value value);
+ 	virtual void        getAttributes            (std::vector<std::pair<std::string, Unicode::String> > &data) const;
+ 	void                sendTimedModData         (uint32 id, float time, bool updateCache = true);
+@@ -839,6 +842,7 @@ private:
+ 	// BPM CreatureObject : TangibleObject // Begin persisted members.
+ 	Archive::AutoDeltaVector<Attributes::Value>      m_attributes;           ///< The current attributes (health, action, mind) of the mobile.
+ 	Archive::AutoDeltaVector<Attributes::Value>      m_maxAttributes;        ///< The max unaffected attributes of this mobile.
++	Archive::AutoDeltaVector<Attributes::Value>      m_wounds;               ///< Persistent Publish 14 wound amount for each attribute.
+ 	Archive::AutoDeltaVector<Attributes::Value>      m_totalAttributes;      ///< The current attributes, with all mods applied
+ 	Archive::AutoDeltaVector<Attributes::Value>      m_totalMaxAttributes;   ///< The max attributes, with all mods applied
+ 	Archive::AutoDeltaVector<Attributes::Value>      m_attribBonus;          ///< Bonus from items that are added to the max attrib values
+diff --git a/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp b/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp
+index e2f3b81..f7c9680 100644
+--- a/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp
++++ b/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp
+@@ -44,6 +44,8 @@ namespace ScriptMethodsAttributesNamespace
+ 	jint         JNICALL getMaxAttrib(JNIEnv *env, jobject self, jlong target, jint attrib);
+ 	jint         JNICALL getWoundedMaxAttrib(JNIEnv *env, jobject self, jlong target, jint attrib);
+ 	jint         JNICALL getUnmodifiedMaxAttrib(JNIEnv *env, jobject self, jlong target, jint attrib);
++	jint         JNICALL addWound(JNIEnv *env, jobject self, jlong target, jint attrib, jint value);
++	jint         JNICALL healWound(JNIEnv *env, jobject self, jlong target, jint attrib, jint value);
+ 	jboolean     JNICALL setAttrib(JNIEnv *env, jobject self, jlong target, jint attrib, jint value);
+ 	jboolean     JNICALL setMaxAttrib(JNIEnv *env, jobject self, jlong target, jint attrib, jint value);
+ 	jboolean     JNICALL addToAttrib(JNIEnv *env, jobject self, jlong target, jint attrib, jint value);
+@@ -98,6 +100,8 @@ const JNINativeMethod NATIVES[] = {
+ 	JF("_getMaxAttrib", "(JI)I", getMaxAttrib),
+ 	JF("_getWoundedMaxAttrib", "(JI)I", getWoundedMaxAttrib),
+ 	JF("_getUnmodifiedMaxAttrib", "(JI)I", getUnmodifiedMaxAttrib),
++	JF("_addWound", "(JII)I", addWound),
++	JF("_healWound", "(JII)I", healWound),
+ 	JF("_setAttrib", "(JII)Z", setAttrib),
+ 	JF("_setMaxAttrib", "(JII)Z", setMaxAttrib),
+ 	JF("_addToAttrib", "(JII)Z", addToAttrib),
+@@ -297,7 +301,8 @@ jint JNICALL ScriptMethodsAttributesNamespace::getMaxAttrib(JNIEnv *env, jobject
+ 	if (!JavaLibrary::getObject(target, creature))
+ 		return ATTRIB_ERROR;
+ 
+-	return creature->getMaxAttribute(static_cast<Attributes::Enumerator>(attrib));
++	Attributes::Enumerator const attribute = static_cast<Attributes::Enumerator>(attrib);
++	return creature->getMaxAttribute(attribute) + creature->getWoundAmount(attribute);
+ }	// JavaLibrary::getMaxAttrib
+ 
+ /**
+@@ -348,6 +353,44 @@ jint JNICALL ScriptMethodsAttributesNamespace::getUnmodifiedMaxAttrib(JNIEnv *en
+ 	return creature->getUnmodifiedMaxAttribute(static_cast<Attributes::Enumerator>(attrib));
+ }	// JavaLibrary::getUnmodifiedMaxAttrib
+ 
++/**
++ * Applies persistent wound damage to one attribute.
++ *
++ * @return the wound amount actually applied, or ATTRIB_ERROR on invalid input
++ */
++jint JNICALL ScriptMethodsAttributesNamespace::addWound(JNIEnv *env, jobject self, jlong target, jint attrib, jint value)
++{
++	UNREF(self);
++
++	if (attrib < 0 || attrib >= Attributes::NumberOfAttributes || value < 0)
++		return ATTRIB_ERROR;
++
++	CreatureObject * creature = 0;
++	if (!JavaLibrary::getObject(target, creature))
++		return ATTRIB_ERROR;
++
++	return creature->addWound(static_cast<Attributes::Enumerator>(attrib), value);
++}	// JavaLibrary::addWound
++
++/**
++ * Heals persistent wound damage from one attribute.
++ *
++ * @return the wound amount actually healed, or ATTRIB_ERROR on invalid input
++ */
++jint JNICALL ScriptMethodsAttributesNamespace::healWound(JNIEnv *env, jobject self, jlong target, jint attrib, jint value)
++{
++	UNREF(self);
++
++	if (attrib < 0 || attrib >= Attributes::NumberOfAttributes || value < 0)
++		return ATTRIB_ERROR;
++
++	CreatureObject * creature = 0;
++	if (!JavaLibrary::getObject(target, creature))
++		return ATTRIB_ERROR;
++
++	return creature->healWound(static_cast<Attributes::Enumerator>(attrib), value);
++}	// JavaLibrary::healWound
++
+ /**
+  * Sets a creatue's attribute.
+  *
+diff --git a/game/server/database/build/linux/getversion.sql b/game/server/database/build/linux/getversion.sql
+new file mode 100644
+index 0000000..d34e9d4
+--- /dev/null
++++ b/game/server/database/build/linux/getversion.sql
+@@ -0,0 +1,7 @@
++set heading on
++set feedback off
++set pagesize 100
++
++select version_number from version_number;
++
++exit;
+diff --git a/game/server/database/updates/271.sql b/game/server/database/updates/271.sql
+new file mode 100644
+index 0000000..e261ced
+--- /dev/null
++++ b/game/server/database/updates/271.sql
+@@ -0,0 +1,20 @@
++on sqlerror exit failure rollback;
++
++-- Publish 14 uses only the first nine current attributes and the next nine
++-- maximum attributes.  The former NGE attribute slots 18-26 are therefore
++-- retired in this branch and become the persistent nine-attribute wound set.
++update creature_objects
++set
++	attribute_18 = 0,
++	attribute_19 = 0,
++	attribute_20 = 0,
++	attribute_21 = 0,
++	attribute_22 = 0,
++	attribute_23 = 0,
++	attribute_24 = 0,
++	attribute_25 = 0,
++	attribute_26 = 0;
++
++update version_number set version_number=271, min_version_number=271;
++
++commit;

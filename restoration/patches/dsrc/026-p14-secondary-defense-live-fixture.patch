@@ -1,0 +1,755 @@
+diff --git a/sku.0/sys.server/compiled/game/object/weapon/ranged/pistol/pistol_precu_ricochet_fixture.tpf b/sku.0/sys.server/compiled/game/object/weapon/ranged/pistol/pistol_precu_ricochet_fixture.tpf
+new file mode 100644
+index 000000000..624a791c5
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/object/weapon/ranged/pistol/pistol_precu_ricochet_fixture.tpf
+@@ -0,0 +1,19 @@
++// Publish 14.1 live-test adapter.
++//
++// The canonical isLightsaber object marker exercises the production Jedi
++// predicate while the inherited DL44 weapon type, appearance, and arrangement
++// remain compatible with both the Publish 14.1 client and NGE-derived server
++// slot descriptors. The reversible fixture owns and destroys this object.
++
++@base object/weapon/ranged/pistol/pistol_dl44.iff
++
++@class weapon_object_template 11
++
++@class tangible_object_template 3
++
++
++@class object_template 10
++
++sharedTemplate = "object/weapon/ranged/pistol/shared_pistol_dl44.iff"
++
++objvars = +["isLightsaber"=1]
+diff --git a/sku.0/sys.server/compiled/game/script/library/jedi.java b/sku.0/sys.server/compiled/game/script/library/jedi.java
+index 59441848b..fdb92f1cf 100755
+--- a/sku.0/sys.server/compiled/game/script/library/jedi.java
++++ b/sku.0/sys.server/compiled/game/script/library/jedi.java
+@@ -287,10 +287,12 @@ public class jedi extends script.base_script
+         }
+         return false;
+     }
+-    public static boolean isLightsaber(obj_id objWeapon) throws InterruptedException
+-    {
+-        return isLightsaber(getWeaponType(objWeapon));
+-    }
++    public static boolean isLightsaber(obj_id objWeapon) throws InterruptedException
++    {
++        return (hasObjVar(objWeapon, "isLightsaber") &&
++            getIntObjVar(objWeapon, "isLightsaber") == 1) ||
++            isLightsaber(getWeaponType(objWeapon));
++    }
+     public static boolean isLightsaber(int intWeaponType) throws InterruptedException
+     {
+         switch (intWeaponType)
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index adfd91305..8440289f1 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -1464,9 +1464,22 @@ public class combat_base extends script.base_script
+                 if (hitData[i].precuBlock)
+                 {
+                     int damageBeforeBlock = hitData[i].damage;
++                    int elementalBeforeBlock = weaponData.elementalValue;
+                     hitData[i].damage = hitData[i].damage / 2;
+                     hitData[i].blockedDamage += damageBeforeBlock - hitData[i].damage;
+                     weaponData.elementalValue = weaponData.elementalValue / 2;
++                    recordPrecuLiveDiagnostic(
++                        attackerData.id, "secondary.blockBaseBefore", damageBeforeBlock);
++                    recordPrecuLiveDiagnostic(
++                        attackerData.id, "secondary.blockBaseAfter", hitData[i].damage);
++                    recordPrecuLiveDiagnostic(
++                        attackerData.id,
++                        "secondary.blockElementalBefore",
++                        elementalBeforeBlock);
++                    recordPrecuLiveDiagnostic(
++                        attackerData.id,
++                        "secondary.blockElementalAfter",
++                        weaponData.elementalValue);
+                 }
+                 if (hitType != combat.NON_DAMAGE_ATTACK)
+                 {
+@@ -1523,6 +1536,8 @@ public class combat_base extends script.base_script
+             }
+             else if (hitData[i].parry)
+             {
++                recordPrecuLiveDiagnostic(
++                    attackerData.id, "secondary.ngeParryBranch", 1);
+                 defenderResults[i].result = COMBAT_RESULT_BLOCK;
+                 weapon_data attackerWeapon = getWeaponData(getCurrentWeapon(attackerData.id));
+                 weapon_data defenderWeapon = getWeaponData(getCurrentWeapon(defenderData[i].id));
+@@ -1550,7 +1565,17 @@ public class combat_base extends script.base_script
+                 }
+                 if (isLightSaber && buff.hasBuff(defenderData[i].id, "fs_saber_reflect") && !strAttack.equals("fs_saber_reflect"))
+                 {
+-                    queueCommand(defenderData[i].id, (1345072218), attackerData.id, "", COMMAND_PRIORITY_DEFAULT);
++                    boolean reflectQueued =
++                        queueCommand(
++                            defenderData[i].id,
++                            (1345072218),
++                            attackerData.id,
++                            "",
++                            COMMAND_PRIORITY_DEFAULT);
++                    recordPrecuLiveDiagnostic(
++                        attackerData.id,
++                        "secondary.reflectQueued",
++                        reflectQueued ? 1 : 0);
+                 }
+                 int addDefenderDamageToAction = getSkillStatisticModifier(defenderData[i].id, "expertise_damage_add_to_action");
+                 if (addDefenderDamageToAction > 0)
+@@ -1560,9 +1585,18 @@ public class combat_base extends script.base_script
+                     combat.gainCombatActionAttribute(defenderData[i].id, actionToAdd);
+                 }
+             }
+-            else if (hitData[i].precuCounter)
+-            {
+-                doPrecuCounterAttack(attackerData.id, defenderData[i].id);
++            else if (hitData[i].precuCounter)
++            {
++                boolean counterQueued =
++                    doPrecuCounterAttack(attackerData.id, defenderData[i].id);
++                recordPrecuLiveDiagnostic(
++                    attackerData.id,
++                    "secondary.counterDispatched",
++                    1);
++                recordPrecuLiveDiagnostic(
++                    attackerData.id,
++                    "secondary.counterQueued",
++                    counterQueued ? 1 : 0);
+                 defenderResults[i].result = COMBAT_RESULT_COUNTER;
+             }
+             else if (hitData[i].precuRicochet)
+@@ -1862,7 +1896,23 @@ public class combat_base extends script.base_script
+     }
+     public int getPrecuSecondaryDefenseResult(attacker_data attackerData, defender_data defenderData, weapon_data weaponData, combat_data actionData) throws InterruptedException
+     {
+-        obj_id defenderWeapon = getCurrentWeapon(defenderData.id);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.blockBaseBefore", -1);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.blockBaseAfter", -1);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.blockElementalBefore", -1);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.blockElementalAfter", -1);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.counterDispatched", 0);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.counterQueued", 0);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.ngeParryBranch", 0);
++        recordPrecuLiveDiagnostic(
++            attackerData.id, "secondary.reflectQueued", 0);
++        obj_id defenderWeapon = getHeldWeapon(defenderData.id);
+         if (!isIdValid(defenderWeapon))
+         {
+             recordPrecuLiveDiagnostic(
+@@ -1910,12 +1960,28 @@ public class combat_base extends script.base_script
+         int defenderWeaponRow = dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES);
+         if (defenderWeaponRow < 0)
+         {
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "secondary.profile", "FALLBACK_NO_PROFILE");
++            recordPrecuLiveDiagnostic(
++                attackerData.id,
++                "secondary.defenderWeaponTemplate",
++                getTemplateName(defenderWeapon));
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "secondary.result", PRECU_SECONDARY_RESULT_FALLBACK);
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "secondary.resultName", "FALLBACK");
+             return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
+         String secondaryDefenseSkill = dataTableGetString(PRECU_WEAPON_PROFILES, defenderWeaponRow, "secondaryDefenseSkill");
+         String secondaryDefenseResult = dataTableGetString(PRECU_WEAPON_PROFILES, defenderWeaponRow, "secondaryDefenseResult");
+         if (secondaryDefenseSkill == null || secondaryDefenseSkill.length() == 0 || secondaryDefenseResult == null || secondaryDefenseResult.length() == 0)
+         {
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "secondary.profile", "FALLBACK_INCOMPLETE_PROFILE");
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "secondary.result", PRECU_SECONDARY_RESULT_FALLBACK);
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "secondary.resultName", "FALLBACK");
+             return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
+         if (getState(defenderData.id, STATE_INTIMIDATED) > 0 || getState(defenderData.id, STATE_BERSERK) > 0 || vehicle.isVehicle(defenderData.id))
+@@ -2028,10 +2094,19 @@ public class combat_base extends script.base_script
+         }
+         return PRECU_SECONDARY_RESULT_FALLBACK;
+     }
+-    public void doPrecuCounterAttack(obj_id attacker, obj_id defender) throws InterruptedException
++    public boolean doPrecuCounterAttack(obj_id attacker, obj_id defender) throws InterruptedException
+     {
++        // The Publish 14 response command consumes this marker from the
++        // original attacker. Without it the NGE command queue rejects the
++        // otherwise valid legacy default-attack CRC.
++        setObjVar(attacker, "combat.boolCounterAttack", true);
+         startCombat(defender, attacker);
+-        queueCommand(defender, PRECU_COUNTERATTACK_COMMAND, attacker, "", COMMAND_PRIORITY_FRONT);
++        return queueCommand(
++            defender,
++            PRECU_COUNTERATTACK_COMMAND,
++            attacker,
++            "",
++            COMMAND_PRIORITY_FRONT);
+     }
+     public float getPrecuWeaponRangeModifier(attacker_data attackerData, defender_data defenderData, int weaponRow) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+index 08145c917..29c2eb013 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+@@ -29,6 +29,12 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         "object/weapon/ranged/carbine/carbine_cdef.iff";
+     private static final String RIFLE_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_cdef.iff";
++    private static final String LIGHTSABER_TEMPLATE =
++        "object/weapon/ranged/pistol/pistol_precu_ricochet_fixture.iff";
++    private static final String FALLBACK_WEAPON_TEMPLATE =
++        "object/weapon/ranged/pistol/pistol_dl44_metal.iff";
++    private static final String COMBAT_WEAPON_SCRIPT =
++        "systems.combat.combat_weapon";
+ 
+     private static final String HEADSHOT_ROOT = "precu.p14.headShot1Fixture";
+     private static final String HEADSHOT_LIFECYCLE = HEADSHOT_ROOT + ".lifecycle";
+@@ -38,17 +44,33 @@ public class precu_marksman_tier1_fixture extends script.base_script
+     private static final String PEER = ROOT + ".peer";
+     private static final String ORIGINAL_PISTOL_ONE = ROOT + ".originalPistolOne";
+     private static final String ORIGINAL_CARBINE_ONE = ROOT + ".originalCarbineOne";
++    private static final String ORIGINAL_CENTER_OF_BEING =
++        ROOT + ".originalCenterOfBeing";
++    private static final String ORIGINAL_SABER_BLOCK = ROOT + ".originalSaberBlock";
++    private static final String ORIGINAL_DEFENDER_SKILL_TEMPLATE =
++        ROOT + ".originalDefenderSkillTemplate";
+     private static final String PISTOL_WEAPON = ROOT + ".pistolWeapon";
+     private static final String CARBINE_WEAPON = ROOT + ".carbineWeapon";
+     private static final String DEFENDER_RIFLE_WEAPON = ROOT + ".defenderRifleWeapon";
+     private static final String DEFENDER_PISTOL_WEAPON = ROOT + ".defenderPistolWeapon";
+     private static final String DEFENDER_CARBINE_WEAPON = ROOT + ".defenderCarbineWeapon";
++    private static final String DEFENDER_LIGHTSABER_WEAPON =
++        ROOT + ".defenderLightsaberWeapon";
++    private static final String DEFENDER_FALLBACK_WEAPON =
++        ROOT + ".defenderFallbackWeapon";
++    private static final String SECONDARY_CONTROL_MOD =
++        ROOT + ".secondaryControl.mod";
++    private static final String SECONDARY_CONTROL_DELTA =
++        ROOT + ".secondaryControl.delta";
+     private static final String DIAGNOSTIC_ROOT = ROOT + ".liveDiagnostic";
+     private static final String DIAGNOSTIC_ENABLED = DIAGNOSTIC_ROOT + ".enabled";
+     private static final String PREPARED = ROOT + ".prepared";
+     private static final String USAGE =
+         "usage: inspect|recover|prepare|status|armSuccess|armNoPartialBody|" +
+         "armNoPartialLeg|armPrimaryIdeal|armPrimaryNearMax|armPrimaryFallback|" +
++        "armSecondaryBlock|armSecondaryDodge|armSecondaryCounter|" +
++        "armSecondaryRicochet|armSecondaryFallback|" +
++        "equipSecondaryRicochet|equipSecondaryFallback|" +
+         "cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+@@ -130,6 +152,44 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         {
+             return armPrimaryRange(attacker, defender, args[3], "fallback", 6.0f);
+         }
++        if (args[0].equalsIgnoreCase("armSecondaryBlock"))
++        {
++            return armSecondaryDefense(
++                attacker, defender, args[3], "block",
++                "private_center_of_being", 1000);
++        }
++        if (args[0].equalsIgnoreCase("armSecondaryDodge"))
++        {
++            return armSecondaryDefense(
++                attacker, defender, args[3], "dodge",
++                "private_center_of_being", 1000);
++        }
++        if (args[0].equalsIgnoreCase("armSecondaryCounter"))
++        {
++            return armSecondaryDefense(
++                attacker, defender, args[3], "counter",
++                "private_center_of_being", 1000);
++        }
++        if (args[0].equalsIgnoreCase("armSecondaryRicochet"))
++        {
++            return armSecondaryDefense(
++                attacker, defender, args[3], "ricochet", "saber_block", 101);
++        }
++        if (args[0].equalsIgnoreCase("armSecondaryFallback"))
++        {
++            return armSecondaryDefense(
++                attacker, defender, args[3], "fallback", "", 0);
++        }
++        if (args[0].equalsIgnoreCase("equipSecondaryRicochet"))
++        {
++            return equipSecondaryDefenseWeapon(
++                attacker, defender, args[3], "ricochet");
++        }
++        if (args[0].equalsIgnoreCase("equipSecondaryFallback"))
++        {
++            return equipSecondaryDefenseWeapon(
++                attacker, defender, args[3], "fallback");
++        }
+         if (args[0].equalsIgnoreCase("cleanup"))
+         {
+             return cleanup(attacker, defender, args[3]);
+@@ -169,6 +229,20 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         setObjVar(defender, PEER, attacker);
+         setObjVar(attacker, ORIGINAL_PISTOL_ONE, hasSkill(attacker, PISTOL_ONE) ? 1 : 0);
+         setObjVar(attacker, ORIGINAL_CARBINE_ONE, hasSkill(attacker, CARBINE_ONE) ? 1 : 0);
++        setObjVar(
++            defender,
++            ORIGINAL_CENTER_OF_BEING,
++            getEnhancedSkillStatisticModifierUncapped(
++                defender, "private_center_of_being"));
++        setObjVar(
++            defender,
++            ORIGINAL_SABER_BLOCK,
++            getEnhancedSkillStatisticModifierUncapped(defender, "saber_block"));
++        String defenderSkillTemplate = getSkillTemplate(defender);
++        setObjVar(
++            defender,
++            ORIGINAL_DEFENDER_SKILL_TEMPLATE,
++            defenderSkillTemplate == null ? "" : defenderSkillTemplate);
+         setObjVar(attacker, PREPARED, 0);
+         setObjVar(defender, PREPARED, 0);
+ 
+@@ -203,8 +277,29 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             createOwnedWeapon(defender, DEFENDER_PISTOL_WEAPON, PISTOL_TEMPLATE);
+         obj_id defenderCarbine =
+             createOwnedWeapon(defender, DEFENDER_CARBINE_WEAPON, CARBINE_TEMPLATE);
++        obj_id defenderLightsaber =
++            createOwnedWeapon(
++                defender, DEFENDER_LIGHTSABER_WEAPON, LIGHTSABER_TEMPLATE);
++        if (isIdValid(defenderLightsaber))
++        {
++            setObjVar(
++                defenderLightsaber,
++                script.library.weapons.OBJVAR_WP_LEVEL,
++                1);
++        }
++        obj_id defenderFallback =
++            createOwnedWeapon(
++                defender, DEFENDER_FALLBACK_WEAPON, FALLBACK_WEAPON_TEMPLATE);
++        if (isIdValid(defenderFallback))
++        {
++            setObjVar(
++                defenderFallback,
++                script.library.weapons.OBJVAR_WP_LEVEL,
++                1);
++        }
+         if (!isIdValid(defenderRifle) || !isIdValid(defenderPistol) ||
+-            !isIdValid(defenderCarbine))
++            !isIdValid(defenderCarbine) || !isIdValid(defenderLightsaber) ||
++            !isIdValid(defenderFallback))
+         {
+             String recovery = recover(attacker, defender, lifecycle).replace(' ', '_');
+             return "error=defenderWeaponCreationFailed recovery=" + recovery;
+@@ -366,6 +461,119 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armSecondaryDefense(
++        obj_id attacker, obj_id defender, String lifecycle, String mode,
++        String controlMod, int controlDelta) throws InterruptedException
++    {
++        if (!setFixtureDefenderSkillTemplate(defender, mode.equals("ricochet")))
++        {
++            return "error=secondaryDefenseCertificationStateFailed mode=" + mode +
++                " " + buildStatus(attacker, defender, lifecycle);
++        }
++        String placement =
++            armPrimaryRange(attacker, defender, lifecycle, "secondary-" + mode, 16.0f);
++        if (placement.startsWith("error="))
++        {
++            return placement;
++        }
++        if (!applySecondaryDefenseControl(defender, controlMod, controlDelta))
++        {
++            return "error=secondaryDefenseControlFailed mode=" + mode + " " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        if (mode.equals("ricochet"))
++        {
++            obj_id lightsaber =
++                getObjIdObjVar(defender, DEFENDER_LIGHTSABER_WEAPON);
++            if (!isIdValid(lightsaber))
++            {
++                return "error=fixtureLightsaberMissing " +
++                    buildStatus(attacker, defender, lifecycle);
++            }
++            // Retain the weapon-identity cache as a second, narrow
++            // certification signal. The snapshot-backed class-template seam
++            // above is authoritative across the transfer process boundary.
++            script.library.utils.setScriptVar(
++                defender, "combat.weaponCertified", lightsaber);
++        }
++        return "action=armSecondaryDefense mode=" + mode +
++            " expectedDefenderWeapon=" +
++            getSecondaryDefenseWeaponTemplate(mode) + " " +
++            buildStatus(attacker, defender, lifecycle);
++    }
++
++    private String equipSecondaryDefenseWeapon(
++        obj_id attacker, obj_id defender, String lifecycle, String mode)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (getIntObjVar(attacker, PREPARED) != 1 ||
++            getIntObjVar(defender, PREPARED) != 1)
++        {
++            return "error=fixtureNotPrepared";
++        }
++
++        String weaponObjvar = mode.equals("ricochet") ?
++            DEFENDER_LIGHTSABER_WEAPON : DEFENDER_FALLBACK_WEAPON;
++        String weaponTemplate = getSecondaryDefenseWeaponTemplate(mode);
++        if (!hasOwnedWeapon(defender, weaponObjvar, weaponTemplate))
++        {
++            return "error=secondaryDefenseWeaponMissing mode=" + mode;
++        }
++        obj_id weapon = getObjIdObjVar(defender, weaponObjvar);
++        obj_id current = getObjectInSlot(defender, "hold_r");
++        if (current == weapon)
++        {
++            return "action=equipSecondaryDefenseWeapon mode=" + mode +
++                " resumed=true equipped=true " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        if (isIdValid(current))
++        {
++            boolean currentOwned =
++                current == getObjIdObjVar(defender, DEFENDER_LIGHTSABER_WEAPON) ||
++                current == getObjIdObjVar(defender, DEFENDER_FALLBACK_WEAPON);
++            obj_id inventory = getObjectInSlot(defender, "inventory");
++            if (!currentOwned || !isIdValid(inventory) ||
++                !putInOverloaded(current, inventory))
++            {
++                return "error=unexpectedDefenderWeapon mode=" + mode + " " +
++                    buildStatus(attacker, defender, lifecycle);
++            }
++        }
++        boolean combatWeaponAttached =
++            mode.equals("ricochet") && hasScript(weapon, COMBAT_WEAPON_SCRIPT);
++        if (combatWeaponAttached)
++        {
++            detachScript(weapon, COMBAT_WEAPON_SCRIPT);
++        }
++        boolean transferReady =
++            !combatWeaponAttached || !hasScript(weapon, COMBAT_WEAPON_SCRIPT);
++        boolean equipped = transferReady && equipOverride(weapon, defender) &&
++            getObjectInSlot(defender, "hold_r") == weapon;
++        if (combatWeaponAttached)
++        {
++            attachScript(weapon, COMBAT_WEAPON_SCRIPT);
++        }
++        boolean scriptRestored =
++            !combatWeaponAttached || hasScript(weapon, COMBAT_WEAPON_SCRIPT);
++        return equipped && scriptRestored ?
++            "action=equipSecondaryDefenseWeapon mode=" + mode +
++                " resumed=false equipped=true combatWeaponScriptRestored=" +
++                scriptRestored + " " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=secondaryDefenseWeaponEquipFailed mode=" + mode +
++                " combatWeaponAttached=" + combatWeaponAttached +
++                " transferReady=" + transferReady +
++                " equipped=" + equipped +
++                " combatWeaponScriptRestored=" + scriptRestored + " " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String cleanup(obj_id attacker, obj_id defender, String lifecycle)
+         throws InterruptedException
+     {
+@@ -399,7 +607,10 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             return "error=fixtureOwnershipMismatch";
+         }
+         if (!hasObjVar(attacker, ORIGINAL_PISTOL_ONE) ||
+-            !hasObjVar(attacker, ORIGINAL_CARBINE_ONE))
++            !hasObjVar(attacker, ORIGINAL_CARBINE_ONE) ||
++            !hasObjVar(defender, ORIGINAL_CENTER_OF_BEING) ||
++            !hasObjVar(defender, ORIGINAL_SABER_BLOCK) ||
++            !hasObjVar(defender, ORIGINAL_DEFENDER_SKILL_TEMPLATE))
+         {
+             return "error=fixtureSnapshotIncomplete";
+         }
+@@ -408,6 +619,10 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         stopCombat(defender);
+         setCombatTarget(attacker, obj_id.NULL_ID);
+         setCombatTarget(defender, obj_id.NULL_ID);
++        boolean secondaryControlRestored = clearSecondaryDefenseControl(defender);
++        clearFixtureWeaponCertification(defender);
++        boolean defenderSkillTemplateRestored =
++            setFixtureDefenderSkillTemplate(defender, false);
+         boolean pistolDestroyed =
+             destroyOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE);
+         boolean carbineDestroyed =
+@@ -418,15 +633,28 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             destroyOwnedWeapon(defender, DEFENDER_PISTOL_WEAPON, PISTOL_TEMPLATE);
+         boolean defenderCarbineDestroyed =
+             destroyOwnedWeapon(defender, DEFENDER_CARBINE_WEAPON, CARBINE_TEMPLATE);
+-        if (!pistolDestroyed || !carbineDestroyed ||
++        boolean defenderLightsaberDestroyed =
++            destroyOwnedWeapon(
++                defender, DEFENDER_LIGHTSABER_WEAPON, LIGHTSABER_TEMPLATE);
++        boolean defenderFallbackDestroyed =
++            destroyOwnedWeapon(
++                defender, DEFENDER_FALLBACK_WEAPON, FALLBACK_WEAPON_TEMPLATE);
++        if (!secondaryControlRestored || !defenderSkillTemplateRestored ||
++            !pistolDestroyed || !carbineDestroyed ||
+             !defenderRifleDestroyed || !defenderPistolDestroyed ||
+-            !defenderCarbineDestroyed)
++            !defenderCarbineDestroyed || !defenderLightsaberDestroyed ||
++            !defenderFallbackDestroyed)
+         {
+-            return "error=fixtureWeaponRestoreFailed pistol=" + pistolDestroyed +
++            return "error=fixtureWeaponRestoreFailed control=" +
++                secondaryControlRestored +
++                " skillTemplate=" + defenderSkillTemplateRestored +
++                " pistol=" + pistolDestroyed +
+                 " carbine=" + carbineDestroyed +
+                 " defenderRifle=" + defenderRifleDestroyed +
+                 " defenderPistol=" + defenderPistolDestroyed +
+-                " defenderCarbine=" + defenderCarbineDestroyed;
++                " defenderCarbine=" + defenderCarbineDestroyed +
++                " defenderLightsaber=" + defenderLightsaberDestroyed +
++                " defenderFallback=" + defenderFallbackDestroyed;
+         }
+ 
+         if (getIntObjVar(attacker, ORIGINAL_CARBINE_ONE) == 0 &&
+@@ -465,7 +693,17 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             hasOwnedWeapon(attacker, CARBINE_WEAPON, CARBINE_TEMPLATE) &&
+             hasOwnedWeapon(defender, DEFENDER_RIFLE_WEAPON, RIFLE_TEMPLATE) &&
+             hasOwnedWeapon(defender, DEFENDER_PISTOL_WEAPON, PISTOL_TEMPLATE) &&
+-            hasOwnedWeapon(defender, DEFENDER_CARBINE_WEAPON, CARBINE_TEMPLATE);
++            hasOwnedWeapon(defender, DEFENDER_CARBINE_WEAPON, CARBINE_TEMPLATE) &&
++            hasOwnedWeapon(
++                defender, DEFENDER_LIGHTSABER_WEAPON, LIGHTSABER_TEMPLATE) &&
++            getIntObjVar(
++                getObjIdObjVar(defender, DEFENDER_LIGHTSABER_WEAPON),
++                script.library.weapons.OBJVAR_WP_LEVEL) == 1 &&
++            hasOwnedWeapon(
++                defender, DEFENDER_FALLBACK_WEAPON, FALLBACK_WEAPON_TEMPLATE) &&
++            getIntObjVar(
++                getObjIdObjVar(defender, DEFENDER_FALLBACK_WEAPON),
++                script.library.weapons.OBJVAR_WP_LEVEL) == 1;
+     }
+ 
+     private boolean hasOwnedWeapon(
+@@ -520,6 +758,132 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         return true;
+     }
+ 
++    private String getSecondaryDefenseWeaponTemplate(String mode)
++        throws InterruptedException
++    {
++        if (mode.equals("block"))
++        {
++            return RIFLE_TEMPLATE;
++        }
++        if (mode.equals("dodge"))
++        {
++            return PISTOL_TEMPLATE;
++        }
++        if (mode.equals("counter"))
++        {
++            return CARBINE_TEMPLATE;
++        }
++        if (mode.equals("ricochet"))
++        {
++            return LIGHTSABER_TEMPLATE;
++        }
++        return FALLBACK_WEAPON_TEMPLATE;
++    }
++
++    private boolean applySecondaryDefenseControl(
++        obj_id defender, String controlMod, int controlDelta)
++        throws InterruptedException
++    {
++        if (!clearSecondaryDefenseControl(defender))
++        {
++            return false;
++        }
++        if (controlDelta == 0)
++        {
++            return true;
++        }
++        int originalValue = getOriginalSecondaryDefenseValue(defender, controlMod);
++        if (!applySkillStatisticModifier(defender, controlMod, controlDelta))
++        {
++            return false;
++        }
++        if (getEnhancedSkillStatisticModifierUncapped(defender, controlMod) !=
++            originalValue + controlDelta)
++        {
++            applySkillStatisticModifier(defender, controlMod, -controlDelta);
++            return false;
++        }
++        setObjVar(defender, SECONDARY_CONTROL_MOD, controlMod);
++        setObjVar(defender, SECONDARY_CONTROL_DELTA, controlDelta);
++        return true;
++    }
++
++    private boolean clearSecondaryDefenseControl(obj_id defender)
++        throws InterruptedException
++    {
++        boolean hasMod = hasObjVar(defender, SECONDARY_CONTROL_MOD);
++        boolean hasDelta = hasObjVar(defender, SECONDARY_CONTROL_DELTA);
++        if (!hasMod && !hasDelta)
++        {
++            return true;
++        }
++        if (!hasMod || !hasDelta)
++        {
++            return false;
++        }
++        String controlMod = getStringObjVar(defender, SECONDARY_CONTROL_MOD);
++        int controlDelta = getIntObjVar(defender, SECONDARY_CONTROL_DELTA);
++        int originalValue = getOriginalSecondaryDefenseValue(defender, controlMod);
++        boolean restored =
++            applySkillStatisticModifier(defender, controlMod, -controlDelta) &&
++            getEnhancedSkillStatisticModifierUncapped(defender, controlMod) ==
++                originalValue;
++        if (restored)
++        {
++            removeObjVar(defender, SECONDARY_CONTROL_MOD);
++            removeObjVar(defender, SECONDARY_CONTROL_DELTA);
++        }
++        return restored;
++    }
++
++    private void clearFixtureWeaponCertification(obj_id defender)
++        throws InterruptedException
++    {
++        if (!script.library.utils.hasScriptVar(
++                defender, "combat.weaponCertified") ||
++            !hasObjVar(defender, DEFENDER_LIGHTSABER_WEAPON))
++        {
++            return;
++        }
++        obj_id certified = script.library.utils.getObjIdScriptVar(
++            defender, "combat.weaponCertified");
++        if (certified == getObjIdObjVar(defender, DEFENDER_LIGHTSABER_WEAPON))
++        {
++            script.library.utils.removeScriptVar(
++                defender, "combat.weaponCertified");
++        }
++    }
++
++    private boolean setFixtureDefenderSkillTemplate(
++        obj_id defender, boolean forceSensitive) throws InterruptedException
++    {
++        if (!hasObjVar(defender, ORIGINAL_DEFENDER_SKILL_TEMPLATE))
++        {
++            return false;
++        }
++        String expected = forceSensitive ? "force_sensitive_1a" :
++            getStringObjVar(defender, ORIGINAL_DEFENDER_SKILL_TEMPLATE);
++        String current = getSkillTemplate(defender);
++        if (current == null)
++        {
++            current = "";
++        }
++        if (!expected.equals(current))
++        {
++            setSkillTemplate(defender, expected);
++        }
++        String actual = getSkillTemplate(defender);
++        return expected.equals(actual == null ? "" : actual);
++    }
++
++    private int getOriginalSecondaryDefenseValue(
++        obj_id defender, String controlMod) throws InterruptedException
++    {
++        return controlMod.equals("saber_block") ?
++            getIntObjVar(defender, ORIGINAL_SABER_BLOCK) :
++            getIntObjVar(defender, ORIGINAL_CENTER_OF_BEING);
++    }
++
+     private void resetLiveDiagnostic(obj_id attacker) throws InterruptedException
+     {
+         if (hasObjVar(attacker, DIAGNOSTIC_ROOT))
+@@ -609,6 +973,12 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             getObjIdObjVar(defender, DEFENDER_PISTOL_WEAPON).toString() : "none";
+         String defenderCarbine = hasObjVar(defender, DEFENDER_CARBINE_WEAPON) ?
+             getObjIdObjVar(defender, DEFENDER_CARBINE_WEAPON).toString() : "none";
++        String defenderLightsaber =
++            hasObjVar(defender, DEFENDER_LIGHTSABER_WEAPON) ?
++            getObjIdObjVar(defender, DEFENDER_LIGHTSABER_WEAPON).toString() : "none";
++        String defenderFallback =
++            hasObjVar(defender, DEFENDER_FALLBACK_WEAPON) ?
++            getObjIdObjVar(defender, DEFENDER_FALLBACK_WEAPON).toString() : "none";
+         return "lifecycle=" + lifecycle +
+             " prepared=" + (getIntObjVar(attacker, PREPARED) == 1 &&
+                 getIntObjVar(defender, PREPARED) == 1) +
+@@ -629,6 +999,25 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " defenderRifleWeapon=" + defenderRifle +
+             " defenderPistolWeapon=" + defenderPistol +
+             " defenderCarbineWeapon=" + defenderCarbine +
++            " defenderLightsaberWeapon=" + defenderLightsaber +
++            " defenderFallbackWeapon=" + defenderFallback +
++            " secondaryControlMod=" +
++                (hasObjVar(defender, SECONDARY_CONTROL_MOD) ?
++                    getStringObjVar(defender, SECONDARY_CONTROL_MOD) : "none") +
++            " secondaryControlDelta=" +
++                (hasObjVar(defender, SECONDARY_CONTROL_DELTA) ?
++                    getIntObjVar(defender, SECONDARY_CONTROL_DELTA) : 0) +
++            " defenderCenterOfBeing=" +
++                getEnhancedSkillStatisticModifierUncapped(
++                    defender, "private_center_of_being") +
++            " defenderSaberBlock=" +
++                getEnhancedSkillStatisticModifierUncapped(defender, "saber_block") +
++            " defenderSkillTemplate=" +
++                (getSkillTemplate(defender) == null ?
++                    "" : getSkillTemplate(defender)) +
++            " defenderLevel=" + getLevel(defender) +
++            " defenderLightsaberCertified=" +
++                isFixtureLightsaberCertified(defender) +
+             " globalMaxCombatRange=" + combat_engine.getMaxCombatRange() +
+             " attackerWeaponMaxRange=" +
+                 (isIdValid(weapon) ? getMaxRange(weapon) : -1.0f) +
+@@ -691,6 +1080,22 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "secondary.result", -1) +
+             " diagnosticSecondaryResultName=" +
+                 readDiagnosticString(attacker, "secondary.resultName", "none") +
++            " diagnosticSecondaryBlockBaseBefore=" +
++                readDiagnosticInt(attacker, "secondary.blockBaseBefore", -1) +
++            " diagnosticSecondaryBlockBaseAfter=" +
++                readDiagnosticInt(attacker, "secondary.blockBaseAfter", -1) +
++            " diagnosticSecondaryBlockElementalBefore=" +
++                readDiagnosticInt(attacker, "secondary.blockElementalBefore", -1) +
++            " diagnosticSecondaryBlockElementalAfter=" +
++                readDiagnosticInt(attacker, "secondary.blockElementalAfter", -1) +
++            " diagnosticSecondaryCounterQueued=" +
++                readDiagnosticInt(attacker, "secondary.counterQueued", -1) +
++            " diagnosticSecondaryCounterDispatched=" +
++                readDiagnosticInt(attacker, "secondary.counterDispatched", -1) +
++            " diagnosticSecondaryNgeParryBranch=" +
++                readDiagnosticInt(attacker, "secondary.ngeParryBranch", -1) +
++            " diagnosticSecondaryReflectQueued=" +
++                readDiagnosticInt(attacker, "secondary.reflectQueued", -1) +
+             " distanceCentimeters=" + (int)(getDistance(attacker, defender) * 100.0f) +
+             " pvpCanAttack=" + pvpCanAttack(attacker, defender) +
+             " attackerHealth=" + getAttrib(attacker, HEALTH) +
+@@ -707,6 +1112,17 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " defenderMaxMind=" + getMaxAttrib(defender, MIND);
+     }
+ 
++    private boolean isFixtureLightsaberCertified(obj_id defender)
++        throws InterruptedException
++    {
++        return script.library.utils.hasScriptVar(
++                defender, "combat.weaponCertified") &&
++            hasObjVar(defender, DEFENDER_LIGHTSABER_WEAPON) &&
++            script.library.utils.getObjIdScriptVar(
++                defender, "combat.weaponCertified") ==
++                getObjIdObjVar(defender, DEFENDER_LIGHTSABER_WEAPON);
++    }
++
+     private String readDiagnosticString(
+         obj_id attacker, String leaf, String fallback) throws InterruptedException
+     {

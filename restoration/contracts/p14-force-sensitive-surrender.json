@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "feature": "force-sensitive-surrender",
+  "status": "ready",
+  "scope": "Open the 64 Publish 14.1 Force-sensitive progression boxes to ordinary skills-window surrender, preserve the village 24-box Jedi floor, recalculate Force power after a successful revoke, and keep Jedi titles, disciplines, trials, and FRS ranks on their specialized fail-closed paths.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "skillManagerPath": "MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+    "villageManagerPath": "MMOCoreORB/bin/scripts/managers/jedi/village_jedi_manager.lua",
+    "findings": [
+      "Core3 counts exact intermediate force_sensitive boxes separately from Jedi titles and disciplines.",
+      "A player holding force_title_jedi_rank_02 may not surrender below 24 retained Force-sensitive boxes.",
+      "Successful Force-sensitive surrender recalculates the player's Force-power maximum.",
+      "Jedi novice, Jedi titles, discipline trees, active trials, and FRS ranks require specialized eligibility and remain outside generic surrender."
+    ]
+  },
+  "expected": {
+    "intermediateForceSensitiveBoxesSurrenderable": true,
+    "recognizedSuffixes": [
+      "_01",
+      "_02",
+      "_03",
+      "_04"
+    ],
+    "jediTwentyFourBoxFloorRetained": true,
+    "localizedFloorRejection": "jedi_spam:revoke_force_sensitive",
+    "forcePowerRecalculatedAfterRevoke": true,
+    "jediTitlesDirectSurrenderBlocked": true,
+    "jediDisciplinesDirectSurrenderBlocked": true,
+    "activeTrialsAndFrsDirectSurrenderBlocked": true
+  },
+  "buildEvidence": {
+    "nativeOverlay": "restoration/patches/src/014-p14-force-sensitive-surrender.patch",
+    "nativeOverlayBytes": 2026,
+    "nativeOverlaySha256": "beb332f31fce89487630205e2207a4474b96ace72dc5300b0a728248a6a5646a",
+    "scriptOverlay": "restoration/patches/dsrc/199-p14-force-sensitive-surrender.patch",
+    "scriptOverlayBytes": 1644,
+    "scriptOverlaySha256": "00aa9d7cec28b72c739a81b0bef7b68aa5f82a116238a1f6760d36949f0969cd",
+    "sourceSha256": {
+      "CommandCppFuncs.cpp": "0c8be3cc74d4b59be5c973ee57b346bef1d58ce8d47c6d09f5bdd8a758333f1f",
+      "base_player.java": "b838321d27a187fae8223cc4ea940177a27fae5e4a6b136e2278e1cb18ebb341",
+      "precu_stateful_surrender_fixture.java": "8640e70133b1509e1fa8dbf9b497712df1537b086c5c942136d5698ed994b0ae"
+    },
+    "cleanMaterializationPatches": 205,
+    "cleanMaterializationFiles": 584,
+    "cleanMaterializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "javaCompile": "passed",
+    "classSha256": {
+      "base_player.class": "6309efd72d0f3693f7fb69971d69f9e01efb94a4feccc0af97a56d0a106c93b1",
+      "precu_stateful_surrender_fixture.class": "b9f20a107f74f48bac6bbdbfd1cbc0bc05ab907f7313a4435d32a1dc3a682cd0"
+    },
+    "nativeCompile": "passed",
+    "swgGameServerSha256": "3a41ff2642ee0086686cbb7a419085607a5b6a6e3be9f4edefda4a81ce55936a",
+    "staticContract": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "characterOid": 39008597,
+    "forceSensitiveBox": "force_sensitive_combat_prowess_ranged_accuracy_01",
+    "productionSurrender": "granted-queued-removed-verified-marker-cleaned",
+    "professionRequirementProbe": "passed-and-restored",
+    "clientProcessId": 54988,
+    "backgroundInputProtocol": 85,
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "protectedBoundary": "Jedi titles, Jedi novice, discipline trees, active village trials, and FRS ranks remain deliberately unavailable to generic surrender; they must be handled by their retained specialized systems rather than weakened into the skills-window predicate.",
+  "requiredBeforeReady": []
+}

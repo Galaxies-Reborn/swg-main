@@ -1,0 +1,37 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14562,9 +14562,17 @@ public class combat_actions extends script.systems.combat.combat_base
+     public int legShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("legShot1", self, target, params, "", ""))
+         {
+             return SCRIPT_OVERRIDE;
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int headShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("headShot2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+ }
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1288,3 +1288,4 @@ firePulseCannon	firePulseCannon				LEFT_CLICK_DEFAULT	STANDARD	DELAY_ATTACK								0	0	1	LOCATION	STANDARD	1	0	fire_blue_energy_at_loc														OFF	OFF	OFF	OFF	OFF	TARGET_AREA	5			64											750																																			WEAPON_NAME
+ headShot1	headShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ bodyShot1	bodyShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single					fire_1_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ legShot1	legShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	test_homing							test_homing							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
++headShot2	headShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1															OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1.8	0.0	1.0	0	0	0	0	0	150	0.0	60	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1910,3 +1910,4 @@ surrenderSkill		immediate			surrenderSkill		0		1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1		other	none		1	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	0	0		0	0	0
+ headShot1	combat	normal	headShot1	failSpecialAttack			1.5	headShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ bodyShot1	combat	normal	bodyShot1	failSpecialAttack			1.5	bodyShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ legShot1	combat	normal	legShot1	failSpecialAttack			1.5	legShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++headShot2	combat	normal	headShot2	failSpecialAttack			1.5	headShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

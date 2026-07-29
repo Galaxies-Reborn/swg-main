@@ -1,0 +1,153 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+index 9507a82..e7320ef 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+@@ -1,5 +1,8 @@
+ package script.test;
+ 
++import script.location;
+ import script.obj_id;
++import script.combat_engine;
++import script.combat_engine.combat_data;
+ import script.library.combat;
+ 
+@@ -44,7 +47,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+     private static final String DIAGNOSTIC_ENABLED = DIAGNOSTIC_ROOT + ".enabled";
+     private static final String PREPARED = ROOT + ".prepared";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armSuccess|armNoPartialBody|armNoPartialLeg|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armSuccess|armNoPartialBody|" +
++        "armNoPartialLeg|armPrimaryIdeal|armPrimaryNearMax|armPrimaryFallback|" +
++        "cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -113,6 +118,18 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         {
+             return arm(attacker, defender, args[3], "leg");
+         }
++        if (args[0].equalsIgnoreCase("armPrimaryIdeal"))
++        {
++            return armPrimaryRange(attacker, defender, args[3], "ideal", 16.0f);
++        }
++        if (args[0].equalsIgnoreCase("armPrimaryNearMax"))
++        {
++            return armPrimaryRange(attacker, defender, args[3], "nearMax", 64.0f);
++        }
++        if (args[0].equalsIgnoreCase("armPrimaryFallback"))
++        {
++            return armPrimaryRange(attacker, defender, args[3], "fallback", 6.0f);
++        }
+         if (args[0].equalsIgnoreCase("cleanup"))
+         {
+             return cleanup(attacker, defender, args[3]);
+@@ -267,6 +284,88 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armPrimaryRange(
++        obj_id attacker, obj_id defender, String lifecycle, String mode,
++        float centerSeparationMeters) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        String dependency = validateHeadShotLayer(attacker, defender, lifecycle);
++        if (dependency != null)
++        {
++            return dependency;
++        }
++        if (!fixtureReady(attacker, defender))
++        {
++            return "error=fixtureNotPrepared";
++        }
++        resetLiveDiagnostic(attacker);
++        stopCombat(attacker);
++        stopCombat(defender);
++        setCombatTarget(attacker, obj_id.NULL_ID);
++        setCombatTarget(defender, obj_id.NULL_ID);
++        combat.clearCombatDebuffs(attacker);
++        combat.clearCombatDebuffs(defender);
++
++        float attackerX = 1000.0f;
++        float attackerZ = 1000.0f;
++        float defenderX = attackerX;
++        float defenderZ = attackerZ + centerSeparationMeters;
++        location attackerDestination =
++            new location(
++                attackerX,
++                getHeightAtLocation(attackerX, attackerZ),
++                attackerZ,
++                "tatooine",
++                null);
++        location defenderDestination =
++            new location(
++                defenderX,
++                getHeightAtLocation(defenderX, defenderZ),
++                defenderZ,
++                "tatooine",
++                null);
++        boolean moved =
++            setLocation(attacker, attackerDestination) &
++            setLocation(defender, defenderDestination);
++        boolean stateReady =
++            setLocomotion(attacker, LOCOMOTION_STANDING) &
++            setLocomotion(defender, LOCOMOTION_STANDING) &
++            setPostureClientImmediate(attacker, POSTURE_UPRIGHT) &
++            setPostureClientImmediate(defender, POSTURE_UPRIGHT);
++        pvpSetPermanentPersonalEnemyFlag(attacker, defender);
++        pvpSetPermanentPersonalEnemyFlag(defender, attacker);
++        boolean pvpReady =
++            pvpCanAttack(attacker, defender) &
++            pvpCanAttack(defender, attacker);
++        boolean hamReady =
++            setAttribAndVerify(attacker, HEALTH, getMaxAttrib(attacker, HEALTH)) &
++            setAttribAndVerify(attacker, ACTION, getMaxAttrib(attacker, ACTION)) &
++            setAttribAndVerify(attacker, MIND, getMaxAttrib(attacker, MIND)) &
++            setAttribAndVerify(defender, HEALTH, getMaxAttrib(defender, HEALTH)) &
++            setAttribAndVerify(defender, ACTION, getMaxAttrib(defender, ACTION)) &
++            setAttribAndVerify(defender, MIND, getMaxAttrib(defender, MIND));
++        if (!moved || !stateReady || !pvpReady || !hamReady ||
++            getLocomotion(attacker) != LOCOMOTION_STANDING ||
++            getLocomotion(defender) != LOCOMOTION_STANDING ||
++            getPosture(attacker) != POSTURE_UPRIGHT ||
++            getPosture(defender) != POSTURE_UPRIGHT)
++        {
++            return "error=primaryRangePreparationFailed mode=" + mode +
++                " moved=" + moved +
++                " stateReady=" + stateReady +
++                " pvpReady=" + pvpReady +
++                " hamReady=" + hamReady + " " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        return "action=armPrimaryRange mode=" + mode +
++            " centerSeparationMeters=" + centerSeparationMeters + " " +
++            buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String cleanup(obj_id attacker, obj_id defender, String lifecycle)
+         throws InterruptedException
+     {
+@@ -498,6 +598,8 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         obj_id defenderWeapon = getObjectInSlot(defender, "hold_r");
+         String defenderWeaponTemplate = isIdValid(defenderWeapon) ?
+             getTemplateName(defenderWeapon) : "none";
++        combat_data headShotData = combat_engine.getCombatData("headShot1");
++        float headShotMaxRange = headShotData == null ? -1.0f : headShotData.maxRange;
+         String pistol = hasObjVar(attacker, PISTOL_WEAPON) ?
+             getObjIdObjVar(attacker, PISTOL_WEAPON).toString() : "none";
+         String carbine = hasObjVar(attacker, CARBINE_WEAPON) ?
+@@ -528,6 +630,11 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " defenderRifleWeapon=" + defenderRifle +
+             " defenderPistolWeapon=" + defenderPistol +
+             " defenderCarbineWeapon=" + defenderCarbine +
++            " globalMaxCombatRange=" + combat_engine.getMaxCombatRange() +
++            " attackerWeaponMaxRange=" +
++                (isIdValid(weapon) ? getMaxRange(weapon) : -1.0f) +
++            " headShot1MaxRange=" + headShotMaxRange +
++            " lineOfSight=" + canSee(attacker, defender) +
+             " diagnosticEnabled=" +
+                 readDiagnosticInt(attacker, "enabled", 0) +
+             " diagnosticAction=" +

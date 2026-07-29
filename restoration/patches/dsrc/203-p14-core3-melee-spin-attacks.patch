@@ -1,0 +1,666 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14583,15 +14583,31 @@
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int polearmSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        if (!combatStandardAction("polearmSpinAttack1", self, target, params, "", ""))
+-        {
+-            return SCRIPT_OVERRIDE;
+-        }
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int headShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    public int polearmSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("polearmSpinAttack1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int melee1hSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("melee1hSpinAttack1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int melee2hSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("melee2hSpinAttack1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int headShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("headShot2", self, target, params, "", ""))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -21,9 +21,13 @@
+     private static final String DURATION_CONTROL_COMMAND = "headShot2";
+     private static final String CDEF_CERTIFICATION = "cert_rifle_cdef";
+     private static final String POLEARM_COMMAND = "polearmLegHit1";
+-    private static final String UNARMED_COMMAND = "unarmedHeadHit1";
+-    private static final String POLEARM_AREA_COMMAND = "polearmSpinAttack1";
+-    private static final String POLEARM_CERTIFICATION = "cert_lance_staff_wood_s2";
++    private static final String UNARMED_COMMAND = "unarmedHeadHit1";
++    private static final String POLEARM_AREA_COMMAND = "polearmSpinAttack1";
++    private static final String ONE_HAND_AREA_COMMAND = "melee1hSpinAttack1";
++    private static final String TWO_HAND_AREA_COMMAND = "melee2hSpinAttack1";
++    private static final String POLEARM_CERTIFICATION = "cert_lance_staff_wood_s2";
++    private static final String ONE_HAND_CERTIFICATION = "cert_sword_blade_rantok";
++    private static final String TWO_HAND_CERTIFICATION = "cert_sword_2h_cleaver";
+     private static final String COMBAT_ACTIONS_SCRIPT = "systems.combat.combat_actions";
+     private static final String DIAGNOSTIC_ROOT =
+         "precu.p14.marksmanTier1Fixture.liveDiagnostic";
+@@ -56,18 +60,32 @@
+         ROOT + ".originalPolearmCommand";
+     private static final String ORIGINAL_UNARMED_COMMAND =
+         ROOT + ".originalUnarmedCommand";
+-    private static final String ORIGINAL_POLEARM_AREA_COMMAND =
+-        ROOT + ".originalPolearmAreaCommand";
+-    private static final String ORIGINAL_POLEARM_CERTIFICATION =
+-        ROOT + ".originalPolearmCertification";
++    private static final String ORIGINAL_POLEARM_AREA_COMMAND =
++        ROOT + ".originalPolearmAreaCommand";
++    private static final String ORIGINAL_ONE_HAND_AREA_COMMAND =
++        ROOT + ".originalOneHandAreaCommand";
++    private static final String ORIGINAL_TWO_HAND_AREA_COMMAND =
++        ROOT + ".originalTwoHandAreaCommand";
++    private static final String ORIGINAL_POLEARM_CERTIFICATION =
++        ROOT + ".originalPolearmCertification";
++    private static final String ORIGINAL_ONE_HAND_CERTIFICATION =
++        ROOT + ".originalOneHandCertification";
++    private static final String ORIGINAL_TWO_HAND_CERTIFICATION =
++        ROOT + ".originalTwoHandCertification";
+     private static final String ORIGINAL_PERSONAL_ENEMY = ROOT + ".originalPersonalEnemy";
+     private static final String ORIGINAL_COMBAT_ACTIONS = ROOT + ".originalCombatActions";
+     private static final String PREPARED = ROOT + ".prepared";
+-    private static final String FIXTURE_WEAPON = ROOT + ".fixtureWeapon";
+-    private static final String FIXTURE_POLEARM = ROOT + ".fixturePolearm";
++    private static final String FIXTURE_WEAPON = ROOT + ".fixtureWeapon";
++    private static final String FIXTURE_POLEARM = ROOT + ".fixturePolearm";
++    private static final String FIXTURE_ONE_HAND = ROOT + ".fixtureOneHand";
++    private static final String FIXTURE_TWO_HAND = ROOT + ".fixtureTwoHand";
+     private static final String CDEF_TEMPLATE = "object/weapon/ranged/rifle/rifle_cdef.iff";
+-    private static final String POLEARM_TEMPLATE =
+-        "object/weapon/melee/polearm/lance_staff_wood_s2.iff";
++    private static final String POLEARM_TEMPLATE =
++        "object/weapon/melee/polearm/lance_staff_wood_s2.iff";
++    private static final String ONE_HAND_TEMPLATE =
++        "object/weapon/melee/sword/sword_rantok.iff";
++    private static final String TWO_HAND_TEMPLATE =
++        "object/weapon/melee/2h_sword/2h_sword_cleaver.iff";
+     private static final String USAGE =
+         "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+@@ -203,21 +221,41 @@
+             grantCommand(attacker, POLEARM_COMMAND);
+         boolean unarmedCommandGranted = hasCommand(attacker, UNARMED_COMMAND) ||
+             grantCommand(attacker, UNARMED_COMMAND);
+-        boolean polearmAreaCommandGranted =
+-            hasCommand(attacker, POLEARM_AREA_COMMAND) ||
+-            grantCommand(attacker, POLEARM_AREA_COMMAND);
+-        boolean polearmCertificationGranted =
+-            hasCommand(attacker, POLEARM_CERTIFICATION) ||
+-            grantCommand(attacker, POLEARM_CERTIFICATION);
++        boolean polearmAreaCommandGranted =
++            hasCommand(attacker, POLEARM_AREA_COMMAND) ||
++            grantCommand(attacker, POLEARM_AREA_COMMAND);
++        boolean oneHandAreaCommandGranted =
++            hasCommand(attacker, ONE_HAND_AREA_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_AREA_COMMAND);
++        boolean twoHandAreaCommandGranted =
++            hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
++            grantCommand(attacker, TWO_HAND_AREA_COMMAND);
++        boolean polearmCertificationGranted =
++            hasCommand(attacker, POLEARM_CERTIFICATION) ||
++            grantCommand(attacker, POLEARM_CERTIFICATION);
++        boolean oneHandCertificationGranted =
++            hasCommand(attacker, ONE_HAND_CERTIFICATION) ||
++            grantCommand(attacker, ONE_HAND_CERTIFICATION);
++        boolean twoHandCertificationGranted =
++            hasCommand(attacker, TWO_HAND_CERTIFICATION) ||
++            grantCommand(attacker, TWO_HAND_CERTIFICATION);
+         if (!noviceGranted || !rifleGranted || !hasCommand(attacker, COMMAND) ||
+             !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             !cdefCertificationGranted || !hasCommand(attacker, CDEF_CERTIFICATION) ||
+             !polearmCommandGranted || !hasCommand(attacker, POLEARM_COMMAND) ||
+             !unarmedCommandGranted || !hasCommand(attacker, UNARMED_COMMAND) ||
+-            !polearmAreaCommandGranted ||
+-            !hasCommand(attacker, POLEARM_AREA_COMMAND) ||
+-            !polearmCertificationGranted ||
+-            !hasCommand(attacker, POLEARM_CERTIFICATION))
++            !polearmAreaCommandGranted ||
++            !hasCommand(attacker, POLEARM_AREA_COMMAND) ||
++            !oneHandAreaCommandGranted ||
++            !hasCommand(attacker, ONE_HAND_AREA_COMMAND) ||
++            !twoHandAreaCommandGranted ||
++            !hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
++            !polearmCertificationGranted ||
++            !hasCommand(attacker, POLEARM_CERTIFICATION) ||
++            !oneHandCertificationGranted ||
++            !hasCommand(attacker, ONE_HAND_CERTIFICATION) ||
++            !twoHandCertificationGranted ||
++            !hasCommand(attacker, TWO_HAND_CERTIFICATION))
+         {
+             restore(attacker, defender);
+             return "error=skillPreparationFailed novice=" + noviceGranted +
+@@ -226,10 +264,18 @@
+                 " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION) +
+                 " polearmCommand=" + hasCommand(attacker, POLEARM_COMMAND) +
+                 " unarmedCommand=" + hasCommand(attacker, UNARMED_COMMAND) +
+-                " polearmAreaCommand=" +
+-                    hasCommand(attacker, POLEARM_AREA_COMMAND) +
+-                " polearmCertification=" +
+-                    hasCommand(attacker, POLEARM_CERTIFICATION);
++                " polearmAreaCommand=" +
++                    hasCommand(attacker, POLEARM_AREA_COMMAND) +
++                " oneHandAreaCommand=" +
++                    hasCommand(attacker, ONE_HAND_AREA_COMMAND) +
++                " twoHandAreaCommand=" +
++                    hasCommand(attacker, TWO_HAND_AREA_COMMAND) +
++                " polearmCertification=" +
++                    hasCommand(attacker, POLEARM_CERTIFICATION) +
++                " oneHandCertification=" +
++                    hasCommand(attacker, ONE_HAND_CERTIFICATION) +
++                " twoHandCertification=" +
++                    hasCommand(attacker, TWO_HAND_CERTIFICATION);
+         }
+ 
+         obj_id fixtureWeapon = createObjectInInventoryAllowOverload(CDEF_TEMPLATE, attacker);
+@@ -254,8 +300,34 @@
+             }
+             restore(attacker, defender);
+             return "error=fixturePolearmCreationFailed";
+-        }
+-        setObjVar(attacker, FIXTURE_POLEARM, fixturePolearm);
++        }
++        setObjVar(attacker, FIXTURE_POLEARM, fixturePolearm);
++        obj_id fixtureOneHand =
++            createObjectInInventoryAllowOverload(ONE_HAND_TEMPLATE, attacker);
++        if (!isIdValid(fixtureOneHand) ||
++            !ONE_HAND_TEMPLATE.equals(getTemplateName(fixtureOneHand)))
++        {
++            if (isIdValid(fixtureOneHand))
++            {
++                destroyObject(fixtureOneHand);
++            }
++            restore(attacker, defender);
++            return "error=fixtureOneHandCreationFailed";
++        }
++        setObjVar(attacker, FIXTURE_ONE_HAND, fixtureOneHand);
++        obj_id fixtureTwoHand =
++            createObjectInInventoryAllowOverload(TWO_HAND_TEMPLATE, attacker);
++        if (!isIdValid(fixtureTwoHand) ||
++            !TWO_HAND_TEMPLATE.equals(getTemplateName(fixtureTwoHand)))
++        {
++            if (isIdValid(fixtureTwoHand))
++            {
++                destroyObject(fixtureTwoHand);
++            }
++            restore(attacker, defender);
++            return "error=fixtureTwoHandCreationFailed";
++        }
++        setObjVar(attacker, FIXTURE_TWO_HAND, fixtureTwoHand);
+ 
+         location attackerDestination =
+             new location(3500.0f, 5.0f, -4800.0f, "tatooine", null);
+@@ -338,18 +410,48 @@
+         {
+             revokeCommand(attacker, POLEARM_COMMAND);
+         }
+-        if (attackerRoot && hasObjVar(attacker, ORIGINAL_UNARMED_COMMAND) &&
+-            getIntObjVar(attacker, ORIGINAL_UNARMED_COMMAND) == 0 &&
+-            hasCommand(attacker, UNARMED_COMMAND))
+-        {
+-            revokeCommand(attacker, UNARMED_COMMAND);
+-        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_UNARMED_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_UNARMED_COMMAND) == 0 &&
++            hasCommand(attacker, UNARMED_COMMAND))
++        {
++            revokeCommand(attacker, UNARMED_COMMAND);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) == 0 &&
++            hasCommand(attacker, POLEARM_AREA_COMMAND))
++        {
++            revokeCommand(attacker, POLEARM_AREA_COMMAND);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_ONE_HAND_AREA_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_AREA_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_AREA_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_AREA_COMMAND);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) == 0 &&
++            hasCommand(attacker, TWO_HAND_AREA_COMMAND))
++        {
++            revokeCommand(attacker, TWO_HAND_AREA_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_CERTIFICATION) &&
+             getIntObjVar(attacker, ORIGINAL_POLEARM_CERTIFICATION) == 0 &&
+             hasCommand(attacker, POLEARM_CERTIFICATION))
+-        {
+-            revokeCommand(attacker, POLEARM_CERTIFICATION);
+-        }
++        {
++            revokeCommand(attacker, POLEARM_CERTIFICATION);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_ONE_HAND_CERTIFICATION) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_CERTIFICATION) == 0 &&
++            hasCommand(attacker, ONE_HAND_CERTIFICATION))
++        {
++            revokeCommand(attacker, ONE_HAND_CERTIFICATION);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_TWO_HAND_CERTIFICATION) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_CERTIFICATION) == 0 &&
++            hasCommand(attacker, TWO_HAND_CERTIFICATION))
++        {
++            revokeCommand(attacker, TWO_HAND_CERTIFICATION);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_RIFLE_ONE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLE_ONE) == 0 && hasSkill(attacker, RIFLE_ONE))
+         {
+@@ -369,8 +471,10 @@
+ 
+         boolean attackerSnapshotComplete = attackerRoot && hasCompleteSnapshot(attacker);
+         boolean defenderSnapshotComplete = defenderRoot && hasCompleteSnapshot(defender);
+-        boolean fixtureWeaponDestroyed = !attackerRoot || destroyFixtureWeapon(attacker);
+-        boolean fixturePolearmDestroyed = !attackerRoot || destroyFixturePolearm(attacker);
++        boolean fixtureWeaponDestroyed = !attackerRoot || destroyFixtureWeapon(attacker);
++        boolean fixturePolearmDestroyed = !attackerRoot || destroyFixturePolearm(attacker);
++        boolean fixtureOneHandDestroyed = !attackerRoot || destroyFixtureOneHand(attacker);
++        boolean fixtureTwoHandDestroyed = !attackerRoot || destroyFixtureTwoHand(attacker);
+         boolean attackerRestored = !attackerRoot ||
+             (attackerSnapshotComplete && restorePlayer(attacker));
+         boolean defenderRestored = !defenderRoot ||
+@@ -387,8 +491,10 @@
+             " defenderHadRoot=" + defenderRoot +
+             " attackerSnapshotComplete=" + attackerSnapshotComplete +
+             " defenderSnapshotComplete=" + defenderSnapshotComplete +
+-            " fixtureWeaponDestroyed=" + fixtureWeaponDestroyed +
+-            " fixturePolearmDestroyed=" + fixturePolearmDestroyed +
++            " fixtureWeaponDestroyed=" + fixtureWeaponDestroyed +
++            " fixturePolearmDestroyed=" + fixturePolearmDestroyed +
++            " fixtureOneHandDestroyed=" + fixtureOneHandDestroyed +
++            " fixtureTwoHandDestroyed=" + fixtureTwoHandDestroyed +
+             " attackerRestored=" + attackerRestored + " defenderRestored=" + defenderRestored +
+             " lifecycle=" + lifecycle;
+     }
+@@ -530,10 +636,18 @@
+             hasCommand(player, POLEARM_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_UNARMED_COMMAND,
+             hasCommand(player, UNARMED_COMMAND) ? 1 : 0);
+-        setObjVar(player, ORIGINAL_POLEARM_AREA_COMMAND,
+-            hasCommand(player, POLEARM_AREA_COMMAND) ? 1 : 0);
+-        setObjVar(player, ORIGINAL_POLEARM_CERTIFICATION,
+-            hasCommand(player, POLEARM_CERTIFICATION) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_AREA_COMMAND,
++            hasCommand(player, POLEARM_AREA_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_ONE_HAND_AREA_COMMAND,
++            hasCommand(player, ONE_HAND_AREA_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TWO_HAND_AREA_COMMAND,
++            hasCommand(player, TWO_HAND_AREA_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_POLEARM_CERTIFICATION,
++            hasCommand(player, POLEARM_CERTIFICATION) ? 1 : 0);
++        setObjVar(player, ORIGINAL_ONE_HAND_CERTIFICATION,
++            hasCommand(player, ONE_HAND_CERTIFICATION) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TWO_HAND_CERTIFICATION,
++            hasCommand(player, TWO_HAND_CERTIFICATION) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PERSONAL_ENEMY,
+             pvpHasPersonalEnemyFlag(player, peer) ? 1 : 0);
+         setObjVar(player, ORIGINAL_COMBAT_ACTIONS,
+@@ -585,18 +699,42 @@
+         {
+             revokeCommand(attacker, UNARMED_COMMAND);
+         }
+-        if (hasObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) &&
+-            getIntObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) == 0 &&
+-            hasCommand(attacker, POLEARM_AREA_COMMAND))
+-        {
+-            revokeCommand(attacker, POLEARM_AREA_COMMAND);
+-        }
++        if (hasObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) == 0 &&
++            hasCommand(attacker, POLEARM_AREA_COMMAND))
++        {
++            revokeCommand(attacker, POLEARM_AREA_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_ONE_HAND_AREA_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_AREA_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_AREA_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_AREA_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) == 0 &&
++            hasCommand(attacker, TWO_HAND_AREA_COMMAND))
++        {
++            revokeCommand(attacker, TWO_HAND_AREA_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_POLEARM_CERTIFICATION) &&
+             getIntObjVar(attacker, ORIGINAL_POLEARM_CERTIFICATION) == 0 &&
+             hasCommand(attacker, POLEARM_CERTIFICATION))
+-        {
+-            revokeCommand(attacker, POLEARM_CERTIFICATION);
+-        }
++        {
++            revokeCommand(attacker, POLEARM_CERTIFICATION);
++        }
++        if (hasObjVar(attacker, ORIGINAL_ONE_HAND_CERTIFICATION) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_CERTIFICATION) == 0 &&
++            hasCommand(attacker, ONE_HAND_CERTIFICATION))
++        {
++            revokeCommand(attacker, ONE_HAND_CERTIFICATION);
++        }
++        if (hasObjVar(attacker, ORIGINAL_TWO_HAND_CERTIFICATION) &&
++            getIntObjVar(attacker, ORIGINAL_TWO_HAND_CERTIFICATION) == 0 &&
++            hasCommand(attacker, TWO_HAND_CERTIFICATION))
++        {
++            revokeCommand(attacker, TWO_HAND_CERTIFICATION);
++        }
+         if (hasObjVar(attacker, ORIGINAL_RIFLE_ONE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLE_ONE) == 0 &&
+             hasSkill(attacker, RIFLE_ONE))
+@@ -616,12 +754,15 @@
+             detachScript(attacker, COMBAT_ACTIONS_SCRIPT);
+         }
+ 
+-        boolean fixtureWeaponDestroyed = destroyFixtureWeapon(attacker);
+-        boolean fixturePolearmDestroyed = destroyFixturePolearm(attacker);
++        boolean fixtureWeaponDestroyed = destroyFixtureWeapon(attacker);
++        boolean fixturePolearmDestroyed = destroyFixturePolearm(attacker);
++        boolean fixtureOneHandDestroyed = destroyFixtureOneHand(attacker);
++        boolean fixtureTwoHandDestroyed = destroyFixtureTwoHand(attacker);
+         boolean attackerRestored = restorePlayer(attacker);
+         boolean defenderRestored = restorePlayer(defender);
+-        boolean restored = fixtureWeaponDestroyed && fixturePolearmDestroyed &&
+-            attackerRestored && defenderRestored;
++        boolean restored = fixtureWeaponDestroyed && fixturePolearmDestroyed &&
++            fixtureOneHandDestroyed && fixtureTwoHandDestroyed &&
++            attackerRestored && defenderRestored;
+         if (!restored)
+         {
+             return false;
+@@ -720,16 +861,29 @@
+             grantCommand(attacker, POLEARM_COMMAND);
+         boolean unarmedCommandReady = hasCommand(attacker, UNARMED_COMMAND) ||
+             grantCommand(attacker, UNARMED_COMMAND);
+-        boolean polearmAreaCommandReady =
+-            hasCommand(attacker, POLEARM_AREA_COMMAND) ||
+-            grantCommand(attacker, POLEARM_AREA_COMMAND);
+-        boolean polearmCertificationReady =
+-            hasCommand(attacker, POLEARM_CERTIFICATION) ||
+-            grantCommand(attacker, POLEARM_CERTIFICATION);
++        boolean polearmAreaCommandReady =
++            hasCommand(attacker, POLEARM_AREA_COMMAND) ||
++            grantCommand(attacker, POLEARM_AREA_COMMAND);
++        boolean oneHandAreaCommandReady =
++            hasCommand(attacker, ONE_HAND_AREA_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_AREA_COMMAND);
++        boolean twoHandAreaCommandReady =
++            hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
++            grantCommand(attacker, TWO_HAND_AREA_COMMAND);
++        boolean polearmCertificationReady =
++            hasCommand(attacker, POLEARM_CERTIFICATION) ||
++            grantCommand(attacker, POLEARM_CERTIFICATION);
++        boolean oneHandCertificationReady =
++            hasCommand(attacker, ONE_HAND_CERTIFICATION) ||
++            grantCommand(attacker, ONE_HAND_CERTIFICATION);
++        boolean twoHandCertificationReady =
++            hasCommand(attacker, TWO_HAND_CERTIFICATION) ||
++            grantCommand(attacker, TWO_HAND_CERTIFICATION);
+         return durationControlReady && cdefCertificationReady &&
+-            polearmCommandReady && unarmedCommandReady &&
+-            polearmAreaCommandReady &&
+-            polearmCertificationReady &&
++            polearmCommandReady && unarmedCommandReady &&
++            polearmAreaCommandReady && oneHandAreaCommandReady &&
++            twoHandAreaCommandReady && polearmCertificationReady &&
++            oneHandCertificationReady && twoHandCertificationReady &&
+             attackerStanding && defenderStanding &&
+             attackerStationary && defenderStationary &&
+             getPosture(attacker) == POSTURE_UPRIGHT &&
+@@ -768,8 +922,8 @@
+         return destroyed;
+     }
+ 
+-    private boolean destroyFixturePolearm(obj_id attacker) throws InterruptedException
+-    {
++    private boolean destroyFixturePolearm(obj_id attacker) throws InterruptedException
++    {
+         if (!hasObjVar(attacker, FIXTURE_POLEARM))
+         {
+             return true;
+@@ -788,11 +942,59 @@
+         if (destroyed)
+         {
+             removeObjVar(attacker, FIXTURE_POLEARM);
+-        }
+-        return destroyed;
+-    }
+-
+-    private boolean hasCompleteSnapshot(obj_id player) throws InterruptedException
++        }
++        return destroyed;
++    }
++
++    private boolean destroyFixtureOneHand(obj_id attacker) throws InterruptedException
++    {
++        if (!hasObjVar(attacker, FIXTURE_ONE_HAND))
++        {
++            return true;
++        }
++        obj_id fixtureOneHand = getObjIdObjVar(attacker, FIXTURE_ONE_HAND);
++        if (!isIdValid(fixtureOneHand))
++        {
++            removeObjVar(attacker, FIXTURE_ONE_HAND);
++            return true;
++        }
++        if (!ONE_HAND_TEMPLATE.equals(getTemplateName(fixtureOneHand)))
++        {
++            return false;
++        }
++        boolean destroyed = destroyObject(fixtureOneHand);
++        if (destroyed)
++        {
++            removeObjVar(attacker, FIXTURE_ONE_HAND);
++        }
++        return destroyed;
++    }
++
++    private boolean destroyFixtureTwoHand(obj_id attacker) throws InterruptedException
++    {
++        if (!hasObjVar(attacker, FIXTURE_TWO_HAND))
++        {
++            return true;
++        }
++        obj_id fixtureTwoHand = getObjIdObjVar(attacker, FIXTURE_TWO_HAND);
++        if (!isIdValid(fixtureTwoHand))
++        {
++            removeObjVar(attacker, FIXTURE_TWO_HAND);
++            return true;
++        }
++        if (!TWO_HAND_TEMPLATE.equals(getTemplateName(fixtureTwoHand)))
++        {
++            return false;
++        }
++        boolean destroyed = destroyObject(fixtureTwoHand);
++        if (destroyed)
++        {
++            removeObjVar(attacker, FIXTURE_TWO_HAND);
++        }
++        return destroyed;
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player) throws InterruptedException
+     {
+         return hasObjVar(player, ORIGINAL_LOCATION) &&
+             hasObjVar(player, ORIGINAL_POSTURE) &&
+@@ -811,10 +1013,14 @@
+             hasObjVar(player, ORIGINAL_DURATION_CONTROL) &&
+             hasObjVar(player, ORIGINAL_CDEF_CERTIFICATION) &&
+             hasObjVar(player, ORIGINAL_POLEARM_COMMAND) &&
+-            hasObjVar(player, ORIGINAL_UNARMED_COMMAND) &&
+-            hasObjVar(player, ORIGINAL_POLEARM_AREA_COMMAND) &&
+-            hasObjVar(player, ORIGINAL_POLEARM_CERTIFICATION) &&
+-            hasObjVar(player, ORIGINAL_COMBAT_ACTIONS);
++            hasObjVar(player, ORIGINAL_UNARMED_COMMAND) &&
++            hasObjVar(player, ORIGINAL_POLEARM_AREA_COMMAND) &&
++            hasObjVar(player, ORIGINAL_ONE_HAND_AREA_COMMAND) &&
++            hasObjVar(player, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
++            hasObjVar(player, ORIGINAL_POLEARM_CERTIFICATION) &&
++            hasObjVar(player, ORIGINAL_ONE_HAND_CERTIFICATION) &&
++            hasObjVar(player, ORIGINAL_TWO_HAND_CERTIFICATION) &&
++            hasObjVar(player, ORIGINAL_COMBAT_ACTIONS);
+     }
+ 
+     private String validatePlayer(obj_id player, int stationId, String role)
+@@ -874,12 +1080,20 @@
+             isIdValid(weapon) ? combat.canPerformAction(POLEARM_COMMAND, attacker) : -1;
+         int canPerformUnarmed =
+             combat.canPerformAction(UNARMED_COMMAND, attacker);
+-        int canPerformPolearmArea = isIdValid(weapon) ?
+-            combat.canPerformAction(POLEARM_AREA_COMMAND, attacker) : -1;
++        int canPerformPolearmArea = isIdValid(weapon) ?
++            combat.canPerformAction(POLEARM_AREA_COMMAND, attacker) : -1;
++        int canPerformOneHandArea = isIdValid(weapon) ?
++            combat.canPerformAction(ONE_HAND_AREA_COMMAND, attacker) : -1;
++        int canPerformTwoHandArea = isIdValid(weapon) ?
++            combat.canPerformAction(TWO_HAND_AREA_COMMAND, attacker) : -1;
+         String fixtureWeapon = hasObjVar(attacker, FIXTURE_WEAPON) ?
+             getObjIdObjVar(attacker, FIXTURE_WEAPON).toString() : "none";
+-        String fixturePolearm = hasObjVar(attacker, FIXTURE_POLEARM) ?
+-            getObjIdObjVar(attacker, FIXTURE_POLEARM).toString() : "none";
++        String fixturePolearm = hasObjVar(attacker, FIXTURE_POLEARM) ?
++            getObjIdObjVar(attacker, FIXTURE_POLEARM).toString() : "none";
++        String fixtureOneHand = hasObjVar(attacker, FIXTURE_ONE_HAND) ?
++            getObjIdObjVar(attacker, FIXTURE_ONE_HAND).toString() : "none";
++        String fixtureTwoHand = hasObjVar(attacker, FIXTURE_TWO_HAND) ?
++            getObjIdObjVar(attacker, FIXTURE_TWO_HAND).toString() : "none";
+         return "lifecycle=" + lifecycle +
+             " prepared=" + (getIntObjVar(attacker, PREPARED) == 1 &&
+                 getIntObjVar(defender, PREPARED) == 1) +
+@@ -897,18 +1111,30 @@
+             " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION) +
+             " polearmCommand=" + hasCommand(attacker, POLEARM_COMMAND) +
+             " unarmedCommand=" + hasCommand(attacker, UNARMED_COMMAND) +
+-            " polearmAreaCommand=" +
+-                hasCommand(attacker, POLEARM_AREA_COMMAND) +
+-            " polearmCertification=" +
+-                hasCommand(attacker, POLEARM_CERTIFICATION) +
++            " polearmAreaCommand=" +
++                hasCommand(attacker, POLEARM_AREA_COMMAND) +
++            " oneHandAreaCommand=" +
++                hasCommand(attacker, ONE_HAND_AREA_COMMAND) +
++            " twoHandAreaCommand=" +
++                hasCommand(attacker, TWO_HAND_AREA_COMMAND) +
++            " polearmCertification=" +
++                hasCommand(attacker, POLEARM_CERTIFICATION) +
++            " oneHandCertification=" +
++                hasCommand(attacker, ONE_HAND_CERTIFICATION) +
++            " twoHandCertification=" +
++                hasCommand(attacker, TWO_HAND_CERTIFICATION) +
+             " combatActions=" + hasScript(attacker, COMBAT_ACTIONS_SCRIPT) +
+             " weapon=" + weaponTemplate +
+             " canPerformAction=" + canPerformAction +
+             " canPerformPolearm=" + canPerformPolearm +
+-            " canPerformUnarmed=" + canPerformUnarmed +
+-            " canPerformPolearmArea=" + canPerformPolearmArea +
+-            " fixtureWeapon=" + fixtureWeapon +
+-            " fixturePolearm=" + fixturePolearm +
++            " canPerformUnarmed=" + canPerformUnarmed +
++            " canPerformPolearmArea=" + canPerformPolearmArea +
++            " canPerformOneHandArea=" + canPerformOneHandArea +
++            " canPerformTwoHandArea=" + canPerformTwoHandArea +
++            " fixtureWeapon=" + fixtureWeapon +
++            " fixturePolearm=" + fixturePolearm +
++            " fixtureOneHand=" + fixtureOneHand +
++            " fixtureTwoHand=" + fixtureTwoHand +
+             " diagnosticSpamKey=" +
+                 readDiagnosticString(attacker, "spam.key", "none") +
+             " diagnosticSpamResult=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1926,5 +1926,7 @@
+ extinguishFire	combat	normal	extinguishFire				5	extinguishFire	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.extinguish_fire	other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
+ revivePlayer	combat	normal	cmdRevivePlayer				10	revivePlayer	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	1	1	1	0	0	0	0	0	0	0	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.revive_player	other	optional		2	0	0	0	16	0	0	0	ALL	NONE	defaultCooldownGroup	0	10	0		0	0	0
+ polearmLegHit1	combat	normal	polearmLegHit1	failSpecialAttack			1.5	polearmLegHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+-polearmSpinAttack1	combat	normal	polearmSpinAttack1	failSpecialAttack			1.5	polearmSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++polearmSpinAttack1	combat	normal	polearmSpinAttack1	failSpecialAttack			1.5	polearmSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++melee1hSpinAttack1	combat	normal	melee1hSpinAttack1	failSpecialAttack			1.5	melee1hSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	3	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++melee2hSpinAttack1	combat	normal	melee2hSpinAttack1	failSpecialAttack			1.5	melee2hSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedHeadHit1	combat	normal	unarmedHeadHit1	failSpecialAttack			1.5	unarmedHeadHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1290,5 +1290,7 @@
+ legShot1	legShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	test_homing							test_homing							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ headShot2	headShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1															OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1.8	0.0	1.0	0	0	0	0	0	150	0.0	60	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ polearmLegHit1	polearmLegHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_low_left_medium_0				attack_low_left_medium_0										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+-polearmSpinAttack1	polearmSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_left_light_2				attack_high_left_light_2										OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++polearmSpinAttack1	polearmSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_left_light_2				attack_high_left_light_2										OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++melee1hSpinAttack1	melee1hSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_right_medium_2		attack_high_right_medium_2												OFF	OFF	OFF	OFF	OFF	AREA	16		0	3	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++melee2hSpinAttack1	melee2hSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_right_light_2			attack_high_right_light_2											OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ unarmedHeadHit1	unarmedHeadHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	knockdown_unarmed_1	knockdown_unarmed_1													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -5,5 +5,7 @@
+ bodyShot1	0.5	0.75	0.5	HEALTH	1	50
+ legShot1	2.25	1.25	0.5	ACTION	2	25
+ polearmLegHit1	1	0.5	0.5	ACTION	1.25	10
+-polearmSpinAttack1	1.5	1	1	RANDOM	1.5	10
+-unarmedHeadHit1	1.75	1.75	1.75	MIND	2	15
++polearmSpinAttack1	1.5	1	1	RANDOM	1.5	10
++melee1hSpinAttack1	1	1	1.5	RANDOM	1.5	25
++melee2hSpinAttack1	1	1.5	1	RANDOM	1.5	10
++unarmedHeadHit1	1.75	1.75	1.75	MIND	2	15
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -4,5 +4,7 @@
+ bodyShot1	body
+ legShot1	leg
+ polearmLegHit1	legbruiser
+-polearmSpinAttack1	limbsmasher
+-unarmedHeadHit1	nexugrin
++polearmSpinAttack1	limbsmasher
++melee1hSpinAttack1	slashspin
++melee2hSpinAttack1	spinstrike
++unarmedHeadHit1	nexugrin
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+@@ -4,4 +4,6 @@
+ object/weapon/ranged/pistol/pistol_cdef.iff	3.5	pistol_speed	0	20	15	50	64	-80	pistol_accuracy	ranged_accuracy	ranged_defense	pistol	1.5	dodge	DODGE	4	0
+ object/weapon/ranged/carbine/carbine_cdef.iff	3.5	carbine_speed	0	20	15	50	64	-80	carbine_accuracy	ranged_accuracy	ranged_defense	carbine	2	counterattack	COUNTER	4	0
+ object/weapon/melee/unarmed/unarmed_default_player.iff	2	unarmed_speed	0	0	5	3	5	5	unarmed_accuracy	melee_accuracy	melee_defense	unarmed	1	unarmed_passive_defense	RANDOM	5	0
+-object/weapon/melee/polearm/lance_staff_wood_s2.iff	4.75	polearm_speed	0	10	3	10	5	10	polearm_accuracy	melee_accuracy	melee_defense	polearm	1	block	BLOCK	5	0
++object/weapon/melee/polearm/lance_staff_wood_s2.iff	4.75	polearm_speed	0	10	3	10	5	10	polearm_accuracy	melee_accuracy	melee_defense	polearm	1	block	BLOCK	5	0
++object/weapon/melee/sword/sword_rantok.iff	3.3	onehandmelee_speed	0	10	3	10	3	10	onehandmelee_accuracy	melee_accuracy	melee_defense	onehandmelee	1	dodge	DODGE	20	0
++object/weapon/melee/2h_sword/2h_sword_cleaver.iff	4.1	twohandmelee_speed	0	-15	5	-15	5	-15	twohandmelee_accuracy	melee_accuracy	melee_defense	twohandmelee	1	counterattack	COUNTER	27	2
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+@@ -4,4 +4,6 @@
+ object/weapon/ranged/pistol/pistol_cdef.iff	10	15	10
+ object/weapon/ranged/carbine/carbine_cdef.iff	10	15	10
+ object/weapon/melee/polearm/lance_staff_wood_s2.iff	20	38	15
+-object/weapon/melee/unarmed/unarmed_default_player.iff	10	10	10
++object/weapon/melee/unarmed/unarmed_default_player.iff	10	10	10
++object/weapon/melee/sword/sword_rantok.iff	27	40	25
++object/weapon/melee/2h_sword/2h_sword_cleaver.iff	38	35	20

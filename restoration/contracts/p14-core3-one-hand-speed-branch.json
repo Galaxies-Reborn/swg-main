@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-one-hand-speed-branch",
+  "status": "ready",
+  "scope": "Restore the complete Swordsman Speed I-IV ownership branch: melee1hHealthHit1, melee1hSpinAttack2, and melee1hHealthHit2 with pinned Core3 Health-only damage, BLEEDING lifecycles, resisted BLIND area state, authenticated client admission, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/melee1hHealthHit1.lua",
+      "MMOCoreORB/bin/scripts/commands/melee1hSpinAttack2.lua",
+      "MMOCoreORB/bin/scripts/commands/melee1hHealthHit2.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skillChain": [
+      {"name": "combat_1hsword_novice", "requires": "combat_brawler_1handmelee_04"},
+      {"name": "combat_1hsword_speed_01", "requires": "combat_1hsword_novice", "commands": ["private_1hand_speed_1", "melee1hHealthHit1"]},
+      {"name": "combat_1hsword_speed_02", "requires": "combat_1hsword_speed_01", "commands": ["private_1hand_speed_2"]},
+      {"name": "combat_1hsword_speed_03", "requires": "combat_1hsword_speed_02", "commands": ["private_1hand_speed_3", "melee1hSpinAttack2"]},
+      {"name": "combat_1hsword_speed_04", "requires": "combat_1hsword_speed_03", "commands": ["private_1hand_speed_4", "melee1hHealthHit2"]}
+    ],
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "validWeapon": "1HAND_MELEE",
+      "failScriptHook": "failSpecialAttack"
+    },
+    "commands": {
+      "melee1hHealthHit1": {"damageMultiplier": 1.5, "speedMultiplier": 1.5, "hamCostMultipliers": [0.5, 0.5, 0.625], "accuracyBonus": 25, "targetPool": "HEALTH", "attackType": "SINGLE_TARGET", "animation": "counter_low_left", "combatSpam": "shiim", "dot": {"type": "BLEEDING", "attribute": "HEALTH", "intensity": 100, "duration": 30}},
+      "melee1hSpinAttack2": {"damageMultiplier": 3.0, "speedMultiplier": 2.5, "hamCostMultipliers": [1.25, 1.25, 2.0], "accuracyBonus": 25, "targetPool": "RANDOM", "attackType": "AREA", "areaRange": 16, "animation": "lower_posture_2hmelee_6", "combatSpam": "blindspin", "state": "BLIND", "stateChance": 40, "stateDuration": 30},
+      "melee1hHealthHit2": {"damageMultiplier": 3.0, "speedMultiplier": 2.0, "hamCostMultipliers": [0.75, 0.75, 1.25], "accuracyBonus": 25, "targetPool": "HEALTH", "attackType": "SINGLE_TARGET", "animation": "combo_3c", "combatSpam": "shiimshiak", "dot": {"type": "BLEEDING", "attribute": "HEALTH", "intensity": 100, "duration": 60}}
+    },
+    "stateDefenses": ["blind_defense", "jedi_state_defense", "resistance_states"]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T08:47:53-04:00",
+    "scratchCommit": "4b5fb1843eaff30985c23e453c0afeb44814ba6e",
+    "overlay": "restoration/patches/dsrc/304-p14-core3-one-hand-speed-branch.patch",
+    "overlaySha256": "99348ec22dff7834ce1977c593f31ba8b3668c4367e0b1daa4c1b5b224c4b1bb",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-clean-materialization-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss64m",
+    "datatableCompile": "passed-two-independent-byte-identical-builds",
+    "datatableRowCounts": {
+      "command_table.iff": 2063,
+      "combat_data.iff": 1410,
+      "precu_combat_overrides.iff": 126,
+      "precu_combat_spam.iff": 125
+    },
+    "clientBridgeTests": 69,
+    "clientTestSuite": {"passed": 199, "skipped": 3, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientBuildWarnings": 82,
+    "clientProtocolVersion": 227,
+    "clientBytes": 33808896,
+    "clientSha256": "b4e1d1416b15c115b04916be862712c3ef284f2ee2075ea17d3f2a520bc7ad2c",
+    "materializedOverlayCount": 310,
+    "materializedRestorationFileCount": 910,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "967c28dfaa035bd0051db2228c8f397d4304146904d5f772dc902b46edba2d9c",
+      "precu_headshot1_fixture.java": "98490fdb7801e4eec46738cbb5a7d9eefd4b8558bd1c75ef1b5db5bda52bfe5b",
+      "command_table.tab": "0c530076bf4dc89197ab90527326eff83da4a99f5594aa18b280210ba051e7cb",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "4fa3a18340d3ccd71ff2dc3df642275ab020914dfe090751442b8484b4c056ac",
+      "precu_combat_overrides.tab": "bd8e8511b856fa526c3eca2daf5ef660906228d3c158a46b4dd1b3c6640d8c7e",
+      "precu_combat_spam.tab": "8f7e4e96b1223333bc3a19e1f4f2d4bea0d6da363c6a6b4cab73b82378596d54"
+    },
+    "compiledClassSha256": {
+      "script/systems/combat/combat_actions.class": "5ab6de9400f65a37ab3a86e1ba46ceda6290586708f12a7533e5b50e6f4850c3",
+      "script/test/precu_headshot1_fixture.class": "0cffdd421825c0b953897b044c4f554cfcd33edf5209f696f2bdcc27ddef4cbd"
+    },
+    "compiledTableSha256": {
+      "datatables/command/command_table.iff": "61322966603965593402157404021a429012ec60c81e150e5295e718abb89d1c",
+      "datatables/combat/combat_data.iff": "b7f6c4c0cb921eccc44d381e88904406d7fc2c521f7f990888cc6bcabdb7aaab",
+      "datatables/combat/precu_combat_overrides.iff": "d2e5cdcab6e1cbf71afb0fd143a86946e7c0e2403c08f04a556164f8ec1ea046",
+      "datatables/combat/precu_combat_spam.iff": "fe37257882fb9aeb641d5c6f375c859bb25e3eb024f43260fc4eea143141d849"
+    },
+    "clientAssetsSha256": {
+      "datatables/command/command_table.iff": "61322966603965593402157404021a429012ec60c81e150e5295e718abb89d1c",
+      "datatables/combat/combat_data.iff": "b7f6c4c0cb921eccc44d381e88904406d7fc2c521f7f990888cc6bcabdb7aaab",
+      "precu_runtime.tre": "8c8fbd285e8f24549dfe503f4a2cecc9a212289d971c824bc5721d7d87863226"
+    },
+    "assetArchiveRebuild": {"deterministic": true, "runs": 2, "bytes": 135040, "fileCount": 3}
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T08:47:53-04:00",
+    "clientProtocolVersion": 227,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "30600000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "oneHandNovice": true,
+      "oneHandSpeedOne": true,
+      "oneHandSpeedTwo": true,
+      "oneHandSpeedThree": true,
+      "oneHandSpeedFour": true,
+      "commands": ["melee1hHealthHit1", "melee1hSpinAttack2", "melee1hHealthHit2"],
+      "canPerform": {"melee1hHealthHit1": 0, "melee1hSpinAttack2": 0, "melee1hHealthHit2": 0},
+      "weapon": "object/weapon/melee/sword/sword_rantok.iff",
+      "distanceCentimeters": 201,
+      "defenderBlindDefense": 0,
+      "defenderJediStateDefense": 0,
+      "defenderResistanceStates": 0,
+      "preflightUnequipHeldWeapon": true,
+      "quotedDefenderAvatarSelection": true,
+      "isolatedLooseClientTables": {
+        "commandTableSha256": "61322966603965593402157404021a429012ec60c81e150e5295e718abb89d1c",
+        "combatDataSha256": "b7f6c4c0cb921eccc44d381e88904406d7fc2c521f7f990888cc6bcabdb7aaab"
+      }
+    },
+    "commands": {
+      "melee1hHealthHit1": {
+        "queueRemoval": "Success",
+        "combatResult": 1,
+        "directDamage": 1099,
+        "resolvedPool": "HEALTH",
+        "hamCost": {"health": 5, "action": 20, "mind": 18},
+        "damageMultiplier": 1.5,
+        "targetPool": "HEALTH",
+        "combatSpam": "shiim_hit",
+        "animation": "counter_low_left_medium",
+        "bleedingDot": {"strength": 100, "attribute": 0, "configuredDuration": 30, "observedRemainingSeconds": 29}
+      },
+      "melee1hSpinAttack2": {
+        "queueRemoval": "Success",
+        "combatResult": 1,
+        "directDamage": 1289,
+        "resolvedPool": "HEALTH",
+        "hamCost": {"health": 14, "action": 50, "mind": 58},
+        "damageMultiplier": 3.0,
+        "targetPool": "RANDOM",
+        "attackType": "AREA",
+        "areaRange": 16,
+        "combatSpam": "blindspin_hit",
+        "animation": "lower_posture_2hmelee_6_medium",
+        "resistedAttempts": [
+          {"roll": 61, "threshold": 43, "result": "RESISTED", "directDamage": 1274, "resolvedPool": "MIND"},
+          {"roll": 50, "threshold": 43, "result": "RESISTED"}
+        ],
+        "state": {"type": 2, "chance": 40, "duration": 30, "roll": 32, "threshold": 43, "result": "APPLIED", "before": 0, "after": 1, "defense": 0, "jediDefense": 0, "resistance": 0}
+      },
+      "melee1hHealthHit2": {
+        "queueRemoval": "Success",
+        "combatResult": 1,
+        "directDamage": 1232,
+        "resolvedPool": "HEALTH",
+        "hamCost": {"health": 8, "action": 30, "mind": 36},
+        "damageMultiplier": 3.0,
+        "targetPool": "HEALTH",
+        "combatSpam": "shiimshiak_hit",
+        "animation": "combo_3c_medium",
+        "bleedingDot": {"strength": 100, "attribute": 0, "configuredDuration": 60, "observedRemainingSeconds": 59}
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "ownershipSurvived": true,
+      "commandsSurvived": true,
+      "weaponSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "terminalCommand": "melee1hHealthHit2",
+      "terminalDamage": 1232,
+      "terminalSpam": "shiimshiak_hit",
+      "terminalAnimation": "combo_3c_medium",
+      "transientBlindAbsent": true,
+      "transientBleedingAbsent": true
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "preparedAfterCleanup": false,
+      "temporaryOneHandSkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "fixtureWeaponAbsent": true,
+      "transientBlindAbsent": true,
+      "transientBleedingAbsent": true,
+      "terminalDiagnosticsAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability"
+    },
+    "supplementalQueueReplay": {
+      "allCommands": "Success",
+      "packedStatus": "0x010000004351c000",
+      "cleanupRestored": true,
+      "cleanupIdempotent": true
+    },
+    "screenshots": {
+      "member": {"path": "Staging/m306-persistence-member.png", "sha256": "04920ea9eeff4366122ec65cb2c49e8678659bdfa62be5ed404d12ca3bdd0fde"},
+      "defender": {"path": "Staging/m306-persistence-defender.png", "sha256": "bc2629b2a6312d0b98cdde0510452cb12d0828380e31ee3dbcc8e4a06e1c2fa9"}
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

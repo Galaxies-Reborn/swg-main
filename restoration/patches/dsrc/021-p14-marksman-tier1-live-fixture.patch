@@ -1,0 +1,486 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+new file mode 100644
+index 000000000..111111111
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+@@ -0,0 +1,480 @@
++package script.test;
++
++import script.obj_id;
++import script.library.combat;
++
++/**
++ * Layered, ServerConsole-only live fixture for the Publish 14.1 Marksman
++ * tier-I pistol and carbine commands. The established headShot1 fixture owns
++ * location, PvP, combat state, regeneration, and HAM restoration. This layer
++ * owns only the additional skills and CDEF weapons, and never queues a command
++ * or fabricates combat results.
++ */
++public class precu_marksman_tier1_fixture extends script.base_script
++{
++    private static final long ATTACKER_OID = 44003778L;
++    private static final int ATTACKER_STATION_ID = 91001;
++    private static final long DEFENDER_OID = 39008597L;
++    private static final int DEFENDER_STATION_ID = 1001;
++    private static final String PISTOL_ONE = "combat_marksman_pistol_01";
++    private static final String CARBINE_ONE = "combat_marksman_carbine_01";
++    private static final String BODY_COMMAND = "bodyShot1";
++    private static final String LEG_COMMAND = "legShot1";
++    private static final String PISTOL_TEMPLATE =
++        "object/weapon/ranged/pistol/pistol_cdef.iff";
++    private static final String CARBINE_TEMPLATE =
++        "object/weapon/ranged/carbine/carbine_cdef.iff";
++
++    private static final String HEADSHOT_ROOT = "precu.p14.headShot1Fixture";
++    private static final String HEADSHOT_LIFECYCLE = HEADSHOT_ROOT + ".lifecycle";
++    private static final String HEADSHOT_PREPARED = HEADSHOT_ROOT + ".prepared";
++    private static final String ROOT = "precu.p14.marksmanTier1Fixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PEER = ROOT + ".peer";
++    private static final String ORIGINAL_PISTOL_ONE = ROOT + ".originalPistolOne";
++    private static final String ORIGINAL_CARBINE_ONE = ROOT + ".originalCarbineOne";
++    private static final String PISTOL_WEAPON = ROOT + ".pistolWeapon";
++    private static final String CARBINE_WEAPON = ROOT + ".carbineWeapon";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String USAGE =
++        "usage: inspect|recover|prepare|status|armSuccess|armNoPartialBody|armNoPartialLeg|cleanup 44003778 39008597 <32-hex-lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 4 || !args[3].matches("[a-f0-9]{32}"))
++        {
++            return USAGE;
++        }
++
++        long attackerValue;
++        long defenderValue;
++        try
++        {
++            attackerValue = Long.parseLong(args[1]);
++            defenderValue = Long.parseLong(args[2]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (attackerValue != ATTACKER_OID || defenderValue != DEFENDER_OID ||
++            attackerValue == defenderValue)
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id attacker = obj_id.getObjId(attackerValue);
++        obj_id defender = obj_id.getObjId(defenderValue);
++        String validation = validatePlayer(attacker, ATTACKER_STATION_ID, "attacker");
++        if (validation != null)
++        {
++            return validation;
++        }
++        validation = validatePlayer(defender, DEFENDER_STATION_ID, "defender");
++        if (validation != null)
++        {
++            return validation;
++        }
++
++        if (args[0].equalsIgnoreCase("inspect"))
++        {
++            return "action=inspect " + buildStatus(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("recover"))
++        {
++            return recover(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            validation = validateOwnership(attacker, defender, args[3], false);
++            return validation == null ? buildStatus(attacker, defender, args[3]) : validation;
++        }
++        if (args[0].equalsIgnoreCase("armSuccess"))
++        {
++            return arm(attacker, defender, args[3], "success");
++        }
++        if (args[0].equalsIgnoreCase("armNoPartialBody"))
++        {
++            return arm(attacker, defender, args[3], "body");
++        }
++        if (args[0].equalsIgnoreCase("armNoPartialLeg"))
++        {
++            return arm(attacker, defender, args[3], "leg");
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(attacker, defender, args[3]);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id attacker, obj_id defender, String lifecycle)
++        throws InterruptedException
++    {
++        String dependency = validateHeadShotLayer(attacker, defender, lifecycle);
++        if (dependency != null)
++        {
++            return dependency;
++        }
++        String ownership = validateOwnership(attacker, defender, lifecycle, true);
++        if (ownership == null)
++        {
++            if (getIntObjVar(attacker, PREPARED) != 1 ||
++                getIntObjVar(defender, PREPARED) != 1)
++            {
++                return "error=fixturePartial";
++            }
++            return fixtureReady(attacker) ?
++                "action=prepare resumed=true " + buildStatus(attacker, defender, lifecycle) :
++                "error=fixtureReassertionFailed " + buildStatus(attacker, defender, lifecycle);
++        }
++        if (!"fixtureAbsent".equals(ownership))
++        {
++            return ownership;
++        }
++
++        setObjVar(attacker, LIFECYCLE, lifecycle);
++        setObjVar(attacker, PEER, defender);
++        setObjVar(defender, LIFECYCLE, lifecycle);
++        setObjVar(defender, PEER, attacker);
++        setObjVar(attacker, ORIGINAL_PISTOL_ONE, hasSkill(attacker, PISTOL_ONE) ? 1 : 0);
++        setObjVar(attacker, ORIGINAL_CARBINE_ONE, hasSkill(attacker, CARBINE_ONE) ? 1 : 0);
++        setObjVar(attacker, PREPARED, 0);
++        setObjVar(defender, PREPARED, 0);
++
++        boolean pistolGranted = hasSkill(attacker, PISTOL_ONE) ||
++            grantSkill(attacker, PISTOL_ONE);
++        boolean carbineGranted = hasSkill(attacker, CARBINE_ONE) ||
++            grantSkill(attacker, CARBINE_ONE);
++        if (!pistolGranted || !carbineGranted ||
++            !hasCommand(attacker, BODY_COMMAND) || !hasCommand(attacker, LEG_COMMAND))
++        {
++            String recovery = recover(attacker, defender, lifecycle).replace(' ', '_');
++            return "error=skillPreparationFailed pistol=" + pistolGranted +
++                " carbine=" + carbineGranted + " recovery=" + recovery;
++        }
++
++        obj_id pistol = createObjectInInventoryAllowOverload(PISTOL_TEMPLATE, attacker);
++        if (!isIdValid(pistol) || !PISTOL_TEMPLATE.equals(getTemplateName(pistol)))
++        {
++            if (isIdValid(pistol))
++            {
++                destroyObject(pistol);
++            }
++            String recovery = recover(attacker, defender, lifecycle).replace(' ', '_');
++            return "error=pistolCreationFailed recovery=" + recovery;
++        }
++        setObjVar(attacker, PISTOL_WEAPON, pistol);
++
++        obj_id carbine = createObjectInInventoryAllowOverload(CARBINE_TEMPLATE, attacker);
++        if (!isIdValid(carbine) || !CARBINE_TEMPLATE.equals(getTemplateName(carbine)))
++        {
++            if (isIdValid(carbine))
++            {
++                destroyObject(carbine);
++            }
++            String recovery = recover(attacker, defender, lifecycle).replace(' ', '_');
++            return "error=carbineCreationFailed recovery=" + recovery;
++        }
++        setObjVar(attacker, CARBINE_WEAPON, carbine);
++
++        setObjVar(attacker, PREPARED, 1);
++        setObjVar(defender, PREPARED, 1);
++        if (!fixtureReady(attacker))
++        {
++            String status = buildStatus(attacker, defender, lifecycle).replace(' ', '_');
++            String recovery = recover(attacker, defender, lifecycle).replace(' ', '_');
++            return "error=fixturePreparationFailed status=" + status +
++                " recovery=" + recovery;
++        }
++        return "action=prepare resumed=false " + buildStatus(attacker, defender, lifecycle);
++    }
++
++    private String arm(
++        obj_id attacker, obj_id defender, String lifecycle, String mode)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        String dependency = validateHeadShotLayer(attacker, defender, lifecycle);
++        if (dependency != null)
++        {
++            return dependency;
++        }
++        if (!fixtureReady(attacker))
++        {
++            return "error=fixtureNotPrepared";
++        }
++
++        stopCombat(attacker);
++        stopCombat(defender);
++        setCombatTarget(attacker, obj_id.NULL_ID);
++        setCombatTarget(defender, obj_id.NULL_ID);
++        combat.clearCombatDebuffs(attacker);
++        combat.clearCombatDebuffs(defender);
++
++        int health = getMaxAttrib(attacker, HEALTH);
++        int action = getMaxAttrib(attacker, ACTION);
++        int mind = getMaxAttrib(attacker, MIND);
++        if (mode.equals("body"))
++        {
++            health = 3;
++            action = 11;
++            mind = 6;
++        }
++        else if (mode.equals("leg"))
++        {
++            health = 10;
++            action = 18;
++            mind = 6;
++        }
++
++        boolean armed =
++            setAttribAndVerify(attacker, HEALTH, health) &
++            setAttribAndVerify(attacker, ACTION, action) &
++            setAttribAndVerify(attacker, MIND, mind) &
++            setAttribAndVerify(defender, HEALTH, getMaxAttrib(defender, HEALTH)) &
++            setAttribAndVerify(defender, ACTION, getMaxAttrib(defender, ACTION)) &
++            setAttribAndVerify(defender, MIND, getMaxAttrib(defender, MIND));
++        if (!armed)
++        {
++            return "error=hamPreparationFailed";
++        }
++        return "action=arm mode=" + mode +
++            " expectedHealth=" + health +
++            " expectedAction=" + action +
++            " expectedMind=" + mind + " " +
++            buildStatus(attacker, defender, lifecycle);
++    }
++
++    private String cleanup(obj_id attacker, obj_id defender, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, true);
++        if ("fixtureAbsent".equals(ownership))
++        {
++            return "action=cleanup alreadyClean=true lifecycle=" + lifecycle;
++        }
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        return recover(attacker, defender, lifecycle).replace(
++            "action=recover", "action=cleanup");
++    }
++
++    private String recover(obj_id attacker, obj_id defender, String lifecycle)
++        throws InterruptedException
++    {
++        boolean attackerRoot = hasObjVar(attacker, ROOT);
++        boolean defenderRoot = hasObjVar(defender, ROOT);
++        if (!attackerRoot && !defenderRoot)
++        {
++            return "action=recover alreadyClean=true lifecycle=" + lifecycle;
++        }
++        if (!attackerRoot || !defenderRoot ||
++            !hasObjVar(attacker, LIFECYCLE) || !hasObjVar(defender, LIFECYCLE) ||
++            !lifecycle.equals(getStringObjVar(attacker, LIFECYCLE)) ||
++            !lifecycle.equals(getStringObjVar(defender, LIFECYCLE)))
++        {
++            return "error=fixtureOwnershipMismatch";
++        }
++        if (!hasObjVar(attacker, ORIGINAL_PISTOL_ONE) ||
++            !hasObjVar(attacker, ORIGINAL_CARBINE_ONE))
++        {
++            return "error=fixtureSnapshotIncomplete";
++        }
++
++        stopCombat(attacker);
++        stopCombat(defender);
++        setCombatTarget(attacker, obj_id.NULL_ID);
++        setCombatTarget(defender, obj_id.NULL_ID);
++        boolean pistolDestroyed =
++            destroyOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE);
++        boolean carbineDestroyed =
++            destroyOwnedWeapon(attacker, CARBINE_WEAPON, CARBINE_TEMPLATE);
++        if (!pistolDestroyed || !carbineDestroyed)
++        {
++            return "error=fixtureWeaponRestoreFailed pistol=" + pistolDestroyed +
++                " carbine=" + carbineDestroyed;
++        }
++
++        if (getIntObjVar(attacker, ORIGINAL_CARBINE_ONE) == 0 &&
++            hasSkill(attacker, CARBINE_ONE))
++        {
++            revokeSkill(attacker, CARBINE_ONE);
++        }
++        if (getIntObjVar(attacker, ORIGINAL_PISTOL_ONE) == 0 &&
++            hasSkill(attacker, PISTOL_ONE))
++        {
++            revokeSkill(attacker, PISTOL_ONE);
++        }
++        if ((getIntObjVar(attacker, ORIGINAL_CARBINE_ONE) == 0 &&
++                hasSkill(attacker, CARBINE_ONE)) ||
++            (getIntObjVar(attacker, ORIGINAL_PISTOL_ONE) == 0 &&
++                hasSkill(attacker, PISTOL_ONE)))
++        {
++            return "error=fixtureSkillRestoreFailed";
++        }
++
++        removeObjVar(attacker, ROOT);
++        removeObjVar(defender, ROOT);
++        return "action=recover alreadyClean=false restored=true lifecycle=" + lifecycle;
++    }
++
++    private boolean fixtureReady(obj_id attacker) throws InterruptedException
++    {
++        return getIntObjVar(attacker, PREPARED) == 1 &&
++            hasSkill(attacker, PISTOL_ONE) &&
++            hasSkill(attacker, CARBINE_ONE) &&
++            hasCommand(attacker, BODY_COMMAND) &&
++            hasCommand(attacker, LEG_COMMAND) &&
++            hasOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE) &&
++            hasOwnedWeapon(attacker, CARBINE_WEAPON, CARBINE_TEMPLATE);
++    }
++
++    private boolean hasOwnedWeapon(
++        obj_id attacker, String objvar, String template) throws InterruptedException
++    {
++        if (!hasObjVar(attacker, objvar))
++        {
++            return false;
++        }
++        obj_id weapon = getObjIdObjVar(attacker, objvar);
++        return isIdValid(weapon) && template.equals(getTemplateName(weapon));
++    }
++
++    private boolean destroyOwnedWeapon(
++        obj_id attacker, String objvar, String template) throws InterruptedException
++    {
++        if (!hasObjVar(attacker, objvar))
++        {
++            return true;
++        }
++        obj_id weapon = getObjIdObjVar(attacker, objvar);
++        if (!isIdValid(weapon))
++        {
++            removeObjVar(attacker, objvar);
++            return true;
++        }
++        if (!template.equals(getTemplateName(weapon)))
++        {
++            return false;
++        }
++        if (!destroyObject(weapon))
++        {
++            return false;
++        }
++        removeObjVar(attacker, objvar);
++        return true;
++    }
++
++    private boolean setAttribAndVerify(obj_id player, int attrib, int value)
++        throws InterruptedException
++    {
++        setAttrib(player, attrib, value);
++        return getAttrib(player, attrib) == value;
++    }
++
++    private String validateHeadShotLayer(
++        obj_id attacker, obj_id defender, String lifecycle) throws InterruptedException
++    {
++        if (!hasObjVar(attacker, HEADSHOT_LIFECYCLE) ||
++            !hasObjVar(defender, HEADSHOT_LIFECYCLE) ||
++            !lifecycle.equals(getStringObjVar(attacker, HEADSHOT_LIFECYCLE)) ||
++            !lifecycle.equals(getStringObjVar(defender, HEADSHOT_LIFECYCLE)) ||
++            getIntObjVar(attacker, HEADSHOT_PREPARED) != 1 ||
++            getIntObjVar(defender, HEADSHOT_PREPARED) != 1)
++        {
++            return "error=headShotFixtureDependencyNotPrepared";
++        }
++        return null;
++    }
++
++    private String validatePlayer(obj_id player, int stationId, String role)
++        throws InterruptedException
++    {
++        if (player == null || player == obj_id.NULL_ID || !player.isLoaded())
++        {
++            return "error=" + role + "NotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player))
++        {
++            return "error=" + role + "NotAuthoritative oid=" + player;
++        }
++        return getPlayerStationId(player) == stationId ?
++            null : "error=" + role + "StationNotAllowed oid=" + player;
++    }
++
++    private String validateOwnership(
++        obj_id attacker, obj_id defender, String lifecycle, boolean allowAbsent)
++        throws InterruptedException
++    {
++        boolean attackerRoot = hasObjVar(attacker, ROOT);
++        boolean defenderRoot = hasObjVar(defender, ROOT);
++        if (!attackerRoot && !defenderRoot)
++        {
++            return allowAbsent ? "fixtureAbsent" : "error=fixtureAbsent";
++        }
++        if (!attackerRoot || !defenderRoot ||
++            !hasObjVar(attacker, LIFECYCLE) || !hasObjVar(defender, LIFECYCLE) ||
++            !hasObjVar(attacker, PEER) || !hasObjVar(defender, PEER) ||
++            !lifecycle.equals(getStringObjVar(attacker, LIFECYCLE)) ||
++            !lifecycle.equals(getStringObjVar(defender, LIFECYCLE)) ||
++            getObjIdObjVar(attacker, PEER) != defender ||
++            getObjIdObjVar(defender, PEER) != attacker)
++        {
++            return "error=fixtureOwnershipMismatch";
++        }
++        return null;
++    }
++
++    private String buildStatus(obj_id attacker, obj_id defender, String lifecycle)
++        throws InterruptedException
++    {
++        obj_id weapon = getObjectInSlot(attacker, "hold_r");
++        String weaponTemplate = isIdValid(weapon) ? getTemplateName(weapon) : "none";
++        String pistol = hasObjVar(attacker, PISTOL_WEAPON) ?
++            getObjIdObjVar(attacker, PISTOL_WEAPON).toString() : "none";
++        String carbine = hasObjVar(attacker, CARBINE_WEAPON) ?
++            getObjIdObjVar(attacker, CARBINE_WEAPON).toString() : "none";
++        return "lifecycle=" + lifecycle +
++            " prepared=" + (getIntObjVar(attacker, PREPARED) == 1 &&
++                getIntObjVar(defender, PREPARED) == 1) +
++            " headShotPrepared=" + (getIntObjVar(attacker, HEADSHOT_PREPARED) == 1 &&
++                getIntObjVar(defender, HEADSHOT_PREPARED) == 1) +
++            " pistolOne=" + hasSkill(attacker, PISTOL_ONE) +
++            " carbineOne=" + hasSkill(attacker, CARBINE_ONE) +
++            " hasBodyShot1=" + hasCommand(attacker, BODY_COMMAND) +
++            " hasLegShot1=" + hasCommand(attacker, LEG_COMMAND) +
++            " weapon=" + weaponTemplate +
++            " canBodyShot1=" + (isIdValid(weapon) ?
++                combat.canPerformAction(BODY_COMMAND, attacker) : -1) +
++            " canLegShot1=" + (isIdValid(weapon) ?
++                combat.canPerformAction(LEG_COMMAND, attacker) : -1) +
++            " pistolWeapon=" + pistol +
++            " carbineWeapon=" + carbine +
++            " distanceCentimeters=" + (int)(getDistance(attacker, defender) * 100.0f) +
++            " pvpCanAttack=" + pvpCanAttack(attacker, defender) +
++            " attackerHealth=" + getAttrib(attacker, HEALTH) +
++            " attackerMaxHealth=" + getMaxAttrib(attacker, HEALTH) +
++            " attackerAction=" + getAttrib(attacker, ACTION) +
++            " attackerMaxAction=" + getMaxAttrib(attacker, ACTION) +
++            " attackerMind=" + getAttrib(attacker, MIND) +
++            " attackerMaxMind=" + getMaxAttrib(attacker, MIND) +
++            " defenderHealth=" + getAttrib(defender, HEALTH) +
++            " defenderMaxHealth=" + getMaxAttrib(defender, HEALTH) +
++            " defenderAction=" + getAttrib(defender, ACTION) +
++            " defenderMaxAction=" + getMaxAttrib(defender, ACTION) +
++            " defenderMind=" + getAttrib(defender, MIND) +
++            " defenderMaxMind=" + getMaxAttrib(defender, MIND);
++    }
++}

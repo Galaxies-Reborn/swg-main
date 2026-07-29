@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "feature": "tame-command-lifecycle",
+  "scope": "Restore the Publish 14.1 tame command as a complete phased Creature Handler transaction that converts an eligible wild baby into a persistent callable pet and durable pet control device.",
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "taming": "dsrc/sku.0/sys.server/compiled/game/script/player/skill/taming.java",
+    "tamingTask": "dsrc/sku.0/sys.server/compiled/game/script/player/skill/taming_task.java",
+    "petLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pet_lib.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_tame_command_fixture.java"
+  },
+  "eraEvidence": {
+    "commandSource": "Source/legacy/precu-restore/precu_client_command_table.tab",
+    "commandSourceSha256": "f7acb20472cbfc78a182703b8cfbf48a3eeaa84af32acd5e638f9342822258d8",
+    "skillSource": "Source/legacy/precu-restore/authentic/skills.precu_merged.tab",
+    "skillSourceSha256": "5d8882200a4061b0086537cd4a18e2d505048e979e830caae777c55ae607dfeb",
+    "publish": "14.1",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/TameCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/events/TameCreatureTask.h",
+      "MMOCoreORB/src/server/zone/managers/creature/CreatureManagerImplementation.cpp"
+    ],
+    "findings": [
+      "The authoritative client table registers tame to cmdTame with a required other target, 32-meter client maximum, player.skill.taming, and nonqueued dispatch.",
+      "outdoors_creaturehandler_novice grants tame, four stored pets, one active creature, tame_non_aggro 5, and tame_level 12.",
+      "The retained SOE tree contains tameability/chance/control-cap policy plus complete PCD save, store, recall, command-list, callable-link, growth, and pet scripts, but no cmdTame transaction.",
+      "Pinned Core3 evidence establishes admission within 8 meters, three utterances over 30 seconds, final chance resolution, rollback/optional aggression, PCD materialization, baby growth stage, follow behavior, persistence, and 20 times creature-level XP."
+    ]
+  },
+  "commandContract": {
+    "name": "tame",
+    "scriptHook": "cmdTame",
+    "target": "other",
+    "targetType": "required",
+    "defaultTimeSeconds": 0.5,
+    "clientMaximumRangeMeters": 32,
+    "serverTransactionRangeMeters": 8,
+    "visible": 2,
+    "validWeapon": "ALL",
+    "expectedColumnCount": 94,
+    "grantedBySkill": "outdoors_creaturehandler_novice"
+  },
+  "productionContract": {
+    "exclusiveTransaction": "player and target script-variable locks prevent overlapping tame attempts",
+    "phaseDelaySeconds": 10,
+    "phaseCallbacks": 3,
+    "totalDurationSeconds": 30,
+    "utterances": 3,
+    "taskReceiver": "cmdTame temporarily attaches player.skill.taming_task because command-table dispatch targets are not persistent message receivers",
+    "holdHeartbeatSeconds": 1,
+    "eligibility": [
+      "living player and living non-player monster baby",
+      "not in combat and within 8 meters throughout the transaction",
+      "tameable creature-table row with a positive skill-derived chance",
+      "Creature Handler novice skill, active/stored capacity, control level, and datapad",
+      "final commit revalidates skill, chance, capacity, control level, and datapad"
+    ],
+    "rollRangeInclusive": [0, 100],
+    "successComparison": "roll < chance",
+    "failure": "release both transaction locks, restore original wild calm behavior, and give aggressive creatures a one-in-twenty retaliation chance",
+    "success": "persist the source creature, create/specify a PCD in the datapad, set growth stage one, convert to ai.pet, link master/PCD/pet, initialize default commands, save pet data, and follow the master",
+    "xpType": "creaturehandler",
+    "xpFormula": "source creature level * 20",
+    "crashSafety": "a nonpersistent one-second task heartbeat repeatedly calls stop while the transaction lock exists; it never writes a persistent STOP default behavior and all delayed work becomes inert when the lock is cleared"
+  },
+  "liveFixture": {
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "protocol": 1,
+    "creatureType": "worrt",
+    "creatureLevel": 6,
+    "actions": [
+      "prepare",
+      "status",
+      "store",
+      "call",
+      "cleanup"
+    ],
+    "temporarySkills": [
+      "outdoors_creaturehandler",
+      "outdoors_creaturehandler_novice"
+    ],
+    "deterministicRoll": 0,
+    "fixtureIsolation": "production randomness remains unchanged unless the exact player OID, station ID, protocol, prepared root, and target all match",
+    "restartProtocol": "PrepareStore leaves a persistent lifecycle/PCD snapshot armed; VerifyRecall runs only after an actual server/client restart and authenticated relogin",
+    "ownerContextBridge": "the attached fixture polls durable store/call request flags from player context and re-arms its nonpersistent poll on login; ownerless ServerConsole never invokes pet library lifecycle functions",
+    "cleanupPolicy": "destroy the fixture active pet and PCD, clear callable/tame state, restore creaturehandler XP and skill points, revoke only fixture skills, restore prior pet-master script presence, and prove repeated cleanup is idempotent"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "targets": [
+      "ant compile_java",
+      "ant compile_tab"
+    ],
+    "patch": "restoration/patches/dsrc/240-p14-tame-command-lifecycle.patch",
+    "patchBytes": 50131,
+    "patchSha256": "d146bd65116aad511ad850aa52b0231043f78f31a3e908a2387e6bee7e510a26",
+    "runtimeRunnerSha256": "68202d35bbc35698ec17dce457687c3a8a0b582624309f130870b776e117a97c",
+    "sourceSha256": {
+      "command_table.tab": "82715291d317bbcf75241e452dbfcc0297043a0923209a0e60138cef8fef0634",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "taming.java": "ddceade59d71647afa972c6d24b7e294fa59d331c7feb62072b0e4b87d0355e6",
+      "taming_task.java": "d693a023e316ded12ac6881111aab71faa56ddadbef6d8e9c6360afb8406d42c",
+      "pet_lib.java": "3103299b7687aa36d69470247473bed4ba5b98373a83560a69e44a413a56d7dd",
+      "precu_tame_command_fixture.java": "12f4a17cebbb4e3463096d814bc5bd6660f9a5a4f52ca211f59f66a934827c3f"
+    },
+    "compiledSha256": {
+      "taming.class": "ae33250968e2dd769201f6529704501f280abd69bd448de9a51a9250a701881f",
+      "taming_task.class": "8aaaa93ff236a852c863d326eca2a89428ff7cca26c34b4aface6d1c514b9aed",
+      "pet_lib.class": "925b23c630b2168f7ffacf27fc488d9327dd238ec8cab89cc1a9f249af85f860",
+      "precu_tame_command_fixture.class": "d01857a0b6e034990000baac214e7c3ce8c1283fcd801f13602a879a8239e927",
+      "command_table.iff": "73d7d0fcfde630ffe931147a00bb5c5a87868060d6ae0173be0b708f7b1a8ae7"
+    },
+    "cleanMaterializationPatches": 246,
+    "cleanMaterializationAcceptanceFiles": 708,
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "testedUtc": "2026-07-23T03:49:26Z",
+    "protocolVersion": 155,
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "lifecycle": "72a52818ff2148c2a47b1aa369274ae6",
+    "preRestartClientProcessId": 28468,
+    "postRestartClientProcessId": 69596,
+    "tamedTargetOid": 1057547307,
+    "pcdOid": 1057549026,
+    "recalledPetOid": 1058547402,
+    "phaseCallbacks": 3,
+    "chance": 39,
+    "roll": 0,
+    "xpGranted": 120,
+    "growthStage": 1,
+    "storedAcrossRestart": true,
+    "recalledMasterLinked": true,
+    "recalledPetScript": true,
+    "recalledPetPersisted": false,
+    "persistenceModel": "the stored PCD is durable across restart; recall reconstructs the active pet as an intentionally transient object linked back to that device",
+    "cleanup": "action=cleanup alreadyClean=false restored=true",
+    "idempotentCleanup": "action=cleanup alreadyClean=true restored=true",
+    "serverHealth": "healthy",
+    "postProofFatalSevereJavaExceptionDictionaryErrors": 0,
+    "clientExeSha256": "face61c277b9d2236495062ae305d39ca7ead14f2209dcbbc41d96c896be179b",
+    "runtimeTreSha256": "6cfe2405c59bf1104a86b7840158ab4e97a307a7180489fd435eacef18e1cccf"
+  },
+  "narrowBoundary": {
+    "included": [
+      "authoritative command registration and novice ownership",
+      "production phased tame admission, revalidation, chance, rollback, and XP",
+      "persistent baby-pet and PCD materialization with callable links/default commands",
+      "authenticated protocol-155 dispatch, storage, restart persistence, recall, cleanup, and health"
+    ],
+    "deferred": [
+      "statistical validation of unforced tame failure and retaliation distribution",
+      "every tameable species and later Creature Handler training progression",
+      "mount maturity and pet ability-slot progression beyond initial growth stage"
+    ]
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "feature": "quick-heal-command",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Medic Quick Heal command admission and server behavior, including optional targeting, the Focus-adjusted Mind cost, shared random Health/Action healing, Focus and Willpower wounds, zero medicine, zero XP, and reversible live execution.",
+  "sourceFiles": {
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/quick_heal.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_quick_heal_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/QuickHealCommand.h",
+    "costSource": "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "quickHeal",
+    "category": "combat",
+    "scriptHook": "quickHeal",
+    "tempScript": "player.cmd.quick_heal",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 2,
+    "executeTimeSeconds": 2,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "invalidTargetFallback": "self",
+    "eligibleTargets": [
+      "living player",
+      "living organic creature pet"
+    ],
+    "maximumOtherTargetRangeMeters": 6,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "baseMindCost": 1000,
+    "mindCostFormula": "max(0, int(1000 - (((Focus - 300) / 1200.0) * 1000)))",
+    "minimumHeal": 150,
+    "maximumHeal": 750,
+    "samePowerAppliedTo": [
+      "Health",
+      "Action"
+    ],
+    "focusWoundCost": 10,
+    "willpowerWoundCost": 10,
+    "medicineConsumed": false,
+    "medicalXpGranted": false
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup",
+      "recover"
+    ],
+    "temporaryCommand": "quickHeal",
+    "preparedHealth": 200,
+    "preparedAction": 100,
+    "preparedMind": 400,
+    "preparedFocus": 1100,
+    "preparedWillpower": 400,
+    "temporaryFocusCapacity": {
+      "humanPublish14Maximum": 1100,
+      "reason": "The NGE-origin fixture character retained only 400 Focus and 400 Mind. A fixture-owned, removable Focus modifier exercises an authentic valid Human allocation without modifying the charged Mind pool or production formula.",
+      "activation": "The server attribute-modifier cache becomes visible on its next simulation tick.",
+      "cleanup": "The named modifier is removed before restoration; the fixture verifies the unmodified Focus preimage because the adjusted cache retires on the following simulation tick."
+    },
+    "expectedMindCost": 333,
+    "cleanupPolicy": "Restore command ownership, medical XP, and the exact max/current/wound preimage for Health, Action, Mind, Focus, and Willpower, remove the fixture-owned Focus modifier, then remove the fixture root. Recovery is identity-bound and only resurrects/refills the fixed fixture player when no lifecycle is active."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "5fba6bea8922316d662541ae24b3825ec0eb113e72c1ecb7449b4c21459542de",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-quick-heal-final-20260718-112",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "quick_heal.java": "9621ff45702538ce118d987cc1ba2d94970efc549d5905e6afd0db299bdf6408",
+      "precu_quick_heal_command_fixture.java": "ed5cc98270c36a9723c227561ed83b012492d5304569d9ae5c7e762c7cddec1d",
+      "command_table.tab": "07dc587d2b2644403bc41ec93f979e5329f62d7113e8a3d23302580f51ab709b"
+    },
+    "compiledSha256": {
+      "quick_heal.class": "ab8bf6c7d95fbb15ba34ef4de977e8a1d349437deeca78904ce013354e425e72",
+      "precu_quick_heal_command_fixture.class": "a997404523d40ed2704ecc46649fc639468f143d0317091036daab48d79e1116",
+      "command_table.iff": "1c2f945574a919261849417b9a9ae071668cf3fe9c296486746a6e2bd403df45"
+    }
+  },
+  "clientToolsPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "protocolVersion": 22,
+    "commit": "b2480b82a5f52e2b5f04d5f1e014c34c8a117dd6",
+    "clientSha256": "186017debf54371f1533e6ed499727f0150f368e4dae610b4f0b8a4dc4b87084",
+    "startupMode": "Off-focus splash bypass, login auto-connect, and scheduler progression enabled only when the explicit background-input bridge is active."
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "7a69ccd822d9a9d62597732618b370a7b47a6589",
+    "commandTableIffSha256": "1c2f945574a919261849417b9a9ae071668cf3fe9c296486746a6e2bd403df45"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T03:30:00-04:00",
+    "lifecycle": "qh-final-20260718-033000",
+    "container": "swg-precu",
+    "playerOid": 39008597,
+    "clientProcessId": 48436,
+    "clientProtocolVersion": 22,
+    "clientQueueCountAtAdmission": 0,
+    "clientQueueCountAfterExecution": 0,
+    "clientQueueCountAfterCleanup": 0,
+    "clientCommandStatus": "Success",
+    "handlerCalls": 1,
+    "targetOid": 39008597,
+    "observedFocus": 1100,
+    "mindCost": 333,
+    "healPower": 654,
+    "healthHealed": 655,
+    "actionHealed": 376,
+    "regenerationTolerance": 2,
+    "sharedHealPowerApplied": true,
+    "focusWounds": 10,
+    "willpowerWounds": 10,
+    "medicalXpDelta": 0,
+    "handlerOutcome": "performed",
+    "incapacitatedAfterExecution": false,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "clientSha256": "186017debf54371f1533e6ed499727f0150f368e4dae610b4f0b8a4dc4b87084"
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target nonqueued command row",
+      "six-meter organic patient and PvP-help gates",
+      "Core3 Focus-adjusted Mind cost",
+      "shared random Health/Action heal power",
+      "ten Focus and Willpower wounds",
+      "zero medicine and zero XP",
+      "protocol-22 no-focus client admission",
+      "identity-bound reversible live fixture"
+    ],
+    "deferred": [
+      "Medic tier-IV progression activation",
+      "Medic master progression activation"
+    ]
+  }
+}

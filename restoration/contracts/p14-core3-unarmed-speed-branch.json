@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-unarmed-speed-branch",
+  "status": "ready",
+  "scope": "Restore the Teras Kasi Speed I-IV ownership chain and unarmedKnockdown1/unarmedKnockdown2 with pinned Core3 RANDOM-pool damage, exact dizzy and knockdown semantics, synchronized client assets, authenticated two-client execution, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/unarmedKnockdown1.lua",
+      "MMOCoreORB/bin/scripts/commands/unarmedKnockdown2.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skills": [
+      {"name": "combat_unarmed", "requires": []},
+      {"name": "combat_unarmed_novice", "requires": ["combat_brawler_unarmed_04"]},
+      {"name": "combat_unarmed_speed_01", "requires": ["combat_unarmed_novice"], "commands": ["unarmedKnockdown1"]},
+      {"name": "combat_unarmed_speed_02", "requires": ["combat_unarmed_speed_01"]},
+      {"name": "combat_unarmed_speed_03", "requires": ["combat_unarmed_speed_02"]},
+      {"name": "combat_unarmed_speed_04", "requires": ["combat_unarmed_speed_03"], "commands": ["unarmedKnockdown2"]}
+    ],
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "maxRangeToTarget": 0,
+      "addToCombatQueue": true,
+      "validWeapon": "UNARMED",
+      "failScriptHook": "failSpecialAttack"
+    },
+    "combat": {
+      "unarmedKnockdown1": {
+        "damageMultiplier": 1.0,
+        "speedMultiplier": 1.5,
+        "hamCostMultipliers": [1.0, 1.0, 1.0],
+        "accuracyBonus": 15,
+        "targetPool": "RANDOM",
+        "attackType": "SINGLE_TARGET",
+        "combatRange": 5,
+        "animation": "knockdown_unarmed_2",
+        "animationType": "NONE",
+        "combatSpam": "sleepingkrayt",
+        "knockdownChance": 100
+      },
+      "unarmedKnockdown2": {
+        "damageMultiplier": 1.5,
+        "speedMultiplier": 2.0,
+        "hamCostMultipliers": [1.5, 1.5, 1.5],
+        "accuracyBonus": 15,
+        "targetPool": "RANDOM",
+        "attackType": "SINGLE_TARGET",
+        "combatRange": 5,
+        "animation": "knockdown_unarmed_3",
+        "animationType": "NONE",
+        "combatSpam": "chargingwampa",
+        "state": "DIZZY",
+        "stateChance": 75,
+        "stateStrength": 0,
+        "stateDuration": 40,
+        "stateDefenses": ["dizzy_defense", "jedi_state_defense", "resistance_states"],
+        "knockdownChance": 100
+      }
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T01:22:00-04:00",
+    "scratchCommit": "d6836350f35139cdb941736e17a6a1013f7b691a",
+    "overlay": "restoration/patches/dsrc/319-p14-core3-unarmed-speed-branch.patch",
+    "overlaySha256": "36bef7ff6c79332de566f6361a209d176e2c76d578bc3e7ab9bdfb76a5d46c44",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "compiledClassSha256": {
+      "script/systems/combat/combat_actions.class": "ca8865e374f9f89d2051daa87626b9a57f421f1563f71d8cac52dbd8d4216779",
+      "script/test/precu_headshot1_fixture.class": "f32127231cbcb403db98c335e03e3bd949f70e9dd39c4e1eef61293e5689cc76"
+    },
+    "datatableCompile": "passed-two-independent-native-linux-builds",
+    "datatableBuildsDeterministic": true,
+    "datatableRowCounts": {
+      "command_table.iff": 2082,
+      "combat_data.iff": 1429,
+      "precu_combat_overrides.iff": 145,
+      "precu_combat_spam.iff": 144
+    },
+    "compiledTableBytes": {
+      "datatables/command/command_table.iff": 853436,
+      "datatables/combat/combat_data.iff": 767037,
+      "datatables/combat/precu_combat_overrides.iff": 22394,
+      "datatables/combat/precu_combat_spam.iff": 3739
+    },
+    "compiledTableSha256": {
+      "datatables/command/command_table.iff": "b35818dbe130b7ba45f7b71553c624de2561ae15994dc1c6f738ae01cc38e0ef",
+      "datatables/combat/combat_data.iff": "7db2d31cad033724ef292a92482c44aa021b8ec0c340314ddf9e354bbc5cfc46",
+      "datatables/combat/precu_combat_overrides.iff": "b14f2503c6a78d28038879c4448f691ffd447058889544b198382554d7c30b6f",
+      "datatables/combat/precu_combat_spam.iff": "164658699b83d32593f7affaa436014ea3523ca46da23c663a6306ab24a3d892"
+    },
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "runs": 2,
+      "bytes": 135898,
+      "fileCount": 3,
+      "sha256": "d27d5958470106ff1d593580988a7f5ccb2e87998018b9ebd4778d3f4860dff7"
+    },
+    "clientBridgeTests": {"passed": 69, "failed": 0, "subtests": 1316},
+    "clientTestSuite": {"passed": 199, "skipped": 3, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientBuildWarnings": 82,
+    "clientProtocolVersion": 239,
+    "clientBytes": 33810432,
+    "clientSha256": "fd52cc34d842e27bce2226b87efa423ce315e6bb31be1f9fabf86b541659c885",
+    "materializedOverlayCount": 325,
+    "materializedRestorationFileCount": 955,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "096c83e339f0acfd9e24d1f4d650b0dda022ce6f07a97d155b7e89de7c1d8d0a",
+      "precu_headshot1_fixture.java": "a4eb8a9ea8588519076c65a3354195e4cd3a1bb15abc6fde0214cb0a12f8088a",
+      "command_table.tab": "71931ce1ab7488b0ffcb43eb2979c07f17d2e0544ba874b247b67f83209a5ce9",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "11568dc152096ec2ef1991621cebd7416ba881f1677680077d561977ac1ee836",
+      "precu_combat_overrides.tab": "34c7dc63434646158ff19762d51239ed248e55a4e57a5240a5838853c7ef3eab",
+      "precu_combat_spam.tab": "5728e12b653eb82374372c6bdd784f0f0a4fab09d6890b49764dc1c7f7505b68"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T01:22:00-04:00",
+    "clientProtocolVersion": 239,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "32100000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "distanceCentimeters": 500,
+      "root": true,
+      "novice": true,
+      "speedOne": true,
+      "speedTwo": true,
+      "speedThree": true,
+      "speedFour": true,
+      "commands": ["unarmedKnockdown1", "unarmedKnockdown2"],
+      "canPerform": [0, 0],
+      "unarmedSpeedModifier": 40,
+      "heldWeapon": "none",
+      "clientWeaponStatus": {"commandFound": true, "weaponType": 6, "validMask": "0x00000040", "satisfies": true, "packed": "0x0000000000405706"}
+    },
+    "commands": {
+      "unarmedKnockdown1": {
+        "serverAccepted": true,
+        "hamDebit": [4, 10, 11],
+        "configuredPool": "RANDOM",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 0,
+        "combatSpam": "sleepingkrayt_hit",
+        "animation": "knockdown_unarmed_2",
+        "animationType": 0,
+        "knockdown": {"chance": 100, "defense": 0, "roll": 48, "startPosture": 0, "endPosture": 12, "result": "APPLIED", "recovery": true}
+      },
+      "unarmedKnockdown2": {
+        "serverAccepted": true,
+        "hamDebit": [6, 15, 17],
+        "configuredPool": "RANDOM",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 2,
+        "combatSpam": "chargingwampa_hit",
+        "animation": "knockdown_unarmed_3",
+        "animationType": 0,
+        "dizzy": {"chance": 75, "defense": 0, "roll": 60, "threshold": 78, "duration": 40, "before": 0, "after": 1, "result": "APPLIED"},
+        "knockdown": {"chance": 100, "defense": 0, "roll": 18, "startPosture": 0, "endPosture": 12, "result": "APPLIED", "recovery": true}
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "allSpeedSkillsSurvived": true,
+      "commandsSurvived": true,
+      "canPerformSurvived": true,
+      "unarmedSpeedModifierSurvived": true,
+      "transientDizzyAbsent": true,
+      "transientKnockdownPostureAbsent": true,
+      "transientKnockdownRecoveryAbsent": true,
+      "postRestartExecution": {
+        "presentationRearmed": true,
+        "command": "unarmedKnockdown1",
+        "serverAccepted": true,
+        "combatSpam": "sleepingkrayt_hit",
+        "animation": "knockdown_unarmed_2",
+        "knockdownRoll": 81,
+        "knockdownResult": "APPLIED"
+      }
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "identityBoundSnapshotsRestored": true,
+      "fixtureAbsentAfterCleanup": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000"
+    },
+    "isolatedClientsStopped": true,
+    "isolatedClientFilesRestoredToM320": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "configuredClusterPortRestored": 44452,
+    "connectionServerCount": 1,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

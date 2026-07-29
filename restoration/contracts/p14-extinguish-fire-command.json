@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "feature": "extinguish-fire-command",
+  "status": "ready",
+  "scope": "Publish 14.1 Doctor Extinguish Fire command admission and server behavior, including optional targeting, fire-blanket selection and power, Focus-adjusted Mind cost, shared condition-treatment recovery, one-charge consumption, fire DOT-strength reduction, area-pack retention, and fixed other-player medical XP.",
+  "sourceFiles": {
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/extinguish_fire.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_extinguish_fire_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "specialization": "MMOCoreORB/src/server/zone/objects/creature/commands/ExtinguishFireCommand.h",
+    "sharedCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/CurePackCommand.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "extinguishFire",
+    "category": "combat",
+    "scriptHook": "extinguishFire",
+    "tempScript": "player.cmd.extinguish_fire",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "invalidTargetFallback": "self",
+    "eligibleTargets": [
+      "living player",
+      "living organic creature pet"
+    ],
+    "maximumOtherTargetRangeMeters": 7,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "requiredDot": "fire",
+    "medicineType": "healing.cure_dot=fire",
+    "baseMindCost": 100,
+    "mindCostFunction": "healing.getMedicalMindCost",
+    "roundTimeFormula": "max(4, round((20 - healing_injury_speed / 5) * (100 - heal_recovery) / 100))",
+    "sharedCooldown": "healing.can_heal_state",
+    "medicineChargesConsumed": 1,
+    "singlePackPower": "dot_power * (1 + healing_wound_treatment / 100)",
+    "areaPackPower": "dot_power",
+    "medicalXpForOtherPlayer": 50,
+    "medicalXpForSelfOrPet": 0
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporaryCommand": "extinguishFire",
+    "preparedFireStrength": 90,
+    "preparedMedicinePower": 200,
+    "preparedMedicineCharges": 2,
+    "cleanupPolicy": "Restore the exact shared condition cooldown, Mind, medical XP, and skill-point preimage; remove only the fixture fire DOT and medicine; revoke the fixture-owned Medic-through-Doctor-Wound-Speed-III chain; then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "production Java 11 targeted compile and targeted DataTableTool command-table compile",
+    "patchSha256": "bfa4737b169caa05a1c507d2c3d8636b9aaf92c13d1279ee22ef2c32e2322c95",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-extinguish-fire-ready-20260718-133",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "healing.java": "8c1adc004a5ca10b8bf1a8e2139ae35bf5dfd6197804df3dae70b0a5a88f770f",
+      "extinguish_fire.java": "049061ef57a8f4be35ea87c7df48d1ea7f23df5863fdd23423f3cdb5bda48443",
+      "precu_extinguish_fire_command_fixture.java": "640d50ccc31a959406137a80dc5848a49bcc4e87b6cc9087c4be3f50c28b4a37",
+      "command_table.tab": "c2aacd4fb1a7bec4d2ccccbcd7f1663cb58cffd306b4125dc421da18686e4a40"
+    },
+    "compiledSha256": {
+      "healing.class": "1999beb505d35da030e0544e4650bb1f919ffd3dabea661965c3c3eb0cbbdda4",
+      "extinguish_fire.class": "2cafa3c4d166847caa12d9928ce4ad01183e1d9f76dcc9954ae0b7208cc4ccaa",
+      "precu_extinguish_fire_command_fixture.class": "59bd10db4f2272cf1851c81378c78a9a2a500504107e9a23b33c31ad7b489f66",
+      "command_table.iff": "1e6147e474309c892f368e6571d0c52b9e563b8fe91fc4b3c41bd60bfc13fbe8"
+    }
+  },
+  "clientToolsPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "protocolVersion": 27,
+    "commit": "e4f977ef",
+    "clientSha256": "737ebd4e3501c4757b5f323d8b01b666e28de83d0ed8ffc33884468591923ef2",
+    "startupMode": "Off-focus splash bypass, login auto-connect, scheduler progression, and Extinguish Fire admission are enabled only by the explicit background-input bridge."
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "dbe43c5",
+    "treeSha256": "3854e8dddfb3269d1af479cc1dd55752cfbce319294a3f4871e6d14ae0d96c9a",
+    "commandTableIffSha256": "1e6147e474309c892f368e6571d0c52b9e563b8fe91fc4b3c41bd60bfc13fbe8",
+    "runtimeDeployment": "Loose datatables/command/command_table.iff overlay preserves the canonical Publish 14.1 TRE priority stack."
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T11:06:42-04:00",
+    "lifecycle": "9851c63679cb4bf29bfa33100b62365e",
+    "container": "swg-precu",
+    "oracleContainer": "swg-precu-oracle",
+    "clientProcessId": 61204,
+    "clientProtocolVersion": 27,
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "skillVector": "1111111111111111111111",
+    "clientQueueCountAtAdmission": 0,
+    "clientQueueCountAfterExecution": 0,
+    "clientQueueCountAfterCleanup": 0,
+    "clientCommandStatus": "Success",
+    "handlerCalls": 1,
+    "handlerOutcome": "performed",
+    "targetOid": 39008597,
+    "medicinePower": 200,
+    "fireBefore": 90,
+    "fireAfter": 0,
+    "fireReduction": 90,
+    "expectedMindCost": 91,
+    "appliedMindCost": 91,
+    "observedMindAfterRegeneration": 346,
+    "appliedChargeCost": 1,
+    "appliedMedicalXpDelta": 0,
+    "expectedRoundTime": 5,
+    "appliedRoundTime": 5,
+    "cooldownRemainingAtObservation": -10,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "clientSha256": "737ebd4e3501c4757b5f323d8b01b666e28de83d0ed8ffc33884468591923ef2",
+    "treeSha256": "3854e8dddfb3269d1af479cc1dd55752cfbce319294a3f4871e6d14ae0d96c9a",
+    "commandTableIffSha256": "1e6147e474309c892f368e6571d0c52b9e563b8fe91fc4b3c41bd60bfc13fbe8"
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target five-second nonqueued command row",
+      "seven-meter organic patient, line-of-sight, and PvP-help gates",
+      "fire-specific blanket selection and one-charge consumption",
+      "retained single and area cure-power mechanics",
+      "Focus-adjusted 100-Mind cost and shared condition-treatment cooldown",
+      "fixed 50 medical XP for another player and zero for self or pets",
+      "protocol-27 no-focus client admission",
+      "identity-bound reversible self-treatment fixture"
+    ],
+    "deferred": [
+      "live second-player 50-XP acceptance",
+      "live area-pack multi-target acceptance",
+      "Doctor tier-IV progression"
+    ]
+  }
+}

@@ -1,0 +1,201 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/spawning.java b/sku.0/sys.server/compiled/game/script/library/spawning.java
+index b3f97b5..cd630a4 100644
+--- a/sku.0/sys.server/compiled/game/script/library/spawning.java
++++ b/sku.0/sys.server/compiled/game/script/library/spawning.java
+@@ -287,4 +287,42 @@ public class spawning extends script.base_script
+             spawn.startsWith("imperial_marine_detainment_") ||
+             spawn.startsWith("rebel_detainment_");
+     }
++    public static boolean isRetiredLoveDaySpawner(obj_id spawner) throws InterruptedException
++    {
++        if (!isValidId(spawner))
++        {
++            return false;
++        }
++        if (hasObjVar(spawner, "eventRequired") && getStringObjVar(spawner, "eventRequired").equals("loveday"))
++        {
++            return true;
++        }
++        if (!hasObjVar(spawner, "strSpawns"))
++        {
++            return false;
++        }
++        String spawn = getStringObjVar(spawner, "strSpawns");
++        return spawn != null && spawn.startsWith("loveday_");
++    }
++    public static void cleanupRetiredSpawnerChildren(obj_id spawner) throws InterruptedException
++    {
++        if (!isValidId(spawner))
++        {
++            return;
++        }
++        obj_id[] children = getAllObjectsWithObjVar(getLocation(spawner), 32000.0f, "objParent");
++        if (children != null)
++        {
++            for (obj_id child : children)
++            {
++                if (isValidId(child) && exists(child) &&
++                    getObjIdObjVar(child, "objParent") == spawner)
++                {
++                    destroyObject(child);
++                }
++            }
++        }
++        utils.removeScriptVar(spawner, "debugSpawnList");
++        utils.removeScriptVar(spawner, "intCurrentSpawnCount");
++    }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java
+index 12d53d0..f24892e 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java
++++ b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_area.java
+@@ -15,8 +15,9 @@ public class spawner_area extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
++            spawning.cleanupRetiredSpawnerChildren(self);
+             OnDestroy(self);
+             detachScript(self, "systems.spawning.spawner_area");
+             return SCRIPT_CONTINUE;
+@@ -37,8 +38,9 @@ public class spawner_area extends script.base_script
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
++            spawning.cleanupRetiredSpawnerChildren(self);
+             OnDestroy(self);
+             detachScript(self, "systems.spawning.spawner_area");
+             return SCRIPT_CONTINUE;
+@@ -59,7 +61,7 @@ public class spawner_area extends script.base_script
+     }
+     public int doSpawnEvent(obj_id self, dictionary params) throws InterruptedException
+     {
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
+             return SCRIPT_CONTINUE;
+         }
+@@ -165,6 +167,10 @@ public class spawner_area extends script.base_script
+     }
+     public void createMob(String strId, obj_id objLocationObject, location locLocation, float fltRadius, obj_id self) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
++        {
++            return;
++        }
+         if (!spawning.checkSpawnCount(self))
+         {
+             return;
+@@ -212,6 +218,14 @@ public class spawner_area extends script.base_script
+     }
+     public int OnLocationReceived(obj_id self, String strId, obj_id objLocationObject, location locLocation, float fltRadius) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
++        {
++            if (isIdValid(objLocationObject))
++            {
++                destroyObject(objLocationObject);
++            }
++            return SCRIPT_CONTINUE;
++        }
+         if (isIdValid(objLocationObject))
+         {
+             createMob(strId, objLocationObject, locLocation, fltRadius, self);
+@@ -224,7 +238,7 @@ public class spawner_area extends script.base_script
+     }
+     public int spawnDestroyed(obj_id self, dictionary params) throws InterruptedException
+     {
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
+             return SCRIPT_CONTINUE;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java
+index d543e38..24dc038 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java
++++ b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_patrol.java
+@@ -20,6 +20,7 @@ public class spawner_patrol extends script.base_script
+     {
+         if (spawning.isRetiredEmpireDaySpawner(self))
+         {
++            spawning.cleanupRetiredSpawnerChildren(self);
+             OnDestroy(self);
+             detachScript(self, "systems.spawning.spawner_patrol");
+             return SCRIPT_CONTINUE;
+@@ -31,6 +32,7 @@ public class spawner_patrol extends script.base_script
+     {
+         if (spawning.isRetiredEmpireDaySpawner(self))
+         {
++            spawning.cleanupRetiredSpawnerChildren(self);
+             OnDestroy(self);
+             detachScript(self, "systems.spawning.spawner_patrol");
+             return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java
+index 3b369fd..4cab960 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java
++++ b/sku.0/sys.server/compiled/game/script/systems/spawning/spawner_random.java
+@@ -16,8 +16,9 @@ public class spawner_random extends script.base_script
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+         CustomerServiceLog("holidaySpawner", "spawner_random.OnAttach: Initialized for: " + self);
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
++            spawning.cleanupRetiredSpawnerChildren(self);
+             OnDestroy(self);
+             detachScript(self, "systems.spawning.spawner_random");
+             return SCRIPT_CONTINUE;
+@@ -39,8 +40,9 @@ public class spawner_random extends script.base_script
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+         CustomerServiceLog("holidaySpawner", "spawner_random.OnAttach: Initialized for: " + self);
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
++            spawning.cleanupRetiredSpawnerChildren(self);
+             OnDestroy(self);
+             detachScript(self, "systems.spawning.spawner_random");
+             return SCRIPT_CONTINUE;
+@@ -66,7 +68,7 @@ public class spawner_random extends script.base_script
+     }
+     public int OnHearSpeech(obj_id self, obj_id speaker, String text) throws InterruptedException
+     {
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
+             return SCRIPT_CONTINUE;
+         }
+@@ -99,7 +101,7 @@ public class spawner_random extends script.base_script
+     }
+     public int doSpawnEvent(obj_id self, dictionary params) throws InterruptedException
+     {
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
+             return SCRIPT_CONTINUE;
+         }
+@@ -205,6 +207,10 @@ public class spawner_random extends script.base_script
+     }
+     public void createMob(String strId, obj_id objLocationObject, location locLocation, float yaw, obj_id self) throws InterruptedException
+     {
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
++        {
++            return;
++        }
+         if (!spawning.checkSpawnCount(self))
+         {
+             return;
+@@ -285,7 +291,7 @@ public class spawner_random extends script.base_script
+     }
+     public int spawnDestroyed(obj_id self, dictionary params) throws InterruptedException
+     {
+-        if (spawning.isRetiredEmpireDaySpawner(self))
++        if (spawning.isRetiredEmpireDaySpawner(self) || spawning.isRetiredLoveDaySpawner(self))
+         {
+             return SCRIPT_CONTINUE;
+         }

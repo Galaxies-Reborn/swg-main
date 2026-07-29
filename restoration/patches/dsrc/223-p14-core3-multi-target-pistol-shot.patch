@@ -1,0 +1,281 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 3a20050..d19dff6 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14616,6 +14616,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int multiTargetPistolShot(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("multiTargetPistolShot", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int bodyShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("bodyShot2", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_pistoleer_master_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_pistoleer_master_fixture.java
+new file mode 100644
+index 0000000..230e812
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_pistoleer_master_fixture.java
+@@ -0,0 +1,220 @@
++package script.test;
++
++import script.obj_id;
++
++/** Reversible Master Pistoleer layer over the marksman combat fixture. */
++public class precu_pistoleer_master_fixture extends script.base_script
++{
++    private static final long ATTACKER_OID = 44003778L;
++    private static final int ATTACKER_STATION_ID = 91001;
++    private static final String MARKSMAN_ROOT = "precu.p14.marksmanTier1Fixture";
++    private static final String MARKSMAN_LIFECYCLE = MARKSMAN_ROOT + ".lifecycle";
++    private static final String MARKSMAN_PREPARED = MARKSMAN_ROOT + ".prepared";
++    private static final String ROOT = "precu.p14.pistoleerMasterFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String ORIGINAL_BITS = ROOT + ".originalBits";
++    private static final String COMMAND = "multiTargetPistolShot";
++    private static final String[] SKILLS =
++    {
++        "combat_pistol_ability_04",
++        "combat_pistol_speed_01",
++        "combat_pistol_speed_02",
++        "combat_pistol_speed_03",
++        "combat_pistol_speed_04",
++        "combat_pistol_support_01",
++        "combat_pistol_support_02",
++        "combat_pistol_support_03",
++        "combat_pistol_support_04",
++        "combat_pistol_master"
++    };
++    private static final String USAGE =
++        "usage: prepare|status|cleanup <attackerOid> <lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++        long value;
++        try
++        {
++            value = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (value != ATTACKER_OID || !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++        obj_id player = obj_id.getObjId(value);
++        if (player == null || player == obj_id.NULL_ID || !player.isLoaded())
++        {
++            return "error=playerNotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != ATTACKER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, args[2]);
++        }
++        String ownership = validateOwnership(player, args[2]);
++        if (ownership != null)
++        {
++            if (args[0].equalsIgnoreCase("cleanup") &&
++                ownership.equals("error=fixtureAbsent"))
++            {
++                return "action=cleanup alreadyClean=true restored=true";
++            }
++            return ownership;
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            return "action=status " + buildStatus(player);
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            if (ownership == null && getIntObjVar(player, PREPARED) == 1)
++            {
++                return "action=prepare resumed=true " + buildStatus(player);
++            }
++            return ownership == null ? "error=fixtureIncomplete" : ownership;
++        }
++        if (!hasObjVar(player, MARKSMAN_PREPARED) ||
++            getIntObjVar(player, MARKSMAN_PREPARED) != 1 ||
++            !hasObjVar(player, MARKSMAN_LIFECYCLE) ||
++            !lifecycle.equals(getStringObjVar(player, MARKSMAN_LIFECYCLE)))
++        {
++            return "error=marksmanFixtureNotPrepared";
++        }
++
++        int[] originalBits = new int[SKILLS.length];
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            originalBits[index] = hasSkill(player, SKILLS[index]) ? 1 : 0;
++        }
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, ORIGINAL_BITS, originalBits);
++
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            if (originalBits[index] == 0 &&
++                (!grantSkill(player, SKILLS[index]) || !hasSkill(player, SKILLS[index])))
++            {
++                restore(player);
++                removeObjVar(player, ROOT);
++                return "error=skillGrantFailed index=" + index;
++            }
++        }
++        if (!hasSkill(player, "combat_pistol_master") || !hasCommand(player, COMMAND))
++        {
++            restore(player);
++            removeObjVar(player, ROOT);
++            return "error=commandGrantFailed";
++        }
++        setObjVar(player, PREPARED, 1);
++        return "action=prepare resumed=false " + buildStatus(player);
++    }
++
++    private String cleanup(obj_id player) throws InterruptedException
++    {
++        boolean restored = restore(player);
++        if (restored)
++        {
++            removeObjVar(player, ROOT);
++        }
++        return "action=cleanup alreadyClean=false restored=" + restored;
++    }
++
++    private boolean restore(obj_id player) throws InterruptedException
++    {
++        if (!hasObjVar(player, ORIGINAL_BITS))
++        {
++            return false;
++        }
++        int[] originalBits = getIntArrayObjVar(player, ORIGINAL_BITS);
++        if (originalBits == null || originalBits.length != SKILLS.length)
++        {
++            return false;
++        }
++        for (int index = SKILLS.length - 1; index >= 0; --index)
++        {
++            if (originalBits[index] == 0 && hasSkill(player, SKILLS[index]))
++            {
++                revokeSkill(player, SKILLS[index]);
++            }
++        }
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            if (hasSkill(player, SKILLS[index]) != (originalBits[index] == 1))
++            {
++                return false;
++            }
++        }
++        return originalBits[SKILLS.length - 1] == 1 || !hasCommand(player, COMMAND);
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        String bits = "";
++        for (int index = 0; index < SKILLS.length; ++index)
++        {
++            bits += hasSkill(player, SKILLS[index]) ? "1" : "0";
++        }
++        return "player=" + player +
++            " skillBits=" + bits +
++            " master=" + (hasSkill(player, "combat_pistol_master") ? "1" : "0") +
++            " hasMultiTargetPistolShot=" + (hasCommand(player, COMMAND) ? "1" : "0") +
++            " canMultiTargetPistolShot=" +
++                (hasSkill(player, "combat_pistol_master") && hasCommand(player, COMMAND) ? "1" : "0");
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) || !hasObjVar(player, LIFECYCLE))
++        {
++            return "error=fixtureAbsent";
++        }
++        return lifecycle.equals(getStringObjVar(player, LIFECYCLE))
++            ? null
++            : "error=lifecycleMismatch";
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            boolean digit = value >= '0' && value <= '9';
++            boolean lowerHex = value >= 'a' && value <= 'f';
++            if (!digit && !lowerHex)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 0645a63..f2ddb55 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1956,3 +1956,4 @@ polearmHit1	combat	normal	polearmHit1	failSpecialAttack			1.5	polearmHit1	1	0	1
+ polearmArea1	combat	normal	polearmArea1	failSpecialAttack			1.75	polearmArea1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee2hSpinAttack2	combat	normal	melee2hSpinAttack2	failSpecialAttack			2.5	melee2hSpinAttack2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ pointBlankArea2	combat	normal	pointBlankArea2	failSpecialAttack			1.5	pointBlankArea2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++multiTargetPistolShot	combat	normal	multiTargetPistolShot	failSpecialAttack			3.5	multiTargetPistolShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	3.5	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 7e09d3a..5a21438 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1320,3 +1320,4 @@ polearmHit1	polearmHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				obj
+ polearmArea1	polearmArea1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_2c				combo_2c										OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee2hSpinAttack2	melee2hSpinAttack2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_4b				combo_4b										OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ pointBlankArea2	pointBlankArea2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area_no_trails					fire_area_no_trails									OFF	OFF	OFF	OFF	OFF	CONE	12	60	0	12	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
++multiTargetPistolShot	multiTargetPistolShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single					fire_5_special_single									OFF	OFF	OFF	OFF	OFF	AREA	32		0	64	0	0	4.2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index cc40e74..74695c0 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -36,3 +36,4 @@ polearmHit1	1	0.5	0.5	RANDOM	1.5	10	INTENSITY
+ polearmArea1	1.5	1	1	RANDOM	1.75	10	INTENSITY
+ melee2hSpinAttack2	1.5	2	1.5	RANDOM	2.5	10	INTENSITY
+ pointBlankArea2	0.5	1.5	0.5	RANDOM	1.5	50	INTENSITY
++multiTargetPistolShot	0.5	1.25	0.5	RANDOM	3.5	50	RANGED
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 9df2264..f263c7a 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -35,3 +35,4 @@ polearmHit1	bonebruiser
+ polearmArea1	whirlwind
+ melee2hSpinAttack2	spinslam
+ pointBlankArea2	areashot
++multiTargetPistolShot	pistolmultishot

@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-conceal-shot",
+  "status": "ready",
+  "scope": "Restore retained Rifleman Speed I concealShot with exact Patch 12 queue admission, pinned Core3 rifle combat semantics, per-attacker miss tracking, distant AI threat removal, authenticated runtime, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Command": "concealShot.lua",
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "skillOwner": "combat_rifleman_speed_01",
+    "command": {
+      "name": "concealShot",
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "validWeapon": "RIFLE",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "allowedLocomotion": ["standing", "walking", "running", "kneeling", "prone", "crawling"],
+      "disallowedState": ["berserk"]
+    },
+    "combat": {
+      "damageMultiplier": 2.5,
+      "speedMultiplier": 2.0,
+      "healthCostMultiplier": 0.5,
+      "actionCostMultiplier": 0.5,
+      "mindCostMultiplier": 1.5,
+      "accuracyBonus": 5,
+      "targetPool": "RANDOM_ATTRIBUTE",
+      "attackType": "SINGLE_TARGET",
+      "maxRange": 64,
+      "animation": "fire_1_special_single",
+      "animationType": "GENERATE_RANGED",
+      "combatSpam": "concealedshot",
+      "weaponType": "RIFLE"
+    },
+    "concealment": {
+      "target": "living-uncontrolled-ai",
+      "minimumDistanceMeters": 40,
+      "missAccounting": "per-attacker-on-explicit-miss",
+      "allowedMissesByPosture": {
+        "upright": 1,
+        "crouched": 2,
+        "prone": 3
+      },
+      "successfulOutcome": "remove-attacker-from-ai-threat-map"
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T10:10:00-04:00",
+    "overlay": "restoration/patches/dsrc/276-p14-core3-conceal-shot.patch",
+    "overlaySha256": "188ff9643288944c7c9b31a072d616329e93542796903248de6e71f81c0e7ef6",
+    "changedFileCount": 7,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 8,
+    "javaCompile": "passed-focused-three-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss16m",
+    "datatableCompile": "passed-focused-four-tables-linux",
+    "clientBridgeTests": 69,
+    "clientTestSuite": {
+      "passed": 199,
+      "skipped": 3,
+      "failed": 0
+    },
+    "clientBuildConfiguration": "Release|x64",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 199,
+    "clientBytes": 32644096,
+    "clientSha256": "6275b7d0304af63954fcf59d1f79055e2ba6f9723de555f76e91cc1376b616ab",
+    "materializedOverlayCount": 282,
+    "materializedRestorationFileCount": 826,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "base": "2bb6830abea5552cdfeca3fb47710b5bc47ee276c3eba49e554e863d5a83ad06",
+      "actions": "26ae60f9aea38a0e3fb329cd1e95ac6d5b76f7658bc068415be1334f71dcbfa1",
+      "fixture": "fc179d44cc3ca4ba65a3244294aa8dac982d67c92c184a0c4cf3d1a181fa957a",
+      "combat": "759cfb2955de63585ce6c024667e957a54ff4a55419251b79db3688e9248920c",
+      "override": "04637f1be694a102e760e937f96b268768dad8937178799731c3966ba28238a9",
+      "spam": "b26a1e9864a03c971eec2b4ad4e9fbbb50f7849b2586a8dc2c8472c38452ba88",
+      "command": "42259dbf53720158b3558d618e7c2197d352285cc5a73a102748e41e2e9f8b86"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "f14c1e87d9ece424df7b38cc7a22a6829ebc0d03652b0678a4787aaa18945a3",
+      "datatables/command/command_table.iff": "5f225606a6c1804bdedd35287b5d6c1685dd6c7f89b7072e22de7ea1b831c7a6",
+      "precu_runtime.tre": "c9697de3a93f2506b6d8cc0490e75898dbdbe2ca7343b784424585f4481f919d"
+    },
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "runs": 2,
+      "fileCount": 3
+    },
+    "legacyAssetTestSuite": {
+      "passed": 48,
+      "failed": 33,
+      "subtests": 16,
+      "disposition": "Known stale hash-locked entertainer/progression and surrender-generator expectations; all M278-owned table compilation, deterministic archive, authenticated client admission, threat removal, and runtime checks passed."
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T10:10:00-04:00",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 199,
+    "lifecycle": "27800000000000000000000000000001",
+    "attacker": {
+      "stationId": 91001,
+      "objectId": 44003778,
+      "avatar": "PrecuRuntime"
+    },
+    "defender": {
+      "stationId": 1001,
+      "objectId": 39008597,
+      "avatar": "Icai Darkwave"
+    },
+    "preparation": {
+      "prepared": true,
+      "riflemanSpeedOne": true,
+      "concealShotCommand": true,
+      "targetTemplate": "worrt",
+      "selectedTargetCandidate": 1,
+      "distanceMeters": 44.02723,
+      "initialHate": 100.0,
+      "attackable": true,
+      "visible": true
+    },
+    "weaponAdmission": {
+      "heldWeaponType": 0,
+      "validMask": "0x00000001",
+      "commandFound": true,
+      "satisfies": true,
+      "packedStatus": "0x0000000000015700"
+    },
+    "canPerformAction": 0,
+    "hamCosts": {
+      "health": 2,
+      "action": 7,
+      "mind": 17
+    },
+    "precuHamModel": true,
+    "combatResult": {
+      "result": "HIT",
+      "spamKey": "concealedshot_hit",
+      "spamResult": 1,
+      "damage": 39,
+      "configuredTargetPool": 3,
+      "resolvedTargetPool": 1,
+      "resolvedPoolName": "Action",
+      "hitLocation": 4,
+      "configuredAnimation": "fire_1_special_single",
+      "resolvedAnimation": "fire_1_special_single_medium",
+      "animationType": 1
+    },
+    "concealmentResult": {
+      "targetObjectId": 1203048441,
+      "aiTarget": true,
+      "distanceMeters": 44.02723,
+      "posture": 0,
+      "postureName": "upright",
+      "missThreshold": 1,
+      "missBefore": 0,
+      "missAfter": 0,
+      "hateBefore": 139.0,
+      "hateAfter": 0.0,
+      "result": "REMOVED"
+    },
+    "persistence": {
+      "observed": true,
+      "mode": "server-restart-and-fresh-client-reconnect",
+      "lifecycleSnapshotSurvived": true,
+      "skillOwnershipSurvived": true,
+      "commandOwnershipSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "ephemeralTargetRemovedByRestart": true,
+      "weaponAdmissionSurvived": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true
+    },
+    "serverHealthy": true,
+    "oracleHealthy": true,
+    "proofClientsStopped": true,
+    "proofClientStationIdsRestored": true,
+    "userClientUntouched": true,
+    "userClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

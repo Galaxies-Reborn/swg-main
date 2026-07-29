@@ -1,0 +1,241 @@
+diff --git a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner.java b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner.java
+index dde6c53..cd40c7b 100644
+--- a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner.java
+@@ -18,16 +18,20 @@ public class loveday_cupid_spawner extends script.base_script
+     public static final int CUPID_APPEARANCE_LENGTH = 900;
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "registerLovedayCupidSpawner", null, 4, false);
++        retireCupidSpawner(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "registerLovedayCupidSpawner", null, 9, false);
++        retireCupidSpawner(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int registerLovedayCupidSpawner(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_cupid_spawner"))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         registerCupidSpawner(self);
+         return SCRIPT_CONTINUE;
+     }
+@@ -38,6 +42,11 @@ public class loveday_cupid_spawner extends script.base_script
+     }
+     public int OnClusterWideDataResponse(obj_id self, String manage_name, String name, int request_id, String[] element_name_list, dictionary[] data, int lock_key) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_cupid_spawner"))
++        {
++            releaseClusterWideDataLock(manage_name, lock_key);
++            return SCRIPT_CONTINUE;
++        }
+         if (manage_name.equals(holiday.LOVEDAY_CUPID_MANAGER_NAME))
+         {
+             if (!utils.hasScriptVar(self, "alreadyRegisteredCupidSpawner"))
+@@ -57,6 +66,10 @@ public class loveday_cupid_spawner extends script.base_script
+     }
+     public int spawnHourlyCupidNPCs(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_cupid_spawner"))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (hasObjVar(self, holiday.LOVEDAY_CUPID_SPAWNER_CITY_VAR))
+         {
+             String lovedayLoc = getStringObjVar(self, holiday.LOVEDAY_CUPID_SPAWNER_CITY_VAR);
+@@ -140,4 +153,15 @@ public class loveday_cupid_spawner extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    private void retireCupidSpawner(obj_id self) throws InterruptedException
++    {
++        despawnHourlyCupidNPCs(self, null);
++        utils.removeScriptVar(self, "alreadyRegisteredCupidSpawner");
++        if (hasObjVar(self, holiday.LOVEDAY_CUPID_SPAWNER_CITY_VAR))
++        {
++            String spawnerId = holiday.LOVEDAY_CUPID_ELEMENT_NAME + getStringObjVar(self, holiday.LOVEDAY_CUPID_SPAWNER_CITY_VAR);
++            removeClusterWideData(holiday.LOVEDAY_CUPID_MANAGER_NAME, spawnerId, 0);
++        }
++        detachScript(self, "event.ewok_festival.loveday_cupid_spawner");
++    }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner_manager.java b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner_manager.java
+index 58d3624..fcc1d84 100644
+--- a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner_manager.java
++++ b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_cupid_spawner_manager.java
+@@ -12,21 +12,29 @@ public class loveday_cupid_spawner_manager extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "initializeCupidSpawnerManager", null, 9, false);
++        retireCupidSpawnerManager(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "initializeCupidSpawnerManager", null, 9, false);
++        retireCupidSpawnerManager(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int initializeCupidSpawnerManager(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_cupid_spawner_manager"))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         createHourlyAlarmClock(self, "triggerHourlyCupidNPCs", null, 0, 0);
+         return SCRIPT_CONTINUE;
+     }
+     public int triggerHourlyCupidNPCs(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_cupid_spawner_manager"))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         getLovedayCupidSpawnerIds(self);
+         createHourlyAlarmClock(self, "triggerHourlyCupidNPCs", null, 0, 0);
+         return SCRIPT_CONTINUE;
+@@ -38,6 +46,11 @@ public class loveday_cupid_spawner_manager extends script.base_script
+     }
+     public int OnClusterWideDataResponse(obj_id self, String manage_name, String name, int request_id, String[] element_name_list, dictionary[] data, int lock_key) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_cupid_spawner_manager"))
++        {
++            releaseClusterWideDataLock(manage_name, lock_key);
++            return SCRIPT_CONTINUE;
++        }
+         if (manage_name.equals(holiday.LOVEDAY_CUPID_MANAGER_NAME))
+         {
+             if (utils.hasScriptVar(self, holiday.GETTING_CUPID_SPAWNER_IDS))
+@@ -88,4 +101,17 @@ public class loveday_cupid_spawner_manager extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    private void retireCupidSpawnerManager(obj_id self) throws InterruptedException
++    {
++        utils.removeScriptVar(self, holiday.GETTING_CUPID_SPAWNER_IDS);
++        for (String lovedayLoc : holiday.LOVEDAY_LOCATIONS)
++        {
++            removeClusterWideData(
++                holiday.LOVEDAY_CUPID_MANAGER_NAME,
++                holiday.LOVEDAY_CUPID_ELEMENT_NAME + lovedayLoc,
++                0
++            );
++        }
++        detachScript(self, "event.ewok_festival.loveday_cupid_spawner_manager");
++    }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_disillusion_blaire_spawner.java b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_disillusion_blaire_spawner.java
+index 17e40e7..e1e5c4c 100644
+--- a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_disillusion_blaire_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_disillusion_blaire_spawner.java
+@@ -14,16 +14,20 @@ public class loveday_disillusion_blaire_spawner extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "spawnDisillusionedCupid", null, 4, false);
++        retireDisillusionSpawner(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "spawnDisillusionedCupid", null, 9, false);
++        retireDisillusionSpawner(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int spawnDisillusionedCupid(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_disillusion_blaire_spawner"))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (!utils.hasScriptVar(self, "spawnedDisillusionedCupid"))
+         {
+             location spawnerLoc = getLocation(self);
+@@ -83,4 +87,25 @@ public class loveday_disillusion_blaire_spawner extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    private void retireDisillusionSpawner(obj_id self) throws InterruptedException
++    {
++        destroyNearbyTemplate(self, "object/mobile/loveday_ewok_mister_disillusion.iff");
++        destroyNearbyTemplate(self, "object/tangible/quest/content/holiday_loveday_disillusion_crossbow.iff");
++        utils.removeScriptVar(self, "spawnedDisillusionedCupid");
++        detachScript(self, "event.ewok_festival.loveday_disillusion_blaire_spawner");
++    }
++    private void destroyNearbyTemplate(obj_id self, String templateName) throws InterruptedException
++    {
++        obj_id[] objects = getAllObjectsWithTemplate(getLocation(self), 5.0f, templateName);
++        if (objects != null)
++        {
++            for (obj_id object : objects)
++            {
++                if (isIdValid(object) && exists(object))
++                {
++                    destroyObject(object);
++                }
++            }
++        }
++    }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_romance_target_spawner.java b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_romance_target_spawner.java
+index 25afc76..eccace0 100644
+--- a/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_romance_target_spawner.java
++++ b/sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_romance_target_spawner.java
+@@ -17,16 +17,20 @@ public class loveday_romance_target_spawner extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "spawnRomanceTargetNpcs", null, 120, false);
++        retireRomanceTargetSpawner(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        messageTo(self, "spawnRomanceTargetNpcs", null, 180, false);
++        retireRomanceTargetSpawner(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int spawnRomanceTargetNpcs(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (!hasScript(self, "event.ewok_festival.loveday_romance_target_spawner"))
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (!utils.hasScriptVar(self, "spawnedRomanceTargetNpcs"))
+         {
+             String planet = getLocation(self).area;
+@@ -95,4 +99,28 @@ public class loveday_romance_target_spawner extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    private void retireRomanceTargetSpawner(obj_id self) throws InterruptedException
++    {
++        String planet = getLocation(self).area;
++        cleanupRomanceTargets(self, planet, "loveday_romance_target_male");
++        cleanupRomanceTargets(self, planet, "loveday_romance_target_female");
++        utils.removeScriptVar(self, "spawnedRomanceTargetNpcs");
++        detachScript(self, "event.ewok_festival.loveday_romance_target_spawner");
++    }
++    private void cleanupRomanceTargets(obj_id self, String planet, String spawnName) throws InterruptedException
++    {
++        String datatable = "datatables/spawning/holiday/love_day_romance_target_" +
++            (spawnName.endsWith("_male") ? "male_" : "female_") + planet + ".iff";
++        int numRows = dataTableGetNumRows(datatable);
++        for (int i = 0; i < numRows; i++)
++        {
++            String key = spawnName + "_" + i;
++            obj_id target = utils.getObjIdScriptVar(self, key);
++            if (isIdValid(target) && exists(target))
++            {
++                destroyObject(target);
++            }
++            utils.removeScriptVar(self, key);
++        }
++    }
+ }

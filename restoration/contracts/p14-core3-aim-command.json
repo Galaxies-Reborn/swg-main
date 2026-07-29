@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-aim-command",
+  "status": "ready",
+  "scope": "Restore the pinned Core3 Marksman aim command as a five-second ranged accuracy state whose bonus is the sum of general and weapon-family aim skill modifiers, whose repeat invocation charges HAM without refreshing the state, and which is removed by expiry or the next successful combat action.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "command": {
+      "name": "aim",
+      "skillOwner": "combat_marksman_support_01",
+      "commandTableSeconds": 1.5,
+      "healthCostMultiplier": 3,
+      "actionCostMultiplier": 0,
+      "mindCostMultiplier": 0,
+      "weapon": "RANGEDWEAPON",
+      "range": -1,
+      "state": "STATE_AIMING",
+      "durationSeconds": 5,
+      "sourceSkillMods": ["aim", "<weaponFamily>_aim"],
+      "appliedSkillMod": "private_aim",
+      "repeatRefreshesDuration": false,
+      "consumedByNextSuccessfulCombatAction": true,
+      "combatSpam": "aim"
+    },
+    "retainedBuffRowExcluded": {
+      "row": "aim",
+      "durationSeconds": 15,
+      "skillMod": "private_accuracy_bonus",
+      "reason": "The retained NGE-era buff row is not the pinned Core3 command lifecycle."
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T17:44:00-04:00",
+    "overlay": "restoration/patches/dsrc/257-p14-core3-aim-command.patch",
+    "overlaySha256": "22eceaa12ff74c2e57022b511cfe2e4adf0ed82dafbd3ea03f43015125f36f32",
+    "changedFileCount": 7,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaCompile": "passed-focused-three-production-and-fixture-sources",
+    "datatableCompile": "passed-focused-four-tables",
+    "clientBridgeTests": 63,
+    "clientTestSuite": {"passed": 190, "skipped": 3, "failed": 0},
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 180,
+    "clientBytes": 33122304,
+    "clientSha256": "66b0dcc860a0b74cfecf082c46c0a0509755960d1d150c2410b447215003e696",
+    "materializedOverlayCount": 263,
+    "materializedRestorationFileCount": 769,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_base.java": "c355dadf07998071414f64d62003ac23cc517b6845029126ca55a9ed68e7e44d",
+      "combat_actions.java": "a71b054a36445dc99861aafb6f54a034919190f97de9edd53bc2dce1ca874644",
+      "precu_headshot1_fixture.java": "f6ba31022388dc04ef8794c816b95242ecc714a8032ec07d7efe739878c167d4",
+      "command_table.tab": "6fae8a986ab4cfc2afa31ef96f1d9206906eea5efd2388a924052bdf30330bde",
+      "combat_data.tab": "f89cdd6c69e2fed7f197163536589af0a45dee3f0aac6d5b3da42e3265363e3b",
+      "precu_combat_overrides.tab": "e4c4056ad9c59f1d3bc4fc914af75099fdeb765070ff12453a96de4c996d661b",
+      "precu_combat_spam.tab": "bf35bd231db0381fa3e2111a4042bce4e64ba75d47b8d602e4a055fc47e8a1bc",
+      "ClientMain.cpp": "42d4d554172de5dc9380d2ce3fef7b1df9d53f73667a783fb0c3e9c6ab092096",
+      "Invoke-PrecuBackgroundInput.ps1": "6354010c70f18b0f1aa336fcfca3f3b14a579ead60da55a73e7d793b8c7a03ba",
+      "test_precu_background_input_bridge.py": "104e18df27f3674c62cdb8231ced82afc923028edc3c926020c1cdc3408f9753"
+    },
+    "compiledSha256": {
+      "combat_base.class": "fe2a9b0ef9a25396ac0cbae78dbb027907a41c83400d91fe474ab5f1e9565621",
+      "combat_actions.class": "9b70ac99b1beed68780b5a88ee13c0f47952cf95d7b651f9db90a16056bbdd50",
+      "precu_headshot1_fixture.class": "f3c634c9db4929bb1e56ed2d2c1da5ed5ff00d33e03a14aa5702b960bd7e48fd",
+      "command_table.iff": "32644dcabf55998ad672deef1131a1ba84f418b90d322e2b7904ef3232162a36",
+      "combat_data.iff": "feafa2dbabe6ca0e713f88b761ae01cf596676c6ad68d5748a011359bef37ab2",
+      "precu_combat_overrides.iff": "bd6867ec8d0f121e2359a8000761e1c96caa13a4d8d3e1ac97a668cf5015b1dd",
+      "precu_combat_spam.iff": "752e1f8154138aa96b8dfb3e53fc108f837ba3d366d3a5a062c941e252464525"
+    },
+    "clientAssetsSha256": {
+      "datatables/command/command_table.iff": "32644dcabf55998ad672deef1131a1ba84f418b90d322e2b7904ef3232162a36",
+      "datatables/combat/combat_data.iff": "feafa2dbabe6ca0e713f88b761ae01cf596676c6ad68d5748a011359bef37ab2",
+      "precu_runtime.tre": "ccb0b87ccded7ea6b34b76aaebabdbe7e33e758fe838ed054023002436896220"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T17:43:00-04:00",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 180,
+    "lifecycle": "25920000000000000000000000000002",
+    "attacker": {"stationId": 91001, "objectId": 44003778, "avatar": "PrecuRuntime"},
+    "defender": {"stationId": 1001, "objectId": 39008597, "avatar": "Icai Darkwave"},
+    "weapon": {
+      "template": "object/weapon/ranged/rifle/rifle_cdef.iff",
+      "weaponType": 0,
+      "validMask": "0x08000000",
+      "weaponSatisfies": true
+    },
+    "command": {
+      "name": "aim",
+      "distanceCentimeters": 197,
+      "adjustedHamCosts": [12, 0, 0],
+      "queueRemoval": "Success",
+      "active": {
+        "state": 1,
+        "modifierPresent": true,
+        "privateAimBonus": 30,
+        "configuredBonus": 30,
+        "alreadyActive": 0,
+        "consumed": 0
+      },
+      "expiry": {
+        "state": 0,
+        "modifierPresent": false,
+        "privateAimBonus": 0,
+        "expired": 1
+      },
+      "repeatNoRefresh": {
+        "secondChargeApplied": true,
+        "alreadyActive": 1,
+        "activeAfterSecondInvocation": true,
+        "expiredOnOriginalDeadline": true
+      },
+      "nextSuccessfulCombatAction": {
+        "command": "mindShot1",
+        "queueRemoval": "Success",
+        "baselinePrivateAccuracy": 10,
+        "aimedPrivateAccuracy": 40,
+        "aimContribution": 30,
+        "consumed": 1,
+        "stateAfter": 0,
+        "modifierPresentAfter": false
+      }
+    },
+    "cleanup": {"restored": true, "idempotent": true},
+    "serverHealthy": true,
+    "userClientUntouched": true,
+    "userClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

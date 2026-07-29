@@ -1,0 +1,258 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/utils.java b/sku.0/sys.server/compiled/game/script/library/utils.java
+--- a/sku.0/sys.server/compiled/game/script/library/utils.java
++++ b/sku.0/sys.server/compiled/game/script/library/utils.java
+@@ -6247,41 +6247,29 @@ public class utils extends script.base_script
+         {
+             return false;
+         }
+-        String professionName = "";
+         switch (profession)
+         {
+             case COMMANDO:
+-                professionName = "commando";
+-                break;
++                return hasSkill(player, "combat_commando_novice");
+             case SMUGGLER:
+-                professionName = "smuggler";
+-                break;
++                return hasSkill(player, "combat_smuggler_novice");
+             case MEDIC:
+-                professionName = "medic";
+-                break;
++                return hasSkill(player, "science_medic_novice");
+             case OFFICER:
+-                professionName = "officer";
+-                break;
++                return hasSkill(player, "outdoors_squadleader_novice");
+             case SPY:
+-                professionName = "spy";
+-                break;
++                return false;
+             case BOUNTY_HUNTER:
+-                professionName = "bounty";
+-                break;
++                return hasSkill(player, "combat_bountyhunter_novice");
+             case FORCE_SENSITIVE:
+-                professionName = "force";
+-                break;
++                return isJediState(player, JEDI_STATE_FORCE_SENSITIVE);
+             case TRADER:
+-                professionName = "trader";
+-                break;
++                return hasSkill(player, "crafting_artisan_novice");
+             case ENTERTAINER:
+-                professionName = "entertainer";
+-                break;
++                return hasSkill(player, "social_entertainer_novice");
+             default:
+-                break;
++                return false;
+         }
+-        String classTemplate = getSkillTemplate(player);
+-        return classTemplate != null && classTemplate.startsWith(professionName);
+     }
+     public static int getPlayerProfession(obj_id player) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_profession_ownership_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_profession_ownership_fixture.java
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_profession_ownership_fixture.java
+@@ -0,0 +1,198 @@
++package script.test;
++
++import script.obj_id;
++import script.library.utils;
++
++/**
++ * Identity-bound, reversible ServerConsole fixture for the Publish 14.1
++ * profession-ownership compatibility predicate.
++ */
++public class precu_profession_ownership_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++
++    private static final int[] PROFESSION_TYPES =
++    {
++        utils.COMMANDO,
++        utils.SMUGGLER,
++        utils.MEDIC,
++        utils.OFFICER,
++        utils.BOUNTY_HUNTER,
++        utils.TRADER,
++        utils.ENTERTAINER
++    };
++
++    private static final String[] PROFESSION_SKILLS =
++    {
++        "combat_commando_novice",
++        "combat_smuggler_novice",
++        "science_medic_novice",
++        "outdoors_squadleader_novice",
++        "combat_bountyhunter_novice",
++        "crafting_artisan_novice",
++        "social_entertainer_novice"
++    };
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        long playerValue;
++        try
++        {
++            playerValue = Long.parseLong(
++                params == null ? "" : params.trim());
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (playerValue != PLAYER_OID)
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id player = obj_id.getObjId(playerValue);
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded())
++        {
++            return "error=playerNotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        boolean[] originalOwnership =
++            new boolean[PROFESSION_SKILLS.length];
++        for (int index = 0; index < PROFESSION_SKILLS.length; ++index)
++        {
++            originalOwnership[index] =
++                hasSkill(player, PROFESSION_SKILLS[index]);
++        }
++        int originalJediState = getJediState(player);
++        String result = "error=probeIncomplete";
++
++        try
++        {
++            boolean skillPredicatesPassed = true;
++            String ownershipVector = "";
++            for (int index = 0; index < PROFESSION_SKILLS.length; ++index)
++            {
++                boolean before =
++                    utils.isProfession(player, PROFESSION_TYPES[index]);
++                boolean ownershipMatched =
++                    before == originalOwnership[index];
++                boolean grantAccepted = true;
++                boolean admitted = before;
++                boolean revoked = true;
++                boolean rejectedAfterRevoke = true;
++
++                if (!originalOwnership[index])
++                {
++                    grantAccepted =
++                        grantSkill(player, PROFESSION_SKILLS[index]) &&
++                        hasSkill(player, PROFESSION_SKILLS[index]);
++                    admitted =
++                        grantAccepted &&
++                        utils.isProfession(
++                            player, PROFESSION_TYPES[index]);
++                    revokeSkill(player, PROFESSION_SKILLS[index]);
++                    revoked =
++                        !hasSkill(player, PROFESSION_SKILLS[index]);
++                    rejectedAfterRevoke =
++                        revoked &&
++                        !utils.isProfession(
++                            player, PROFESSION_TYPES[index]);
++                }
++
++                skillPredicatesPassed =
++                    skillPredicatesPassed &&
++                    ownershipMatched &&
++                    grantAccepted &&
++                    admitted &&
++                    revoked &&
++                    rejectedAfterRevoke;
++                ownershipVector +=
++                    (index == 0 ? "" : ",") +
++                    PROFESSION_SKILLS[index] + ":" +
++                    originalOwnership[index] + "/" +
++                    admitted + "/" +
++                    rejectedAfterRevoke;
++            }
++
++            boolean spyRejected =
++                !utils.isProfession(player, utils.SPY);
++            boolean unknownRejected =
++                !utils.isProfession(player, Integer.MAX_VALUE);
++
++            boolean noneAccepted =
++                setJediState(player, JEDI_STATE_NONE);
++            boolean noneRejected =
++                noneAccepted &&
++                !utils.isProfession(player, utils.FORCE_SENSITIVE);
++            boolean forceSensitiveAccepted =
++                setJediState(player, JEDI_STATE_FORCE_SENSITIVE);
++            boolean forceSensitiveAdmitted =
++                forceSensitiveAccepted &&
++                utils.isProfession(player, utils.FORCE_SENSITIVE);
++            boolean jediAccepted =
++                setJediState(player, JEDI_STATE_JEDI);
++            boolean jediAdmitted =
++                jediAccepted &&
++                utils.isProfession(player, utils.FORCE_SENSITIVE);
++
++            boolean passed =
++                skillPredicatesPassed &&
++                spyRejected &&
++                unknownRejected &&
++                noneRejected &&
++                forceSensitiveAdmitted &&
++                jediAdmitted;
++            result =
++                "action=probe" +
++                " authoritative=true" +
++                " ownership=" + ownershipVector +
++                " skillPredicatesPassed=" + skillPredicatesPassed +
++                " spyRejected=" + spyRejected +
++                " unknownRejected=" + unknownRejected +
++                " noneRejected=" + noneRejected +
++                " forceSensitiveAdmitted=" + forceSensitiveAdmitted +
++                " jediAdmitted=" + jediAdmitted +
++                " passed=" + passed;
++        }
++        finally
++        {
++            for (int index = 0; index < PROFESSION_SKILLS.length; ++index)
++            {
++                boolean owned = hasSkill(player, PROFESSION_SKILLS[index]);
++                if (originalOwnership[index] && !owned)
++                {
++                    grantSkill(player, PROFESSION_SKILLS[index]);
++                }
++                else if (!originalOwnership[index] && owned)
++                {
++                    revokeSkill(player, PROFESSION_SKILLS[index]);
++                }
++            }
++            boolean stateRestoreAccepted =
++                setJediState(player, originalJediState);
++            boolean restored =
++                stateRestoreAccepted &&
++                getJediState(player) == originalJediState;
++            for (int index = 0; index < PROFESSION_SKILLS.length; ++index)
++            {
++                restored =
++                    restored &&
++                    hasSkill(player, PROFESSION_SKILLS[index]) ==
++                        originalOwnership[index];
++            }
++            result += " restored=" + restored;
++            if (!restored)
++            {
++                result = "error=professionRestoreFailed " + result;
++            }
++        }
++        return result;
++    }
++}

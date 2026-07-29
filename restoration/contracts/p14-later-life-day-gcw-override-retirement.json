@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "feature": "later-life-day-gcw-override-retirement",
+  "status": "ready",
+  "scope": "Remove the later factional Life Day suppression of Dearic GCW invasions while preserving normal GCW configuration and the restored original 2004 Life Day event.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Finding": "The pinned Core3 GCW implementation contains no Life Day-specific Dearic invasion suppression.",
+    "lineageContract": "p14-life-day-lineage-boundary.json",
+    "cityProducerRetirementContract": "p14-later-life-day-city-spawner-retirement.json",
+    "stapRetirementContract": "p14-later-life-day-stap-admission-retirement.json",
+    "observedLeak": "gcwIsInvasionCityOn returned false for Dearic whenever the retained lifeday switch was enabled, coupling original 2004 admission to the later factional city-event calendar."
+  },
+  "expected": {
+    "gcwLifeDayReferences": 0,
+    "dearicLifeDaySuppression": false,
+    "ordinaryCityConfigGateRetained": true,
+    "configuredInvasionReturnsTrue": true,
+    "original2004AdmissionRetained": true,
+    "defaultLifeDayEnabled": false
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/195-p14-later-life-day-gcw-override-retirement.patch",
+    "overlayPatchBytes": 962,
+    "overlayPatchSha256": "b7b00dd9de474d74d0323ad80bec01f10bad9c5225fc76a9221273d747f4cc4d",
+    "sourceSha256": {
+      "gcw.java": "a960763094804caff151715b4cf626f8aa0706cc994fe1f4d4dac76866213df7"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "gcw.class": "6ebfbede2d7c7b5d466d2addae92348efb56dcb3db685be427e69d38e6094bd5"
+    },
+    "cleanMaterializationPatches": 200,
+    "cleanMaterializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "staticContract": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 68444,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "defaultConfigRestored": "lifeday=false",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

@@ -1,0 +1,28 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java b/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java
+index 2b4514f..e3ea9e1 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java
++++ b/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java
+@@ -218,7 +218,10 @@ public class image_designer_response extends script.base_script
+             attachScript(target, SCRIPT_HOLO_EMOTE);
+             sendSystemMessage(target, new string_id(STF_FILE, "new_holoemote"));
+         }
+-        if (newHairSet || !holoEmote.equals("") || morphChangesKeys.length != 0 || indexChangesKeys.length != 0)
++        // Stat migration is a complete Image Designer transaction even when no
++        // cosmetic field changed.  Include it explicitly so the authentic
++        // 2,000 XP reward is not skipped by the cosmetic-change guard.
++        if (designType == 2 || newHairSet || !holoEmote.equals("") || morphChangesKeys.length != 0 || indexChangesKeys.length != 0)
+         {
+             int experience = 0;
+             if (designType == 2)
+@@ -247,7 +250,10 @@ public class image_designer_response extends script.base_script
+                     experience = (int)(experience / 2);
+                 }
+             }
+-            xp.grantSocialStyleXp(self, xp.IMAGEDESIGNER, experience);
++            // The NGE social-style helper routes XP to the active expertise
++            // template and ignores xp.IMAGEDESIGNER.  Publish 14 profession
++            // rewards must remain in the dedicated Image Designer pool.
++            xp.grant(self, xp.IMAGEDESIGNER, experience);
+         }
+         detachScript(self, SCRIPT_IMAGE_DESIGNER_RESPONSE);
+         return SCRIPT_CONTINUE;

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "feature": "login-progression-boundary",
+  "status": "ready",
+  "scope": "Prevent normal Publish 14.1 character initialization from invoking inherited NGE class grants, entertainer/trader respecs, or Jedi conversion.",
+  "sourceFiles": {
+    "playerInitialization": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+  },
+  "core3Evidence": {
+    "repository": "https://github.com/swgemu/Core3",
+    "branch": "unstable",
+    "commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "boundary": "SkillManager::awardSkill validates and purchases a requested skill box; login is not a profession-conversion transaction."
+  },
+  "retiredInitializationHooks": [
+    "utils.isProfession(self, utils.TRADER) -> grantSkill(self, class_trader)",
+    "respecNewEntertainerSkills(self)",
+    "respecNewCrafterSkills(self)",
+    "jedi_padawan_novice -> setSkillTemplate(self, a) -> attach player.player_jedi_conversion"
+  ],
+  "retainedCompatibility": [
+    "CTS skillTemplate and workingSkill serialization",
+    "dormant historical respec helpers",
+    "explicit GM and character-builder tooling",
+    "native skillTemplate and workingSkill field accessors"
+  ],
+  "consumerInventory": {
+    "pattern": "skill_template.|getSkillTemplate(|setSkillTemplate(|getWorkingSkill(|setWorkingSkill(",
+    "remainingOccurrences": 221,
+    "remainingFiles": 72,
+    "normalLoginConversionOccurrences": 0,
+    "disposition": "Retain and classify remaining compatibility, admin, NPE, later-content, and dormant conversion consumers before any further mutation."
+  },
+  "expected": {
+    "onInitializeGrantsClassTrader": false,
+    "onInitializeCallsEntertainerRespec": false,
+    "onInitializeCallsCrafterRespec": false,
+    "onInitializeConsultsJediPadawanNoviceForConversion": false,
+    "onInitializeSetsSkillTemplate": false,
+    "onInitializeAttachesJediConversion": false,
+    "historicalRespecHelpersRetained": true,
+    "ctsCompatibilityRetained": true
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/141-p14-login-progression-boundary.patch",
+    "overlayPatchBytes": 1287,
+    "overlayPatchSha256": "9dee1522a5ce9f4e5034064f90bca03e12b7e5e20e0971548a3709388c4689dd",
+    "cleanApplyCheck": "passed",
+    "sourceSha256": {
+      "base_player.java": "30df9e4cdfa85debbdfded9f9de7462cfdda4580c3ec76ca78f462000cc39f53"
+    },
+    "javaCompile": {
+      "result": "passed",
+      "base_player.class": {
+        "sha256": "d9c8c6aadb1bb2148e18029045298293149f148efa36abcca4f081163ec2ab8f"
+      }
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 46020,
+    "character": "Icai Darkwave",
+    "characterOid": 39008597,
+    "stationId": 1001,
+    "scene": "tatooine",
+    "allProfessionRows": 33,
+    "serverHealthy": true,
+    "fatalExceptionSevereCount": 0
+  },
+  "requiredBeforeReady": []
+}

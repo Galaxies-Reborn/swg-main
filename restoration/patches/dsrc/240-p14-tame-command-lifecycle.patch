@@ -1,0 +1,1236 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/pet_lib.java b/sku.0/sys.server/compiled/game/script/library/pet_lib.java
+index 061509e..84b34ef 100644
+--- a/sku.0/sys.server/compiled/game/script/library/pet_lib.java
++++ b/sku.0/sys.server/compiled/game/script/library/pet_lib.java
+@@ -245,6 +245,86 @@ public class pet_lib extends script.base_script
+         callable.setCallableCD(pet, petControlDevice);
+         return petControlDevice;
+     }
++    public static obj_id makeTamedCreature(obj_id master, obj_id pet, int growthStage) throws InterruptedException
++    {
++        if (!isIdValid(master) || !exists(master) || !isPlayer(master) ||
++            !isIdValid(pet) || !exists(pet) || !isMob(pet) || isPlayer(pet) ||
++            hasMaster(pet) || callable.hasCallableCD(pet))
++        {
++            return null;
++        }
++        int petType = getPetType(pet);
++        if ((petType != PET_TYPE_NON_AGGRO && petType != PET_TYPE_AGGRO) ||
++            hasMaxPets(master, petType) || hasMaxStoredPetsOfType(master, petType))
++        {
++            return null;
++        }
++        obj_id datapad = utils.getPlayerDatapad(master);
++        String creatureName = getCreatureName(pet);
++        if (!isIdValid(datapad) || !exists(datapad) || creatureName == null || creatureName.equals(""))
++        {
++            return null;
++        }
++        String controlTemplate = "object/intangible/pet/" +
++            utils.dataTableGetString(create.CREATURE_TABLE, creatureName, "template");
++        if (!controlTemplate.endsWith(".iff"))
++        {
++            controlTemplate = PET_CTRL_DEVICE_TEMPLATE;
++        }
++        obj_id petControlDevice = createObject(controlTemplate, datapad, "");
++        if (!isIdValid(petControlDevice))
++        {
++            petControlDevice = createObject(PET_CTRL_DEVICE_TEMPLATE, datapad, "");
++        }
++        if (!isIdValid(petControlDevice))
++        {
++            return null;
++        }
++        setUpPetControlDevice(petControlDevice, pet);
++        if (!isObjectPersisted(pet) && !persistObject(pet))
++        {
++            callable.setCDCallable(petControlDevice, null);
++            removeObjVar(pet, callable.OBJVAR_CALLABLE_CONTROL_DEVICE);
++            destroyObject(petControlDevice);
++            return null;
++        }
++        if (growthStage < 1)
++        {
++            growthStage = 1;
++        }
++        else if (growthStage > 10)
++        {
++            growthStage = 10;
++        }
++        setObjVar(petControlDevice, "ai.petAdvance.growthStage", growthStage);
++        setObjVar(petControlDevice, "ai.petAbility.toBeEarned", getMaxAbilitySlots(getLevel(pet)));
++        setObjVar(petControlDevice, "ai.petAbility.available", 0);
++        setPetStatsByGrowth(pet, growthStage);
++        setObjVar(pet, "ai.pet", true);
++        callable.setCallableLinks(master, petControlDevice, pet);
++        if (!hasScript(master, "ai.pet_master"))
++        {
++            attachScript(master, "ai.pet_master");
++        }
++        obj_id inventory = utils.getInventoryContainer(pet);
++        if (isIdValid(inventory))
++        {
++            setOwner(inventory, master);
++        }
++        setObjVar(pet, "ai.pet.masterName", getEncodedName(master));
++        if (hasScript(pet, "ai.pet_advance"))
++        {
++            detachScript(pet, "ai.pet_advance");
++        }
++        if (!hasScript(pet, "ai.pet"))
++        {
++            attachScript(pet, "ai.pet");
++        }
++        setupDefaultCommands(pet);
++        savePetInfo(pet, petControlDevice);
++        petFollow(pet, master);
++        return petControlDevice;
++    }
+     public static void makePet(obj_id pet, obj_id master) throws InterruptedException
+     {
+         if (!isIdValid(pet) || !isIdValid(master) || !exists(pet) || !exists(master))
+diff --git a/sku.0/sys.server/compiled/game/script/player/skill/taming.java b/sku.0/sys.server/compiled/game/script/player/skill/taming.java
+index 7e55964..33b82bc 100644
+--- a/sku.0/sys.server/compiled/game/script/player/skill/taming.java
++++ b/sku.0/sys.server/compiled/game/script/player/skill/taming.java
+@@ -12,6 +12,20 @@ public class taming extends script.base_script
+     {
+     }
+     public static final string_id SHAPECHANGE = new string_id("spam", "not_while_shapechanged");
++    public static final string_id TAME_SUCCESS = new string_id("hireling/hireling", "taming_success");
++    public static final string_id TAME_FAILED = new string_id("hireling/hireling", "taming_fail");
++    public static final string_id TAME_TOO_FAR = new string_id("hireling/hireling", "taming_toofar");
++    public static final float TAME_RANGE = 8.0f;
++    public static final float TAME_PHASE_DELAY = 10.0f;
++    public static final float TAME_HOLD_DELAY = 1.0f;
++    public static final String TAME_ROOT = "pet.precuTame";
++    public static final String TAME_TARGET_LOCK = "pet.precuTamePlayer";
++    public static final String TAME_SCRIPT = "player.skill.taming_task";
++    private static final long PRECU_TAME_PLAYER_OID = 44003778L;
++    private static final int PRECU_TAME_STATION_ID = 91001;
++    private static final int PRECU_TAME_PROTOCOL_VERSION = 1;
++    private static final String PRECU_TAME_FIXTURE_ROOT =
++        "precu.tameCommandFixture";
+     public int cmdTellPet(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!callable.hasAnyCallable(self) || params == null || params.length() > 30)
+@@ -29,6 +43,370 @@ public class taming extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int cmdTame(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (isPrecuTameFixture(self, target))
++        {
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".handlerEntered", 1);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".handlerCalls",
++                readPrecuTameInt(self, ".handlerCalls") + 1);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".startedAt", getGameTime());
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome", "entered");
++        }
++        if (!canBeginTame(self, target, true))
++        {
++            if (isPrecuTameFixture(self, target))
++            {
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome",
++                    "admissionFailed");
++            }
++            return SCRIPT_CONTINUE;
++        }
++        int originalBehavior = getBehavior(target);
++        if (originalBehavior > ai_lib.BEHAVIOR_CALM)
++        {
++            originalBehavior = ai_lib.BEHAVIOR_LOITER;
++        }
++        utils.setScriptVar(self, TAME_ROOT + ".target", target);
++        utils.setScriptVar(self, TAME_ROOT + ".phase", 1);
++        utils.setScriptVar(self, TAME_ROOT + ".originalBehavior", originalBehavior);
++        utils.setScriptVar(target, TAME_TARGET_LOCK, self);
++        if (!hasScript(self, TAME_SCRIPT))
++        {
++            attachScript(self, TAME_SCRIPT);
++            if (!hasScript(self, TAME_SCRIPT))
++            {
++                clearTameState(self, target, true);
++                sendSystemMessage(self, pet_lib.SID_SYS_CANT_TAME);
++                if (isPrecuTameFixture(self, target))
++                {
++                    setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome",
++                        "handlerAttachFailed");
++                    setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".completedAt",
++                        getGameTime());
++                }
++                return SCRIPT_CONTINUE;
++            }
++            utils.setScriptVar(self, TAME_ROOT + ".detachHandler", 1);
++        }
++        stop(target);
++        messageTo(self, "handlePrecuTameHold", null, TAME_HOLD_DELAY, false);
++        chat.chat(self, new string_id("hireling/hireling", "taming_" + rand(1, 4)));
++        if (isPrecuTameFixture(self, target))
++        {
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome", "started");
++        }
++        messageTo(self, "handlePrecuTamePhase", null, TAME_PHASE_DELAY, false);
++        return SCRIPT_CONTINUE;
++    }
++    public int handlePrecuTameHold(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!utils.hasScriptVar(self, TAME_ROOT + ".target"))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        obj_id target = utils.getObjIdScriptVar(self, TAME_ROOT + ".target");
++        if (!isIdValid(target) || !exists(target) ||
++            !utils.hasScriptVar(target, TAME_TARGET_LOCK) ||
++            !self.equals(utils.getObjIdScriptVar(target, TAME_TARGET_LOCK)))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        stop(target);
++        messageTo(self, "handlePrecuTameHold", null, TAME_HOLD_DELAY, false);
++        return SCRIPT_CONTINUE;
++    }
++    public int handlePrecuTamePhase(obj_id self, dictionary params) throws InterruptedException
++    {
++        if (!utils.hasScriptVar(self, TAME_ROOT + ".target"))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        obj_id target = utils.getObjIdScriptVar(self, TAME_ROOT + ".target");
++        if (isPrecuTameFixture(self, target))
++        {
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".phaseCallbacks",
++                readPrecuTameInt(self, ".phaseCallbacks") + 1);
++        }
++        if (!canContinueTame(self, target))
++        {
++            if (isIdValid(target) && exists(target) && getDistance(self, target) > TAME_RANGE)
++            {
++                sendSystemMessage(self, TAME_TOO_FAR);
++                showFlyText(target, new string_id("npc_reaction/flytext", "toofar"), 1.0f, 204, 0, 0);
++            }
++            else
++            {
++                sendSystemMessage(self, pet_lib.SID_SYS_CANT_TAME);
++            }
++            clearTameState(self, target, true);
++            if (isPrecuTameFixture(self, target))
++            {
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome",
++                    "interrupted");
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".completedAt",
++                    getGameTime());
++            }
++            return SCRIPT_CONTINUE;
++        }
++        int phase = utils.getIntScriptVar(self, TAME_ROOT + ".phase");
++        if (phase < 3)
++        {
++            chat.chat(self, new string_id("hireling/hireling", "taming_" + rand(1, 4)));
++            utils.setScriptVar(self, TAME_ROOT + ".phase", phase + 1);
++            messageTo(self, "handlePrecuTamePhase", null, TAME_PHASE_DELAY, false);
++            return SCRIPT_CONTINUE;
++        }
++        if (!canCommitTame(self, target))
++        {
++            clearTameState(self, target, true);
++            if (isPrecuTameFixture(self, target))
++            {
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome",
++                    "commitRejected");
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".completedAt",
++                    getGameTime());
++            }
++            return SCRIPT_CONTINUE;
++        }
++        int chance = pet_lib.getChanceToTame(target, self);
++        int roll = getTameRoll(self, target);
++        if (isPrecuTameFixture(self, target))
++        {
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".chance", chance);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".roll", roll);
++        }
++        if (roll >= chance)
++        {
++            sendSystemMessage(self, TAME_FAILED);
++            showFlyText(target, new string_id("npc_reaction/flytext", "fail"), 1.0f, 204, 0, 0);
++            int petType = pet_lib.getPetType(target);
++            clearTameState(self, target, true);
++            if (petType == pet_lib.PET_TYPE_AGGRO && rand(1, 20) == 1)
++            {
++                startCombat(target, self);
++            }
++            if (isPrecuTameFixture(self, target))
++            {
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome", "failed");
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".completedAt",
++                    getGameTime());
++            }
++            return SCRIPT_CONTINUE;
++        }
++        int sourceLevel = getLevel(target);
++        int originalBehavior = utils.getIntScriptVar(
++            self, TAME_ROOT + ".originalBehavior");
++        clearTameState(self, target, false);
++        obj_id petControlDevice = pet_lib.makeTamedCreature(self, target, 1);
++        if (!isIdValid(petControlDevice) || !exists(petControlDevice))
++        {
++            sendSystemMessage(self, pet_lib.SID_SYS_CANT_TAME);
++            restoreWildCreature(target, originalBehavior);
++            if (isPrecuTameFixture(self, target))
++            {
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome",
++                    "materializationFailed");
++                setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".completedAt",
++                    getGameTime());
++            }
++            return SCRIPT_CONTINUE;
++        }
++        int xpAmount = sourceLevel * 20;
++        if (xpAmount > 0)
++        {
++            xp.grant(self, xp.CREATUREHANDLER, xpAmount);
++        }
++        if (isPrecuTameFixture(self, target))
++        {
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".pcd", petControlDevice);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".pet", target);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".sourceLevel", sourceLevel);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".xpGranted", xpAmount);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".petPersisted",
++                isObjectPersisted(target) ? 1 : 0);
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".outcome", "passed");
++            setObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".completedAt",
++                getGameTime());
++        }
++        sendSystemMessage(self, TAME_SUCCESS);
++        showFlyText(target, new string_id("npc_reaction/flytext", "success"), 1.0f, 0, 204, 0);
++        return SCRIPT_CONTINUE;
++    }
++    private boolean canBeginTame(obj_id self, obj_id target, boolean sendFailure) throws InterruptedException
++    {
++        if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
++            !isIdValid(target) || !exists(target) || !isMob(target) || isPlayer(target) ||
++            isDead(self) || isIncapacitated(self) || ai_lib.isAiDead(target) ||
++            ai_lib.isInCombat(self) || ai_lib.isInCombat(target) ||
++            getDistance(self, target) > TAME_RANGE || pet_lib.hasMaster(target) ||
++            !ai_lib.isMonster(target) || !hasScript(target, "ai.pet_advance") ||
++            !pet_lib.isTameable(target) ||
++            utils.hasScriptVar(self, TAME_ROOT) ||
++            utils.hasScriptVar(target, TAME_TARGET_LOCK))
++        {
++            if (sendFailure)
++            {
++                sendSystemMessage(self, pet_lib.SID_SYS_CANT_TAME);
++            }
++            return false;
++        }
++        if (!hasSkill(self, "outdoors_creaturehandler_novice") ||
++            pet_lib.getChanceToTame(target, self) <= 0)
++        {
++            if (sendFailure)
++            {
++                sendSystemMessage(self, pet_lib.SID_SYS_LACK_SKILL);
++            }
++            return false;
++        }
++        int petType = pet_lib.getPetType(target);
++        if (petType != pet_lib.PET_TYPE_NON_AGGRO && petType != pet_lib.PET_TYPE_AGGRO)
++        {
++            if (sendFailure)
++            {
++                sendSystemMessage(self, pet_lib.SID_SYS_CANT_TAME);
++            }
++            return false;
++        }
++        if (pet_lib.hasMaxPets(self, petType))
++        {
++            if (sendFailure)
++            {
++                sendSystemMessage(self, pet_lib.SID_SYS_TOO_MANY_PETS);
++            }
++            return false;
++        }
++        if (pet_lib.hasMaxStoredPetsOfType(self, petType))
++        {
++            if (sendFailure)
++            {
++                sendSystemMessage(self, pet_lib.SID_SYS_TOO_MANY_STORED_PETS);
++            }
++            return false;
++        }
++        if (!pet_lib.canControlPetsOfLevel(
++            self, petType, getLevel(target), pet_lib.getCreatureName(target)))
++        {
++            return false;
++        }
++        obj_id datapad = utils.getPlayerDatapad(self);
++        if (!isIdValid(datapad) || !exists(datapad))
++        {
++            if (sendFailure)
++            {
++                sendSystemMessage(self, pet_lib.SID_SYS_CANT_TAME);
++            }
++            return false;
++        }
++        return true;
++    }
++    private boolean canContinueTame(obj_id self, obj_id target) throws InterruptedException
++    {
++        if (!isIdValid(target) || !exists(target) ||
++            !utils.hasScriptVar(target, TAME_TARGET_LOCK) ||
++            !self.equals(utils.getObjIdScriptVar(target, TAME_TARGET_LOCK)))
++        {
++            return false;
++        }
++        return isIdValid(self) && exists(self) && !isDead(self) && !isIncapacitated(self) &&
++            !ai_lib.isAiDead(target) && !ai_lib.isInCombat(self) && !ai_lib.isInCombat(target) &&
++            getDistance(self, target) <= TAME_RANGE && !pet_lib.hasMaster(target) &&
++            ai_lib.isMonster(target) && hasScript(target, "ai.pet_advance") &&
++            pet_lib.isTameable(target);
++    }
++    private boolean canCommitTame(obj_id self, obj_id target) throws InterruptedException
++    {
++        if (!hasSkill(self, "outdoors_creaturehandler_novice") ||
++            pet_lib.getChanceToTame(target, self) <= 0)
++        {
++            sendSystemMessage(self, pet_lib.SID_SYS_LACK_SKILL);
++            return false;
++        }
++        int petType = pet_lib.getPetType(target);
++        if ((petType != pet_lib.PET_TYPE_NON_AGGRO &&
++            petType != pet_lib.PET_TYPE_AGGRO) ||
++            pet_lib.hasMaxPets(self, petType) ||
++            pet_lib.hasMaxStoredPetsOfType(self, petType) ||
++            !pet_lib.canControlPetsOfLevel(
++                self, petType, getLevel(target), pet_lib.getCreatureName(target)))
++        {
++            return false;
++        }
++        obj_id datapad = utils.getPlayerDatapad(self);
++        return isIdValid(datapad) && exists(datapad);
++    }
++    private int getTameRoll(obj_id self, obj_id target) throws InterruptedException
++    {
++        return isPrecuTameFixture(self, target) ? 0 : rand(0, 100);
++    }
++    private boolean isPrecuTameFixture(obj_id self, obj_id target)
++        throws InterruptedException
++    {
++        if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
++            self.getValue() != PRECU_TAME_PLAYER_OID ||
++            getPlayerStationId(self) != PRECU_TAME_STATION_ID ||
++            !hasObjVar(self, PRECU_TAME_FIXTURE_ROOT) ||
++            !hasObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".protocol") ||
++            getIntObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".protocol") !=
++                PRECU_TAME_PROTOCOL_VERSION ||
++            !hasObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".prepared") ||
++            getIntObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".prepared") != 1 ||
++            !hasObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".target"))
++        {
++            return false;
++        }
++        return isIdValid(target) && target.equals(
++            getObjIdObjVar(self, PRECU_TAME_FIXTURE_ROOT + ".target"));
++    }
++    private int readPrecuTameInt(obj_id self, String suffix)
++        throws InterruptedException
++    {
++        String path = PRECU_TAME_FIXTURE_ROOT + suffix;
++        return hasObjVar(self, path) ? getIntObjVar(self, path) : 0;
++    }
++    private void clearTameState(obj_id self, obj_id target, boolean restoreCreature) throws InterruptedException
++    {
++        int originalBehavior = ai_lib.BEHAVIOR_LOITER;
++        boolean detachHandler = false;
++        if (utils.hasScriptVar(self, TAME_ROOT + ".originalBehavior"))
++        {
++            originalBehavior = utils.getIntScriptVar(self, TAME_ROOT + ".originalBehavior");
++        }
++        if (utils.hasScriptVar(self, TAME_ROOT + ".detachHandler"))
++        {
++            detachHandler = utils.getIntScriptVar(
++                self, TAME_ROOT + ".detachHandler") == 1;
++        }
++        utils.removeScriptVar(self, TAME_ROOT);
++        if (isIdValid(target) && exists(target) &&
++            utils.hasScriptVar(target, TAME_TARGET_LOCK) &&
++            self.equals(utils.getObjIdScriptVar(target, TAME_TARGET_LOCK)))
++        {
++            utils.removeScriptVar(target, TAME_TARGET_LOCK);
++        }
++        if (restoreCreature)
++        {
++            restoreWildCreature(target, originalBehavior);
++        }
++        if (detachHandler && hasScript(self, TAME_SCRIPT))
++        {
++            detachScript(self, TAME_SCRIPT);
++        }
++    }
++    private void restoreWildCreature(obj_id target, int originalBehavior) throws InterruptedException
++    {
++        if (!isIdValid(target) || !exists(target) || pet_lib.hasMaster(target))
++        {
++            return;
++        }
++        if (originalBehavior > ai_lib.BEHAVIOR_CALM)
++        {
++            originalBehavior = ai_lib.BEHAVIOR_LOITER;
++        }
++        ai_lib.setDefaultCalmBehavior(target, originalBehavior);
++    }
+     public int tellPetAttack(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (callable.hasAnyCallable(self))
+diff --git a/sku.0/sys.server/compiled/game/script/player/skill/taming_task.java b/sku.0/sys.server/compiled/game/script/player/skill/taming_task.java
+new file mode 100644
+index 0000000..69d6cf7
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/player/skill/taming_task.java
+@@ -0,0 +1,13 @@
++package script.player.skill;
++
++/**
++ * Attached message receiver for the asynchronous pre-CU taming lifecycle.
++ * Command-table handlers are dispatch targets, not persistent message targets,
++ * so cmdTame owns this task script only until the lifecycle is cleared.
++ */
++public class taming_task extends script.player.skill.taming
++{
++    public taming_task()
++    {
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_tame_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_tame_command_fixture.java
+new file mode 100644
+index 0000000..e64169f
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_tame_command_fixture.java
+@@ -0,0 +1,715 @@
++package script.test;
++
++import script.dictionary;
++import script.location;
++import script.obj_id;
++import script.library.ai_lib;
++import script.library.callable;
++import script.library.create;
++import script.library.pet_lib;
++import script.library.skill;
++import script.library.utils;
++import script.library.xp;
++
++/**
++ * Identity-bound, persistent, and reversible fixture for the Publish 14.1
++ * tame command and pet-control lifecycle.  The authenticated client remains
++ * the sole owner of command admission and dispatch.
++ */
++public class precu_tame_command_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 44003778L;
++    private static final int PLAYER_STATION_ID = 91001;
++    private static final int PROTOCOL_VERSION = 1;
++    private static final String COMMAND = "tame";
++    private static final String XP_TYPE = xp.CREATUREHANDLER;
++    private static final String CREATURE_TYPE = "worrt";
++    private static final String ROOT = "precu.tameCommandFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PROTOCOL = ROOT + ".protocol";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String TARGET = ROOT + ".target";
++    private static final String PCD = ROOT + ".pcd";
++    private static final String PET = ROOT + ".pet";
++    private static final String ORIGINAL_XP = ROOT + ".originalXp";
++    private static final String ORIGINAL_POINTS = ROOT + ".originalPoints";
++    private static final String ORIGINAL_PET_MASTER =
++        ROOT + ".originalPetMaster";
++    private static final String BEFORE_XP = ROOT + ".beforeXp";
++    private static final String TAME_RUNTIME = "pet.precuTame";
++    private static final String TAME_TARGET_LOCK = "pet.precuTamePlayer";
++    private static final String TAME_SCRIPT = "player.skill.taming_task";
++    private static final String FIXTURE_SCRIPT =
++        "test.precu_tame_command_fixture";
++    private static final String[] SKILLS =
++    {
++        "outdoors_creaturehandler",
++        "outdoors_creaturehandler_novice"
++    };
++    private static final String USAGE =
++        "usage: prepare|status|store|call|cleanup <playerOid> <32-hex-lifecycle>";
++
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        startFixturePoll(self);
++        return SCRIPT_CONTINUE;
++    }
++
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        startFixturePoll(self);
++        return SCRIPT_CONTINUE;
++    }
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null
++            ? new String[0]
++            : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++        long playerValue;
++        try
++        {
++            playerValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (playerValue != PLAYER_OID || !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++        obj_id player = obj_id.getObjId(playerValue);
++        if (player == null || player == obj_id.NULL_ID || !player.isLoaded())
++        {
++            return "error=playerNotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            return status(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("store"))
++        {
++            return store(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("call"))
++        {
++            return call(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, args[2]);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            if (ownership == null && getIntObjVar(player, PREPARED) == 1)
++            {
++                return "action=prepare resumed=true " + buildStatus(player);
++            }
++            return ownership == null ? "error=fixtureNotPrepared" : ownership;
++        }
++        if (hasAnyFixtureSkill(player) || hasCommand(player, COMMAND) ||
++            callable.hasCallable(player, callable.CALLABLE_TYPE_COMBAT_PET) ||
++            callable.getNumStoredCDByType(
++                player, callable.CALLABLE_TYPE_COMBAT_PET) != 0 ||
++            utils.hasScriptVar(player, TAME_RUNTIME) ||
++            hasScript(player, FIXTURE_SCRIPT))
++        {
++            return "error=fixtureVectorAlreadyOwned";
++        }
++
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, PROTOCOL, PROTOCOL_VERSION);
++        setObjVar(player, ORIGINAL_XP, getExperiencePoints(player, XP_TYPE));
++        setObjVar(player, ORIGINAL_POINTS, skill.getAvailableSkillPoints(player));
++        setObjVar(player, ORIGINAL_PET_MASTER,
++            hasScript(player, "ai.pet_master") ? 1 : 0);
++        resetTelemetry(player);
++
++        if (!grantSkills(player) || !hasCommand(player, COMMAND))
++        {
++            boolean restored = restore(player);
++            return "error=skillPreparationFailed restored=" + restored;
++        }
++        if (!setExperience(player, 0))
++        {
++            boolean restored = restore(player);
++            return "error=xpPreparationFailed restored=" + restored;
++        }
++
++        location targetLocation = new location(getLocation(player));
++        targetLocation.x += 2.0f;
++        obj_id target = createFixtureTarget(targetLocation);
++        if (!isIdValid(target) || !target.isLoaded() ||
++            !ai_lib.isMonster(target) || !pet_lib.isTameable(target) ||
++            !hasScript(target, "ai.pet_advance"))
++        {
++            if (isIdValid(target) && target.isLoaded())
++            {
++                destroyObject(target);
++            }
++            boolean restored = restore(player);
++            return "error=targetPreparationFailed restored=" + restored;
++        }
++        setObjVar(player, TARGET, target);
++        setObjVar(player, BEFORE_XP, getExperiencePoints(player, XP_TYPE));
++        attachScript(player, FIXTURE_SCRIPT);
++        if (!hasScript(player, FIXTURE_SCRIPT))
++        {
++            boolean restored = restore(player);
++            return "error=fixtureScriptAttachFailed restored=" + restored;
++        }
++        setObjVar(player, PREPARED, 1);
++        return "action=prepare resumed=false " + buildStatus(player);
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null
++            ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String store(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        obj_id pcd = readObjId(player, PCD);
++        obj_id pet = getActivePet(player, pcd);
++        if (!isIdValid(pcd) || !pcd.isLoaded())
++        {
++            return "error=pcdUnavailable";
++        }
++        if (!isIdValid(pet) || !pet.isLoaded())
++        {
++            return "error=petUnavailable";
++        }
++        setObjVar(player, ROOT + ".storeRequestedAt", getGameTime());
++        setObjVar(player, ROOT + ".storeRequested", 1);
++        return "action=store " + buildStatus(player);
++    }
++
++    private String call(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        obj_id pcd = readObjId(player, PCD);
++        if (!isIdValid(pcd) || !pcd.isLoaded())
++        {
++            return "error=pcdUnavailable";
++        }
++        obj_id current = getActivePet(player, pcd);
++        if (isIdValid(current) && current.isLoaded())
++        {
++            return "error=petAlreadyActive";
++        }
++        setObjVar(player, ROOT + ".callRequestedAt", getGameTime());
++        setObjVar(player, ROOT + ".callRequested", 1);
++        return "action=call " + buildStatus(player);
++    }
++
++    public int handlePrecuTameFixturePoll(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!isFixtureOwner(self))
++        {
++            utils.removeScriptVar(self, ROOT + ".pollActive");
++            return SCRIPT_CONTINUE;
++        }
++        if (readInt(self, ".storeRequested") == 1)
++        {
++            removeObjVar(self, ROOT + ".storeRequested");
++            handlePrecuTameFixtureStore(self, null);
++        }
++        if (readInt(self, ".callRequested") == 1)
++        {
++            removeObjVar(self, ROOT + ".callRequested");
++            handlePrecuTameFixtureCall(self, null);
++        }
++        messageTo(self, "handlePrecuTameFixturePoll", null, 1.0f, false);
++        return SCRIPT_CONTINUE;
++    }
++
++    private void startFixturePoll(obj_id player) throws InterruptedException
++    {
++        if (utils.hasScriptVar(player, ROOT + ".pollActive"))
++        {
++            return;
++        }
++        utils.setScriptVar(player, ROOT + ".pollActive", 1);
++        messageTo(player, "handlePrecuTameFixturePoll", null, 1.0f, false);
++    }
++
++    public int handlePrecuTameFixtureStore(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!isFixtureOwner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        obj_id pcd = readObjId(self, PCD);
++        obj_id pet = getActivePet(self, pcd);
++        if (!isIdValid(pcd) || !pcd.isLoaded() ||
++            !isIdValid(pet) || !pet.isLoaded())
++        {
++            setObjVar(self, ROOT + ".storeError", 1);
++            return SCRIPT_CONTINUE;
++        }
++        pet_lib.storePet(pet, self);
++        callable.setCallable(self, null, callable.CALLABLE_TYPE_COMBAT_PET);
++        setObjVar(self, ROOT + ".storeCompletedAt", getGameTime());
++        return SCRIPT_CONTINUE;
++    }
++
++    public int handlePrecuTameFixtureCall(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!isFixtureOwner(self))
++        {
++            return SCRIPT_CONTINUE;
++        }
++        obj_id pcd = readObjId(self, PCD);
++        obj_id current = getActivePet(self, pcd);
++        if (!isIdValid(pcd) || !pcd.isLoaded() ||
++            (isIdValid(current) && current.isLoaded()))
++        {
++            setObjVar(self, ROOT + ".callError", 1);
++            return SCRIPT_CONTINUE;
++        }
++        pet_lib.createPetFromData(pcd);
++        obj_id recalled = getActivePet(self, pcd);
++        if (isIdValid(recalled) && recalled.isLoaded())
++        {
++            setObjVar(self, ROOT + ".recalledPet", recalled);
++            setObjVar(self, ROOT + ".callCompletedAt", getGameTime());
++        }
++        else
++        {
++            setObjVar(self, ROOT + ".callError", 1);
++        }
++        return SCRIPT_CONTINUE;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateLifecycle(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasCompleteSnapshot(player))
++        {
++            return "action=cleanup alreadyClean=false restored=false" +
++                " incompleteSnapshot=true";
++        }
++        return "action=cleanup alreadyClean=false restored=" + restore(player);
++    }
++
++    private boolean restore(obj_id player) throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return false;
++        }
++        boolean detachTameScript =
++            utils.hasScriptVar(player, TAME_RUNTIME + ".detachHandler") &&
++            utils.getIntScriptVar(
++                player, TAME_RUNTIME + ".detachHandler") == 1;
++        utils.removeScriptVar(player, TAME_RUNTIME);
++        utils.removeScriptVar(player, ROOT + ".pollActive");
++        if (detachTameScript && hasScript(player, TAME_SCRIPT))
++        {
++            detachScript(player, TAME_SCRIPT);
++        }
++        obj_id pcd = readObjId(player, PCD);
++        obj_id pet = getActivePet(player, pcd);
++        if (!isIdValid(pet) || !pet.isLoaded())
++        {
++            pet = readObjId(player, PET);
++        }
++        callable.setCallable(player, null, callable.CALLABLE_TYPE_COMBAT_PET);
++        if (isIdValid(pcd) && pcd.isLoaded())
++        {
++            callable.setCDCallable(pcd, null);
++        }
++        boolean restored = true;
++        if (isIdValid(pet) && pet.isLoaded())
++        {
++            utils.removeScriptVar(pet, TAME_TARGET_LOCK);
++            if (getMaster(pet) == player)
++            {
++                setMaster(pet, null);
++            }
++            // A pet reconstructed from PCD data is intentionally transient;
++            // destroyObject may report false for that object even though its
++            // callable link is cleared and teardown is accepted.
++            destroyObject(pet);
++        }
++        obj_id originalTarget = readObjId(player, TARGET);
++        if (isIdValid(originalTarget) && originalTarget.isLoaded() &&
++            originalTarget != pet)
++        {
++            utils.removeScriptVar(originalTarget, TAME_TARGET_LOCK);
++            if (getMaster(originalTarget) == player)
++            {
++                setMaster(originalTarget, null);
++            }
++            restored = destroyObject(originalTarget) && restored;
++        }
++        if (isIdValid(pcd) && pcd.isLoaded())
++        {
++            restored = destroyObject(pcd) && restored;
++        }
++        restored = setExperience(player, getIntObjVar(player, ORIGINAL_XP)) &&
++            restored;
++        revokeSkills(player);
++        if (getIntObjVar(player, ORIGINAL_PET_MASTER) == 0 &&
++            hasScript(player, "ai.pet_master"))
++        {
++            detachScript(player, "ai.pet_master");
++        }
++        if (hasScript(player, FIXTURE_SCRIPT))
++        {
++            detachScript(player, FIXTURE_SCRIPT);
++        }
++        restored =
++            getExperiencePoints(player, XP_TYPE) ==
++                getIntObjVar(player, ORIGINAL_XP) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) &&
++            !hasAnyFixtureSkill(player) &&
++            !hasCommand(player, COMMAND) &&
++            !callable.hasCallable(player, callable.CALLABLE_TYPE_COMBAT_PET) &&
++            callable.getNumStoredCDByType(
++                player, callable.CALLABLE_TYPE_COMBAT_PET) == 0 &&
++            getIntObjVar(player, ORIGINAL_PET_MASTER) ==
++                (hasScript(player, "ai.pet_master") ? 1 : 0) &&
++            restored;
++        removeObjVar(player, ROOT);
++        return restored;
++    }
++
++    private obj_id createFixtureTarget(location targetLocation)
++        throws InterruptedException
++    {
++        dictionary creatureData =
++            dataTableGetRow(create.CREATURE_TABLE, CREATURE_TYPE);
++        if (creatureData == null)
++        {
++            return obj_id.NULL_ID;
++        }
++        String templateName = creatureData.getString("template");
++        if (templateName == null || templateName.length() == 0)
++        {
++            return obj_id.NULL_ID;
++        }
++        creatureData.put("lootTable", "");
++        obj_id target = createObject(
++            create.TEMPLATE_PREFIX + templateName,
++            targetLocation);
++        if (!isIdValid(target))
++        {
++            return obj_id.NULL_ID;
++        }
++        create.randomlyNameCreature(target, CREATURE_TYPE);
++        create.initializeCreature(target, CREATURE_TYPE, creatureData, -1);
++        create.attachCreatureScripts(
++            target,
++            creatureData.getString("scripts"),
++            true);
++        if (!hasScript(target, "ai.pet_advance"))
++        {
++            attachScript(target, "ai.pet_advance");
++        }
++        return target;
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        obj_id target = readObjId(player, TARGET);
++        obj_id pcd = readObjId(player, PCD);
++        obj_id pet = getActivePet(player, pcd);
++        boolean targetAvailable = isIdValid(target) && target.isLoaded();
++        boolean pcdAvailable = isIdValid(pcd) && pcd.isLoaded();
++        boolean petAvailable = isIdValid(pet) && pet.isLoaded();
++        boolean pcdContained = false;
++        if (pcdAvailable)
++        {
++            obj_id datapad = getContainedBy(pcd);
++            pcdContained = isIdValid(datapad) && datapad.isLoaded() &&
++                getContainedBy(datapad) == player;
++        }
++        int currentXp = getExperiencePoints(player, XP_TYPE);
++        return
++            "player=" + player +
++            " target=" + target +
++            " targetAvailable=" + targetAvailable +
++            " targetLevel=" + (targetAvailable ? getLevel(target) :
++                readInt(player, ".sourceLevel")) +
++            " pcd=" + pcd +
++            " pcdAvailable=" + pcdAvailable +
++            " pcdContained=" + pcdContained +
++            " pcdStored=" + (pcdAvailable && !callable.hasCDCallable(pcd)) +
++            " pcdCreatureName=" + (pcdAvailable &&
++                hasObjVar(pcd, "pet.creatureName")
++                    ? getStringObjVar(pcd, "pet.creatureName") : "none") +
++            " pcdScript=" + (pcdAvailable &&
++                hasScript(pcd, "ai.pet_control_device")) +
++            " growthStage=" + (pcdAvailable &&
++                hasObjVar(pcd, "ai.petAdvance.growthStage")
++                    ? getIntObjVar(pcd, "ai.petAdvance.growthStage") : -1) +
++            " activePet=" + pet +
++            " petAvailable=" + petAvailable +
++            " masterLinked=" + (petAvailable && getMaster(pet) == player) +
++            " petScript=" + (petAvailable && hasScript(pet, "ai.pet")) +
++            " babyScript=" + (petAvailable && hasScript(pet, "ai.pet_advance")) +
++            " petPersisted=" + (petAvailable && isObjectPersisted(pet)) +
++            " skillBits=" + buildSkillBits(player) +
++            " command=" + hasCommand(player, COMMAND) +
++            " tameLevel=" + getSkillStatMod(player, "tame_level") +
++            " tameNonAggro=" + getSkillStatMod(player, "tame_non_aggro") +
++            " storedCount=" + callable.getNumStoredCDByType(
++                player, callable.CALLABLE_TYPE_COMBAT_PET) +
++            " xp=" + currentXp +
++            " xpDelta=" + delta(player, BEFORE_XP, currentXp) +
++            " handlerEntered=" + readInt(player, ".handlerEntered") +
++            " handlerCalls=" + readInt(player, ".handlerCalls") +
++            " phaseCallbacks=" + readInt(player, ".phaseCallbacks") +
++            " chance=" + readInt(player, ".chance") +
++            " roll=" + readInt(player, ".roll") +
++            " xpGranted=" + readInt(player, ".xpGranted") +
++            " outcome=" + readString(player, ".outcome") +
++            " storeError=" + readInt(player, ".storeError") +
++            " callError=" + readInt(player, ".callError") +
++            " availablePoints=" + skill.getAvailableSkillPoints(player);
++    }
++
++    private obj_id getActivePet(obj_id player, obj_id pcd)
++        throws InterruptedException
++    {
++        if (isIdValid(pcd) && pcd.isLoaded())
++        {
++            obj_id pet = callable.getCDCallable(pcd);
++            if (isIdValid(pet) && pet.isLoaded())
++            {
++                return pet;
++            }
++        }
++        if (callable.hasCallable(player, callable.CALLABLE_TYPE_COMBAT_PET))
++        {
++            return callable.getCallable(
++                player, callable.CALLABLE_TYPE_COMBAT_PET);
++        }
++        return obj_id.NULL_ID;
++    }
++
++    private boolean grantSkills(obj_id player) throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (!grantSkill(player, skillName) || !hasSkill(player, skillName))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private void revokeSkills(obj_id player) throws InterruptedException
++    {
++        for (int index = SKILLS.length - 1; index >= 0; --index)
++        {
++            if (hasSkill(player, SKILLS[index]))
++            {
++                revokeSkill(player, SKILLS[index]);
++            }
++        }
++    }
++
++    private boolean hasAnyFixtureSkill(obj_id player)
++        throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (hasSkill(player, skillName))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private boolean setExperience(obj_id player, int target)
++        throws InterruptedException
++    {
++        int current = getExperiencePoints(player, XP_TYPE);
++        if (current != target)
++        {
++            grantExperiencePoints(player, XP_TYPE, target - current);
++        }
++        return getExperiencePoints(player, XP_TYPE) == target;
++    }
++
++    private String validateLifecycle(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) || !hasObjVar(player, LIFECYCLE) ||
++            !hasObjVar(player, PROTOCOL) ||
++            getIntObjVar(player, PROTOCOL) != PROTOCOL_VERSION)
++        {
++            return "error=fixtureAbsent";
++        }
++        return lifecycle.equals(getStringObjVar(player, LIFECYCLE))
++            ? null
++            : "error=lifecycleMismatch";
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String lifecycleError = validateLifecycle(player, lifecycle);
++        if (lifecycleError != null)
++        {
++            return lifecycleError;
++        }
++        return hasObjVar(player, PREPARED) && hasObjVar(player, TARGET)
++            ? null
++            : "error=fixtureNotPrepared";
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        return hasObjVar(player, ORIGINAL_XP) &&
++            hasObjVar(player, ORIGINAL_POINTS) &&
++            hasObjVar(player, ORIGINAL_PET_MASTER);
++    }
++
++    private boolean isFixtureOwner(obj_id player) throws InterruptedException
++    {
++        return isIdValid(player) && player.isLoaded() && isPlayer(player) &&
++            player.getValue() == PLAYER_OID &&
++            getPlayerStationId(player) == PLAYER_STATION_ID &&
++            hasObjVar(player, PROTOCOL) &&
++            getIntObjVar(player, PROTOCOL) == PROTOCOL_VERSION &&
++            hasObjVar(player, PREPARED) &&
++            getIntObjVar(player, PREPARED) == 1;
++    }
++
++    private String buildSkillBits(obj_id player) throws InterruptedException
++    {
++        String bits = "";
++        for (String skillName : SKILLS)
++        {
++            bits += hasSkill(player, skillName) ? "1" : "0";
++        }
++        return bits;
++    }
++
++    private obj_id readObjId(obj_id player, String path)
++        throws InterruptedException
++    {
++        return hasObjVar(player, path)
++            ? getObjIdObjVar(player, path)
++            : obj_id.NULL_ID;
++    }
++
++    private int readInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = ROOT + suffix;
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++
++    private String readString(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = ROOT + suffix;
++        return hasObjVar(player, path)
++            ? getStringObjVar(player, path)
++            : "none";
++    }
++
++    private int delta(obj_id player, String key, int current)
++        throws InterruptedException
++    {
++        return hasObjVar(player, key)
++            ? current - getIntObjVar(player, key)
++            : 0;
++    }
++
++    private void resetTelemetry(obj_id player) throws InterruptedException
++    {
++        String[] leaves =
++        {
++            "handlerEntered", "handlerCalls", "phaseCallbacks", "startedAt",
++            "completedAt", "outcome", "chance", "roll", "pcd", "pet",
++            "sourceLevel", "xpGranted", "petPersisted", "storeRequestedAt",
++            "storeRequested", "storeCompletedAt", "storeError",
++            "callRequestedAt", "callRequested", "callCompletedAt",
++            "callError", "recalledPet"
++        };
++        for (String leaf : leaves)
++        {
++            String path = ROOT + "." + leaf;
++            if (hasObjVar(player, path))
++            {
++                removeObjVar(player, path);
++            }
++        }
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            boolean digit = value >= '0' && value <= '9';
++            boolean lowerHex = value >= 'a' && value <= 'f';
++            if (!digit && !lowerHex)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 4582a2d..e4aa1b5 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1976,3 +1976,4 @@ fireAcidSingle2	combat	normal	fireAcidSingle2	failSpecialAttack			4	fireAcidSing
+ fireLightningCone1	combat	normal	fireLightningCone1	failSpecialAttack			2	fireLightningCone1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ fireLightningCone2	combat	normal	fireLightningCone2	failSpecialAttack			2	fireLightningCone2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ fireLightningSingle2	combat	normal	fireLightningSingle2	failSpecialAttack			2	fireLightningSingle2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	2	0		0	0	0
++tame	combat	normal	cmdTame				0.5		1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	0	0	0	0	1	0	1	1	1	1	0	1	0	1	1	1	1	1	0	0	0	0	0	0	1	1	0	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.skill.taming	other	required		2	0	0	0	32	0	0	0	ALL	NONE	defaultCooldownGroup	0	0.5	0		0	0	0

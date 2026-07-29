@@ -1,0 +1,289 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index c673b61..49aca2d 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14696,15 +14696,23 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int unarmedHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        if (!combatStandardAction("unarmedHit1", self, target, params, "", ""))
+-        {
+-            return SCRIPT_OVERRIDE;
+-        }
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int polearmSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    public int unarmedHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("unarmedHit1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int unarmedHit2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("unarmedHit2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int polearmSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("polearmSpinAttack1", self, target, params, "", ""))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 4aa2f76..6bb5e7e 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -29,8 +29,9 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String POLEARM_LEG_THREE_COMMAND = "polearmLegHit3";
+     private static final String POLEARM_HIT_ONE_COMMAND = "polearmHit1";
+     private static final String POLEARM_AREA_ONE_COMMAND = "polearmArea1";
+-    private static final String UNARMED_COMMAND = "unarmedHeadHit1";
+-    private static final String UNARMED_HIT_ONE_COMMAND = "unarmedHit1";
++    private static final String UNARMED_COMMAND = "unarmedHeadHit1";
++    private static final String UNARMED_HIT_ONE_COMMAND = "unarmedHit1";
++    private static final String UNARMED_HIT_TWO_COMMAND = "unarmedHit2";
+     private static final String POLEARM_AREA_COMMAND = "polearmSpinAttack1";
+     private static final String ONE_HAND_AREA_COMMAND = "melee1hSpinAttack1";
+     private static final String ONE_HAND_BODY_ONE_COMMAND = "melee1hBodyHit1";
+@@ -96,8 +97,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalPolearmAreaOneCommand";
+     private static final String ORIGINAL_UNARMED_COMMAND =
+         ROOT + ".originalUnarmedCommand";
+-    private static final String ORIGINAL_UNARMED_HIT_ONE_COMMAND =
+-        ROOT + ".originalUnarmedHitOneCommand";
++    private static final String ORIGINAL_UNARMED_HIT_ONE_COMMAND =
++        ROOT + ".originalUnarmedHitOneCommand";
++    private static final String ORIGINAL_UNARMED_HIT_TWO_COMMAND =
++        ROOT + ".originalUnarmedHitTwoCommand";
+     private static final String ORIGINAL_POLEARM_AREA_COMMAND =
+         ROOT + ".originalPolearmAreaCommand";
+     private static final String ORIGINAL_ONE_HAND_AREA_COMMAND =
+@@ -305,9 +308,12 @@ public class precu_headshot1_fixture extends script.base_script
+             grantCommand(attacker, POLEARM_AREA_ONE_COMMAND);
+         boolean unarmedCommandGranted = hasCommand(attacker, UNARMED_COMMAND) ||
+             grantCommand(attacker, UNARMED_COMMAND);
+-        boolean unarmedHitOneCommandGranted =
+-            hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) ||
+-            grantCommand(attacker, UNARMED_HIT_ONE_COMMAND);
++        boolean unarmedHitOneCommandGranted =
++            hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) ||
++            grantCommand(attacker, UNARMED_HIT_ONE_COMMAND);
++        boolean unarmedHitTwoCommandGranted =
++            hasCommand(attacker, UNARMED_HIT_TWO_COMMAND) ||
++            grantCommand(attacker, UNARMED_HIT_TWO_COMMAND);
+         boolean polearmAreaCommandGranted =
+             hasCommand(attacker, POLEARM_AREA_COMMAND) ||
+             grantCommand(attacker, POLEARM_AREA_COMMAND);
+@@ -377,8 +383,10 @@ public class precu_headshot1_fixture extends script.base_script
+             !polearmAreaOneCommandGranted ||
+             !hasCommand(attacker, POLEARM_AREA_ONE_COMMAND) ||
+             !unarmedCommandGranted || !hasCommand(attacker, UNARMED_COMMAND) ||
+-            !unarmedHitOneCommandGranted ||
+-            !hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) ||
++            !unarmedHitOneCommandGranted ||
++            !hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) ||
++            !unarmedHitTwoCommandGranted ||
++            !hasCommand(attacker, UNARMED_HIT_TWO_COMMAND) ||
+             !polearmAreaCommandGranted ||
+             !hasCommand(attacker, POLEARM_AREA_COMMAND) ||
+             !oneHandAreaCommandGranted ||
+@@ -434,8 +442,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 " polearmAreaOneCommand=" +
+                     hasCommand(attacker, POLEARM_AREA_ONE_COMMAND) +
+                 " unarmedCommand=" + hasCommand(attacker, UNARMED_COMMAND) +
+-                " unarmedHitOneCommand=" +
+-                    hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) +
++                " unarmedHitOneCommand=" +
++                    hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) +
++                " unarmedHitTwoCommand=" +
++                    hasCommand(attacker, UNARMED_HIT_TWO_COMMAND) +
+                 " polearmAreaCommand=" +
+                     hasCommand(attacker, POLEARM_AREA_COMMAND) +
+                 " oneHandAreaCommand=" +
+@@ -671,13 +681,20 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, UNARMED_COMMAND);
+         }
+-        if (attackerRoot &&
+-            hasObjVar(attacker, ORIGINAL_UNARMED_HIT_ONE_COMMAND) &&
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_UNARMED_HIT_ONE_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_UNARMED_HIT_ONE_COMMAND) == 0 &&
+             hasCommand(attacker, UNARMED_HIT_ONE_COMMAND))
+         {
+-            revokeCommand(attacker, UNARMED_HIT_ONE_COMMAND);
+-        }
++            revokeCommand(attacker, UNARMED_HIT_ONE_COMMAND);
++        }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_UNARMED_HIT_TWO_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_UNARMED_HIT_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, UNARMED_HIT_TWO_COMMAND))
++        {
++            revokeCommand(attacker, UNARMED_HIT_TWO_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) == 0 &&
+             hasCommand(attacker, POLEARM_AREA_COMMAND))
+@@ -982,8 +999,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, POLEARM_AREA_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_UNARMED_COMMAND,
+             hasCommand(player, UNARMED_COMMAND) ? 1 : 0);
+-        setObjVar(player, ORIGINAL_UNARMED_HIT_ONE_COMMAND,
+-            hasCommand(player, UNARMED_HIT_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_UNARMED_HIT_ONE_COMMAND,
++            hasCommand(player, UNARMED_HIT_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_UNARMED_HIT_TWO_COMMAND,
++            hasCommand(player, UNARMED_HIT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_POLEARM_AREA_COMMAND,
+             hasCommand(player, POLEARM_AREA_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ONE_HAND_AREA_COMMAND,
+@@ -1117,12 +1136,18 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, UNARMED_COMMAND);
+         }
+-        if (hasObjVar(attacker, ORIGINAL_UNARMED_HIT_ONE_COMMAND) &&
++        if (hasObjVar(attacker, ORIGINAL_UNARMED_HIT_ONE_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_UNARMED_HIT_ONE_COMMAND) == 0 &&
+             hasCommand(attacker, UNARMED_HIT_ONE_COMMAND))
+         {
+-            revokeCommand(attacker, UNARMED_HIT_ONE_COMMAND);
+-        }
++            revokeCommand(attacker, UNARMED_HIT_ONE_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_UNARMED_HIT_TWO_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_UNARMED_HIT_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, UNARMED_HIT_TWO_COMMAND))
++        {
++            revokeCommand(attacker, UNARMED_HIT_TWO_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_POLEARM_AREA_COMMAND) == 0 &&
+             hasCommand(attacker, POLEARM_AREA_COMMAND))
+@@ -1374,9 +1399,12 @@ public class precu_headshot1_fixture extends script.base_script
+             grantCommand(attacker, POLEARM_AREA_ONE_COMMAND);
+         boolean unarmedCommandReady = hasCommand(attacker, UNARMED_COMMAND) ||
+             grantCommand(attacker, UNARMED_COMMAND);
+-        boolean unarmedHitOneCommandReady =
+-            hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) ||
+-            grantCommand(attacker, UNARMED_HIT_ONE_COMMAND);
++        boolean unarmedHitOneCommandReady =
++            hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) ||
++            grantCommand(attacker, UNARMED_HIT_ONE_COMMAND);
++        boolean unarmedHitTwoCommandReady =
++            hasCommand(attacker, UNARMED_HIT_TWO_COMMAND) ||
++            grantCommand(attacker, UNARMED_HIT_TWO_COMMAND);
+         boolean polearmAreaCommandReady =
+             hasCommand(attacker, POLEARM_AREA_COMMAND) ||
+             grantCommand(attacker, POLEARM_AREA_COMMAND);
+@@ -1433,8 +1461,8 @@ public class precu_headshot1_fixture extends script.base_script
+             cdefCertificationReady && pistolCdefCertificationReady &&
+             polearmCommandReady && polearmLegTwoCommandReady &&
+             polearmLegThreeCommandReady && polearmHitOneCommandReady &&
+-            polearmAreaOneCommandReady && unarmedCommandReady &&
+-            unarmedHitOneCommandReady &&
++            polearmAreaOneCommandReady && unarmedCommandReady &&
++            unarmedHitOneCommandReady && unarmedHitTwoCommandReady &&
+             polearmAreaCommandReady && oneHandAreaCommandReady &&
+             oneHandBodyOneCommandReady &&
+             oneHandBodyTwoCommandReady && oneHandBodyThreeCommandReady &&
+@@ -1606,8 +1634,9 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_POLEARM_LEG_THREE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_HIT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_AREA_ONE_COMMAND) &&
+-            hasObjVar(player, ORIGINAL_UNARMED_COMMAND) &&
+-            hasObjVar(player, ORIGINAL_UNARMED_HIT_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_UNARMED_COMMAND) &&
++            hasObjVar(player, ORIGINAL_UNARMED_HIT_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_UNARMED_HIT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_AREA_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_AREA_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_BODY_ONE_COMMAND) &&
+@@ -1701,8 +1730,10 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(POLEARM_AREA_ONE_COMMAND, attacker) : -1;
+         int canPerformUnarmed =
+             combat.canPerformAction(UNARMED_COMMAND, attacker);
+-        int canPerformUnarmedHitOne =
+-            combat.canPerformAction(UNARMED_HIT_ONE_COMMAND, attacker);
++        int canPerformUnarmedHitOne =
++            combat.canPerformAction(UNARMED_HIT_ONE_COMMAND, attacker);
++        int canPerformUnarmedHitTwo =
++            combat.canPerformAction(UNARMED_HIT_TWO_COMMAND, attacker);
+         int canPerformPolearmArea = isIdValid(weapon) ?
+             combat.canPerformAction(POLEARM_AREA_COMMAND, attacker) : -1;
+         int canPerformOneHandArea = isIdValid(weapon) ?
+@@ -1771,8 +1802,10 @@ public class precu_headshot1_fixture extends script.base_script
+             " polearmAreaOneCommand=" +
+                 hasCommand(attacker, POLEARM_AREA_ONE_COMMAND) +
+             " unarmedCommand=" + hasCommand(attacker, UNARMED_COMMAND) +
+-            " unarmedHitOneCommand=" +
+-                hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) +
++            " unarmedHitOneCommand=" +
++                hasCommand(attacker, UNARMED_HIT_ONE_COMMAND) +
++            " unarmedHitTwoCommand=" +
++                hasCommand(attacker, UNARMED_HIT_TWO_COMMAND) +
+             " polearmAreaCommand=" +
+                 hasCommand(attacker, POLEARM_AREA_COMMAND) +
+             " oneHandAreaCommand=" +
+@@ -1819,8 +1852,9 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformPolearmLegThree=" + canPerformPolearmLegThree +
+             " canPerformPolearmHitOne=" + canPerformPolearmHitOne +
+             " canPerformPolearmAreaOne=" + canPerformPolearmAreaOne +
+-            " canPerformUnarmed=" + canPerformUnarmed +
+-            " canPerformUnarmedHitOne=" + canPerformUnarmedHitOne +
++            " canPerformUnarmed=" + canPerformUnarmed +
++            " canPerformUnarmedHitOne=" + canPerformUnarmedHitOne +
++            " canPerformUnarmedHitTwo=" + canPerformUnarmedHitTwo +
+             " canPerformPolearmArea=" + canPerformPolearmArea +
+             " canPerformOneHandArea=" + canPerformOneHandArea +
+             " canPerformOneHandBodyOne=" + canPerformOneHandBodyOne +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 1bceb6a..c66664a 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1960,4 +1960,5 @@ multiTargetPistolShot	combat	normal	multiTargetPistolShot	failSpecialAttack			3.
+ disarmingShot2	combat	normal	disarmingShot2	failSpecialAttack			2	disarmingShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ fanShot	combat	normal	fanShot	failSpecialAttack			2	fanShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ burstShot2	combat	normal	burstShot2	failSpecialAttack			2	burstShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+-unarmedHit1	combat	normal	unarmedHit1	failSpecialAttack			1.5	unarmedHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++unarmedHit1	combat	normal	unarmedHit1	failSpecialAttack			1.5	unarmedHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++unarmedHit2	combat	normal	unarmedHit2	failSpecialAttack			2.5	unarmedHit2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	2.5	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 600e895..9a1b8d1 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1324,4 +1324,5 @@ multiTargetPistolShot	multiTargetPistolShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	AT
+ disarmingShot2	disarmingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_3_single					fire_3_single									OFF	OFF	OFF	OFF	OFF	CONE	64	15	0	64	0	0	2.75	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+ fanShot	disarmingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area					fire_area									OFF	OFF	OFF	OFF	OFF	CONE	64	60	0	64	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+ burstShot2	burstShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single							fire_7_single							OFF	OFF	OFF	OFF	OFF	CONE	64	30	0	64	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				carbineer	0		ACTION_NAME	0	0	1
+-unarmedHit1	unarmedHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_2d	combo_2d													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
++unarmedHit1	unarmedHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_2d	combo_2d													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
++unarmedHit2	unarmedHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3a	combo_3a													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 903fe31..c318ecf 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -40,4 +40,5 @@ multiTargetPistolShot	0.5	1.25	0.5	RANDOM	3.5	50	RANGED
+ disarmingShot2	0.5	1	0.5	RANDOM	2	50	RANGED
+ fanShot	0.5	1	0.5	RANDOM	2	50	INTENSITY
+ burstShot2	2	1.25	0.5	RANDOM	2	25	RANGED
+-unarmedHit1	1	1	1	RANDOM	1.5	15	INTENSITY
++unarmedHit1	1	1	1	RANDOM	1.5	15	INTENSITY
++unarmedHit2	1.5	1.5	1.5	RANDOM	2.5	15	INTENSITY
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index d23a2ed..144499e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -39,4 +39,5 @@ multiTargetPistolShot	pistolmultishot
+ disarmingShot2	disarmblast
+ fanShot	fanshot
+ burstShot2	burstblast
+-unarmedHit1	steelhands
++unarmedHit1	steelhands
++unarmedHit2	goraxsmash
