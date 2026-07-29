@@ -186,12 +186,12 @@ Assert-Contract -Condition (
     $healWound.Contains("computeTotalAttributes();")) `
     -Name "p14.wounds.native.attribute-scoped-healing"
 Assert-Contract -Condition (
-    $databaseConfig.Contains("KEY_INT     (expectedDBVersion, 271);") -and
+    $databaseConfig.Contains("KEY_INT     (expectedDBVersion, 272);") -and
     $databaseVersionQuery.Contains(
         "select version_number from version_number;") -and
     $allWoundColumnsReset -and
     $databaseMigration.Contains(
-        "update version_number set version_number=271, min_version_number=271;")) `
+        "update version_number set version_number=272, min_version_number=272;")) `
     -Name "p14.wounds.database.versioned-columns-18-through-26"
 Assert-Contract -Condition (
     $updateDatabase.Contains('failonerror="true"') -and
@@ -218,9 +218,11 @@ Assert-Contract -Condition (
 Assert-Contract -Condition (
     $scriptWounds.Contains("!damageApplied") -and
     $scriptWounds.Contains(
-        "targetPool < combat.PRECU_TARGET_POOL_HEALTH") -and
+        "(targetPoolMask & 0x7) == 0") -and
     $scriptWounds.Contains(
-        "targetPool > combat.PRECU_TARGET_POOL_MIND") -and
+        "pool = combat.PRECU_TARGET_POOL_HEALTH") -and
+    $scriptWounds.Contains(
+        "pool <= combat.PRECU_TARGET_POOL_MIND") -and
     $scriptWounds.Contains("isDead(defender)") -and
     $scriptWounds.Contains("isIncapacitated(defender)")) `
     -Name "p14.wounds.runtime.post-damage-survivor-gate"
@@ -242,7 +244,7 @@ Assert-Contract -Condition (
     $scriptWounds.Contains("addShockWound(defender, 1)")) `
     -Name "p14.wounds.runtime.three-linked-wounds-and-shock"
 Assert-Contract -Condition (
-    $damage.Contains("boolean damageApplied;") -and
+    $damage.Contains("boolean damageApplied = false;") -and
     $damage.Contains("damageApplied =") -and
     $damage.Contains("doDamageToPool(") -and
     $damage.Contains("applyPrecuWounds(") -and

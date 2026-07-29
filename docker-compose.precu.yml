@@ -24,8 +24,8 @@ services:
   swg-precu:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-    image: swg-precu-server:local
+      dockerfile: docker/Dockerfile.x64
+    image: swg-precu-server-x64:local
     container_name: swg-precu
     depends_on:
       oracle:
@@ -39,6 +39,7 @@ services:
       SWG_DB_ADMIN_USER: system
       SWG_DB_ADMIN_PASSWORD: swg
       SWG_DB_DATAFILE_DIR: /opt/oracle/oradata/XE/XEPDB1
+      SWG_SERVER_BITS: "64"
       SWG_CLUSTER_NAME: swg
       SWG_PUBLIC_ADDRESS: ${SWG_PRECU_PUBLIC_ADDRESS:-127.0.0.1}
       SWG_LOGIN_CLIENT_PORT: ${SWG_PRECU_LOGIN_CLIENT_PORT:-44450}
@@ -69,7 +70,7 @@ services:
     volumes:
       - ${SWG_PRECU_SOURCE_DIR:-E:/SWG/SWGSource/Staging/swg-precu-runtime-source}:/swg-precu-source:ro
       - ${SWG_PRECU_ASSETS_DIR:-../pre-cu-reborn-assets}:/client-assets:ro
-      - swg-precu-work:/swg-precu
+      - swg-precu-work-x64:/swg-precu
     networks:
       - swg-precu-net
     working_dir: /swg-precu
@@ -92,9 +93,10 @@ services:
 
 volumes:
   swg-precu-oracle-data:
+    external: true
     name: swg-precu-oracle-data
-  swg-precu-work:
-    name: swg-precu-work
+  swg-precu-work-x64:
+    name: swg-precu-work-x64
 
 networks:
   swg-precu-net:

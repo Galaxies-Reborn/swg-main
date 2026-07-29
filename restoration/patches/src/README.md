@@ -78,8 +78,14 @@ the Core3 duration equation without changing NGE command timing.
 `012-p14-persistent-wounds.patch` restores wounds as a dedicated persistent
 nine-value `CreatureObject` vector instead of the non-persistent attribute-mod
 list. It stores the vector in retired NGE creature columns 18 through 26 under
-database version 271, separates unwounded and wounded maximum attributes,
+database version 272, separates unwounded and wounded maximum attributes,
 applies primary versus linked-secondary current-value semantics, and exposes
 exact add/heal operations to scripts. The database server's required version,
 version query, generated packager registration, and zero-baseline migration
 travel in the same atomic overlay.
+
+`328-p14-stat-migration-tutorial-admission.patch` keys free migration to the
+authoritative full-or-skipped fresh-character tutorial lifecycle rather than a
+nonexistent scene name. After first-planet handoff, the native commit boundary
+requires a distinct entertainer who still owns `imagedesign`, plus both players
+inside the same server-verified `salon` structure.

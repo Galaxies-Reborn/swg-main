@@ -1,0 +1,33 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -6357,9 +6357,9 @@ static void commandFuncRequestSetStatMigrationData(Command const &, NetworkId co
+ 	session.targets = targets;
+ 	session.pointsLeft = 0;
+ 
+-	// Retail applies migration immediately in the tutorial. Outside the
+-	// newbie hall these values remain pending for the Image Designer workflow.
+-	if (creature->getSceneId() == "newbie_hall")
++	// Fresh characters migrate immediately while either authoritative tutorial
++	// lifecycle marker is present. World allocations remain pending for an entertainer.
++	if (creature->isInTutorial())
+ 	{
+ 		applyStatMigration(*creature, targets);
+ 		clearPersistentStatMigration(*creature);
+diff --git a/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp b/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
+--- a/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
++++ b/engine/server/library/serverGame/src/shared/core/ServerImageDesignerManager.cpp
+@@ -184,9 +184,13 @@ bool ServerImageDesignerManager::makeChanges(SharedImageDesignerManager::Session
+ 		bool const statMigration = session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION;
+ 		Object const * const designerTopmost = ContainerInterface::getTopmostContainer(*designer);
+ 		Object const * const recipientTopmost = ContainerInterface::getTopmostContainer(*recipient);
++		ServerObject const * const statMigrationSalon = designerTopmost ? designerTopmost->asServerObject() : nullptr;
+ 		bool const statMigrationSessionValid = !statMigration ||
+ 			(designer != recipient &&
++			designer->hasCommand("imagedesign") &&
++			!recipient->isInTutorial() &&
+ 			session.terminalId != NetworkId::cms_invalid &&
++			statMigrationSalon && statMigrationSalon->getObjVars().hasItem("salon") &&
+ 			designerTopmost && designerTopmost->getNetworkId() == session.terminalId &&
+ 			recipientTopmost && recipientTopmost->getNetworkId() == session.terminalId &&
+ 			CommandCppFuncs::canCommitStatMigration(recipient->getNetworkId()));

@@ -1,3 +1,13 @@
+# This branch builds a 64-bit client and server by default: the server image is
+# docker/Dockerfile.x64, SWG_SERVER_BITS is 64, and the build volume is
+# swg-work-x64. Use docker-compose.32.yml as an override for the 32-bit
+# fallback.
+#
+# The project name is pinned because Compose would otherwise derive it from the
+# directory name (swg-main), which is the namespace the legacy 32-bit volumes
+# already occupy; the 64-bit server would then attach to the 32-bit database.
+name: swg-main-x64
+
 services:
   oracle:
     image: gvenzl/oracle-xe:21-slim-faststart
@@ -19,7 +29,7 @@ services:
   swg-server:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.x64
     depends_on:
       oracle:
         condition: service_healthy
@@ -38,6 +48,17 @@ services:
       SWG_SOURCE_DIR: /swg-main-source
       SWG_WORK_DIR: /swg-main
       SWG_CLIENT_ASSETS_TRE: /client-assets/swgsource_3.0.tre
+      SWG_SERVER_BITS: "64"
+    # The cluster binds fixed ports in 44450-61300, which fall inside the
+    # kernel's default ephemeral range (32768-60999). During startup the
+    # processes open enough outbound connections that the kernel can hand one
+    # of those ports out as a source port moments before a server binds it.
+    # TcpServer treats a failed bind as FATAL, so the process dies; if it is a
+    # PlanetServer, CentralServer then tries to restart it before it ever
+    # reported its scene and aborts on an empty sceneId, taking the cluster
+    # down. Reserve the range so the kernel never allocates it ephemerally.
+    sysctls:
+      net.ipv4.ip_local_reserved_ports: "44450-44480,50001,60000-61300"
     ports:
       - "44450-44465:44450-44465/tcp"
       - "44450-44465:44450-44465/udp"
@@ -46,7 +67,7 @@ services:
     volumes:
       - .:/swg-main-source:ro
       - ../client-assets:/client-assets:ro
-      - swg-work:/swg-main
+      - swg-work-x64:/swg-main
     working_dir: /swg-main
     command: ["run"]
     tty: true
@@ -67,4 +88,4 @@ services:
 
 volumes:
   oracle-data:
-  swg-work:
+  swg-work-x64:

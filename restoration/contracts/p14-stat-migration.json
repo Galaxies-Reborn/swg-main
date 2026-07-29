@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "ready",
-  "scope": "Publish 14.1 stat-migration tables, server-owned allocation sessions, tutorial commit path, authenticated Image Designer commit, and retained client command protocol.",
+  "scope": "Publish 14.1 stat-migration tables, server-owned allocation sessions, free fresh-character tutorial migration, first-planet admission retirement, authenticated entertainer-salon commit, and retained client command protocol.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "commit": "6856f315a80b5250635b2272695caec1d64204ed",
@@ -52,14 +52,18 @@
     "sharedImageDesigner": "src/engine/shared/library/sharedGame/src/shared/core/SharedImageDesignerManager.cpp",
     "imageDesignerWireMessage": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/ImageDesignChangeMessage.cpp",
     "imageDesignerScript": "dsrc/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java",
+    "newbieTutorial": "src/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp",
+    "fullTutorialPlayer": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie.java",
+    "skippedTutorialPlayer": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/newbie_tutorial/newbie_skipped.java",
     "persistenceFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_stat_migration_persistence_fixture.java",
     "attributeLimits": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/attribute_limits.tab",
     "racialMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/racial_mods.tab",
     "professionMods": "dsrc/sku.0/sys.shared/compiled/game/datatables/creation/profession_mods.tab"
   },
   "commitBoundaries": {
-    "tutorial": "Validated targets are applied immediately in newbie_hall and consumed once.",
-    "normalWorld": "Validated targets remain server-owned until an authenticated, non-self Image Designer transaction commits them in the original salon structure."
+    "tutorial": "Validated targets are applied immediately and consumed once while either authoritative fresh-character tutorial marker remains present, covering both full and skipped starting halls without a tent.",
+    "firstPlanet": "The full and skipped tutorial flows retire their markers at confirmed normal-world handoff; returning to the tutorial scene later does not restore free migration.",
+    "normalWorld": "Validated targets remain server-owned until an authenticated, non-self entertainer with the imagedesign command commits them while both players remain in the original salon-marked structure."
   },
   "imageDesignerCommit": {
     "designType": "DT_STAT_MIGRATION",
@@ -69,7 +73,9 @@
       "existing server-owned designer session",
       "exact designer, recipient, terminal, and starting-time identity",
       "designer and recipient are distinct",
-      "both participants remain in the original salon structure",
+      "designer retains the imagedesign command",
+      "recipient is no longer in the fresh-character tutorial lifecycle",
+      "both participants remain in the original server-verified salon structure",
       "recipient has a valid zero-points-left nine-stat allocation"
     ],
     "consumption": "The allocation is revalidated immediately before mutation and erased after one successful commit.",

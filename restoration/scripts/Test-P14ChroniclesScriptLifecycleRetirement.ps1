@@ -14,11 +14,34 @@ $saga = Get-Content -LiteralPath (Join-Path $root $files["player_saga_quest.java
 $storyteller = Get-Content -LiteralPath (Join-Path $root $files["storyteller_commands.java"]) -Raw
 $basePlayer = Get-Content -LiteralPath (Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java") -Raw
 $liveConversions = Get-Content -LiteralPath (Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java") -Raw
+$attachStart = $saga.IndexOf("public int OnAttach")
+$attachEnd = $saga.IndexOf("public int OnInitialize", $attachStart)
+$initializeEnd = $saga.IndexOf("public int OnNewbieTutorialResponse", $attachEnd)
+if ($attachStart -lt 0 -or $attachEnd -le $attachStart -or
+    $initializeEnd -le $attachEnd)
+{
+    throw "Chronicles attach/initialize lifecycle boundaries are missing."
+}
+$attach = $saga.Substring($attachStart, $attachEnd - $attachStart)
+$initialize = $saga.Substring($attachEnd, $initializeEnd - $attachEnd)
+if (-not $attach.Contains("return SCRIPT_CONTINUE;") -or
+    $attach.Contains("detachScript(") -or
+    $attach.Contains("attachScript(") -or
+    $attach.Contains("messageTo(") -or
+    $attach.Contains("grantSkill("))
+{
+    throw "Player saga OnAttach is not inert."
+}
+if (-not $initialize.Contains(
+    'detachScript(self, "player.player_saga_quest");'))
+{
+    throw "Player saga script is not retired during initialization."
+}
 if (([regex]::Matches(
     $saga,
-    [regex]::Escape('detachScript(self, "player.player_saga_quest")'))).Count -ne 3)
+    [regex]::Escape('detachScript(self, "player.player_saga_quest")'))).Count -ne 2)
 {
-    throw "Player saga script is not detached at all three lifecycle boundaries."
+    throw "Player saga script must detach only at initialize and tutorial-response boundaries."
 }
 if (([regex]::Matches(
     $storyteller,

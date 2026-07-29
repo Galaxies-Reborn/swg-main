@@ -49,9 +49,14 @@ sync_source_tree() {
 
         echo "Populating first-time Linux build volume..."
         find "${SWG_WORK_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+        # GNU tar exclusions are --no-anchored by default, and these options
+        # are positional: --anchored applies only to the patterns that follow,
+        # so .git/*/.git above still match at any depth while the build-product
+        # patterns below match only at the top level.
         tar -C "${SWG_SOURCE_DIR}" \
             --exclude='.git' \
             --exclude='*/.git' \
+            --anchored \
             --exclude='./.swg-source-synced' \
             --exclude='./build' \
             --exclude='./chat' \
@@ -67,20 +72,27 @@ sync_source_tree() {
             -cf - . | tar -C "${SWG_WORK_DIR}" -xf -
         touch "${SWG_WORK_DIR}/.swg-source-synced"
     else
+        # Build-product exclusions must be anchored with a leading '/'. An
+        # unanchored rsync pattern matches at every depth, so 'chat/' also
+        # stripped dsrc/sku.0/sys.shared/compiled/game/chat (spatial chat
+        # types), and 'build/' and 'data/' would strip
+        # src/game/server/database/{build,data}. Only .git and *.log are
+        # meant to match at any depth.
         rsync -a --delete \
-            --exclude='.git/' \
-            --exclude='.swg-source-synced' \
-            --exclude='build/' \
-            --exclude='chat/' \
-            --exclude='client-assets/' \
-            --exclude='data/' \
-            --exclude='dependencies/' \
-            --exclude='exe/linux/bin' \
-            --exclude='exe/linux/logs/' \
-            --exclude='miff/' \
+            --exclude='.git' \
+            --exclude='*/.git' \
+            --exclude='/.swg-source-synced' \
+            --exclude='/build/' \
+            --exclude='/chat/' \
+            --exclude='/client-assets/' \
+            --exclude='/data/' \
+            --exclude='/dependencies/' \
+            --exclude='/exe/linux/bin' \
+            --exclude='/exe/linux/logs/' \
+            --exclude='/miff/' \
             --exclude='*.log' \
-            --exclude='local.properties' \
-            --exclude='webcfg.properties' \
+            --exclude='/local.properties' \
+            --exclude='/webcfg.properties' \
             "${SWG_SOURCE_DIR}/" "${SWG_WORK_DIR}/"
     fi
 
@@ -101,8 +113,24 @@ normalize_executable_text() {
 
 normalize_executable_text
 
+SWG_SERVER_BITS="${SWG_SERVER_BITS:-64}"
+case "${SWG_SERVER_BITS}" in
+    32|64)
+        ;;
+    *)
+        echo "Invalid SWG_SERVER_BITS='${SWG_SERVER_BITS}'; expected 32 or 64." >&2
+        exit 2
+        ;;
+esac
+
 export ORACLE_HOME="${ORACLE_HOME:-/opt/oracle/instantclient_19_31}"
-export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-11-openjdk-i386}"
+if [ -z "${JAVA_HOME:-}" ]; then
+    if [ "${SWG_SERVER_BITS}" = "64" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
+    else
+        export JAVA_HOME="/usr/lib/jvm/java-11-openjdk-i386"
+    fi
+fi
 export PATH="${ORACLE_HOME}:${JAVA_HOME}/bin:${PATH}"
 export LD_LIBRARY_PATH="${ORACLE_HOME}:${JAVA_HOME}/lib:${JAVA_HOME}/lib/server:${LD_LIBRARY_PATH:-}"
 export NLS_LANG="${NLS_LANG:-american_america.utf8}"
@@ -123,6 +151,18 @@ SWG_PUBLIC_CONNECTION_PING_PORT="${SWG_PUBLIC_CONNECTION_PING_PORT:-44462}"
 SWG_PUBLIC_CONNECTION_PORT="${SWG_PUBLIC_CONNECTION_PORT:-44463}"
 SWG_PRIVATE_CONNECTION_PORT="${SWG_PRIVATE_CONNECTION_PORT:-44464}"
 SWG_INTERNAL_ADDRESS="${SWG_INTERNAL_ADDRESS:-}"
+
+# The container's own eth0 address. Several services bind to eth0 rather than to all interfaces, so
+# anything connecting to them from inside this container has to use this rather than loopback.
+SWG_CONTAINER_ADDRESS="$(ip -4 addr show eth0 2>/dev/null | awk '/inet /{split($2, a, "/"); print a[1]; exit}' || true)"
+if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then
+    SWG_CONTAINER_ADDRESS="$(hostname -i 2>/dev/null | awk '{print $1}' || true)"
+fi
+if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then
+    echo "WARNING: could not determine the container's eth0 address; falling back to 127.0.0.1." >&2
+    SWG_CONTAINER_ADDRESS="127.0.0.1"
+fi
+echo "Container address for eth0-bound services: ${SWG_CONTAINER_ADDRESS}"
 SWG_CLIENT_ASSETS_TRE="${SWG_CLIENT_ASSETS_TRE:-/client-assets/swgsource_3.0.tre}"
 SWG_START_CHAT="${SWG_START_CHAT:-true}"
 SWG_ANT_INIT_TARGETS="${SWG_ANT_INIT_TARGETS:-clean update_configs create_database compile}"
@@ -150,6 +190,13 @@ db_password = ${SWG_DB_PASSWORD}
 db_service = ${SWG_DB_SERVICE}
 dbip = ${SWG_DB_HOST}
 compiler = gcc
+bits = ${SWG_SERVER_BITS}
+oracle_home.32 = ${ORACLE_HOME}
+oracle_home.64 = ${ORACLE_HOME}
+oracle_include.32 = ${ORACLE_HOME}/sdk/include
+oracle_include.64 = ${ORACLE_HOME}/sdk/include
+java_home.32 = ${JAVA_HOME}
+java_home.64 = ${JAVA_HOME}
 src_build_type = Release
 EOF
 }
@@ -359,6 +406,14 @@ write_client_asset_tree_config() {
 [SharedFile]
 searchTree0=${SWG_STAGED_CLIENT_ASSETS_TRE}
 
+[SharedNetwork]
+# The database server legitimately backs up its send queue while streaming the
+# preload to the game servers. Each of those warnings walks the call stack, and
+# at ~1000 warnings that cost slows the frame enough to grow the backlog
+# further. The condition is reported by the queue size itself; the per-frame
+# warning only amplifies it.
+logSendingTooMuchData=false
+
 [CentralServer]
 gameServiceBindInterface=eth0
 connectionServiceBindInterface=eth0
@@ -391,8 +446,20 @@ clientServicePortPublic=${SWG_PUBLIC_CONNECTION_PORT}
 clientServicePortPrivate=${SWG_PRIVATE_CONNECTION_PORT}
 
 [CommodityServer]
-cmServerServiceBindInterface=eth0
+# Bind the game-server listening service to loopback, not eth0. The game servers reach it through
+# ConfigServerGame's commoditiesServerServiceBindInterface, which defaults to "localhost", so a
+# service bound only to eth0 refuses them and every bazaar terminal reports "market is unavailable".
+# Everything in this cluster shares one container, so loopback is sufficient and it means the game
+# servers need no override of their own -- which matters because they only read config at startup.
+cmServerServiceBindInterface=127.0.0.1
 databaseServerAddress=127.0.0.1
+# CentralServer binds its commodities service to eth0 (commodityServerServiceBindInterface above),
+# so it is not reachable on loopback. ConfigCommodityServer defaults centralServerAddress to
+# "localhost", and CentralServerConnection::onConnectionClosed calls exit(0) -- a clean exit, no
+# core, nothing on stdout. TaskManager then respawns it, so the only visible symptom was its load
+# sequence repeating in the log (1748 times when this was found) while ps never showed the process
+# and every bazaar terminal reported "market is unavailable".
+centralServerAddress=${SWG_CONTAINER_ADDRESS}
 
 [LoginServer]
 easyExternalAccess=true
@@ -428,12 +495,57 @@ run_ant() {
     ant "$@"
 }
 
+verify_server_architecture() {
+    local expected
+    local binary
+    local description
+    local checked=0
+
+    if [ "${SWG_SERVER_BITS}" = "64" ]; then
+        expected="ELF 64-bit"
+    else
+        expected="ELF 32-bit"
+    fi
+
+    for binary in \
+        build/bin/LoginServer \
+        build/bin/TaskManager \
+        build/bin/CentralServer \
+        build/bin/ConnectionServer \
+        build/bin/SwgDatabaseServer \
+        build/bin/SwgGameServer; do
+        if [ ! -f "${binary}" ]; then
+            continue
+        fi
+
+        description="$(file -L "${binary}")"
+        echo "${description}"
+        case "${description}" in
+            *"${expected}"*)
+                ;;
+            *)
+                echo "Architecture verification failed: expected ${expected}: ${binary}" >&2
+                return 1
+                ;;
+        esac
+        checked=$((checked + 1))
+    done
+
+    if [ "${checked}" -eq 0 ]; then
+        echo "Architecture verification failed: no core server binaries were found." >&2
+        return 1
+    fi
+
+    echo "Verified ${checked} core server binaries as ${SWG_SERVER_BITS}-bit."
+}
+
 init_server() {
     write_local_properties true
     wait_for_oracle
     ensure_oracle_prereqs
     # Avoid ant swg here; it checks out submodule branches and dirties pointers.
     run_ant ${SWG_ANT_INIT_TARGETS}
+    verify_server_architecture
     ensure_runtime_symlinks
     write_runtime_network_config
     sync_runtime_config_files
@@ -448,6 +560,7 @@ build_server() {
     wait_for_oracle
     ensure_oracle_prereqs
     run_ant ${SWG_ANT_BUILD_TARGETS}
+    verify_server_architecture
     ensure_runtime_symlinks
 }
 
@@ -494,6 +607,10 @@ case "${1:-run}" in
         write_local_properties false
         wait_for_oracle
         run_ant "$@"
+        ;;
+    verify-arch)
+        shift
+        verify_server_architecture
         ;;
     shell)
         shift

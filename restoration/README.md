@@ -1,7 +1,7 @@
 # Pre-CU restoration overlays
 
 This directory owns restoration changes without committing edits inside the
-dsrc, exe, or src gitlinks. The manifest locks the x64-dx9 component commits. Scripts
+dsrc, exe, or src gitlinks. The manifest locks the x64 server component commits. Scripts
 refuse a source checkout whose gitlinks or initialized component HEADs drift.
 
 The materializer is plan-only unless Apply is supplied. StagingRoot is always
@@ -91,7 +91,7 @@ seam independently (additional weapon profiles and live outcomes remain gated):
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14SecondaryDefense.ps1 -SourceRoot <materialized-staging-directory>
 
-Validate persistent Publish 14.1 wounds, schema-271 storage, login/combat shock
+Validate persistent Publish 14.1 wounds, schema-272 storage, login/combat shock
 retention, and the pinned Core3 post-damage linked-wound/shock roll
 independently:
 

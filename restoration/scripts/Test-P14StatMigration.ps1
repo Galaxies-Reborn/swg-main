@@ -144,11 +144,19 @@ $responseReady = `
 Assert-Contract -Condition $responseReady -Name "p14.stat-migration.response.server-owned-target-vector"
 
 $tutorialReady = `
-    $text.commandCpp.Contains('if (creature->getSceneId() == "newbie_hall")') -and `
+    $text.commandCpp.Contains("if (creature->isInTutorial())") -and `
+    -not $text.commandCpp.Contains('if (creature->getSceneId() == "newbie_hall")') -and `
     $text.commandCpp.Contains("applyStatMigration(*creature, targets)") -and `
     $text.commandCpp.Contains("s_statMigrationSessions.erase(actor)") -and `
-    $text.commandCpp.Contains("remain pending for the Image Designer workflow")
-Assert-Contract -Condition $tutorialReady -Name "p14.stat-migration.commit.tutorial-immediate-and-consumed"
+    $text.commandCpp.Contains("World allocations remain pending for an entertainer")
+Assert-Contract -Condition $tutorialReady -Name "p14.stat-migration.commit.fresh-character-tutorial-immediate-and-consumed"
+
+$tutorialLifecycleReady = `
+    $text.newbieTutorial.Contains("return shouldStartTutorial(character) || shouldStartSkippedTutorial(character);") -and `
+    $text.fullTutorialPlayer.Contains('removeObjVar(self, "newbie");') -and `
+    $text.skippedTutorialPlayer.Contains('if (!loc.area.equals("tutorial"))') -and `
+    $text.skippedTutorialPlayer.Contains('removeObjVar(self, "newbie.startSkippedTutorial");')
+Assert-Contract -Condition $tutorialLifecycleReady -Name "p14.stat-migration.admission.first-planet-retires-free-migration"
 
 $nativeCommitReady = `
     $text.commandHeader.Contains("canCommitStatMigration") -and `
@@ -172,11 +180,14 @@ Assert-Contract -Condition $controllerAuthenticationReady -Name "p14.stat-migrat
 $salonTransactionReady = `
     $text.imageDesignerManager.Contains("session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION") -and `
     $text.imageDesignerManager.Contains("designer != recipient") -and `
+    $text.imageDesignerManager.Contains('designer->hasCommand("imagedesign")') -and `
+    $text.imageDesignerManager.Contains("!recipient->isInTutorial()") -and `
+    $text.imageDesignerManager.Contains('statMigrationSalon->getObjVars().hasItem("salon")') -and `
     $text.imageDesignerManager.Contains("designerTopmost->getNetworkId() == session.terminalId") -and `
     $text.imageDesignerManager.Contains("recipientTopmost->getNetworkId() == session.terminalId") -and `
     $text.imageDesignerManager.Contains("CommandCppFuncs::canCommitStatMigration(recipient->getNetworkId())") -and `
     $text.imageDesignerManager.Contains("CommandCppFuncs::commitStatMigration(recipient->getNetworkId())")
-Assert-Contract -Condition $salonTransactionReady -Name "p14.stat-migration.image-designer.non-self-salon-transaction"
+Assert-Contract -Condition $salonTransactionReady -Name "p14.stat-migration.image-designer.normal-world-entertainer-salon-transaction"
 
 $nativeCallbackReady = `
     $text.imageDesignerNative.Contains("SharedImageDesignerManager::getSession(session.designerId, authenticatedSession)") -and `
