@@ -1,0 +1,240 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -92,10 +92,11 @@
+ #include "sharedGame/MatchMakingCharacterProfileId.h"
+ #include "sharedGame/MatchMakingId.h"
+ #include "sharedGame/MoodManager.h"
+ #include "sharedGame/OutOfBandPackager.h"
+ #include "sharedGame/PlatformFeatureBits.h"
++#include "sharedGame/PlayerCreationManager.h"
+ #include "sharedGame/ProsePackage.h"
+ #include "sharedGame/Quest.h"
+ #include "sharedGame/QuestManager.h"
+ #include "sharedGame/SharedStringIds.h"
+ #include "sharedGame/ShipChassisSlotType.h"
+@@ -120,10 +121,11 @@
+ #include "sharedNetworkMessages/MessageQueueGenericValueType.h"
+ #include "sharedNetworkMessages/MessageQueueNetworkId.h"
+ #include "sharedNetworkMessages/MessageQueuePosture.h"
+ #include "sharedNetworkMessages/MessageQueueSitOnObject.h"
+ #include "sharedNetworkMessages/MessageQueueSpatialChat.h"
++#include "sharedNetworkMessages/StatMigrationTargetsMessage.h"
+ #include "sharedObject/CachedNetworkId.h"
+ #include "sharedObject/CellProperty.h"
+ #include "sharedObject/ContainedByProperty.h"
+ #include "sharedObject/CustomizationData.h"
+ #include "sharedObject/NetworkIdManager.h"
+@@ -133,18 +135,106 @@
+ #include "sharedObject/SlottedContainmentProperty.h"
+ #include "sharedObject/VolumeContainer.h"
+ #include "sharedSkillSystem/SkillManager.h"
+ #include "sharedSkillSystem/SkillObject.h"
+ #include "sharedTerrain/TerrainObject.h"
++#include "swgSharedUtility/Attributes.h"
+ 
++#include <algorithm>
+ #include <cstdlib>
+ #include <map>
++#include <vector>
+ 
+ namespace CommandCppFuncsNamespace
+ {
+ 	const std::string BEAST_SCRIPT = "ai.beast";
+ 
++	struct StatMigrationSession
++	{
++		StatMigrationSession() : targets(), pointsLeft(0) {}
++		std::vector<int> targets;
++		int pointsLeft;
++	};
++
++	typedef std::map<NetworkId, StatMigrationSession> StatMigrationSessionMap;
++	StatMigrationSessionMap s_statMigrationSessions;
++
++	bool getStatMigrationLimits(CreatureObject const & creature, std::vector<std::pair<int, int> > & limits, int & total)
++	{
++		char const * const sharedTemplateName = creature.getSharedTemplateName();
++		return sharedTemplateName &&
++			PlayerCreationManager::getRacialMinMaxes(sharedTemplateName, limits) &&
++			PlayerCreationManager::getRacialTotal(sharedTemplateName, total) &&
++			static_cast<int>(limits.size()) == Attributes::NumberOfAttributes;
++	}
++
++	bool initializeStatMigrationSession(CreatureObject const & creature, StatMigrationSession & session)
++	{
++		std::vector<std::pair<int, int> > limits;
++		int total = 0;
++		if (!getStatMigrationLimits(creature, limits, total))
++			return false;
++
++		session.targets.assign(Attributes::NumberOfAttributes, 0);
++		int assigned = 0;
++		for (int attribute = 0; attribute < Attributes::NumberOfAttributes; ++attribute)
++		{
++			int const current = creature.getUnmodifiedMaxAttribute(attribute);
++			int const bounded = std::max(limits[attribute].first, std::min(limits[attribute].second, current));
++			session.targets[attribute] = bounded;
++			assigned += bounded;
++		}
++
++		// NGE-era persisted characters can be outside the authentic Publish 14
++		// allocation window. Clamp first, then deterministically remove any
++		// overage while never crossing a racial minimum.
++		int excess = assigned - total;
++		for (int attribute = 0; attribute < Attributes::NumberOfAttributes && excess > 0; ++attribute)
++		{
++			int const reducible = session.targets[attribute] - limits[attribute].first;
++			int const reduction = std::min(excess, reducible);
++			session.targets[attribute] -= reduction;
++			excess -= reduction;
++			assigned -= reduction;
++		}
++		if (excess > 0)
++			return false;
++
++		session.pointsLeft = total - assigned;
++		return session.pointsLeft >= 0;
++	}
++
++	bool validateStatMigrationTargets(CreatureObject const & creature, std::vector<int> const & targets)
++	{
++		std::vector<std::pair<int, int> > limits;
++		int total = 0;
++		if (static_cast<int>(targets.size()) != Attributes::NumberOfAttributes ||
++			!getStatMigrationLimits(creature, limits, total))
++			return false;
++
++		int assigned = 0;
++		for (int attribute = 0; attribute < Attributes::NumberOfAttributes; ++attribute)
++		{
++			if (targets[attribute] < limits[attribute].first || targets[attribute] > limits[attribute].second)
++				return false;
++			assigned += targets[attribute];
++		}
++		return assigned == total;
++	}
++
++	void applyTutorialStatMigration(CreatureObject & creature, std::vector<int> const & targets)
++	{
++		for (int attribute = 0; attribute < Attributes::NumberOfAttributes; ++attribute)
++		{
++			int const oldMaximum = creature.getUnmodifiedMaxAttribute(attribute);
++			int const oldCurrent = creature.getUnmodifiedAttribute(attribute);
++			int const delta = targets[attribute] - oldMaximum;
++			creature.setMaxAttribute(attribute, targets[attribute], false);
++			creature.setAttribute(attribute, std::max(0, oldCurrent + delta));
++		}
++	}
++
+ 	void internalSetBoosterOnOff(NetworkId const & actor, bool onOff)
+ 	{
+ 		ServerObject * const actorServerObj = safe_cast<ServerObject *>(NetworkIdManager::getObjectById(actor));
+ 		CreatureObject * const actorCreature = actorServerObj != nullptr ? actorServerObj->asCreatureObject() : nullptr;
+ 
+@@ -6149,10 +6239,90 @@ static void commandFuncRequestCharacterSheetInfo(Command const &, NetworkId cons
+ 		client->send(chrm, true);
+ }
+ 
+ // ----------------------------------------------------------------------
+ 
++static void commandFuncRequestStatMigrationData(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &)
++{
++	CreatureObject * const creature = CreatureObject::getCreatureObject(actor);
++	if (!creature || !creature->isAuthoritative() || !creature->getClient())
++		return;
++
++	StatMigrationSession & session = s_statMigrationSessions[actor];
++	if (session.targets.empty() && !initializeStatMigrationSession(*creature, session))
++	{
++		char const * const sharedTemplateName = creature->getSharedTemplateName();
++		WARNING(true, ("Unable to initialize Publish 14 stat migration for %s (%s)",
++			actor.getValueString().c_str(), sharedTemplateName ? sharedTemplateName : "<null>"));
++		s_statMigrationSessions.erase(actor);
++		return;
++	}
++
++	StatMigrationTargetsMessage const message(session.targets, session.pointsLeft);
++	creature->getClient()->send(message, true);
++}
++
++// ----------------------------------------------------------------------
++
++static void commandFuncRequestSetStatMigrationData(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const & params)
++{
++	CreatureObject * const creature = CreatureObject::getCreatureObject(actor);
++	if (!creature || !creature->isAuthoritative() || !creature->getClient())
++		return;
++
++	size_t position = 0;
++	std::vector<int> targets;
++	targets.reserve(Attributes::NumberOfAttributes);
++	for (int attribute = 0; attribute < Attributes::NumberOfAttributes; ++attribute)
++		targets.push_back(nextIntParm(params, position));
++
++	// Publish 14 clients append pointsLeft as a tenth integer. It is advisory;
++	// the server validates all nine targets and their authoritative racial sum.
++	if (!validateStatMigrationTargets(*creature, targets))
++	{
++		WARNING(true, ("Rejected invalid Publish 14 stat migration targets for %s",
++			actor.getValueString().c_str()));
++		return;
++	}
++
++	StatMigrationSession & session = s_statMigrationSessions[actor];
++	session.targets = targets;
++	session.pointsLeft = 0;
++
++	// Retail applies migration immediately in the tutorial. Outside the
++	// newbie hall these values remain pending for the Image Designer workflow.
++	if (creature->getSceneId() == "newbie_hall")
++		applyTutorialStatMigration(*creature, targets);
++}
++
++// ----------------------------------------------------------------------
++
++static void commandFuncRequestStatMigrationStart(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &)
++{
++	CreatureObject * const creature = CreatureObject::getCreatureObject(actor);
++	if (!creature || !creature->isAuthoritative())
++		return;
++
++	StatMigrationSession & session = s_statMigrationSessions[actor];
++	if (session.targets.empty() && !initializeStatMigrationSession(*creature, session))
++		s_statMigrationSessions.erase(actor);
++}
++
++// ----------------------------------------------------------------------
++
++static void commandFuncRequestStatMigrationStop(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &)
++{
++	CreatureObject * const creature = CreatureObject::getCreatureObject(actor);
++	if (!creature || !creature->isAuthoritative())
++		return;
++
++	// The Publish 14 stop command ends the active migration interaction; its
++	// validated targets remain pending for a later Image Designer commit.
++}
++
++// ----------------------------------------------------------------------
++
+ static void commandFuncRequestCharacterMatch(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &params)
+ {
+ 	//DEBUG_REPORT_LOG(true, ("commandFuncRequestCharacterMatch() - networkId: %s params: %s\n", actor.getValueString().c_str(), Unicode::wideToNarrow(params).c_str()));
+ 
+ 	// Build the new id
+@@ -9878,10 +10048,14 @@ void CommandCppFuncs::install()
+ 	CommandTable::addCppFunction("setCurrentSkillTitle", commandFuncSetCurrentSkillTitle);
+ 
+ 	//misc ui
+ 	CommandTable::addCppFunction("permissionListModify", commandFuncPermissionListModify);
+ 	CommandTable::addCppFunction("requestCharacterSheetInfo", commandFuncRequestCharacterSheetInfo);
++	CommandTable::addCppFunction("requestSetStatMigrationData", commandFuncRequestSetStatMigrationData);
++	CommandTable::addCppFunction("requestStatMigrationData", commandFuncRequestStatMigrationData);
++	CommandTable::addCppFunction("requestStatMigrationStart", commandFuncRequestStatMigrationStart);
++	CommandTable::addCppFunction("requestStatMigrationStop", commandFuncRequestStatMigrationStop);
+ 	CommandTable::addCppFunction("removeBuff", commandFuncRemoveBuff);
+ 
+ 	// npc conversation
+ 	CommandTable::addCppFunction("npcConversationStart", commandFuncNpcConversationStart);
+ 	CommandTable::addCppFunction("npcConversationStop", commandFuncNpcConversationStop);

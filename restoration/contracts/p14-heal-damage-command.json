@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "consumable": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "commandHandler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/heal_damage.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_heal_damage_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/HealDamageCommand.h",
+    "publish": "14.1",
+    "scope": "queued injury treatment with stim packs"
+  },
+  "commandContract": {
+    "name": "healDamage",
+    "category": "combat",
+    "scriptHook": "cmdHealDamage",
+    "tempScript": "player.cmd.heal_damage",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "addToCombatQueue": true,
+    "validWeapon": "ALL",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "baseMindCost": 50,
+    "mindCostFormula": "truncate(baseCost - (((Focus - 300) / 1200) * baseCost))",
+    "roundTimeFormula": "max(4, round(20 - healing_injury_speed / 5))",
+    "maximumNormalMedicineRangeMeters": 7,
+    "combatAllowed": true,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "cooldownUsesRoundTime": true,
+    "successfulUseConsumesExactlyOneCharge": true,
+    "healedPools": [
+      "Health",
+      "Action",
+      "Mind"
+    ],
+    "medicalXpFormula": "round((Health healed + Action healed) * 0.25)",
+    "medicalXpGrant": "xp.grant",
+    "medicalXpOtherPlayerOnly": true,
+    "medicalXpExcludesSelfAndPets": true,
+    "fixtureTelemetryRequiresFixtureRoot": true
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "markQueue",
+      "status",
+      "markCooldown",
+      "cleanup"
+    ],
+    "patient": "fixture-created authoritative bantha pet",
+    "startingPools": {
+      "Health": 500,
+      "Action": 550,
+      "Mind": 600
+    },
+    "poolMaximum": 1000,
+    "medicinePowerPerPool": 200,
+    "medicineStartingCharges": 2,
+    "temporarySkills": [
+      "science_medic_novice",
+      "science_medic_injury_01"
+    ],
+    "expectedMedicalXp": 0,
+    "expectedMedicalXpReason": "Core3 excludes self and pet treatment",
+    "cleanupPolicy": "restore healer Mind, shock, medical XP, skills, command, and cooldown; destroy fixture patient and medicine"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "1a2e95b4943dd44b74dc5aed3b527ccbf796625d6d6e7e12a323a85f05cb952e",
+    "compiledSha256": {
+      "consumable.class": "f9f2a4ff46ae88f256dd19c3cc3ea9b0acd309dc85cbf65715ca9babc088a8a3",
+      "healing.class": "0551896b2124261af84adf4b3d58c22c039c24e4477bdbf8d5a2f1ae8aeda662",
+      "heal_damage.class": "d0767f993f2eae81e7fcf74b7f1a379ba5e97fca0f28bfeed983014824781533",
+      "precu_heal_damage_command_fixture.class": "853d0ceaad5c5089af356be848d2024e933b64c273e9eb20300d89c7d925bc54"
+    },
+    "compiledIffSha256": {
+      "command_table.iff": "4a04d21bcbf0ad0c777fdbea0c6583dbf043308e53384fa306601867bd2a59c6",
+      "skills.iff": "39f8bc038eaad9f18967e9e6945987dc0f10f3b475cd2dd58d64b4e68092b188"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 37192,
+    "clientProtocolVersion": 16,
+    "observedAt": "2026-07-17T17:08:13-04:00",
+    "lifecycle": "a5232de568c24220a95186fce78cf398",
+    "firstQueue": {
+      "patientOid": 748563970,
+      "handlerEnteredGameTime": 295103,
+      "handlerCalls": 1,
+      "handlerOutcome": "performed",
+      "appliedHealthHeal": 214,
+      "appliedActionHeal": 214,
+      "appliedMindHeal": 214,
+      "expectedMindCost": 45,
+      "appliedMindCost": 45,
+      "appliedChargeCost": 1,
+      "remainingCharges": 1,
+      "expectedMedicalXp": 0,
+      "appliedMedicalXp": 0,
+      "expectedRoundTimeSeconds": 19
+    },
+    "cooldownQueue": {
+      "handlerEnteredGameTime": 295108,
+      "handlerCalls": 2,
+      "handlerOutcome": "canHealDamageRejected",
+      "retainedQueueDeltaSeconds": 5,
+      "additionalHealthHeal": 0,
+      "additionalActionHeal": 0,
+      "additionalMindHeal": 0,
+      "additionalMindCost": 0,
+      "additionalChargeCost": 0,
+      "additionalMedicalXp": 0,
+      "cooldownRemainingAtObservation": 7,
+      "clientQueueCountAtObservation": 0
+    },
+    "cleanup": {
+      "restored": true,
+      "clientQueueCount": 0
+    }
+  },
+  "narrowBoundary": {
+    "included": [
+      "authentic healDamage queued command",
+      "real client combat-queue entry",
+      "patient, range, line-of-sight, PvP, cooldown, medicine, and damage gates",
+      "Focus-adjusted Mind cost",
+      "production three-pool stim consumption",
+      "25 percent Health-plus-Action medical XP for other players",
+      "no self or pet medical XP",
+      "identity-bound reversible live fixture"
+    ],
+    "deferred": [
+      "ranged and area stim live acceptance",
+      "positive other-player medical XP live acceptance",
+      "tendWound and tendDamage command adapters",
+      "diagnose and medicalForage behavior",
+      "full Medic and Doctor branch progression"
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/collection.java b/sku.0/sys.server/compiled/game/script/library/collection.java
+--- a/sku.0/sys.server/compiled/game/script/library/collection.java
++++ b/sku.0/sys.server/compiled/game/script/library/collection.java
+@@ -25,7 +25,6 @@ public class collection extends script.base_script
+     public static final String CRAFTING_TEMPLATE = "crafting_template";
+     public static final String OBJVAR_SLOT_NAME = "collection.slotName";
+     public static final String OBJVAR_PAGE_NAME = "collection.pageName";
+-    public static final String ENT_BUFF_COLLECTION_01 = "col_entertainer_01";
+     public static final String COL_BUFF_TRACKER = "collection.buffTracker";
+     public static final String COL_HEROIC_SD_TAXI_SERVICE = "heroic_sd_taxi_service_01";
+     public static final String COL_HEROIC_SD_SMUGGLE_OBJVAR = "collection.heroic_sd_smuggle_timer";
+@@ -37,7 +36,6 @@ public class collection extends script.base_script
+     public static final float MAX_HATE_RADIUS_ON_CLICK_COL = 15.0f;
+     public static final int MAXLOOP = 7;
+     public static final int REQUIRED_TIME_LAPSE = 21600;
+-    public static final int CONST_ROLL_CHANCE = 50;
+     public static final int CONST_RESOURCE_ROLL = 4;
+     public static final String PRISTINE_MEAT = "col_pristine_meat_02_01";
+     public static final String PRISTINE_HIDE = "col_pristine_hide_02_01";
+@@ -61,7 +59,6 @@ public class collection extends script.base_script
+     public static final String COL_NPC_PROMPT = "@collection:col_npc_prompt";
+     public static final String COL_NPC_TITLE = "@collection:col_npc_title";
+     public static final string_id SID_COLLECTION_RESET = new string_id("collection", "player_collection_reset");
+-    public static final string_id UPDATED_ENTERTAINER_COLLECTION = new string_id("collection", "update_entertainer");
+     public static final string_id SUCCESSFUL_SMUGGLE_ATTEMPT = new string_id("collection", "successful_smuggle_attempt");
+     public static final string_id SMUGGLE_ATTEMPT_TIME_ISSUE = new string_id("collection", "smuggle_attempt_time_issue");
+     public static final string_id DRIVING_SOROSUUB = new string_id("collection", "driving_sorosuub");
+@@ -861,48 +858,6 @@ public class collection extends script.base_script
+         blog("collection", "Quest Error: " + s);
+         return true;
+     }
+-    public static boolean entertainerBuffCollection(obj_id buffedPlayerId, obj_id bufferId, float duration) throws InterruptedException
+-    {
+-        if (!isIdValid(buffedPlayerId) || !isIdValid(bufferId))
+-        {
+-            return false;
+-        }
+-        if (hasCompletedCollection(bufferId, ENT_BUFF_COLLECTION_01))
+-        {
+-            return false;
+-        }
+-        String buffedPlayerTemplate = getSkillTemplate(buffedPlayerId);
+-        if (buffedPlayerTemplate.startsWith("trader"))
+-        {
+-            buffedPlayerTemplate = "prof_trader";
+-        }
+-        if (buffedPlayerTemplate.startsWith("entertainer"))
+-        {
+-            return false;
+-        }
+-        if (hasCompletedCollectionSlot(bufferId, buffedPlayerTemplate))
+-        {
+-            return false;
+-        }
+-        int collectionRollChance = rand(1, 100);
+-        if (collectionRollChance > CONST_ROLL_CHANCE)
+-        {
+-            buff.applyBuff(buffedPlayerId, "col_ent_invis_buff_tracker");
+-            return false;
+-        }
+-        if (duration >= 7200.00)
+-        {
+-            buff.applyBuff(buffedPlayerId, "col_ent_invis_buff_tracker");
+-            modifyCollectionSlotValue(bufferId, buffedPlayerTemplate, 1);
+-            sendSystemMessage(bufferId, new string_id("collection", "update_entertainer"));
+-            return true;
+-        }
+-        else 
+-        {
+-            sendSystemMessage(bufferId, new string_id("collection", "time_too_short"));
+-            return false;
+-        }
+-    }
+     public static boolean pilotSmuggleTimeCheck(obj_id pilot, obj_id groupMember, obj_id ship, String strChassisType) throws InterruptedException
+     {
+         if (buff.hasBuff(groupMember, "col_sd_invis_buff_tracker"))
+diff --git a/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java b/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
+--- a/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
++++ b/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
+@@ -1956,10 +1956,6 @@ public class buff_handler extends script.base_script
+                         break;
+                 }
+             }
+-            if (!buff.hasBuff(self, "col_ent_invis_buff_tracker"))
+-            {
+-                collection.entertainerBuffCollection(self, bufferId, duration);
+-            }
+         }
+         else 
+         {

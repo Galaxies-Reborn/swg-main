@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-combat-spam",
+  "status": "ready",
+  "scope": "Route restored Publish-era combat commands through their authentic cbt_spam stem and outcome suffix while retaining the NGE fallback for unmapped commands.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "combatQueueCommandPath": "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.cpp",
+    "combatManagerPath": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "clientStringTable": "string/en/cbt_spam.stf",
+    "findings": [
+      "Core3 derives combat prose keys from the command combatSpam stem plus _hit, _miss, _evade, _counter, or _block.",
+      "Hit prose reports applied damage while defended outcomes retain the initial/raw damage value.",
+      "The Publish-era string table supplies attacker, defender, and bystander prose through TU, TT, and DI variables."
+    ]
+  },
+  "expected": {
+    "mappedCommands": {
+      "s": "s",
+      "headShot1": "headshot",
+      "bodyShot1": "bodyshot",
+      "legShot1": "leg"
+    },
+    "resultSuffixes": [
+      "_hit",
+      "_miss",
+      "_evade",
+      "_counter",
+      "_block"
+    ],
+    "unmappedCommandFallbackRetained": true,
+    "bodyShot1Correction": "Superseded by the pinned M216 Core3 Body Shot I closure after the original body stem was found to drift from bodyshot.",
+    "liveDiagnostics": [
+      "spam.key",
+      "spam.result",
+      "spam.damage"
+    ],
+    "fixtureCdefCertificationReversible": true
+  },
+  "buildEvidence": {
+    "scriptOverlay": "restoration/patches/dsrc/200-p14-core3-combat-spam.patch",
+    "scriptOverlayBytes": 15807,
+    "scriptOverlaySha256": "d72238159c692c8e6e2641b28b53b9a75a1702ffb742ee691e5443409476e5c8",
+    "sourceSha256": {
+      "combat_base.java": "a84a27ee2cf5617dde5281c41bcc3d9c0d648dd79c75cf9b05d3fc794efc0f5c",
+      "precu_headshot1_fixture.java": "4a18e5306e65c142742f78caba0cce0a638ae82917c9678f81c6ed1a5fa2eb54",
+      "precu_marksman_tier1_fixture.java": "d98f5adcfa3c36d2e17cc46e1b43e9f5dc53b1e7fceb5fc4c2bac3f869dcf755",
+      "precu_combat_spam.tab": "1f176bee46388c8418cde3c9eed8e961c67b32cbd494dff4fd1be510900af1ed"
+    },
+    "cleanMaterializationPatches": 206,
+    "cleanMaterializationFiles": 587,
+    "cleanMaterializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "javaCompile": "passed",
+    "datatableCompile": "passed",
+    "classSha256": {
+      "combat_base.class": "38a108a263ac503379d48b39f549caaf391eefcd32bba59c4cd1c8873840cb54",
+      "precu_headshot1_fixture.class": "0fe68dd5d76e411cb5917e4aa03fc3881b7d5e26bb13dd05926d3a8775befe34",
+      "precu_marksman_tier1_fixture.class": "f3ac3d01048883115500754fa4342e50be94b5f668d8e4b14acac7e2dfcade18"
+    },
+    "precuCombatSpamIffSha256": "ce382d89e705826153b9df19bb0ccb877d522b028200a9ee10e1f8f030e5d7fe",
+    "staticContract": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "attackerOid": 44003778,
+    "defenderOid": 39008597,
+    "productionCommand": "headShot1",
+    "diagnosticSpamKey": "headshot_hit",
+    "diagnosticSpamResult": 1,
+    "diagnosticSpamDamage": 25,
+    "attackerHamDelta": {
+      "health": -2,
+      "action": -7,
+      "mind": -11
+    },
+    "defenderMindDelta": -25,
+    "clientProcessId": 46596,
+    "backgroundInputProtocol": 85,
+    "serverHealthy": true,
+    "fixtureCleanup": "passed"
+  },
+  "requiredBeforeReady": []
+}

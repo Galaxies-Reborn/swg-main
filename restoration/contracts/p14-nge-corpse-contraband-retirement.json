@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "feature": "nge-corpse-contraband-retirement",
+  "status": "ready",
+  "scope": "Remove the active NGE Smuggler corpse-inspection menu and dispatch while preserving ordinary corpse loot, group loot, and harvesting.",
+  "eraEvidence": {
+    "publish141SkillAuthority": "The restored combat_smuggler family grants container, terminal, weapon, and armor slicing; it does not grant sm_inspect_cargo.",
+    "ngeOwnership": "class_smuggler_phase1_novice grants sm_inspect_cargo and the inherited corpse path additionally reads NGE combat level and expertise_increase_smuggler_loot.",
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "ContainerImplementation gates authentic slicing with combat_smuggler_novice; the scoped Core3 corpse/loot inventory has no corpse contraband-inspection path."
+  },
+  "expected": {
+    "corpseSkillTemplateReads": 0,
+    "corpseCombatLevelReads": 0,
+    "corpseContrabandMenuAdds": 0,
+    "corpseContrabandDispatches": 0,
+    "ordinaryLootPreserved": true,
+    "corpseHarvestingPreserved": true,
+    "groupLootPreserved": true,
+    "compatibilityCommandHandlerRetained": true
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/148-p14-nge-corpse-contraband-retirement.patch",
+    "overlayPatchBytes": 1886,
+    "overlayPatchSha256": "c852df53b47dea910439851681fa027c8f877b8705816d2d87db78e31ad68533",
+    "overlayPatchEvidenceEncoding": "UTF-8 with LF line endings",
+    "sourceSha256": {
+      "ai_corpse.java": "4d841167621c98393000f65fddcc7209c0c25ca2866534dc6108031d420bf813"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "ai_corpse.class": "e13d944db4809fed1de798154a3dcf282d1380fe2ce38e1b1669c25720ff4cbb"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "character": "Icai Darkwave",
+    "characterOid": 39008597,
+    "stationId": 1001,
+    "scene": "tatooine",
+    "backgroundInputProtocol": 85,
+    "serverHealthy": true,
+    "fatalSevereExceptionCount": 0
+  },
+  "followUp": "Classify and replace or retire the Corvette trader/entertainer loot exclusion and GCW crafting-tool class fatigue checks.",
+  "requiredBeforeReady": []
+}

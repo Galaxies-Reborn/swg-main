@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "feature": "precu-primary-attack-accuracy",
+  "status": "ready",
+  "scope": "Fail-closed Core3-equivalent primary hit-or-miss calculation for authenticated Pre-CU combat commands. Secondary outcomes are governed by the separate secondary-defense contract.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "combatManagerHeader": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.h",
+    "creaturePosture": "MMOCoreORB/src/templates/params/creature/CreaturePosture.h",
+    "cdefRifle": "MMOCoreORB/bin/scripts/object/weapon/ranged/rifle/rifle_cdef.lua",
+    "equation": "Starting at 75, apply up to three nonlinear 25-point steps to (attackerAccuracy - targetDefense) / 50, then clamp to 0..100.",
+    "unskilledWeaponPenalty": -15,
+    "primaryDefenseCap": 125
+  },
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java",
+    "dormantHitEngine": "dsrc/sku.0/sys.server/compiled/game/script/combat_engine.java"
+  },
+  "optIn": {
+    "command": "headShot1",
+    "actionAccuracyBonus": 5,
+    "weaponTemplate": "object/weapon/ranged/rifle/rifle_cdef.iff",
+    "pointBlankRange": 0,
+    "pointBlankAccuracy": 20,
+    "idealRange": 15,
+    "idealAccuracy": 50,
+    "maxRange": 64,
+    "clientMaxRangeToTarget": 64,
+    "maxRangeAccuracy": -80,
+    "accuracySkill": "rifle_accuracy",
+    "categoryAccuracySkill": "ranged_accuracy",
+    "defenseSkill": "ranged_defense",
+    "weaponFamily": "rifle",
+    "postureMultiplier": 2.5
+  },
+  "modeledAcceptance": {
+    "defenderLevel": 1,
+    "defenderStandingDefenseTotal": -9,
+    "neutralIdealRangeChance": 99.5,
+    "marksmanNoviceRifleOneIdealRangeChance": 100.0,
+    "marksmanNoviceRifleOneNearMax63RangeChance": 53.326530612244895,
+    "marksmanNoviceRifleOneMaxRangeChance": 52.0,
+    "marksmanNoviceRifleOneRunningIdealRangeChance": 46.0,
+    "maxRangeChanceWithoutActionBonus": 49.75
+  },
+  "fallbackPolicy": {
+    "nonOptedCommand": "existing NGE attacker and defender result tables",
+    "zeroOrMissingAccuracyBonus": "existing NGE attacker and defender result tables",
+    "missingWeaponProfile": "existing NGE attacker and defender result tables",
+    "authenticatedPrimaryPath": "Core3 primary hit-or-miss result with the NGE defender table bypassed so the two systems are never blended",
+    "clientAdmission": "headShot1 declares the restored 64-meter action range explicitly; it does not inherit the NGE runtime CDEF object's incorrect 35-meter range",
+    "reason": "A partial row must never silently create a Core3/NGE hybrid hit equation."
+  },
+  "narrowBoundary": {
+    "included": [
+      "exact CDEF rifle range interpolation",
+      "weapon and ranged accuracy skill mods",
+      "Core3 private accuracy bonuses used by the unbuffed fixture",
+      "ranged attack and defense locomotion modifiers",
+      "rifle posture multiplier",
+      "defender level, ranged defense, private defense, group defense, and dodge-attack bonuses",
+      "headShot1 action accuracy bonus"
+    ],
+    "deferred": [
+      "dead-eye percentage buff adjustment",
+      "secondary outcomes outside the separately authenticated secondary-defense profiles",
+      "non-rifle weapon profiles"
+    ]
+  },
+  "buildEvidence": {
+    "environment": "isolated swg-precu Linux build volume with exact staged files",
+    "targets": [
+      "combat_base.java",
+      "precu_marksman_tier1_fixture.java",
+      "command_table.iff",
+      "precu_combat_overrides.iff",
+      "precu_weapon_profiles.iff"
+    ],
+    "result": "passed",
+    "materializedStage": "swg-precu-primary-accuracy-live-20260717-69",
+    "acceptanceBundleStage": "swg-precu-primary-accuracy-live-20260717-70",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "combatBase": "d3e81d19e2eb6331bf61ab1382371849533c03f8a69f1a12ba7330a22cc5f677",
+      "liveFixture": "2ee068abd7d77331ca0e2cb75879195a1f2b34be370fc4743be23f1d6b4a667f"
+    },
+    "compiledSha256": {
+      "combatBase": "c623c033e34ca52d1787b74ba41c0257184c4ba183230f4a93b47a15111ace6f",
+      "liveFixture": "708fc824e45c2aa9a1a3f539831c334dee69d70930410a09d2a72fb4bc08dafd",
+      "commandTable": "e756e50ecd19d60620d88a22bf721b594fea2268607a6dd614af9f39f537f083"
+    }
+  },
+  "liveFixture": {
+    "script": "test.precu_marksman_tier1_fixture",
+    "attackerOid": "44003778",
+    "defenderOid": "39008597",
+    "actions": {
+      "ideal": {
+        "name": "armPrimaryIdeal",
+        "centerSeparationMeters": 16.0
+      },
+      "nearMaximum": {
+        "name": "armPrimaryNearMax",
+        "centerSeparationMeters": 64.0,
+        "modeledSurfaceRangeMeters": 63.0,
+        "terrainAnchor": {
+          "x": 1000.0,
+          "z": 1000.0,
+          "axis": "positive-z",
+          "heightPolicy": "terrain-derived for both actors"
+        }
+      },
+      "fallback": {
+        "name": "armPrimaryFallback",
+        "centerSeparationMeters": 6.0,
+        "command": "headShot2"
+      }
+    },
+    "ownership": "layered under the identity-bound headShot1 lifecycle; cleanup restores original locations and destroys all fixture-owned weapons",
+    "crossRegionStabilization": "the first arm after a wilderness transfer fails closed unless bilateral PvP authority is already visible; re-invoking the same idempotent arm after transfer settlement must produce pvpReady=true",
+    "commandExecutionOwner": "production x64 client toolbar and ClientCommandQueue only"
+  },
+  "clientAssetPublication": {
+    "status": "published",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "5f18e2956d878b6b9fc2f929a0c1a00ddbb4caed",
+    "artifact": "datatables/command/command_table.iff",
+    "sha256": "e756e50ecd19d60620d88a22bf721b594fea2268607a6dd614af9f39f537f083"
+  },
+  "clientToolPublication": {
+    "status": "published",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "commit": "47c7a55cdf9bec5459cbb6c04dd9fca5bf053b5e",
+    "clientBridgeProtocol": 13
+  },
+  "liveEvidence": {
+    "date": "2026-07-17",
+    "lifecycle": "f2b6c3e59f874b77a217202607170013",
+    "container": "swg-precu",
+    "clientBridgeProtocol": 13,
+    "clientExeSha256": "10f643b881239550ad4c479d706d32eab7326670ce987bb5288ce316063bb909",
+    "serverBinarySha256": "2c309c5ede3d4bc417fc6094110c4135dacc621272b31e3b2247a340c4d5f001",
+    "compiledCombatBaseSha256": "c623c033e34ca52d1787b74ba41c0257184c4ba183230f4a93b47a15111ace6f",
+    "compiledFixtureSha256": "708fc824e45c2aa9a1a3f539831c334dee69d70930410a09d2a72fb4bc08dafd",
+    "compiledCommandTableSha256": "e756e50ecd19d60620d88a22bf721b594fea2268607a6dd614af9f39f537f083",
+    "idealRange": {
+      "command": "headShot1",
+      "distanceCentimeters": 1504,
+      "queueResult": "Success",
+      "serverExecuteMaxMs": 4725,
+      "primaryAccuracyWeapon": 49.884445,
+      "primaryAccuracySkill": 20,
+      "primaryAccuracyBonus": 5,
+      "primaryAccuracyTotal": 74.884445,
+      "primaryDefenseTotal": -9.0,
+      "hitChance": 100.0,
+      "roll": 18,
+      "result": "HIT",
+      "secondaryProfile": "RANDOM",
+      "secondaryResult": "HIT",
+      "attackerHamBefore": [1435, 500, 100],
+      "attackerHamAfter": [1433, 493, 89],
+      "defenderMindBefore": 400,
+      "defenderMindAfter": 377
+    },
+    "nearMaximumRange": {
+      "command": "headShot1",
+      "distanceCentimeters": 6299,
+      "queueResult": "Success",
+      "serverExecuteMaxMs": 4725,
+      "primaryAccuracyWeapon": -77.323494,
+      "primaryAccuracySkill": 20,
+      "primaryAccuracyBonus": 5,
+      "primaryAccuracyTotal": -52.323494,
+      "primaryDefenseTotal": -9.0,
+      "hitChance": 53.338253,
+      "roll": 29,
+      "result": "HIT",
+      "secondaryProfile": "RANDOM",
+      "secondaryResult": "HIT",
+      "attackerHamBefore": [1435, 500, 100],
+      "attackerHamAfter": [1433, 493, 89],
+      "defenderMindBefore": 400,
+      "defenderMindAfter": 365
+    },
+    "fallbackControl": {
+      "command": "headShot2",
+      "distanceCentimeters": 720,
+      "queueResult": "Success",
+      "serverExecuteMaxMs": 1500,
+      "diagnosticPrimaryResult": "FALLBACK",
+      "attackerActionBefore": 500,
+      "attackerActionAfter": 350,
+      "defenderHealthBefore": 900,
+      "defenderHealthAfter": 856
+    },
+    "cleanup": {
+      "tier1Restored": true,
+      "headShotLayerRestored": true,
+      "skillsRemoved": true,
+      "fixtureWeaponsRemoved": true,
+      "pvpRestored": true,
+      "hamRestored": true,
+      "diagnosticObjvarsRemoved": true
+    }
+  },
+  "requiredBeforeReady": []
+}

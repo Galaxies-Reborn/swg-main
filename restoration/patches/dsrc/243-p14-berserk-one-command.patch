@@ -1,0 +1,733 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index 00b68851f23cf08fd8d1fa6209f2d3b0b5175a15..7c5ef8dfb0e0e7997b6156be1ce0c638ce7035eb 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -20,6 +20,17 @@ public class base_player extends script.base_script
+     private static final int PRECU_HEAL_MIND_PROTOCOL_VERSION = 1;
+     private static final String PRECU_HEAL_MIND_FIXTURE_ROOT =
+         "precu.healMindCommandFixture";
++    public static final int PRECU_BERSERK_ONE_HEALTH_COST = 100;
++    public static final int PRECU_BERSERK_ONE_ACTION_COST = 100;
++    public static final int PRECU_BERSERK_ONE_MIND_COST = 50;
++    public static final int PRECU_BERSERK_DURATION_SECONDS = 20;
++    private static final String PRECU_BERSERK_EXPIRY =
++        "precu.berserk.expiresAt";
++    private static final long PRECU_BERSERK_ONE_PLAYER_OID = 44003778L;
++    private static final int PRECU_BERSERK_ONE_STATION_ID = 91001;
++    private static final int PRECU_BERSERK_ONE_PROTOCOL_VERSION = 1;
++    private static final String PRECU_BERSERK_ONE_FIXTURE_ROOT =
++        "precu.b1Fixture";
+     public static final float RANGE_COUP_DE_GRACE = 5.0f;
+     public static final String JEDI_CLOAK_TEMPLATE = "object/tangible/wearable/robe/robe_s05.iff";
+     public static final String MSG_REVIVE_TITLE = "@base_player:revive_title";
+@@ -1377,6 +1388,7 @@ public class base_player extends script.base_script
+     }
+     public int OnLogin(obj_id self) throws InterruptedException
+     {
++        restorePrecuBerserkState(self);
+         boolean ctsDisconnectRequested = false;
+         if (hasObjVar(self, "disableLoginCtsInProgress"))
+         {
+@@ -3795,6 +3807,206 @@ public class base_player extends script.base_script
+                 PRECU_HEAL_MIND_FIXTURE_ROOT + ".outcome", outcome);
+         }
+     }
++    public int berserk1(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        boolean fixture = isPrecuBerserkOneFixture(self);
++        if (fixture)
++        {
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".handlerEntered", 1);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".handlerCalls",
++                readPrecuBerserkOneInt(self, ".handlerCalls") + 1);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".outcome",
++                "entered");
++        }
++        if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
++            isDead(self) || isIncapacitated(self) ||
++            !hasSkill(self, "combat_brawler_novice") ||
++            getState(self, STATE_BERSERK) == 1)
++        {
++            recordPrecuBerserkOneOutcome(self, fixture, "playerRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        obj_id weapon = getCurrentWeapon(self);
++        if (!isIdValid(weapon) ||
++            (!combat.isMeleeWeapon(weapon) &&
++                getWeaponType(weapon) != WEAPON_TYPE_UNARMED))
++        {
++            sendSystemMessage(self,
++                new string_id("cbt_spam", "berserk_fail_single"));
++            recordPrecuBerserkOneOutcome(self, fixture, "weaponRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        int berserkModifier = getSkillStatMod(self, "berserk");
++        int randomRoll = fixture ? 25 : rand(0, 100);
++        int chanceTotal = randomRoll + berserkModifier;
++        if (chanceTotal < 25)
++        {
++            sendSystemMessage(self,
++                new string_id("cbt_spam", "berserk_fail_single"));
++            recordPrecuBerserkOneOutcome(self, fixture, "chanceFailed");
++            return SCRIPT_CONTINUE;
++        }
++
++        int healthCost = calculatePrecuBerserkCost(
++            getAttrib(self, STRENGTH), PRECU_BERSERK_ONE_HEALTH_COST);
++        int actionCost = calculatePrecuBerserkCost(
++            getAttrib(self, QUICKNESS), PRECU_BERSERK_ONE_ACTION_COST);
++        int mindCost = calculatePrecuBerserkCost(
++            getAttrib(self, FOCUS), PRECU_BERSERK_ONE_MIND_COST);
++        if (getAttrib(self, HEALTH) <= healthCost ||
++            getAttrib(self, ACTION) <= actionCost ||
++            getAttrib(self, MIND) <= mindCost)
++        {
++            sendSystemMessage(self,
++                new string_id("cbt_spam", "berserk_fail_single"));
++            recordPrecuBerserkOneOutcome(self, fixture, "hamRejected");
++            return SCRIPT_CONTINUE;
++        }
++
++        int healthBefore = getAttrib(self, HEALTH);
++        int actionBefore = getAttrib(self, ACTION);
++        int mindBefore = getAttrib(self, MIND);
++        if (!drainCombatAttributes(self, healthCost, actionCost, mindCost))
++        {
++            recordPrecuBerserkOneOutcome(self, fixture, "hamDrainFailed");
++            return SCRIPT_CONTINUE;
++        }
++        int expiresAt = getGameTime() + PRECU_BERSERK_DURATION_SECONDS;
++        setObjVar(self, PRECU_BERSERK_EXPIRY, expiresAt);
++        setState(self, STATE_BERSERK, true);
++        schedulePrecuBerserkExpiry(self, expiresAt);
++        sendSystemMessage(self,
++            new string_id("cbt_spam", "berserk_success_single"));
++
++        if (fixture)
++        {
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".randomRoll",
++                randomRoll);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".berserkModifier",
++                berserkModifier);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".chanceTotal",
++                chanceTotal);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".healthCost",
++                healthCost);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".actionCost",
++                actionCost);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".mindCost",
++                mindCost);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".healthBefore",
++                healthBefore);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".healthAfter",
++                getAttrib(self, HEALTH));
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".actionBefore",
++                actionBefore);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".actionAfter",
++                getAttrib(self, ACTION));
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".mindBefore",
++                mindBefore);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".mindAfter",
++                getAttrib(self, MIND));
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".expiresAt",
++                expiresAt);
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".activatedAt",
++                getGameTime());
++        }
++        recordPrecuBerserkOneOutcome(self, fixture, "passed");
++        return SCRIPT_CONTINUE;
++    }
++    public int handlePrecuBerserkExpiry(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!isIdValid(self) || !exists(self) ||
++            !hasObjVar(self, PRECU_BERSERK_EXPIRY) || params == null)
++        {
++            return SCRIPT_CONTINUE;
++        }
++        int scheduledExpiry = params.getInt("expiresAt");
++        int currentExpiry = getIntObjVar(self, PRECU_BERSERK_EXPIRY);
++        if (scheduledExpiry != currentExpiry)
++        {
++            return SCRIPT_CONTINUE;
++        }
++        int remaining = currentExpiry - getGameTime();
++        if (remaining > 0)
++        {
++            schedulePrecuBerserkExpiry(self, currentExpiry);
++            return SCRIPT_CONTINUE;
++        }
++        setState(self, STATE_BERSERK, false);
++        removeObjVar(self, PRECU_BERSERK_EXPIRY);
++        boolean fixture = isPrecuBerserkOneFixture(self);
++        if (fixture)
++        {
++            setObjVar(self, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".expiredAt",
++                getGameTime());
++        }
++        recordPrecuBerserkOneOutcome(self, fixture, "expired");
++        return SCRIPT_CONTINUE;
++    }
++    private void restorePrecuBerserkState(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, PRECU_BERSERK_EXPIRY))
++        {
++            return;
++        }
++        int expiresAt = getIntObjVar(player, PRECU_BERSERK_EXPIRY);
++        if (expiresAt <= getGameTime())
++        {
++            setState(player, STATE_BERSERK, false);
++            removeObjVar(player, PRECU_BERSERK_EXPIRY);
++            return;
++        }
++        setState(player, STATE_BERSERK, true);
++        schedulePrecuBerserkExpiry(player, expiresAt);
++    }
++    private void schedulePrecuBerserkExpiry(obj_id player, int expiresAt)
++        throws InterruptedException
++    {
++        dictionary expiry = new dictionary();
++        expiry.put("expiresAt", expiresAt);
++        float delay = Math.max(0.1f, expiresAt - getGameTime());
++        messageTo(player, "handlePrecuBerserkExpiry", expiry, delay, false);
++    }
++    private int calculatePrecuBerserkCost(int governingValue, int baseCost)
++        throws InterruptedException
++    {
++        float cost = baseCost;
++        cost -= ((governingValue - 300.0f) / 1200.0f) * cost;
++        return Math.max(0, (int)cost);
++    }
++    private boolean isPrecuBerserkOneFixture(obj_id player)
++        throws InterruptedException
++    {
++        return isIdValid(player) && exists(player) && isPlayer(player) &&
++            player.getValue() == PRECU_BERSERK_ONE_PLAYER_OID &&
++            getPlayerStationId(player) == PRECU_BERSERK_ONE_STATION_ID &&
++            hasObjVar(player, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".protocol") &&
++            getIntObjVar(player,
++                PRECU_BERSERK_ONE_FIXTURE_ROOT + ".protocol") ==
++                    PRECU_BERSERK_ONE_PROTOCOL_VERSION &&
++            hasObjVar(player, PRECU_BERSERK_ONE_FIXTURE_ROOT + ".prepared") &&
++            getIntObjVar(player,
++                PRECU_BERSERK_ONE_FIXTURE_ROOT + ".prepared") == 1;
++    }
++    private int readPrecuBerserkOneInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = PRECU_BERSERK_ONE_FIXTURE_ROOT + suffix;
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++    private void recordPrecuBerserkOneOutcome(obj_id player, boolean fixture,
++        String outcome) throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(player,
++                PRECU_BERSERK_ONE_FIXTURE_ROOT + ".outcome", outcome);
++        }
++    }
+     public int cmdUseSkillBuff(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         LOG("skillBuff", "cmdUseSkillBuff");
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1301b0e92f599fc58edc2cd89adebe4792bea348
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java
+@@ -0,0 +1,481 @@
++package script.test;
++
++import script.obj_id;
++import script.library.combat;
++import script.library.skill;
++
++/** Identity-bound reversible fixture for the Publish 14.1 berserk1 command. */
++public class precu_berserk_one_command_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 44003778L;
++    private static final int PLAYER_STATION_ID = 91001;
++    private static final int PROTOCOL_VERSION = 1;
++    private static final String COMMAND = "berserk1";
++    private static final String ROOT = "precu.b1Fixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PROTOCOL = ROOT + ".protocol";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String ORIGINAL_POINTS = ROOT + ".originalPoints";
++    private static final String BERSERK_EXPIRY = "precu.berserk.expiresAt";
++    private static final String[] SKILLS =
++    {
++        "combat_brawler",
++        "combat_brawler_novice"
++    };
++    private static final int[] ATTRIBUTES =
++    {
++        HEALTH, ACTION, MIND, STRENGTH, QUICKNESS, FOCUS
++    };
++    private static final String USAGE =
++        "usage: prepare|status|cleanup <playerOid> <32-hex-lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null
++            ? new String[0]
++            : params.trim().split("[ ]+");
++        if (args.length != 3 || !isValidLifecycle(args[2]))
++        {
++            return USAGE;
++        }
++        long oid;
++        try
++        {
++            oid = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayerOid";
++        }
++        if (oid != PLAYER_OID)
++        {
++            return "error=playerIdentityRejected";
++        }
++        obj_id player = obj_id.getObjId(oid);
++        if (!isAuthoritativePlayer(player))
++        {
++            return "error=playerUnavailable";
++        }
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            return status(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, args[2]);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            return ownership == null
++                ? "action=prepare resumed=true " + buildStatus(player)
++                : ownership;
++        }
++        obj_id weapon = getCurrentWeapon(player);
++        if (hasAnyFixtureSkill(player) || hasCommand(player, COMMAND) ||
++            getState(player, STATE_BERSERK) == 1 ||
++            hasObjVar(player, BERSERK_EXPIRY) ||
++            !isIdValid(weapon) ||
++            (!combat.isMeleeWeapon(weapon) &&
++                getWeaponType(weapon) != WEAPON_TYPE_UNARMED))
++        {
++            return "error=fixtureVectorAlreadyOwned";
++        }
++
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, PROTOCOL, PROTOCOL_VERSION);
++        setObjVar(player, ORIGINAL_POINTS,
++            skill.getAvailableSkillPoints(player));
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            snapshotAttribute(player, index, ATTRIBUTES[index]);
++        }
++        resetTelemetry(player);
++        if (!grantSkills(player) || !hasCommand(player, COMMAND))
++        {
++            boolean restored = restore(player);
++            return "error=skillPreparationFailed restored=" + restored;
++        }
++
++        setPreparedAttribute(player, HEALTH, 500);
++        setPreparedAttribute(player, ACTION, 500);
++        setPreparedAttribute(player, MIND, 500);
++        if (getSkillStatMod(player, "berserk") != 0 ||
++            getAttrib(player, HEALTH) < 500 ||
++            getAttrib(player, ACTION) < 500 ||
++            getAttrib(player, MIND) < 500)
++        {
++            String failedStatus = buildStatus(player);
++            boolean restored = restore(player);
++            return "error=attributePreparationFailed restored=" + restored +
++                " observed=" + failedStatus;
++        }
++        setObjVar(player, PREPARED, 1);
++        setObjVar(player, ROOT + ".outcome", "ready");
++        return "action=prepare resumed=false " + buildStatus(player);
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null
++            ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateLifecycle(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasCompleteSnapshot(player))
++        {
++            return "action=cleanup alreadyClean=false restored=false" +
++                " incompleteSnapshot=true";
++        }
++        boolean restored = restore(player);
++        return "action=cleanup alreadyClean=false restored=" + restored +
++            (restored ? "" : " observed=" + buildStatus(player));
++    }
++
++    private boolean restore(obj_id player) throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return false;
++        }
++        setState(player, STATE_BERSERK, false);
++        if (hasObjVar(player, BERSERK_EXPIRY))
++        {
++            removeObjVar(player, BERSERK_EXPIRY);
++        }
++        revokeSkills(player);
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            restoreAttribute(player, index, ATTRIBUTES[index]);
++        }
++        boolean restored = getState(player, STATE_BERSERK) == 0 &&
++            !hasObjVar(player, BERSERK_EXPIRY) &&
++            !hasAnyFixtureSkill(player) && !hasCommand(player, COMMAND) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS);
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            restored = restored && attributeRestored(
++                player, index, ATTRIBUTES[index]);
++        }
++        if (restored)
++        {
++            removeObjVar(player, ROOT);
++        }
++        return restored;
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        obj_id weapon = getCurrentWeapon(player);
++        int expiresAt = hasObjVar(player, BERSERK_EXPIRY)
++            ? getIntObjVar(player, BERSERK_EXPIRY)
++            : 0;
++        return
++            "player=" + player +
++            " command=" + hasCommand(player, COMMAND) +
++            " skillBits=" + buildSkillBits(player) +
++            " weapon=" + weapon +
++            " weaponType=" + (isIdValid(weapon) ? getWeaponType(weapon) : -1) +
++            " meleeWeapon=" +
++                (isIdValid(weapon) && combat.isMeleeWeapon(weapon)) +
++            " berserkModifier=" + getSkillStatMod(player, "berserk") +
++            " health=" + getAttrib(player, HEALTH) +
++            " action=" + getAttrib(player, ACTION) +
++            " mind=" + getAttrib(player, MIND) +
++            " strength=" + getAttrib(player, STRENGTH) +
++            " quickness=" + getAttrib(player, QUICKNESS) +
++            " focus=" + getAttrib(player, FOCUS) +
++            " berserkState=" + getState(player, STATE_BERSERK) +
++            " expiresAt=" + expiresAt +
++            " remaining=" + Math.max(0, expiresAt - getGameTime()) +
++            " handlerEntered=" + readInt(player, ".handlerEntered") +
++            " handlerCalls=" + readInt(player, ".handlerCalls") +
++            " randomRoll=" + readInt(player, ".randomRoll") +
++            " chanceTotal=" + readInt(player, ".chanceTotal") +
++            " healthCost=" + readInt(player, ".healthCost") +
++            " actionCost=" + readInt(player, ".actionCost") +
++            " mindCost=" + readInt(player, ".mindCost") +
++            " healthBefore=" + readInt(player, ".healthBefore") +
++            " healthAfter=" + readInt(player, ".healthAfter") +
++            " actionBefore=" + readInt(player, ".actionBefore") +
++            " actionAfter=" + readInt(player, ".actionAfter") +
++            " mindBefore=" + readInt(player, ".mindBefore") +
++            " mindAfter=" + readInt(player, ".mindAfter") +
++            " activatedAt=" + readInt(player, ".activatedAt") +
++            " expiredAt=" + readInt(player, ".expiredAt") +
++            " outcome=" + readString(player, ".outcome") +
++            " availablePoints=" + skill.getAvailableSkillPoints(player) +
++            " snapshotComplete=" + hasCompleteSnapshot(player) +
++            " restoreBits=" + buildRestoreBits(player) +
++            " restoreDetail=" + buildRestoreDetail(player);
++    }
++
++    private void snapshotAttribute(obj_id player, int index, int attribute)
++        throws InterruptedException
++    {
++        setObjVar(player, originalPath(index, false),
++            getAttrib(player, attribute));
++        setObjVar(player, originalPath(index, true),
++            getMaxAttrib(player, attribute));
++    }
++
++    private void setPreparedAttribute(obj_id player, int attribute, int value)
++        throws InterruptedException
++    {
++        setMaxAttrib(player, attribute,
++            Math.max(value, getMaxAttrib(player, attribute)));
++        setAttrib(player, attribute, value);
++    }
++
++    private void restoreAttribute(obj_id player, int index, int attribute)
++        throws InterruptedException
++    {
++        setAttrib(player, attribute,
++            getIntObjVar(player, originalPath(index, false)));
++        setMaxAttrib(player, attribute,
++            getIntObjVar(player, originalPath(index, true)));
++    }
++
++    private boolean attributeRestored(obj_id player, int index, int attribute)
++        throws InterruptedException
++    {
++        int original = getIntObjVar(player, originalPath(index, false));
++        int current = getAttrib(player, attribute);
++        boolean currentRestored = index < 3
++            ? current >= original
++            : current == original;
++        int originalMaximum = getIntObjVar(
++            player, originalPath(index, true));
++        boolean maximumRestored = index < 3
++            ? getMaxAttrib(player, attribute) >= originalMaximum
++            : getMaxAttrib(player, attribute) == originalMaximum;
++        return currentRestored && maximumRestored;
++    }
++
++    private String buildRestoreBits(obj_id player) throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return "none";
++        }
++        String bits = "";
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            bits += attributeRestored(player, index, ATTRIBUTES[index])
++                ? "1"
++                : "0";
++        }
++        return bits;
++    }
++
++    private String buildRestoreDetail(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return "none";
++        }
++        String detail = "";
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            if (index > 0)
++            {
++                detail += ",";
++            }
++            detail += index + ":" + getAttrib(player, ATTRIBUTES[index]) +
++                "/" + getMaxAttrib(player, ATTRIBUTES[index]) +
++                "/" + getIntObjVar(player, originalPath(index, false)) +
++                "/" + getIntObjVar(player, originalPath(index, true));
++        }
++        return detail;
++    }
++
++    private String originalPath(int index, boolean maximum)
++    {
++        return ROOT + (maximum ? ".m" : ".c") + index;
++    }
++
++    private boolean grantSkills(obj_id player) throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (!grantSkill(player, skillName) || !hasSkill(player, skillName))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private void revokeSkills(obj_id player) throws InterruptedException
++    {
++        for (int index = SKILLS.length - 1; index >= 0; --index)
++        {
++            if (hasSkill(player, SKILLS[index]))
++            {
++                revokeSkill(player, SKILLS[index]);
++            }
++        }
++    }
++
++    private boolean hasAnyFixtureSkill(obj_id player)
++        throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (hasSkill(player, skillName))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private String buildSkillBits(obj_id player) throws InterruptedException
++    {
++        String bits = "";
++        for (String skillName : SKILLS)
++        {
++            bits += hasSkill(player, skillName) ? "1" : "0";
++        }
++        return bits;
++    }
++
++    private boolean isAuthoritativePlayer(obj_id player)
++        throws InterruptedException
++    {
++        return isIdValid(player) && player.isLoaded() && isPlayer(player) &&
++            player.getValue() == PLAYER_OID &&
++            getPlayerStationId(player) == PLAYER_STATION_ID;
++    }
++
++    private boolean isFixtureOwner(obj_id player) throws InterruptedException
++    {
++        return isAuthoritativePlayer(player) &&
++            hasObjVar(player, PROTOCOL) &&
++            getIntObjVar(player, PROTOCOL) == PROTOCOL_VERSION &&
++            hasObjVar(player, PREPARED) &&
++            getIntObjVar(player, PREPARED) == 1;
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String lifecycleError = validateLifecycle(player, lifecycle);
++        if (lifecycleError != null)
++        {
++            return lifecycleError;
++        }
++        return isFixtureOwner(player) ? null : "error=fixtureNotPrepared";
++    }
++
++    private String validateLifecycle(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) || !hasObjVar(player, LIFECYCLE))
++        {
++            return "error=fixtureAbsent";
++        }
++        return getStringObjVar(player, LIFECYCLE).equals(lifecycle)
++            ? null
++            : "error=lifecycleMismatch";
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, LIFECYCLE) || !hasObjVar(player, PROTOCOL) ||
++            !hasObjVar(player, ORIGINAL_POINTS))
++        {
++            return false;
++        }
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            if (!hasObjVar(player, originalPath(index, false)) ||
++                !hasObjVar(player, originalPath(index, true)))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private void resetTelemetry(obj_id player) throws InterruptedException
++    {
++        String[] leaves =
++        {
++            "handlerEntered", "handlerCalls", "randomRoll",
++            "berserkModifier", "chanceTotal", "healthCost", "actionCost",
++            "mindCost", "healthBefore", "healthAfter", "actionBefore",
++            "actionAfter", "mindBefore", "mindAfter", "expiresAt",
++            "activatedAt", "expiredAt", "outcome"
++        };
++        for (String leaf : leaves)
++        {
++            String path = ROOT + "." + leaf;
++            if (hasObjVar(player, path))
++            {
++                removeObjVar(player, path);
++            }
++        }
++    }
++
++    private int readInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = ROOT + suffix;
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++
++    private String readString(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = ROOT + suffix;
++        return hasObjVar(player, path)
++            ? getStringObjVar(player, path)
++            : "none";
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            if (!((value >= '0' && value <= '9') ||
++                (value >= 'a' && value <= 'f')))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 62131f13dd8a00794133271c77d20fe873408a7e..dab76747f8932bbe16f8242db772e4a458b705d0 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1979,3 +1979,4 @@ fireLightningCone2	combat	normal	fireLightningCone2	failSpecialAttack			2	fireLi
+ fireLightningSingle2	combat	normal	fireLightningSingle2	failSpecialAttack			2	fireLightningSingle2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ tame	combat	normal	cmdTame				0.5		1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	0	0	0	0	1	0	1	1	1	1	0	1	0	1	1	1	1	1	0	0	0	0	0	0	1	1	0	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.skill.taming	other	required		2	0	0	0	32	0	0	0	ALL	NONE	defaultCooldownGroup	0	0.5	0		0	0	0
+ emboldenpets	combat	normal	emboldenPets	failPetBuff			1.5	emboldenpets	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	0	0	0	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++berserk1	combat	normal	berserk1	failSpecialAttack			1.5	berserk1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

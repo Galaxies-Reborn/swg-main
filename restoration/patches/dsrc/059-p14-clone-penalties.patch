@@ -1,0 +1,874 @@
+From 58964fb2439c0c4970103669aacbd4504b408190 Mon Sep 17 00:00:00 2001
+From: Sais <github@swgsais.com>
+Date: Sat, 18 Jul 2026 19:19:09 -0400
+Subject: [PATCH] Author Publish 14 clone penalties
+
+---
+ .../game/script/library/cloninglib.java       |  63 ++-
+ .../compiled/game/script/library/pclib.java   |  48 +-
+ .../game/script/player/base/base_player.java  | 122 +++--
+ .../test/precu_clone_penalty_fixture.java     | 486 ++++++++++++++++++
+ 4 files changed, 660 insertions(+), 59 deletions(-)
+ create mode 100644 sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java
+
+diff --git a/sku.0/sys.server/compiled/game/script/library/cloninglib.java b/sku.0/sys.server/compiled/game/script/library/cloninglib.java
+index f646f8493..4d935de72 100755
+--- a/sku.0/sys.server/compiled/game/script/library/cloninglib.java
++++ b/sku.0/sys.server/compiled/game/script/library/cloninglib.java
+@@ -54,8 +54,11 @@ public class cloninglib extends script.base_script
+     public static final String VAR_BIND_FACILITY_TEMPLATE = "bind.facility_template";
+     public static final String VAR_BIND_FACILITY_CELL = "bind.cell";
+     public static final int CLONE_COST_BASE = 1000;
+-    public static final int CLONE_DAMAGE_LOW = 2;
+-    public static final int CLONE_DAMAGE_HIGH = 10;
++    public static final int CLONE_DAMAGE_LOW = 2;
++    public static final int CLONE_DAMAGE_HIGH = 10;
++    public static final int PRECU_CLONE_WOUND_AMOUNT = 100;
++    public static final float PRECU_INSURED_DECAY = 0.01f;
++    public static final float PRECU_UNINSURED_DECAY = 0.05f;
+     public static final float DEFAULT_REPAIR_RATIO = 10.0f;
+     public static dictionary getCloningAreas(String planet, String area) throws InterruptedException
+     {
+@@ -626,7 +629,7 @@ public class cloninglib extends script.base_script
+         }
+         return false;
+     }
+-    public static void damageItemsOnClone(obj_id player, int damage) throws InterruptedException
++    public static void damageItemsOnClone(obj_id player, int damage) throws InterruptedException
+     {
+         if (!isIdValid(player))
+         {
+@@ -642,8 +645,58 @@ public class cloninglib extends script.base_script
+             if (isIdValid(obj_id) && !isAutoInsured(obj_id) && isDamagedOnCloneGOT(getGameObjectType(obj_id))) {
+                 pclib.damageAndDecayItem(obj_id, percent);
+             }
+-        }
+-    }
++        }
++    }
++    public static void applyPrecuClonePenalties(
++        obj_id player,
++        boolean registeredFacility,
++        boolean decayItems) throws InterruptedException
++    {
++        if (!isIdValid(player) || !isPlayer(player))
++        {
++            return;
++        }
++        if (!registeredFacility)
++        {
++            addWound(player, HEALTH, PRECU_CLONE_WOUND_AMOUNT);
++            addWound(player, ACTION, PRECU_CLONE_WOUND_AMOUNT);
++            addWound(player, MIND, PRECU_CLONE_WOUND_AMOUNT);
++            addShockWound(player, PRECU_CLONE_WOUND_AMOUNT);
++        }
++        if (decayItems)
++        {
++            applyPrecuCloneItemDecay(player);
++        }
++    }
++    public static void applyPrecuCloneItemDecay(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !isPlayer(player))
++        {
++            return;
++        }
++        obj_id[] items = getInventoryAndEquipment(player);
++        if (items == null || items.length == 0)
++        {
++            return;
++        }
++        for (obj_id item : items)
++        {
++            if (!isDamagedOnClone(player, item))
++            {
++                continue;
++            }
++            if (isInsured(item))
++            {
++                pclib.damageAndDecayItem(item, PRECU_INSURED_DECAY);
++                setInsured(item, false);
++            }
++            else
++            {
++                pclib.damageAndDecayItem(item, PRECU_UNINSURED_DECAY);
++            }
++        }
++    }
+     public static obj_id[] getAllRepairItems(obj_id player) throws InterruptedException
+     {
+         Vector repairList = new Vector();
+diff --git a/sku.0/sys.server/compiled/game/script/library/pclib.java b/sku.0/sys.server/compiled/game/script/library/pclib.java
+index ce6dbc98e..eacc95c72 100755
+--- a/sku.0/sys.server/compiled/game/script/library/pclib.java
++++ b/sku.0/sys.server/compiled/game/script/library/pclib.java
+@@ -29,9 +29,11 @@ public class pclib extends script.base_script
+     public static final String DICT_KILLER = "killer";
+     public static final String VAR_REVIVE_BASE = "revive";
+     public static final String VAR_REVIVE_OPTIONS = "revive.options";
+-    public static final String VAR_REVIVE_CLONE = "revive.cloneLocs";
+-    public static final String VAR_REVIVE_SPAWN = "revive.spawnLocs";
+-    public static final String VAR_REVIVE_DAMAGE = "revive.damage";
++    public static final String VAR_REVIVE_CLONE = "revive.cloneLocs";
++    public static final String VAR_REVIVE_SPAWN = "revive.spawnLocs";
++    public static final String VAR_REVIVE_DAMAGE = "revive.damage";
++    public static final String VAR_PRECU_CLONE_WOUND =
++        "revive.precuCloneWound";
+     public static final String VAR_SUI_CLONE = "sui.clone";
+     public static final String VAR_CONSENT_TO_BASE = "consentTo";
+     public static final String VAR_CONSENT_TO_ID = "consentTo.id";
+@@ -941,7 +943,7 @@ public class pclib extends script.base_script
+     {
+         return playerRevive(player, getWorldLocation(player), getLocation(player), 0);
+     }
+-    public static boolean playerRevive(obj_id player, location reviveLoc, location spawnLoc, int damage) throws InterruptedException
++    public static boolean playerRevive(obj_id player, location reviveLoc, location spawnLoc, int damage) throws InterruptedException
+     {
+         if (!isIdValid(player))
+         {
+@@ -956,7 +958,11 @@ public class pclib extends script.base_script
+         {
+             return false;
+         }
+-        setObjVar(player, "fullHealClone", true);
++        utils.setScriptVar(
++            player,
++            VAR_PRECU_CLONE_WOUND,
++            Math.max(0, damage));
++        setObjVar(player, "fullHealClone", true);
+         if (!sendToCloneSpawn(player, HANDLER_CLONE_RESPAWN, reviveLoc, spawnLoc))
+         {
+             sendSystemMessage(player, cloninglib.SID_RESPAWN_CURRENT_LOCATION);
+@@ -1198,12 +1204,32 @@ public class pclib extends script.base_script
+             }
+         }
+     }
+-    public static void damageAndDecayItem(obj_id item, float percent) throws InterruptedException
+-    {
+-    }
+-    public static void damageAndDecayItem(obj_id item, int amount) throws InterruptedException
+-    {
+-    }
++    public static void damageAndDecayItem(obj_id item, float percent) throws InterruptedException
++    {
++        if (!isIdValid(item) || percent <= 0.0f)
++        {
++            return;
++        }
++        int maxHitpoints = getMaxHitpoints(item);
++        if (maxHitpoints <= 0)
++        {
++            return;
++        }
++        damageAndDecayItem(item, (int)(maxHitpoints * percent));
++    }
++    public static void damageAndDecayItem(obj_id item, int amount) throws InterruptedException
++    {
++        if (!isIdValid(item) || amount <= 0)
++        {
++            return;
++        }
++        int hitpoints = getHitpoints(item);
++        if (hitpoints <= 0)
++        {
++            return;
++        }
++        setHitpoints(item, Math.max(0, hitpoints - amount));
++    }
+     public static boolean sendToCloneSpawn(obj_id player, String callback, location world, location spawn) throws InterruptedException
+     {
+         if ((player == null) || (world == null) || (!isPlayer(player)))
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index ac5b34b3b..b79d4e49d 100755
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -2819,8 +2819,8 @@ public class base_player extends script.base_script
+         cloneLocs.setSize(0);
+         Vector spawnLocs = new Vector();
+         spawnLocs.setSize(0);
+-        Vector damage = new Vector();
+-        damage.setSize(0);
++        Vector damage = new Vector();
++        damage.setSize(0);
+         boolean isNewbieDeath = false;
+         location deathLoc = pclib.getEffectiveDeathLocation(self);
+         String planetName = deathLoc.area;
+@@ -2845,9 +2845,10 @@ public class base_player extends script.base_script
+                 cloneLoc = utils.getLocationScriptVar(controller, "battlefieldImperialSpawn");
+                 cloneName = "Imperial Cloning Center - " + localize(new string_id("spam", battlefieldName));
+             }
+-            options = utils.addElement(options, cloneName);
+-            cloneLocs = utils.addElement(cloneLocs, cloneLoc);
+-            spawnLocs = utils.addElement(spawnLocs, cloneLoc);
++            options = utils.addElement(options, cloneName);
++            cloneLocs = utils.addElement(cloneLocs, cloneLoc);
++            spawnLocs = utils.addElement(spawnLocs, cloneLoc);
++            damage = utils.addElement(damage, 0);
+         }
+         else 
+         {
+@@ -2891,14 +2892,7 @@ public class base_player extends script.base_script
+                     options = utils.addElement(options, bindName);
+                     cloneLocs = utils.addElement(cloneLocs, bindLoc);
+                     spawnLocs = utils.addElement(spawnLocs, spawnLoc);
+-                    if (pvp.isPvpDeath(self) || isNewbieDeath)
+-                    {
+-                        damage = utils.addElement(damage, 0);
+-                    }
+-                    else 
+-                    {
+-                        damage = utils.addElement(damage, cloninglib.CLONE_DAMAGE_LOW);
+-                    }
++                    damage = utils.addElement(damage, 0);
+                     isBindListed = true;
+                 }
+             }
+@@ -2942,9 +2936,14 @@ public class base_player extends script.base_script
+                                 }
+                             }
+                         }
+-                        options = utils.addElement(options, cloneName);
+-                        cloneLocs = utils.addElement(cloneLocs, cloneLoc);
+-                        spawnLocs = utils.addElement(spawnLocs, spawnLoc);
++                        options = utils.addElement(options, cloneName);
++                        cloneLocs = utils.addElement(cloneLocs, cloneLoc);
++                        spawnLocs = utils.addElement(spawnLocs, spawnLoc);
++                        damage = utils.addElement(
++                            damage,
++                            facility == bound
++                                ? 0
++                                : cloninglib.PRECU_CLONE_WOUND_AMOUNT);
+                     }
+                 }
+             }
+@@ -2960,9 +2959,10 @@ public class base_player extends script.base_script
+             return SCRIPT_CONTINUE;
+         }
+         utils.setScriptVar(self, pclib.VAR_SUI_CLONE, suiClone);
+-        utils.setScriptVar(self, pclib.VAR_REVIVE_OPTIONS, options);
+-        utils.setScriptVar(self, pclib.VAR_REVIVE_CLONE, cloneLocs);
+-        utils.setScriptVar(self, pclib.VAR_REVIVE_SPAWN, spawnLocs);
++        utils.setScriptVar(self, pclib.VAR_REVIVE_OPTIONS, options);
++        utils.setScriptVar(self, pclib.VAR_REVIVE_CLONE, cloneLocs);
++        utils.setScriptVar(self, pclib.VAR_REVIVE_SPAWN, spawnLocs);
++        utils.setScriptVar(self, pclib.VAR_REVIVE_DAMAGE, damage);
+         dictionary hrem = new dictionary();
+         hrem.put("time", healing.REVIVE_TIMER);
+         hrem.put("sui", suiClone);
+@@ -3083,11 +3083,17 @@ public class base_player extends script.base_script
+                 space_dungeon.handleInstanceClone(self);
+                 return SCRIPT_CONTINUE;
+             }
+-            location[] cloneLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_CLONE);
+-            location[] spawnLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_SPAWN);
+-            location clone = cloneLocs[0];
+-            location spawn = spawnLocs[0];
+-            if (!pclib.playerRevive(self, clone, spawn, 0))
++            location[] cloneLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_CLONE);
++            location[] spawnLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_SPAWN);
++            location clone = cloneLocs[0];
++            location spawn = spawnLocs[0];
++            int[] cloneDamage =
++                utils.getIntArrayScriptVar(self, pclib.VAR_REVIVE_DAMAGE);
++            int damage =
++                cloneDamage != null && cloneDamage.length > 0
++                    ? cloneDamage[0]
++                    : 0;
++            if (!pclib.playerRevive(self, clone, spawn, damage))
+             {
+                 messageTo(self, pclib.HANDLER_CLONE_RESPAWN, null, 1, true);
+             }
+@@ -3233,10 +3239,22 @@ public class base_player extends script.base_script
+             idx = sui.getListboxSelectedRow(params);
+             if (idx > -1)
+             {
+-                location[] cloneLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_CLONE);
+-                location[] spawnLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_SPAWN);
+-                clone = cloneLocs[idx];
+-                spawn = spawnLocs[idx];
++                location[] cloneLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_CLONE);
++                location[] spawnLocs = utils.getLocationArrayScriptVar(self, pclib.VAR_REVIVE_SPAWN);
++                int[] cloneDamage =
++                    utils.getIntArrayScriptVar(
++                        self,
++                        pclib.VAR_REVIVE_DAMAGE);
++                if (cloneLocs != null && spawnLocs != null &&
++                    idx < cloneLocs.length && idx < spawnLocs.length)
++                {
++                    clone = cloneLocs[idx];
++                    spawn = spawnLocs[idx];
++                    damage =
++                        cloneDamage != null && idx < cloneDamage.length
++                            ? cloneDamage[idx]
++                            : cloninglib.PRECU_CLONE_WOUND_AMOUNT;
++                }
+                 location deathLoc = getLocation(self);
+                 region[] respawnRegions = getRegionsWithPvPAtPoint(deathLoc, regions.PVP_REGION_TYPE_ADVANCED);
+                 if ((respawnRegions != null && respawnRegions.length > 0) || utils.hasScriptVar(self, "battlefield.active"))
+@@ -3269,7 +3287,7 @@ public class base_player extends script.base_script
+                     return SCRIPT_CONTINUE;
+                 }
+             }
+-            else if (pclib.playerRevive(self, clone, spawn, 0))
++            else if (pclib.playerRevive(self, clone, spawn, damage))
+             {
+                 return SCRIPT_CONTINUE;
+             }
+@@ -3312,10 +3330,21 @@ public class base_player extends script.base_script
+     public int handleCloneRespawn(obj_id self, dictionary params) throws InterruptedException
+     {
+         utils.removeScriptVar(self, pclib.VAR_SUI_CLONE);
+-        utils.removeScriptVar(self, pclib.VAR_REVIVE_OPTIONS);
+-        utils.removeScriptVar(self, pclib.VAR_REVIVE_CLONE);
+-        utils.removeScriptVar(self, pclib.VAR_REVIVE_SPAWN);
+-        utils.removeScriptVar(self, "waitingOnCloneRespawn");
++        utils.removeScriptVar(self, pclib.VAR_REVIVE_OPTIONS);
++        utils.removeScriptVar(self, pclib.VAR_REVIVE_CLONE);
++        utils.removeScriptVar(self, pclib.VAR_REVIVE_SPAWN);
++        utils.removeScriptVar(self, pclib.VAR_REVIVE_DAMAGE);
++        utils.removeScriptVar(self, "waitingOnCloneRespawn");
++        boolean hasClonePenalty =
++            utils.hasScriptVar(self, pclib.VAR_PRECU_CLONE_WOUND);
++        int cloneWound =
++            hasClonePenalty
++                ? utils.getIntScriptVar(
++                    self,
++                    pclib.VAR_PRECU_CLONE_WOUND)
++                : 0;
++        utils.removeScriptVar(self, pclib.VAR_PRECU_CLONE_WOUND);
++        boolean decayItems = !utils.hasScriptVar(self, "pvp_death");
+         removeObjVar(self, pclib.VAR_BEEN_COUPDEGRACED);
+         pvpRemoveAllTempEnemyFlags(self);
+         int intGuildId = getGuildId(self);
+@@ -3348,18 +3377,25 @@ public class base_player extends script.base_script
+         {
+             healing.healClone(self, true);
+         }
+-        setPosture(self, POSTURE_UPRIGHT);
+-        utils.removeScriptVar(self, "pvp_death");
++        setPosture(self, POSTURE_UPRIGHT);
++        if (hasClonePenalty)
++        {
++            cloninglib.applyPrecuClonePenalties(
++                self,
++                cloneWound == 0,
++                decayItems);
++        }
++        utils.removeScriptVar(self, "pvp_death");
+         queueCommand(self, (-1465754503), self, "", COMMAND_PRIORITY_IMMEDIATE);
+         playClientEffectObj(self, "clienteffect/player_clone_compile.cef", self, null);
+-        if (!utils.hasScriptVar(self, "no_cloning_sickness") && !instance.isInInstanceArea(self))
+-        {
+-            buff.applyBuff(self, "cloning_sickness");
+-        }
+-        else if (utils.hasScriptVar(self, "no_cloning_sickness"))
+-        {
+-            utils.removeScriptVar(self, "no_cloning_sickness");
+-        }
++        if (utils.hasScriptVar(self, "no_cloning_sickness"))
++        {
++            utils.removeScriptVar(self, "no_cloning_sickness");
++        }
++        if (buff.hasBuff(self, "cloning_sickness"))
++        {
++            buff.removeBuff(self, "cloning_sickness");
++        }
+         if (0 == pvpGetAlignedFaction(self))
+         {
+             int currentMercenaryFaction = pvpNeutralGetMercenaryFaction(self);
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java
+new file mode 100644
+index 000000000..e2cc37983
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java
+@@ -0,0 +1,486 @@
++package script.test;
++
++import script.library.cloninglib;
++import script.library.utils;
++import script.obj_id;
++
++/**
++ * Identity-bound, reversible ServerConsole fixture for Publish 14.1 clone
++ * wounds, battle fatigue, insured/uninsured decay, and death-type exclusion.
++ *
++ * Every pre-existing decay-eligible item is snapshotted before the production
++ * helper is invoked and restored during each reset and cleanup.
++ */
++public class precu_clone_penalty_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++    private static final String ROOT = "precu.clonePenaltyFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String ORIGINAL_WOUNDS = ROOT + ".originalWounds";
++    private static final String ORIGINAL_SHOCK = ROOT + ".originalShock";
++    private static final String ORIGINAL_ITEMS = ROOT + ".originalItems";
++    private static final String ORIGINAL_ITEM_COUNT =
++        ROOT + ".originalItemCount";
++    private static final String ORIGINAL_ITEM_HP =
++        ROOT + ".originalItemHitpoints";
++    private static final String ORIGINAL_ITEM_INSURED =
++        ROOT + ".originalItemInsured";
++    private static final String INSURED_ITEM = ROOT + ".insuredItem";
++    private static final String UNINSURED_ITEM = ROOT + ".uninsuredItem";
++    private static final String AUTO_INSURED_ITEM =
++        ROOT + ".autoInsuredItem";
++    private static final String WEAPON_TEMPLATE =
++        "object/weapon/ranged/rifle/rifle_cdef.iff";
++    private static final int FIXTURE_MAX_HITPOINTS = 1000;
++    private static final int[] PRIMARY =
++        new int[] { HEALTH, ACTION, MIND };
++    private static final String USAGE =
++        "usage: prepare|unboundPve|boundPve|unboundPvp|status|cleanup " +
++        "<playerOid> <lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args =
++            params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++
++        long playerValue;
++        try
++        {
++            playerValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (playerValue != PLAYER_OID || !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id player = obj_id.getObjId(playerValue);
++        if (player == null || player == obj_id.NULL_ID || !player.isLoaded())
++        {
++            return "error=playerNotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        String action = args[0];
++        String lifecycle = args[2];
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("unboundPve"))
++        {
++            return applyMode(player, lifecycle, false, true, action);
++        }
++        if (action.equalsIgnoreCase("boundPve"))
++        {
++            return applyMode(player, lifecycle, true, true, action);
++        }
++        if (action.equalsIgnoreCase("unboundPvp"))
++        {
++            return applyMode(player, lifecycle, false, false, action);
++        }
++        if (action.equalsIgnoreCase("status"))
++        {
++            return status(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, lifecycle);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            if (ownership != null)
++            {
++                return ownership;
++            }
++            return "action=prepare resumed=true " + buildStatus(player);
++        }
++
++        int[] originalWounds = new int[PRIMARY.length];
++        for (int index = 0; index < PRIMARY.length; ++index)
++        {
++            originalWounds[index] =
++                getAttribWound(player, PRIMARY[index]);
++        }
++        setObjVar(player, ORIGINAL_WOUNDS, originalWounds);
++        setObjVar(player, ORIGINAL_SHOCK, getShockWound(player));
++        setObjVar(player, LIFECYCLE, lifecycle);
++        snapshotEligibleItems(player);
++
++        obj_id insured = createFixtureItem(player);
++        obj_id uninsured = createFixtureItem(player);
++        obj_id autoInsured = createFixtureItem(player);
++        if (!isIdValid(insured) || !isIdValid(uninsured) ||
++            !isIdValid(autoInsured))
++        {
++            destroyIfValid(insured);
++            destroyIfValid(uninsured);
++            destroyIfValid(autoInsured);
++            restoreEligibleItems(player);
++            removeObjVar(player, ROOT);
++            return "error=fixtureItemCreateFailed";
++        }
++
++        setObjVar(player, INSURED_ITEM, insured);
++        setObjVar(player, UNINSURED_ITEM, uninsured);
++        setObjVar(player, AUTO_INSURED_ITEM, autoInsured);
++        if (!configureFixtureItems(insured, uninsured, autoInsured) ||
++            !resetControlledState(player))
++        {
++            cleanup(player, lifecycle);
++            return "error=fixtureSetupFailed";
++        }
++        return "action=prepare resumed=false " + buildStatus(player);
++    }
++
++    private String applyMode(
++        obj_id player,
++        String lifecycle,
++        boolean registeredFacility,
++        boolean decayItems,
++        String action) throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!resetControlledState(player))
++        {
++            return "error=fixtureResetFailed " + buildStatus(player);
++        }
++
++        cloninglib.applyPrecuClonePenalties(
++            player,
++            registeredFacility,
++            decayItems);
++
++        int expectedWound =
++            registeredFacility
++                ? 0
++                : cloninglib.PRECU_CLONE_WOUND_AMOUNT;
++        int expectedInsuredHp =
++            decayItems
++                ? 990
++                : FIXTURE_MAX_HITPOINTS;
++        int expectedUninsuredHp =
++            decayItems
++                ? 950
++                : FIXTURE_MAX_HITPOINTS;
++        obj_id insured = getObjIdObjVar(player, INSURED_ITEM);
++        obj_id uninsured = getObjIdObjVar(player, UNINSURED_ITEM);
++        obj_id autoInsured = getObjIdObjVar(player, AUTO_INSURED_ITEM);
++        boolean passed =
++            getAttribWound(player, HEALTH) == expectedWound &&
++            getAttribWound(player, ACTION) == expectedWound &&
++            getAttribWound(player, MIND) == expectedWound &&
++            getShockWound(player) == expectedWound &&
++            getHitpoints(insured) == expectedInsuredHp &&
++            getHitpoints(uninsured) == expectedUninsuredHp &&
++            getHitpoints(autoInsured) == FIXTURE_MAX_HITPOINTS &&
++            isInsured(insured) == !decayItems &&
++            !isInsured(uninsured) &&
++            isAutoInsured(autoInsured);
++        return "action=" + action +
++            " passed=" + passed +
++            " registeredFacility=" + registeredFacility +
++            " decayItems=" + decayItems + " " +
++            buildStatus(player);
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        return "action=status " + buildStatus(player);
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++
++        int[] originalWounds =
++            getIntArrayObjVar(player, ORIGINAL_WOUNDS);
++        boolean restored =
++            originalWounds != null &&
++            originalWounds.length == PRIMARY.length;
++        if (restored)
++        {
++            for (int index = 0; index < PRIMARY.length; ++index)
++            {
++                restored =
++                    setWound(
++                        player,
++                        PRIMARY[index],
++                        originalWounds[index]) &&
++                    restored;
++            }
++        }
++        int originalShock = getIntObjVar(player, ORIGINAL_SHOCK);
++        restored =
++            setShockWound(player, originalShock) &&
++            getShockWound(player) == originalShock &&
++            restoreEligibleItems(player) &&
++            restored;
++        if (!restored)
++        {
++            return "error=cleanupRestoreFailed " + buildStatus(player);
++        }
++
++        destroyIfValid(getObjIdObjVar(player, INSURED_ITEM));
++        destroyIfValid(getObjIdObjVar(player, UNINSURED_ITEM));
++        destroyIfValid(getObjIdObjVar(player, AUTO_INSURED_ITEM));
++        removeObjVar(player, ROOT);
++        return "action=cleanup alreadyClean=false restored=true " +
++            "healthWound=" + getAttribWound(player, HEALTH) +
++            " actionWound=" + getAttribWound(player, ACTION) +
++            " mindWound=" + getAttribWound(player, MIND) +
++            " shock=" + getShockWound(player);
++    }
++
++    private void snapshotEligibleItems(obj_id player)
++        throws InterruptedException
++    {
++        obj_id[] allItems = getInventoryAndEquipment(player);
++        int count = 0;
++        if (allItems != null)
++        {
++            for (obj_id item : allItems)
++            {
++                if (cloninglib.isDamagedOnClone(player, item))
++                {
++                    ++count;
++                }
++            }
++        }
++
++        obj_id[] items = new obj_id[count];
++        int[] hitpoints = new int[count];
++        int[] insured = new int[count];
++        int index = 0;
++        if (allItems != null)
++        {
++            for (obj_id item : allItems)
++            {
++                if (!cloninglib.isDamagedOnClone(player, item))
++                {
++                    continue;
++                }
++                items[index] = item;
++                hitpoints[index] = getHitpoints(item);
++                insured[index] = isInsured(item) ? 1 : 0;
++                ++index;
++            }
++        }
++        setObjVar(player, ORIGINAL_ITEMS, items);
++        setObjVar(player, ORIGINAL_ITEM_HP, hitpoints);
++        setObjVar(player, ORIGINAL_ITEM_INSURED, insured);
++        setObjVar(player, ORIGINAL_ITEM_COUNT, count);
++    }
++
++    private boolean restoreEligibleItems(obj_id player)
++        throws InterruptedException
++    {
++        int count = getIntObjVar(player, ORIGINAL_ITEM_COUNT);
++        if (count == 0)
++        {
++            return true;
++        }
++        obj_id[] items = getObjIdArrayObjVar(player, ORIGINAL_ITEMS);
++        int[] hitpoints = getIntArrayObjVar(player, ORIGINAL_ITEM_HP);
++        int[] insured = getIntArrayObjVar(player, ORIGINAL_ITEM_INSURED);
++        if (items == null || hitpoints == null || insured == null ||
++            items.length != count ||
++            items.length != hitpoints.length ||
++            items.length != insured.length)
++        {
++            return false;
++        }
++        boolean restored = true;
++        for (int index = 0; index < items.length; ++index)
++        {
++            obj_id item = items[index];
++            if (!isIdValid(item) || !exists(item))
++            {
++                restored = false;
++                continue;
++            }
++            restored =
++                setHitpoints(item, hitpoints[index]) &&
++                setInsured(item, insured[index] != 0) &&
++                restored;
++        }
++        return restored;
++    }
++
++    private obj_id createFixtureItem(obj_id player)
++        throws InterruptedException
++    {
++        return createObjectInInventoryAllowOverload(
++            WEAPON_TEMPLATE,
++            player);
++    }
++
++    private boolean configureFixtureItems(
++        obj_id insured,
++        obj_id uninsured,
++        obj_id autoInsured) throws InterruptedException
++    {
++        boolean configured = true;
++        obj_id[] items =
++            new obj_id[] { insured, uninsured, autoInsured };
++        for (obj_id item : items)
++        {
++            configured =
++                setMaxHitpoints(item, FIXTURE_MAX_HITPOINTS) &&
++                setHitpoints(item, FIXTURE_MAX_HITPOINTS) &&
++                configured;
++        }
++        configured =
++            setUninsurable(insured, false) &&
++            setInsured(insured, true) &&
++            setUninsurable(uninsured, false) &&
++            setInsured(uninsured, false) &&
++            setAutoInsured(autoInsured) &&
++            configured;
++        return configured;
++    }
++
++    private boolean resetControlledState(obj_id player)
++        throws InterruptedException
++    {
++        boolean reset = restoreEligibleItems(player);
++        for (int attribute : PRIMARY)
++        {
++            reset = setWound(player, attribute, 0) && reset;
++        }
++        reset =
++            setShockWound(player, 0) &&
++            configureFixtureItems(
++                getObjIdObjVar(player, INSURED_ITEM),
++                getObjIdObjVar(player, UNINSURED_ITEM),
++                getObjIdObjVar(player, AUTO_INSURED_ITEM)) &&
++            reset;
++        return reset;
++    }
++
++    private boolean setWound(obj_id player, int attribute, int requested)
++        throws InterruptedException
++    {
++        int current = getAttribWound(player, attribute);
++        if (current < requested)
++        {
++            addWound(player, attribute, requested - current);
++        }
++        else if (current > requested)
++        {
++            healWound(player, attribute, current - requested);
++        }
++        return getAttribWound(player, attribute) == requested;
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) ||
++            !hasObjVar(player, LIFECYCLE) ||
++            !hasObjVar(player, ORIGINAL_WOUNDS) ||
++            !hasObjVar(player, ORIGINAL_SHOCK) ||
++            !hasObjVar(player, ORIGINAL_ITEM_COUNT) ||
++            !hasObjVar(player, INSURED_ITEM) ||
++            !hasObjVar(player, UNINSURED_ITEM) ||
++            !hasObjVar(player, AUTO_INSURED_ITEM))
++        {
++            return "error=fixtureAbsent";
++        }
++        int itemCount = getIntObjVar(player, ORIGINAL_ITEM_COUNT);
++        if (itemCount > 0 &&
++            (!hasObjVar(player, ORIGINAL_ITEMS) ||
++            !hasObjVar(player, ORIGINAL_ITEM_HP) ||
++            !hasObjVar(player, ORIGINAL_ITEM_INSURED)))
++        {
++            return "error=fixtureAbsent";
++        }
++        if (!lifecycle.equals(getStringObjVar(player, LIFECYCLE)))
++        {
++            return "error=lifecycleMismatch";
++        }
++        return null;
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        obj_id insured = getObjIdObjVar(player, INSURED_ITEM);
++        obj_id uninsured = getObjIdObjVar(player, UNINSURED_ITEM);
++        obj_id autoInsured = getObjIdObjVar(player, AUTO_INSURED_ITEM);
++        return "healthWound=" + getAttribWound(player, HEALTH) +
++            " actionWound=" + getAttribWound(player, ACTION) +
++            " mindWound=" + getAttribWound(player, MIND) +
++            " shock=" + getShockWound(player) +
++            " insuredHp=" + getHitpoints(insured) +
++            " insuredFlag=" + isInsured(insured) +
++            " uninsuredHp=" + getHitpoints(uninsured) +
++            " uninsuredFlag=" + isInsured(uninsured) +
++            " autoInsuredHp=" + getHitpoints(autoInsured) +
++            " autoInsuredFlag=" + isAutoInsured(autoInsured);
++    }
++
++    private void destroyIfValid(obj_id item) throws InterruptedException
++    {
++        if (isIdValid(item) && exists(item))
++        {
++            destroyObject(item);
++        }
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            boolean digit = value >= '0' && value <= '9';
++            boolean lowerHex = value >= 'a' && value <= 'f';
++            if (!digit && !lowerHex)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+-- 
+2.47.0.windows.2
+

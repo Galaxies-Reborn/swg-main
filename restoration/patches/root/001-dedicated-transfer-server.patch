@@ -1,0 +1,51 @@
+diff --git a/exec.sh b/exec.sh
+index b2139a1..d07d2e0 100755
+--- a/exec.sh
++++ b/exec.sh
+@@ -1,9 +1,45 @@
+ #!/bin/bash
+ 
+ cd exe/linux
+ 
+ ./bin/LoginServer -- @servercommon.cfg &
+ 
+ sleep 4
+ 
+-./bin/TaskManager -- @servercommon.cfg
++start_transfer_server()
++{
++    for attempt in $(seq 1 120)
++    do
++        if pgrep -x CentralServer >/dev/null
++        then
++            break
++        fi
++        sleep 1
++    done
++
++    if ! pgrep -x CentralServer >/dev/null
++    then
++        echo "TransferServer supervisor: CentralServer did not start" >&2
++        return 1
++    fi
++
++    while pgrep -x TaskManager >/dev/null
++    do
++        if ! pgrep -x TransferServer >/dev/null
++        then
++            ./bin/TransferServer -- @servercommon.cfg &
++        fi
++        sleep 2
++    done
++}
++
++./bin/TaskManager -- @servercommon.cfg &
++task_manager_pid=$!
++start_transfer_server &
++transfer_supervisor_pid=$!
++wait "$task_manager_pid"
++task_manager_exit=$?
++kill "$transfer_supervisor_pid" >/dev/null 2>&1 || true
++killall TransferServer >/dev/null 2>&1 || true
++wait "$transfer_supervisor_pid" >/dev/null 2>&1 || true
++exit "$task_manager_exit"

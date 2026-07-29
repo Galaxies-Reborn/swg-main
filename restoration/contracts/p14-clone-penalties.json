@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "feature": "clone-penalties",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "playerLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java",
+    "cloningLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/cloninglib.java",
+    "decayTable": "dsrc/sku.0/sys.server/compiled/game/datatables/player/insure_decay_event.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_clone_penalty_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "sources": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/player/sui/callbacks/CloningRequestSuiCallback.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/DeathBlowCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/ai/AiAgentImplementation.cpp"
+    ],
+    "publish": "14.1",
+    "registeredFacilityPenalty": false,
+    "alternateFacilityPrimaryWounds": {
+      "health": 100,
+      "action": 100,
+      "mind": 100
+    },
+    "alternateFacilityBattleFatigue": 100,
+    "deathTypes": {
+      "pveAi": 0,
+      "playerDeathBlow": 1
+    },
+    "itemDecayPercent": {
+      "insured": 1,
+      "uninsured": 5
+    },
+    "insuredItemBecomesUninsured": true,
+    "autoInsuredItemExcluded": true
+  },
+  "retainedTableReference": {
+    "path": "datatables/player/insure_decay_event.iff",
+    "sha256": "28be456e66abcdb1e902eb02965da54b84e02d0a521db9ced74b63f5de2d6f90",
+    "deathRow": {
+      "insured": 1,
+      "uninsured": 5,
+      "doUninsure": 1
+    }
+  },
+  "runtimeContract": {
+    "selectionVector": "Every displayed clone option has one parallel penalty value.",
+    "registeredFacilityValue": 0,
+    "alternateFacilityValue": 100,
+    "expirationFallbackUsesFirstOptionPenalty": true,
+    "completionConsumesPenaltyExactlyOnce": true,
+    "selectionCompatibility": {
+      "authoritativeSource": "The server-observed generic-selection callback.",
+      "closePayloadPolicy": "Use the close payload row when present; otherwise use only the bounded row already observed for the current clone SUI.",
+      "boundsPolicy": "Reject selection callbacks outside the current option, clone-location, and spawn-location vectors.",
+      "staleStatePolicy": "Clear the observed row when opening, expiring, accepting, or completing a clone lifecycle."
+    },
+    "transferCompletionCompatibility": {
+      "normalPath": "The engine-authored clone warp callback remains authoritative.",
+      "sameSceneFallback": "A persistent five-second message invokes the same completion handler when a legacy same-scene warp completes without delivering its callback.",
+      "pendingMarker": "The clone transfer records waitingOnCloneRespawn before requesting the warp.",
+      "idempotencePolicy": "A callback arriving after completion is ignored unless death or an exact pending clone marker remains, preventing duplicate healing, penalties, decay, and effects."
+    },
+    "pveDecayAdmission": "The retained absence of pvp_death maps to Core3 death type 0.",
+    "pvpDecayExclusion": "The retained pvp_death marker maps player death-blows to Core3 death type 1.",
+    "itemEligibility": [
+      "contained by player",
+      "armor, clothing, weapon, tool, jewelry, or cybernetic",
+      "not uninsurable or auto-insured"
+    ],
+    "ngeCloningSicknessApplied": false
+  },
+  "fixture": {
+    "playerOid": 39008597,
+    "playerStationId": 1001,
+    "script": "test.precu_clone_penalty_fixture",
+    "method": "executeFixture",
+    "modes": [
+      "unboundPve",
+      "boundPve",
+      "unboundPvp"
+    ],
+    "fixtureItems": {
+      "template": "object/weapon/ranged/rifle/rifle_cdef.iff",
+      "maximumHitpoints": 1000,
+      "insuredPveExpectedHitpoints": 990,
+      "uninsuredPveExpectedHitpoints": 950,
+      "autoInsuredExpectedHitpoints": 1000
+    },
+    "cleanupPolicy": "Snapshot and restore all three primary wounds, battle fatigue, and every pre-existing decay-eligible item's hitpoints and insurance flag; destroy only the three fixture-owned CDEF rifles; remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "sourceCommit": "58964fb24",
+    "patchSha256": "dae4c907662bff7b35822b13cac092759fe005d2a96dd90ed8a7ef39ac65bd79",
+    "isolatedBuildVolume": "swg-precu-clone-penalty-clean-build-159",
+    "sourceCount": 5675,
+    "target": "ant clean compile_java",
+    "compiledSha256": {
+      "pclib.class": "f88940df2910bb3e6c9b890b7a7d16eaed5d1eea9eb583c1dfda231d89d65d6f",
+      "cloninglib.class": "8667e2da54759f8d88df4c17b73cc2be9a5dd791e3775460a8958910b94a2961",
+      "base_player.class": "2cfaa7a08de5a3db6c75f2e092cc0c41aa78f4244b0d98b7c94de9bd24f7cc7e",
+      "precu_clone_penalty_fixture.class": "d273d328526315d94e2d228efc98f51f29b0bae4ec40111984c1d89ec329f618"
+    }
+  },
+  "selectionCompatibilityBuildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-18T22:05:55-04:00",
+    "overlayPatch": "restoration/patches/dsrc/060-p14-clone-selection-compatibility.patch",
+    "overlayPatchSha256": "6296c5ec685c56d61a2628004f4a22b3afdca8fdc874126e797d32cfdf7d235",
+    "cleanApplyBaseCommit": "3fb45ef00",
+    "cleanApplyCheck": "passed",
+    "fullBuild": {
+      "target": "docker compose run --rm swg-precu build",
+      "elapsed": "24 minutes 21 seconds",
+      "result": "passed"
+    },
+    "finalIncrementalBuild": {
+      "target": "docker compose run --rm swg-precu build",
+      "elapsed": "2 minutes 44 seconds",
+      "compiledSourceCount": 2,
+      "result": "passed"
+    },
+    "compiledSha256": {
+      "pclib.class": "6e794276fcc1a1a1a1122c77fa9e5ac752ce471fee6843c6c12825c1260b04d6",
+      "base_player.class": "118a9ca97cec76e909e381399b9c917234a2c1fa16619765cc65917b22630143"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-18T20:15:31.1880408-04:00",
+    "container": "swg-precu",
+    "lifecycle": "e4aba78ec34e46448ca2c04a6967fd4d",
+    "playerOid": 39008597,
+    "clientProtocolVersion": 30,
+    "unboundPve": {
+      "passed": true,
+      "registeredFacility": false,
+      "decayItems": true,
+      "healthWound": 100,
+      "actionWound": 100,
+      "mindWound": 100,
+      "shock": 100,
+      "insuredHp": 990,
+      "insuredFlag": false,
+      "uninsuredHp": 950,
+      "uninsuredFlag": false,
+      "autoInsuredHp": 1000,
+      "autoInsuredFlag": true
+    },
+    "boundPve": {
+      "passed": true,
+      "registeredFacility": true,
+      "decayItems": true,
+      "healthWound": 0,
+      "actionWound": 0,
+      "mindWound": 0,
+      "shock": 0,
+      "insuredHp": 990,
+      "insuredFlag": false,
+      "uninsuredHp": 950,
+      "uninsuredFlag": false,
+      "autoInsuredHp": 1000,
+      "autoInsuredFlag": true
+    },
+    "unboundPvp": {
+      "passed": true,
+      "registeredFacility": false,
+      "decayItems": false,
+      "healthWound": 100,
+      "actionWound": 100,
+      "mindWound": 100,
+      "shock": 100,
+      "insuredHp": 1000,
+      "insuredFlag": true,
+      "uninsuredHp": 1000,
+      "uninsuredFlag": false,
+      "autoInsuredHp": 1000,
+      "autoInsuredFlag": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "fixtureRootAbsent": true
+    },
+    "selectionCompatibility": {
+      "result": "passed",
+      "capturedAt": "2026-07-18T22:10:55.1413610-04:00",
+      "lifecycle": "3945ce8606984b6d80c38fbbe0d3ad48",
+      "clientProtocolVersion": 31,
+      "clientToolsCommit": "c2921f23bd4378fe7bc44a41ba9a9c9847da85b0",
+      "clientExecutableSha256": "5cf9167cad27d6a9e42c8174d735422b682b4d90caa313188b9662ce23785d3e",
+      "selectionIndex": 0,
+      "serverPromptRoundTrip": true,
+      "realOkCallback": true,
+      "completionObservedWithinSeconds": 8,
+      "victimDead": false,
+      "victimPosture": 0,
+      "victimHealth": 900,
+      "victimAction": 400,
+      "victimMind": 300,
+      "healthWound": 100,
+      "actionWound": 100,
+      "mindWound": 100,
+      "shock": 100,
+      "insuredHp": 1000,
+      "insuredFlag": true,
+      "uninsuredHp": 1000,
+      "uninsuredFlag": false,
+      "autoInsuredHp": 1000,
+      "autoInsuredFlag": true,
+      "screenshot": {
+        "path": "E:/SWG/SWGSource/PreCU-Client/logs/victim-clone-selection-accepted.png",
+        "sha256": "2c6dff634ee1acca6abb347d0297677b231374d6613500d1f890750f1294ea38"
+      },
+      "cleanup": {
+        "restored": true,
+        "idempotent": true,
+        "allRootsAbsent": true,
+        "passes": 3,
+        "orderingNote": "The successful clone wound layer was removed before the combat preimage could validate; the following combat cleanup restored exactly, and the final pass was a complete no-op."
+      },
+      "serverHealthyAfterCleanup": true,
+      "oracleHealthyAfterCleanup": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": false,
+    "clientProtocolVersion": 31
+  },
+  "narrowBoundary": {
+    "included": [
+      "registered-versus-alternate clone wound selection",
+      "100 primary wounds and 100 battle fatigue",
+      "PvE 1% insured and 5% uninsured item decay",
+      "insured flag consumption",
+      "death-blow/PvP decay exclusion",
+      "NGE cloning-sickness retirement",
+      "real protocol-31 clone-list selection, prompt round-trip, and same-scene completion",
+      "reversible identity-bound production-helper fixture"
+    ],
+    "deferred": [
+      "clone decay report SUI",
+      "pet-master death-type parity",
+      "Jedi clone XP loss and FRS handling"
+    ]
+  }
+}

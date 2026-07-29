@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "feature": "heal-mind-command",
+  "scope": "Restore the Publish 14.1 Combat Medic healMind command as an authenticated real-client transaction against a creature pet, including Mind treatment, healer wounds and battle fatigue, exact cleanup, and reproducible evidence.",
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_heal_mind_command_fixture.java"
+  },
+  "eraEvidence": {
+    "commandSource": "Source/legacy/precu-restore/precu_client_command_table.tab",
+    "commandSourceSha256": "f7acb20472cbfc78a182703b8cfbf48a3eeaa84af32acd5e638f9342822258d8",
+    "skillSource": "Source/legacy/precu-restore/authentic/skills.precu_merged.tab",
+    "skillSourceSha256": "5d8882200a4061b0086537cd4a18e2d505048e979e830caae777c55ae607dfeb",
+    "publish": "14.1",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/creature/commands/HealMindCommand.h",
+    "findings": [
+      "The retained pre-CU command table registers healMind to the actor hook healMind with optional other targeting, five-second default time, nonqueued dispatch, and client visibility two.",
+      "science_combatmedic_healing_range_speed_04 grants healMind; the novice box contributes combat_medic_effectiveness=5 and establishes the minimum treatment power used by the fixture.",
+      "Pinned Core3 requires a living Combat Medic and another healable player or creature pet within five meters and line of sight, at least 250 current Mind as a threshold, and actual Mind damage on the target.",
+      "Treatment power is (random 0..500 + 800) multiplied by combat_medic_effectiveness and the healer battle-fatigue ratio. Five percent of the amount healed becomes wounds in the healer's Mind, Focus, and Willpower plus equal battle fatigue; the 250 Mind value is not directly charged.",
+      "The retained healing library's older heal-mind constants diverge from the executable Core3 command behavior; the pinned command implementation governs restored semantics while the library supplies compatible pool, wound, battle-fatigue, effect, and PvP primitives."
+    ]
+  },
+  "commandContract": {
+    "name": "healMind",
+    "scriptHook": "healMind",
+    "failScriptHook": "",
+    "receiverScript": "persistent player.base.base_player",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "addToCombatQueue": false,
+    "visible": 2,
+    "expectedColumnCount": 94,
+    "grantedBySkill": "science_combatmedic_healing_range_speed_04"
+  },
+  "productionContract": {
+    "eligibility": [
+      "living player with science_combatmedic_healing_range_speed_04",
+      "another living player or creature pet that is neither a droid nor an ordinary AI creature",
+      "PvP-helpable target within five meters and line of sight",
+      "healer current Mind at least 250 and target with positive Mind damage"
+    ],
+    "mindThreshold": 250,
+    "directMindCharge": 0,
+    "randomRollInclusive": [0, 500],
+    "basePowerOffset": 800,
+    "skillModifier": "combat_medic_effectiveness",
+    "battleFatigueModifier": "healer battle-fatigue ratio",
+    "healerWoundPercent": 5,
+    "healerWoundPools": ["Mind", "Focus", "Willpower"],
+    "battleFatiguePercent": 5,
+    "effect": "clienteffect/healing_healenhance.cef",
+    "animation": "heal_other"
+  },
+  "liveFixture": {
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "protocol": 1,
+    "creatureType": "worrt",
+    "actions": ["prepare", "status", "cleanup"],
+    "temporarySkills": [
+      "science_combatmedic",
+      "science_combatmedic_novice",
+      "science_combatmedic_healing_range_speed_01",
+      "science_combatmedic_healing_range_speed_02",
+      "science_combatmedic_healing_range_speed_03",
+      "science_combatmedic_healing_range_speed_04"
+    ],
+    "fixtureIsolation": "production telemetry and the deterministic zero roll are enabled only for the exact player OID, station ID, protocol, prepared root, and fixture pet",
+    "ambientRegenerationPolicy": "the proof records target Mind immediately before and after inside the production handler, isolating the exact 40-point command heal from the pet's ordinary two-point regeneration ticks",
+    "cleanupPolicy": "destroy the fixture pet, source, and durable PCD; restore Mind maximum/current, Mind/Focus/Willpower wounds, battle fatigue, skill points, fixture-granted skills, and prior pet-master attachment; then prove repeated cleanup idempotence"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "targets": ["ant compile_java", "ant compile_tab"],
+    "patch": "restoration/patches/dsrc/242-p14-heal-mind-command.patch",
+    "patchBytes": 35342,
+    "patchSha256": "dad920585cf2e557de4c4c6c4db028a129723f0d6d828cbad8204ec0fb168f22",
+    "runtimeRunnerSha256": "03f85ea7f3028b96efd6eb73c052be63ac0ae30f8f097745cea41960fd0c80a4",
+    "sourceSha256": {
+      "command_table.tab": "db3d428a6033ad07d6356320bd4219efc4cf62e847480f86bb60752c9fbcac43",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "base_player.java": "811b694e136f6b6754e70b621ee372c27fb3f1e3a4018b509c4b289b85829fdf",
+      "precu_heal_mind_command_fixture.java": "8a5e931dd9a72f3fe074fc99cad347fde69385b2e937cea0711f2e152130dcc9"
+    },
+    "compiledSha256": {
+      "base_player.class": "af45ea64e9d478921db8a0bccd075158e8b1527c377252c02c758d4be8f7aefd",
+      "precu_heal_mind_command_fixture.class": "d57983b3e8db86e21418de2016ecbb6d83761104bbe69fd0ae545035d897f663",
+      "command_table.iff": "fbc14ae84e4cc7be1a1f1542ab63fbb4f9a6f0f308e4b44bd5a9531c06f16cbc"
+    },
+    "cleanMaterializationPatches": 248,
+    "cleanMaterializationAcceptanceFiles": 716,
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "testedUtc": "2026-07-23T05:40:33Z",
+    "protocolVersion": 155,
+    "playerOid": 44003778,
+    "stationId": 91001,
+    "lifecycle": "c5141e1daad4426186f4cf226952edaa",
+    "clientProcessId": 67268,
+    "petOid": 1068547643,
+    "pcdOid": 1068547650,
+    "petAndPcdLinked": true,
+    "pcdContained": true,
+    "handlerCalls": 1,
+    "combatMedicEffectiveness": 5,
+    "randomRoll": 0,
+    "rawPower": 40,
+    "battleFatigueAdjustedPower": 40,
+    "healedMind": 40,
+    "targetMindBefore": 804,
+    "targetMindAfter": 844,
+    "ambientPetMindDeltaAcrossPolls": 48,
+    "healerMindBefore": 1000,
+    "healerMindAfterWounds": 998,
+    "directMindCharge": 0,
+    "mindWoundDelta": 2,
+    "focusWoundDelta": 2,
+    "willpowerWoundDelta": 2,
+    "battleFatigueDelta": 2,
+    "cleanup": "action=cleanup alreadyClean=false restored=true",
+    "idempotentCleanup": "action=cleanup alreadyClean=true restored=true",
+    "serverHealth": "healthy",
+    "postProofFatalSevereJavaExceptionDictionaryErrors": 0,
+    "clientExeSha256": "54de8cc81139b0056f3813ef97fd568f42289fd930b4ad9236a826f33c1e94ed",
+    "runtimeTreSha256": "9aac1fd2e5c7916646d5e6c3e16752bd4f5a945eed132203b8ee9473d61d53c8",
+    "commandTableIffSha256": "fbc14ae84e4cc7be1a1f1542ab63fbb4f9a6f0f308e4b44bd5a9531c06f16cbc"
+  },
+  "narrowBoundary": {
+    "included": [
+      "authoritative command registration and Combat Medic ownership",
+      "production eligibility, treatment formula, wounds, battle fatigue, effect, and PvP help",
+      "real-client nonqueued dispatch to an owned creature pet, durable PCD linkage, cleanup, idempotence, and server health"
+    ],
+    "deferred": [
+      "two-client player-target permutations and arena/duel rejection",
+      "full random-power distribution sampling",
+      "later-NGE combat medic expertise or level-scaling behavior"
+    ]
+  }
+}

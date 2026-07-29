@@ -1,0 +1,224 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 1abd9d3..cb81187 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14809,6 +14809,16 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int flushingShot2(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction(
++            "flushingShot2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int scatterShot1(obj_id self, obj_id target, String params,
+         float defaultTime) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index cb4519d..1c2f601 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -158,6 +158,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String STARTLE_SHOT_ONE_COMMAND = "startleShot1";
+     private static final String STARTLE_SHOT_TWO_COMMAND = "startleShot2";
+     private static final String FLUSHING_SHOT_ONE_COMMAND = "flushingShot1";
++    private static final String FLUSHING_SHOT_TWO_COMMAND = "flushingShot2";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
+@@ -415,6 +416,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalStartleShotTwoCommand";
+     private static final String ORIGINAL_FLUSHING_SHOT_ONE_COMMAND =
+         ROOT + ".originalFlushingShotOneCommand";
++    private static final String ORIGINAL_FLUSHING_SHOT_TWO_COMMAND =
++        ROOT + ".originalFlushingShotTwoCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_TWO_COMMAND =
+@@ -988,6 +991,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean flushingShotOneCommandGranted =
+             hasCommand(attacker, FLUSHING_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, FLUSHING_SHOT_ONE_COMMAND);
++        boolean flushingShotTwoCommandGranted =
++            hasCommand(attacker, FLUSHING_SHOT_TWO_COMMAND) ||
++            grantCommand(attacker, FLUSHING_SHOT_TWO_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -1138,6 +1144,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, STARTLE_SHOT_TWO_COMMAND) ||
+             !flushingShotOneCommandGranted ||
+             !hasCommand(attacker, FLUSHING_SHOT_ONE_COMMAND) ||
++            !flushingShotTwoCommandGranted ||
++            !hasCommand(attacker, FLUSHING_SHOT_TWO_COMMAND) ||
+             !hasCommand(attacker, COMMAND) ||
+             !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             !headShotThreeGranted || !hasCommand(attacker, HEAD_SHOT_THREE_COMMAND) ||
+@@ -1867,6 +1875,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 STARTLE_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_FLUSHING_SHOT_ONE_COMMAND,
+                 FLUSHING_SHOT_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_FLUSHING_SHOT_TWO_COMMAND,
++                FLUSHING_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -3041,6 +3051,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, STARTLE_SHOT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_FLUSHING_SHOT_ONE_COMMAND,
+             hasCommand(player, FLUSHING_SHOT_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_FLUSHING_SHOT_TWO_COMMAND,
++            hasCommand(player, FLUSHING_SHOT_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3449,6 +3461,8 @@ public class precu_headshot1_fixture extends script.base_script
+             STARTLE_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_FLUSHING_SHOT_ONE_COMMAND,
+             FLUSHING_SHOT_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_FLUSHING_SHOT_TWO_COMMAND,
++            FLUSHING_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -3964,6 +3978,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 STARTLE_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_FLUSHING_SHOT_ONE_COMMAND,
+                 FLUSHING_SHOT_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_FLUSHING_SHOT_TWO_COMMAND,
++                FLUSHING_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4184,6 +4200,8 @@ public class precu_headshot1_fixture extends script.base_script
+             STARTLE_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_FLUSHING_SHOT_ONE_COMMAND,
+             FLUSHING_SHOT_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_FLUSHING_SHOT_TWO_COMMAND,
++            FLUSHING_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4742,6 +4760,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean flushingShotOneCommandReady =
+             hasCommand(attacker, FLUSHING_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, FLUSHING_SHOT_ONE_COMMAND);
++        boolean flushingShotTwoCommandReady =
++            hasCommand(attacker, FLUSHING_SHOT_TWO_COMMAND) ||
++            grantCommand(attacker, FLUSHING_SHOT_TWO_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -4912,6 +4933,7 @@ public class precu_headshot1_fixture extends script.base_script
+             startleShotOneCommandReady &&
+             startleShotTwoCommandReady &&
+             flushingShotOneCommandReady &&
++            flushingShotTwoCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -5319,6 +5341,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_STARTLE_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_STARTLE_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_FLUSHING_SHOT_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_FLUSHING_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
+@@ -5535,6 +5558,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(STARTLE_SHOT_TWO_COMMAND, attacker) : -1;
+         int canPerformFlushingShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(FLUSHING_SHOT_ONE_COMMAND, attacker) : -1;
++        int canPerformFlushingShotTwo = isIdValid(weapon) ?
++            combat.canPerformAction(FLUSHING_SHOT_TWO_COMMAND, attacker) : -1;
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotTwo = isIdValid(weapon) ?
+@@ -5672,6 +5697,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(STARTLE_SHOT_TWO_COMMAND);
+         combat_data flushingShotOneData =
+             combat_engine.getCombatData(FLUSHING_SHOT_ONE_COMMAND);
++        combat_data flushingShotTwoData =
++            combat_engine.getCombatData(FLUSHING_SHOT_TWO_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+         combat_data scatterShotTwoData =
+@@ -5807,6 +5834,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, flameWeaponData, flushingShotOneData) :
+             new int[] {-1, -1, -1};
++        int[] flushingShotTwoCosts =
++            flushingShotTwoData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, flushingShotTwoData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -6038,6 +6070,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, STARTLE_SHOT_TWO_COMMAND) +
+             " flushingShotOneCommand=" +
+                 hasCommand(attacker, FLUSHING_SHOT_ONE_COMMAND) +
++            " flushingShotTwoCommand=" +
++                hasCommand(attacker, FLUSHING_SHOT_TWO_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+             " scatterShotTwoCommand=" +
+@@ -6387,6 +6421,16 @@ public class precu_headshot1_fixture extends script.base_script
+             " flushingShotOneDamageMultiplier=" +
+                 (flushingShotOneData == null ? -1.0f :
+                     flushingShotOneData.percentAddFromWeapon) +
++            " flushingShotTwoCanPerform=" + canPerformFlushingShotTwo +
++            " flushingShotTwoHealthCost=" + flushingShotTwoCosts[0] +
++            " flushingShotTwoActionCost=" + flushingShotTwoCosts[1] +
++            " flushingShotTwoMindCost=" + flushingShotTwoCosts[2] +
++            " flushingShotTwoPrecuHamCostModel=" +
++                (flushingShotTwoData == null ? -1 :
++                    flushingShotTwoData.precuHamCostModel) +
++            " flushingShotTwoDamageMultiplier=" +
++                (flushingShotTwoData == null ? -1.0f :
++                    flushingShotTwoData.percentAddFromWeapon) +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+             " scatterShotOneMindCost=" + scatterShotOneCosts[2] +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index a43b8a0..895d3ce 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1380,3 +1380,4 @@ strafeShot2	strafeShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				obj
+ startleShot1	startleShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_defender_posture_change_up								fire_defender_posture_change_up						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ startleShot2	startleShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_defender_posture_change_up								fire_defender_posture_change_up						OFF	OFF	OFF	OFF	OFF	CONE	64	60	0	64	0	0	4.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ flushingShot1	flushingShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_3_special_single								fire_3_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
++flushingShot2	flushingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area								fire_area						OFF	OFF	OFF	OFF	OFF	CONE	64	15	0	64	0	0	4.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 09db79b..c096ea5 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -96,3 +96,4 @@ strafeShot2	0.5	0.5	2.0	RANDOM	2.0	5	INTENSITY			REMOVE_COVER	75	0	10
+ startleShot1	0.5	0.5	1.5	RANDOM	2.0	5	NONE			POSTURE_UP	100	0	0	posture_change_up_defense
+ startleShot2	0.5	0.5	2.0	RANDOM	2.0	5	NONE			POSTURE_UP	100	0	0	posture_change_up_defense
+ flushingShot1	0.5	0.5	1.5	RANDOM	2.0	5	RANGED			STUN	100	0	35	stun_defense	jedi_state_defense	resistance_states	POSTURE_UP	100	0	0	posture_change_up_defense
++flushingShot2	0.5	0.5	2.0	RANDOM	2.0	5	INTENSITY			STUN	100	0	35	stun_defense	jedi_state_defense	resistance_states	POSTURE_UP	100	0	0	posture_change_up_defense
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index a1baba1..1b0f750 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -95,3 +95,4 @@ strafeShot2	advancedstrafe
+ startleShot1	startle
+ startleShot2	startleshot
+ flushingShot1	flushingshot
++flushingShot2	flushingvolley
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 5f385cc..f95e87e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2030,3 +2030,4 @@ strafeShot2	combat	normal	strafeShot2	failSpecialAttack			1.5	strafeShot2	1	0	1
+ startleShot1	combat	normal	startleShot1	failSpecialAttack			1.5	startleShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ startleShot2	combat	normal	startleShot2	failSpecialAttack			1.5	startleShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ flushingShot1	combat	normal	flushingShot1	failSpecialAttack			1.5	flushingShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++flushingShot2	combat	normal	flushingShot2	failSpecialAttack			1.5	flushingShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

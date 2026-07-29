@@ -1,0 +1,159 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+index 435040bf47c0e1c6497756232a0e96de2532db31..ad684a573641f2a23039c64e1b8e2086344fa881 100755
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -137,6 +137,7 @@
+ #include "sharedTerrain/TerrainObject.h"
+ 
+ #include <cstdlib>
++#include <map>
+ 
+ namespace CommandCppFuncsNamespace
+ {
+@@ -6216,6 +6217,121 @@ static void commandFuncRevokeSkill(Command const &, NetworkId const &actor, Netw
+ 
+ // ----------------------------------------------------------------------
+ 
++static bool isPlayerSurrenderableSkill(SkillObject const &skill)
++{
++	std::string const &skillName = skill.getSkillName();
++	bool const legacyProfessionFamily =
++		skillName.find("combat_") == 0 ||
++		skillName.find("crafting_") == 0 ||
++		skillName.find("outdoors_") == 0 ||
++		skillName.find("science_") == 0 ||
++		skillName.find("social_") == 0;
++
++	if (!legacyProfessionFamily || skill.isProfession() || skill.findProfessionForSkill() == nullptr)
++		return false;
++
++	// Hybrid conversion rows are not player-facing Pre-CU skills. Stateful
++	// profession exceptions remain closed until their cleanup policy is ported.
++	if (skillName.find("_prereq_") != std::string::npos ||
++		skillName == "combat_bountyhunter_investigation_03")
++		return false;
++
++	char const * const protectedPrefixes[] =
++	{
++		"class_",
++		"common_",
++		"demo_",
++		"expertise",
++		"force_",
++		"internal_",
++		"outdoors_squadleader_",
++		"pilot_",
++		"social_language_",
++		"social_politician_",
++		"species_",
++		"swg_",
++		"utility_"
++	};
++
++	for (size_t i = 0; i != sizeof(protectedPrefixes) / sizeof(protectedPrefixes[0]); ++i)
++	{
++		if (skillName.find(protectedPrefixes[i]) == 0)
++			return false;
++	}
++
++	// Jedi progression has additional surrender rules that this Phase-A path
++	// intentionally does not attempt to reproduce.
++	return skillName.find("jedi") == std::string::npos;
++}
++
++static void repairExperienceCapsAfterSkillSurrender(CreatureObject &creature, PlayerObject &player)
++{
++	std::map<std::string, int> const experience = player.getExperiencePoints();
++	for (std::map<std::string, int>::const_iterator it = experience.begin(); it != experience.end(); ++it)
++	{
++		int const limit = player.getExperienceLimit(it->first);
++		if (limit >= 0 && it->second > limit)
++			IGNORE_RETURN(creature.grantExperiencePoints(it->first, limit - it->second));
++	}
++}
++
++static void commandFuncSurrenderSkill(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &params)
++{
++	CreatureObject * const creature = CreatureObject::getCreatureObject(actor);
++	if (creature == nullptr || !creature->isAuthoritative())
++	{
++		WARNING(true, ("commandFuncSurrenderSkill: invalid or non-authoritative actor"));
++		return;
++	}
++	PlayerObject * const player = PlayerCreatureController::getPlayerObject(creature);
++	if (player == nullptr)
++	{
++		WARNING(true, ("commandFuncSurrenderSkill: actor has no PlayerObject"));
++		return;
++	}
++
++	size_t pos = 0;
++	std::string const skillName = nextStringParm(params, pos);
++	SkillObject const * const skill = SkillManager::getInstance().getSkill(skillName);
++	if (skill == nullptr || !creature->hasSkill(*skill))
++	{
++		Chat::sendSystemMessage(*creature, Unicode::narrowToWide("You do not possess that skill."), Unicode::emptyString);
++		return;
++	}
++
++	if (!isPlayerSurrenderableSkill(*skill))
++	{
++		Chat::sendSystemMessage(*creature, Unicode::narrowToWide("That skill cannot be surrendered through the skills window."), Unicode::emptyString);
++		return;
++	}
++
++	CreatureObject::SkillList const &ownedSkills = creature->getSkillList();
++	for (CreatureObject::SkillList::const_iterator it = ownedSkills.begin(); it != ownedSkills.end(); ++it)
++	{
++		SkillObject const * const ownedSkill = *it;
++		if (ownedSkill != nullptr && ownedSkill != skill && ownedSkill->dependsUponSkill(*skill))
++		{
++			Chat::sendSystemMessage(*creature, SharedStringIds::revoke_dependant_skill, Unicode::emptyString);
++			return;
++		}
++	}
++
++	creature->revokeSkill(*skill);
++	if (creature->hasSkill(*skill))
++	{
++		WARNING(true, ("commandFuncSurrenderSkill: revoke of %s from %s was vetoed or failed",
++			skillName.c_str(), actor.getValueString().c_str()));
++		Chat::sendSystemMessage(*creature, Unicode::narrowToWide("That skill could not be surrendered."), Unicode::emptyString);
++		return;
++	}
++
++	repairExperienceCapsAfterSkillSurrender(*creature, *player);
++	LOG("CustomerService", ("Skill: Player surrendered skill %s from character %s.",
++		skillName.c_str(), actor.getValueString().c_str()));
++}
++
++// ----------------------------------------------------------------------
++
+ static void commandFuncSetCurrentSkillTitle(Command const &, NetworkId const &actor, NetworkId const & target, Unicode::String const &params)
+ {
+ 	CreatureObject * const creatureObject = CreatureObject::getCreatureObject(actor);
+@@ -9751,6 +9867,7 @@ void CommandCppFuncs::install()
+ 
+ 	//skill
+ 	CommandTable::addCppFunction("revokeSkill", commandFuncRevokeSkill);
++	CommandTable::addCppFunction("surrenderSkill", commandFuncSurrenderSkill);
+ 	CommandTable::addCppFunction("setCurrentSkillTitle", commandFuncSetCurrentSkillTitle);
+ 
+ 	//misc ui
+diff --git a/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp b/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp
+index 615c88247cdd595137934a04b4d2815a9a1e6474..d206d120558bf666df41505a3bbff9be8c8a872d 100755
+--- a/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp
+@@ -986,6 +986,12 @@ bool PlayerObject::revokeSchematic(uint32 schematicCrc, bool fromSkill)
+ 		{
+ 			// remove the schematic from the player's draft schematic list
+ 			Archive::AutoDeltaMap<std::pair<uint32, uint32>, int>::const_iterator found = m_draftSchematics.find(schematic->getCombinedCrc());
++			if (found == m_draftSchematics.end())
++			{
++				WARNING(true, ("PlayerObject::revokeSchematic could not find schematic %s on player %s",
++					schematic->getObjectTemplateName(), getAccountDescription().c_str()));
++				return false;
++			}
+ 			if ((*found).second > 1 && fromSkill)
+ 			{
+ 				m_draftSchematics.set(schematic->getCombinedCrc(), (*found).second - 1);

@@ -1,0 +1,35 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_pylon.java b/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_pylon.java
+--- a/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_pylon.java
++++ b/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_pylon.java
+@@ -221,8 +221,6 @@ public class gcw_city_pylon extends script.base_script
+                 sendSystemMessage(player, SID_PYLON_CONSTRUCTION_COMPLETE);
+                 return SCRIPT_CONTINUE;
+             }
+-            String skillTemplate = getSkillTemplate(player);
+-            String profession = skill.getProfessionName(skillTemplate);
+             String questName = getConstructionQuest();
+             if (groundquests.hasCompletedQuest(player, questName))
+             {
+@@ -385,18 +383,10 @@ public class gcw_city_pylon extends script.base_script
+         utils.setScriptVar(player, "gcw.fatigueTime", gameTime);
+         messageTo(player, "gcwFatigueDecay", params, 120.0f, false);
+         int completed = getIntObjVar(self, "gcw.constructionQuestsCompleted");
+-        String skillTemplate = getSkillTemplate(player);
+-        String profession = skill.getProfessionName(skillTemplate);
+-        if (profession.equals("trader"))
+-        {
+-            buff.applyBuff(player, "gcw_fatigue");
+-            completed += bestToolValue;
+-        }
+-        else 
+-        {
+-            buff.applyBuffWithStackCount(player, "gcw_fatigue", 5);
+-            completed += bestToolValue;
+-        }
++        // The reduced-fatigue branch belonged to the singular NGE Trader
++        // class. No Publish 14.1 profession entitlement is evidenced here.
++        buff.applyBuffWithStackCount(player, "gcw_fatigue", 5);
++        completed += bestToolValue;
+         if (completed > 100)
+         {
+             completed = 100;

@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-full-auto-single-one",
+  "status": "ready",
+  "scope": "Restore retained Marksman fullAutoSingle1 with exact Carbine II ownership, historical queued-command admission, pinned Core3 random-pool damage and three independent defended native timed-state attempts, authenticated runtime, persistence observation, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Command": "FullAutoSingle1Command",
+    "skillOwner": "combat_marksman_carbine_02",
+    "command": {
+      "name": "fullAutoSingle1",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "validWeapon": "CARBINE",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true
+    },
+    "combat": {
+      "damageMultiplier": 2.0,
+      "speedMultiplier": 1.5,
+      "healthCostMultiplier": 1.75,
+      "actionCostMultiplier": 2.5,
+      "mindCostMultiplier": 0.5,
+      "accuracyBonus": 25,
+      "targetPool": "RANDOM",
+      "animation": "fire_5_special_single",
+      "animationType": "GENERATE_RANGED",
+      "combatSpam": "fullautoattack"
+    },
+    "stateEffects": [
+      {
+        "state": "DIZZY",
+        "chance": 30,
+        "strength": 0,
+        "baseDurationSeconds": 30,
+        "defense": "dizzy_defense",
+        "jediDefense": "jedi_state_defense",
+        "resistance": "resistance_states"
+      },
+      {
+        "state": "BLIND",
+        "chance": 30,
+        "strength": 0,
+        "baseDurationSeconds": 40,
+        "defense": "blind_defense",
+        "jediDefense": "jedi_state_defense",
+        "resistance": "resistance_states"
+      },
+      {
+        "state": "STUN",
+        "chance": 30,
+        "strength": 0,
+        "baseDurationSeconds": 30,
+        "defense": "stun_defense",
+        "jediDefense": "jedi_state_defense",
+        "resistance": "resistance_states"
+      }
+    ],
+    "stateResolution": {
+      "playerLevelAdjustment": "defender level - 5",
+      "primaryThreshold": "chance - defense / 1.5 - playerLevel, truncated",
+      "jediChecksReuseRoll": true,
+      "duration": "max(5, baseDuration * (1 - (defense - strength) / 120)), truncated",
+      "postDamageOnly": true
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-24T00:45:09-04:00",
+    "overlay": "restoration/patches/dsrc/261-p14-core3-full-auto-single-one.patch",
+    "overlaySha256": "d489f6f9869c8f4669712b919e90a13ab9eee46db822edb183103b113a055477",
+    "changedFileCount": 7,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaCompile": "passed-focused-two-production-and-one-acceptance-source",
+    "datatableCompile": "passed-focused-four-tables",
+    "clientBridgeTests": 67,
+    "clientTestSuite": {"passed": 197, "skipped": 3, "failed": 0},
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 184,
+    "clientBytes": 32641536,
+    "clientSha256": "7f6a6e549acd9d54e39ed1166558540949f8b876355582c1de5da7e97d6daf47",
+    "materializedOverlayCount": 267,
+    "materializedRestorationFileCount": 781,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "8477aec6cd09571c0e2eb340da29a98e031495b595c6715dcdc9161c6ce136c7",
+      "combat_base.java": "f7c3e8128adfe7ce02d0e1f54ffa6c0b5b2e3038567bca2d7d78af0c0ec5680d",
+      "precu_headshot1_fixture.java": "2aa0e6b7da8ece8c401859686f6dda8bdd6bf579179a58a973c3c0eb0d5432c5",
+      "combat_data.tab": "5737f728c7d2916d9571fb135cfe55c06c144de47df4569f8ac260195ff787e2",
+      "precu_combat_overrides.tab": "39bc2c0e8e01e27fd211654b6234407ca9f4d42ff5a8d7ef63acd2cd6c76e64c",
+      "precu_combat_spam.tab": "205f7dd33738ea7b05f23d640871b9540d431911fb8bb0ec40ca7802d53afee3",
+      "command_table.tab": "c4c168e23aa458a048cae8b6388f1d09ab862b8fd5f7467ae1061a04e219c885",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "ClientMain.cpp": "3796d02455715f9d8323336a484ddefd0c03e702c2f61354b1281445593275f2",
+      "Invoke-PrecuBackgroundInput.ps1": "030d1627716a3c85e1b9ac232408b0b1697afa57e5779897a40b2802b9c148fc",
+      "test_precu_background_input_bridge.py": "91bedc97a697623516a3e47c3ddb6ff146ab0fdb54ff4b518425539f9cc8c05a",
+      "docs/precu/README.md": "9627156bf9e019bb6f748e6a6684bdaf6b5fd3ecf2a85643729dff3a4fd9c716",
+      "tools/README.md": "0fa644e89e95a891b1d4a6c8fa18a88b014d0f1db5eac125f4086ee401a26fcc"
+    },
+    "compiledSha256": {
+      "combat_actions.class": "36e742fea53c5ab589ebdc5378c8500a899b6dd11e1fb4c0bfc4e8ca5bff5d2d",
+      "combat_base.class": "e571d664277de782ce0d365bda3a1972812f2b17bdaeece9c0e9c76a1deadc4f",
+      "precu_headshot1_fixture.class": "d57c5fb46d69191c1e39abbe4d8594cb3af77e00fe8ec74466e5b7f2786fbf54",
+      "combat_data.iff": "ef80b9be916af2b71b5677f2efbbb996b7f72a450da185a622353c30a1a89bd9",
+      "precu_combat_overrides.iff": "ee55609113b13084df620e2418ff3b5b58c621b2dfac3bc68776a645e10442b8",
+      "precu_combat_spam.iff": "937434d6d1e54141eeb84b9f130ae882240d58cd1ec1d55733cba550bf491c2e",
+      "command_table.iff": "993dd4b742768e15bf9290bc3852c7d8b6084d6a18f4cc46bfb7f09b9123874c"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "ef80b9be916af2b71b5677f2efbbb996b7f72a450da185a622353c30a1a89bd9",
+      "datatables/command/command_table.iff": "993dd4b742768e15bf9290bc3852c7d8b6084d6a18f4cc46bfb7f09b9123874c",
+      "precu_runtime.tre": "61681996264be4cc7868f275bdf48f4c717e4bddf4dd49780d83474dd9377c25"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-24T00:45:09-04:00",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 184,
+    "lifecycle": "26320000000000000000000000000001",
+    "attacker": {"stationId": 91001, "objectId": 44003778, "avatar": "PrecuRuntime"},
+    "defender": {"stationId": 1001, "objectId": 39008597, "avatar": "Icai Darkwave"},
+    "weaponAdmission": {
+      "heldWeaponType": 1,
+      "validMask": "0x00000002",
+      "commandFound": true,
+      "satisfies": true
+    },
+    "clientQueueAdmission": {
+      "countAfterAdmission": 1,
+      "inCombatAfterAdmission": true,
+      "hasTargetAfterAdmission": true
+    },
+    "distanceCentimeters": 196,
+    "canPerformAction": 0,
+    "hamCosts": {"health": 7, "action": 37, "mind": 5},
+    "combatResult": {
+      "spamKey": "fullautoattack_hit",
+      "spamResult": 1,
+      "damage": 36,
+      "configuredTargetPool": 3,
+      "resolvedTargetPool": 1,
+      "hitLocation": 5,
+      "animation": "fire_5_special_single_medium",
+      "animationType": 1
+    },
+    "stateEffects": [
+      {
+        "state": "DIZZY",
+        "type": 1,
+        "chance": 30,
+        "strength": 0,
+        "baseDurationSeconds": 30,
+        "roll": 75,
+        "threshold": 33,
+        "resolvedDurationSeconds": 30,
+        "result": "RESISTED",
+        "stateBefore": 0,
+        "stateAfter": 0,
+        "playerLevelAdjustment": -3,
+        "defense": 0,
+        "jediDefense": 0,
+        "resistance": 0
+      },
+      {
+        "state": "BLIND",
+        "type": 2,
+        "chance": 30,
+        "strength": 0,
+        "baseDurationSeconds": 40,
+        "roll": 4,
+        "threshold": 33,
+        "resolvedDurationSeconds": 40,
+        "result": "APPLIED",
+        "stateBefore": 0,
+        "stateAfter": 1,
+        "playerLevelAdjustment": -3,
+        "defense": 0,
+        "jediDefense": 0,
+        "resistance": 0
+      },
+      {
+        "state": "STUN",
+        "type": 3,
+        "chance": 30,
+        "strength": 0,
+        "baseDurationSeconds": 30,
+        "roll": 25,
+        "threshold": 33,
+        "resolvedDurationSeconds": 30,
+        "result": "APPLIED",
+        "stateBefore": 0,
+        "stateAfter": 1,
+        "playerLevelAdjustment": -3,
+        "defense": 0,
+        "jediDefense": 0,
+        "resistance": 0
+      }
+    ],
+    "stateEffectAppliedCount": 2,
+    "persistence": {
+      "observed": true,
+      "mode": "authentic-transient-reset-after-server-restart-and-client-reconnect",
+      "serverRestartSeconds": 16,
+      "lifecycleSnapshotSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "diagnosticAppliedCountAfterReconnect": 2,
+      "blindStateBeforeRestart": 1,
+      "stunStateBeforeRestart": 1,
+      "blindBuffBeforeRestart": true,
+      "stunBuffBeforeRestart": true,
+      "blindStateAfterReconnect": 0,
+      "stunStateAfterReconnect": 0,
+      "blindBuffAfterReconnect": false,
+      "stunBuffAfterReconnect": false,
+      "note": "The short native timed states were transient across restart/reconnect; the durable fixture snapshot and exact command diagnostic tree persisted and were then reversibly cleaned."
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "fullAutoSingleOneCommandAfterCleanup": false,
+      "carbineTwoAfterCleanup": false,
+      "fixtureCarbineAfterCleanup": "none",
+      "diagnosticAppliedCountAfterCleanup": -1
+    },
+    "serverHealthy": true,
+    "userClientUntouched": true,
+    "userClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

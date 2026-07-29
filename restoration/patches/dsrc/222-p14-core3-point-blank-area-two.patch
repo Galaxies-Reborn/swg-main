@@ -1,0 +1,262 @@
+warning: in the working copy of 'pre243-working-v41/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 7700129..3a20050 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14608,6 +14608,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int pointBlankArea2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("pointBlankArea2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int bodyShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("bodyShot2", self, target, params, "", ""))
+warning: in the working copy of 'pre243-working-v41/dsrc/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+index bb230b4..372d66c 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+@@ -25,6 +25,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+     private static final String MARKSMAN_PISTOL_FOUR = "combat_marksman_pistol_04";
+     private static final String PISTOL_NOVICE = "combat_pistol_novice";
+     private static final String PISTOL_ACCURACY_ONE = "combat_pistol_accuracy_01";
++    private static final String PISTOL_ACCURACY_TWO = "combat_pistol_accuracy_02";
++    private static final String PISTOL_ACCURACY_THREE = "combat_pistol_accuracy_03";
++    private static final String PISTOL_ACCURACY_FOUR = "combat_pistol_accuracy_04";
+     private static final String CARBINE_ONE = "combat_marksman_carbine_01";
+     private static final String MARKSMAN_CARBINE_TWO = "combat_marksman_carbine_02";
+     private static final String MARKSMAN_CARBINE_THREE = "combat_marksman_carbine_03";
+@@ -45,6 +48,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+     private static final String STOPPING_SHOT_COMMAND = "stoppingShot";
+     private static final String CRIPPLING_SHOT_COMMAND = "cripplingShot";
+     private static final String POINT_BLANK_SINGLE_TWO_COMMAND = "pointBlankSingle2";
++    private static final String POINT_BLANK_AREA_TWO_COMMAND = "pointBlankArea2";
+     private static final String CARBINE_CDEF_CERTIFICATION = "cert_carbine_cdef";
+     private static final String PISTOL_TEMPLATE =
+         "object/weapon/ranged/pistol/pistol_cdef.iff";
+@@ -76,6 +80,12 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         ROOT + ".originalPistolNovice";
+     private static final String ORIGINAL_PISTOL_ACCURACY_ONE =
+         ROOT + ".originalPistolAccuracyOne";
++    private static final String ORIGINAL_PISTOL_ACCURACY_TWO =
++        ROOT + ".originalPistolAccuracyTwo";
++    private static final String ORIGINAL_PISTOL_ACCURACY_THREE =
++        ROOT + ".originalPistolAccuracyThree";
++    private static final String ORIGINAL_PISTOL_ACCURACY_FOUR =
++        ROOT + ".originalPistolAccuracyFour";
+     private static final String ORIGINAL_CARBINE_ONE = ROOT + ".originalCarbineOne";
+     private static final String ORIGINAL_MARKSMAN_CARBINE_TWO =
+         ROOT + ".originalMarksmanCarbineTwo";
+@@ -314,6 +324,18 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             attacker,
+             ORIGINAL_PISTOL_ACCURACY_ONE,
+             hasSkill(attacker, PISTOL_ACCURACY_ONE) ? 1 : 0);
++        setObjVar(
++            attacker,
++            ORIGINAL_PISTOL_ACCURACY_TWO,
++            hasSkill(attacker, PISTOL_ACCURACY_TWO) ? 1 : 0);
++        setObjVar(
++            attacker,
++            ORIGINAL_PISTOL_ACCURACY_THREE,
++            hasSkill(attacker, PISTOL_ACCURACY_THREE) ? 1 : 0);
++        setObjVar(
++            attacker,
++            ORIGINAL_PISTOL_ACCURACY_FOUR,
++            hasSkill(attacker, PISTOL_ACCURACY_FOUR) ? 1 : 0);
+         setObjVar(attacker, ORIGINAL_CARBINE_ONE, hasSkill(attacker, CARBINE_ONE) ? 1 : 0);
+         setObjVar(
+             attacker,
+@@ -411,6 +433,12 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             grantSkill(attacker, PISTOL_NOVICE);
+         boolean pistolAccuracyOneGranted = hasSkill(attacker, PISTOL_ACCURACY_ONE) ||
+             grantSkill(attacker, PISTOL_ACCURACY_ONE);
++        boolean pistolAccuracyTwoGranted = hasSkill(attacker, PISTOL_ACCURACY_TWO) ||
++            grantSkill(attacker, PISTOL_ACCURACY_TWO);
++        boolean pistolAccuracyThreeGranted = hasSkill(attacker, PISTOL_ACCURACY_THREE) ||
++            grantSkill(attacker, PISTOL_ACCURACY_THREE);
++        boolean pistolAccuracyFourGranted = hasSkill(attacker, PISTOL_ACCURACY_FOUR) ||
++            grantSkill(attacker, PISTOL_ACCURACY_FOUR);
+         boolean carbineGranted = hasSkill(attacker, CARBINE_ONE) ||
+             grantSkill(attacker, CARBINE_ONE);
+         boolean marksmanCarbineTwoGranted =
+@@ -444,7 +472,8 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         if (!pistolGranted ||
+             !marksmanPistolTwoGranted || !marksmanPistolThreeGranted ||
+             !marksmanPistolFourGranted || !pistolNoviceGranted ||
+-            !pistolAccuracyOneGranted ||
++            !pistolAccuracyOneGranted || !pistolAccuracyTwoGranted ||
++            !pistolAccuracyThreeGranted || !pistolAccuracyFourGranted ||
+             !carbineGranted ||
+             !marksmanCarbineTwoGranted || !marksmanCarbineThreeGranted ||
+             !marksmanCarbineFourGranted || !carbineNoviceGranted ||
+@@ -459,7 +488,8 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             !hasCommand(attacker, DOUBLE_TAP_COMMAND) ||
+             !hasCommand(attacker, STOPPING_SHOT_COMMAND) ||
+             !hasCommand(attacker, CRIPPLING_SHOT_COMMAND) ||
+-            !hasCommand(attacker, POINT_BLANK_SINGLE_TWO_COMMAND))
++            !hasCommand(attacker, POINT_BLANK_SINGLE_TWO_COMMAND) ||
++            !hasCommand(attacker, POINT_BLANK_AREA_TWO_COMMAND))
+         {
+             String recovery = recover(attacker, defender, lifecycle).replace(' ', '_');
+             return "error=skillPreparationFailed pistol=" + pistolGranted +
+@@ -468,6 +498,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 " marksmanPistolFour=" + marksmanPistolFourGranted +
+                 " pistolNovice=" + pistolNoviceGranted +
+                 " pistolAccuracyOne=" + pistolAccuracyOneGranted +
++                " pistolAccuracyTwo=" + pistolAccuracyTwoGranted +
++                " pistolAccuracyThree=" + pistolAccuracyThreeGranted +
++                " pistolAccuracyFour=" + pistolAccuracyFourGranted +
+                 " carbine=" + carbineGranted +
+                 " marksmanCarbineTwo=" + marksmanCarbineTwoGranted +
+                 " marksmanCarbineThree=" + marksmanCarbineThreeGranted +
+@@ -862,6 +895,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             !hasObjVar(attacker, ORIGINAL_MARKSMAN_PISTOL_FOUR) ||
+             !hasObjVar(attacker, ORIGINAL_PISTOL_NOVICE) ||
+             !hasObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_ONE) ||
++            !hasObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_TWO) ||
++            !hasObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_THREE) ||
++            !hasObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_FOUR) ||
+             !hasObjVar(attacker, ORIGINAL_CARBINE_ONE) ||
+             !hasObjVar(attacker, ORIGINAL_MARKSMAN_CARBINE_TWO) ||
+             !hasObjVar(attacker, ORIGINAL_MARKSMAN_CARBINE_THREE) ||
+@@ -929,6 +965,21 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 " defenderFallback=" + defenderFallbackDestroyed;
+         }
+ 
++        if (getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_FOUR) == 0 &&
++            hasSkill(attacker, PISTOL_ACCURACY_FOUR))
++        {
++            revokeSkill(attacker, PISTOL_ACCURACY_FOUR);
++        }
++        if (getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_THREE) == 0 &&
++            hasSkill(attacker, PISTOL_ACCURACY_THREE))
++        {
++            revokeSkill(attacker, PISTOL_ACCURACY_THREE);
++        }
++        if (getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_TWO) == 0 &&
++            hasSkill(attacker, PISTOL_ACCURACY_TWO))
++        {
++            revokeSkill(attacker, PISTOL_ACCURACY_TWO);
++        }
+         if (getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_ONE) == 0 &&
+             hasSkill(attacker, PISTOL_ACCURACY_ONE))
+         {
+@@ -1024,7 +1075,13 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, PISTOL_ONE);
+         }
+-        if ((getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_ONE) == 0 &&
++        if ((getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_FOUR) == 0 &&
++                hasSkill(attacker, PISTOL_ACCURACY_FOUR)) ||
++            (getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_THREE) == 0 &&
++                hasSkill(attacker, PISTOL_ACCURACY_THREE)) ||
++            (getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_TWO) == 0 &&
++                hasSkill(attacker, PISTOL_ACCURACY_TWO)) ||
++            (getIntObjVar(attacker, ORIGINAL_PISTOL_ACCURACY_ONE) == 0 &&
+                 hasSkill(attacker, PISTOL_ACCURACY_ONE)) ||
+             (getIntObjVar(attacker, ORIGINAL_PISTOL_ABILITY_THREE) == 0 &&
+                 hasSkill(attacker, PISTOL_ABILITY_THREE)) ||
+@@ -1112,6 +1169,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             hasSkill(attacker, MARKSMAN_PISTOL_FOUR) &&
+             hasSkill(attacker, PISTOL_NOVICE) &&
+             hasSkill(attacker, PISTOL_ACCURACY_ONE) &&
++            hasSkill(attacker, PISTOL_ACCURACY_TWO) &&
++            hasSkill(attacker, PISTOL_ACCURACY_THREE) &&
++            hasSkill(attacker, PISTOL_ACCURACY_FOUR) &&
+             hasSkill(attacker, CARBINE_ONE) &&
+             hasSkill(attacker, MARKSMAN_CARBINE_TWO) &&
+             hasSkill(attacker, MARKSMAN_CARBINE_THREE) &&
+@@ -1133,6 +1193,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             hasCommand(attacker, STOPPING_SHOT_COMMAND) &&
+             hasCommand(attacker, CRIPPLING_SHOT_COMMAND) &&
+             hasCommand(attacker, POINT_BLANK_SINGLE_TWO_COMMAND) &&
++            hasCommand(attacker, POINT_BLANK_AREA_TWO_COMMAND) &&
+             hasOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE) &&
+             hasOwnedWeapon(attacker, CARBINE_WEAPON, CARBINE_TEMPLATE) &&
+             hasOwnedWeapon(defender, DEFENDER_RIFLE_WEAPON, RIFLE_TEMPLATE) &&
+@@ -1408,6 +1469,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_MARKSMAN_PISTOL_FOUR) ||
+             hasObjVar(player, ORIGINAL_PISTOL_NOVICE) ||
+             hasObjVar(player, ORIGINAL_PISTOL_ACCURACY_ONE) ||
++            hasObjVar(player, ORIGINAL_PISTOL_ACCURACY_TWO) ||
++            hasObjVar(player, ORIGINAL_PISTOL_ACCURACY_THREE) ||
++            hasObjVar(player, ORIGINAL_PISTOL_ACCURACY_FOUR) ||
+             hasObjVar(player, ORIGINAL_CARBINE_ONE) ||
+             hasObjVar(player, ORIGINAL_MARKSMAN_CARBINE_TWO) ||
+             hasObjVar(player, ORIGINAL_MARKSMAN_CARBINE_THREE) ||
+@@ -1480,6 +1544,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " marksmanPistolFour=" + hasSkill(attacker, MARKSMAN_PISTOL_FOUR) +
+             " pistolNovice=" + hasSkill(attacker, PISTOL_NOVICE) +
+             " pistolAccuracyOne=" + hasSkill(attacker, PISTOL_ACCURACY_ONE) +
++            " pistolAccuracyTwo=" + hasSkill(attacker, PISTOL_ACCURACY_TWO) +
++            " pistolAccuracyThree=" + hasSkill(attacker, PISTOL_ACCURACY_THREE) +
++            " pistolAccuracyFour=" + hasSkill(attacker, PISTOL_ACCURACY_FOUR) +
+             " carbineOne=" + hasSkill(attacker, CARBINE_ONE) +
+             " marksmanCarbineTwo=" + hasSkill(attacker, MARKSMAN_CARBINE_TWO) +
+             " marksmanCarbineThree=" + hasSkill(attacker, MARKSMAN_CARBINE_THREE) +
+@@ -1505,6 +1572,8 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " hasCripplingShot=" + hasCommand(attacker, CRIPPLING_SHOT_COMMAND) +
+             " hasPointBlankSingle2=" +
+                 hasCommand(attacker, POINT_BLANK_SINGLE_TWO_COMMAND) +
++            " hasPointBlankArea2=" +
++                hasCommand(attacker, POINT_BLANK_AREA_TWO_COMMAND) +
+             " weapon=" + weaponTemplate +
+             " canBodyShot1=" + (isIdValid(weapon) ?
+                 combat.canPerformAction(BODY_COMMAND, attacker) : -1) +
+@@ -1522,6 +1591,8 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 combat.canPerformAction(CRIPPLING_SHOT_COMMAND, attacker) : -1) +
+             " canPointBlankSingle2=" + (isIdValid(weapon) ?
+                 combat.canPerformAction(POINT_BLANK_SINGLE_TWO_COMMAND, attacker) : -1) +
++            " canPointBlankArea2=" + (isIdValid(weapon) ?
++                combat.canPerformAction(POINT_BLANK_AREA_TWO_COMMAND, attacker) : -1) +
+             " pistolWeapon=" + pistol +
+             " carbineWeapon=" + carbine +
+             " defenderWeapon=" + defenderWeaponTemplate +
+warning: in the working copy of 'pre243-working-v41/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index a179cd4..0645a63 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1955,3 +1955,4 @@ polearmLegHit3	combat	normal	polearmLegHit3	failSpecialAttack			2.25	polearmLegH
+ polearmHit1	combat	normal	polearmHit1	failSpecialAttack			1.5	polearmHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ polearmArea1	combat	normal	polearmArea1	failSpecialAttack			1.75	polearmArea1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee2hSpinAttack2	combat	normal	melee2hSpinAttack2	failSpecialAttack			2.5	melee2hSpinAttack2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++pointBlankArea2	combat	normal	pointBlankArea2	failSpecialAttack			1.5	pointBlankArea2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+warning: in the working copy of 'pre243-working-v41/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index fe0486c..7e09d3a 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1319,3 +1319,4 @@ polearmLegHit3	polearmLegHit3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1
+ polearmHit1	polearmHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_2b				combo_2b										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ polearmArea1	polearmArea1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_2c				combo_2c										OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee2hSpinAttack2	melee2hSpinAttack2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_4b				combo_4b										OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++pointBlankArea2	pointBlankArea2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area_no_trails					fire_area_no_trails									OFF	OFF	OFF	OFF	OFF	CONE	12	60	0	12	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+warning: in the working copy of 'pre243-working-v41/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 11a5806..cc40e74 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -35,3 +35,4 @@ polearmLegHit3	2	1.5	1.5	ACTION	2.25	10	INTENSITY
+ polearmHit1	1	0.5	0.5	RANDOM	1.5	10	INTENSITY
+ polearmArea1	1.5	1	1	RANDOM	1.75	10	INTENSITY
+ melee2hSpinAttack2	1.5	2	1.5	RANDOM	2.5	10	INTENSITY
++pointBlankArea2	0.5	1.5	0.5	RANDOM	1.5	50	INTENSITY
+warning: in the working copy of 'pre243-working-v41/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab', LF will be replaced by CRLF the next time Git touches it
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index bd24d10..9df2264 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -34,3 +34,4 @@ polearmLegHit3	legbreaker
+ polearmHit1	bonebruiser
+ polearmArea1	whirlwind
+ melee2hSpinAttack2	spinslam
++pointBlankArea2	areashot
+

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/first_aid.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_first_aid_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/FirstAidCommand.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "firstAid",
+    "category": "combat",
+    "scriptHook": "cmdFirstAid",
+    "tempScript": "player.cmd.first_aid",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "invalidTargetFallback": "self",
+    "eligibleTargets": [
+      "living player",
+      "living organic creature pet"
+    ],
+    "maximumOtherTargetRangeMeters": 6,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "requiresBleeding": true,
+    "treatmentSkillMod": "healing_injury_treatment",
+    "bleedingReductionFormula": "healing_injury_treatment * 3",
+    "mindCost": 0,
+    "medicineConsumed": false,
+    "medicalXpGranted": false
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporaryCommand": "firstAid",
+    "treatmentSkillMod": 35,
+    "privateBleedingStrength": 90,
+    "privateBleedingSource": "fixture-owned DOT script variables; production command uses dot.reduceDotTypeStrength",
+    "cleanupPolicy": "remove only the fixture DOT and owned objvars; restore command, treatment modifier, Health, Mind, and medical XP preimages"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "cf904a3c248607c33f0d93a1cad3b29be0b2d43007302642629e165e0813d338",
+    "compiledSha256": {
+      "first_aid.class": "2fbd79e55263d276e88fd4e7d3e574adf7fb71fb4bbb3314c40797d4dedd43d1",
+      "precu_first_aid_command_fixture.class": "f72156f168e2cc2f3978c40a7e5bac15ecf7409ebcf7723e654024af0337afaa"
+    },
+    "compiledIffSha256": {
+      "command_table.iff": "20b17675ea7f3343d08c832ffc4d50842ddc4b219be95554ba81a4670e3b436b"
+    },
+    "clientSha256": "c6fd748ef7838af6b628efbaa883bd620e03cde20c112659f3c6fafee154f186"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 73000,
+    "clientProtocolVersion": 20,
+    "lifecycle": "98b2c8bd3a15486fb0d2679a9e8ee9e2",
+    "clientQueueCountAtAdmission": 0,
+    "handlerCalls": 1,
+    "handlerEnteredGameTime": 306813,
+    "targetOid": 39008597,
+    "treatmentSkillMod": 35,
+    "requestedBleedingReduction": 105,
+    "reportedBleedingReduction": 90,
+    "bleedingAfter": false,
+    "mindCost": 0,
+    "healthBefore": 950,
+    "healthAfter": 950,
+    "mindBefore": 400,
+    "mindAfter": 400,
+    "medicalXpBefore": 0,
+    "medicalXpAfter": 0,
+    "handlerOutcome": "performed",
+    "clientQueueCountAfterCleanup": 0,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true
+  },
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target nonqueued command row",
+      "six-meter organic patient and PvP-help gates",
+      "treatment-times-three bleeding reduction",
+      "zero Mind, zero medicine, and zero XP behavior",
+      "protocol-20 background client admission",
+      "identity-bound reversible live fixture"
+    ],
+    "deferred": [
+      "dragIncapacitatedPlayer",
+      "Medic tier-II progression activation"
+    ]
+  }
+}

@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 1,
+  "feature": "marksman-tier1-combat-command-matrix",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Marksman tier-I activation for rifle/Mind headShot1, pistol/Health bodyShot1, and carbine/Action legShot1 across skill grants, queue dispatch, Core3-derived timing and accuracy, three-pool costs, weapon profiles, and client tables.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "verifiedCurrentCommit": "3f294c7027dde69647bc0461224041551ee55f2b",
+    "currentMatchesPinned": true,
+    "combatQueueCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.h",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "combatManagerHeader": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.h",
+    "pistolTemplate": "MMOCoreORB/bin/scripts/object/weapon/ranged/pistol/pistol_cdef.lua",
+    "carbineTemplate": "MMOCoreORB/bin/scripts/object/weapon/ranged/carbine/carbine_cdef.lua"
+  },
+  "publish14ClientEvidence": {
+    "commandTableSha256": "F7ACB20472CBFC78A182703B8CFBF48A3EEAA84AF32ACD5E638F9342822258D8",
+    "skillTableSha256": "CA5275D226361E8AE9AEFE1CCF24C9432F58E5D3BC043BB3217D15674BF17136",
+    "rifleSkill": "combat_marksman_rifle_01",
+    "rifleCommand": "headShot1",
+    "pistolSkill": "combat_marksman_pistol_01",
+    "pistolCommand": "bodyShot1",
+    "carbineSkill": "combat_marksman_carbine_01",
+    "carbineCommand": "legShot1"
+  },
+  "excludedPriorReconstruction": {
+    "combatSliceSha256": "1E51DC8154117EDCEC034C66289A99D99292EAEF0D0948910EB5DA500A29F27B",
+    "balanceAuthority": false,
+    "reason": "The previous combat_data_marksman_slice.tab identifies itself as a first-pass reconstruction. Its balance rows are not Publish 14 or Core3 authority."
+  },
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponCosts": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java"
+  },
+  "fixture": {
+    "governingStrength": 1000,
+    "governingQuickness": 300,
+    "governingFocus": 100,
+    "baseHealthCost": 10,
+    "baseActionCost": 15,
+    "baseMindCost": 10
+  },
+  "commands": [
+    {
+      "name": "bodyShot1",
+      "core3Lua": "MMOCoreORB/bin/scripts/commands/bodyShot1.lua",
+      "skill": "combat_marksman_pistol_01",
+      "weaponType": "PISTOL",
+      "weaponTemplate": "object/weapon/ranged/pistol/pistol_cdef.iff",
+      "targetPool": "HEALTH",
+      "damageMultiplier": 2.0,
+      "speedMultiplier": 1.0,
+      "healthCostMultiplier": 0.5,
+      "actionCostMultiplier": 0.75,
+      "mindCostMultiplier": 0.5,
+      "accuracyBonus": 50,
+      "animation": "fire_1_special_single",
+      "animationColumn": "anim_pistol",
+      "attackSpeed": 3.5,
+      "speedSkill": "pistol_speed",
+      "pointBlankRange": 0,
+      "pointBlankAccuracy": 20,
+      "idealRange": 15,
+      "idealAccuracy": 50,
+      "maxRange": 64,
+      "maxRangeAccuracy": -80,
+      "accuracySkill": "pistol_accuracy",
+      "categoryAccuracySkill": "ranged_accuracy",
+      "defenseSkill": "ranged_defense",
+      "weaponFamily": "pistol",
+      "postureMultiplier": 1.5,
+      "secondaryDefenseSkill": "dodge",
+      "secondaryDefenseResult": "DODGE",
+      "expectedFixtureHealthCost": 2,
+      "expectedFixtureActionCost": 11,
+      "expectedFixtureMindCost": 5
+    },
+    {
+      "name": "legShot1",
+      "core3Lua": "MMOCoreORB/bin/scripts/commands/legShot1.lua",
+      "skill": "combat_marksman_carbine_01",
+      "weaponType": "CARBINE",
+      "weaponTemplate": "object/weapon/ranged/carbine/carbine_cdef.iff",
+      "targetPool": "ACTION",
+      "damageMultiplier": 1.0,
+      "speedMultiplier": 2.0,
+      "healthCostMultiplier": 2.25,
+      "actionCostMultiplier": 1.25,
+      "mindCostMultiplier": 0.5,
+      "accuracyBonus": 25,
+      "animation": "test_homing",
+      "animationColumn": "anim_carbine",
+      "attackSpeed": 3.5,
+      "speedSkill": "carbine_speed",
+      "pointBlankRange": 0,
+      "pointBlankAccuracy": 20,
+      "idealRange": 15,
+      "idealAccuracy": 50,
+      "maxRange": 64,
+      "maxRangeAccuracy": -80,
+      "accuracySkill": "carbine_accuracy",
+      "categoryAccuracySkill": "ranged_accuracy",
+      "defenseSkill": "ranged_defense",
+      "weaponFamily": "carbine",
+      "postureMultiplier": 2.0,
+      "secondaryDefenseSkill": "counterattack",
+      "secondaryDefenseResult": "COUNTER",
+      "expectedFixtureHealthCost": 9,
+      "expectedFixtureActionCost": 18,
+      "expectedFixtureMindCost": 5
+    }
+  ],
+  "authenticTier1Skills": [
+    {
+      "name": "combat_marksman_rifle_01",
+      "xpType": "combat_rangedspecialize_rifle",
+      "commands": [
+        "private_marksman_rifle_1",
+        "headShot1",
+        "cert_rifle_dlt20a",
+        "cert_rifle_tusken"
+      ],
+      "skillMods": [
+        "rifle_accuracy=10",
+        "rifle_speed=5",
+        "private_rifle_combat_difficulty=100",
+        "rifle_concealment_chance=5"
+      ]
+    },
+    {
+      "name": "combat_marksman_pistol_01",
+      "xpType": "combat_rangedspecialize_pistol",
+      "commands": [
+        "private_marksman_pistol_1",
+        "bodyShot1",
+        "cert_pistol_dl44",
+        "cert_pistol_dl44_metal"
+      ],
+      "skillMods": [
+        "pistol_accuracy=10",
+        "pistol_speed=5",
+        "private_pistol_combat_difficulty=100"
+      ]
+    },
+    {
+      "name": "combat_marksman_carbine_01",
+      "xpType": "combat_rangedspecialize_carbine",
+      "commands": [
+        "private_marksman_carbine_1",
+        "legShot1",
+        "cert_carbine_dh17_snubnose"
+      ],
+      "skillMods": [
+        "carbine_speed=5",
+        "carbine_accuracy=10",
+        "private_carbine_combat_difficulty=100"
+      ]
+    }
+  ],
+  "runtimeSeams": {
+    "commandDuration": {
+      "status": "live-verified",
+      "contract": "contracts/p14-command-duration.json"
+    },
+    "primaryAccuracy": {
+      "status": "live-verified",
+      "contract": "contracts/p14-primary-accuracy.json"
+    },
+    "secondaryDefense": {
+      "status": "live-verified",
+      "contract": "contracts/p14-secondary-defense.json",
+      "coverage": "exact CDEF rifle, pistol, and carbine plus player-unarmed block, dodge, and counter profiles"
+    },
+    "ricochetDefense": {
+      "status": "implemented-build-verified-live-pending",
+      "contract": "contracts/p14-secondary-defense.json"
+    },
+    "attackerWeaponProfiles": {
+      "status": "live-verified",
+      "coverage": "Pinned Core3 CDEF pistol and carbine 3.5 speed, 0/15/64 range interpolation, 20/50/-80 accuracy, ranged defense, posture, secondary defense, and 10/15/10 HAM costs."
+    }
+  },
+  "buildEvidence": {
+    "environment": "isolated Docker volume swg-precu-tier1-build from stage swg-precu-marksman-tier1-live-20260717-49 with ordered diagnostic overlay 022",
+    "javaResult": "passed",
+    "tableResult": "passed",
+    "diagnosticPatchSha256": "5678b33123ea92aabb7cc24e8bf037198026fd43a505592e4dadd5e2de5c2b5f",
+    "sourceSha256": {
+      "combatBase": "f68953435e48f45140db7780fead53d19ddc0942bd6c5ededd6ddc22c173198a",
+      "combatActions": "b4b5442e12f6f655d47210d5c6df3f9ad79cf34958ca96005bf1a44767e30b5d",
+      "combatData": "0aaac92c0b24109ba6e4adcc8daca46fbbc1fa1c1629b14e3f55b074b61400ce",
+      "commandTable": "7567a3ff3e5579f0c88a3d9314cb16537e8455f51bfdb7dce2a097e1ee20ae96",
+      "skillTable": "6071d68a40330b044e03c00c2ce688c1c7312bf57139ce432b18517f13a12182",
+      "combatOverrides": "e05683f3702935845e09ecb8bd027ac9093682a59fc63230a75d2a81136012fd",
+      "weaponCosts": "8df2fe312735e421c3759d611b80cd4a0648ae0b63cbbf5eae32fbb4f1b3e61f",
+      "weaponProfiles": "8d40ee7df4ecf6993134d2bfb06b0d67a98a0afffeab69f926def9261b9f2bb2",
+      "liveFixture": "797df20d378c51b1df9222b6ae416aa85f6c3f6502314d32e3c4721f578e8594"
+    },
+    "compiledIffSha256": {
+      "combatData": "b10370723f639746b385eb10c4f3c39c36440d640342c58da3cfa1fd9ca405cd",
+      "commandTable": "683e65f2d3c80c7feaa4a9609849d29ec2221832d81edcd8d93bea79b9895ff4",
+      "skillTable": "eb62b893658e550bd18b3f6c8173a6f76f04db982a6dfd0b04bd8f0a53cb10e6",
+      "combatOverrides": "d7f27fe1e790c6ae9dba877c473dbb73c001afd8205e4a3c0dde511b46d200ad",
+      "weaponCosts": "00dbb380729884ed7f225e7e0bcd4e0007fb7811170ed81caf47bca2efd334d9",
+      "weaponProfiles": "de9ad894f8f6ae08dafa6f9b5dcb549c80557a98aa7dd55152483fbaa80c6c23"
+    },
+    "compiledClassSha256": {
+      "combatBase": "c623c033e34ca52d1787b74ba41c0257184c4ba183230f4a93b47a15111ace6f",
+      "liveFixture": "92c279b7914a0452bc57368803c606947c8ffed54b6a7332b14a75690e7eacc2"
+    }
+  },
+  "clientAssetPublication": {
+    "status": "published",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "f3a6fc3f5edd04dd116b498d11cc41ce9ce3accc",
+    "artifacts": {
+      "datatables/combat/combat_data.iff": "b10370723f639746b385eb10c4f3c39c36440d640342c58da3cfa1fd9ca405cd",
+      "datatables/command/command_table.iff": "683e65f2d3c80c7feaa4a9609849d29ec2221832d81edcd8d93bea79b9895ff4",
+      "datatables/skill/skills.iff": "eb62b893658e550bd18b3f6c8173a6f76f04db982a6dfd0b04bd8f0a53cb10e6"
+    }
+  },
+  "clientToolPublication": {
+    "status": "published",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "commit": "71df084a5725f7ba7bc2c54b201295af370a9bec",
+    "testResult": "135 passed, 1 skipped",
+    "bridgeProtocol": 12
+  },
+  "liveFixture": {
+    "status": "live-verified",
+    "script": "test.precu_marksman_tier1_fixture",
+    "attackerOid": "44003778",
+    "attackerStationId": 91001,
+    "defenderOid": "39008597",
+    "defenderStationId": 1001,
+    "dependency": {
+      "script": "test.precu_headshot1_fixture",
+      "sameLifecycleRequired": true,
+      "ownedState": "location, PvP, combat reset, posture, locomotion, regeneration, and complete HAM restoration"
+    },
+    "ownedState": [
+      "original pistol-I ownership",
+      "original carbine-I ownership",
+      "fixture CDEF pistol",
+      "fixture CDEF carbine",
+      "defender CDEF rifle",
+      "defender CDEF pistol",
+      "defender CDEF carbine",
+      "arm-scoped combat diagnostic objvars"
+    ],
+    "actions": [
+      "inspect",
+      "recover",
+      "prepare",
+      "status",
+      "armSuccess",
+      "armNoPartialBody",
+      "armNoPartialLeg",
+      "cleanup"
+    ],
+    "noPartialBoundaries": {
+      "bodyShot1": {
+        "attackerHealth": 3,
+        "attackerAction": 11,
+        "attackerMind": 6,
+        "limitingPool": "ACTION"
+      },
+      "legShot1": {
+        "attackerHealth": 10,
+        "attackerAction": 18,
+        "attackerMind": 6,
+        "limitingPool": "ACTION"
+      }
+    },
+    "commandExecutionOwner": "production x64 client toolbar and ClientCommandQueue only",
+    "diagnosticBoundary": "combat_base records only when the fixed fixture attacker has the arm-scoped enabled objvar; every arm clears prior values",
+    "neverQueuesOrFabricatesCombat": true
+  },
+  "liveEvidence": {
+    "date": "2026-07-17",
+    "executionLifecycle": "20d51c6c92884827a77d48cf5873a96e",
+    "diagnosticLifecycle": "d1a6c3e59f874b77a217202607170001",
+    "container": "swg-precu",
+    "clientBridgeProtocol": 12,
+    "clientExeSha256": "d48ae17ace79a756dc2bc358766f0397c53a62f1d05eb717da51f9dd9904837d",
+    "serverBinarySha256": "2c309c5ede3d4bc417fc6094110c4135dacc621272b31e3b2247a340c4d5f001",
+    "compiledCombatBaseSha256": "c623c033e34ca52d1787b74ba41c0257184c4ba183230f4a93b47a15111ace6f",
+    "compiledFixtureSha256": "92c279b7914a0452bc57368803c606947c8ffed54b6a7332b14a75690e7eacc2",
+    "positiveExecution": {
+      "bodyShot1": {
+        "weapon": "PISTOL",
+        "queueResult": "Success",
+        "attackerHealthCost": 2,
+        "attackerActionCost": 11,
+        "attackerMindCost": 5,
+        "defenderPool": "HEALTH",
+        "defenderBefore": 900,
+        "defenderAfter": 868
+      },
+      "legShot1": {
+        "weapon": "CARBINE",
+        "queueResult": "Success",
+        "attackerHealthCost": 9,
+        "attackerActionCost": 18,
+        "attackerMindCost": 5,
+        "defenderPool": "ACTION",
+        "defenderBefore": 500,
+        "defenderAfter": 473
+      }
+    },
+    "wrongWeaponMatrix": [
+      "bodyShot1+CARBINE",
+      "bodyShot1+RIFLE",
+      "legShot1+PISTOL",
+      "legShot1+RIFLE",
+      "headShot1+PISTOL",
+      "headShot1+CARBINE"
+    ],
+    "wrongWeaponResult": {
+      "serverCanPerformAction": 2,
+      "queueResult": "Cancelled",
+      "attackerHamChanged": false,
+      "defenderHamChanged": false
+    },
+    "noPartialResult": {
+      "bodyShot1": {
+        "serverCanPerformAction": 3,
+        "attackerHealth": 3,
+        "attackerAction": 11,
+        "attackerMind": 6,
+        "queueResult": "Cancelled",
+        "attackerHamChanged": false,
+        "defenderHamChanged": false
+      },
+      "legShot1": {
+        "serverCanPerformAction": 3,
+        "attackerHealth": 10,
+        "attackerAction": 18,
+        "attackerMind": 6,
+        "queueResult": "Cancelled",
+        "attackerHamChanged": false,
+        "defenderHamChanged": false
+      }
+    },
+    "diagnosticExecution": {
+      "headShot1": {
+        "weapon": "RIFLE",
+        "serverExecuteMaxMs": 4725,
+        "queueResult": "Success",
+        "primary": {
+          "accuracySkill": 20,
+          "accuracyWeapon": 30.024935,
+          "accuracyPosture": 0,
+          "accuracyBonus": 5,
+          "accuracyPrivate": 0,
+          "accuracyTotal": 55.024933,
+          "defenseSkill": 1,
+          "defenseLocomotion": -10,
+          "defenseTotal": -9.0,
+          "hitChance": 100.0,
+          "roll": 28,
+          "result": "HIT"
+        },
+        "secondary": {
+          "profile": "BLOCK",
+          "defenderWeapon": "object/weapon/ranged/rifle/rifle_cdef.iff",
+          "skill": "block",
+          "accuracyTotal": 55.024933,
+          "evadeSkill": 1,
+          "evadeCenter": 0,
+          "evadePosture": -10,
+          "evadeTotal": -9,
+          "attackRoll": 441,
+          "defendRoll": 193,
+          "result": "HIT"
+        }
+      },
+      "bodyShot1": {
+        "weapon": "PISTOL",
+        "serverExecuteMaxMs": 3150,
+        "queueResult": "Success",
+        "primary": {
+          "accuracySkill": 20,
+          "accuracyWeapon": 30.024935,
+          "accuracyPosture": 0,
+          "accuracyBonus": 50,
+          "accuracyPrivate": 0,
+          "accuracyTotal": 100.02493,
+          "defenseSkill": 1,
+          "defenseLocomotion": -10,
+          "defenseTotal": -9.0,
+          "hitChance": 100.0,
+          "roll": 95,
+          "result": "HIT"
+        },
+        "secondary": {
+          "profile": "DODGE",
+          "defenderWeapon": "object/weapon/ranged/pistol/pistol_cdef.iff",
+          "skill": "dodge",
+          "accuracyTotal": 100.02493,
+          "evadeSkill": 1,
+          "evadeCenter": 0,
+          "evadePosture": -10,
+          "evadeTotal": -9,
+          "attackRoll": 303,
+          "defendRoll": 189,
+          "result": "HIT"
+        }
+      },
+      "legShot1": {
+        "weapon": "CARBINE",
+        "serverExecuteMaxMs": 6300,
+        "queueResult": "Success",
+        "primary": {
+          "accuracySkill": 20,
+          "accuracyWeapon": 30.024935,
+          "accuracyPosture": 0,
+          "accuracyBonus": 25,
+          "accuracyPrivate": 0,
+          "accuracyTotal": 75.02493,
+          "defenseSkill": 1,
+          "defenseLocomotion": -10,
+          "defenseTotal": -9.0,
+          "hitChance": 100.0,
+          "roll": 43,
+          "result": "HIT"
+        },
+        "secondary": {
+          "profile": "COUNTER",
+          "defenderWeapon": "object/weapon/ranged/carbine/carbine_cdef.iff",
+          "skill": "counterattack",
+          "accuracyTotal": 75.02493,
+          "evadeSkill": 1,
+          "evadeCenter": 0,
+          "evadePosture": -10,
+          "evadeTotal": -9,
+          "attackRoll": 15,
+          "defendRoll": 38,
+          "result": "HIT"
+        }
+      }
+    },
+    "cleanup": {
+      "tier1Restored": true,
+      "headShotLayerRestored": true,
+      "skillsRemoved": true,
+      "fixtureWeaponsRemoved": true,
+      "pvpRestored": true,
+      "hamRestored": true,
+      "diagnosticObjvarsRemoved": true,
+      "defenderFixtureWeaponsRemoved": true
+    }
+  },
+  "requiredBeforeReady": [],
+  "materializerPolicy": {
+    "rejectPatchTextWhileBlocked": [
+      "bodyShot1",
+      "legShot1"
+    ]
+  }
+}

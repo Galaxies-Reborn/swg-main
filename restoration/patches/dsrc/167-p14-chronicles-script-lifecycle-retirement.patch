@@ -1,0 +1,50 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java b/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java
+--- a/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java
+@@ -10,8 +10,8 @@ public class player_saga_quest extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
+-        // Chronicles is an NGE-only progression system.  Do not queue its
+-        // profession grant while the native script attach is still in flight.
++        // Chronicles is an NGE-only progression system. Keep attach inert;
++        // OnInitialize retires this legacy script after attachment completes.
+         return SCRIPT_CONTINUE;
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+@@ -21,14 +21,7 @@ public class player_saga_quest extends script.base_script
+     }
+     public int OnNewbieTutorialResponse(obj_id self, String action) throws InterruptedException
+     {
+-        if (action.equals("clientReady"))
+-        {
+-            if (!hasObjVar(self, "chroniclesTermsOfServiceShown"))
+-            {
+-                messageTo(self, "handleChroniclesTermsOfService", null, 2, false);
+-            }
+-            messageTo(self, "handleChroniclesReserveReminder", null, 3, false);
+-        }
++        detachScript(self, "player.player_saga_quest");
+         return SCRIPT_CONTINUE;
+     }
+     public int handleChroniclesTermsOfService(obj_id self, dictionary params) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/systems/storyteller/storyteller_commands.java b/sku.0/sys.server/compiled/game/script/systems/storyteller/storyteller_commands.java
+--- a/sku.0/sys.server/compiled/game/script/systems/storyteller/storyteller_commands.java
++++ b/sku.0/sys.server/compiled/game/script/systems/storyteller/storyteller_commands.java
+@@ -13,6 +13,16 @@ public class storyteller_commands extends script.base_script
+     public storyteller_commands()
+     {
+     }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        detachScript(self, "systems.storyteller.storyteller_commands");
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        detachScript(self, "systems.storyteller.storyteller_commands");
++        return SCRIPT_CONTINUE;
++    }
+     public static final string_id SID_STORYTELLER_HELP = new string_id("storyteller", "storyteller_help");
+     public static final string_id SID_STORYTELLER_TITLE = new string_id("storyteller", "storyteller_title");
+     public static final string_id SID_STORYTELLER_MENU_CMDS = new string_id("storyteller", "storyteller_menu_commands");

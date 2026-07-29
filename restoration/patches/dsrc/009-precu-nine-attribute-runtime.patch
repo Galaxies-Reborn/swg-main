@@ -1,0 +1,593 @@
+diff --git a/sku.0/sys.server/compiled/game/object/object_template.tdf b/sku.0/sys.server/compiled/game/object/object_template.tdf
+index 2b8eb2a..c905834 100644
+--- a/sku.0/sys.server/compiled/game/object/object_template.tdf
++++ b/sku.0/sys.server/compiled/game/object/object_template.tdf
+@@ -1810,10 +1810,13 @@ version 9
+ enum Attributes
+ {
+ 	AT_health
++	AT_strength
+ 	AT_constitution
+ 	AT_action
++	AT_quickness
+ 	AT_stamina
+ 	AT_mind
++	AT_focus
+ 	AT_willpower
+ }
+ 
+@@ -2070,10 +2073,13 @@ version 10
+ enum Attributes
+ {
+ 	AT_health
++	AT_strength
+ 	AT_constitution
+ 	AT_action
++	AT_quickness
+ 	AT_stamina
+ 	AT_mind
++	AT_focus
+ 	AT_willpower
+ }
+ 
+@@ -2330,10 +2336,13 @@ version 11
+ enum Attributes
+ {
+ 	AT_health
++	AT_strength
+ 	AT_constitution
+ 	AT_action
++	AT_quickness
+ 	AT_stamina
+ 	AT_mind
++	AT_focus
+ 	AT_willpower
+ }
+ 
+diff --git a/sku.0/sys.server/compiled/game/object/creature/player/base/base_player.tpf b/sku.0/sys.server/compiled/game/object/creature/player/base/base_player.tpf
+index ac481a6..5e53658 100644
+--- a/sku.0/sys.server/compiled/game/object/creature/player/base/base_player.tpf
++++ b/sku.0/sys.server/compiled/game/object/creature/player/base/base_player.tpf
+@@ -8,24 +8,33 @@
+ defaultWeapon = "object/weapon/melee/unarmed/unarmed_default_player.iff"
+ 
+ attributes[AT_health] = 1000
++attributes[AT_strength] = 300
+ attributes[AT_constitution] = 1000
+ attributes[AT_action] = 300
++attributes[AT_quickness] = 300
+ attributes[AT_stamina] = 500
+ attributes[AT_mind] = 300
++attributes[AT_focus] = 300
+ attributes[AT_willpower] = 1000
+ 
+ minAttributes[AT_health] = 0
++minAttributes[AT_strength] = 0
+ minAttributes[AT_constitution] = 0
+ minAttributes[AT_action] = 0
++minAttributes[AT_quickness] = 0
+ minAttributes[AT_stamina] = 0
+ minAttributes[AT_mind] = 0
++minAttributes[AT_focus] = 0
+ minAttributes[AT_willpower] = 0
+ 
+ maxAttributes[AT_health] = 1000
++maxAttributes[AT_strength] = 300
+ maxAttributes[AT_constitution] = 1000
+ maxAttributes[AT_action] = 300
++maxAttributes[AT_quickness] = 300
+ maxAttributes[AT_stamina] = 500
+ maxAttributes[AT_mind] = 300
++maxAttributes[AT_focus] = 300
+ maxAttributes[AT_willpower] = 1000
+ 
+ minDrainModifier = 0.0007
+diff --git a/sku.0/sys.server/compiled/game/object/creature/base/base_creature.tpf b/sku.0/sys.server/compiled/game/object/creature/base/base_creature.tpf
+index 997d6f8..783e158 100644
+--- a/sku.0/sys.server/compiled/game/object/creature/base/base_creature.tpf
++++ b/sku.0/sys.server/compiled/game/object/creature/base/base_creature.tpf
+@@ -7,24 +7,33 @@
+ defaultWeapon = "object/weapon/creature/strength6/creature_strength6_normal.iff"
+ 
+ attributes[AT_health] = 1000
++attributes[AT_strength] = 1000
+ attributes[AT_constitution] = 1000
+ attributes[AT_action] = 1000
++attributes[AT_quickness] = 1000
+ attributes[AT_stamina] = 1000
+ attributes[AT_mind] = 1000
++attributes[AT_focus] = 1000
+ attributes[AT_willpower] = 1000
+ 
+ minAttributes[AT_health] = 0
++minAttributes[AT_strength] = 0
+ minAttributes[AT_constitution] = 0
+ minAttributes[AT_action] = 0
++minAttributes[AT_quickness] = 0
+ minAttributes[AT_stamina] = 0
+ minAttributes[AT_mind] = 0
++minAttributes[AT_focus] = 0
+ minAttributes[AT_willpower] = 0
+ 
+ maxAttributes[AT_health] = 1000
++maxAttributes[AT_strength] = 1000
+ maxAttributes[AT_constitution] = 1000
+ maxAttributes[AT_action] = 1000
++maxAttributes[AT_quickness] = 1000
+ maxAttributes[AT_stamina] = 1000
+ maxAttributes[AT_mind] = 1000
++maxAttributes[AT_focus] = 1000
+ maxAttributes[AT_willpower] = 1000
+ 
+ minDrainModifier = 0.0007
+diff --git a/sku.0/sys.server/compiled/game/object/creature/npc/base/base_npc.tpf b/sku.0/sys.server/compiled/game/object/creature/npc/base/base_npc.tpf
+index 5eeef86..634440a 100644
+--- a/sku.0/sys.server/compiled/game/object/creature/npc/base/base_npc.tpf
++++ b/sku.0/sys.server/compiled/game/object/creature/npc/base/base_npc.tpf
+@@ -19,22 +19,31 @@
+ defaultWeapon = "object/weapon/melee/unarmed/unarmed_default_player.iff"
+ 
+ attributes[AT_health] = 1000
++attributes[AT_strength] = 1000
+ attributes[AT_constitution] = 1000
+ attributes[AT_action] = 1000
++attributes[AT_quickness] = 1000
+ attributes[AT_stamina] = 1000
+ attributes[AT_mind] = 1000
++attributes[AT_focus] = 1000
+ attributes[AT_willpower] = 1000
+ minAttributes[AT_health] = 0
++minAttributes[AT_strength] = 0
+ minAttributes[AT_constitution] = 0
+ minAttributes[AT_action] = 0
++minAttributes[AT_quickness] = 0
+ minAttributes[AT_stamina] = 0
+ minAttributes[AT_mind] = 0
++minAttributes[AT_focus] = 0
+ minAttributes[AT_willpower] = 0
+ maxAttributes[AT_health] = 1000
++maxAttributes[AT_strength] = 1000
+ maxAttributes[AT_constitution] = 1000
+ maxAttributes[AT_action] = 1000
++maxAttributes[AT_quickness] = 1000
+ maxAttributes[AT_stamina] = 1000
+ maxAttributes[AT_mind] = 1000
++maxAttributes[AT_focus] = 1000
+ maxAttributes[AT_willpower] = 1000
+ minDrainModifier = 0.0007
+ maxDrainModifier = 1
+diff --git a/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype.tpf b/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype.tpf
+index 7377683..0575307 100644
+--- a/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype.tpf
++++ b/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype.tpf
+@@ -14,24 +14,33 @@
+ defaultWeapon = "object/weapon/creature/strength6/creature_strength6_normal.iff"
+ 
+ attributes[AT_health] = 1000
++attributes[AT_strength] = 1000
+ attributes[AT_constitution] = 1000
+ attributes[AT_action] = 1000
++attributes[AT_quickness] = 1000
+ attributes[AT_stamina] = 1000
+ attributes[AT_mind] = 1000
++attributes[AT_focus] = 1000
+ attributes[AT_willpower] = 1000
+ 
+ minAttributes[AT_health] = 0
++minAttributes[AT_strength] = 0
+ minAttributes[AT_constitution] = 0
+ minAttributes[AT_action] = 0
++minAttributes[AT_quickness] = 0
+ minAttributes[AT_stamina] = 0
+ minAttributes[AT_mind] = 0
++minAttributes[AT_focus] = 0
+ minAttributes[AT_willpower] = 0
+ 
+ maxAttributes[AT_health] = 1000
++maxAttributes[AT_strength] = 1000
+ maxAttributes[AT_constitution] = 1000
+ maxAttributes[AT_action] = 1000
++maxAttributes[AT_quickness] = 1000
+ maxAttributes[AT_stamina] = 1000
+ maxAttributes[AT_mind] = 1000
++maxAttributes[AT_focus] = 1000
+ maxAttributes[AT_willpower] = 1000
+ 
+ minDrainModifier = 0.0007
+diff --git a/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype_bike.tpf b/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype_bike.tpf
+index 5ae187e..4c3cc86 100644
+--- a/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype_bike.tpf
++++ b/sku.0/sys.server/compiled/game/object/mobile/vehicular_prototype_bike.tpf
+@@ -14,24 +14,33 @@
+ defaultWeapon = "object/weapon/creature/strength6/creature_strength6_normal.iff"
+ 
+ attributes[AT_health] = 1000
++attributes[AT_strength] = 1000
+ attributes[AT_constitution] = 1000
+ attributes[AT_action] = 1000
++attributes[AT_quickness] = 1000
+ attributes[AT_stamina] = 1000
+ attributes[AT_mind] = 1000
++attributes[AT_focus] = 1000
+ attributes[AT_willpower] = 1000
+ 
+ minAttributes[AT_health] = 0
++minAttributes[AT_strength] = 0
+ minAttributes[AT_constitution] = 0
+ minAttributes[AT_action] = 0
++minAttributes[AT_quickness] = 0
+ minAttributes[AT_stamina] = 0
+ minAttributes[AT_mind] = 0
++minAttributes[AT_focus] = 0
+ minAttributes[AT_willpower] = 0
+ 
+ maxAttributes[AT_health] = 1000
++maxAttributes[AT_strength] = 1000
+ maxAttributes[AT_constitution] = 1000
+ maxAttributes[AT_action] = 1000
++maxAttributes[AT_quickness] = 1000
+ maxAttributes[AT_stamina] = 1000
+ maxAttributes[AT_mind] = 1000
++maxAttributes[AT_focus] = 1000
+ maxAttributes[AT_willpower] = 1000
+ 
+ minDrainModifier = 0.0007
+diff --git a/sku.0/sys.server/compiled/game/object/mobile/vehicle/vehicular_prototype.tpf b/sku.0/sys.server/compiled/game/object/mobile/vehicle/vehicular_prototype.tpf
+index 7377683..0575307 100644
+--- a/sku.0/sys.server/compiled/game/object/mobile/vehicle/vehicular_prototype.tpf
++++ b/sku.0/sys.server/compiled/game/object/mobile/vehicle/vehicular_prototype.tpf
+@@ -14,24 +14,33 @@
+ defaultWeapon = "object/weapon/creature/strength6/creature_strength6_normal.iff"
+ 
+ attributes[AT_health] = 1000
++attributes[AT_strength] = 1000
+ attributes[AT_constitution] = 1000
+ attributes[AT_action] = 1000
++attributes[AT_quickness] = 1000
+ attributes[AT_stamina] = 1000
+ attributes[AT_mind] = 1000
++attributes[AT_focus] = 1000
+ attributes[AT_willpower] = 1000
+ 
+ minAttributes[AT_health] = 0
++minAttributes[AT_strength] = 0
+ minAttributes[AT_constitution] = 0
+ minAttributes[AT_action] = 0
++minAttributes[AT_quickness] = 0
+ minAttributes[AT_stamina] = 0
+ minAttributes[AT_mind] = 0
++minAttributes[AT_focus] = 0
+ minAttributes[AT_willpower] = 0
+ 
+ maxAttributes[AT_health] = 1000
++maxAttributes[AT_strength] = 1000
+ maxAttributes[AT_constitution] = 1000
+ maxAttributes[AT_action] = 1000
++maxAttributes[AT_quickness] = 1000
+ maxAttributes[AT_stamina] = 1000
+ maxAttributes[AT_mind] = 1000
++maxAttributes[AT_focus] = 1000
+ maxAttributes[AT_willpower] = 1000
+ 
+ minDrainModifier = 0.0007
+diff --git a/sku.0/sys.server/compiled/game/script/base_class.java b/sku.0/sys.server/compiled/game/script/base_class.java
+index be95ecf..8c2a489 100644
+--- a/sku.0/sys.server/compiled/game/script/base_class.java
++++ b/sku.0/sys.server/compiled/game/script/base_class.java
+@@ -812,25 +812,34 @@ public class base_class
+     /** id for health attribute
+      * @see #getAttrib(obj_id, int) */
+     public static final int HEALTH       = 0;
++    /** id for strength attribute
++     * @see #getAttrib(obj_id, int) */
++    public static final int STRENGTH     = 1;
+     /** id for constitution attribute
+      * @see #getAttrib(obj_id, int) */
+-    public static final int CONSTITUTION = 1;
++    public static final int CONSTITUTION = 2;
+     /** id for action attribute
+      * @see #getAttrib(obj_id, int) */
+-    public static final int ACTION       = 2;
++    public static final int ACTION       = 3;
++    /** id for quickness attribute
++     * @see #getAttrib(obj_id, int) */
++    public static final int QUICKNESS    = 4;
+     /** id for stamina attribute
+      * @see #getAttrib(obj_id, int) */
+-    public static final int STAMINA      = 3;
++    public static final int STAMINA      = 5;
+     /** id for mind attribute
+      * @see #getAttrib(obj_id, int) */
+-    public static final int MIND         = 4;
++    public static final int MIND         = 6;
++    /** id for focus attribute
++     * @see #getAttrib(obj_id, int) */
++    public static final int FOCUS        = 7;
+     /** id for willpower attribute
+      * @see #getAttrib(obj_id, int) */
+-    public static final int WILLPOWER    = 5;
++    public static final int WILLPOWER    = 8;
+ 
+-    public static final int NUM_ATTRIBUTES = 6;
++    public static final int NUM_ATTRIBUTES = 9;
+     public static final int NUM_ATTRIBUTE_GROUPS = 3;
+-    public static final int NUM_ATTRIBUTES_PER_GROUP = 2;
++    public static final int NUM_ATTRIBUTES_PER_GROUP = 3;
+ 
+ 
+     /** error code returned by getAttrib
+diff --git a/sku.0/sys.server/compiled/game/script/library/combat.java b/sku.0/sys.server/compiled/game/script/library/combat.java
+index a0877e5..30391f5 100644
+--- a/sku.0/sys.server/compiled/game/script/library/combat.java
++++ b/sku.0/sys.server/compiled/game/script/library/combat.java
+@@ -8,7 +8,6 @@ import java.util.Vector;
+ public class combat extends script.base_script
+ {
+     public static final String PRECU_WEAPON_HAM_COST_TABLE = "datatables/combat/precu_weapon_ham_costs.iff";
+-    public static final int PRECU_NEUTRAL_GOVERNING_ATTRIBUTE = 300;
+     public combat()
+     {
+     }
+@@ -751,12 +750,9 @@ public class combat extends script.base_script
+             return invalid;
+         }
+         int[] costs = new int[3];
+-        // SWGSource currently persists only six attributes and has no authoritative
+-        // Strength, Quickness, or Focus values. Use the authentic neutral baseline
+-        // until the nine-attribute persistence/network slice supplies those stats.
+-        costs[0] = calculatePrecuHamCost(PRECU_NEUTRAL_GOVERNING_ATTRIBUTE, weaponCosts.getInt("healthCost"), healthMultiplier);
+-        costs[1] = calculatePrecuHamCost(PRECU_NEUTRAL_GOVERNING_ATTRIBUTE, weaponCosts.getInt("actionCost"), actionMultiplier);
+-        costs[2] = calculatePrecuHamCost(PRECU_NEUTRAL_GOVERNING_ATTRIBUTE, weaponCosts.getInt("mindCost"), mindMultiplier);
++        costs[0] = calculatePrecuHamCost(getAttrib(self, STRENGTH), weaponCosts.getInt("healthCost"), healthMultiplier);
++        costs[1] = calculatePrecuHamCost(getAttrib(self, QUICKNESS), weaponCosts.getInt("actionCost"), actionMultiplier);
++        costs[2] = calculatePrecuHamCost(getAttrib(self, FOCUS), weaponCosts.getInt("mindCost"), mindMultiplier);
+         return costs;
+     }
+     public static final int ACTION_SUCCESS = 0;
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+index 777e0e2..64ef839 100644
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -872,95 +872,13 @@ public class skill extends script.base_script
+     }
+     public static void doPlayerLeveling(obj_id objPlayer, int intOldLevel, int intNewLevel) throws InterruptedException
+     {
+-        int levelDelta = intNewLevel - intOldLevel;
+-        if (levelDelta == 1)
+-        {
+-            showFlyText(objPlayer, new string_id("cbt_spam", "level_up"), 2.5f, colors.CORNFLOWERBLUE);
+-            playClientEffectObj(objPlayer, "clienteffect/level_granted.cef", objPlayer, null);
+-        }
+-        newbieTutorialHighlightUIElement(objPlayer, "/GroundHUD.MFDStatus.vsp.role.targetLevel", 5.0f);
+-        setPlayerStatsForLevel(objPlayer, intNewLevel);
++        // Publish 14.1 progression is skill-box based.  Combat-level changes must
++        // not drive stat grants, level-up effects, or NGE tutorial UI.
+     }
+     public static void setPlayerStatsForLevel(obj_id objPlayer, int intLevel) throws InterruptedException
+     {
+-        if (intLevel < 1)
+-        {
+-            LOG("skill.scriptlib", "getPlayerStatForLevel BAD level");
+-            return;
+-        }
+-        String strProfession = getProfessionName(getSkillTemplate(objPlayer));
+-        player_levels.level_data stats = player_levels.getPlayerLevelData(strProfession, intLevel);
+-        if (stats == null)
+-        {
+-            LOG("skill.scriptlib", "setPlayerStatsForLevel stats == null");
+-            return;
+-        }
+-        if ((strProfession != null) && (!strProfession.equals("")))
+-        {
+-            int intStat = getPlayerStatForLevel(objPlayer, intLevel, "luck");
+-            if (intStat >= 0)
+-            {
+-                int oldStat = getSkillStatMod(objPlayer, "luck");
+-                applySkillStatisticModifier(objPlayer, "luck", -oldStat);
+-                applySkillStatisticModifier(objPlayer, "luck", intStat);
+-            }
+-            intStat = getPlayerStatForLevel(objPlayer, intLevel, "precision");
+-            if (intStat >= 0)
+-            {
+-                int oldStat = getSkillStatMod(objPlayer, "precision");
+-                applySkillStatisticModifier(objPlayer, "precision", -oldStat);
+-                applySkillStatisticModifier(objPlayer, "precision", intStat);
+-            }
+-            intStat = getPlayerStatForLevel(objPlayer, intLevel, "strength");
+-            if (intStat >= 0)
+-            {
+-                int oldStat = getSkillStatMod(objPlayer, "strength");
+-                applySkillStatisticModifier(objPlayer, "strength", -oldStat);
+-                applySkillStatisticModifier(objPlayer, "strength", intStat);
+-            }
+-            intStat = getPlayerStatForLevel(objPlayer, intLevel, "constitution");
+-            if (intStat >= 0)
+-            {
+-                int oldStat = getSkillStatMod(objPlayer, "constitution");
+-                applySkillStatisticModifier(objPlayer, "constitution", -oldStat);
+-                applySkillStatisticModifier(objPlayer, "constitution", intStat);
+-            }
+-            intStat = getPlayerStatForLevel(objPlayer, intLevel, "stamina");
+-            if (intStat >= 0)
+-            {
+-                int oldStat = getSkillStatMod(objPlayer, "stamina");
+-                applySkillStatisticModifier(objPlayer, "stamina", -oldStat);
+-                applySkillStatisticModifier(objPlayer, "stamina", intStat);
+-            }
+-            intStat = getPlayerStatForLevel(objPlayer, intLevel, "agility");
+-            if (intStat >= 0)
+-            {
+-                int oldStat = getSkillStatMod(objPlayer, "agility");
+-                applySkillStatisticModifier(objPlayer, "agility", -oldStat);
+-                applySkillStatisticModifier(objPlayer, "agility", intStat);
+-            }
+-            intStat = getPlayerStatForLevel(objPlayer, intLevel, "health");
+-            if (intStat >= 0)
+-            {
+-                setMaxAttrib(objPlayer, HEALTH, intStat);
+-            }
+-            float fltStat = stats.health_regen;
+-            if (fltStat >= 0)
+-            {
+-                setRegenRate(objPlayer, HEALTH, fltStat);
+-            }
+-            intStat = getPlayerStatForLevel(objPlayer, intLevel, "action");
+-            if (intStat >= 0)
+-            {
+-                setMaxAttrib(objPlayer, ACTION, intStat);
+-            }
+-            fltStat = stats.action_regen;
+-            if (fltStat >= 0)
+-            {
+-                setRegenRate(objPlayer, ACTION, fltStat);
+-            }
+-            recalcPlayerPools(objPlayer, true);
+-        }
++        // Compatibility entry point retained for legacy scripts.  Pre-CU HAM
++        // maxima and regeneration are authoritative and never level-derived.
+     }
+     public static int getPlayerStatForLevel(obj_id player, int intLevel, String statString) throws InterruptedException
+     {
+@@ -1125,54 +1043,13 @@ public class skill extends script.base_script
+         {
+             return;
+         }
+-        int intLevel = getLevel(objPlayer);
+-        if (intLevel < 0)
+-        {
+-            intLevel = 1;
+-        }
+-        else 
+-        {
+-            if (intLevel > 90)
+-            {
+-                intLevel = 90;
+-            }
+-        }
+-        String strProfession = getProfessionName(getSkillTemplate(objPlayer));
+-        if (strProfession != null && strProfession.length() > 0)
++        // Keep this compatibility hook for callers that request a heal, but do
++        // not recalculate any pool from NGE profession or combat-level tables.
++        if (boolHealEverything)
+         {
+-            player_levels.level_data stats = player_levels.getPlayerLevelData(strProfession, intLevel);
+-            if (stats == null)
+-            {
+-                LOG("skill.scriptlib", "recalcPlayerPools stats == null");
+-                return;
+-            }
+-            int intBaseHealth = stats.health;
+-            int intBaseAction = stats.action;
+-            int intConstitution = getSkillStatisticModifier(objPlayer, "constitution");
+-            int intStamina = getSkillStatisticModifier(objPlayer, "stamina");
+-            intConstitution += getEnhancedSkillStatisticModifierUncapped(objPlayer, "constitution_modified");
+-            intStamina += getEnhancedSkillStatisticModifierUncapped(objPlayer, "stamina_modified");
+-            intBaseHealth = intBaseHealth + (HEALTH_POINTS_PER_CONSTITUTION * intConstitution);
+-            intBaseHealth = intBaseHealth + (HEALTH_POINTS_PER_STAMINA * intStamina);
+-            intBaseAction = intBaseAction + (ACTION_POINTS_PER_STAMINA * intStamina);
+-            intBaseAction = intBaseAction + (ACTION_POINTS_PER_CONSTITUTION * intConstitution);
+-            setMaxAttrib(objPlayer, ACTION, intBaseAction);
+-            setMaxAttrib(objPlayer, HEALTH, intBaseHealth);
+-            int[] myBuffs = buff.getAllBuffs(objPlayer);
+-            String thisBuffEffect;
+-            for (int myBuff : myBuffs) {
+-                thisBuffEffect = buff.getEffectParam(myBuff, 1);
+-                float thisBuffValue = buff.getEffectValue(myBuff, 1);
+-                if (thisBuffEffect != null && thisBuffValue < 0 && thisBuffEffect.equals("healthPercent")) {
+-                    boolHealEverything = false;
+-                    break;
+-                }
+-            }
+-            if (boolHealEverything)
+-            {
+-                setAttrib(objPlayer, ACTION, getMaxAttrib(objPlayer, ACTION));
+-                setAttrib(objPlayer, HEALTH, getMaxAttrib(objPlayer, HEALTH));
+-            }
++            setAttrib(objPlayer, HEALTH, getMaxAttrib(objPlayer, HEALTH));
++            setAttrib(objPlayer, ACTION, getMaxAttrib(objPlayer, ACTION));
++            setAttrib(objPlayer, MIND, getMaxAttrib(objPlayer, MIND));
+         }
+     }
+     public static void grantAllPoliticianSkills(obj_id player) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index b79861f..2b2d174 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -335,7 +335,6 @@ public class base_player extends script.base_script
+             "carbine_cdef"
+         };
+         setObjVar(self, pclib.VAR_NEWBIE_DEATH, 1);
+-        skill.setPlayerStatsForLevel(self, 1);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnSkillAboutToBeRevoked(obj_id self, String skill) throws InterruptedException
+@@ -357,26 +356,13 @@ public class base_player extends script.base_script
+     }
+     public int OnCombatLevelChanged(obj_id self, int oldCombatLevel, int newCombatLevel) throws InterruptedException
+     {
+-        if (newCombatLevel <= 1 || oldCombatLevel >= newCombatLevel)
++        // Combat level is not a Publish 14.1 progression axis.  Keep command
++        // availability synchronized without granting NGE stats or rewards.
++        if (utils.hasScriptVar(self, "respec.conceal"))
+         {
+-            return SCRIPT_CONTINUE;
+-        }
+-        if (!utils.hasScriptVar(self, "respec.conceal"))
+-        {
+-            skill.doPlayerLeveling(self, oldCombatLevel, newCombatLevel);
+-        }
+-        else 
+-        {
+-            skill.setPlayerStatsForLevel(self, newCombatLevel);
+             utils.removeScriptVar(self, "respec.conceal");
+         }
+-        if ((utils.isProfession(self, utils.TRADER)) && (!hasSkill(self, "class_trader")))
+-        {
+-            grantSkill(self, "class_trader");
+-        }
+         recomputeCommandSeries(self);
+-        grantLevelSpecificRewards(self, newCombatLevel);
+-        skill.sendlevelUpStatChangeSystemMessages(self, oldCombatLevel, newCombatLevel);
+         return SCRIPT_CONTINUE;
+     }
+     public void grantLevelSpecificRewards(obj_id player, int newCombatLevel) throws InterruptedException{
+@@ -727,7 +713,6 @@ public class base_player extends script.base_script
+             attachScript(self, "systems.skills.stealth.player_stealth");
+         }
+         skill_template.validateWorkingSkill(self);
+-        skill.setPlayerStatsForLevel(self, getLevel(self));
+         LOG("base_player - OnInitialize", "calling armor.recalculateArmorForPlayer(self); with a 'self' of:  " + self);
+         armor.recalculateArmorForPlayer(self);
+         obj_id objWeapon = getDefaultWeapon(self);
+@@ -2023,18 +2008,27 @@ public class base_player extends script.base_script
+                 aname = "health";
+                 break;
+                 case 1:
+-                aname = "constitution";
++                aname = "strength";
+                 break;
+                 case 2:
+-                aname = "action";
++                aname = "constitution";
+                 break;
+                 case 3:
+-                aname = "stamina";
++                aname = "action";
+                 break;
+                 case 4:
+-                aname = "mind";
++                aname = "quickness";
+                 break;
+                 case 5:
++                aname = "stamina";
++                break;
++                case 6:
++                aname = "mind";
++                break;
++                case 7:
++                aname = "focus";
++                break;
++                case 8:
+                 aname = "willpower";
+                 break;
+             }

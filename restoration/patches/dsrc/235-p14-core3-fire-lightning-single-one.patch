@@ -1,0 +1,65 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 51bb84f..033e4dd 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14766,6 +14766,15 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int fireLightningSingle1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!hasPrecuCommandWeaponTemplate(self, "object/weapon/ranged/rifle/rifle_lightning.iff") ||
++            !combatStandardAction("fireLightningSingle1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int polearmSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("polearmSpinAttack1", self, target, params, "", ""))
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 8b55ad4..54fed8e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1332,3 +1332,4 @@ unarmedSpinAttack1	unarmedSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	H
+ unarmedSpinAttack2	unarmedSpinAttack2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3d	combo_3d													OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+ overChargeShot2	overChargeShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3.75	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ fireAcidSingle1	fireAcidSingle1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_acid_rifle_single_1									fire_acid_rifle_single_1					OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	16	0	0	5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				HEAVY	RANGED_WEAPON	ENERGY	KINETIC				commando	0		ACTION_NAME	0	0	1
++fireLightningSingle1	fireLightningSingle1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_lightning_rifle_single_1								fire_lightning_rifle_single_1						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	16	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				bounty_hunter	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index fa5bf6a..9c6b10f 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -48,3 +48,4 @@ unarmedSpinAttack1	1.5	1.5	1.5	RANDOM	2	15	INTENSITY
+ unarmedSpinAttack2	2	2	2	RANDOM	3	15	INTENSITY
+ overChargeShot2	1	1	1	RANDOM	2	15	RANGED
+ fireAcidSingle1	1.5	0.5	0.5	RANDOM	4	0	INTENSITY
++fireLightningSingle1	1	1	1	RANDOM	2	0	INTENSITY
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 12a6297..4678d5f 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -47,3 +47,4 @@ unarmedSpinAttack1	leapingveermok
+ unarmedSpinAttack2	unarmed_knockdown
+ overChargeShot2	overchargeshot
+ fireAcidSingle1	fireacidsingle1
++fireLightningSingle1	firelightningsingle1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 6caaf09..5362005 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1968,3 +1968,4 @@ unarmedSpinAttack1	combat	normal	unarmedSpinAttack1	failSpecialAttack			2	unarme
+ unarmedSpinAttack2	combat	normal	unarmedSpinAttack2	failSpecialAttack			3	unarmedSpinAttack2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	3	0		0	0	0
+ overChargeShot2	combat	normal	overChargeShot2	failSpecialAttack			2	overChargeShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RANGED	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ fireAcidSingle1	combat	normal	fireAcidSingle1	failSpecialAttack			4	fireAcidSingle1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	HEAVY	NONE	defaultCooldownGroup	0	4	0		0	0	0
++fireLightningSingle1	combat	normal	fireLightningSingle1	failSpecialAttack			2	fireLightningSingle1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+index 3ac1806..7be11ce 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_ham_costs.tab
+@@ -8,3 +8,4 @@ object/weapon/melee/unarmed/unarmed_default_player.iff	10	10	10
+ object/weapon/melee/sword/sword_rantok.iff	27	40	25
+ object/weapon/melee/2h_sword/2h_sword_cleaver.iff	38	35	20
+ object/weapon/ranged/heavy/heavy_acid_beam.iff	60	60	15
++object/weapon/ranged/rifle/rifle_lightning.iff	55	70	55

@@ -1,0 +1,727 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 90db62f..9906396 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15280,6 +15280,18 @@ public class combat_actions extends script.systems.combat.combat_base
+             setState(self, STATE_AIMING, false);
+             recordPrecuLiveDiagnostic(self, "aim.expired", 1);
+         }
++        if (PRECU_TUMBLE_MELEE_MODIFIER.equals(modName) ||
++            PRECU_TUMBLE_RANGED_MODIFIER.equals(modName))
++        {
++            if (!hasSkillModModifier(self, PRECU_TUMBLE_MELEE_MODIFIER) &&
++                !hasSkillModModifier(self, PRECU_TUMBLE_RANGED_MODIFIER))
++            {
++                setState(self, STATE_TUMBLING, false);
++                recordPrecuLiveDiagnostic(self, "tumble.expired", 1);
++                recordPrecuLiveDiagnostic(
++                    self, "tumble.state", getState(self, STATE_TUMBLING));
++            }
++        }
+         return SCRIPT_CONTINUE;
+     }
+     public int threatenShot(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+@@ -15459,6 +15471,144 @@ public class combat_actions extends script.systems.combat.combat_base
+             self, actionCost, actionBefore, chance, roll, "SUCCESS");
+         return SCRIPT_CONTINUE;
+     }
++    private int calculatePrecuTumbleActionCost(obj_id self)
++        throws InterruptedException
++    {
++        float cost = 100.0f -
++            (((float)(getAttrib(self, QUICKNESS) - 300) / 1200.0f) * 100.0f);
++        return (int)Math.max(0.0f, cost);
++    }
++    private int performPrecuTumble(obj_id self, obj_id target, int posture,
++        String commandName, String spamKey) throws InterruptedException
++    {
++        int actionCost = calculatePrecuTumbleActionCost(self);
++        int actionBefore = getAttrib(self, ACTION);
++        int startPosture = getPosture(self);
++        int meleeDefenseBefore =
++            getEnhancedSkillStatisticModifierUncapped(self, "melee_defense");
++        int rangedDefenseBefore =
++            getEnhancedSkillStatisticModifierUncapped(self, "ranged_defense");
++        int dizzyRoll = -1;
++        boolean meleeApplied = false;
++        boolean rangedApplied = false;
++        String animation = isIdValid(target) && target != self ?
++            "tumble_facing" : "tumble";
++        String result = "SUCCESS";
++
++        if (actionBefore <= actionCost)
++        {
++            result = "INSUFFICIENT_ACTION";
++        }
++        else
++        {
++            setAttrib(self, ACTION, actionBefore - actionCost);
++            boolean postureApplied = setPostureClientImmediate(self, posture);
++            doAnimationAction(self, animation);
++            if (!postureApplied)
++            {
++                result = "POSTURE_FAILED";
++            }
++            else if (getState(self, STATE_DIZZY) > 0 &&
++                (dizzyRoll = rand(0, 100)) < 85)
++            {
++                boolean fell =
++                    setPostureClientImmediate(self, POSTURE_KNOCKED_DOWN);
++                combat.sendCombatSpamMessage(
++                    self, self,
++                    new string_id("cbt_spam", "dizzy_fall_down_single"),
++                    true, true, true);
++                result = fell ? "DIZZY_FALL" : "DIZZY_FALL_FAILED";
++            }
++            else
++            {
++                if (hasSkillModModifier(self, PRECU_TUMBLE_MELEE_MODIFIER))
++                {
++                    removeAttribOrSkillModModifier(
++                        self, PRECU_TUMBLE_MELEE_MODIFIER);
++                }
++                if (hasSkillModModifier(self, PRECU_TUMBLE_RANGED_MODIFIER))
++                {
++                    removeAttribOrSkillModModifier(
++                        self, PRECU_TUMBLE_RANGED_MODIFIER);
++                }
++                meleeApplied = addSkillModModifier(
++                    self, PRECU_TUMBLE_MELEE_MODIFIER, "melee_defense",
++                    50, 1.0f, true, false);
++                rangedApplied = addSkillModModifier(
++                    self, PRECU_TUMBLE_RANGED_MODIFIER, "ranged_defense",
++                    50, 1.0f, true, false);
++                if (meleeApplied && rangedApplied)
++                {
++                    setState(self, STATE_TUMBLING, true);
++                    combat.sendCombatSpamMessage(
++                        self, self, new string_id("cbt_spam", spamKey),
++                        true, true, true);
++                }
++                else
++                {
++                    removeAttribOrSkillModModifier(
++                        self, PRECU_TUMBLE_MELEE_MODIFIER);
++                    removeAttribOrSkillModModifier(
++                        self, PRECU_TUMBLE_RANGED_MODIFIER);
++                    setState(self, STATE_TUMBLING, false);
++                    result = "BUFF_FAILED";
++                }
++            }
++        }
++
++        recordPrecuLiveDiagnostic(self, "tumble.command", commandName);
++        recordPrecuLiveDiagnostic(self, "tumble.actionCost", actionCost);
++        recordPrecuLiveDiagnostic(self, "tumble.actionBefore", actionBefore);
++        recordPrecuLiveDiagnostic(
++            self, "tumble.actionAfter", getAttrib(self, ACTION));
++        recordPrecuLiveDiagnostic(self, "tumble.startPosture", startPosture);
++        recordPrecuLiveDiagnostic(
++            self, "tumble.endPosture", getPosture(self));
++        recordPrecuLiveDiagnostic(self, "tumble.animation", animation);
++        recordPrecuLiveDiagnostic(self, "tumble.dizzyRoll", dizzyRoll);
++        recordPrecuLiveDiagnostic(self, "tumble.result", result);
++        recordPrecuLiveDiagnostic(
++            self, "tumble.meleeDefenseBefore", meleeDefenseBefore);
++        recordPrecuLiveDiagnostic(
++            self, "tumble.meleeDefenseAfter",
++            getEnhancedSkillStatisticModifierUncapped(self, "melee_defense"));
++        recordPrecuLiveDiagnostic(
++            self, "tumble.rangedDefenseBefore", rangedDefenseBefore);
++        recordPrecuLiveDiagnostic(
++            self, "tumble.rangedDefenseAfter",
++            getEnhancedSkillStatisticModifierUncapped(self, "ranged_defense"));
++        recordPrecuLiveDiagnostic(
++            self, "tumble.modifiersApplied",
++            meleeApplied && rangedApplied ? 1 : 0);
++        recordPrecuLiveDiagnostic(self, "tumble.meleeDefenseBonus", 50);
++        recordPrecuLiveDiagnostic(self, "tumble.rangedDefenseBonus", 50);
++        recordPrecuLiveDiagnostic(
++            self, "tumble.initialState", getState(self, STATE_TUMBLING));
++        recordPrecuLiveDiagnostic(
++            self, "tumble.state", getState(self, STATE_TUMBLING));
++        recordPrecuLiveDiagnostic(self, "tumble.buffSeconds", 1.0f);
++        recordPrecuLiveDiagnostic(self, "tumble.expired", 0);
++        return result.equals("INSUFFICIENT_ACTION") ||
++            result.endsWith("FAILED") ? SCRIPT_OVERRIDE : SCRIPT_CONTINUE;
++    }
++    public int tumbleToProne(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        return performPrecuTumble(
++            self, target, POSTURE_PRONE, "tumbleToProne", "tum_prone");
++    }
++    public int tumbleToKneeling(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        return performPrecuTumble(
++            self, target, POSTURE_CROUCHED, "tumbleToKneeling", "tum_kneel");
++    }
++    public int tumbleToStanding(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        return performPrecuTumble(
++            self, target, POSTURE_UPRIGHT, "tumbleToStanding", "tum_standing");
++    }
+     public int overChargeShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("overChargeShot2", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index ae8e4ee..1139eb2 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -40,6 +40,10 @@ public class combat_base extends script.base_script
+     public static final String PRECU_COMBAT_SPAM = "datatables/combat/precu_combat_spam.iff";
+     public static final String PRECU_WEAPON_PROFILES = "datatables/combat/precu_weapon_profiles.iff";
+     public static final String PRECU_AIM_MODIFIER = "precu_aim";
++    public static final String PRECU_TUMBLE_MELEE_MODIFIER =
++        "precu_tumble_melee_defense";
++    public static final String PRECU_TUMBLE_RANGED_MODIFIER =
++        "precu_tumble_ranged_defense";
+     public static final int PRECU_PRIMARY_RESULT_FALLBACK = -1;
+     public static final int PRECU_SECONDARY_RESULT_FALLBACK = -2;
+     public static final int PRECU_COUNTERATTACK_COMMAND = 1957054281;
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index dcfdbcf..83c610f 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -147,6 +147,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String PISTOL_SUPPORT_THREE =
+         "combat_pistol_support_03";
+     private static final String MARKSMAN_SUPPORT_ONE = "combat_marksman_support_01";
++    private static final String MARKSMAN_SUPPORT_TWO = "combat_marksman_support_02";
+     private static final String MARKSMAN_SUPPORT_FOUR = "combat_marksman_support_04";
+     private static final String COMMAND = "headShot1";
+     private static final String DURATION_CONTROL_COMMAND = "headShot2";
+@@ -159,6 +160,11 @@ public class precu_headshot1_fixture extends script.base_script
+         "pistolMeleeDefense1";
+     private static final String PISTOL_MELEE_DEFENSE_TWO_COMMAND =
+         "pistolMeleeDefense2";
++    private static final String TUMBLE_TO_PRONE_COMMAND = "tumbleToProne";
++    private static final String TUMBLE_TO_KNEELING_COMMAND =
++        "tumbleToKneeling";
++    private static final String TUMBLE_TO_STANDING_COMMAND =
++        "tumbleToStanding";
+     private static final String ACTION_SHOT_ONE_COMMAND = "actionShot1";
+     private static final String ACTION_SHOT_TWO_COMMAND = "actionShot2";
+     private static final String MIND_SHOT_ONE_COMMAND = "mindShot1";
+@@ -434,6 +440,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String ORIGINAL_PISTOL_SUPPORT_THREE =
+         ROOT + ".originalPistolSupportThree";
+     private static final String ORIGINAL_SUPPORT_ONE = ROOT + ".originalSupportOne";
++    private static final String ORIGINAL_SUPPORT_TWO = ROOT + ".originalSupportTwo";
+     private static final String ORIGINAL_SUPPORT_FOUR = ROOT + ".originalSupportFour";
+     private static final String ORIGINAL_DURATION_CONTROL =
+         ROOT + ".originalDurationControl";
+@@ -453,6 +460,12 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalPistolMeleeDefenseOneCommand";
+     private static final String ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND =
+         ROOT + ".originalPistolMeleeDefenseTwoCommand";
++    private static final String ORIGINAL_TUMBLE_TO_PRONE_COMMAND =
++        ROOT + ".originalTumbleToProneCommand";
++    private static final String ORIGINAL_TUMBLE_TO_KNEELING_COMMAND =
++        ROOT + ".originalTumbleToKneelingCommand";
++    private static final String ORIGINAL_TUMBLE_TO_STANDING_COMMAND =
++        ROOT + ".originalTumbleToStandingCommand";
+     private static final String ORIGINAL_ACTION_SHOT_ONE_COMMAND =
+         ROOT + ".originalActionShotOneCommand";
+     private static final String ORIGINAL_ACTION_SHOT_TWO_COMMAND =
+@@ -713,7 +726,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -786,6 +799,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armPistolMeleeDefense(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armMarksmanTumble"))
++        {
++            return armMarksmanTumble(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armWarcryOne"))
+         {
+             return armWarcryOne(attacker, defender, args[3]);
+@@ -1106,7 +1123,10 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean supportOneGranted = noviceGranted &&
+             (hasSkill(attacker, MARKSMAN_SUPPORT_ONE) ||
+                 grantSkill(attacker, MARKSMAN_SUPPORT_ONE));
+-        boolean supportFourGranted = supportOneGranted &&
++        boolean supportTwoGranted = supportOneGranted &&
++            (hasSkill(attacker, MARKSMAN_SUPPORT_TWO) ||
++                grantSkill(attacker, MARKSMAN_SUPPORT_TWO));
++        boolean supportFourGranted = supportTwoGranted &&
+             (hasSkill(attacker, MARKSMAN_SUPPORT_FOUR) ||
+                 grantSkill(attacker, MARKSMAN_SUPPORT_FOUR));
+         boolean durationControlGranted = hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+@@ -1129,6 +1149,15 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean pistolMeleeDefenseTwoGranted =
+             hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ||
+             grantCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND);
++        boolean tumbleToProneGranted =
++            hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND) ||
++            grantCommand(attacker, TUMBLE_TO_PRONE_COMMAND);
++        boolean tumbleToKneelingGranted =
++            hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND) ||
++            grantCommand(attacker, TUMBLE_TO_KNEELING_COMMAND);
++        boolean tumbleToStandingGranted =
++            hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND) ||
++            grantCommand(attacker, TUMBLE_TO_STANDING_COMMAND);
+         boolean actionShotOneGranted =
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, ACTION_SHOT_ONE_COMMAND);
+@@ -1465,7 +1494,7 @@ public class precu_headshot1_fixture extends script.base_script
+             !pistolThreeGranted || !pistolFourGranted ||
+             !pistolNoviceGranted || !pistolSupportOneGranted ||
+             !pistolSupportTwoGranted || !pistolSupportThreeGranted ||
+-            !supportOneGranted ||
++            !supportOneGranted || !supportTwoGranted ||
+             !supportFourGranted ||
+             !strafeShotOneCommandGranted ||
+             !hasCommand(attacker, STRAFE_SHOT_ONE_COMMAND) ||
+@@ -1564,6 +1593,12 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) ||
+             !pistolMeleeDefenseTwoGranted ||
+             !hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ||
++            !tumbleToProneGranted ||
++            !hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND) ||
++            !tumbleToKneelingGranted ||
++            !hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND) ||
++            !tumbleToStandingGranted ||
++            !hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND) ||
+             !actionShotOneGranted ||
+             !hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) ||
+             !actionShotTwoGranted ||
+@@ -1732,6 +1767,12 @@ public class precu_headshot1_fixture extends script.base_script
+                     hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) +
+                 " pistolMeleeDefenseTwo=" +
+                     hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) +
++                " tumbleToProne=" +
++                    hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND) +
++                " tumbleToKneeling=" +
++                    hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND) +
++                " tumbleToStanding=" +
++                    hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND) +
+                 " mindShotOne=" + hasCommand(attacker, MIND_SHOT_ONE_COMMAND) +
+                 " mindShotTwo=" + hasCommand(attacker, MIND_SHOT_TWO_COMMAND) +
+                 " surpriseShot=" + hasCommand(attacker, SURPRISE_SHOT_COMMAND) +
+@@ -2067,6 +2108,29 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND);
+         }
++        if (attackerRoot && hasObjVar(
++                attacker, ORIGINAL_TUMBLE_TO_STANDING_COMMAND) &&
++            getIntObjVar(
++                attacker, ORIGINAL_TUMBLE_TO_STANDING_COMMAND) == 0 &&
++            hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND))
++        {
++            revokeCommand(attacker, TUMBLE_TO_STANDING_COMMAND);
++        }
++        if (attackerRoot && hasObjVar(
++                attacker, ORIGINAL_TUMBLE_TO_KNEELING_COMMAND) &&
++            getIntObjVar(
++                attacker, ORIGINAL_TUMBLE_TO_KNEELING_COMMAND) == 0 &&
++            hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND))
++        {
++            revokeCommand(attacker, TUMBLE_TO_KNEELING_COMMAND);
++        }
++        if (attackerRoot && hasObjVar(
++                attacker, ORIGINAL_TUMBLE_TO_PRONE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_TUMBLE_TO_PRONE_COMMAND) == 0 &&
++            hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND))
++        {
++            revokeCommand(attacker, TUMBLE_TO_PRONE_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) == 0 &&
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND))
+@@ -2954,6 +3018,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, MARKSMAN_SUPPORT_FOUR);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_SUPPORT_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_SUPPORT_TWO) == 0 &&
++            hasSkill(attacker, MARKSMAN_SUPPORT_TWO))
++        {
++            revokeSkill(attacker, MARKSMAN_SUPPORT_TWO);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_SUPPORT_ONE) &&
+             getIntObjVar(attacker, ORIGINAL_SUPPORT_ONE) == 0 &&
+             hasSkill(attacker, MARKSMAN_SUPPORT_ONE))
+@@ -3281,6 +3351,38 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armMarksmanTumble(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        removeAttribOrSkillModModifier(
++            attacker, combat_base.PRECU_TUMBLE_MELEE_MODIFIER);
++        removeAttribOrSkillModModifier(
++            attacker, combat_base.PRECU_TUMBLE_RANGED_MODIFIER);
++        setState(attacker, STATE_TUMBLING, false);
++        setAttrib(attacker, ACTION, getMaxAttrib(attacker, ACTION));
++        setPostureClientImmediate(attacker, POSTURE_UPRIGHT);
++        boolean boundary = hasSkill(attacker, MARKSMAN_NOVICE) &&
++            hasSkill(attacker, MARKSMAN_SUPPORT_ONE) &&
++            hasSkill(attacker, MARKSMAN_SUPPORT_TWO) &&
++            hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND) &&
++            hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND) &&
++            hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND);
++        return boundary ?
++            "action=armMarksmanTumble meleeDefense=" +
++                getSkillStatisticModifier(attacker, "melee_defense") +
++                " rangedDefense=" +
++                getSkillStatisticModifier(attacker, "ranged_defense") +
++                " action=" + getAttrib(attacker, ACTION) + " " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=marksmanTumbleOwnershipBoundaryFailed " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armWarcryOne(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+@@ -3824,6 +3926,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, PISTOL_SUPPORT_THREE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SUPPORT_ONE,
+             hasSkill(player, MARKSMAN_SUPPORT_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_SUPPORT_TWO,
++            hasSkill(player, MARKSMAN_SUPPORT_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SUPPORT_FOUR,
+             hasSkill(player, MARKSMAN_SUPPORT_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_DURATION_CONTROL,
+@@ -3842,6 +3946,12 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, PISTOL_MELEE_DEFENSE_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND,
+             hasCommand(player, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TUMBLE_TO_PRONE_COMMAND,
++            hasCommand(player, TUMBLE_TO_PRONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TUMBLE_TO_KNEELING_COMMAND,
++            hasCommand(player, TUMBLE_TO_KNEELING_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TUMBLE_TO_STANDING_COMMAND,
++            hasCommand(player, TUMBLE_TO_STANDING_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ACTION_SHOT_ONE_COMMAND,
+             hasCommand(player, ACTION_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ACTION_SHOT_TWO_COMMAND,
+@@ -4093,6 +4203,11 @@ public class precu_headshot1_fixture extends script.base_script
+     {
+         stopCombat(attacker);
+         stopCombat(defender);
++        removeAttribOrSkillModModifier(
++            attacker, combat_base.PRECU_TUMBLE_MELEE_MODIFIER);
++        removeAttribOrSkillModModifier(
++            attacker, combat_base.PRECU_TUMBLE_RANGED_MODIFIER);
++        setState(attacker, STATE_TUMBLING, false);
+         setCombatTarget(attacker, obj_id.NULL_ID);
+         setCombatTarget(defender, obj_id.NULL_ID);
+         combat.clearCombatDebuffs(attacker);
+@@ -4178,6 +4293,24 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_TUMBLE_TO_STANDING_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_TUMBLE_TO_STANDING_COMMAND) == 0 &&
++            hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND))
++        {
++            revokeCommand(attacker, TUMBLE_TO_STANDING_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_TUMBLE_TO_KNEELING_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_TUMBLE_TO_KNEELING_COMMAND) == 0 &&
++            hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND))
++        {
++            revokeCommand(attacker, TUMBLE_TO_KNEELING_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_TUMBLE_TO_PRONE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_TUMBLE_TO_PRONE_COMMAND) == 0 &&
++            hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND))
++        {
++            revokeCommand(attacker, TUMBLE_TO_PRONE_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) == 0 &&
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND))
+@@ -5007,6 +5140,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, MARKSMAN_SUPPORT_FOUR);
+         }
++        if (hasObjVar(attacker, ORIGINAL_SUPPORT_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_SUPPORT_TWO) == 0 &&
++            hasSkill(attacker, MARKSMAN_SUPPORT_TWO))
++        {
++            revokeSkill(attacker, MARKSMAN_SUPPORT_TWO);
++        }
+         if (hasObjVar(attacker, ORIGINAL_SUPPORT_ONE) &&
+             getIntObjVar(attacker, ORIGINAL_SUPPORT_ONE) == 0 &&
+             hasSkill(attacker, MARKSMAN_SUPPORT_ONE))
+@@ -5067,6 +5206,21 @@ public class precu_headshot1_fixture extends script.base_script
+                 PISTOL_MELEE_DEFENSE_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_HEALTH_SHOT_TWO_COMMAND,
+                 HEALTH_SHOT_TWO_COMMAND);
++        boolean marksmanTumbleSkillsRestored =
++            isSkillRestored(attacker, ORIGINAL_SUPPORT_TWO,
++                MARKSMAN_SUPPORT_TWO) &&
++            isSkillRestored(attacker, ORIGINAL_SUPPORT_ONE,
++                MARKSMAN_SUPPORT_ONE);
++        boolean marksmanTumbleCommandsRestored =
++            isCommandRestored(attacker,
++                ORIGINAL_TUMBLE_TO_STANDING_COMMAND,
++                TUMBLE_TO_STANDING_COMMAND) &&
++            isCommandRestored(attacker,
++                ORIGINAL_TUMBLE_TO_KNEELING_COMMAND,
++                TUMBLE_TO_KNEELING_COMMAND) &&
++            isCommandRestored(attacker,
++                ORIGINAL_TUMBLE_TO_PRONE_COMMAND,
++                TUMBLE_TO_PRONE_COMMAND);
+         boolean carbineSkillsRestored =
+             isSkillRestored(attacker, ORIGINAL_CARBINE_ABILITY_FOUR,
+                 CARBINE_ABILITY_FOUR) &&
+@@ -5280,6 +5434,7 @@ public class precu_headshot1_fixture extends script.base_script
+             fixtureLightningDestroyed && fixtureConcealTargetDestroyed &&
+             attackerRestored && defenderRestored &&
+             pistolSkillsRestored && pistolCommandsRestored &&
++            marksmanTumbleSkillsRestored && marksmanTumbleCommandsRestored &&
+             carbineSkillsRestored && carbineCommandsRestored &&
+             riflemanSkillsRestored;
+         setObjVar(attacker,
+@@ -5321,6 +5476,12 @@ public class precu_headshot1_fixture extends script.base_script
+         setObjVar(attacker,
+             "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.pistolCommands",
+             pistolCommandsRestored ? 1 : 0);
++        setObjVar(attacker,
++            "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.marksmanTumbleSkills",
++            marksmanTumbleSkillsRestored ? 1 : 0);
++        setObjVar(attacker,
++            "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.marksmanTumbleCommands",
++            marksmanTumbleCommandsRestored ? 1 : 0);
+         setObjVar(attacker,
+             "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.carbineSkills",
+             carbineSkillsRestored ? 1 : 0);
+@@ -5379,6 +5540,14 @@ public class precu_headshot1_fixture extends script.base_script
+     private void retryCarbineRestoration(obj_id attacker)
+         throws InterruptedException
+     {
++        restoreSkill(attacker, ORIGINAL_SUPPORT_TWO, MARKSMAN_SUPPORT_TWO);
++        restoreSkill(attacker, ORIGINAL_SUPPORT_ONE, MARKSMAN_SUPPORT_ONE);
++        restoreCommand(attacker, ORIGINAL_TUMBLE_TO_STANDING_COMMAND,
++            TUMBLE_TO_STANDING_COMMAND);
++        restoreCommand(attacker, ORIGINAL_TUMBLE_TO_KNEELING_COMMAND,
++            TUMBLE_TO_KNEELING_COMMAND);
++        restoreCommand(attacker, ORIGINAL_TUMBLE_TO_PRONE_COMMAND,
++            TUMBLE_TO_PRONE_COMMAND);
+         restoreSkill(attacker, ORIGINAL_PISTOL_SUPPORT_THREE,
+             PISTOL_SUPPORT_THREE);
+         restoreSkill(attacker, ORIGINAL_PISTOL_SUPPORT_TWO,
+@@ -5786,6 +5955,11 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean attackerStanding = setPostureClientImmediate(attacker, POSTURE_UPRIGHT);
+         boolean defenderStanding = setPostureClientImmediate(defender, POSTURE_UPRIGHT);
+         setState(attacker, STATE_COVER, false);
++        removeAttribOrSkillModModifier(
++            attacker, combat_base.PRECU_TUMBLE_MELEE_MODIFIER);
++        removeAttribOrSkillModModifier(
++            attacker, combat_base.PRECU_TUMBLE_RANGED_MODIFIER);
++        setState(attacker, STATE_TUMBLING, false);
+         boolean coverCleared = getState(attacker, STATE_COVER) == 0;
+         boolean proofStateBuffsCleared = clearProofStateBuffs(defender);
+         setRegenRate(attacker, HEALTH, 0.0f);
+@@ -5799,6 +5973,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean supportOneReady =
+             hasSkill(attacker, MARKSMAN_SUPPORT_ONE) ||
+             grantSkill(attacker, MARKSMAN_SUPPORT_ONE);
++        boolean supportTwoReady = supportOneReady &&
++            (hasSkill(attacker, MARKSMAN_SUPPORT_TWO) ||
++                grantSkill(attacker, MARKSMAN_SUPPORT_TWO));
+         boolean rifleOneReady =
+             hasSkill(attacker, RIFLE_ONE) || grantSkill(attacker, RIFLE_ONE);
+         boolean rifleTwoReady = rifleOneReady &&
+@@ -5968,9 +6145,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean carbineAbilityFourReady = carbineNoviceReady &&
+             (hasSkill(attacker, CARBINE_ABILITY_FOUR) ||
+                 grantSkill(attacker, CARBINE_ABILITY_FOUR));
+-        boolean supportFourReady =
+-            hasSkill(attacker, MARKSMAN_SUPPORT_FOUR) ||
+-            grantSkill(attacker, MARKSMAN_SUPPORT_FOUR);
++        boolean supportFourReady = supportTwoReady &&
++            (hasSkill(attacker, MARKSMAN_SUPPORT_FOUR) ||
++                grantSkill(attacker, MARKSMAN_SUPPORT_FOUR));
+         boolean pistolOneReady =
+             hasSkill(attacker, MARKSMAN_PISTOL_ONE) ||
+             grantSkill(attacker, MARKSMAN_PISTOL_ONE);
+@@ -6015,6 +6192,15 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean pistolMeleeDefenseTwoReady =
+             hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ||
+             grantCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND);
++        boolean tumbleToProneReady =
++            hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND) ||
++            grantCommand(attacker, TUMBLE_TO_PRONE_COMMAND);
++        boolean tumbleToKneelingReady =
++            hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND) ||
++            grantCommand(attacker, TUMBLE_TO_KNEELING_COMMAND);
++        boolean tumbleToStandingReady =
++            hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND) ||
++            grantCommand(attacker, TUMBLE_TO_STANDING_COMMAND);
+         boolean actionShotOneReady =
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, ACTION_SHOT_ONE_COMMAND);
+@@ -6356,7 +6542,7 @@ public class precu_headshot1_fixture extends script.base_script
+             carbineSupportFourReady &&
+             carbineSpeedOneReady &&
+             carbineAbilityFourReady &&
+-            supportOneReady && supportFourReady &&
++            supportOneReady && supportTwoReady && supportFourReady &&
+             pistolOneReady && pistolTwoReady && pistolThreeReady &&
+             pistolFourReady && pistolNoviceReady && pistolSupportOneReady &&
+             pistolSupportTwoReady && pistolSupportThreeReady &&
+@@ -6364,6 +6550,8 @@ public class precu_headshot1_fixture extends script.base_script
+             bodyShotTwoReady && bodyShotThreeReady &&
+             healthShotOneReady && healthShotTwoReady &&
+             pistolMeleeDefenseOneReady && pistolMeleeDefenseTwoReady &&
++            tumbleToProneReady && tumbleToKneelingReady &&
++            tumbleToStandingReady &&
+             actionShotOneReady && actionShotTwoReady &&
+             mindShotOneReady && mindShotTwoReady && surpriseShotReady &&
+             sniperShotReady && concealShotReady && flurryShotOneReady &&
+@@ -6799,6 +6987,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_PISTOL_SUPPORT_TWO) &&
+             hasObjVar(player, ORIGINAL_PISTOL_SUPPORT_THREE) &&
+             hasObjVar(player, ORIGINAL_SUPPORT_ONE) &&
++            hasObjVar(player, ORIGINAL_SUPPORT_TWO) &&
+             hasObjVar(player, ORIGINAL_SUPPORT_FOUR) &&
+             hasObjVar(player, ORIGINAL_DURATION_CONTROL) &&
+             hasObjVar(player, ORIGINAL_HEAD_SHOT_THREE_COMMAND) &&
+@@ -6808,6 +6997,9 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_HEALTH_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND) &&
++            hasObjVar(player, ORIGINAL_TUMBLE_TO_PRONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_TUMBLE_TO_KNEELING_COMMAND) &&
++            hasObjVar(player, ORIGINAL_TUMBLE_TO_STANDING_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACTION_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACTION_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_MIND_SHOT_ONE_COMMAND) &&
+@@ -7014,6 +7206,12 @@ public class precu_headshot1_fixture extends script.base_script
+         int canPerformPistolMeleeDefenseTwo = isIdValid(weapon) ?
+             combat.canPerformAction(
+                 PISTOL_MELEE_DEFENSE_TWO_COMMAND, attacker) : -1;
++        int canPerformTumbleToProne = isIdValid(weapon) ?
++            combat.canPerformAction(TUMBLE_TO_PRONE_COMMAND, attacker) : -1;
++        int canPerformTumbleToKneeling = isIdValid(weapon) ?
++            combat.canPerformAction(TUMBLE_TO_KNEELING_COMMAND, attacker) : -1;
++        int canPerformTumbleToStanding = isIdValid(weapon) ?
++            combat.canPerformAction(TUMBLE_TO_STANDING_COMMAND, attacker) : -1;
+         int canPerformActionShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(ACTION_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformActionShotTwo = isIdValid(weapon) ?
+@@ -7747,6 +7945,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " pistolSupportTwo=" + hasSkill(attacker, PISTOL_SUPPORT_TWO) +
+             " pistolSupportThree=" + hasSkill(attacker, PISTOL_SUPPORT_THREE) +
+             " supportOne=" + hasSkill(attacker, MARKSMAN_SUPPORT_ONE) +
++            " supportTwo=" + hasSkill(attacker, MARKSMAN_SUPPORT_TWO) +
+             " supportFour=" + hasSkill(attacker, MARKSMAN_SUPPORT_FOUR) +
+             " hasCommand=" + hasCommand(attacker, COMMAND) +
+             " durationControl=" + hasCommand(attacker, DURATION_CONTROL_COMMAND) +
+@@ -7759,6 +7958,11 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) +
+             " pistolMeleeDefenseTwo=" +
+                 hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) +
++            " tumbleToProne=" + hasCommand(attacker, TUMBLE_TO_PRONE_COMMAND) +
++            " tumbleToKneeling=" +
++                hasCommand(attacker, TUMBLE_TO_KNEELING_COMMAND) +
++            " tumbleToStanding=" +
++                hasCommand(attacker, TUMBLE_TO_STANDING_COMMAND) +
+             " actionShotOne=" + hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) +
+             " actionShotTwo=" + hasCommand(attacker, ACTION_SHOT_TWO_COMMAND) +
+             " mindShotOne=" + hasCommand(attacker, MIND_SHOT_ONE_COMMAND) +
+@@ -7967,6 +8171,9 @@ public class precu_headshot1_fixture extends script.base_script
+                 canPerformPistolMeleeDefenseOne +
+             " canPerformPistolMeleeDefenseTwo=" +
+                 canPerformPistolMeleeDefenseTwo +
++            " canPerformTumbleToProne=" + canPerformTumbleToProne +
++            " canPerformTumbleToKneeling=" + canPerformTumbleToKneeling +
++            " canPerformTumbleToStanding=" + canPerformTumbleToStanding +
+             " canPerformActionShotOne=" + canPerformActionShotOne +
+             " canPerformActionShotTwo=" + canPerformActionShotTwo +
+             " canPerformMindShotOne=" + canPerformMindShotOne +
+@@ -8142,6 +8349,51 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "aim.consumed", -1) +
+             " aimExpired=" +
+                 readDiagnosticInt(attacker, "aim.expired", -1) +
++            " tumbleState=" + getState(attacker, STATE_TUMBLING) +
++            " tumbleMeleeModifierPresent=" + hasSkillModModifier(
++                attacker, combat_base.PRECU_TUMBLE_MELEE_MODIFIER) +
++            " tumbleRangedModifierPresent=" + hasSkillModModifier(
++                attacker, combat_base.PRECU_TUMBLE_RANGED_MODIFIER) +
++            " tumbleCommand=" +
++                readDiagnosticString(attacker, "tumble.command", "none") +
++            " tumbleActionCost=" +
++                readDiagnosticInt(attacker, "tumble.actionCost", -1) +
++            " tumbleActionBefore=" +
++                readDiagnosticInt(attacker, "tumble.actionBefore", -1) +
++            " tumbleActionAfter=" +
++                readDiagnosticInt(attacker, "tumble.actionAfter", -1) +
++            " tumbleStartPosture=" +
++                readDiagnosticInt(attacker, "tumble.startPosture", -1) +
++            " tumbleEndPosture=" +
++                readDiagnosticInt(attacker, "tumble.endPosture", -1) +
++            " tumbleAnimation=" +
++                readDiagnosticString(attacker, "tumble.animation", "none") +
++            " tumbleDizzyRoll=" +
++                readDiagnosticInt(attacker, "tumble.dizzyRoll", -1) +
++            " tumbleResult=" +
++                readDiagnosticString(attacker, "tumble.result", "none") +
++            " tumbleMeleeDefenseBefore=" + readDiagnosticInt(
++                attacker, "tumble.meleeDefenseBefore", -1) +
++            " tumbleMeleeDefenseAfter=" + readDiagnosticInt(
++                attacker, "tumble.meleeDefenseAfter", -1) +
++            " tumbleRangedDefenseBefore=" + readDiagnosticInt(
++                attacker, "tumble.rangedDefenseBefore", -1) +
++            " tumbleRangedDefenseAfter=" + readDiagnosticInt(
++                attacker, "tumble.rangedDefenseAfter", -1) +
++            " tumbleModifiersApplied=" + readDiagnosticInt(
++                attacker, "tumble.modifiersApplied", -1) +
++            " tumbleMeleeDefenseBonus=" + readDiagnosticInt(
++                attacker, "tumble.meleeDefenseBonus", -1) +
++            " tumbleRangedDefenseBonus=" + readDiagnosticInt(
++                attacker, "tumble.rangedDefenseBonus", -1) +
++            " tumbleInitialState=" +
++                readDiagnosticInt(attacker, "tumble.initialState", -1) +
++            " tumbleDiagnosticState=" +
++                readDiagnosticInt(attacker, "tumble.state", -1) +
++            " tumbleBuffSeconds=" +
++                readDiagnosticFloat(attacker, "tumble.buffSeconds", -1.0f) +
++            " tumbleExpired=" +
++                readDiagnosticInt(attacker, "tumble.expired", -1) +
+             " diagnosticAccuracyPrivate=" +
+                 readDiagnosticInt(attacker, "primary.accuracyPrivate", -1) +
+             " threatenShotHealthCost=" + threatenShotCosts[0] +
+@@ -8619,6 +8871,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "cleanup.pistolSkills", -1) +
+             " cleanupPistolCommands=" +
+                 readDiagnosticInt(attacker, "cleanup.pistolCommands", -1) +
++            " cleanupMarksmanTumbleSkills=" + readDiagnosticInt(
++                attacker, "cleanup.marksmanTumbleSkills", -1) +
++            " cleanupMarksmanTumbleCommands=" + readDiagnosticInt(
++                attacker, "cleanup.marksmanTumbleCommands", -1) +
+             " cleanupCarbineSkills=" +
+                 readDiagnosticInt(attacker, "cleanup.carbineSkills", -1) +
+             " cleanupCarbineCommands=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index fb4e8ab..2ddda8e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2052,3 +2052,6 @@ intimidate2	combat	normal	intimidate2	failSpecialAttack			1.5	intimidate2	1	0	1
+ warcry1	combat	normal	warcry1	failSpecialAttack			1.5	warcry1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ warcry2	combat	normal	warcry2	failSpecialAttack			1.5	warcry2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ taunt	combat	normal	taunt	failSpecialAttack			1.5	taunt	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++tumbleToKneeling		normal	tumbleToKneeling	failSpecialAttack			3	tumbleToKneeling	1	0	1	1	1	1	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0								other	optional		2	0	-560185247	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	3	0		0	0	0
++tumbleToProne		normal	tumbleToProne	failSpecialAttack			3	tumbleToProne	1	0	1	1	1	1	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0								other	optional		2	0	-560185247	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	3	0		0	0	0
++tumbleToStanding		normal	tumbleToStanding	failSpecialAttack			3	tumbleToStanding	1	0	1	1	1	1	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0								other	optional		2	0	-560185247	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	3	0		0	0	0

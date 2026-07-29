@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "feature": "doctor-novice-progression",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Doctor root and novice box, including Master Medic prerequisite, exact costs, state-treatment command ownership, medical registration, modifiers, four retail schematics, compiled client tables, and reversible live purchase.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "schematicGroupTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_doctor_novice_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "skillSourceSha256": "ca5275d226361e8ae9aefe1ccf24c9432f58e5d3bc043bb3217d15674bf17136",
+    "commandSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_command_table_additions.tab",
+    "commandSourceSha256": "29e2954f766b2835a6b11d983a0a70aa87791ba82ed29d151767dd6a9e5c19bd",
+    "schematicSource": "E:/SWG/SWGSource/Scratch/p14-schematic-authority/datatables/crafting/schematic_group.tab",
+    "schematicSourceSha256": "1dc58aa722af79a929d2b609c110d52989a7fa07bde7343a8aefc3d5ba4af1fc"
+  },
+  "rootSkill": {
+    "name": "science_doctor",
+    "parent": "science",
+    "graphType": "fourByFour",
+    "godOnly": "0",
+    "isProfession": "1",
+    "isHidden": "0",
+    "searchable": "1"
+  },
+  "skill": {
+    "name": "science_doctor_novice",
+    "parent": "science_doctor",
+    "graphType": "fourByFour",
+    "moneyRequired": "5000",
+    "pointsRequired": "6",
+    "skillsRequired": "science_medic_master",
+    "xpType": "medical",
+    "xpCost": "11250",
+    "xpCap": "20000",
+    "commands": "healState,registerWithLocation",
+    "skillMods": "healing_wound_treatment=5,healing_wound_speed=5,medicine_assembly=10,medicine_experimentation=10,healing_ability=5",
+    "schematics": "craftCurePoisonGroupA,craftStimpackStateGroupA"
+  },
+  "command": {
+    "name": "healState",
+    "commandCategory": "combat",
+    "defaultPriority": "normal",
+    "scriptHook": "healState",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTime": "5"
+  },
+  "schematicGroups": {
+    "craftStimpackStateGroupA": [
+      "object/draft_schematic/chemistry/med_stimpack_state_blinded_a.iff",
+      "object/draft_schematic/chemistry/med_stimpack_state_dizzy_a.iff"
+    ],
+    "craftCurePoisonGroupA": [
+      "object/draft_schematic/chemistry/medpack_cure_poison_a.iff",
+      "object/draft_schematic/chemistry/medpack_cure_poison_area_a.iff"
+    ]
+  },
+  "retainedSharedTemplates": [
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_med_stimpack_state_blinded_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_med_stimpack_state_dizzy_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_cure_poison_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_cure_poison_area_a.tpf"
+  ],
+  "fixtureBoundary": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "preparedPrerequisiteSkills": 18,
+    "purchaseOperations": [
+      "skill.getAvailableSkillPoints",
+      "skill.hasRequiredSkillsForSkillPurchase",
+      "skill.hasRequiredXpForSkillPurchase",
+      "skill.grantSkillToPlayer",
+      "skill.deductXpCostForSkillPurchase"
+    ],
+    "cleanupPolicy": "Revoke novice Doctor and all eighteen ordered novice-Medic-through-Master-Medic prerequisites, restore both XP pools and original skill points, then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java plus changed-table DataTableTool compilation",
+    "patchSha256": "4dc0807feab6ef366f64edc17545a50ed43341a751e216d6c6800091a1beb1ad",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "precu_doctor_novice_fixture.java": "39a29283e2e62d040cab5668221a23a5c99391055ebe2f20bcb071a9d29ae6ae",
+      "skills.tab": "2f18d017785687559d29052ab1e12effcbbed51ae080cf86ab0c8462fb018808",
+      "schematic_group.tab": "bca642faf4157ff09d8b8e8523727023c2a1346e3188df91537803ba10c3540e",
+      "command_table.tab": "5ed9fe25cfd2a8c1f3a9bfeb779a37514eded5e90ab1afe1632ff3301f2f5374"
+    },
+    "compiledSha256": {
+      "precu_doctor_novice_fixture.class": "b06f26c9436f832d059f815ddbfa325ccef9a848cbef9b0545591ba49e87b3cd",
+      "skills.iff": "62cf8418cbb00c0f6517c555c998eadf9da3b308b6aa9637bceed373d7094ac8",
+      "schematic_group.iff": "e5e23a84f1168d581675330e6d0806ef0695700212ad95d1996db2c555bac156",
+      "command_table.iff": "b15dfa1e169d027858cf154e01b6684cd88728ea41b1862de819a838f74693f9"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "270557cdfdf6e54ce25ca83de23049a1d7aca11e",
+    "tree": "d6a42e9e83f9fdfb6903d1d50671c318ee2585f2",
+    "skillsIffSha256": "62cf8418cbb00c0f6517c555c998eadf9da3b308b6aa9637bceed373d7094ac8",
+    "schematicGroupIffSha256": "e5e23a84f1168d581675330e6d0806ef0695700212ad95d1996db2c555bac156",
+    "commandTableIffSha256": "b15dfa1e169d027858cf154e01b6684cd88728ea41b1862de819a838f74693f9"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "date": "2026-07-18",
+    "container": "swg-precu",
+    "clientProcessId": 46536,
+    "clientProtocolVersion": 22,
+    "clientSha256": "186017debf54371f1533e6ed499727f0150f368e4dae610b4f0b8a4dc4b87084",
+    "lifecycle": "b58ddf82816542da9056e4d905b59a5e",
+    "prerequisites": "111111111111111111",
+    "novice": "1",
+    "commands": "11",
+    "schematics": "1111",
+    "modifierDeltas": {
+      "healing_wound_treatment": 5,
+      "healing_wound_speed": 5,
+      "medicine_assembly": 10,
+      "medicine_experimentation": 10,
+      "healing_ability": 5
+    },
+    "medicalXpAfter": 0,
+    "medicalXpCapAfter": 30000,
+    "craftingXpAfter": 0,
+    "craftingXpCapAfter": 17500,
+    "availableSkillPointsAfter": 167,
+    "clientTableReload": {
+      "skillsIffSha256": "62cf8418cbb00c0f6517c555c998eadf9da3b308b6aa9637bceed373d7094ac8",
+      "schematicGroupIffSha256": "e5e23a84f1168d581675330e6d0806ef0695700212ad95d1996db2c555bac156",
+      "commandTableIffSha256": "b15dfa1e169d027858cf154e01b6684cd88728ea41b1862de819a838f74693f9",
+      "backgroundBridgeProtocol": 22,
+      "offFocusPing": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "Doctor root and novice skill rows",
+      "Master Medic prerequisite and six-point/11250-medical-XP costs",
+      "healState and registration command ownership",
+      "five exact medical modifiers",
+      "four exact state/poison schematics",
+      "compiled client tables and reversible live purchase"
+    ],
+    "deferred": [
+      "healState gameplay handler execution",
+      "Doctor tier-I through master progression",
+      "state-pack and poison-cure crafting execution beyond grant ownership"
+    ]
+  }
+}

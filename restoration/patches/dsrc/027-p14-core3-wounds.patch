@@ -1,0 +1,424 @@
+diff --git a/sku.0/sys.server/compiled/game/script/base_class.java b/sku.0/sys.server/compiled/game/script/base_class.java
+index c8a961e..7512a77 100644
+--- a/sku.0/sys.server/compiled/game/script/base_class.java
++++ b/sku.0/sys.server/compiled/game/script/base_class.java
+@@ -7811,6 +7811,24 @@ public class base_class
+             return ATTRIB_ERROR;
+         return max - wound;
+     }
++    /**
++     * Applies persistent wound damage to one attribute.
++     * @return the wound amount actually applied, or ATTRIB_ERROR on invalid input
++     */
++    private static native int _addWound(long target, int attrib, int value);
++    public static int addWound(obj_id target, int attrib, int value)
++    {
++        return _addWound(getLongWithNull(target), attrib, value);
++    }
++    /**
++     * Heals persistent wound damage from one attribute.
++     * @return the wound amount actually healed, or ATTRIB_ERROR on invalid input
++     */
++    private static native int _healWound(long target, int attrib, int value);
++    public static int healWound(obj_id target, int attrib, int value)
++    {
++        return _healWound(getLongWithNull(target), attrib, value);
++    }
+ 
+     /**
+      * Sets an attribute of a creature.
+diff --git a/sku.0/sys.server/compiled/game/script/library/utils.java b/sku.0/sys.server/compiled/game/script/library/utils.java
+index b28dba2..a7fbfea 100644
+--- a/sku.0/sys.server/compiled/game/script/library/utils.java
++++ b/sku.0/sys.server/compiled/game/script/library/utils.java
+@@ -2085,6 +2085,7 @@ public class utils extends script.base_script
+                     {
+                         amt = 0;
+                     }
++                    litmus = healWound(target, attrib, amt) != ATTRIB_ERROR;
+                     break;
+                 case (int)healing.AM_HEAL_SHOCK:
+                     if (amt < 0)
+@@ -2102,6 +2103,14 @@ public class utils extends script.base_script
+                     break;
+             }
+         }
++        else if (am.getDecay() == MOD_WOUND)
++        {
++            if (amt < 0)
++            {
++                amt = -amt;
++            }
++            litmus = addWound(target, attrib, amt) != ATTRIB_ERROR;
++        }
+         else 
+         {
+             if (!addAttribModifier(target, attrib, amt, duration, am.getAttack(), am.getDecay()))
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index 92334fd..d4a1a52 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -676,11 +676,9 @@ public class base_player extends script.base_script
+                 }
+             }
+         }
+-        int fatigue = getShockWound(self);
+-        if (fatigue > 0)
+-        {
+-            setShockWound(self, 0);
+-        }
++        // Publish 14.1 battle fatigue is persistent character state.  The NGE
++        // login path cleared shock wounds here, which erased battle fatigue
++        // immediately after the creature was reconstructed from the database.
+         obj_var_list buffList = getObjVarList(self, "clickItem");
+         if (buffList != null)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 92f253f..31bd4b2 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -1708,6 +1708,83 @@ public class combat_base extends script.base_script
+         callDefenderCombatAction(defenders, results, attackerData.id, weaponData.id);
+         return hitData;
+     }
++    /**
++     * Applies the Publish 14.1 weapon wound roll after damage and before later
++     * combat effects. A successful roll wounds the selected primary pool and
++     * its two linked secondary attributes by one point each, adding one shock
++     * wound for every affected attribute.
++     */
++    public void applyPrecuWounds(
++        obj_id attacker,
++        obj_id defender,
++        weapon_data weaponData,
++        combat_data actionData,
++        boolean damageApplied) throws InterruptedException
++    {
++        recordPrecuLiveDiagnostic(attacker, "wound.profile", "INELIGIBLE");
++        recordPrecuLiveDiagnostic(attacker, "wound.ratio", -1);
++        recordPrecuLiveDiagnostic(attacker, "wound.roll", -1);
++        recordPrecuLiveDiagnostic(attacker, "wound.primaryAttribute", -1);
++        recordPrecuLiveDiagnostic(attacker, "wound.applied", 0);
++        recordPrecuLiveDiagnostic(attacker, "wound.shockAdded", 0);
++
++        if (!damageApplied ||
++            actionData == null ||
++            actionData.precuTargetPool < 0 ||
++            actionData.precuTargetPool > 2 ||
++            weaponData == null ||
++            !isIdValid(weaponData.id) ||
++            !isIdValid(defender) ||
++            isDead(defender) ||
++            isIncapacitated(defender))
++        {
++            return;
++        }
++
++        String weaponTemplate = getTemplateName(weaponData.id);
++        int weaponRow =
++            dataTableSearchColumnForString(
++                weaponTemplate, "templateName", PRECU_WEAPON_PROFILES);
++        if (weaponRow < 0)
++        {
++            recordPrecuLiveDiagnostic(
++                attacker, "wound.profile", "FALLBACK_NO_PROFILE");
++            return;
++        }
++
++        int woundsRatio =
++            dataTableGetInt(PRECU_WEAPON_PROFILES, weaponRow, "woundsRatio");
++        int woundRoll = rand(0, 100);
++        recordPrecuLiveDiagnostic(attacker, "wound.profile", weaponTemplate);
++        recordPrecuLiveDiagnostic(attacker, "wound.ratio", woundsRatio);
++        recordPrecuLiveDiagnostic(attacker, "wound.roll", woundRoll);
++        if (woundsRatio <= 0 || woundRoll >= woundsRatio)
++        {
++            return;
++        }
++
++        int primaryAttribute = actionData.precuTargetPool * 3;
++        int applied = 0;
++        int shockAdded = 0;
++        for (int attribute = primaryAttribute;
++            attribute < primaryAttribute + NUM_ATTRIBUTES_PER_GROUP;
++            ++attribute)
++        {
++            int wound = addWound(defender, attribute, 1);
++            if (wound != ATTRIB_ERROR)
++            {
++                applied += wound;
++                if (addShockWound(defender, 1))
++                {
++                    ++shockAdded;
++                }
++            }
++        }
++        recordPrecuLiveDiagnostic(
++            attacker, "wound.primaryAttribute", primaryAttribute);
++        recordPrecuLiveDiagnostic(attacker, "wound.applied", applied);
++        recordPrecuLiveDiagnostic(attacker, "wound.shockAdded", shockAdded);
++    }
+     public boolean isPrecuLiveDiagnosticEnabled(obj_id attacker) throws InterruptedException
+     {
+         return isIdValid(attacker) &&
+@@ -3088,14 +3165,23 @@ public class combat_base extends script.base_script
+             }
+         }
+         target_dummy.sendTargetDummyCombatData(attacker, defender, actionData, hitData);
++        boolean damageApplied;
+         if (actionData.precuTargetPool >= 0)
+         {
+-            doDamageToPool(attacker, defender, hitData, actionData.precuTargetPool);
++            damageApplied =
++                doDamageToPool(
++                    attacker, defender, hitData, actionData.precuTargetPool);
+         }
+         else
+         {
+-            doDamage(attacker, defender, hitData);
++            damageApplied = doDamage(attacker, defender, hitData);
+         }
++        applyPrecuWounds(
++            attacker,
++            defender,
++            weaponData,
++            actionData,
++            damageApplied && hitData.damage + hitData.elementalDamage > 0);
+         int expertiseActionDamage = 0;
+         if (specialLine != null && specialLine.length() > 0)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java
+index a4ed603..36d964e 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java
+@@ -12,11 +12,6 @@ public class combat_player extends script.systems.combat.combat_base
+     public int OnExitedCombat(obj_id self) throws InterruptedException
+     {
+         combat.clearCombatDebuffs(self);
+-        int fatigue = getShockWound(self);
+-        if (fatigue > 0)
+-        {
+-            setShockWound(self, 0);
+-        }
+         setState(self, STATE_PEACE, false);
+         obj_id objMount = getMountId(self);
+         if (isIdValid(objMount))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+index 29c2eb0..5553d3a 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+@@ -49,6 +49,10 @@ public class precu_marksman_tier1_fixture extends script.base_script
+     private static final String ORIGINAL_SABER_BLOCK = ROOT + ".originalSaberBlock";
+     private static final String ORIGINAL_DEFENDER_SKILL_TEMPLATE =
+         ROOT + ".originalDefenderSkillTemplate";
++    private static final String ORIGINAL_DEFENDER_WOUNDS =
++        ROOT + ".originalDefenderWounds";
++    private static final String ORIGINAL_DEFENDER_SHOCK =
++        ROOT + ".originalDefenderShock";
+     private static final String PISTOL_WEAPON = ROOT + ".pistolWeapon";
+     private static final String CARBINE_WEAPON = ROOT + ".carbineWeapon";
+     private static final String DEFENDER_RIFLE_WEAPON = ROOT + ".defenderRifleWeapon";
+@@ -68,6 +72,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+     private static final String USAGE =
+         "usage: inspect|recover|prepare|status|armSuccess|armNoPartialBody|" +
+         "armNoPartialLeg|armPrimaryIdeal|armPrimaryNearMax|armPrimaryFallback|" +
++        "armWounds|" +
+         "armSecondaryBlock|armSecondaryDodge|armSecondaryCounter|" +
+         "armSecondaryRicochet|armSecondaryFallback|" +
+         "equipSecondaryRicochet|equipSecondaryFallback|" +
+@@ -152,6 +157,10 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         {
+             return armPrimaryRange(attacker, defender, args[3], "fallback", 6.0f);
+         }
++        if (args[0].equalsIgnoreCase("armWounds"))
++        {
++            return armWounds(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armSecondaryBlock"))
+         {
+             return armSecondaryDefense(
+@@ -239,10 +248,26 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             ORIGINAL_SABER_BLOCK,
+             getEnhancedSkillStatisticModifierUncapped(defender, "saber_block"));
+         String defenderSkillTemplate = getSkillTemplate(defender);
++        int[] defenderWounds = new int[NUM_ATTRIBUTES];
++        for (int attribute = 0; attribute < NUM_ATTRIBUTES; ++attribute)
++        {
++            defenderWounds[attribute] = getAttribWound(defender, attribute);
++            if (defenderWounds[attribute] == ATTRIB_ERROR)
++            {
++                return "error=woundSnapshotFailed attribute=" + attribute;
++            }
++        }
++        int defenderShock = getShockWound(defender);
++        if (defenderShock == ATTRIB_ERROR)
++        {
++            return "error=shockSnapshotFailed";
++        }
+         setObjVar(
+             defender,
+             ORIGINAL_DEFENDER_SKILL_TEMPLATE,
+             defenderSkillTemplate == null ? "" : defenderSkillTemplate);
++        setObjVar(defender, ORIGINAL_DEFENDER_WOUNDS, defenderWounds);
++        setObjVar(defender, ORIGINAL_DEFENDER_SHOCK, defenderShock);
+         setObjVar(attacker, PREPARED, 0);
+         setObjVar(defender, PREPARED, 0);
+ 
+@@ -502,6 +527,30 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armWounds(
++        obj_id attacker, obj_id defender, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!restoreFixtureWounds(defender))
++        {
++            return "error=woundBaselineRestoreFailed " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        String placement =
++            armPrimaryRange(attacker, defender, lifecycle, "wounds", 16.0f);
++        if (placement.startsWith("error="))
++        {
++            return placement;
++        }
++        return "action=armWounds expectedRifleWoundsRatio=4 " +
++            buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String equipSecondaryDefenseWeapon(
+         obj_id attacker, obj_id defender, String lifecycle, String mode)
+         throws InterruptedException
+@@ -610,7 +659,9 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             !hasObjVar(attacker, ORIGINAL_CARBINE_ONE) ||
+             !hasObjVar(defender, ORIGINAL_CENTER_OF_BEING) ||
+             !hasObjVar(defender, ORIGINAL_SABER_BLOCK) ||
+-            !hasObjVar(defender, ORIGINAL_DEFENDER_SKILL_TEMPLATE))
++            !hasObjVar(defender, ORIGINAL_DEFENDER_SKILL_TEMPLATE) ||
++            !hasObjVar(defender, ORIGINAL_DEFENDER_WOUNDS) ||
++            !hasObjVar(defender, ORIGINAL_DEFENDER_SHOCK))
+         {
+             return "error=fixtureSnapshotIncomplete";
+         }
+@@ -623,6 +674,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         clearFixtureWeaponCertification(defender);
+         boolean defenderSkillTemplateRestored =
+             setFixtureDefenderSkillTemplate(defender, false);
++        boolean defenderWoundsRestored = restoreFixtureWounds(defender);
+         boolean pistolDestroyed =
+             destroyOwnedWeapon(attacker, PISTOL_WEAPON, PISTOL_TEMPLATE);
+         boolean carbineDestroyed =
+@@ -640,6 +692,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             destroyOwnedWeapon(
+                 defender, DEFENDER_FALLBACK_WEAPON, FALLBACK_WEAPON_TEMPLATE);
+         if (!secondaryControlRestored || !defenderSkillTemplateRestored ||
++            !defenderWoundsRestored ||
+             !pistolDestroyed || !carbineDestroyed ||
+             !defenderRifleDestroyed || !defenderPistolDestroyed ||
+             !defenderCarbineDestroyed || !defenderLightsaberDestroyed ||
+@@ -648,6 +701,7 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             return "error=fixtureWeaponRestoreFailed control=" +
+                 secondaryControlRestored +
+                 " skillTemplate=" + defenderSkillTemplateRestored +
++                " wounds=" + defenderWoundsRestored +
+                 " pistol=" + pistolDestroyed +
+                 " carbine=" + carbineDestroyed +
+                 " defenderRifle=" + defenderRifleDestroyed +
+@@ -680,6 +734,36 @@ public class precu_marksman_tier1_fixture extends script.base_script
+         return "action=recover alreadyClean=false restored=true lifecycle=" + lifecycle;
+     }
+ 
++    private boolean restoreFixtureWounds(obj_id defender)
++        throws InterruptedException
++    {
++        if (!hasObjVar(defender, ORIGINAL_DEFENDER_WOUNDS) ||
++            !hasObjVar(defender, ORIGINAL_DEFENDER_SHOCK))
++        {
++            return false;
++        }
++        int[] originalWounds =
++            getIntArrayObjVar(defender, ORIGINAL_DEFENDER_WOUNDS);
++        if (originalWounds == null || originalWounds.length != NUM_ATTRIBUTES)
++        {
++            return false;
++        }
++        for (int attribute = 0; attribute < NUM_ATTRIBUTES; ++attribute)
++        {
++            int current = getAttribWound(defender, attribute);
++            int delta = current - originalWounds[attribute];
++            if (current == ATTRIB_ERROR || delta < 0 ||
++                (delta > 0 && healWound(defender, attribute, delta) != delta) ||
++                getAttribWound(defender, attribute) != originalWounds[attribute])
++            {
++                return false;
++            }
++        }
++        int originalShock = getIntObjVar(defender, ORIGINAL_DEFENDER_SHOCK);
++        return setShockWound(defender, originalShock) &&
++            getShockWound(defender) == originalShock;
++    }
++
+     private boolean fixtureReady(obj_id attacker, obj_id defender)
+         throws InterruptedException
+     {
+@@ -1096,6 +1180,18 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "secondary.ngeParryBranch", -1) +
+             " diagnosticSecondaryReflectQueued=" +
+                 readDiagnosticInt(attacker, "secondary.reflectQueued", -1) +
++            " diagnosticWoundProfile=" +
++                readDiagnosticString(attacker, "wound.profile", "none") +
++            " diagnosticWoundsRatio=" +
++                readDiagnosticInt(attacker, "wound.ratio", -1) +
++            " diagnosticWoundRoll=" +
++                readDiagnosticInt(attacker, "wound.roll", -1) +
++            " diagnosticWoundPrimaryAttribute=" +
++                readDiagnosticInt(attacker, "wound.primaryAttribute", -1) +
++            " diagnosticWoundApplied=" +
++                readDiagnosticInt(attacker, "wound.applied", -1) +
++            " diagnosticShockAdded=" +
++                readDiagnosticInt(attacker, "wound.shockAdded", -1) +
+             " distanceCentimeters=" + (int)(getDistance(attacker, defender) * 100.0f) +
+             " pvpCanAttack=" + pvpCanAttack(attacker, defender) +
+             " attackerHealth=" + getAttrib(attacker, HEALTH) +
+@@ -1109,7 +1205,17 @@ public class precu_marksman_tier1_fixture extends script.base_script
+             " defenderAction=" + getAttrib(defender, ACTION) +
+             " defenderMaxAction=" + getMaxAttrib(defender, ACTION) +
+             " defenderMind=" + getAttrib(defender, MIND) +
+-            " defenderMaxMind=" + getMaxAttrib(defender, MIND);
++            " defenderMaxMind=" + getMaxAttrib(defender, MIND) +
++            " defenderHealthWound=" + getAttribWound(defender, HEALTH) +
++            " defenderStrengthWound=" + getAttribWound(defender, STRENGTH) +
++            " defenderConstitutionWound=" + getAttribWound(defender, CONSTITUTION) +
++            " defenderActionWound=" + getAttribWound(defender, ACTION) +
++            " defenderQuicknessWound=" + getAttribWound(defender, QUICKNESS) +
++            " defenderStaminaWound=" + getAttribWound(defender, STAMINA) +
++            " defenderMindWound=" + getAttribWound(defender, MIND) +
++            " defenderFocusWound=" + getAttribWound(defender, FOCUS) +
++            " defenderWillpowerWound=" + getAttribWound(defender, WILLPOWER) +
++            " defenderShockWound=" + getShockWound(defender);
+     }
+ 
+     private boolean isFixtureLightsaberCertified(obj_id defender)
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+index d049b10..e4f89ba 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+@@ -1,6 +1,6 @@
+-templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	weaponFamily	postureMultiplier	secondaryDefenseSkill	secondaryDefenseResult
+-s	f	s	f	f	f	f	f	f	s	s	s	s	f	s	s
+-object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0	20	15	50	64	-80	rifle_accuracy	ranged_accuracy	ranged_defense	rifle	2.5	block	BLOCK
+-object/weapon/ranged/pistol/pistol_cdef.iff	3.5	pistol_speed	0	20	15	50	64	-80	pistol_accuracy	ranged_accuracy	ranged_defense	pistol	1.5	dodge	DODGE
+-object/weapon/ranged/carbine/carbine_cdef.iff	3.5	carbine_speed	0	20	15	50	64	-80	carbine_accuracy	ranged_accuracy	ranged_defense	carbine	2	counterattack	COUNTER
+-object/weapon/melee/unarmed/unarmed_default_player.iff	2	unarmed_speed	0	0	5	3	5	5	unarmed_accuracy	melee_accuracy	melee_defense	unarmed	1	unarmed_passive_defense	RANDOM
++templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	weaponFamily	postureMultiplier	secondaryDefenseSkill	secondaryDefenseResult	woundsRatio
++s	f	s	f	f	f	f	f	f	s	s	s	s	f	s	s	i
++object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0	20	15	50	64	-80	rifle_accuracy	ranged_accuracy	ranged_defense	rifle	2.5	block	BLOCK	4
++object/weapon/ranged/pistol/pistol_cdef.iff	3.5	pistol_speed	0	20	15	50	64	-80	pistol_accuracy	ranged_accuracy	ranged_defense	pistol	1.5	dodge	DODGE	4
++object/weapon/ranged/carbine/carbine_cdef.iff	3.5	carbine_speed	0	20	15	50	64	-80	carbine_accuracy	ranged_accuracy	ranged_defense	carbine	2	counterattack	COUNTER	4
++object/weapon/melee/unarmed/unarmed_default_player.iff	2	unarmed_speed	0	0	5	3	5	5	unarmed_accuracy	melee_accuracy	melee_defense	unarmed	1	unarmed_passive_defense	RANDOM	5

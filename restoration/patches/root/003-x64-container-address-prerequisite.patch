@@ -1,0 +1,26 @@
+diff --git a/docker/Dockerfile.x64 b/docker/Dockerfile.x64
+--- a/docker/Dockerfile.x64
++++ b/docker/Dockerfile.x64
+@@ -19,7 +19,8 @@ RUN apt-get update \
+         flex \
+         g++ \
+         gcc \
+         git \
++        iproute2 \
+         libaio1 \
+         libboost-program-options-dev \
+         libcurl4-openssl-dev \
+diff --git a/docker/entrypoint.sh b/docker/entrypoint.sh
+--- a/docker/entrypoint.sh
++++ b/docker/entrypoint.sh
+@@ -154,8 +154,8 @@ SWG_INTERNAL_ADDRESS="${SWG_INTERNAL_ADDRESS:-}"
+ 
+ # The container's own eth0 address. Several services bind to eth0 rather than to all interfaces, so
+ # anything connecting to them from inside this container has to use this rather than loopback.
+-SWG_CONTAINER_ADDRESS="$(ip -4 addr show eth0 2>/dev/null | awk '/inet /{split($2, a, "/"); print a[1]; exit}')"
++SWG_CONTAINER_ADDRESS="$(ip -4 addr show eth0 2>/dev/null | awk '/inet /{split($2, a, "/"); print a[1]; exit}' || true)"
+ if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then
+-    SWG_CONTAINER_ADDRESS="$(hostname -i 2>/dev/null | awk '{print $1}')"
++    SWG_CONTAINER_ADDRESS="$(hostname -i 2>/dev/null | awk '{print $1}' || true)"
+ fi
+ if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then

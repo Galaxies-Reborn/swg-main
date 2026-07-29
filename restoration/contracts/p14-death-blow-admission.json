@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "feature": "death-blow-admission",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "playerLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_death_blow_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/DeathBlowCommand.h",
+    "publish": "14.1",
+    "serverRangeMeters": 5,
+    "rangeBoundaryInclusive": true,
+    "lineOfSightRequired": true,
+    "targetFeignDeathRejected": true,
+    "targetAlreadyDeadRejected": true,
+    "selfTargetRejected": true
+  },
+  "clientTableReference": {
+    "retainedSha256": "6762cbceb740ebfa49356174cfb88f5d2d13b5ab075f0c4307685852e7f8919f",
+    "previousRestorationSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_command_table.tab",
+    "previousRestorationSha256": "f7acb20472cbfc78a182703b8cfbf48a3eeaa84af32acd5e638f9342822258d8"
+  },
+  "commandContract": {
+    "rows": [
+      "coupDeGrace",
+      "deathBlow"
+    ],
+    "scriptHook": "cmdCoupDeGrace",
+    "target": "enemy",
+    "targetType": "required",
+    "defaultTimeSeconds": 3,
+    "executeTimeSeconds": 1,
+    "addToCombatQueue": true,
+    "clientMaximumRangeMeters": 16,
+    "serverMaximumRangeMeters": 5,
+    "reasonForRangeSplit": "The Publish 14.1 client row is retained exactly while the Core3 server performs the authoritative five-meter execution check."
+  },
+  "runtimeContract": {
+    "target": "distinct, loaded, attackable, incapacitated player",
+    "actor": "loaded upright player who is not incapacitated, dead, feigning death, or knocked down",
+    "pvpCanAttackRequired": true,
+    "lineOfSightRequired": true,
+    "maximumRangeMeters": 5,
+    "existingExecutionPath": "pclib.coupDeGrace",
+    "legacyDelayedHandlerUsesSameAdmission": true
+  },
+  "fixture": {
+    "attackerOid": 44003778,
+    "attackerStationId": 91001,
+    "victimOid": 39008597,
+    "victimStationId": 1001,
+    "dependency": "precu_headshot1_fixture owns exact location, PvP, regeneration, HAM, posture, and locomotion preimages",
+    "actions": [
+      "prepareFar",
+      "stabilize",
+      "status",
+      "armFeign",
+      "stabilize",
+      "status",
+      "armNear",
+      "stabilize",
+      "status",
+      "cleanup"
+    ],
+    "farSeparationMeters": 6,
+    "nearSeparationMeters": 4,
+    "incapHealth": -100,
+    "temporaryCommand": "deathBlow",
+    "executionPolicy": "After each real incapacitation callback, stabilize rekeys only the fixture recap timestamp. The fixture never calls canDeathBlow, cmdCoupDeGrace, or pclib.coupDeGrace. A real protocol-30 client queues deathBlow.",
+    "cleanupPolicy": "Close any real death state, clear only death-blow/incap lifecycle state, restore the exact pre-existing deathBlow command grant, return both identities upright, remove the layered fixture root, then let the headShot1 fixture restore exact preimages."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "sourceCommit": "897262339",
+    "patchSha256": "b367c5455e306f8794709b672ed3c5477c9be3bf2c3db882279845a1c1b3f2a3",
+    "isolatedBuildVolume": "swg-precu-death-blow-clean-build-158",
+    "sourceCount": 5674,
+    "target": "ant clean compile_java",
+    "compiledSha256": {
+      "base_player.class": "eeabf211069234b2ac4f65f1162f71178c5cdb0cd5540b422eb1bd46ee0336ed",
+      "precu_death_blow_fixture.class": "ffad2a3ec90d44a3cb118f68f4aa1fce19816d16b8bbc28d1a7309ddcf8d7230",
+      "pclib.class": "4a080d7a6ecab4b2906881b81bede52cee4d5f85f6c06b2fb541c3cc4032b086"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "verifiedAt": "2026-07-18T18:49:18.4790707-04:00",
+    "clientProtocolVersion": 30,
+    "clientExecutableSha256": "17cbfb65750ea7508a889c60e767c0f340a8d92506c4c0476d3118128fe7a8d1",
+    "clientProcesses": {
+      "attacker": 60484,
+      "victim": 62264
+    },
+    "lifecycle": "03bc18648bf54cb9b55a7f73f87ae9e6",
+    "stabilization": {
+      "result": "passed",
+      "incapHealth": -100,
+      "victimIncapacitatedAfterSixSeconds": true,
+      "victimDeadAfter": false
+    },
+    "far": {
+      "clientQueued": true,
+      "initialQueueCount": 1,
+      "distanceCentimeters": 600,
+      "queueRemoval": "Cancelled",
+      "victimDeadAfter": false
+    },
+    "feign": {
+      "clientQueued": true,
+      "initialQueueCount": 1,
+      "distanceCentimeters": 400,
+      "victimFeignState": 1,
+      "queueRemoval": "Cancelled",
+      "victimDeadAfter": false
+    },
+    "near": {
+      "clientQueued": true,
+      "initialQueueCount": 1,
+      "distanceCentimeters": 400,
+      "queueRemoval": "Success",
+      "victimDeadAfter": true,
+      "victimPostureAfter": 14,
+      "victimBeenCoupDeGracedAfter": true
+    },
+    "cleanup": {
+      "deathFixtureRestored": true,
+      "headShotFixtureRestored": true,
+      "idempotent": true,
+      "deathBlowCommandRestoredAbsent": true,
+      "victimUprightAlive": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "runtime": {
+      "fixtureClassSha256": "ffad2a3ec90d44a3cb118f68f4aa1fce19816d16b8bbc28d1a7309ddcf8d7230",
+      "fixtureSourceSha256": "23a4a6538f39a773d29e25e18f07f89d40a331a1706c7bcfe2096dfe452ebb2c",
+      "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e"
+    },
+    "rollback": {
+      "sourceArchive": "E:/SWG/SWGSource/Staging/swg-precu-runtime-source-pre-engine-floor-20260718",
+      "cleanBuildVolume": "swg-precu-death-blow-clean-build-158",
+      "clientBackup": "E:/SWG/SWGSource/PreCU-Client/.x64-backups/20260718-181052"
+    }
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": false,
+    "clientProtocolVersion": 30
+  },
+  "narrowBoundary": {
+    "included": [
+      "player-target admission parity",
+      "five-meter authoritative range",
+      "line-of-sight, PvP, self, dead, and feign rejection",
+      "shared immediate and delayed handler admission",
+      "protocol-30 real client queue action",
+      "reversible two-player live fixture"
+    ],
+    "deferred": [
+      "pet death-blow targets",
+      "clone-location and clone-wound parity",
+      "PvP and FRS death reward parity"
+    ]
+  }
+}

@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-marksman-tumble-family",
+  "status": "ready",
+  "scope": "Restore Marksman support tumbleToProne, tumbleToKneeling, and tumbleToStanding with their retained skill ownership, pinned Core3 action cost, posture, dizzy-fall, timed defense, authenticated client admission, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/tumbleToProne.lua",
+      "MMOCoreORB/bin/scripts/commands/tumbleToKneeling.lua",
+      "MMOCoreORB/bin/scripts/commands/tumbleToStanding.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skillOwnership": {
+      "name": "combat_marksman_support_02",
+      "parent": "combat_marksman_support_01",
+      "requires": "combat_marksman_support_01",
+      "commands": ["private_marksman_support_2", "tumbleToProne", "tumbleToKneeling", "tumbleToStanding"],
+      "skillMods": {"melee_defense": 2, "aim": 10}
+    },
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "defaultTime": 3,
+      "executeTime": 3,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": -560185247,
+      "addToCombatQueue": true,
+      "validWeapon": "ALL",
+      "failScriptHook": "failSpecialAttack"
+    },
+    "lifecycle": {
+      "baseActionCost": 100,
+      "quicknessAdjustment": "100 - (((quickness - 300) / 1200) * 100), truncated and floored at zero",
+      "postures": {"tumbleToProne": 2, "tumbleToKneeling": 1, "tumbleToStanding": 0},
+      "animations": ["tumble", "tumble_facing"],
+      "dizzyFallChance": 85,
+      "defenseBuffSeconds": 1,
+      "meleeDefenseBonus": 50,
+      "rangedDefenseBonus": 50,
+      "combatSpam": {"tumbleToProne": "tum_prone", "tumbleToKneeling": "tum_kneel", "tumbleToStanding": "tum_standing"}
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T02:24:11-04:00",
+    "scratchCommit": "a408120a55c864592d1dde85957e3042182951d2",
+    "overlay": "restoration/patches/dsrc/301-p14-core3-marksman-tumble-family.patch",
+    "overlaySha256": "2a9ab15d087c709e5c3ebae30508057e7cf67b78f71f73fd8abd9f5a9e98a221",
+    "changedFileCount": 4,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss64m",
+    "datatableCompile": "passed-byte-preserving-incremental-with-2052-row-semantic-baseline-verification",
+    "datatableRowCount": 2055,
+    "clientBridgeTests": 69,
+    "clientTestSuite": {"passed": 198, "skipped": 6, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 224,
+    "clientBytes": 33808384,
+    "clientSha256": "329b4d7e4a2d0e6083af812b37708c9b64a0b91c5e309ce34fbd827dc7c036d2",
+    "materializedOverlayCount": 307,
+    "materializedRestorationFileCount": 901,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "2a31ffd1f0f84895e303aed6264cea6916f02c5c4b2dd0b9e0a2bff724c454c5",
+      "combat_base.java": "e109a875bf9042d50aaa60a473ae7e8d30be798238b4f4b79d9e08f40accbcdb",
+      "precu_headshot1_fixture.java": "b6d84da4ed906b523a326c23e8a8c3cd04a8c965e59a41708926a5f0d49a6304",
+      "command_table.tab": "6cb506e9859e7a195ba64c947e2192c3456342fbf2eee5486df8ba56aa551d6b",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97"
+    },
+    "compiledClassSha256": {
+      "script/systems/combat/combat_actions.class": "f5a47f5de34f16f9b8b78faa1a88890c2cc124ec84264870e47d02be90b1df1e",
+      "script/systems/combat/combat_base.class": "5ce3437bd4c5aafb2fd2d328dbdcc8d18b6c39b4f3a8e41675566330d3190c17",
+      "script/test/precu_headshot1_fixture.class": "05455ab5ec8b5ba602b2d210a462ab253c325d8b9bda0d989b6c03b623756b85"
+    },
+    "compiledTableSha256": {
+      "datatables/command/command_table.iff": "b0a97d42a9dcc8f3d7ed93159fc7219a6fc999b8caa0865f6c5d28cc2b48486e"
+    },
+    "clientAssetsSha256": {
+      "datatables/command/command_table.iff": "b0a97d42a9dcc8f3d7ed93159fc7219a6fc999b8caa0865f6c5d28cc2b48486e",
+      "precu_runtime.tre": "77dabb34cfe7bb425de6e7091fa3a24c80840b2987df82288221c27efd3c8308"
+    },
+    "assetArchiveRebuild": {"deterministic": true, "runs": 2, "bytes": 134613, "fileCount": 3}
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T02:24:11-04:00",
+    "clientProtocolVersion": 224,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "30300000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "marksmanSupportOne": true,
+      "marksmanSupportTwo": true,
+      "commands": ["tumbleToProne", "tumbleToKneeling", "tumbleToStanding"],
+      "canPerform": {"tumbleToProne": 1, "tumbleToKneeling": 1, "tumbleToStanding": 1},
+      "canPerformInterpretation": "ACTION_INVALID_DATA is expected because these retained commands are script-hook actions rather than combat_data actions.",
+      "weapon": "object/weapon/ranged/pistol/pistol_cdef.iff",
+      "actionBefore": 20000
+    },
+    "commands": {
+      "tumbleToProne": {
+        "queueRemoval": "Success", "result": "SUCCESS", "actionCost": 100,
+        "actionBefore": 20000, "actionAfter": 19900, "startPosture": 0, "endPosture": 2,
+        "animation": "tumble_facing", "dizzyRoll": -1, "meleeDefenseBefore": 79,
+        "meleeDefenseAfter": 79, "rangedDefenseBefore": 87, "rangedDefenseAfter": 87,
+        "modifiersApplied": true, "meleeDefenseBonus": 50, "rangedDefenseBonus": 50,
+        "initialState": 1, "buffSeconds": 1.0, "expired": 1
+      },
+      "tumbleToKneeling": {
+        "queueRemoval": "Success", "result": "SUCCESS", "actionCost": 100,
+        "actionBefore": 19900, "actionAfter": 19800, "startPosture": 2, "endPosture": 1,
+        "animation": "tumble_facing", "dizzyRoll": -1, "meleeDefenseBefore": 79,
+        "meleeDefenseAfter": 79, "rangedDefenseBefore": 87, "rangedDefenseAfter": 87,
+        "modifiersApplied": true, "meleeDefenseBonus": 50, "rangedDefenseBonus": 50,
+        "initialState": 1, "buffSeconds": 1.0, "expired": 1
+      },
+      "tumbleToStanding": {
+        "queueRemoval": "Success", "result": "SUCCESS", "actionCost": 100,
+        "actionBefore": 19800, "actionAfter": 19700, "startPosture": 1, "endPosture": 0,
+        "animation": "tumble_facing", "dizzyRoll": -1, "meleeDefenseBefore": 79,
+        "meleeDefenseAfter": 79, "rangedDefenseBefore": 87, "rangedDefenseAfter": 87,
+        "modifiersApplied": true, "meleeDefenseBonus": 50, "rangedDefenseBonus": 50,
+        "initialState": 1, "buffSeconds": 1.0, "expired": 1
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "ownershipSurvived": true,
+      "commandsSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "terminalCommand": "tumbleToStanding",
+      "terminalPosture": 0,
+      "transientModifiersAbsent": true,
+      "tumblingStateAbsent": true
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "preparedAfterCleanup": false,
+      "originalMarksmanOwnershipRestored": true,
+      "originalCommandsRestored": true,
+      "postCleanupQueueStatus": "Success",
+      "postCleanupOriginalAbilityRetained": true
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

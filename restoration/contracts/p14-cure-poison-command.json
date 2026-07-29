@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "feature": "cure-poison-command",
+  "status": "ready",
+  "scope": "Publish 14.1 Doctor Cure Poison command admission and server behavior, including optional targeting, poison antidote selection and power, Focus-adjusted Mind cost, shared condition-treatment recovery, one-charge consumption, DOT-strength reduction, area-pack retention, and fixed other-player medical XP.",
+  "sourceFiles": {
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/cure_poison.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_cure_poison_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "specialization": "MMOCoreORB/src/server/zone/objects/creature/commands/CurePoisonCommand.h",
+    "sharedCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/CurePackCommand.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "curePoison",
+    "category": "combat",
+    "scriptHook": "curePoison",
+    "tempScript": "player.cmd.cure_poison",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "invalidTargetFallback": "self",
+    "eligibleTargets": [
+      "living player",
+      "living organic creature pet"
+    ],
+    "maximumOtherTargetRangeMeters": 7,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "requiredDot": "poison",
+    "medicineType": "healing.cure_dot=poison",
+    "baseMindCost": 100,
+    "mindCostFunction": "healing.getMedicalMindCost",
+    "roundTimeFormula": "max(4, round((20 - healing_injury_speed / 5) * (100 - heal_recovery) / 100))",
+    "sharedCooldown": "healing.can_heal_state",
+    "medicineChargesConsumed": 1,
+    "singlePackPower": "dot_power * (1 + healing_wound_treatment / 100)",
+    "areaPackPower": "dot_power",
+    "medicalXpForOtherPlayer": 50,
+    "medicalXpForSelfOrPet": 0
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporaryCommand": "curePoison",
+    "preparedPoisonStrength": 90,
+    "preparedMedicinePower": 200,
+    "preparedMedicineCharges": 2,
+    "cleanupPolicy": "Restore the exact shared condition cooldown, Mind, medical XP, and skill-point preimage; remove only the fixture poison DOT and medicine; revoke the fixture-owned Medic-through-Doctor-Wound-Speed-II chain; then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and targeted DataTableTool command-table compile",
+    "patchSha256": "61510f122dc6f3d81699792ea9265c5be25fd4aaecc660ee2804ba0bd5ae31b3",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-cure-poison-ready-20260718-125",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "healing.java": "acbe78149b2073f140016f3d679b7ff88f8dac5fff12626158834a2a35e24563",
+      "cure_poison.java": "826b161205eedd780aba2cacc8b8af303723d5ba98d86487349af71ffc80e63e",
+      "precu_cure_poison_command_fixture.java": "ef00840a3c375da2fed5bc023870347787d150fe2c07982a3719cecccee86bb9",
+      "command_table.tab": "91ee5ad2b9d442661b53638a58b240fe1fddf7a7b8d462831bcc96015b3b077e"
+    },
+    "compiledSha256": {
+      "healing.class": "78e6629cdec5b48dc8b3e93acf80269be1a3bb93950157866f28ed43834d8bce",
+      "cure_poison.class": "4021dfa7ebbe973eb70af5e30642a86c53cf15fa66df7a9dd02ecbf7ca962f21",
+      "precu_cure_poison_command_fixture.class": "3fef349bf584e5b1e449edbdbd06f29b79e968c43855c2b9b4944c23431bc81b",
+      "command_table.iff": "97444d8b9dfba844d46ef2985b18a8b4c55f12d923c850c7db3fe6040e1041d8"
+    }
+  },
+  "clientToolsPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "protocolVersion": 24,
+    "commit": "d3fb5e91",
+    "clientSha256": "bb1a84141d9b3d56fd6a62da22a6389ab46d5d3c35f6b9d52750d6d2fe061bef",
+    "startupMode": "Off-focus splash bypass, login auto-connect, scheduler progression, and Cure Poison admission are enabled only by the explicit background-input bridge."
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "171d0d7",
+    "commandTableIffSha256": "97444d8b9dfba844d46ef2985b18a8b4c55f12d923c850c7db3fe6040e1041d8"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T07:24:38-04:00",
+    "lifecycle": "20675ea015c14cee8fd3b91c21236a5b",
+    "container": "swg-precu",
+    "oracleContainer": "swg-precu-oracle",
+    "clientProcessId": 54304,
+    "clientProtocolVersion": 24,
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "skillVector": "111111111111111111111",
+    "clientQueueCountAtAdmission": 0,
+    "clientQueueCountAfterExecution": 0,
+    "clientQueueCountAfterCleanup": 0,
+    "clientCommandStatus": "Success",
+    "handlerCalls": 1,
+    "handlerOutcome": "performed",
+    "targetOid": 39008597,
+    "medicinePower": 200,
+    "poisonBefore": 90,
+    "poisonAfter": 0,
+    "poisonReduction": 90,
+    "expectedMindCost": 91,
+    "appliedMindCost": 91,
+    "observedMindAfterRegeneration": 329,
+    "appliedChargeCost": 1,
+    "appliedMedicalXpDelta": 0,
+    "expectedRoundTime": 5,
+    "appliedRoundTime": 5,
+    "cooldownRemainingAtObservation": -3,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "clientSha256": "bb1a84141d9b3d56fd6a62da22a6389ab46d5d3c35f6b9d52750d6d2fe061bef",
+    "commandTableIffSha256": "97444d8b9dfba844d46ef2985b18a8b4c55f12d923c850c7db3fe6040e1041d8"
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target five-second nonqueued command row",
+      "seven-meter organic patient, line-of-sight, and PvP-help gates",
+      "poison-specific medicine selection and one-charge consumption",
+      "retained single and area cure-power mechanics",
+      "Focus-adjusted 100-Mind cost and shared condition-treatment cooldown",
+      "fixed 50 medical XP for another player and zero for self or pets",
+      "protocol-24 no-focus client admission",
+      "identity-bound reversible self-treatment fixture"
+    ],
+    "deferred": [
+      "live second-player 50-XP acceptance",
+      "live area-pack multi-target acceptance",
+      "Heal Enhance gameplay adapter"
+    ]
+  }
+}

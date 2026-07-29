@@ -59,3 +59,54 @@ docker compose down
 Generated `build/`, `data/`, `chat/`, localized config files, and
 `local.properties` live in the `swg-work` Docker volume. Source changes still
 belong in this checkout and are synced into the volume at container startup.
+
+## Isolated Pre-CU Runtime
+
+`docker-compose.precu.yml` defines a separate runtime for the Pre-CU effort.
+It does not share containers, ports, network, or named volumes with
+`docker-compose.yml`:
+
+```bash
+docker compose -f docker-compose.precu.yml build swg-precu
+docker compose -f docker-compose.precu.yml up -d
+docker compose -f docker-compose.precu.yml ps
+powershell -File restoration/scripts/Test-PrecuDockerNetwork.ps1
+```
+
+The default bind mounts are the audited materialized source at
+`E:/SWG/SWGSource/Staging/swg-precu-runtime-source` and the sibling
+`pre-cu-reborn-assets` checkout. Override them with `SWG_PRECU_SOURCE_DIR` and
+`SWG_PRECU_ASSETS_DIR` when needed. The local client connects to login port
+`45453`; ConnectionServer uses `45462` for ping, `45463` for its public client
+service, and `45464` for its private client service. Those three ports are
+mapped same-to-same because LoginServer embeds them in its status response;
+the login port remains translated from host `45453` to container `44453`. Oracle
+is exposed to localhost only on `127.0.0.1:1522`, and customer-service ports
+are `5100-5101`.
+
+`swg-precu-runtime-source` is the stable local alias for the currently audited
+materialization. Update that alias, or override `SWG_PRECU_SOURCE_DIR`, only
+while the `swg-precu` game container is stopped; the materialized tree remains
+read-only inside the container.
+
+`SWG_PRECU_SYNC_SOURCE` defaults to `auto`: an empty work volume is populated,
+and explicit `init` or `build` commands resynchronize source, while ordinary
+restarts reuse the already compiled Linux volume. Set it to `true` for a forced
+exact resync or `false` only when deliberately operating on the current volume.
+
+For a remote client, set `SWG_PRECU_PUBLIC_ADDRESS` to the reachable host
+address. `SWG_PRECU_PUBLIC_CONNECTION_PORT` defaults to the mapped port
+`45463`; `SWG_PRECU_PUBLIC_CONNECTION_PING_PORT` and
+`SWG_PRECU_PRIVATE_CONNECTION_PORT` default to `45462` and `45464`. Each
+configured ConnectionServer port is mapped same-to-same inside Docker. The
+three ports must be distinct and must not use the fixed host mappings
+`45450-45461` or `45465`.
+
+`SWG_PRECU_CENTRAL_LOGIN_SERVICE_PORT` defaults to `44452`. The entrypoint
+writes the public address and this CentralServer login-service port to
+`cluster_list`, and writes the same service port to the LoginServer and
+CentralServer runtime configuration. This repairs dedicated volumes created by
+an earlier entrypoint that incorrectly stored the client handoff port `45463`
+in `cluster_list.port`; that column is not a client handoff port. Do not use
+`down -v` unless the dedicated `swg-precu-*` database and build volumes are
+intentionally being discarded.

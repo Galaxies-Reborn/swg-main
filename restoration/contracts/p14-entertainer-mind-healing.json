@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "feature": "entertainer-mind-healing",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "performanceLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/performance.java",
+    "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "activeDance": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_dance.java",
+    "activeMusic": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_music.java",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_healing_fixture.java",
+    "performanceTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/performance/performance.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/sessions/EntertainingSessionImplementation.cpp",
+    "heartbeatSeconds": 10,
+    "healRangeMeters": 60,
+    "groupXpRangeMeters": 40,
+    "buildingBattleFatigueModifier": 5,
+    "woundChannels": [
+      "Mind",
+      "Focus",
+      "Willpower"
+    ],
+    "xpType": "entertainer_healing",
+    "formula": "ceil(performance heal base * skill modifier / 100) * (flourish count + 1)"
+  },
+  "publish14Evidence": {
+    "performanceIff": "patch_14_00.tre!datatables/performance/performance.iff",
+    "performanceIffBytes": 80241,
+    "performanceIffSha256": "17b1e439ea81beebd96c0722258348851a1f826c8da88d396f823916626cd6f6",
+    "decodedPerformanceSha256": "d1a0ff6db0942b0894b1f25526a0ed7318a681b0b87b56d009aaaa522e40326a",
+    "performanceRows": 154,
+    "skillsIff": "patch_14_00.tre!datatables/skill/skills.iff",
+    "skillsIffBytes": 273974,
+    "skillsIffSha256": "1eddc5d8b14b325e478bd1c53486576b82ef7347118e92f831f5bba45dcc7e45",
+    "skillsRows": 1068
+  },
+  "performanceMerge": {
+    "matchedPublish14Rows": 154,
+    "preservedLaterRows": 157,
+    "totalRows": 311,
+    "restoredColumns": [
+      "actionPointsPerLoop",
+      "loopDuration",
+      "flourishXpMod",
+      "healMindWound",
+      "healShockWound",
+      "requiredSkillModValue"
+    ],
+    "basicDance": {
+      "actionPointsPerLoop": "28",
+      "loopDuration": "10",
+      "flourishXpMod": "4",
+      "healMindWound": "4",
+      "healShockWound": "2",
+      "requiredSkillMod": "healing_dance_ability",
+      "requiredSkillModValue": "5"
+    }
+  },
+  "healingBranch": [
+    {
+      "name": "social_entertainer_healing_01",
+      "parent": "social_entertainer",
+      "points": "2",
+      "required": "social_entertainer_novice",
+      "xpCost": "1000",
+      "xpCap": "10000"
+    },
+    {
+      "name": "social_entertainer_healing_02",
+      "parent": "social_entertainer_healing_01",
+      "points": "3",
+      "required": "social_entertainer_healing_01",
+      "xpCost": "5000",
+      "xpCap": "20000"
+    },
+    {
+      "name": "social_entertainer_healing_03",
+      "parent": "social_entertainer_healing_02",
+      "points": "4",
+      "required": "social_entertainer_healing_02",
+      "xpCost": "10000",
+      "xpCap": "50000"
+    },
+    {
+      "name": "social_entertainer_healing_04",
+      "parent": "social_entertainer_healing_03",
+      "points": "5",
+      "required": "social_entertainer_healing_03",
+      "xpCost": "25000",
+      "xpCap": "75000"
+    }
+  ],
+  "skillBranchShared": {
+    "xpType": "entertainer_healing",
+    "skillMods": "healing_dance_wound=5,healing_music_wound=5",
+    "schematicsGranted": ""
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-18T23:49:46-04:00",
+    "overlayPatch": "restoration/patches/dsrc/062-p14-entertainer-mind-healing.patch",
+    "overlayPatchSha256": "c566db9355569bc4e27593e38adb2212c0b7f6f14a9b0f3d7e4424e2c8eb704c",
+    "cleanApplyBaseCommit": "a9c177e38",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 7,
+    "initialBuild": {
+      "result": "passed",
+      "elapsed": "2 minutes 4 seconds",
+      "compiledJavaSources": 5,
+      "compiledTables": [
+        "performance.iff",
+        "skills.iff"
+      ]
+    },
+    "fixtureTimingBuild": {
+      "result": "passed",
+      "elapsed": "1 minute 49 seconds",
+      "compiledJavaSources": 1
+    },
+    "sourceSha256": {
+      "performance.java": "0ab5ac8eae0bc290757aec879d58a44aedae9d2e8babd0546a4037cc32e78ae3",
+      "xp.java": "60893691fb7739cabc94a96f36ac97d73c280f81a05136788a0ab47e20492939",
+      "active_dance.java": "2acb3baff366f868f3fe366c45fa927b279bee4ff023c3d97b5343804f6dea3",
+      "active_music.java": "d83d41d2737ac0116ced2c5a4e04d6cc7ae1f1c137f6a7cfc832a18462ec77a4",
+      "precu_entertainer_healing_fixture.java": "6a309292edad4cc2aaafe00f0408c783c2a4b040ec9846de1f8f1c056c6a0118",
+      "performance.tab": "b92b21e51d4112b5b8174e86d2d9ba5a9bf74103238d48e029264a1571e76278",
+      "skills.tab": "1620047288d1f816fdb79e38073585f0146bd0f7789d2ce915f956cb627f86b3"
+    },
+    "compiledSha256": {
+      "performance.class": "741ac2ce921c6f8e3e1673b623ef26a7ece687cd87f114e0d078ba4e78890b86",
+      "precu_entertainer_healing_fixture.class": "a57c9d770bee1e4351083fd6545b095087a9224df2da7544c0ef353315ad056d",
+      "performance.iff": "d8b53c76aa4daddc12a84a2a96a20f8a561500a0faf1722e7f1d3254caf9c51b",
+      "skills.iff": "bb476561a728beef5b9be61ef784ac6e7c5c24cefb366ad21a73ca69ab1c8a85"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-18T23:56:00-04:00",
+    "container": "swg-precu",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProtocolVersion": 31,
+    "lifecycle": "899dbe4250fe405f8b72675b5c244087",
+    "basicDancePerformanceIndex": 281,
+    "flourishCount": 2,
+    "woundSkill": 25,
+    "buildingShockModifier": 5,
+    "expectedPerChannelHeal": 3,
+    "expectedAmountHealed": 6,
+    "expectedHealingXp": 6,
+    "xpDelivery": "asynchronous",
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "181865538276fcd4a2a59ac4bf861bc946157a48",
+    "performanceIffSha256": "d8b53c76aa4daddc12a84a2a96a20f8a561500a0faf1722e7f1d3254caf9c51b",
+    "skillsIffSha256": "bb476561a728beef5b9be61ef784ac6e7c5c24cefb366ad21a73ca69ab1c8a85"
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": true,
+    "clientProtocolVersion": 31
+  },
+  "narrowBoundary": {
+    "included": [
+      "Publish 14 performance values for all 154 matching rows",
+      "four-box entertainer healing progression",
+      "Mind, Focus, Willpower, and Battle Fatigue performance healing",
+      "solo and active-group entertainer-healing XP",
+      "identity-bound reversible acceptance"
+    ],
+    "deferred": [
+      "performance Action drain",
+      "real-client heartbeat acceptance inside an entertainment venue",
+      "Entertainer, Dancer, and Musician progression outside the healing branch"
+    ]
+  }
+}

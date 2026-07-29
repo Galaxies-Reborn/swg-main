@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "feature": "template-xp-retirement",
+  "status": "ready",
+  "scope": "Fail closed inherited class-template and combat-level percentage XP APIs while preserving their signatures for later-content compatibility.",
+  "sourceFiles": {
+    "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java"
+  },
+  "core3Evidence": {
+    "repository": "https://github.com/swgemu/Core3",
+    "branch": "unstable",
+    "commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "combat": "PlayerManagerImplementation::disseminateExperience awards explicit weapon and combat_general XP types.",
+    "crafting": "CraftingSessionImplementation awards the completed schematic's explicit xpType.",
+    "training": "SkillManager::awardSkill consumes the explicitly selected skill's XP cost independently."
+  },
+  "retiredApis": [
+    "xp.grantXpByTemplate",
+    "xp.grantUnmodifiedXpByTemplate",
+    "xp.grantUnmodifiedXPPercentageOfLevel"
+  ],
+  "consumerBoundary": {
+    "directGrantCallersRetained": "NPE, collection, TCG, QA, and buff scripts retain source compatibility but receive zero from the fail-closed API.",
+    "precuExplicitRoutesUnaffected": [
+      "combat weapon XP",
+      "combat_general XP",
+      "music/dance/entertainer XP",
+      "schematic and crafting_general XP",
+      "trainer skill-box purchase"
+    ],
+    "remainingTemplateWorkingSkillOccurrences": 218,
+    "remainingFiles": 72
+  },
+  "expected": {
+    "grantXpByTemplateReturnsZero": true,
+    "grantUnmodifiedXpByTemplateReturnsZero": true,
+    "grantUnmodifiedXPPercentageOfLevelReturnsZero": true,
+    "retiredApisConsultSkillTemplate": false,
+    "retiredApisConsultCombatLevelTable": false,
+    "retiredApisGrantExperience": false,
+    "apiSignaturesRetained": true
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/142-p14-template-xp-retirement.patch",
+    "overlayPatchBytes": 3445,
+    "overlayPatchSha256": "f1ed911477f48ff2017c88de4a562a79b96ac97ee5095396f97c798ae6418454",
+    "reverseApplyCheck": "passed",
+    "sourceSha256": {
+      "xp.java": "e56868e40dfb06b08dd19332d6ef842b9f9362e821d8e555d1ce6b5798ea0bdc"
+    },
+    "javaCompile": {
+      "result": "passed",
+      "xp.class": {
+        "sha256": "a7b0b463a43501bf151301fe4cd1824ca9973e07b287b779a40e42087583a56c"
+      }
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 44004,
+    "character": "Icai Darkwave",
+    "characterOid": 39008597,
+    "stationId": 1001,
+    "scene": "tatooine",
+    "allProfessionRows": 33,
+    "baselineSkillCount": 7,
+    "explicitRoutes": [
+      {
+        "family": "combat",
+        "xpType": "combat_rangedspecialize_pistol",
+        "delta": 11,
+        "skillsStable": true,
+        "restored": true
+      },
+      {
+        "family": "social",
+        "xpType": "music",
+        "delta": 13,
+        "skillsStable": true,
+        "restored": true
+      },
+      {
+        "family": "crafting",
+        "xpType": "crafting_general",
+        "delta": 17,
+        "skillsStable": true,
+        "restored": true
+      }
+    ],
+    "serverHealthy": true,
+    "fatalExceptionSevereCount": 0
+  },
+  "requiredBeforeReady": []
+}

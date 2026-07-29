@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-one-hand-ability-branch",
+  "status": "ready",
+  "scope": "Close the retained one-hand Ability I-IV ownership branch around the already-restored melee1hBodyHit2 and melee1hBodyHit3 production attacks, with authenticated admission, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/melee1hBodyHit2.lua",
+      "MMOCoreORB/bin/scripts/commands/melee1hBodyHit3.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skillChain": [
+      {"name": "combat_1hsword_novice", "requires": "combat_brawler_1handmelee_04"},
+      {"name": "combat_1hsword_ability_01", "requires": "combat_1hsword_novice", "commands": ["private_1hand_ability_1", "melee1hBodyHit2", "melee_damage_mitigation_1"]},
+      {"name": "combat_1hsword_ability_02", "requires": "combat_1hsword_ability_01", "commands": ["private_1hand_ability_2"]},
+      {"name": "combat_1hsword_ability_03", "requires": "combat_1hsword_ability_02", "commands": ["private_1hand_ability_3", "melee1hBodyHit3", "melee_damage_mitigation_2"]},
+      {"name": "combat_1hsword_ability_04", "requires": "combat_1hsword_ability_03", "commands": ["private_1hand_ability_4"]}
+    ],
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "validWeapon": "1HAND_MELEE",
+      "failScriptHook": "failSpecialAttack",
+      "executeTime": 1.5
+    },
+    "commands": {
+      "melee1hBodyHit2": {"defaultTime": 2.0, "damageMultiplier": 2.5, "speedMultiplier": 2.0, "hamCostMultipliers": [0.75, 0.75, 1.25], "accuracyBonus": 25, "targetPool": "HEALTH", "attackType": "SINGLE_TARGET", "animation": "combo_4b", "combatSpam": "saisun"},
+      "melee1hBodyHit3": {"defaultTime": 2.25, "damageMultiplier": 3.5, "speedMultiplier": 2.25, "hamCostMultipliers": [1.0, 1.0, 2.0], "accuracyBonus": 25, "targetPool": "HEALTH", "attackType": "SINGLE_TARGET", "animation": "combo_3a", "combatSpam": "saitok"}
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T09:17:03-04:00",
+    "scratchCommit": "93399030723a13937ad252ac712e163affae90ca",
+    "overlay": "restoration/patches/dsrc/305-p14-core3-one-hand-ability-branch.patch",
+    "overlaySha256": "a2336992daf5dd0f69440444db061290dff010de522228b88002f1f6f4d2d724",
+    "changedFileCount": 1,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "javaCompilerStack": "-J-Xss64m",
+    "compiledFixtureSha256": "3d34b576af5be0d16f192cca32b1c966a5554d776b610ea16082eb121ff0597b",
+    "materializedOverlayCount": 311,
+    "materializedRestorationFileCount": 913,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "precu_headshot1_fixture.java": "ba7ccf37770eb518b4e74fb831d692461f5c1eb223b101eab079241b6d82e82e",
+      "command_table.tab": "0c530076bf4dc89197ab90527326eff83da4a99f5594aa18b280210ba051e7cb",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "4fa3a18340d3ccd71ff2dc3df642275ab020914dfe090751442b8484b4c056ac",
+      "precu_combat_overrides.tab": "bd8e8511b856fa526c3eca2daf5ef660906228d3c158a46b4dd1b3c6640d8c7e",
+      "precu_combat_spam.tab": "8f7e4e96b1223333bc3a19e1f4f2d4bea0d6da363c6a6b4cab73b82378596d54"
+    },
+    "inheritedValidatedTables": {
+      "commandRows": 2063,
+      "combatRows": 1410,
+      "overrideRows": 126,
+      "spamRows": 125,
+      "command_table.iff": "61322966603965593402157404021a429012ec60c81e150e5295e718abb89d1c",
+      "combat_data.iff": "b7f6c4c0cb921eccc44d381e88904406d7fc2c521f7f990888cc6bcabdb7aaab",
+      "precu_runtime.tre": "8c8fbd285e8f24549dfe503f4a2cecc9a212289d971c824bc5721d7d87863226"
+    },
+    "clientProtocolVersion": 227,
+    "clientBytes": 33808896,
+    "clientSha256": "b4e1d1416b15c115b04916be862712c3ef284f2ee2075ea17d3f2a520bc7ad2c",
+    "unchangedAssetBoundary": "M307 changes only the reversible server fixture; the two production attacks, client bridge actions, compiled tables, and runtime TRE were already published and re-hash-verified without rebuild."
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T09:17:03-04:00",
+    "clientProtocolVersion": 227,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "30700000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "oneHandNovice": true,
+      "oneHandAbilityOne": true,
+      "oneHandAbilityTwo": true,
+      "oneHandAbilityThree": true,
+      "oneHandAbilityFour": true,
+      "commands": ["melee1hBodyHit2", "melee1hBodyHit3"],
+      "canPerform": {"melee1hBodyHit2": 0, "melee1hBodyHit3": 0},
+      "weapon": "object/weapon/melee/sword/sword_rantok.iff",
+      "distanceCentimeters": 198,
+      "attackerHamBefore": {"health": 63835, "action": 20000, "mind": 20000}
+    },
+    "commands": {
+      "melee1hBodyHit2": {
+        "queueRemoval": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 1562,
+        "configuredPool": "HEALTH",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 0,
+        "hamCost": {"health": 8, "action": 30, "mind": 36},
+        "combatSpam": "saisun_hit",
+        "animation": "combo_4b_medium",
+        "animationType": 2
+      },
+      "melee1hBodyHit3": {
+        "queueRemoval": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 2434,
+        "configuredPool": "HEALTH",
+        "resolvedPool": "HEALTH",
+        "hitLocation": 0,
+        "hamCost": {"health": 11, "action": 40, "mind": 58},
+        "combatSpam": "saitok_hit",
+        "animation": "combo_3a_medium",
+        "animationType": 2
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "ownershipSurvived": true,
+      "commandsSurvived": true,
+      "canPerformSurvived": true,
+      "weaponSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "terminalCommand": "melee1hBodyHit3",
+      "terminalDamage": 2434,
+      "terminalSpam": "saitok_hit",
+      "terminalAnimation": "combo_3a_medium",
+      "memberScreenshotSha256": "046f56b9a9b73bef302a848fd05c411c595f6e27929ab2ba0fa055ce1ccbdc15",
+      "defenderScreenshotSha256": "970174ef374b580c9857f12727a135d7e8d1e53bf427ec919caf7f42086350c1"
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "preparedAfterCleanup": false,
+      "temporaryOneHandSkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "fixtureWeaponAbsent": true,
+      "terminalDiagnosticsAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000"
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "isolatedClientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": false,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

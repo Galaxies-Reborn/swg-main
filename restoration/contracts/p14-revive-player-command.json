@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "feature": "revive-player-command",
+  "status": "ready",
+  "scope": "Publish 14.1 Doctor Revive Player admission and server behavior, including the original cmdRevivePlayer hook, dead-player and resuscitation-window gates, group-or-consent and PvP-help rules, seven-meter range, revive-pack selection, Focus-adjusted Mind cost, six-channel healing, one-charge consumption, exact medical XP, upright recovery, nine-attribute grogginess, and reversible two-player acceptance.",
+  "sourceFiles": {
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/revive_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_revive_player_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "specialization": "MMOCoreORB/src/server/zone/objects/creature/commands/RevivePlayerCommand.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "revivePlayer",
+    "category": "combat",
+    "scriptHook": "cmdRevivePlayer",
+    "tempScript": "player.cmd.revive_player",
+    "characterAbility": "revivePlayer",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 10,
+    "executeTimeSeconds": 10,
+    "clientMaximumRangeMeters": 16,
+    "serverMaximumRangeMeters": 7,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "eligibleTarget": "another dead player inside the retained resuscitation window",
+    "jediConsentRequired": true,
+    "ordinaryAdmission": "same group or explicit target consent",
+    "lineOfSightRequired": true,
+    "pvpHelpRequired": true,
+    "baseMindCost": 200,
+    "mindCostFunction": "healing.getMedicalMindCost",
+    "medicineType": "consumable.MT_REVIVE_PLAYER",
+    "explicitPackParameterSupported": true,
+    "automaticPackFallback": true,
+    "medicineChargesConsumed": 1,
+    "healingChannels": [
+      "Health damage",
+      "Action damage",
+      "Mind damage",
+      "Health wounds",
+      "Action wounds",
+      "Mind wounds"
+    ],
+    "medicalXpFormula": "round((actual six-channel healing + 250) * 0.5)",
+    "grogginess": {
+      "durationSeconds": 60,
+      "modifierValue": -100,
+      "attributeCount": 9,
+      "names": "precu_private_groggy_0 through precu_private_groggy_8"
+    },
+    "recovery": "upright posture, removed death marker, resuscitated-player message, medical animation and client effect"
+  },
+  "compatibilityCorrections": {
+    "medicalAttributeNames": [
+      "HEALTH",
+      "STRENGTH",
+      "CONSTITUTION",
+      "ACTION",
+      "QUICKNESS",
+      "STAMINA",
+      "MIND",
+      "FOCUS",
+      "WILLPOWER"
+    ],
+    "reason": "The retained NGE eight-name helper indexed a nine-attribute Publish 14 runtime and crashed death-effect cleanup at Willpower. The restored mapping now covers exactly NUM_ATTRIBUTES."
+  },
+  "liveFixture": {
+    "medicOid": 39008597,
+    "medicStationId": 1001,
+    "patientOid": 44003778,
+    "patientStationId": 91001,
+    "actions": [
+      "inspect",
+      "recover",
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporaryCommand": "revivePlayer",
+    "preparedDamagePowerPerPrimaryPool": 100,
+    "preparedWoundPowerPerPrimaryPool": 40,
+    "preparedMedicineCharges": 2,
+    "requiredSkillCount": 23,
+    "cleanupPolicy": "Restore exact locations, posture, locomotion, regeneration, all nine attributes and wounds, named attribute modifiers, Mind, medical XP, skill points, and fixture-owned skills; remove the private death marker and revive pack; then remove both fixture roots."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "clean 5670-source compile_java and full compile_tab producing 15789 datatable IFFs",
+    "patchSha256": "7adc20b0fe0e7c1cb8836f6787db0fffd5d0dc820ed358f6364c0657efda7d99",
+    "sourceCommit": "2645d0af1fa9e1f0cb55cd08ce7877c2f64904d9",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-revive-player-ready-20260718-137",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "isolatedBuildVolume": "swg-precu-revive-player-clean-build-138",
+    "sourceSha256": {
+      "healing.java": "705a51b8dea31b550e9c57ee95a832a92782fbf6be2601345d392cb2b777775a",
+      "revive_player.java": "9a3ac6b44c847b070c66b4d9c851eb33dd191cff59f9392cb73c0e7f017f14d7",
+      "precu_revive_player_command_fixture.java": "384832c7ea90b5cd470ee46e15ecfc4b50bdd4d1d7d39577da500ffa1173918d",
+      "command_table.tab": "69563b7e7fa2fb1ef349bb461d2fc4854b8b0764a4e86d5af45eaf2b3438a7c7"
+    },
+    "compiledSha256": {
+      "healing.class": "d5f83b945379be59b5c6341f14e81f5b046507583389d131997d4e5b586f6d42",
+      "revive_player.class": "67358beb8a9532f29c9bbc757bf4dee7ed9b800415b429e46e4169afc6b2f2e4",
+      "precu_revive_player_command_fixture.class": "acd0d50961bde7718fb33861a327fb4be303276682768b3990e6acd8bdde4929",
+      "command_table.iff": "f8b12c2a7edd56181f305ce668e57901ed24c5448bde1c99b5e7346f00021484"
+    }
+  },
+  "clientToolsPublication": {
+    "result": "passed",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "protocolVersion": 29,
+    "commit": "1d08e71370e51e8e4ad45b08a7ec87e4846cc461",
+    "clientSha256": "a1a262de656283fa024fcc647fc842ebba87c44fb1adca51172aae06de80f25a",
+    "sourceContractTests": "22 passed",
+    "startupMode": "Off-focus splash bypass, login auto-connect, two-player group control, and Revive Player admission are enabled only by the explicit background-input bridge."
+  },
+  "clientAssetPublication": {
+    "result": "passed",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "0a143d7414374c4f8b714205ac773a8f8b22608f",
+    "commandTableIffSha256": "f8b12c2a7edd56181f305ce668e57901ed24c5448bde1c99b5e7346f00021484",
+    "treEntryCount": 26513,
+    "treSha256": "6156624ac40e5e4f48236c2f62badaea9007b484c51ab295752cfd0007b15849",
+    "treEmbeddedCommandTableVerified": true,
+    "runtimePolicy": "The retail client loads the changed command table as a loose IFF; the full swgsource_3.0.tre remains an unreferenced archival/server publication."
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T13:22:00-04:00",
+    "lifecycle": "15a7604843fb494db474858ce6906d42",
+    "container": "swg-precu",
+    "oracleContainer": "swg-precu-oracle",
+    "medicClientProcessId": 60264,
+    "patientClientProcessId": 63380,
+    "clientProtocolVersion": 29,
+    "medicOid": 39008597,
+    "patientOid": 44003778,
+    "skillVector": "11111111111111111111111",
+    "sameGroup": true,
+    "consented": false,
+    "distanceCentimeters": 397,
+    "clientQueueCountAtAdmission": 0,
+    "handlerCalls": 2,
+    "successfulHandlerCall": 1,
+    "handlerOutcome": "Success",
+    "targetDeadAfter": false,
+    "targetPostureAfter": 0,
+    "deathMarkerAfter": false,
+    "damageHealing": 149,
+    "woundHealing": 69,
+    "actualHealing": 218,
+    "expectedMindCost": 183,
+    "appliedMindCost": 183,
+    "observedMindDeltaAfterRegeneration": 178,
+    "appliedChargeCost": 1,
+    "expectedMedicalXp": 234,
+    "observedMedicalXpDelta": 234,
+    "immediateHandlerMedicalXpDelta": 0,
+    "groggyModifierCount": 9,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "clientSha256": "a1a262de656283fa024fcc647fc842ebba87c44fb1adca51172aae06de80f25a",
+    "commandTableIffSha256": "f8b12c2a7edd56181f305ce668e57901ed24c5448bde1c99b5e7346f00021484"
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target ten-second nonqueued command row and original script hook",
+      "dead-player, retained resuscitation-window, seven-meter, visibility, PvP-help, and group-or-consent gates",
+      "explicit or automatically selected revive pack and one-charge consumption",
+      "Focus-adjusted 200-Mind base cost",
+      "actual Health, Action, and Mind damage plus wound healing accounting",
+      "exact Core3 medical XP formula",
+      "upright recovery, death-marker removal, and nine 60-second groggy modifiers",
+      "protocol-29 off-focus two-player client admission",
+      "identity-bound reversible medic and patient fixture"
+    ],
+    "deferred": [
+      "live consent-only acceptance",
+      "live Jedi consent acceptance",
+      "live explicit-pack command-parameter acceptance",
+      "hospital placement gameplay"
+    ]
+  }
+}

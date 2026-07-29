@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "feature": "real-client-performance-session",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "performanceTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/performance/performance.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_real_client_performance_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "startCommandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/StartDanceCommand.h",
+    "stopCommandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/StopDanceCommand.h",
+    "sessionSource": "MMOCoreORB/src/server/zone/objects/player/sessions/EntertainingSessionImplementation.cpp",
+    "startRule": "resolve the named dance, require its skill, and start one authoritative entertaining session",
+    "stopRule": "require an active dance session and stop it through the session",
+    "exhaustionRule": "the ten-second heartbeat stops dancing when current Action is less than or equal to its calculated loop cost"
+  },
+  "publish14Evidence": {
+    "dance": "rhythmic",
+    "performanceIndex": 283,
+    "actionPointsPerLoop": 28,
+    "loopSeconds": 10,
+    "requiredAbility": "startDance+rhythmic",
+    "grantingSkill": "social_entertainer_novice",
+    "flourishAbility": "flourish+1"
+  },
+  "clientCommandBoundary": {
+    "protocolVersion": 32,
+    "identityBoundPlayerOid": 39008597,
+    "commands": [
+      {
+        "helperAction": "StartDanceRhythmic",
+        "clientCommand": "startDance",
+        "parameters": "rhythmic"
+      },
+      {
+        "helperAction": "FlourishOne",
+        "clientCommand": "flourish",
+        "parameters": "1"
+      },
+      {
+        "helperAction": "StopDance",
+        "clientCommand": "stopDance",
+        "parameters": ""
+      }
+    ],
+    "serverAuthority": [
+      "skill and command ownership",
+      "posture and current-performance admission",
+      "performance script attachment and detachment",
+      "Action calculation and damage",
+      "ten-second heartbeat and too-tired termination"
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T01:07:30-04:00",
+    "overlayPatch": "restoration/patches/dsrc/064-p14-real-client-performance-session.patch",
+    "overlayPatchSha256": "3e8b53cb3a701c6a4d6c2f700254fd8a27c6935ddf16b61ba79ee5b624d1d02c",
+    "cleanApplyBaseCommit": "56c1c93287d5f88be91475e0b427388105a0d4a0",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 1,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledJavaSources": 1
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "configuration": "Release|x64",
+      "protocolVersion": 32,
+      "executableBytes": 32556544,
+      "executableSha256": "6d195263e1a74ab282154d1857cbeb7e0fa359f0524f4c9604c2a48e6e1dee88"
+    },
+    "sourceSha256": {
+      "precu_real_client_performance_fixture.java": "eff25f573ded743da93e10b8a8c41a8806758ec13eb04a4308fbd33814c12451",
+      "ClientMain.cpp": "976fd8d5706f892f0cbc08b02f3f62b30c064f1b6356f08decb01f29e7f71835",
+      "Invoke-PrecuBackgroundInput.ps1": "4a83f9f6c3ffddf79e4f324fcf0d31673d1a2ef42e2556ac082030a60c35ee32",
+      "test_precu_background_input_bridge.py": "892da7fb9eb5cf6d8059e7bd44189c2f4ca022284ee46c2d19a58ebc075e22c6"
+    },
+    "compiledSha256": {
+      "precu_real_client_performance_fixture.class": "ffee530e532cd184fae89991e31b8c5eb2308a978f5982dd2597ea39dd91cb34"
+    },
+    "clientSourceTests": {
+      "result": "passed",
+      "tests": 22
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T01:04:00-04:00",
+    "container": "swg-precu",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 52912,
+    "clientProtocolVersion": 32,
+    "clientSha256": "6d195263e1a74ab282154d1857cbeb7e0fa359f0524f4c9604c2a48e6e1dee88",
+    "lifecycle": "1f4561045f884c37a01fea069eb84352",
+    "authoritativeQuickness": 400,
+    "rhythmicPerformanceIndex": 283,
+    "explicitSession": {
+      "startAccepted": true,
+      "flourishAccepted": true,
+      "flourishBeforeAction": 100,
+      "flourishAfterAction": 91,
+      "stopAccepted": true,
+      "performanceAfterStop": 0,
+      "heartbeatScriptAfterStop": false
+    },
+    "automaticExhaustion": {
+      "startAccepted": true,
+      "boundaryAction": 25,
+      "performanceBeforeHeartbeat": 283,
+      "performanceAfterHeartbeat": 0,
+      "heartbeatScriptAfterHeartbeat": false,
+      "actionAfterHeartbeat": 25,
+      "inclusiveBoundaryPreserved": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "finalAction": 500,
+      "finalActionRegen": 6.190476,
+      "finalPerformanceIndex": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": false,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": false,
+    "evidenceRepositoryContainsGameplayCode": false
+  },
+  "narrowBoundary": {
+    "included": [
+      "ordinary real-client startDance rhythmic admission",
+      "ordinary real-client flourish 1 admission and Action charge",
+      "ordinary real-client stopDance admission and script detachment",
+      "ten-second automatic too-tired termination at the inclusive Action boundary",
+      "identity-bound reversible live acceptance"
+    ],
+    "deferred": [
+      "real-client music and instrument session acceptance",
+      "band dance and band flourish acceptance",
+      "remaining Entertainer, Dancer, and Musician progression rows"
+    ]
+  }
+}

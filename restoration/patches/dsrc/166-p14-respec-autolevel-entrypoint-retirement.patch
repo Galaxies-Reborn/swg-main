@@ -1,0 +1,336 @@
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/respecseller.java b/sku.0/sys.server/compiled/game/script/conversation/respecseller.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/respecseller.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/respecseller.java
+@@ -9,6 +9,10 @@ public class respecseller extends script.base_script
+     {
+     }
+     public static String c_stringFile = "conversation/respecseller";
++    private static boolean isNgeRespecSellerEnabled()
++    {
++        return false;
++    }
+     public boolean respecseller_condition__defaultCondition(obj_id player, obj_id npc) throws InterruptedException
+     {
+         return true;
+@@ -840,6 +844,12 @@ public class respecseller extends script.base_script
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
++        if (!isNgeRespecSellerEnabled())
++        {
++            clearCondition(self, CONDITION_CONVERSABLE);
++            detachScript(self, "conversation.respecseller");
++            return SCRIPT_CONTINUE;
++        }
+         if ((!isTangible(self)) || (isPlayer(self)))
+         {
+             detachScript(self, "conversation.respecseller");
+@@ -849,11 +859,22 @@ public class respecseller extends script.base_script
+     }
+     public int OnAttach(obj_id self) throws InterruptedException
+     {
++        if (!isNgeRespecSellerEnabled())
++        {
++            clearCondition(self, CONDITION_CONVERSABLE);
++            detachScript(self, "conversation.respecseller");
++            return SCRIPT_CONTINUE;
++        }
+         setCondition(self, CONDITION_CONVERSABLE);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info menuInfo) throws InterruptedException
+     {
++        if (!isNgeRespecSellerEnabled())
++        {
++            clearCondition(self, CONDITION_CONVERSABLE);
++            return SCRIPT_CONTINUE;
++        }
+         int menu = menuInfo.addRootMenu(menu_info_types.CONVERSE_START, null);
+         menu_info_data menuInfoData = menuInfo.getMenuItemById(menu);
+         menuInfoData.setServerNotify(false);
+@@ -874,6 +895,11 @@ public class respecseller extends script.base_script
+     }
+     public int OnStartNpcConversation(obj_id self, obj_id player) throws InterruptedException
+     {
++        if (!isNgeRespecSellerEnabled())
++        {
++            utils.removeScriptVar(player, "conversation.respecseller.branchId");
++            return SCRIPT_OVERRIDE;
++        }
+         obj_id npc = self;
+         if (ai_lib.isInCombat(npc) || ai_lib.isInCombat(player))
+         {
+@@ -954,6 +980,11 @@ public class respecseller extends script.base_script
+     }
+     public int OnNpcConversationResponse(obj_id self, String conversationId, obj_id player, string_id response) throws InterruptedException
+     {
++        if (!isNgeRespecSellerEnabled())
++        {
++            utils.removeScriptVar(player, "conversation.respecseller.branchId");
++            return SCRIPT_CONTINUE;
++        }
+         if (!conversationId.equals("respecseller"))
+         {
+             return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/respec/click_combat_token.java b/sku.0/sys.server/compiled/game/script/systems/respec/click_combat_token.java
+--- a/sku.0/sys.server/compiled/game/script/systems/respec/click_combat_token.java
++++ b/sku.0/sys.server/compiled/game/script/systems/respec/click_combat_token.java
+@@ -10,6 +10,10 @@ public class click_combat_token extends script.base_script
+     public click_combat_token()
+     {
+     }
++    private static boolean isNgeCombatRespecTokenEnabled()
++    {
++        return false;
++    }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+         if (!hasObjVar(self, "foundOwner"))
+@@ -36,6 +40,10 @@ public class click_combat_token extends script.base_script
+     }
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+     {
++        if (!isNgeCombatRespecTokenEnabled())
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (canManipulate(player, self, true, true, 15, true))
+         {
+             if (utils.isNestedWithinAPlayer(self))
+@@ -55,6 +63,10 @@ public class click_combat_token extends script.base_script
+     }
+     public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+     {
++        if (!isNgeCombatRespecTokenEnabled())
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (hasObjVar(player, "npcRespec.inProgress"))
+         {
+             sendSystemMessage(player, new string_id("spam", "cant_use_respec_device"));
+diff --git a/sku.0/sys.server/compiled/game/script/systems/veteran_reward/antidecay.java b/sku.0/sys.server/compiled/game/script/systems/veteran_reward/antidecay.java
+--- a/sku.0/sys.server/compiled/game/script/systems/veteran_reward/antidecay.java
++++ b/sku.0/sys.server/compiled/game/script/systems/veteran_reward/antidecay.java
+@@ -29,6 +29,10 @@ public class antidecay extends script.base_script
+     public static final string_id SID_USE_KIT_CONFIRM_PROMPT_ONE = new string_id(VETERAN_STRING_TABLE, "use_kit_confirm_prompt_one");
+     public static final string_id SID_USE_KIT_CONFIRM_PROMPT_TWO = new string_id(VETERAN_STRING_TABLE, "use_kit_confirm_prompt_two");
+     public static final string_id SID_USE_KIT_CONFIRM_TITLE = new string_id(VETERAN_STRING_TABLE, "use_kit_confirm_title");
++    private static boolean isNgeAntidecayRespecEnabled()
++    {
++        return false;
++    }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+         if (hasObjVar(self, OBJVAR_GROUP_REWARDED))
+@@ -73,12 +77,20 @@ public class antidecay extends script.base_script
+     }
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info item) throws InterruptedException
+     {
++        if (!isNgeAntidecayRespecEnabled())
++        {
++            return SCRIPT_CONTINUE;
++        }
+         item.addRootMenu(menu_info_types.ITEM_USE, null);
+         setName(self, "");
+         return SCRIPT_CONTINUE;
+     }
+     public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+     {
++        if (!isNgeAntidecayRespecEnabled())
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (item == menu_info_types.ITEM_USE)
+         {
+             obj_id[] kitContents = getContents(self);
+diff --git a/sku.0/sys.server/compiled/game/script/systems/skills/auto_level.java b/sku.0/sys.server/compiled/game/script/systems/skills/auto_level.java
+--- a/sku.0/sys.server/compiled/game/script/systems/skills/auto_level.java
++++ b/sku.0/sys.server/compiled/game/script/systems/skills/auto_level.java
+@@ -16,8 +16,16 @@ public class auto_level extends script.base_script
+     public static final string_id SID_CONSUME_TITLE = new string_id("spam", "consume_auto_level_title");
+     public static final string_id SID_CONSUME_ITEM = new string_id("spam", "consume_auto_level");
+     public static final string_id SID_CONSUME_TOO_HIGH = new string_id("spam", "consume_auto_level_too_high");
++    private static boolean isNgeAutoLevelItemEnabled()
++    {
++        return false;
++    }
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+     {
++        if (!isNgeAutoLevelItemEnabled())
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (utils.isNestedWithinAPlayer(self))
+         {
+             mi.addRootMenu(menu_info_types.SERVER_MENU1, SID_CONSUME_ITEM);
+@@ -26,6 +34,10 @@ public class auto_level extends script.base_script
+     }
+     public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+     {
++        if (!isNgeAutoLevelItemEnabled())
++        {
++            return SCRIPT_CONTINUE;
++        }
+         sendDirtyObjectMenuNotification(self);
+         if (item == menu_info_types.SERVER_MENU1 && utils.isNestedWithinAPlayer(self))
+         {
+@@ -69,6 +81,10 @@ public class auto_level extends script.base_script
+     }
+     public int handlerSuiAutoLevel(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (!isNgeAutoLevelItemEnabled())
++        {
++            return SCRIPT_CONTINUE;
++        }
+         if (params == null || params.isEmpty())
+         {
+             return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -10364,7 +10364,6 @@ public class base_player extends script.base_script
+     }
+     public int setRespecVersion(obj_id self, dictionary params) throws InterruptedException
+     {
+-        respec.setRespecVersion(self);
+         return SCRIPT_CONTINUE;
+     }
+     public int receiveCreditForKill(obj_id self, dictionary params) throws InterruptedException
+@@ -11050,50 +11049,17 @@ public class base_player extends script.base_script
+     }
+     public int OnSkillTemplateChanged(obj_id self, String skillTemplateName, boolean clientSelected) throws InterruptedException
+     {
+-        if (skillTemplateName == null || skillTemplateName.equals("") || skillTemplateName.equals("a"))
++        // Publish 14.1 progression is skill-box based. Clear stale NGE respec
++        // state, but never translate a profession-template client event.
++        if (hasObjVar(self, "clickRespec"))
+         {
+-            if (hasObjVar(self, "clickRespec.tokenId"))
+-            {
+-                removeObjVar(self, "clickRespec.tokenId");
+-            }
+-            if (hasObjVar(self, "npcRespec.inProgress"))
+-            {
+-                removeObjVar(self, "npcRespec.inProgress");
+-            }
+-            return SCRIPT_CONTINUE;
+-        }
+-        if (!hasObjVar(self, "clickRespec") && !hasObjVar(self, "npcRespec.inProgress"))
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        if (hasObjVar(self, "npcRespec.inProgress"))
+-        {
+-            respec.handleNpcRespec(self, skillTemplateName);
+-            respec.setRespecVersion(self);
+-            return SCRIPT_CONTINUE;
++            removeObjVar(self, "clickRespec");
+         }
+-        else if (hasObjVar(self, "clickRespec.tokenId"))
++        if (hasObjVar(self, "npcRespec"))
+         {
+-            obj_id token = getObjIdObjVar(self, "clickRespec.tokenId");
+-            if (hasObjVar(self, "clickRespec.oldTemplate"))
+-            {
+-                String oldTemplate = getStringObjVar(self, "clickRespec.oldTemplate");
+-                if (oldTemplate.equals(getSkillTemplate(self)))
+-                {
+-                    removeObjVar(self, "clickRespec");
+-                    detachScript(self, "systems.respec.click_combat_respec");
+-                    return SCRIPT_CONTINUE;
+-                }
+-                static_item.decrementStaticItem(token);
+-                removeObjVar(self, "clickRespec.tokenId");
+-            }
++            removeObjVar(self, "npcRespec");
+         }
+-        boolean withItems = true;
+-        if (hasObjVar(self, "clickRespec.cts"))
+-        {
+-            withItems = false;
+-        }
+-        respec.earnProfessionSkills(self, skillTemplateName, withItems);
++        detachScript(self, "systems.respec.click_combat_respec");
+         return SCRIPT_CONTINUE;
+     }
+     public void givePublishGift(obj_id self) throws InterruptedException
+@@ -11177,53 +11143,11 @@ public class base_player extends script.base_script
+     }
+     public void respecNewEntertainerSkills(obj_id self) throws InterruptedException
+     {
+-        String template = getSkillTemplate(self);
+-        if (template == null)
+-        {
+-            return;
+-        }
+-        if (!template.equals("entertainer_2a"))
+-        {
+-            return;
+-        }
+-        String oldSkills = dataTableGetString(skill_template.TEMPLATE_TABLE, "entertainer_2a", "template");
+-        String[] oldSkillList = split(oldSkills, ',');
+-        if (oldSkillList == null || oldSkillList.length == 0)
+-        {
+-            return;
+-        }
+-        int oldSkillCount = 0;
+-        float oldSkillPct = 0.0f;
+-        for (String s : oldSkillList) {
+-            if (hasSkill(self, s)) {
+-                oldSkillCount++;
+-            }
+-        }
+-        oldSkillPct = (float)oldSkillCount / oldSkillList.length;
+-        skill.revokeAllProfessionSkills(self);
+-        dictionary d = new dictionary();
+-        d.put("oldSkillPct", oldSkillPct);
+-        messageTo(self, "finishEntertainerRespec", d, 1.0f, true);
++        // Retained as a link-compatible no-op for old persisted messages.
+     }
+     public void respecNewCrafterSkills(obj_id self) throws InterruptedException
+     {
+-        String template = getSkillTemplate(self);
+-        if (template == null)
+-        {
+-            return;
+-        }
+-        if (!template.startsWith("trader_1"))
+-        {
+-            return;
+-        }
+-        float pctDone = respec.getPercentageCompletion(self, template);
+-        String newTemplate = getCorrectTraderTemplate(template);
+-        skill.revokeAllProfessionSkills(self);
+-        setSkillTemplate(self, newTemplate);
+-        respec.setPercentageCompletion(self, newTemplate, pctDone, true);
+-        skill.recalcPlayerPools(self, true);
+-        trial.bumpSession(self, "displayDefensiveMods");
+-        messageTo(self, "setDisplayOnlyDefensiveMods", trial.getSessionDict(self, "displayDefensiveMods"), 5, false);
++        // Retained as a link-compatible no-op for old persisted messages.
+     }
+     public String getCorrectTraderTemplate(String template) throws InterruptedException
+     {
+@@ -11247,22 +11171,7 @@ public class base_player extends script.base_script
+     }
+     public int finishEntertainerRespec(obj_id self, dictionary params) throws InterruptedException
+     {
+-        float oldSkillPct = params.getFloat("oldSkillPct");
+-        String newSkills = dataTableGetString(skill_template.TEMPLATE_TABLE, "entertainer_1a", "template");
+-        String[] newSkillList = split(newSkills, ',');
+-        int newSkillCount = (int)Math.ceil(oldSkillPct * newSkillList.length);
+-        setSkillTemplate(self, "entertainer_1a");
+-        for (int i = 0; i < newSkillCount; i++)
+-        {
+-            skill.grantSkillToPlayer(self, newSkillList[i]);
+-        }
+-        if (newSkillCount < newSkillList.length)
+-        {
+-            setWorkingSkill(self, newSkillList[newSkillCount]);
+-        }
+-        skill.recalcPlayerPools(self, true);
+-        trial.bumpSession(self, "displayDefensiveMods");
+-        messageTo(self, "setDisplayOnlyDefensiveMods", trial.getSessionDict(self, "displayDefensiveMods"), 5, false);
++        // A queued pre-restoration NGE callback must not rewrite skill boxes.
+         return SCRIPT_CONTINUE;
+     }
+     public int handleSetBounty(obj_id self, dictionary params) throws InterruptedException

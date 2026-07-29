@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "feature": "medic-tier1-progression",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Medic profession root and all four tier-I boxes across visibility, prerequisites, XP, skill points, commands, modifiers, novice and tier-I schematics, compiled client tables, and reversible live purchase.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "schematicGroupTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_medic_tier1_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "skillSourceSha256": "ca5275d226361e8ae9aefe1ccf24c9432f58e5d3bc043bb3217d15674bf17136",
+    "schematicTre": "patch_12_00.tre",
+    "schematicTableSha256": "7558a8671a75154ba713c2d9b2ea415907f59b947d05c699a3417aefce7d67a7",
+    "meaningfulMedicDoctorFieldDiffsAtAudit": 237,
+    "meaningfulRowsAtAudit": 38
+  },
+  "skills": [
+    {
+      "name": "science_medic",
+      "parent": "science",
+      "graphType": "fourByFour",
+      "godOnly": "0",
+      "isProfession": "1",
+      "isHidden": "0",
+      "searchable": "1"
+    },
+    {
+      "name": "science_medic_injury_01",
+      "parent": "science_medic",
+      "graphType": "fourByFour",
+      "moneyRequired": "1000",
+      "pointsRequired": "2",
+      "skillsRequired": "science_medic_novice",
+      "xpType": "medical",
+      "xpCost": "1000",
+      "xpCap": "10000",
+      "commands": "private_medic_injury_1",
+      "skillMods": "healing_injury_treatment=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_injury_speed_01",
+      "parent": "science_medic",
+      "graphType": "fourByFour",
+      "moneyRequired": "1000",
+      "pointsRequired": "2",
+      "skillsRequired": "science_medic_novice",
+      "xpType": "medical",
+      "xpCost": "1000",
+      "xpCap": "10000",
+      "commands": "private_medic_speed_1",
+      "skillMods": "healing_injury_speed=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_ability_01",
+      "parent": "science_medic",
+      "graphType": "fourByFour",
+      "moneyRequired": "1000",
+      "pointsRequired": "2",
+      "skillsRequired": "science_medic_novice",
+      "xpType": "medical",
+      "xpCost": "1000",
+      "xpCap": "10000",
+      "commands": "private_medic_ability_1",
+      "skillMods": "healing_ability=5,medical_foraging=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_crafting_01",
+      "parent": "science_medic",
+      "graphType": "fourByFour",
+      "moneyRequired": "1000",
+      "pointsRequired": "2",
+      "skillsRequired": "science_medic_novice",
+      "xpType": "crafting_medicine_general",
+      "xpCost": "500",
+      "xpCap": "2000",
+      "commands": "private_medic_crafting_1",
+      "skillMods": "medicine_assembly=10,medicine_experimentation=10",
+      "schematics": "craftMedpackGroupA"
+    }
+  ],
+  "schematicGroups": {
+    "craftMedicineComponentGroupA": [
+      "object/draft_schematic/chemistry/component/biologic_effect_controller.iff",
+      "object/draft_schematic/chemistry/component/liquid_delivery_suspension.iff",
+      "object/draft_schematic/item/item_food_tool.iff"
+    ],
+    "craftMedicineStimpackGroupA": [
+      "object/draft_schematic/chemistry/med_stimpack_a.iff"
+    ],
+    "craftMedpackGroupA": [
+      "object/draft_schematic/chemistry/medpack_wound_action_a.iff",
+      "object/draft_schematic/chemistry/medpack_wound_health_a.iff"
+    ]
+  },
+  "fixtureBoundary": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "purchase",
+      "status",
+      "cleanup"
+    ],
+    "purchaseOperations": [
+      "skill.getAvailableSkillPoints",
+      "skill.hasRequiredSkillsForSkillPurchase",
+      "skill.hasRequiredXpForSkillPurchase",
+      "skill.grantSkillToPlayer",
+      "skill.deductXpCostForSkillPurchase"
+    ],
+    "omittedNotification": "handleHolocronEvent",
+    "reason": "ServerConsole runScript has no script owner context; production gameplay validation, grant, and XP mutation remain authoritative.",
+    "cleanupPolicy": "Revoke all four tier-I skills and novice, restore both XP pools and original skill points, then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "341e6fc47e53f1ff3b55c87d72378edcf828c7d5327f638fb0eab6280afd08a4",
+    "sourceSha256": {
+      "skills.tab": "45ccb3f6e92d2386c7f2d7f317c4a8868f39bad4462516eba6275bcab2d96e18",
+      "schematic_group.tab": "4d6b98eb690e1080d846ddc82ca9bf8a98b28c438d0d155b5da623e586ff385a",
+      "precu_medic_tier1_fixture.java": "59c0c2d789b2f40ce110334d38e4161fffcc5ae2b79975041df94946a20d7d7b"
+    },
+    "compiledSha256": {
+      "precu_medic_tier1_fixture.class": "475e9b4babb2b31bd587a3b99d3ec6778d9e168fbd3a7036f384f39c1d8accbe",
+      "skills.iff": "11524fa5ff38f80e3898c75103bedbe25ba59fd930f8b449cbe7b7ded4d63d8e",
+      "schematic_group.iff": "bbeffdfd93d1a9cec56f9d2d5a6196d253163c173409996d79febacc4077e8d9"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "a8339911e1529fdcbe7dc29f6510a8795b0c21c8",
+    "skillsIffSha256": "11524fa5ff38f80e3898c75103bedbe25ba59fd930f8b449cbe7b7ded4d63d8e",
+    "schematicGroupIffSha256": "bbeffdfd93d1a9cec56f9d2d5a6196d253163c173409996d79febacc4077e8d9"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "date": "2026-07-17",
+    "container": "swg-precu",
+    "clientProcessId": 49288,
+    "clientProtocolVersion": 19,
+    "clientSha256": "4a2486ce4ac5a3fd87c2500a0844298d8e6345668109ab7493366fe3618f6e91",
+    "lifecycle": "2e92ce8f585b4fa89bc9d6977a8c0712",
+    "novice": true,
+    "tierSkills": "1111",
+    "commands": "11111",
+    "schematics": "111111",
+    "modifierDeltas": {
+      "healing_injury_treatment": 15,
+      "healing_injury_speed": 15,
+      "healing_ability": 5,
+      "medical_foraging": 15,
+      "medicine_assembly": 10,
+      "medicine_experimentation": 10
+    },
+    "medicalXpAfter": 0,
+    "medicalXpCapAfter": 10000,
+    "craftingXpAfter": 0,
+    "craftingXpCapAfter": 2000,
+    "availableSkillPointsAfter": 227,
+    "visualEvidenceSha256": "ad1dca3342a95b35147b9a9b5aa392302f2b078fe24d432ac48895a1e3315d6d",
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "Medic root visibility and four-by-four graph",
+      "all four tier-I purchases",
+      "exact XP and skill-point costs",
+      "commands and modifiers",
+      "novice and tier-I schematic membership",
+      "compiled client tables and live profession-tree display"
+    ],
+    "deferred": [
+      "Medic tier III through master",
+      "Doctor prerequisites and branches",
+      "tier-II command runtime compatibility",
+      "schematic gameplay beyond grant ownership"
+    ]
+  }
+}

@@ -1,0 +1,254 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+index adb533ac8d18dd417abbf94ffb91dcc61b5e694e..7b3927c199b5c67c29fb8d04694e2d5837bb0823 100755
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -63,6 +63,7 @@ public class skill extends script.base_script
+     public static final string_id PROSE_NSF_SKILL_PTS = new string_id("base_player", "prose_nsf_skill_pts");
+     public static final string_id PROSE_BAD_SPECIES = new string_id("base_player", "prose_bad_species");
+     public static final String TBL_SKILL = "datatables/skill/skills.iff";
++    public static final int SKILL_POINT_CAP = 250;
+     public static final String SKILL_N = "skl_n";
+     public static final String CONVOFILE = "skill_teacher";
+     public static final string_id PROSE_SKILL_LEARNED = new string_id(CONVOFILE, "prose_skill_learned");
+@@ -162,12 +163,58 @@ public class skill extends script.base_script
+         }
+         return false;
+     }
++    public static int getSkillPointCost(String skillName) throws InterruptedException
++    {
++        if (skillName == null || skillName.equals(""))
++        {
++            return -1;
++        }
++        int row = dataTableSearchColumnForString(skillName, "NAME", TBL_SKILL);
++        if (row < 0)
++        {
++            return -1;
++        }
++        int pointsRequired = dataTableGetInt(TBL_SKILL, row, "POINTS_REQUIRED");
++        return pointsRequired < 0 ? -1 : pointsRequired;
++    }
++    public static int getAvailableSkillPoints(obj_id player) throws InterruptedException
++    {
++        if (!isIdValid(player) || !isPlayer(player))
++        {
++            return 0;
++        }
++        String[] playerSkills = getSkillListingForPlayer(player);
++        if (playerSkills == null || playerSkills.length == 0)
++        {
++            return SKILL_POINT_CAP;
++        }
++        int usedPoints = 0;
++        for (String playerSkill : playerSkills)
++        {
++            int skillCost = getSkillPointCost(playerSkill);
++            if (skillCost < 0)
++            {
++                return 0;
++            }
++            usedPoints += skillCost;
++            if (usedPoints > SKILL_POINT_CAP)
++            {
++                return 0;
++            }
++        }
++        return SKILL_POINT_CAP - usedPoints;
++    }
+     public static boolean purchaseSkill(obj_id player, String skillName) throws InterruptedException
+     {
+         if (!isIdValid(player) || (!isPlayer(player)) || skillName == null || skillName.equals(""))
+         {
+             return false;
+         }
++        int pointsRequired = getSkillPointCost(skillName);
++        if (pointsRequired < 0 || getAvailableSkillPoints(player) < pointsRequired)
++        {
++            return false;
++        }
+         boolean hasSkills = hasRequiredSkillsForSkillPurchase(player, skillName);
+         boolean hasXp = hasRequiredXpForSkillPurchase(player, skillName);
+         boolean alreadyHasSkill = hasSkill(player, skillName);
+@@ -403,10 +450,62 @@ public class skill extends script.base_script
+             }
+         }
+     }
+-    public static String[] getTeachableSkills(obj_id target, obj_id teacher) throws InterruptedException
+-    {
+-        return null;
+-    }
++    public static String[] getTeachableSkills(obj_id target, obj_id teacher) throws InterruptedException
++    {
++        if (!isIdValid(target) || !isMob(target) || !isIdValid(teacher) || !isMob(teacher))
++        {
++            return null;
++        }
++        if (hasObjVar(target, "newbie.hasSkill") && !hasObjVar(target, "newbie.trained"))
++        {
++            String[] newbieSkill = new String[1];
++            newbieSkill[0] = getStringObjVar(target, "newbie.hasSkill");
++            return newbieSkill;
++        }
++        String[] targetSkills = getSkillListingForPlayer(target);
++        String[] delta = deltaTeacherSkills(target, teacher);
++        if (targetSkills == null || delta == null || delta.length == 0)
++        {
++            return null;
++        }
++        Vector teachableSkills = new Vector();
++        teachableSkills.setSize(0);
++        for (String candidate : delta)
++        {
++            String[] prerequisites = getSkillPrerequisiteSkills(candidate);
++            if (prerequisites != null && prerequisites.length > 0 && !utils.isSubset(targetSkills, prerequisites))
++            {
++                continue;
++            }
++            if (candidate.startsWith("species_") ||
++                candidate.equals("social_language_lekku") ||
++                candidate.startsWith("social_language_hutt") ||
++                candidate.equals("demo_combat") ||
++                candidate.startsWith("force_rank") ||
++                candidate.startsWith("force_title") ||
++                candidate.startsWith("expertise") ||
++                candidate.startsWith("pilot_"))
++            {
++                continue;
++            }
++            if (candidate.equals("jedi_light_side_journeyman_novice") && hasSkill(target, "jedi_dark_side_journeyman_novice"))
++            {
++                continue;
++            }
++            if (candidate.equals("jedi_dark_side_journeyman_novice") && hasSkill(target, "jedi_light_side_journeyman_novice"))
++            {
++                continue;
++            }
++            teachableSkills = utils.addElement(teachableSkills, candidate);
++        }
++        if (teachableSkills == null || teachableSkills.size() == 0)
++        {
++            return null;
++        }
++        String[] result = new String[teachableSkills.size()];
++        teachableSkills.toArray(result);
++        return result;
++    }
+     public static String[] getQualifiedTeachableSkills(obj_id target, obj_id teacher) throws InterruptedException
+     {
+         if (!isIdValid(target) || (!isMob(target)) || (isIdNull(teacher)) || (!isMob(teacher)))
+@@ -423,8 +522,6 @@ public class skill extends script.base_script
+         dictionary d;
+         Object o;
+         String xpType;
+-        Enumeration species_keys;
+-        String key;
+         String trainer_type;
+         String branch;
+         String skillName;
+@@ -449,17 +546,10 @@ public class skill extends script.base_script
+                 }
+             }
+             dictionary species = getSkillPrerequisiteSpecies(teachableSkill);
+-            assert d != null;
+-            if (species != null && !d.isEmpty()) {
+-                species_keys = species.keys();
+-                while (species_keys.hasMoreElements()) {
+-                    o = species_keys.nextElement();
+-                    if (o instanceof String) {
+-                        key = (String) o;
+-                        if (species.getBoolean(key)) {
+-                            qualifies = false;
+-                        }
+-                    }
++            if (species != null && !species.isEmpty()) {
++                String speciesName = utils.getPlayerSpeciesName(getSpecies(target));
++                if (!species.getBoolean(speciesName)) {
++                    qualifies = false;
+                 }
+             }
+             trainer_type = getStringObjVar(teacher, "trainer");
+diff --git a/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java b/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java
+index ade37c29dd575fa7be30cdb111c94f11a16820ef..f64ac06257fa6040fe69370952f9e7566ce33334 100755
+--- a/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java
++++ b/sku.0/sys.server/compiled/game/script/npc/skillteacher/skillteacher.java
+@@ -238,7 +238,16 @@ public class skillteacher extends script.base_script
+                     if (utils.getElementPositionInArray(qualifiedSkills, response) > -1)
+                     {
+                         string_id sid_skillName = new string_id(SKILL_N, response);
+-                        int cost = 1;
++                        int skillRow = dataTableSearchColumnForString(response, "NAME", skill.TBL_SKILL);
++                        if (skillRow < 0)
++                        {
++                            return SCRIPT_CONTINUE;
++                        }
++                        int cost = dataTableGetInt(skill.TBL_SKILL, skillRow, "MONEY_REQUIRED");
++                        if (cost < 0)
++                        {
++                            return SCRIPT_CONTINUE;
++                        }
+                         float skillMod = getEnhancedSkillStatisticModifier(speaker, "force_persuade");
+                         skillMod = skillMod * 0.01f;
+                         float discount = cost * skillMod;
+@@ -258,8 +267,8 @@ public class skillteacher extends script.base_script
+                             }
+                             else 
+                             {
+-                                int ptsLeft = 0;
+-                                int ptsCost = 1;
++                                int ptsLeft = skill.getAvailableSkillPoints(speaker);
++                                int ptsCost = skill.getSkillPointCost(response);
+                                 if (ptsLeft < ptsCost)
+                                 {
+                                     int diff = ptsCost - ptsLeft;
+@@ -284,8 +293,8 @@ public class skillteacher extends script.base_script
+                         }
+                         else 
+                         {
+-                            int ptsLeft = 0;
+-                            int ptsCost = 1;
++                            int ptsLeft = skill.getAvailableSkillPoints(speaker);
++                            int ptsCost = skill.getSkillPointCost(response);
+                             if (ptsLeft < ptsCost)
+                             {
+                                 int diff = ptsCost - ptsLeft;
+@@ -598,10 +607,14 @@ public class skillteacher extends script.base_script
+             npcEndConversation(speaker);
+             return false;
+         }
+-        string_id msg = new string_id(convo, "no_skill_pts");
+-        chat.chat(self, speaker, msg, chat.ChatFlag_targetOnly);
+-        npcEndConversation(speaker);
+-        return false;
++        if (skill.getAvailableSkillPoints(speaker) <= 0)
++        {
++            string_id msg = new string_id(convo, "no_skill_pts");
++            chat.chat(self, speaker, msg, chat.ChatFlag_targetOnly);
++            npcEndConversation(speaker);
++            return false;
++        }
++        return true;
+     }
+     public boolean hasSurpassedTrainer(obj_id trainer, obj_id player) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 149881a01db30fe369ac6d120034fd388370ed57..4941aeb8ed117730f87cca49a61a1f74ec53a1a5 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1906,3 +1906,4 @@ lfw		immediate			toggleLookingForWork																							1	1		0	1
+ callforsnowspeeder		normal	callForSnowspeederPickup					callforsnowspeeder	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	0	0	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	other	optional		2	0	0	0	0	0	0	0	MELEE		defaultCooldownGroup	0	0	0		0	0	0
+ callforslave1pickup		normal	callForTcgSlave1Pickup					callforslave1pickup	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	0	0	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	other	optional		2	0	0	0	0	0	0	0	MELEE		defaultCooldownGroup	0	0	0		0	0	0
+ costume_esb_yoda	commandClicky	normal	costume_esb_yoda	failSpecialAttack			1	costume_esb_yoda	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	1	0	0	0			0	0	1	1		1	0	0	1	1	1	1	0	1	0	1	1	1	1	0	0	1								0		0	0	0	0		1							other	none		2		costume	0			costume				costume	0	0.25	10				
++surrenderSkill		immediate			surrenderSkill		0		1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1		other	none		1	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	0	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index 1cf76d970e71342901c5f2d34236f44712603896..f15ef5f649958ade2d677616efcd20fa0b7914ad 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -788,7 +788,7 @@ combat_brawler_polearm_04	combat_brawler_polearm_03		1	1	0	1	4000	5		combat_braw
+ combat_marksman	combat		1	0	1	1	0	0						0											0	0
+ combat_marksman_novice	combat_marksman		1	1	0	1	100	15					0	0							"private_marksman_novice,knockdownRecovery"	"ranged_accuracy=10,ranged_speed=5"			0	0
+ combat_marksman_master	combat_marksman		1	1	0	1	5000	6		"combat_marksman_rifle_04,combat_marksman_pistol_04,combat_marksman_carbine_04,combat_marksman_support_04"		combat_general	35000	70000							"private_marksman_master,lethalShot"	"ranged_defense=5,ranged_accuracy=25,ranged_speed=15"			0	0
+-combat_marksman_rifle_01	combat_marksman		1	0	0	1	1000	2		combat_marksman_novice		combat_rangedspecialize_rifle	1000	200000							"private_marksman_rifle_1,aimedShot"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
++combat_marksman_rifle_01	combat_marksman		1	0	0	1	1000	2		combat_marksman_novice		combat_rangedspecialize_rifle	1000	200000							private_marksman_rifle_1	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
+ combat_marksman_rifle_02	combat_marksman_rifle_01		1	0	0	1	2000	3		combat_marksman_rifle_01		combat_rangedspecialize_rifle	5000	200000							"private_marksman_rifle_2,placedShot"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
+ combat_marksman_rifle_03	combat_marksman_rifle_02		1	0	0	1	3000	4		combat_marksman_rifle_02		combat_rangedspecialize_rifle	15000	200000							"private_marksman_rifle_3,firearmStrike"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0
+ combat_marksman_rifle_04	combat_marksman_rifle_03		1	1	0	1	4000	5		combat_marksman_rifle_03		combat_rangedspecialize_rifle	70000	200000							"private_marksman_rifle_4,aim"	"rifle_defense=5,rifle_accuracy=10,rifle_speed=5"			0	0

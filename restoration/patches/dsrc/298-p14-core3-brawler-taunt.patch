@@ -1,0 +1,543 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index a73d972..bd27fe3 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14933,6 +14933,144 @@ public class combat_actions extends script.systems.combat.combat_base
+         return SCRIPT_CONTINUE;
+     }
+ 
++    public int taunt(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        boolean eligible = isIdValid(target) && exists(target) &&
++            isMob(target) && !isPlayer(target) &&
++            !isIdValid(getMaster(target)) && ai_lib.isTauntable(target);
++        recordPrecuLiveDiagnostic(self, "taunt.target",
++            isIdValid(target) ? target.toString() : "0");
++        recordPrecuLiveDiagnostic(self, "taunt.eligible", eligible ? 1 : 0);
++        if (!eligible)
++        {
++            recordPrecuLiveDiagnostic(self, "taunt.result", "INELIGIBLE");
++            return SCRIPT_OVERRIDE;
++        }
++        if (!combatStandardAction("taunt", self, target, params, "", ""))
++        {
++            recordPrecuLiveDiagnostic(self, "taunt.result", "ACTION_FAILED");
++            return SCRIPT_OVERRIDE;
++        }
++
++        int tauntMod = Math.max(0, getSkillStatisticModifier(self, "taunt"));
++        int attackerLevel = Math.max(0, getLevel(self));
++        int targetLevel = Math.max(0, getLevel(target));
++        int levelCombine = Math.max(1, attackerLevel + targetLevel);
++        int upperBound = levelCombine + tauntMod;
++        int lowerBound = Math.max(0, levelCombine - tauntMod);
++        int upperRoll = rand(0, upperBound);
++        int lowerRoll = rand(0, lowerBound);
++        float hateBefore = getHate(target, self);
++        obj_id topBefore = getHateTarget(target);
++        float topHateBefore = isIdValid(topBefore) ?
++            getHate(target, topBefore) : 0.0f;
++        boolean success = upperRoll >= lowerRoll;
++        int duration = tauntMod;
++        int aggro = tauntMod * 10;
++        float appliedDelta = 0.0f;
++
++        if (success)
++        {
++            float forcedHate = Math.max(
++                hateBefore + (float)aggro,
++                topHateBefore + 1.0f);
++            appliedDelta = Math.max(0.0f, forcedHate - hateBefore);
++            setHate(target, self, forcedHate);
++            int generation = hasObjVar(target, "combat.precuTaunt.generation") ?
++                getIntObjVar(target, "combat.precuTaunt.generation") + 1 : 1;
++            int expiresAt = getGameTime() + duration;
++            setObjVar(target, "combat.precuTaunt.owner", self);
++            setObjVar(target, "combat.precuTaunt.generation", generation);
++            setObjVar(target, "combat.precuTaunt.expiresAt", expiresAt);
++            dictionary expiration = new dictionary();
++            expiration.put("target", target);
++            expiration.put("delta", appliedDelta);
++            expiration.put("generation", generation);
++            messageTo(self, "precuTauntExpire", expiration,
++                (float)duration, false);
++            sendPrecuTauntOutcome(self, target, true);
++        }
++        else
++        {
++            sendPrecuTauntOutcome(self, target, false);
++        }
++
++        obj_id topAfter = getHateTarget(target);
++        recordPrecuLiveDiagnostic(self, "taunt.mod", tauntMod);
++        recordPrecuLiveDiagnostic(self, "taunt.attackerLevel", attackerLevel);
++        recordPrecuLiveDiagnostic(self, "taunt.targetLevel", targetLevel);
++        recordPrecuLiveDiagnostic(self, "taunt.levelCombine", levelCombine);
++        recordPrecuLiveDiagnostic(self, "taunt.upperBound", upperBound);
++        recordPrecuLiveDiagnostic(self, "taunt.lowerBound", lowerBound);
++        recordPrecuLiveDiagnostic(self, "taunt.upperRoll", upperRoll);
++        recordPrecuLiveDiagnostic(self, "taunt.lowerRoll", lowerRoll);
++        recordPrecuLiveDiagnostic(self, "taunt.duration", duration);
++        recordPrecuLiveDiagnostic(self, "taunt.aggro", aggro);
++        recordPrecuLiveDiagnostic(self, "taunt.hateBefore", hateBefore);
++        recordPrecuLiveDiagnostic(self, "taunt.topHateBefore", topHateBefore);
++        recordPrecuLiveDiagnostic(self, "taunt.appliedDelta", appliedDelta);
++        recordPrecuLiveDiagnostic(self, "taunt.hateAfter",
++            getHate(target, self));
++        recordPrecuLiveDiagnostic(self, "taunt.topBefore",
++            isIdValid(topBefore) ? topBefore.toString() : "0");
++        recordPrecuLiveDiagnostic(self, "taunt.topAfter",
++            isIdValid(topAfter) ? topAfter.toString() : "0");
++        recordPrecuLiveDiagnostic(self, "taunt.result",
++            success ? "SUCCESS" : "FAIL");
++        return SCRIPT_CONTINUE;
++    }
++
++    private void sendPrecuTauntOutcome(obj_id self, obj_id target,
++        boolean success) throws InterruptedException
++    {
++        prose_package message = new prose_package();
++        message = prose.setStringId(message, new string_id(
++            "cbt_spam", success ? "taunt_success_single" :
++                "taunt_fail_single"));
++        message = prose.setTU(message, self);
++        message = prose.setTT(message, target);
++        sendCombatSpamMessageProse(self, target, message, true, true, true,
++            success ? COMBAT_RESULT_HIT : COMBAT_RESULT_MISS);
++    }
++
++    public int precuTauntExpire(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        obj_id target = params == null ? obj_id.NULL_ID :
++            params.getObjId("target");
++        float appliedDelta = params == null ? 0.0f :
++            params.getFloat("delta");
++        int generation = params == null ? 0 : params.getInt("generation");
++        if (isIdValid(target) && exists(target))
++        {
++            float hateBefore = getHate(target, self);
++            float hateAfter = Math.max(0.0f, hateBefore - appliedDelta);
++            if (hateAfter > 0.0f)
++            {
++                setHate(target, self, hateAfter);
++            }
++            else
++            {
++                removeHateTarget(target, self);
++            }
++            if (hasObjVar(target, "combat.precuTaunt.generation") &&
++                getIntObjVar(target, "combat.precuTaunt.generation") == generation)
++            {
++                removeObjVar(target, "combat.precuTaunt");
++            }
++            obj_id topAfter = getHateTarget(target);
++            recordPrecuLiveDiagnostic(self, "taunt.expired", 1);
++            recordPrecuLiveDiagnostic(self, "taunt.hateBeforeExpiry",
++                hateBefore);
++            recordPrecuLiveDiagnostic(self, "taunt.hateAfterExpiry",
++                getHate(target, self));
++            recordPrecuLiveDiagnostic(self, "taunt.topAfterExpiry",
++                isIdValid(topAfter) ? topAfter.toString() : "0");
++        }
++        return SCRIPT_CONTINUE;
++    }
++
+     public int melee1hDizzyHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("melee1hDizzyHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 302fead..0836d78 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -6,6 +6,7 @@ import script.obj_id;
+ import script.combat_engine;
+ import script.combat_engine.combat_data;
+ import script.combat_engine.weapon_data;
++import script.library.ai_lib;
+ import script.library.buff;
+ import script.library.combat;
+ import script.library.create;
+@@ -202,6 +203,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String UNARMED_LUNGE_TWO_COMMAND = "unarmedLunge2";
+     private static final String ONE_HAND_LUNGE_TWO_COMMAND = "melee1hLunge2";
+     private static final String TWO_HAND_LUNGE_TWO_COMMAND = "melee2hLunge2";
++    private static final String TAUNT_COMMAND = "taunt";
+     private static final String ONE_HAND_DIZZY_HIT_ONE_COMMAND =
+         "melee1hDizzyHit1";
+     private static final String TWO_HAND_SWEEP_ONE_COMMAND = "melee2hSweep1";
+@@ -527,6 +529,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalOneHandLungeTwoCommand";
+     private static final String ORIGINAL_TWO_HAND_LUNGE_TWO_COMMAND =
+         ROOT + ".originalTwoHandLungeTwoCommand";
++    private static final String ORIGINAL_TAUNT_COMMAND =
++        ROOT + ".originalTauntCommand";
+     private static final String ORIGINAL_ONE_HAND_DIZZY_HIT_ONE_COMMAND =
+         ROOT + ".originalOneHandDizzyHitOneCommand";
+     private static final String ORIGINAL_TWO_HAND_SWEEP_ONE_COMMAND =
+@@ -675,7 +679,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -752,6 +756,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armLungeTwoFamily(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armTaunt"))
++        {
++            return armTaunt(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armConceal"))
+         {
+             return armConceal(attacker, defender, args[3]);
+@@ -1217,6 +1225,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean twoHandLungeTwoCommandGranted =
+             hasCommand(attacker, TWO_HAND_LUNGE_TWO_COMMAND) ||
+             grantCommand(attacker, TWO_HAND_LUNGE_TWO_COMMAND);
++        boolean tauntCommandGranted =
++            hasCommand(attacker, TAUNT_COMMAND) ||
++            grantCommand(attacker, TAUNT_COMMAND);
+         boolean oneHandDizzyHitOneCommandGranted =
+             hasCommand(attacker, ONE_HAND_DIZZY_HIT_ONE_COMMAND) ||
+             grantCommand(attacker, ONE_HAND_DIZZY_HIT_ONE_COMMAND);
+@@ -1448,6 +1459,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, ONE_HAND_LUNGE_TWO_COMMAND) ||
+             !twoHandLungeTwoCommandGranted ||
+             !hasCommand(attacker, TWO_HAND_LUNGE_TWO_COMMAND) ||
++            !tauntCommandGranted ||
++            !hasCommand(attacker, TAUNT_COMMAND) ||
+             !oneHandDizzyHitOneCommandGranted ||
+             !hasCommand(attacker, ONE_HAND_DIZZY_HIT_ONE_COMMAND) ||
+             !twoHandSweepOneCommandGranted ||
+@@ -2213,6 +2226,7 @@ public class precu_headshot1_fixture extends script.base_script
+                 ONE_HAND_LUNGE_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_TWO_HAND_LUNGE_TWO_COMMAND,
+                 TWO_HAND_LUNGE_TWO_COMMAND);
++            restoreCommand(attacker, ORIGINAL_TAUNT_COMMAND, TAUNT_COMMAND);
+             restoreCommand(attacker, ORIGINAL_ONE_HAND_DIZZY_HIT_ONE_COMMAND,
+                 ONE_HAND_DIZZY_HIT_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_TWO_HAND_SWEEP_ONE_COMMAND,
+@@ -3156,6 +3170,72 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armTaunt(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        if (!destroyFixtureConcealTarget(attacker))
++        {
++            return "error=tauntTargetCleanupFailed";
++        }
++
++        location attackerLocation = getLocation(attacker);
++        location targetLocation = new location(
++            attackerLocation.x + 5.0f,
++            getHeightAtLocation(attackerLocation.x + 5.0f,
++                attackerLocation.z),
++            attackerLocation.z,
++            attackerLocation.area,
++            null);
++        obj_id tauntTarget = createFixtureConcealTarget(
++            targetLocation, attacker);
++        if (!isIdValid(tauntTarget))
++        {
++            return "error=tauntTargetCreationFailed";
++        }
++        setName(tauntTarget, "Precu Taunt Worrt");
++        setObjVar(tauntTarget, CONCEAL_TARGET_OWNED, 1);
++        setObjVar(tauntTarget, CONCEAL_TARGET_OWNER, attacker);
++        setObjVar(attacker, FIXTURE_CONCEAL_TARGET, tauntTarget);
++        pvpSetPermanentPersonalEnemyFlag(tauntTarget, defender);
++        pvpSetPermanentPersonalEnemyFlag(defender, tauntTarget);
++        stopCombat(attacker);
++        stopCombat(defender);
++        stopCombat(tauntTarget);
++        clearHateList(tauntTarget);
++        addHate(tauntTarget, defender, 200.0f);
++        setCombatTarget(attacker, obj_id.NULL_ID);
++        resetLiveDiagnostic(attacker);
++
++        int tauntModifier =
++            getSkillStatisticModifier(attacker, "taunt");
++        boolean boundary = hasSkill(attacker, BRAWLER_ROOT) &&
++            hasSkill(attacker, BRAWLER_NOVICE) &&
++            hasCommand(attacker, TAUNT_COMMAND) &&
++            tauntModifier >= 10 &&
++            isMob(tauntTarget) && !isPlayer(tauntTarget) &&
++            !isIdValid(getMaster(tauntTarget)) &&
++            ai_lib.isTauntable(tauntTarget) &&
++            pvpCanAttack(attacker, tauntTarget) &&
++            getDistance(attacker, tauntTarget) <= 64.0f &&
++            getHateTarget(tauntTarget) == defender;
++        return boundary ?
++            "action=armTaunt tauntTarget=" + tauntTarget +
++                " initialTop=" + defender +
++                " tauntModifier=" + tauntModifier +
++                " initialDefenderHate=" +
++                    getHate(tauntTarget, defender) +
++                " initialAttackerHate=" +
++                    getHate(tauntTarget, attacker) + " " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=tauntBoundaryFailed tauntTarget=" + tauntTarget + " " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armConceal(obj_id attacker, obj_id defender, String lifecycle)
+         throws InterruptedException
+     {
+@@ -3661,6 +3741,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, ONE_HAND_LUNGE_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_TWO_HAND_LUNGE_TWO_COMMAND,
+             hasCommand(player, TWO_HAND_LUNGE_TWO_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TAUNT_COMMAND,
++            hasCommand(player, TAUNT_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ONE_HAND_DIZZY_HIT_ONE_COMMAND,
+             hasCommand(player, ONE_HAND_DIZZY_HIT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_TWO_HAND_SWEEP_ONE_COMMAND,
+@@ -4105,6 +4187,7 @@ public class precu_headshot1_fixture extends script.base_script
+             ONE_HAND_LUNGE_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_TWO_HAND_LUNGE_TWO_COMMAND,
+             TWO_HAND_LUNGE_TWO_COMMAND);
++        restoreCommand(attacker, ORIGINAL_TAUNT_COMMAND, TAUNT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_ONE_HAND_DIZZY_HIT_ONE_COMMAND,
+             ONE_HAND_DIZZY_HIT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_TWO_HAND_SWEEP_ONE_COMMAND,
+@@ -4770,6 +4853,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 ONE_HAND_LUNGE_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_TWO_HAND_LUNGE_TWO_COMMAND,
+                 TWO_HAND_LUNGE_TWO_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_TAUNT_COMMAND,
++                TAUNT_COMMAND) &&
+             isCommandRestored(attacker,
+                 ORIGINAL_ONE_HAND_DIZZY_HIT_ONE_COMMAND,
+                 ONE_HAND_DIZZY_HIT_ONE_COMMAND) &&
+@@ -5065,6 +5150,7 @@ public class precu_headshot1_fixture extends script.base_script
+             ONE_HAND_LUNGE_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_TWO_HAND_LUNGE_TWO_COMMAND,
+             TWO_HAND_LUNGE_TWO_COMMAND);
++        restoreCommand(attacker, ORIGINAL_TAUNT_COMMAND, TAUNT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_ONE_HAND_DIZZY_HIT_ONE_COMMAND,
+             ONE_HAND_DIZZY_HIT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_TWO_HAND_SWEEP_ONE_COMMAND,
+@@ -5748,6 +5834,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean twoHandLungeTwoCommandReady =
+             hasCommand(attacker, TWO_HAND_LUNGE_TWO_COMMAND) ||
+             grantCommand(attacker, TWO_HAND_LUNGE_TWO_COMMAND);
++        boolean tauntCommandReady =
++            hasCommand(attacker, TAUNT_COMMAND) ||
++            grantCommand(attacker, TAUNT_COMMAND);
+         boolean oneHandDizzyHitOneCommandReady =
+             hasCommand(attacker, ONE_HAND_DIZZY_HIT_ONE_COMMAND) ||
+             grantCommand(attacker, ONE_HAND_DIZZY_HIT_ONE_COMMAND);
+@@ -5964,6 +6053,7 @@ public class precu_headshot1_fixture extends script.base_script
+             unarmedLungeTwoCommandReady &&
+             oneHandLungeTwoCommandReady &&
+             twoHandLungeTwoCommandReady &&
++            tauntCommandReady &&
+             oneHandDizzyHitOneCommandReady &&
+             twoHandSweepOneCommandReady &&
+             polearmStunOneCommandReady &&
+@@ -6248,9 +6338,15 @@ public class precu_headshot1_fixture extends script.base_script
+             return false;
+         }
+         stopCombat(target);
+-        removeHateTarget(target, attacker);
++        clearHateList(target);
+         pvpRemovePersonalEnemyFlags(target, attacker);
+         pvpRemovePersonalEnemyFlags(attacker, target);
++        obj_id defender = obj_id.getObjId(DEFENDER_OID);
++        if (isIdValid(defender) && exists(defender))
++        {
++            pvpRemovePersonalEnemyFlags(target, defender);
++            pvpRemovePersonalEnemyFlags(defender, target);
++        }
+         pvpSetAttackableOverride(target, false);
+         boolean destroyed = destroyObject(target);
+         if (destroyed)
+@@ -6409,6 +6505,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_UNARMED_LUNGE_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_LUNGE_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_LUNGE_TWO_COMMAND) &&
++            hasObjVar(player, ORIGINAL_TAUNT_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_DIZZY_HIT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_SWEEP_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_STUN_ONE_COMMAND) &&
+@@ -6532,6 +6629,10 @@ public class precu_headshot1_fixture extends script.base_script
+             getDistance(attacker, concealTarget) : -1.0f;
+         float concealTargetHate = concealTargetExists ?
+             getHate(concealTarget, attacker) : -1.0f;
++        obj_id concealTargetTop = concealTargetExists ?
++            getHateTarget(concealTarget) : obj_id.NULL_ID;
++        float concealTargetDefenderHate = concealTargetExists ?
++            getHate(concealTarget, defender) : -1.0f;
+         obj_id weapon = getObjectInSlot(attacker, "hold_r");
+         String weaponTemplate =
+             weapon == null || weapon == obj_id.NULL_ID ? "none" : getTemplateName(weapon);
+@@ -6652,6 +6753,7 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(ONE_HAND_LUNGE_TWO_COMMAND, attacker) : -1;
+         int canPerformTwoHandLungeTwo = isIdValid(weapon) ?
+             combat.canPerformAction(TWO_HAND_LUNGE_TWO_COMMAND, attacker) : -1;
++        int canPerformTaunt = combat.canPerformAction(TAUNT_COMMAND, attacker);
+         int canPerformOneHandDizzyHitOne = isIdValid(weapon) ?
+             combat.canPerformAction(ONE_HAND_DIZZY_HIT_ONE_COMMAND, attacker) : -1;
+         int canPerformTwoHandSweepOne = isIdValid(weapon) ?
+@@ -6825,6 +6927,7 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(ONE_HAND_LUNGE_TWO_COMMAND);
+         combat_data twoHandLungeTwoData =
+             combat_engine.getCombatData(TWO_HAND_LUNGE_TWO_COMMAND);
++        combat_data tauntData = combat_engine.getCombatData(TAUNT_COMMAND);
+         combat_data oneHandDizzyHitOneData =
+             combat_engine.getCombatData(ONE_HAND_DIZZY_HIT_ONE_COMMAND);
+         combat_data twoHandSweepOneData =
+@@ -7025,6 +7128,9 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, flameWeaponData, twoHandLungeTwoData) :
+             new int[] {-1, -1, -1};
++        int[] tauntCosts = tauntData != null && currentWeaponData != null ?
++            combat.getActionCost(attacker, currentWeaponData, tauntData) :
++            new int[] {-1, -1, -1};
+         int[] oneHandDizzyHitOneCosts =
+             oneHandDizzyHitOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -7270,6 +7376,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 (concealTargetExists && isMob(concealTarget)) +
+             " concealTargetDistanceMeters=" + concealTargetDistance +
+             " concealTargetHate=" + concealTargetHate +
++            " tauntTargetTop=" +
++                (isIdValid(concealTargetTop) ?
++                    concealTargetTop.toString() : "none") +
++            " tauntTargetDefenderHate=" + concealTargetDefenderHate +
+             " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION) +
+             " pistolCdefCertification=" +
+                 hasCommand(attacker, PISTOL_CDEF_CERTIFICATION) +
+@@ -7354,6 +7464,7 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, ONE_HAND_LUNGE_TWO_COMMAND) +
+             " twoHandLungeTwoCommand=" +
+                 hasCommand(attacker, TWO_HAND_LUNGE_TWO_COMMAND) +
++            " tauntCommand=" + hasCommand(attacker, TAUNT_COMMAND) +
+             " oneHandDizzyHitOneCommand=" +
+                 hasCommand(attacker, ONE_HAND_DIZZY_HIT_ONE_COMMAND) +
+             " twoHandSweepOneCommand=" +
+@@ -7823,6 +7934,19 @@ public class precu_headshot1_fixture extends script.base_script
+             " twoHandLungeTwoKnockdownChance=" +
+                 (twoHandLungeTwoData == null ? -1 :
+                     twoHandLungeTwoData.precuKnockdownChance) +
++            " tauntCanPerform=" + canPerformTaunt +
++            " tauntHealthCost=" + tauntCosts[0] +
++            " tauntActionCost=" + tauntCosts[1] +
++            " tauntMindCost=" + tauntCosts[2] +
++            " tauntPrecuHamCostModel=" +
++                (tauntData == null ? -1 : tauntData.precuHamCostModel) +
++            " tauntDamageMultiplier=" +
++                (tauntData == null ? -1.0f :
++                    tauntData.percentAddFromWeapon) +
++            " tauntTargetPool=" +
++                (tauntData == null ? -1 : tauntData.precuTargetPool) +
++            " tauntAccuracySkill=" +
++                getSkillStatisticModifier(attacker, "taunt") +
+             " oneHandDizzyHitOneCanPerform=" +
+                 canPerformOneHandDizzyHitOne +
+             " oneHandDizzyHitOneHealthCost=" +
+@@ -8303,6 +8427,55 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticFloat(attacker, "conceal.hateAfter", -1.0f) +
+             " diagnosticConcealResult=" +
+                 readDiagnosticString(attacker, "conceal.result", "none") +
++            " diagnosticTauntTarget=" +
++                readDiagnosticString(attacker, "taunt.target", "none") +
++            " diagnosticTauntEligible=" +
++                readDiagnosticInt(attacker, "taunt.eligible", -1) +
++            " diagnosticTauntMod=" +
++                readDiagnosticInt(attacker, "taunt.mod", -1) +
++            " diagnosticTauntAttackerLevel=" +
++                readDiagnosticInt(attacker, "taunt.attackerLevel", -1) +
++            " diagnosticTauntTargetLevel=" +
++                readDiagnosticInt(attacker, "taunt.targetLevel", -1) +
++            " diagnosticTauntLevelCombine=" +
++                readDiagnosticInt(attacker, "taunt.levelCombine", -1) +
++            " diagnosticTauntUpperBound=" +
++                readDiagnosticInt(attacker, "taunt.upperBound", -1) +
++            " diagnosticTauntLowerBound=" +
++                readDiagnosticInt(attacker, "taunt.lowerBound", -1) +
++            " diagnosticTauntUpperRoll=" +
++                readDiagnosticInt(attacker, "taunt.upperRoll", -1) +
++            " diagnosticTauntLowerRoll=" +
++                readDiagnosticInt(attacker, "taunt.lowerRoll", -1) +
++            " diagnosticTauntDuration=" +
++                readDiagnosticInt(attacker, "taunt.duration", -1) +
++            " diagnosticTauntAggro=" +
++                readDiagnosticInt(attacker, "taunt.aggro", -1) +
++            " diagnosticTauntHateBefore=" +
++                readDiagnosticFloat(attacker, "taunt.hateBefore", -1.0f) +
++            " diagnosticTauntTopHateBefore=" +
++                readDiagnosticFloat(attacker, "taunt.topHateBefore", -1.0f) +
++            " diagnosticTauntAppliedDelta=" +
++                readDiagnosticFloat(attacker, "taunt.appliedDelta", -1.0f) +
++            " diagnosticTauntHateAfter=" +
++                readDiagnosticFloat(attacker, "taunt.hateAfter", -1.0f) +
++            " diagnosticTauntTopBefore=" +
++                readDiagnosticString(attacker, "taunt.topBefore", "none") +
++            " diagnosticTauntTopAfter=" +
++                readDiagnosticString(attacker, "taunt.topAfter", "none") +
++            " diagnosticTauntResult=" +
++                readDiagnosticString(attacker, "taunt.result", "none") +
++            " diagnosticTauntExpired=" +
++                readDiagnosticInt(attacker, "taunt.expired", -1) +
++            " diagnosticTauntHateBeforeExpiry=" +
++                readDiagnosticFloat(
++                    attacker, "taunt.hateBeforeExpiry", -1.0f) +
++            " diagnosticTauntHateAfterExpiry=" +
++                readDiagnosticFloat(
++                    attacker, "taunt.hateAfterExpiry", -1.0f) +
++            " diagnosticTauntTopAfterExpiry=" +
++                readDiagnosticString(
++                    attacker, "taunt.topAfterExpiry", "none") +
+             " diagnosticPostureDownChance=" +
+                 readDiagnosticInt(attacker, "postureDown.chance", -1) +
+             " diagnosticPostureDownDefense=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 3c0069e..f7bbb52 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1398,3 +1398,4 @@ intimidate1	intimidate1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	client
+ intimidate2	intimidate2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_intimidate.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	intimidate	intimidate													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ warcry1	warcry1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_warcry.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	warcry	warcry													OFF	OFF	OFF	OFF	OFF	CONE	24	15	0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ warcry2	warcry2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_warcry.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	warcry	warcry													OFF	OFF	OFF	OFF	OFF	CONE	24	30	0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++taunt	taunt			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_taunt.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	0	1															OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0						KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 8ab7f9f..0bb6f1d 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -114,3 +114,4 @@ intimidate1	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	INTIMIDATE	100	0	30
+ intimidate2	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	INTIMIDATE	100	0	120																								intimidate
+ warcry1	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	NEXT_ATTACK_DELAY	100	0	10	warcry_defense	jedi_state_defense	resistance_states																					warcry
+ warcry2	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	NEXT_ATTACK_DELAY	100	0	20	warcry_defense	jedi_state_defense	resistance_states																					warcry
++taunt	1.0	1.0	1.0	NO_ATTRIBUTE	1.0	0	NONE
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 751f78e..91c6de8 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -113,3 +113,4 @@ intimidate1	intim
+ intimidate2	intim
+ warcry1	warcry
+ warcry2	warcry
++taunt	taunt
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index aa53a08..c097093 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2048,3 +2048,4 @@ intimidate1	combat	normal	intimidate1	failSpecialAttack			1.5	intimidate1	1	0	1
+ intimidate2	combat	normal	intimidate2	failSpecialAttack			1.5	intimidate2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ warcry1	combat	normal	warcry1	failSpecialAttack			1.5	warcry1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ warcry2	combat	normal	warcry2	failSpecialAttack			1.5	warcry2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++taunt	combat	normal	taunt	failSpecialAttack			1.5	taunt	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

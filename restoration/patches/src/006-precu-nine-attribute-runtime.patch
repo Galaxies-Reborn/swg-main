@@ -1,0 +1,739 @@
+diff --git a/game/shared/library/swgSharedUtility/src/shared/Attributes.def b/game/shared/library/swgSharedUtility/src/shared/Attributes.def
+index 4036151..67e0f7d 100644
+--- a/game/shared/library/swgSharedUtility/src/shared/Attributes.def
++++ b/game/shared/library/swgSharedUtility/src/shared/Attributes.def
+@@ -13,12 +13,15 @@
+ namespace Attributes
+ {			
+ 	const int Health = 0;
+-	const int Constitution = 1;
+-	const int Action = 2;
+-	const int Stamina = 3;
+-	const int Mind = 4;
+-	const int Willpower = 5;
+-	const int NumberOfAttributes = 6;  ///< NumberOfAttributes should always be the last entry in this structure.
++	const int Strength = 1;
++	const int Constitution = 2;
++	const int Action = 3;
++	const int Quickness = 4;
++	const int Stamina = 5;
++	const int Mind = 6;
++	const int Focus = 7;
++	const int Willpower = 8;
++	const int NumberOfAttributes = 9;  ///< NumberOfAttributes should always be the last entry in this structure.
+ 
+ 	typedef int Enumerator;   // Identifies which attribute
+ 	typedef int Value;        // Identifies the value of an attribute
+diff --git a/engine/shared/library/sharedGame/src/shared/core/PlayerCreationManager.cpp b/engine/shared/library/sharedGame/src/shared/core/PlayerCreationManager.cpp
+index 121f67c..b7256c0 100644
+--- a/engine/shared/library/sharedGame/src/shared/core/PlayerCreationManager.cpp
++++ b/engine/shared/library/sharedGame/src/shared/core/PlayerCreationManager.cpp
+@@ -429,17 +429,23 @@ void PlayerCreationManager::loadRacialModifiers()
+ 		std::string const &maleTemplate   = dataTable.getStringValue("male_template",   row);
+ 		std::string const &femaleTemplate = dataTable.getStringValue("female_template", row);
+ 		int health                        = dataTable.getIntValue("health",       row);
++		int strength                      = dataTable.getIntValue("strength",     row);
+ 		int constitution                  = dataTable.getIntValue("constitution", row);
+ 		int action                        = dataTable.getIntValue("action",       row);
++		int quickness                     = dataTable.getIntValue("quickness",    row);
+ 		int stamina                       = dataTable.getIntValue("stamina",      row);
+ 		int mind                          = dataTable.getIntValue("mind",         row);
++		int focus                         = dataTable.getIntValue("focus",        row);
+ 		int willpower                     = dataTable.getIntValue("willpower",    row);
+ 
+ 		modifiers.push_back(health);
++		modifiers.push_back(strength);
+ 		modifiers.push_back(constitution);
+ 		modifiers.push_back(action);
++		modifiers.push_back(quickness);
+ 		modifiers.push_back(stamina);
+ 		modifiers.push_back(mind);
++		modifiers.push_back(focus);
+ 		modifiers.push_back(willpower);
+ 
+ 		std::string fullMaleTemplate   = sharedTemplatePre + maleTemplate   + sharedTemplatePost;
+@@ -465,20 +471,26 @@ void PlayerCreationManager::loadProfessionModifiers()
+ 	dataTable.load(racialModsIff);
+ 
+ 	int max_health                        = 0;
++	int max_strength                      = 0;
+ 	int max_constitution                  = 0;
+ 	int max_action                        = 0;
++	int max_quickness                     = 0;
+ 	int max_stamina                       = 0;
+ 	int max_mind                          = 0;
++	int max_focus                         = 0;
+ 	int max_willpower                     = 0;
+ 
+ 	for (int row = 0; row < dataTable.getNumRows(); ++row)
+ 	{
+ 		std::string const &profession     = dataTable.getStringValue("profession",   row);
+ 		int health                        = dataTable.getIntValue   ("health",       row);
++		int strength                      = dataTable.getIntValue   ("strength",     row);
+ 		int constitution                  = dataTable.getIntValue   ("constitution", row);
+ 		int action                        = dataTable.getIntValue   ("action",       row);
++		int quickness                     = dataTable.getIntValue   ("quickness",    row);
+ 		int stamina                       = dataTable.getIntValue   ("stamina",      row);
+ 		int mind                          = dataTable.getIntValue   ("mind",         row);
++		int focus                         = dataTable.getIntValue   ("focus",        row);
+ 		int willpower                     = dataTable.getIntValue   ("willpower",    row);
+ 
+ 		//the maximum allowed value for a stat is the maximum of the profession-maxes.
+@@ -491,23 +503,32 @@ void PlayerCreationManager::loadProfessionModifiers()
+ 			//store off the maxes of these values, used as a factor of racial maximums
+ 			if(health > max_health)
+ 				max_health = health;
++			if(strength > max_strength)
++				max_strength = strength;
+ 			if(constitution > max_constitution)
+ 				max_constitution = constitution;
+ 			if(action > max_action)
+ 				max_action = action;
++			if(quickness > max_quickness)
++				max_quickness = quickness;
+ 			if(stamina > max_stamina)
+ 				max_stamina = stamina;
+ 			if(mind > max_mind)
+ 				max_mind = mind;
++			if(focus > max_focus)
++				max_focus = focus;
+ 			if(willpower > max_willpower)
+ 				max_willpower = willpower;
+ 		}
+ 
+ 		modifiers.push_back(health);
++		modifiers.push_back(strength);
+ 		modifiers.push_back(constitution);
+ 		modifiers.push_back(action);
++		modifiers.push_back(quickness);
+ 		modifiers.push_back(stamina);
+ 		modifiers.push_back(mind);
++		modifiers.push_back(focus);
+ 		modifiers.push_back(willpower);
+ 
+ 		DEBUG_FATAL(modifiers.size() != s_numberOfAttributes, ("Bad number of	profession modifiers"));
+diff --git a/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.cpp b/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.cpp
+index 46fd7b9..9e8208f 100644
+--- a/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.cpp
++++ b/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.cpp
+@@ -19,27 +19,36 @@ const char* const StatMigrationTargetsMessage::cms_name = "StatMigrationTargetsM
+ StatMigrationTargetsMessage::StatMigrationTargetsMessage(const std::vector<int>& currentTargets, int pointsLeft)
+ : GameNetworkMessage(cms_name),
+   m_health(0),
++  m_strength(0),
+   m_constitution(0),
+   m_action(0),
++  m_quickness(0),
+   m_stamina(0),
+   m_mind(0),
++  m_focus(0),
+   m_willpower(0),
+   m_pointsLeft(pointsLeft)
+ {
+ 	DEBUG_FATAL(static_cast<int>(currentTargets.size()) != Attributes::NumberOfAttributes, ("Bad number of targets given when building a StatMigrationTargetsMessage"));
+ 
+ 	m_health.set(currentTargets[Attributes::Health]);
++	m_strength.set(currentTargets[Attributes::Strength]);
+ 	m_constitution.set(currentTargets[Attributes::Constitution]);
+ 	m_action.set(currentTargets[Attributes::Action]);
++	m_quickness.set(currentTargets[Attributes::Quickness]);
+ 	m_stamina.set(currentTargets[Attributes::Stamina]);
+ 	m_mind.set(currentTargets[Attributes::Mind]);
++	m_focus.set(currentTargets[Attributes::Focus]);
+ 	m_willpower.set(currentTargets[Attributes::Willpower]);
+ 
+ 	AutoByteStream::addVariable(m_health);
++	AutoByteStream::addVariable(m_strength);
+ 	AutoByteStream::addVariable(m_constitution);
+ 	AutoByteStream::addVariable(m_action);
++	AutoByteStream::addVariable(m_quickness);
+ 	AutoByteStream::addVariable(m_stamina);
+ 	AutoByteStream::addVariable(m_mind);
++	AutoByteStream::addVariable(m_focus);
+ 	AutoByteStream::addVariable(m_willpower);
+ 	AutoByteStream::addVariable(m_pointsLeft);
+ }
+@@ -49,18 +58,24 @@ StatMigrationTargetsMessage::StatMigrationTargetsMessage(const std::vector<int>&
+ StatMigrationTargetsMessage::StatMigrationTargetsMessage(Archive::ReadIterator &source)
+ : GameNetworkMessage(cms_name),
+   m_health(0),
++  m_strength(0),
+   m_constitution(0),
+   m_action(0),
++  m_quickness(0),
+   m_stamina(0),
+   m_mind(0),
++  m_focus(0),
+   m_willpower(0),
+   m_pointsLeft(0)
+ {
+ 	AutoByteStream::addVariable(m_health);
++	AutoByteStream::addVariable(m_strength);
+ 	AutoByteStream::addVariable(m_constitution);
+ 	AutoByteStream::addVariable(m_action);
++	AutoByteStream::addVariable(m_quickness);
+ 	AutoByteStream::addVariable(m_stamina);
+ 	AutoByteStream::addVariable(m_mind);
++	AutoByteStream::addVariable(m_focus);
+ 	AutoByteStream::addVariable(m_willpower);
+ 	AutoByteStream::addVariable(m_pointsLeft);
+ 	unpack(source);
+@@ -72,10 +87,13 @@ std::vector<int> StatMigrationTargetsMessage::getTargets() const
+ {
+ 	std::vector<int> vec;
+ 	vec.push_back(m_health.get());
++	vec.push_back(m_strength.get());
+ 	vec.push_back(m_constitution.get());
+ 	vec.push_back(m_action.get());
++	vec.push_back(m_quickness.get());
+ 	vec.push_back(m_stamina.get());
+ 	vec.push_back(m_mind.get());
++	vec.push_back(m_focus.get());
+ 	vec.push_back(m_willpower.get());
+ 	return vec;
+ }
+diff --git a/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.h b/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.h
+index eaab623..04bad5b 100644
+--- a/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.h
++++ b/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.h
+@@ -32,10 +32,13 @@ public:
+ 
+ private: 
+ 	Archive::AutoVariable<int> m_health;
++	Archive::AutoVariable<int> m_strength;
+ 	Archive::AutoVariable<int> m_constitution;
+ 	Archive::AutoVariable<int> m_action;
++	Archive::AutoVariable<int> m_quickness;
+ 	Archive::AutoVariable<int> m_stamina;
+ 	Archive::AutoVariable<int> m_mind;
++	Archive::AutoVariable<int> m_focus;
+ 	Archive::AutoVariable<int> m_willpower;
+ 	Archive::AutoVariable<int> m_pointsLeft;
+ };
+diff --git a/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp b/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp
+index c524a4c..a37aee3 100644
+--- a/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp
+@@ -137,11 +137,14 @@ namespace TangibleObjectNamespace
+ 	std::string const s_attributeBonusNames[] =
+ 	{
+ 		"health",
+-		"health_regen",
++		"strength",
++		"constitution",
+ 		"action",
+-		"action_regen",
++		"quickness",
++		"stamina",
+ 		"mind",
+-		"mind_regen"
++		"focus",
++		"willpower"
+ 	};
+ 
+ 	const char * const s_accessListScriptVar = "tangible_object.accessList";
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+index fda5c7b..22a458c 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+@@ -792,10 +792,8 @@ CreatureObject::CreatureObject(const ServerCreatureObjectTemplate* newTemplate)
+ 			m_cachedMaxAttributeModValues.set(i, 0);
+ 			m_regeneration[i] = 0;
+ 		}
+-		// store the default regen values in the former faucet attrib slots
+-		m_attributes.set(Attributes::Constitution, static_cast<int>(ConfigServerGame::getDefaultHealthRegen()));
+-		m_attributes.set(Attributes::Stamina, static_cast<int>(ConfigServerGame::getDefaultActionRegen()));
+-		m_attributes.set(Attributes::Willpower, static_cast<int>(ConfigServerGame::getDefaultMindRegen()));
++		for (int i = 0; i < 3; ++i)
++			m_regenerationOverride[i] = -1.0f;
+ 	}
+ 
+ 	// fix the size of the mental state vectors
+@@ -1819,10 +1817,54 @@ void CreatureObject::initializeFirstTimeObject()
+ 
+ //-----------------------------------------------------------------------
+ 
++void CreatureObject::migrateSixAttributeStateToNine()
++{
++	if (m_attributes.size() == Attributes::NumberOfAttributes &&
++		m_maxAttributes.size() == Attributes::NumberOfAttributes)
++		return;
++
++	if (m_attributes.size() != 6 || m_maxAttributes.size() != 6)
++	{
++		WARNING_STRICT_FATAL(true, ("Creature %s has unsupported persisted attribute vector sizes current=%u max=%u",
++			getNetworkId().getValueString().c_str(),
++			static_cast<unsigned int>(m_attributes.size()),
++			static_cast<unsigned int>(m_maxAttributes.size())));
++		return;
++	}
++
++	std::vector<Attributes::Value> const oldCurrent(m_attributes.get());
++	std::vector<Attributes::Value> const oldMax(m_maxAttributes.get());
++	std::vector<Attributes::Value> current(Attributes::NumberOfAttributes, 300);
++	std::vector<Attributes::Value> maximum(Attributes::NumberOfAttributes, 300);
++
++	current[Attributes::Health] = oldCurrent[0];
++	current[Attributes::Constitution] = oldMax[1];
++	current[Attributes::Action] = oldCurrent[2];
++	current[Attributes::Stamina] = oldMax[3];
++	current[Attributes::Mind] = oldCurrent[4];
++	current[Attributes::Willpower] = oldMax[5];
++
++	maximum[Attributes::Health] = oldMax[0];
++	maximum[Attributes::Constitution] = oldMax[1];
++	maximum[Attributes::Action] = oldMax[2];
++	maximum[Attributes::Stamina] = oldMax[3];
++	maximum[Attributes::Mind] = oldMax[4];
++	maximum[Attributes::Willpower] = oldMax[5];
++
++	m_attributes.set(current);
++	m_maxAttributes.set(maximum);
++	LOG("PreCuRestore", ("Migrated creature %s from the six-attribute layout to the Publish 14 nine-attribute layout",
++		getNetworkId().getValueString().c_str()));
++}
++
++//-----------------------------------------------------------------------
++
+ void CreatureObject::onLoadedFromDatabase()
+ {
+ 	if (isAuthoritative())
+ 	{
++		migrateSixAttributeStateToNine();
++
+ 		if (isPlayerControlled())
+ 		{
+ 			onClientAboutToLoad();
+@@ -2001,11 +2043,6 @@ void CreatureObject::onLoadedFromDatabase()
+ 				"C++CheckCharacterTitle", "", 30, false);
+ 		}
+ 
+-		// store the default regen values in the former faucet attrib slots
+-		m_attributes.set(Attributes::Constitution, static_cast<int>(ConfigServerGame::getDefaultHealthRegen()));
+-		m_attributes.set(Attributes::Stamina, static_cast<int>(ConfigServerGame::getDefaultActionRegen()));
+-		m_attributes.set(Attributes::Willpower, static_cast<int>(ConfigServerGame::getDefaultMindRegen()));
+-
+ 		if(!isPlayerControlled())
+ 			fixupPersistentBuffsAfterLoading();
+ 		else
+@@ -3969,14 +4006,6 @@ int CreatureObject::alterAttribute(Attributes::Enumerator attrib, int delta,
+ 			return 0;
+ 		}
+ 
+-		if (!Attributes::isAttribPool(attrib))
+-		{
+-			// we only alter pool values now, regeneration is set directly
+-			DEBUG_REPORT_LOG(true, ("CreatureObject::alterAttribute called on %s for non-pool attrib (%d)\n",
+-				getNetworkId().getValueString().c_str(), attrib));
+-			return 0;
+-		}
+-
+ 		if (delta == 0)
+ 			return 0;
+ 
+@@ -4797,7 +4826,7 @@ void CreatureObject::applyDamage(const CombatEngineData::DamageData &damageData)
+ 		(healthDamage > 0 || actionDamage > 0 || mindDamage > 0))
+ 	{
+ 		NOT_NULL(getScriptObject());
+-		int damageArray[] = {healthDamage, 0, actionDamage, 0, mindDamage, 0};
++		int damageArray[] = {healthDamage, 0, 0, actionDamage, 0, 0, mindDamage, 0, 0};
+ 		std::vector<int> damageParam(&damageArray[0], &damageArray[Attributes::NumberOfAttributes]);
+ 
+ 		ScriptParams params;
+@@ -6693,12 +6722,6 @@ void CreatureObject::setAttribute(Attributes::Enumerator attribute, Attributes::
+ 			DEBUG_REPORT_LOG(true, ("attribute out of range (%d)\n", attribute));
+ 			return;
+ 		}
+-		if (!Attributes::isAttribPool(attribute))
+-		{
+-			DEBUG_WARNING(true, ("CreatureObject::setAttribute called with non-pool attribute %d on creature %s. If this is a regeneration value, call setRegenRate() instead.",
+-				attribute, getNetworkId().getValueString().c_str()));
+-			return;
+-		}
+ 		const Attributes::Value currentValue = m_attributes[attribute];
+ 		IGNORE_RETURN(alterAttribute(attribute, value - currentValue, true));
+ 	}
+@@ -6721,12 +6744,6 @@ void CreatureObject::setMaxAttribute(Attributes::Enumerator attribute, Attribute
+ 			DEBUG_REPORT_LOG(true, ("attribute out of range (%d)\n", attribute));
+ 			return;
+ 		}
+-		if (!Attributes::isAttribPool(attribute))
+-		{
+-			DEBUG_WARNING(true, ("CreatureObject::setMaxAttribute called with non-pool attribute %d on creature %s. If this is a regeneration value, call setRegenRate() instead.",
+-				attribute, getNetworkId().getValueString().c_str()));
+-			return;
+-		}
+ 		m_maxAttributes.set(attribute, value);
+ 	}
+ }
+@@ -7305,10 +7322,10 @@ int i;
+ 		for (i = 0; i < Attributes::NumberOfAttributes; ++i)
+ 		{
+ 			if (Attributes::isAttribPool(i))
+-			{
+ 				m_totalAttributes.set(i, getAttribute(i) - static_cast<int>(floor(m_regeneration[i])));
+-				m_totalMaxAttributes.set(i, getMaxAttribute(i));
+-			}
++			else
++				m_totalAttributes.set(i, getAttribute(i));
++			m_totalMaxAttributes.set(i, getMaxAttribute(i));
+ 		}
+ 	}
+ }	// CreatureObject::computeTotalAttributes
+@@ -14254,9 +14271,26 @@ float CreatureObject::getRegenRate(Attributes::Enumerator poolAttrib) const
+ 	if (!Attributes::isAttribPool(poolAttrib))
+ 		return 0;
+ 
+-	// we've stored the rate as an int, convert back to float
+-	int fixedFloatRate = m_attributes[poolAttrib+1];
+-	return static_cast<float>(fixedFloatRate);
++	int poolIndex = 0;
++	Attributes::Enumerator governingAttribute = Attributes::Constitution;
++	if (poolAttrib == Attributes::Action)
++	{
++		poolIndex = 1;
++		governingAttribute = Attributes::Stamina;
++	}
++	else if (poolAttrib == Attributes::Mind)
++	{
++		poolIndex = 2;
++		governingAttribute = Attributes::Willpower;
++	}
++
++	if (m_regenerationOverride[poolIndex] >= 0.0f)
++		return m_regenerationOverride[poolIndex];
++
++	// Core3 commit 6856f315a80b5250635b2272695caec1d64204ed:
++	// each primary pool regenerates from the third attribute in its HAM group.
++	float const rate = static_cast<float>(std::max(0, getAttribute(governingAttribute))) * 13.0f / 2100.0f;
++	return std::max(1.0f, rate);
+ }
+ 
+ // ----------------------------------------------------------------------
+@@ -14269,8 +14303,12 @@ void CreatureObject::setRegenRate(Attributes::Enumerator poolAttrib, float value
+ 			value = 0;
+ 		if (isAuthoritative())
+ 		{
+-			// store the value as an int
+-			m_attributes.set(poolAttrib+1, static_cast<int>(floor(value)));
++			int poolIndex = 0;
++			if (poolAttrib == Attributes::Action)
++				poolIndex = 1;
++			else if (poolAttrib == Attributes::Mind)
++				poolIndex = 2;
++			m_regenerationOverride[poolIndex] = value;
+ 		}
+ 		else
+ 		{
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.h b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+index 46d96de..ac014ae 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.h
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+@@ -752,6 +752,7 @@ private:
+ 	void     addPackedAppearanceWearable(std::string const &appearanceData, int arrangementIndex, NetworkId const &networkId, uint32 sharedTemplateCrcValue);	
+ 	void     packWearables();
+ 	void     computeTotalAttributes ();
++	void     migrateSixAttributeStateToNine();
+ 
+ 	bool     potentiallyAddToTerrain();
+ 
+@@ -833,6 +834,7 @@ private:
+ 
+ 	float                                            m_regeneration[Attributes::NumberOfAttributes];   ///< Accumulated regeneration points
+ 	float                                            m_regenerationTime;                               ///< Accumulated regeneration time
++	float                                            m_regenerationOverride[3];                        ///< Explicit script overrides by primary pool; negative selects the Publish 14 stat formula.
+ 	
+ 	// BPM CreatureObject : TangibleObject // Begin persisted members.
+ 	Archive::AutoDeltaVector<Attributes::Value>      m_attributes;           ///< The current attributes (health, action, mind) of the mobile.
+diff --git a/engine/server/library/serverGame/src/shared/objectTemplate/ServerObjectTemplate.h b/engine/server/library/serverGame/src/shared/objectTemplate/ServerObjectTemplate.h
+index 86c047b..e95479d 100644
+--- a/engine/server/library/serverGame/src/shared/objectTemplate/ServerObjectTemplate.h
++++ b/engine/server/library/serverGame/src/shared/objectTemplate/ServerObjectTemplate.h
+@@ -76,10 +76,13 @@ public:
+ 	enum Attributes
+ 	{
+ 		AT_health,
++		AT_strength,
+ 		AT_constitution,
+ 		AT_action,
++		AT_quickness,
+ 		AT_stamina,
+ 		AT_mind,
++		AT_focus,
+ 		AT_willpower,
+ 		Attributes_Last = AT_willpower,
+ 	};
+diff --git a/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.h b/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.h
+index e5b9d1f..a8a6ea9 100644
+--- a/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.h
++++ b/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.h
+@@ -113,9 +113,9 @@ protected:
+ private:
+ 	//Creature Attributes
+ 	StringParam m_defaultWeapon;		// //weapon to use if none is equipped
+-	IntegerParam m_attributes[6];		// //initial value for attributes
+-	IntegerParam m_minAttributes[6];		// //minimum value for attributes
+-	IntegerParam m_maxAttributes[6];		// //maximum value for attributes
++	IntegerParam m_attributes[9];		// //initial value for attributes
++	IntegerParam m_minAttributes[9];		// //minimum value for attributes
++	IntegerParam m_maxAttributes[9];		// //maximum value for attributes
+ 	FloatParam m_minDrainModifier;		// //min drain rate in units/sec
+ 	FloatParam m_maxDrainModifier;		// //max drain rate in units/sec
+ 	FloatParam m_minFaucetModifier;		// //min regeneration rate in units/sec
+diff --git a/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.cpp b/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.cpp
+index fd896b0..882ca57 100644
+--- a/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.cpp
++++ b/engine/server/library/serverGame/src/shared/objectTemplate/ServerCreatureObjectTemplate.cpp
+@@ -168,7 +168,7 @@ int ServerCreatureObjectTemplate::getAttributes(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_attributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -217,7 +217,7 @@ int ServerCreatureObjectTemplate::getAttributesMin(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_attributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -266,7 +266,7 @@ int ServerCreatureObjectTemplate::getAttributesMax(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_attributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -315,7 +315,7 @@ int ServerCreatureObjectTemplate::getMinAttributes(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_minAttributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -364,7 +364,7 @@ int ServerCreatureObjectTemplate::getMinAttributesMin(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_minAttributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -413,7 +413,7 @@ int ServerCreatureObjectTemplate::getMinAttributesMax(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_minAttributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -462,7 +462,7 @@ int ServerCreatureObjectTemplate::getMaxAttributes(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_maxAttributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -511,7 +511,7 @@ int ServerCreatureObjectTemplate::getMaxAttributesMin(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_maxAttributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -560,7 +560,7 @@ int ServerCreatureObjectTemplate::getMaxAttributesMax(Attributes index) const
+ 		base = dynamic_cast<const ServerCreatureObjectTemplate *>(m_baseData);
+ 	}
+ 
+-	DEBUG_FATAL(index < 0 || index >= 6, ("template param index out of range"));
++	DEBUG_FATAL(index < 0 || index >= 9, ("template param index out of range"));
+ 	if (!m_maxAttributes[index].isLoaded())
+ 	{
+ 		if (ms_allowDefaultTemplateParams && /*!m_versionOk &&*/ base == nullptr)
+@@ -2377,9 +2377,9 @@ char paramName[MAX_NAME_SIZE];
+ 		else if (strcmp(paramName, "attributes") == 0)
+ 		{
+ 			int listCount = file.read_int32();
+-			DEBUG_WARNING(listCount != 6, ("Template %s: read array size of %d for array \"attributes\" of size 6, reading values anyway", file.getFileName(), listCount));
++			DEBUG_WARNING(listCount != 9, ("Template %s: read array size of %d for array \"attributes\" of size 9, reading values anyway", file.getFileName(), listCount));
+ 			int j;
+-			for (j = 0; j < 6 && j < listCount; ++j)
++			for (j = 0; j < 9 && j < listCount; ++j)
+ 				m_attributes[j].loadFromIff(file);
+ 			// if there are more params for attributes read and dump them
+ 			for (; j < listCount; ++j)
+@@ -2391,9 +2391,9 @@ char paramName[MAX_NAME_SIZE];
+ 		else if (strcmp(paramName, "minAttributes") == 0)
+ 		{
+ 			int listCount = file.read_int32();
+-			DEBUG_WARNING(listCount != 6, ("Template %s: read array size of %d for array \"minAttributes\" of size 6, reading values anyway", file.getFileName(), listCount));
++			DEBUG_WARNING(listCount != 9, ("Template %s: read array size of %d for array \"minAttributes\" of size 9, reading values anyway", file.getFileName(), listCount));
+ 			int j;
+-			for (j = 0; j < 6 && j < listCount; ++j)
++			for (j = 0; j < 9 && j < listCount; ++j)
+ 				m_minAttributes[j].loadFromIff(file);
+ 			// if there are more params for minAttributes read and dump them
+ 			for (; j < listCount; ++j)
+@@ -2405,9 +2405,9 @@ char paramName[MAX_NAME_SIZE];
+ 		else if (strcmp(paramName, "maxAttributes") == 0)
+ 		{
+ 			int listCount = file.read_int32();
+-			DEBUG_WARNING(listCount != 6, ("Template %s: read array size of %d for array \"maxAttributes\" of size 6, reading values anyway", file.getFileName(), listCount));
++			DEBUG_WARNING(listCount != 9, ("Template %s: read array size of %d for array \"maxAttributes\" of size 9, reading values anyway", file.getFileName(), listCount));
+ 			int j;
+-			for (j = 0; j < 6 && j < listCount; ++j)
++			for (j = 0; j < 9 && j < listCount; ++j)
+ 				m_maxAttributes[j].loadFromIff(file);
+ 			// if there are more params for maxAttributes read and dump them
+ 			for (; j < listCount; ++j)
+diff --git a/engine/shared/library/sharedTemplate/src/shared/template/ServerObjectTemplate.h b/engine/shared/library/sharedTemplate/src/shared/template/ServerObjectTemplate.h
+index 1bc0dae..77bd754 100644
+--- a/engine/shared/library/sharedTemplate/src/shared/template/ServerObjectTemplate.h
++++ b/engine/shared/library/sharedTemplate/src/shared/template/ServerObjectTemplate.h
+@@ -71,10 +71,13 @@ public:
+ 	enum Attributes
+ 	{
+ 		AT_health,
++		AT_strength,
+ 		AT_constitution,
+ 		AT_action,
++		AT_quickness,
+ 		AT_stamina,
+ 		AT_mind,
++		AT_focus,
+ 		AT_willpower,
+ 		Attributes_Last = AT_willpower,
+ 	};
+diff --git a/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.h b/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.h
+index 8b69f35..9cfca21 100644
+--- a/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.h
++++ b/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.h
+@@ -79,9 +79,9 @@ protected:
+ private:
+ 	//Creature Attributes
+ 	StringParam m_defaultWeapon;		// //weapon to use if none is equipped
+-	CompilerIntegerParam m_attributes[6];		// //initial value for attributes
+-	CompilerIntegerParam m_minAttributes[6];		// //minimum value for attributes
+-	CompilerIntegerParam m_maxAttributes[6];		// //maximum value for attributes
++	CompilerIntegerParam m_attributes[9];		// //initial value for attributes
++	CompilerIntegerParam m_minAttributes[9];		// //minimum value for attributes
++	CompilerIntegerParam m_maxAttributes[9];		// //maximum value for attributes
+ 	FloatParam m_minDrainModifier;		// //min drain rate in units/sec
+ 	FloatParam m_maxDrainModifier;		// //max drain rate in units/sec
+ 	FloatParam m_minFaucetModifier;		// //min regeneration rate in units/sec
+diff --git a/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.cpp b/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.cpp
+index 9939f3a..d17ca3b 100644
+--- a/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.cpp
++++ b/engine/shared/library/sharedTemplate/src/shared/template/ServerCreatureObjectTemplate.cpp
+@@ -109,7 +109,7 @@ CompilerIntegerParam * ServerCreatureObjectTemplate::getCompilerIntegerParam(con
+ {
+ 	if (strcmp(name, "attributes") == 0)
+ 	{
+-		if (index >= 0 && index < 6)
++		if (index >= 0 && index < 9)
+ 		{
+ 			if (deepCheck && !isParamLoaded(name, false, index))
+ 			{
+@@ -123,7 +123,7 @@ CompilerIntegerParam * ServerCreatureObjectTemplate::getCompilerIntegerParam(con
+ 	}
+ 	else if (strcmp(name, "minAttributes") == 0)
+ 	{
+-		if (index >= 0 && index < 6)
++		if (index >= 0 && index < 9)
+ 		{
+ 			if (deepCheck && !isParamLoaded(name, false, index))
+ 			{
+@@ -137,7 +137,7 @@ CompilerIntegerParam * ServerCreatureObjectTemplate::getCompilerIntegerParam(con
+ 	}
+ 	else if (strcmp(name, "maxAttributes") == 0)
+ 	{
+-		if (index >= 0 && index < 6)
++		if (index >= 0 && index < 9)
+ 		{
+ 			if (deepCheck && !isParamLoaded(name, false, index))
+ 			{
+@@ -495,9 +495,9 @@ char paramName[MAX_NAME_SIZE];
+ 		else if (strcmp(paramName, "attributes") == 0)
+ 		{
+ 			int listCount = file.read_int32();
+-			DEBUG_WARNING(listCount != 6, ("Template %s: read array size of %d for array \"attributes\" of size 6, reading values anyway", file.getFileName(), listCount));
++			DEBUG_WARNING(listCount != 9, ("Template %s: read array size of %d for array \"attributes\" of size 9, reading values anyway", file.getFileName(), listCount));
+ 			int j;
+-			for (j = 0; j < 6 && j < listCount; ++j)
++			for (j = 0; j < 9 && j < listCount; ++j)
+ 				m_attributes[j].loadFromIff(file);
+ 			// if there are more params for attributes read and dump them
+ 			for (; j < listCount; ++j)
+@@ -509,9 +509,9 @@ char paramName[MAX_NAME_SIZE];
+ 		else if (strcmp(paramName, "minAttributes") == 0)
+ 		{
+ 			int listCount = file.read_int32();
+-			DEBUG_WARNING(listCount != 6, ("Template %s: read array size of %d for array \"minAttributes\" of size 6, reading values anyway", file.getFileName(), listCount));
++			DEBUG_WARNING(listCount != 9, ("Template %s: read array size of %d for array \"minAttributes\" of size 9, reading values anyway", file.getFileName(), listCount));
+ 			int j;
+-			for (j = 0; j < 6 && j < listCount; ++j)
++			for (j = 0; j < 9 && j < listCount; ++j)
+ 				m_minAttributes[j].loadFromIff(file);
+ 			// if there are more params for minAttributes read and dump them
+ 			for (; j < listCount; ++j)
+@@ -523,9 +523,9 @@ char paramName[MAX_NAME_SIZE];
+ 		else if (strcmp(paramName, "maxAttributes") == 0)
+ 		{
+ 			int listCount = file.read_int32();
+-			DEBUG_WARNING(listCount != 6, ("Template %s: read array size of %d for array \"maxAttributes\" of size 6, reading values anyway", file.getFileName(), listCount));
++			DEBUG_WARNING(listCount != 9, ("Template %s: read array size of %d for array \"maxAttributes\" of size 9, reading values anyway", file.getFileName(), listCount));
+ 			int j;
+-			for (j = 0; j < 6 && j < listCount; ++j)
++			for (j = 0; j < 9 && j < listCount; ++j)
+ 				m_maxAttributes[j].loadFromIff(file);
+ 			// if there are more params for maxAttributes read and dump them
+ 			for (; j < listCount; ++j)
+@@ -639,27 +639,27 @@ int count;
+ 	// save attributes
+ 	file.insertChunk(TAG(X, X, X, X));
+ 	file.insertChunkString("attributes");
+-	count = 6;
++	count = 9;
+ 	file.insertChunkData(&count, sizeof(count));
+-	{for (int i = 0; i < 6; ++i)
++	{for (int i = 0; i < 9; ++i)
+ 		m_attributes[i].saveToIff(file);}
+ 	file.exitChunk();
+ 	++paramCount;
+ 	// save minAttributes
+ 	file.insertChunk(TAG(X, X, X, X));
+ 	file.insertChunkString("minAttributes");
+-	count = 6;
++	count = 9;
+ 	file.insertChunkData(&count, sizeof(count));
+-	{for (int i = 0; i < 6; ++i)
++	{for (int i = 0; i < 9; ++i)
+ 		m_minAttributes[i].saveToIff(file);}
+ 	file.exitChunk();
+ 	++paramCount;
+ 	// save maxAttributes
+ 	file.insertChunk(TAG(X, X, X, X));
+ 	file.insertChunkString("maxAttributes");
+-	count = 6;
++	count = 9;
+ 	file.insertChunkData(&count, sizeof(count));
+-	{for (int i = 0; i < 6; ++i)
++	{for (int i = 0; i < 9; ++i)
+ 		m_maxAttributes[i].saveToIff(file);}
+ 	file.exitChunk();
+ 	++paramCount;

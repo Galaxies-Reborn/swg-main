@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "feature": "later-life-day-scoreboard-retirement",
+  "status": "ready",
+  "scope": "Retire the later factional Life Day daily scoreboard and persisted competitive-buff callbacks while preserving the original 2004 lifeday04 quest, admission, and cleanup lifecycle.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Finding": "The pinned Core3 tree contains no Life Day implementation to substitute for the retained SWGSource 2004 lineage.",
+    "lineageContract": "p14-life-day-lineage-boundary.json",
+    "laterSpawnerRetirementContract": "p14-later-life-day-city-spawner-retirement.json",
+    "targetAdmissionContract": "p14-life-day-2004-admission-restoration.json",
+    "targetQuestContract": "p14-life-day-2004-quest-state-machine.json",
+    "observedLeak": "With the original 2004 event enabled, event.planet_event_handler initialized later lifeday.emptyScoreBoard and lifeday.time_stamp state on Tatooine even though all normal factional objective and vendor producers were retired."
+  },
+  "expected": {
+    "planetAttachCleansLaterNamespace": true,
+    "planetInitializeCleansLaterNamespace": true,
+    "queuedDailyAlarmFailsClosed": true,
+    "queuedScoreboardUpdateFailsClosed": true,
+    "persistedCompetitiveBuffRemovalFailsClosed": true,
+    "persistedScoreboardCheckFailsClosed": true,
+    "directScoreMutationFailsClosed": true,
+    "scoreboardDataHelpersFailClosed": true,
+    "laterNamespace": "lifeday",
+    "targetNamespace": "lifeday04",
+    "targetNamespaceRetained": true,
+    "activeTargetAnchorCount": 1,
+    "activeLaterScoreboardObjvarCount": 0,
+    "postCleanupTargetAnchorCount": 0,
+    "defaultLifeDayEnabled": false
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/193-p14-later-life-day-scoreboard-retirement.patch",
+    "overlayPatchBytes": 7674,
+    "overlayPatchSha256": "8da01e74664d2e2f4dd6b1bfa9f9ecfa4ccf86a4907a4444a79b073a18d6b1b0",
+    "sourceSha256": {
+      "planet_event_handler.java": "2db592755325ee21dfbcedfb065af80c98579ec24c8693d8d11ce85bb16c2369",
+      "buff_handler.java": "c9f9d353a5aa8aa16d0481ed39a54828a96eddd86950cbae24fa887be2a991df"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "planet_event_handler.class": "c7fd38db7c6e4d8322fbeb7b76375e069522dc09894d54754f759db572dc650d",
+      "buff_handler.class": "fa6cd3c987aa3b187e470de77c992dd5d4e6a7186e01b4dc0a85255b13f34aa5"
+    },
+    "cleanMaterializationPatches": 198,
+    "cleanMaterializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "staticContract": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "activeClientProcessId": 64496,
+    "finalClientProcessId": 63432,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "planetOid": 11000014,
+    "activationDriver": "action=activate driverQueued=true passed=true",
+    "activeTargetAnchorCount": 1,
+    "activeExternalLaterScoreboardObjvarCount": 0,
+    "activeInlineLaterScoreboardObjvarCount": 0,
+    "deactivationDriver": "action=deactivate driverQueued=true passed=true",
+    "postCleanupTargetAnchorCount": 0,
+    "postCleanupExternalLaterScoreboardObjvarCount": 0,
+    "postCleanupInlineLaterScoreboardObjvarCount": 0,
+    "professionRequirementProbe": "passed-and-restored",
+    "defaultConfigRestored": "lifeday=false",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

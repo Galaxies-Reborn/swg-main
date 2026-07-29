@@ -1,0 +1,61 @@
+diff --git a/sku.0/sys.server/compiled/game/script/event/planet_event_handler.java b/sku.0/sys.server/compiled/game/script/event/planet_event_handler.java
+index 3720627..9d91f04 100644
+--- a/sku.0/sys.server/compiled/game/script/event/planet_event_handler.java
++++ b/sku.0/sys.server/compiled/game/script/event/planet_event_handler.java
+@@ -103,6 +103,11 @@ public class planet_event_handler extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
++        if (eventVar.equals(holiday.PLANET_VAR_EMPIRE_DAY))
++        {
++            cleanupEmpireDayEventData(self);
++            return SCRIPT_CONTINUE;
++        }
+         if (hasObjVar(self, holiday.PLANET_VAR_EVENT_PREFIX + eventVar))
+         {
+             CustomerServiceLog("holidayEvent", "planet_event_handler.OnInitialize: Event data found: " + eventVar + ", removing data so we can start new.");
+@@ -139,6 +144,11 @@ public class planet_event_handler extends script.base_script
+             CustomerServiceLog("holidayEvent", "planet_event_handler.resetEventDataAfterDelay: Could not find eventVar params for reset.");
+             return SCRIPT_CONTINUE;
+         }
++        if (eventVar.equals(holiday.PLANET_VAR_EMPIRE_DAY))
++        {
++            cleanupEmpireDayEventData(self);
++            return SCRIPT_CONTINUE;
++        }
+         CustomerServiceLog("holidayEvent", "planet_event_handler.resetEventDataAfterDelay: Event to reset: " + eventVar);
+         String eventConfig = params.getString("eventConfig");
+         if (eventConfig == null || eventConfig.length() <= 0)
+@@ -266,24 +276,14 @@ public class planet_event_handler extends script.base_script
+         {
+             return false;
+         }
+-        CustomerServiceLog("holidayEvent", "planet_event_handler.checkForHolidayEventConfigs: Function initialized.");
+-        String empiredayRunning = getConfigSetting("GameServer", "empireday_ceremony");
+-        if (empiredayRunning != null && (empiredayRunning.equals("true") || empiredayRunning.equals("1")))
+-        {
+-            CustomerServiceLog("holidayEvent", "planet_event_handler.checkForHolidayEventConfigs: EMPIRE DAY CONFIG FOUND.");
+-            dictionary params = new dictionary();
+-            params.put("eventVar", holiday.PLANET_VAR_EMPIRE_DAY);
+-            params.put("eventConfig", "empireday_ceremony");
+-            messageTo(planet, "setUpEventLeaderBoard", params, 3.0f, false);
+-        }
+-        else 
+-        {
+-            if (hasObjVar(planet, holiday.PLANET_VAR_EVENT_PREFIX + holiday.PLANET_VAR_EMPIRE_DAY))
+-            {
+-                CustomerServiceLog("holidayEvent", "planet_event_handler.checkForHolidayEventConfigs: Var: " + holiday.PLANET_VAR_EVENT_PREFIX + holiday.PLANET_VAR_EMPIRE_DAY + " removed because the event was not running.");
+-                removeObjVar(planet, holiday.PLANET_VAR_EVENT_PREFIX + holiday.PLANET_VAR_EMPIRE_DAY);
+-            }
+-        }
++        cleanupEmpireDayEventData(planet);
+         return true;
+     }
++    private void cleanupEmpireDayEventData(obj_id planet) throws InterruptedException
++    {
++        String empireDayData = holiday.PLANET_VAR_EVENT_PREFIX + holiday.PLANET_VAR_EMPIRE_DAY;
++        removeObjVar(planet, empireDayData + holiday.PLANET_VAR_SCORE_TIMESTAMP);
++        removeObjVar(planet, empireDayData + holiday.PLANET_VAR_SCORE);
++        removeObjVar(planet, empireDayData);
++    }
+ }

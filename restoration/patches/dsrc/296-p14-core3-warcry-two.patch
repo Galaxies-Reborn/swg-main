@@ -1,0 +1,277 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 2150288..a7ade11 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14965,6 +14965,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int warcry2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("warcry2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int unarmedHeadHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("unarmedHeadHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index c26f49a..53912db 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -207,6 +207,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String INTIMIDATE_ONE_COMMAND = "intimidate1";
+     private static final String INTIMIDATE_TWO_COMMAND = "intimidate2";
+     private static final String WARCRY_ONE_COMMAND = "warcry1";
++    private static final String WARCRY_TWO_COMMAND = "warcry2";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
+@@ -530,6 +531,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalIntimidateTwoCommand";
+     private static final String ORIGINAL_WARCRY_ONE_COMMAND =
+         ROOT + ".originalWarcryOneCommand";
++    private static final String ORIGINAL_WARCRY_TWO_COMMAND =
++        ROOT + ".originalWarcryTwoCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_TWO_COMMAND =
+@@ -660,7 +663,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armWarcryOne|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armWarcryOne|armWarcryTwo|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -729,6 +732,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armWarcryOne(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armWarcryTwo"))
++        {
++            return armWarcryTwo(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armConceal"))
+         {
+             return armConceal(attacker, defender, args[3]);
+@@ -1206,6 +1213,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean warcryOneCommandGranted =
+             hasCommand(attacker, WARCRY_ONE_COMMAND) ||
+             grantCommand(attacker, WARCRY_ONE_COMMAND);
++        boolean warcryTwoCommandGranted =
++            hasCommand(attacker, WARCRY_TWO_COMMAND) ||
++            grantCommand(attacker, WARCRY_TWO_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -1418,6 +1428,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, INTIMIDATE_TWO_COMMAND) ||
+             !warcryOneCommandGranted ||
+             !hasCommand(attacker, WARCRY_ONE_COMMAND) ||
++            !warcryTwoCommandGranted ||
++            !hasCommand(attacker, WARCRY_TWO_COMMAND) ||
+             !hasCommand(attacker, COMMAND) ||
+             !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             !headShotThreeGranted || !hasCommand(attacker, HEAD_SHOT_THREE_COMMAND) ||
+@@ -2173,6 +2185,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 INTIMIDATE_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_WARCRY_ONE_COMMAND,
+                 WARCRY_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_WARCRY_TWO_COMMAND,
++                WARCRY_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -3045,6 +3059,32 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armWarcryTwo(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        utils.removeScriptVar(
++            defender, combat_base.PRECU_NEXT_ATTACK_DELAY_UNTIL);
++        utils.removeScriptVar(
++            defender, combat_base.PRECU_NEXT_ATTACK_DELAY_RESULT);
++        utils.removeScriptVar(
++            defender, combat_base.PRECU_NEXT_ATTACK_DELAY_REMAINING);
++        boolean masterBoundary = hasSkill(attacker, BRAWLER_ROOT) &&
++            hasSkill(attacker, BRAWLER_NOVICE) &&
++            hasSkill(attacker, BRAWLER_MASTER) &&
++            hasCommand(attacker, WARCRY_TWO_COMMAND) &&
++            getSkillStatisticModifier(attacker, "warcry") == 20;
++        return masterBoundary ?
++            "action=armWarcryTwo expectedDistanceMeters=3 " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=warcryTwoMasterBoundaryFailed " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armConceal(obj_id attacker, obj_id defender, String lifecycle)
+         throws InterruptedException
+     {
+@@ -3558,6 +3598,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, INTIMIDATE_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_WARCRY_ONE_COMMAND,
+             hasCommand(player, WARCRY_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_WARCRY_TWO_COMMAND,
++            hasCommand(player, WARCRY_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3992,6 +4034,8 @@ public class precu_headshot1_fixture extends script.base_script
+             INTIMIDATE_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_WARCRY_ONE_COMMAND,
+             WARCRY_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_WARCRY_TWO_COMMAND,
++            WARCRY_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4648,6 +4692,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 INTIMIDATE_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_WARCRY_ONE_COMMAND,
+                 WARCRY_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_WARCRY_TWO_COMMAND,
++                WARCRY_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4932,6 +4978,8 @@ public class precu_headshot1_fixture extends script.base_script
+             INTIMIDATE_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_WARCRY_ONE_COMMAND,
+             WARCRY_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_WARCRY_TWO_COMMAND,
++            WARCRY_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -5609,6 +5657,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean warcryOneCommandReady =
+             hasCommand(attacker, WARCRY_ONE_COMMAND) ||
+             grantCommand(attacker, WARCRY_ONE_COMMAND);
++        boolean warcryTwoCommandReady =
++            hasCommand(attacker, WARCRY_TWO_COMMAND) ||
++            grantCommand(attacker, WARCRY_TWO_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -5802,6 +5853,7 @@ public class precu_headshot1_fixture extends script.base_script
+             intimidateOneCommandReady &&
+             intimidateTwoCommandReady &&
+             warcryOneCommandReady &&
++            warcryTwoCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -6242,6 +6294,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_INTIMIDATE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_INTIMIDATE_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WARCRY_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_WARCRY_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
+@@ -6484,6 +6537,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(INTIMIDATE_TWO_COMMAND, attacker);
+         int canPerformWarcryOne =
+             combat.canPerformAction(WARCRY_ONE_COMMAND, attacker);
++        int canPerformWarcryTwo =
++            combat.canPerformAction(WARCRY_TWO_COMMAND, attacker);
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotTwo = isIdValid(weapon) ?
+@@ -6647,6 +6702,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(INTIMIDATE_TWO_COMMAND);
+         combat_data warcryOneData =
+             combat_engine.getCombatData(WARCRY_ONE_COMMAND);
++        combat_data warcryTwoData =
++            combat_engine.getCombatData(WARCRY_TWO_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+         combat_data scatterShotTwoData =
+@@ -6849,6 +6906,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, currentWeaponData, warcryOneData) :
+             new int[] {-1, -1, -1};
++        int[] warcryTwoCosts =
++            warcryTwoData != null && currentWeaponData != null ?
++            combat.getActionCost(
++                attacker, currentWeaponData, warcryTwoData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -7141,6 +7203,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, INTIMIDATE_TWO_COMMAND) +
+             " warcryOneCommand=" +
+                 hasCommand(attacker, WARCRY_ONE_COMMAND) +
++            " warcryTwoCommand=" +
++                hasCommand(attacker, WARCRY_TWO_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+             " scatterShotTwoCommand=" +
+@@ -7629,6 +7693,18 @@ public class precu_headshot1_fixture extends script.base_script
+                     warcryOneData.percentAddFromWeapon) +
+             " warcryOneAccuracySkill=" +
+                 getSkillStatisticModifier(attacker, "warcry") +
++            " warcryTwoCanPerform=" + canPerformWarcryTwo +
++            " warcryTwoHealthCost=" + warcryTwoCosts[0] +
++            " warcryTwoActionCost=" + warcryTwoCosts[1] +
++            " warcryTwoMindCost=" + warcryTwoCosts[2] +
++            " warcryTwoPrecuHamCostModel=" +
++                (warcryTwoData == null ? -1 :
++                    warcryTwoData.precuHamCostModel) +
++            " warcryTwoDamageMultiplier=" +
++                (warcryTwoData == null ? -1.0f :
++                    warcryTwoData.percentAddFromWeapon) +
++            " warcryTwoAccuracySkill=" +
++                getSkillStatisticModifier(attacker, "warcry") +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+             " scatterShotOneMindCost=" + scatterShotOneCosts[2] +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index d4760dc..5045bb9 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1393,3 +1393,4 @@ unarmedStun1	unarmedStun1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				o
+ intimidate1	intimidate1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_intimidate.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	intimidate	intimidate													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ intimidate2	intimidate2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_intimidate.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	intimidate	intimidate													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ warcry1	warcry1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_warcry.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	warcry	warcry													OFF	OFF	OFF	OFF	OFF	CONE	24	15	0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++warcry2	warcry2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_warcry.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	warcry	warcry													OFF	OFF	OFF	OFF	OFF	CONE	24	30	0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index a1b3e20..9c61796 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -109,3 +109,4 @@ unarmedStun1	1.5	1.5	1.5	RANDOM	2.0	15	INTENSITY		0	STUN	100	0	60	stun_defense	j
+ intimidate1	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	INTIMIDATE	100	0	30																								intimidate
+ intimidate2	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	INTIMIDATE	100	0	120																								intimidate
+ warcry1	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	NEXT_ATTACK_DELAY	100	0	10	warcry_defense	jedi_state_defense	resistance_states																					warcry
++warcry2	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	NEXT_ATTACK_DELAY	100	0	20	warcry_defense	jedi_state_defense	resistance_states																					warcry
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 92d9b08..b120aa1 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -108,3 +108,4 @@ unarmedStun1	screamingsquill
+ intimidate1	intim
+ intimidate2	intim
+ warcry1	warcry
++warcry2	warcry
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 48506cb..7bb3e35 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2043,3 +2043,4 @@ unarmedStun1	combat	normal	unarmedStun1	failSpecialAttack			1.5	unarmedStun1	1	0
+ intimidate1	combat	normal	intimidate1	failSpecialAttack			1.5	intimidate1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ intimidate2	combat	normal	intimidate2	failSpecialAttack			1.5	intimidate2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ warcry1	combat	normal	warcry1	failSpecialAttack			1.5	warcry1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++warcry2	combat	normal	warcry2	failSpecialAttack			1.5	warcry2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

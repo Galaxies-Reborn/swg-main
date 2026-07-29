@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "feature": "medic-tier3-progression",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Medic tier-III progression across all four branches, including exact visibility, prerequisites, XP, skill points, private commands, passive modifiers, retail wound-medpack schematic groups, compiled client tables, and reversible live purchase.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "schematicGroupTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_medic_tier3_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "skillSourceSha256": "ca5275d226361e8ae9aefe1ccf24c9432f58e5d3bc043bb3217d15674bf17136",
+    "schematicTre": "patch_12_00.tre",
+    "schematicTableSha256": "7558a8671a75154ba713c2d9b2ea415907f59b947d05c699a3417aefce7d67a7",
+    "schematicRows": "864-882 in the decoded 1,657-row retail table"
+  },
+  "skills": [
+    {
+      "name": "science_medic_injury_03",
+      "parent": "science_medic_injury_02",
+      "graphType": "fourByFour",
+      "moneyRequired": "3000",
+      "pointsRequired": "4",
+      "skillsRequired": "science_medic_injury_02",
+      "xpType": "medical",
+      "xpCost": "10000",
+      "xpCap": "30000",
+      "commands": "private_medic_injury_3",
+      "skillMods": "healing_injury_treatment=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_injury_speed_03",
+      "parent": "science_medic_injury_speed_02",
+      "graphType": "fourByFour",
+      "moneyRequired": "3000",
+      "pointsRequired": "4",
+      "skillsRequired": "science_medic_injury_speed_02",
+      "xpType": "medical",
+      "xpCost": "10000",
+      "xpCap": "30000",
+      "commands": "private_medic_speed_3",
+      "skillMods": "healing_injury_speed=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_ability_03",
+      "parent": "science_medic_ability_02",
+      "graphType": "fourByFour",
+      "moneyRequired": "3000",
+      "pointsRequired": "4",
+      "skillsRequired": "science_medic_ability_02",
+      "xpType": "medical",
+      "xpCost": "10000",
+      "xpCap": "30000",
+      "commands": "private_medic_ability_3",
+      "skillMods": "healing_ability=10,medical_foraging=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_medic_crafting_03",
+      "parent": "science_medic_crafting_02",
+      "graphType": "fourByFour",
+      "moneyRequired": "3000",
+      "pointsRequired": "4",
+      "skillsRequired": "science_medic_crafting_02",
+      "xpType": "crafting_medicine_general",
+      "xpCost": "3000",
+      "xpCap": "12000",
+      "commands": "private_medic_crafting_3",
+      "skillMods": "medicine_assembly=10,medicine_experimentation=10",
+      "schematics": "craftMedpackBGroupA,craftMedpackGroupB"
+    }
+  ],
+  "schematicGroups": {
+    "craftMedpackBGroupA": [
+      "object/draft_schematic/chemistry/medpack_wound_quickness_a.iff",
+      "object/draft_schematic/chemistry/medpack_wound_stamina_a.iff",
+      "object/draft_schematic/chemistry/medpack_wound_strength_a.iff",
+      "object/draft_schematic/chemistry/medpack_wound_constitution_a.iff"
+    ],
+    "craftMedpackGroupB": [
+      "object/draft_schematic/chemistry/medpack_wound_action_b.iff",
+      "object/draft_schematic/chemistry/medpack_wound_health_b.iff"
+    ]
+  },
+  "retainedSharedTemplates": [
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_wound_quickness_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_wound_stamina_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_wound_strength_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_wound_constitution_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_wound_action_b.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_wound_health_b.tpf"
+  ],
+  "fixtureBoundary": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "preparedPrerequisiteSkills": 9,
+    "preparedMedicalXp": 10000,
+    "preparedCraftingXp": 3000,
+    "purchaseOperations": [
+      "skill.getAvailableSkillPoints",
+      "skill.hasRequiredSkillsForSkillPurchase",
+      "skill.hasRequiredXpForSkillPurchase",
+      "skill.grantSkillToPlayer",
+      "skill.deductXpCostForSkillPurchase"
+    ],
+    "cleanupPolicy": "Revoke all four tier-III boxes and nine ordered novice-through-tier-II prerequisites, restore both XP pools and original skill points, then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "7f65280b803a036f29ee954d4c27f93dda9a235e16ed7af876e3634203627599",
+    "sourceSha256": {
+      "precu_medic_tier3_fixture.java": "f5186032ab23994f8817b0c8b79d633cbc0b3a99b2b14edcd565e1b5472afe8d",
+      "skills.tab": "f6fb0c20b3994fafd8adfbe4df4fec29407cf714c28057c589d54906336424ff",
+      "schematic_group.tab": "cba8afbf9b886dffe09d25a2219589164284c3f83979d993b27542b4beceb92b"
+    },
+    "compiledSha256": {
+      "precu_medic_tier3_fixture.class": "e6156335faa8f33d28bda33b2c9bba843a0fd689d1058166193555f79f019869",
+      "skills.iff": "dcd9a1f498ba2ac365c83388e6c34d480a0a5f71ebe13b19679ac02400c776e7",
+      "schematic_group.iff": "dff38c795c7c037f9e6eb6cb27494594529d4e299e48e35aa578b9b141c4efe0"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "56dd9af64cb3d9d6c2164c51bb1634bc67003d7c",
+    "skillsIffSha256": "dcd9a1f498ba2ac365c83388e6c34d480a0a5f71ebe13b19679ac02400c776e7",
+    "schematicGroupIffSha256": "dff38c795c7c037f9e6eb6cb27494594529d4e299e48e35aa578b9b141c4efe0"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "date": "2026-07-18",
+    "container": "swg-precu",
+    "clientProcessId": 46960,
+    "clientProtocolVersion": 21,
+    "clientSha256": "b03cbde225a0567a4332c0945c86305f34c2e16474fcf1b39595ed255177207a",
+    "lifecycle": "2104e4836d7c4644a492d800a7379ea9",
+    "prerequisites": "111111111",
+    "tierSkills": "1111",
+    "commands": "1111",
+    "schematics": "111111",
+    "modifierDeltas": {
+      "healing_injury_treatment": 15,
+      "healing_injury_speed": 15,
+      "healing_ability": 10,
+      "medical_foraging": 15,
+      "medicine_assembly": 10,
+      "medicine_experimentation": 10
+    },
+    "medicalXpAfter": 0,
+    "medicalXpCapAfter": 30000,
+    "craftingXpAfter": 0,
+    "craftingXpCapAfter": 12000,
+    "availableSkillPointsAfter": 199,
+    "skillsWindow": {
+      "result": "passed",
+      "evidenceType": "client-log-processing",
+      "clientLogSha256": "fb44459281f71579169b0d3e3ac2d7da5fe5abbd05260c6eaa6cb86dc489c4b1",
+      "lineSpan": "28840-28862",
+      "selectedProfession": "science_medic_novice",
+      "professionDefinition": "Medic",
+      "graph": "fourByFour",
+      "graphVisible": true,
+      "graphSize": "770x475"
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "all four Medic tier-III skill rows",
+      "exact XP, caps, and four-point costs",
+      "tier-III private commands and passive modifiers",
+      "six authentic wound-medpack schematics",
+      "compiled client tables and reversible live purchase"
+    ],
+    "deferred": [
+      "Medic tier IV and master",
+      "Doctor prerequisites and branches",
+      "tier-III schematic crafting execution beyond grant ownership"
+    ]
+  }
+}

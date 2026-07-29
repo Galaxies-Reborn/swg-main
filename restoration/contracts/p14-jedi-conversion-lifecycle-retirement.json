@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "feature": "jedi-conversion-lifecycle-retirement",
+  "status": "ready",
+  "scope": "Make the inherited CU/NGE Jedi conversion script inert at every automatic lifecycle entry while retaining its source for historical and administrative compatibility.",
+  "sourceFiles": {
+    "jediConversion": "dsrc/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.java"
+  },
+  "observedDefect": {
+    "OnAttach": "Called convertOldJedi, which set the combatLevel objvar to 80 before detaching.",
+    "OnLogin": "Set skillTemplate to a before detaching.",
+    "OnInitialize": "Set skillTemplate to a before detaching.",
+    "precuCollision": "jedi_padawan_novice is a valid restored Pre-CU skill and must not imply CU/NGE conversion."
+  },
+  "expected": {
+    "onAttachDetachesOnly": true,
+    "onLoginDetachesOnly": true,
+    "onInitializeDetachesOnly": true,
+    "lifecycleSetsCombatLevel": false,
+    "lifecycleSetsSkillTemplate": false,
+    "lifecycleOpensConversionSui": false,
+    "convertOldJediHasNoCallers": true,
+    "historicalConversionBodyRetained": true
+  },
+  "consumerInventory": {
+    "remainingTemplateWorkingSkillOccurrences": 216,
+    "remainingMutationOccurrences": 66,
+    "normalLifecycleMutationOccurrences": 0
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/143-p14-jedi-conversion-lifecycle-retirement.patch",
+    "overlayPatchBytes": 1224,
+    "overlayPatchSha256": "4bfc299a4633aa5cac233e89323e7e9ad90fa8c1ef731e15fe41c7e09eadcc4a",
+    "cleanApplyCheck": "passed",
+    "sourceSha256": {
+      "player_jedi_conversion.java": "4173e04bf7ac0b070868f047cc46f20a1bb63b81a153a93957efb3d457e1c41b"
+    },
+    "javaCompile": {
+      "result": "passed",
+      "player_jedi_conversion.class": {
+        "sha256": "1758bdaa74b824239cff7af98414a077b411b3db8278051da3e8c9101dbd40b9"
+      }
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 45524,
+    "character": "Icai Darkwave",
+    "characterOid": 39008597,
+    "stationId": 1001,
+    "scene": "tatooine",
+    "allProfessionRows": 33,
+    "serverHealthy": true,
+    "fatalExceptionSevereCount": 0
+  },
+  "requiredBeforeReady": []
+}

@@ -1,0 +1,54 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -6475,9 +6475,30 @@ static void commandFuncRevokeSkill(Command const &, NetworkId const &actor, Netw
+ 
+ // ----------------------------------------------------------------------
+ 
++static bool isForceSensitiveSkillBox(std::string const &skillName)
++{
++	if (skillName.find("force_sensitive_") != 0 || skillName.size() < 3)
++		return false;
++
++	std::string const suffix = skillName.substr(skillName.size() - 3);
++	return suffix == "_01" || suffix == "_02" || suffix == "_03" || suffix == "_04";
++}
++
++static int countForceSensitiveSkillBoxes(CreatureObject::SkillList const &skills)
++{
++	int count = 0;
++	for (CreatureObject::SkillList::const_iterator it = skills.begin(); it != skills.end(); ++it)
++		if (*it != nullptr && isForceSensitiveSkillBox((*it)->getSkillName()))
++			++count;
++	return count;
++}
++
+ static bool isPlayerSurrenderableSkill(SkillObject const &skill)
+ {
+ 	std::string const &skillName = skill.getSkillName();
++	if (isForceSensitiveSkillBox(skillName))
++		return true;
++
+ 	bool const legacyProfessionFamily =
+ 		skillName.find("combat_") == 0 ||
+ 		skillName.find("crafting_") == 0 ||
+@@ -6585,6 +6606,19 @@ static void commandFuncSurrenderSkill(Command const &, NetworkId const &actor, N
+ 		}
+ 	}
+ 
++	if (isForceSensitiveSkillBox(skillName))
++	{
++		SkillObject const * const jediRank =
++			SkillManager::getInstance().getSkill("force_title_jedi_rank_02");
++		if (jediRank != nullptr && creature->hasSkill(*jediRank) &&
++			countForceSensitiveSkillBoxes(ownedSkills) <= 24)
++		{
++			Chat::sendSystemMessage(*creature,
++				StringId("jedi_spam", "revoke_force_sensitive"), Unicode::emptyString);
++			return;
++		}
++	}
++
+ 	creature->revokeSkill(*skill);
+ 	if (creature->hasSkill(*skill))
+ 	{

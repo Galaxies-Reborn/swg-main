@@ -1,0 +1,234 @@
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 252feec..21fe70f 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1936,0 +1937,2 @@
++melee1hBodyHit2	combat	normal	melee1hBodyHit2	failSpecialAttack			2	melee1hBodyHit2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	3	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++melee1hBodyHit3	combat	normal	melee1hBodyHit3	failSpecialAttack			2.25	melee1hBodyHit3	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	3	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index f03ba48..ec153ba 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1300,0 +1301,2 @@
++melee1hBodyHit2	melee1hBodyHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_4b				combo_4b										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++melee1hBodyHit3	melee1hBodyHit3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3a				combo_3a										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	3.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 378a4f0..21b5ff9 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -8,6 +8,8 @@ bodyShot3	0.75	1.25	0.75	HEALTH	1	50	RANGED
+ headShot2	0.5	0.5	1.5	MIND	1.5	5	RANGED
+ headShot3	0.5	0.5	2.5	MIND	2	5	RANGED
+ melee1hBodyHit1	0.5	0.5	0.625	HEALTH	1.5	25	INTENSITY
++melee1hBodyHit2	0.75	0.75	1.25	HEALTH	2	25	INTENSITY
++melee1hBodyHit3	1	1	2	HEALTH	2.25	25	INTENSITY
+ legShot1	2.25	1.25	0.5	ACTION	2	25	NONE
+ polearmLegHit1	1	0.5	0.5	ACTION	1.25	10	NONE
+ polearmSpinAttack1	1.5	1	1	RANDOM	1.5	10	NONE
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index e2b2f9c..c7c81c3 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -7,6 +7,8 @@ bodyShot3	bodyshot
+ headShot2	expertheadshot
+ headShot3	masterheadshot
+ melee1hBodyHit1	saimai
++melee1hBodyHit2	saisun
++melee1hBodyHit3	saitok
+ legShot1	leg
+ polearmLegHit1	legbruiser
+ polearmSpinAttack1	limbsmasher
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 2a092c6..431c733 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14647,4 +14647,20 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int melee1hBodyHit2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("melee1hBodyHit2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int melee1hBodyHit3(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("melee1hBodyHit3", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index d76351b..1db2f65 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -29,6 +29,8 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String POLEARM_AREA_COMMAND = "polearmSpinAttack1";
+     private static final String ONE_HAND_AREA_COMMAND = "melee1hSpinAttack1";
+     private static final String ONE_HAND_BODY_ONE_COMMAND = "melee1hBodyHit1";
++    private static final String ONE_HAND_BODY_TWO_COMMAND = "melee1hBodyHit2";
++    private static final String ONE_HAND_BODY_THREE_COMMAND = "melee1hBodyHit3";
+     private static final String TWO_HAND_AREA_COMMAND = "melee2hSpinAttack1";
+     private static final String POLEARM_CERTIFICATION = "cert_lance_staff_wood_s2";
+     private static final String ONE_HAND_CERTIFICATION = "cert_sword_blade_rantok";
+@@ -79,6 +81,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalOneHandAreaCommand";
+     private static final String ORIGINAL_ONE_HAND_BODY_ONE_COMMAND =
+         ROOT + ".originalOneHandBodyOneCommand";
++    private static final String ORIGINAL_ONE_HAND_BODY_TWO_COMMAND =
++        ROOT + ".originalOneHandBodyTwoCommand";
++    private static final String ORIGINAL_ONE_HAND_BODY_THREE_COMMAND =
++        ROOT + ".originalOneHandBodyThreeCommand";
+     private static final String ORIGINAL_TWO_HAND_AREA_COMMAND =
+         ROOT + ".originalTwoHandAreaCommand";
+     private static final String ORIGINAL_POLEARM_CERTIFICATION =
+@@ -257,6 +263,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean oneHandBodyOneCommandGranted =
+             hasCommand(attacker, ONE_HAND_BODY_ONE_COMMAND) ||
+             grantCommand(attacker, ONE_HAND_BODY_ONE_COMMAND);
++        boolean oneHandBodyTwoCommandGranted =
++            hasCommand(attacker, ONE_HAND_BODY_TWO_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_BODY_TWO_COMMAND);
++        boolean oneHandBodyThreeCommandGranted =
++            hasCommand(attacker, ONE_HAND_BODY_THREE_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_BODY_THREE_COMMAND);
+         boolean twoHandAreaCommandGranted =
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
+             grantCommand(attacker, TWO_HAND_AREA_COMMAND);
+@@ -285,6 +297,10 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, ONE_HAND_AREA_COMMAND) ||
+             !oneHandBodyOneCommandGranted ||
+             !hasCommand(attacker, ONE_HAND_BODY_ONE_COMMAND) ||
++            !oneHandBodyTwoCommandGranted ||
++            !hasCommand(attacker, ONE_HAND_BODY_TWO_COMMAND) ||
++            !oneHandBodyThreeCommandGranted ||
++            !hasCommand(attacker, ONE_HAND_BODY_THREE_COMMAND) ||
+             !twoHandAreaCommandGranted ||
+             !hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
+             !polearmCertificationGranted ||
+@@ -312,6 +328,10 @@ public class precu_headshot1_fixture extends script.base_script
+                     hasCommand(attacker, ONE_HAND_AREA_COMMAND) +
+                 " oneHandBodyOneCommand=" +
+                     hasCommand(attacker, ONE_HAND_BODY_ONE_COMMAND) +
++                " oneHandBodyTwoCommand=" +
++                    hasCommand(attacker, ONE_HAND_BODY_TWO_COMMAND) +
++                " oneHandBodyThreeCommand=" +
++                    hasCommand(attacker, ONE_HAND_BODY_THREE_COMMAND) +
+                 " twoHandAreaCommand=" +
+                     hasCommand(attacker, TWO_HAND_AREA_COMMAND) +
+                 " polearmCertification=" +
+@@ -515,6 +535,18 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, ONE_HAND_BODY_ONE_COMMAND);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_ONE_HAND_BODY_TWO_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_BODY_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_BODY_TWO_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_BODY_TWO_COMMAND);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_ONE_HAND_BODY_THREE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_BODY_THREE_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_BODY_THREE_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_BODY_THREE_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) == 0 &&
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND))
+@@ -739,6 +771,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, ONE_HAND_AREA_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ONE_HAND_BODY_ONE_COMMAND,
+             hasCommand(player, ONE_HAND_BODY_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_ONE_HAND_BODY_TWO_COMMAND,
++            hasCommand(player, ONE_HAND_BODY_TWO_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_ONE_HAND_BODY_THREE_COMMAND,
++            hasCommand(player, ONE_HAND_BODY_THREE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_TWO_HAND_AREA_COMMAND,
+             hasCommand(player, TWO_HAND_AREA_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_POLEARM_CERTIFICATION,
+@@ -840,6 +876,18 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, ONE_HAND_BODY_ONE_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_ONE_HAND_BODY_TWO_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_BODY_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_BODY_TWO_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_BODY_TWO_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_ONE_HAND_BODY_THREE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_BODY_THREE_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_BODY_THREE_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_BODY_THREE_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) == 0 &&
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND))
+@@ -1010,6 +1058,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean oneHandBodyOneCommandReady =
+             hasCommand(attacker, ONE_HAND_BODY_ONE_COMMAND) ||
+             grantCommand(attacker, ONE_HAND_BODY_ONE_COMMAND);
++        boolean oneHandBodyTwoCommandReady =
++            hasCommand(attacker, ONE_HAND_BODY_TWO_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_BODY_TWO_COMMAND);
++        boolean oneHandBodyThreeCommandReady =
++            hasCommand(attacker, ONE_HAND_BODY_THREE_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_BODY_THREE_COMMAND);
+         boolean twoHandAreaCommandReady =
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
+             grantCommand(attacker, TWO_HAND_AREA_COMMAND);
+@@ -1028,6 +1082,7 @@ public class precu_headshot1_fixture extends script.base_script
+             polearmCommandReady && unarmedCommandReady &&
+             polearmAreaCommandReady && oneHandAreaCommandReady &&
+             oneHandBodyOneCommandReady &&
++            oneHandBodyTwoCommandReady && oneHandBodyThreeCommandReady &&
+             twoHandAreaCommandReady && polearmCertificationReady &&
+             oneHandCertificationReady && twoHandCertificationReady &&
+             attackerStanding && defenderStanding &&
+@@ -1191,6 +1246,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_POLEARM_AREA_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_AREA_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_BODY_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_ONE_HAND_BODY_TWO_COMMAND) &&
++            hasObjVar(player, ORIGINAL_ONE_HAND_BODY_THREE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_CERTIFICATION) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_CERTIFICATION) &&
+@@ -1269,6 +1326,10 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(ONE_HAND_AREA_COMMAND, attacker) : -1;
+         int canPerformOneHandBodyOne = isIdValid(weapon) ?
+             combat.canPerformAction(ONE_HAND_BODY_ONE_COMMAND, attacker) : -1;
++        int canPerformOneHandBodyTwo = isIdValid(weapon) ?
++            combat.canPerformAction(ONE_HAND_BODY_TWO_COMMAND, attacker) : -1;
++        int canPerformOneHandBodyThree = isIdValid(weapon) ?
++            combat.canPerformAction(ONE_HAND_BODY_THREE_COMMAND, attacker) : -1;
+         int canPerformTwoHandArea = isIdValid(weapon) ?
+             combat.canPerformAction(TWO_HAND_AREA_COMMAND, attacker) : -1;
+         String fixtureWeapon = hasObjVar(attacker, FIXTURE_WEAPON) ?
+@@ -1309,6 +1370,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, ONE_HAND_AREA_COMMAND) +
+             " oneHandBodyOneCommand=" +
+                 hasCommand(attacker, ONE_HAND_BODY_ONE_COMMAND) +
++            " oneHandBodyTwoCommand=" +
++                hasCommand(attacker, ONE_HAND_BODY_TWO_COMMAND) +
++            " oneHandBodyThreeCommand=" +
++                hasCommand(attacker, ONE_HAND_BODY_THREE_COMMAND) +
+             " twoHandAreaCommand=" +
+                 hasCommand(attacker, TWO_HAND_AREA_COMMAND) +
+             " polearmCertification=" +
+@@ -1329,6 +1394,8 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformPolearmArea=" + canPerformPolearmArea +
+             " canPerformOneHandArea=" + canPerformOneHandArea +
+             " canPerformOneHandBodyOne=" + canPerformOneHandBodyOne +
++            " canPerformOneHandBodyTwo=" + canPerformOneHandBodyTwo +
++            " canPerformOneHandBodyThree=" + canPerformOneHandBodyThree +
+             " canPerformTwoHandArea=" + canPerformTwoHandArea +
+             " fixtureWeapon=" + fixtureWeapon +
+             " fixturePistol=" + fixturePistol +

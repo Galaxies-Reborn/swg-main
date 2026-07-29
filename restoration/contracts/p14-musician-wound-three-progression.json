@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "feature": "musician-wound-three-progression",
+  "status": "ready",
+  "scope": "Exact Publish 14.1 Musician Wound III data, Healing XP, modifier, production surrender, parent retention, cap recomputation, and NGE rejection.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_music_one_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "woundThree": {
+      "name": "social_musician_wound_03",
+      "parent": "social_musician_wound_02",
+      "graphType": "fourByFour",
+      "isTitle": "0",
+      "moneyRequired": "8000",
+      "pointsRequired": "3",
+      "skillsRequired": "social_musician_wound_02",
+      "xpType": "entertainer_healing",
+      "xpCost": "100000",
+      "xpCap": "500000",
+      "commands": "",
+      "skillMods": "healing_music_wound=10",
+      "schematics": "",
+      "searchable": "1"
+    },
+    "removedNgeContract": {
+      "xpType": "music",
+      "xpCost": "175000",
+      "skillMods": "healing_music_wound=20",
+      "searchable": "0"
+    }
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "contract": "Wound II qualifies the three-point, 100,000 Healing XP purchase; +10 Music wound healing is box-owned; surrender retains Wound II and recomputes the Healing cap to 400,000."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlayPatch": "restoration/patches/dsrc/105-p14-musician-wound-three-progression.patch",
+    "overlayPatchSha256": "aca90cb54bad7862e06936539f25ab8539f3308ebf1e3413dccf81f87cc90d65",
+    "cleanApplyServerCommit": "bf00a8460a86b4ceb2c038bc117875f3a16ee6b2",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 2,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledBytes": 68167,
+      "compiledSha256": "c58b7a560c219aac80d4e1e2353dc82fefc73dc059724c18083050c6ff79ea56"
+    },
+    "clientTableBuild": {
+      "result": "passed",
+      "compiledBytes": 578385,
+      "compiledSha256": "be3ddf9c28ddeb99ca9eaaf1cbaa34e52eb31d30323d67ddcd5f6f5bd7cc6ed4"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "protocolVersion": 73,
+      "testCount": 144,
+      "expectedSkipCount": 1,
+      "sourceCommit": "93acc5c7e2820b12338c12cac5f97dd109352cc8",
+      "executableBytes": 32595456,
+      "executableSha256": "251bcbb285f0ac92c493956e95bb963567a34b7cedac1917eb6c7f6d57525d33",
+      "clientMainSha256": "5892f49ed87dee2e81bf86d40c360d6bbbd57baa529500f0083b30d775702454"
+    },
+    "sourceSha256": {
+      "precu_entertainer_music_one_fixture.java": "183fd9b0f5ad85b532bb5a236ef9b177ce8f4f77dbf6635bda387887220d02c1",
+      "skills.tab": "cba1a604989ab3d784086752b52b3437521594aec139f0643fc79f2e26bd29f3"
+    }
+  },
+  "clientAssetPublication": {
+    "commit": "bbcac245554d8e09c35484d6752b5398bca204b0",
+    "skillsIffSha256": "be3ddf9c28ddeb99ca9eaaf1cbaa34e52eb31d30323d67ddcd5f6f5bd7cc6ed4"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "5693f7c52296412caa817bd2c90a5e40",
+    "playerOid": 39008597,
+    "clientProcessId": 2964,
+    "clientProtocolVersion": 73,
+    "purchase": {
+      "passed": true,
+      "healingXpBefore": 100000,
+      "healingXpAfter": 0,
+      "pointCost": 3,
+      "availablePointsBefore": 201,
+      "availablePointsAfter": 198,
+      "modifierDeltaAfter": 10,
+      "healingXpCapAfter": 500000,
+      "musicXpCapAfter": 350000
+    },
+    "surrender": {
+      "clientSubmitted": true,
+      "serverRemoved": true,
+      "woundTwoRetained": true,
+      "pointsRecovered": 3,
+      "healingXpCapAfter": 400000,
+      "musicXpCapAfter": 350000,
+      "modifierDeltaAfter": 0
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "availablePoints": 250
+    },
+    "serverHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "nextBoundary": "Musician Wound IV progression"
+}

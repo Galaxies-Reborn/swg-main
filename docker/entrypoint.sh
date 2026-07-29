@@ -145,12 +145,18 @@ SWG_DB_ADMIN_PASSWORD="${SWG_DB_ADMIN_PASSWORD:-swg}"
 SWG_DB_DATAFILE_DIR="${SWG_DB_DATAFILE_DIR:-/opt/oracle/oradata/XE/XEPDB1}"
 SWG_CLUSTER_NAME="${SWG_CLUSTER_NAME:-swg}"
 SWG_PUBLIC_ADDRESS="${SWG_PUBLIC_ADDRESS:-127.0.0.1}"
+SWG_LOGIN_CLIENT_PORT="${SWG_LOGIN_CLIENT_PORT:-44450}"
+SWG_CENTRAL_LOGIN_SERVICE_PORT="${SWG_CENTRAL_LOGIN_SERVICE_PORT:-44452}"
+SWG_PUBLIC_CONNECTION_PING_PORT="${SWG_PUBLIC_CONNECTION_PING_PORT:-44462}"
+SWG_PUBLIC_CONNECTION_PORT="${SWG_PUBLIC_CONNECTION_PORT:-44463}"
+SWG_PRIVATE_CONNECTION_PORT="${SWG_PRIVATE_CONNECTION_PORT:-44464}"
+SWG_INTERNAL_ADDRESS="${SWG_INTERNAL_ADDRESS:-}"
 
 # The container's own eth0 address. Several services bind to eth0 rather than to all interfaces, so
 # anything connecting to them from inside this container has to use this rather than loopback.
-SWG_CONTAINER_ADDRESS="$(ip -4 addr show eth0 2>/dev/null | awk '/inet /{split($2, a, "/"); print a[1]; exit}')"
+SWG_CONTAINER_ADDRESS="$(ip -4 addr show eth0 2>/dev/null | awk '/inet /{split($2, a, "/"); print a[1]; exit}' || true)"
 if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then
-    SWG_CONTAINER_ADDRESS="$(hostname -i 2>/dev/null | awk '{print $1}')"
+    SWG_CONTAINER_ADDRESS="$(hostname -i 2>/dev/null | awk '{print $1}' || true)"
 fi
 if [ -z "${SWG_CONTAINER_ADDRESS}" ]; then
     echo "WARNING: could not determine the container's eth0 address; falling back to 127.0.0.1." >&2
@@ -166,9 +172,9 @@ SWG_STAGED_CLIENT_ASSETS_TRE=""
 connect_string="//${SWG_DB_HOST}:${SWG_DB_PORT}/${SWG_DB_SERVICE}"
 
 mark_git_safe() {
-    git config --global --add safe.directory /swg-main || true
+    git config --global --add safe.directory "${SWG_WORK_DIR}" || true
     for dir in dsrc exe serverdata src stationapi; do
-        git config --global --add safe.directory "/swg-main/${dir}" || true
+        git config --global --add safe.directory "${SWG_WORK_DIR}/${dir}" || true
     done
 }
 
@@ -256,11 +262,42 @@ SQL
 }
 
 set_cluster_public_address() {
-    echo "Setting cluster '${SWG_CLUSTER_NAME}' public address to ${SWG_PUBLIC_ADDRESS}..."
+    local port_name
+    local port_value
+
+    for port_name in SWG_CENTRAL_LOGIN_SERVICE_PORT SWG_PUBLIC_CONNECTION_PING_PORT SWG_PUBLIC_CONNECTION_PORT SWG_PRIVATE_CONNECTION_PORT; do
+        port_value="${!port_name}"
+        if ! [[ "${port_value}" =~ ^[0-9]+$ ]] ||
+           [ "${port_value}" -lt 1 ] ||
+           [ "${port_value}" -gt 65535 ]; then
+            echo "Invalid ${port_name}='${port_value}'; expected 1-65535." >&2
+            exit 1
+        fi
+    done
+
+    if [ "${SWG_PUBLIC_CONNECTION_PING_PORT}" = "${SWG_PUBLIC_CONNECTION_PORT}" ] ||
+       [ "${SWG_PUBLIC_CONNECTION_PING_PORT}" = "${SWG_PRIVATE_CONNECTION_PORT}" ] ||
+       [ "${SWG_PUBLIC_CONNECTION_PORT}" = "${SWG_PRIVATE_CONNECTION_PORT}" ]; then
+        echo "ConnectionServer ping, public, and private ports must be distinct." >&2
+        exit 1
+    fi
+
+    for port_name in SWG_PUBLIC_CONNECTION_PING_PORT SWG_PUBLIC_CONNECTION_PORT SWG_PRIVATE_CONNECTION_PORT; do
+        port_value="${!port_name}"
+        if (( (port_value >= 45450 && port_value <= 45461) || port_value == 45465 )); then
+            echo "Invalid ${port_name}='${port_value}'; 45450-45461 and 45465 are reserved by fixed Pre-CU Docker host mappings." >&2
+            exit 1
+        fi
+    done
+
+    echo "Setting cluster '${SWG_CLUSTER_NAME}' public address to ${SWG_PUBLIC_ADDRESS} and CentralServer login service port to ${SWG_CENTRAL_LOGIN_SERVICE_PORT}..."
 
     sqlplus_app <<SQL
 whenever sqlerror exit sql.sqlcode
-update cluster_list set address = '${SWG_PUBLIC_ADDRESS}' where name = '${SWG_CLUSTER_NAME}';
+update cluster_list
+set address = '${SWG_PUBLIC_ADDRESS}',
+    port = ${SWG_CENTRAL_LOGIN_SERVICE_PORT}
+where name = '${SWG_CLUSTER_NAME}';
 commit;
 exit
 SQL
@@ -275,6 +312,23 @@ write_runtime_network_config() {
 [TaskManager]
 node0=${node_host}
 EOF
+}
+
+write_runtime_service_addresses() {
+    local node_address="${SWG_INTERNAL_ADDRESS}"
+
+    if [ -z "${node_address}" ]; then
+        node_address="$(hostname -i | awk '{ print $1 }')"
+    fi
+
+    if [ -z "${node_address}" ]; then
+        echo "Unable to determine the container's internal service address." >&2
+        exit 1
+    fi
+
+    echo "Setting internal SWG service address to ${node_address}..."
+    sed -i -E "s|^(loginServerAddress=).*|\\1${node_address}|" exe/linux/default.cfg
+    sed -i -E "s|^(centralServerAddress=).*|\\1${node_address}|" exe/linux/localOptions.cfg
 }
 
 ensure_runtime_symlinks() {
@@ -366,6 +420,8 @@ connectionServiceBindInterface=eth0
 planetServiceBindInterface=eth0
 commodityServerServiceBindInterface=eth0
 customerServicePort=61242
+loginServerPort=${SWG_CENTRAL_LOGIN_SERVICE_PORT}
+loginServicePort=${SWG_CENTRAL_LOGIN_SERVICE_PORT}
 
 [dbProcess]
 gameServiceBindInterface=eth0
@@ -385,6 +441,9 @@ gameServiceBindInterface=eth0
 chatServiceBindInterface=eth0
 customerServiceBindInterface=eth0
 altPublicBindAddress=${SWG_PUBLIC_ADDRESS}
+pingPort=${SWG_PUBLIC_CONNECTION_PING_PORT}
+clientServicePortPublic=${SWG_PUBLIC_CONNECTION_PORT}
+clientServicePortPrivate=${SWG_PRIVATE_CONNECTION_PORT}
 
 [CommodityServer]
 # Bind the game-server listening service to loopback, not eth0. The game servers reach it through
@@ -404,6 +463,8 @@ centralServerAddress=${SWG_CONTAINER_ADDRESS}
 
 [LoginServer]
 easyExternalAccess=true
+clientServicePort=${SWG_LOGIN_CLIENT_PORT}
+centralServicePort=${SWG_CENTRAL_LOGIN_SERVICE_PORT}
 
 [CustomerServiceServer]
 gameServiceBindInterface=eth0
@@ -488,6 +549,7 @@ init_server() {
     ensure_runtime_symlinks
     write_runtime_network_config
     sync_runtime_config_files
+    write_runtime_service_addresses
     write_client_asset_tree_config
     write_local_properties false
     set_cluster_public_address
@@ -512,9 +574,11 @@ run_server() {
         echo "Server binaries are missing; running first-time init."
         init_server
     else
+        run_ant update_database
         run_ant update_configs
         write_runtime_network_config
         sync_runtime_config_files
+        write_runtime_service_addresses
         write_client_asset_tree_config
         set_cluster_public_address
     fi

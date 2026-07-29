@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "feature": "heal-state-command",
+  "status": "ready",
+  "scope": "Publish 14.1 Doctor Heal State command admission and server behavior, including optional targeting, state-specific medicine, Focus-adjusted Mind cost, injury-speed recovery, one-charge consumption, state removal, and other-player-only medical XP.",
+  "sourceFiles": {
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/heal_state.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_heal_state_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/HealStateCommand.h",
+    "url": "https://github.com/swgemu/Core3/blob/6856f315a80b5250635b2272695caec1d64204ed/MMOCoreORB/src/server/zone/objects/creature/commands/HealStateCommand.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "healState",
+    "category": "combat",
+    "scriptHook": "healState",
+    "tempScript": "player.cmd.heal_state",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "addToCombatQueue": true,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "invalidTargetFallback": "self",
+    "eligibleTargets": [
+      "living player",
+      "living organic creature pet"
+    ],
+    "maximumOtherTargetRangeMeters": 6,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "healableStates": [
+      "stunned",
+      "dizzy",
+      "blinded",
+      "intimidated"
+    ],
+    "stateSpecificMedicineRequired": true,
+    "baseMindCost": 20,
+    "mindCostFunction": "healing.getMedicalMindCost",
+    "roundTimeFormula": "max(4, round((20 - healing_injury_speed / 5) * (100 - heal_recovery) / 100))",
+    "medicineChargesConsumed": 1,
+    "medicalXpForOtherPlayer": 50,
+    "medicalXpForSelfOrPet": 0
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "markQueue",
+      "status",
+      "cleanup"
+    ],
+    "temporaryCommand": "healState",
+    "preparedState": "dizzy",
+    "preparedMedicineCharges": 2,
+    "queueSafetySeconds": 8,
+    "cleanupPolicy": "Restore the exact Heal State cooldown, four healable states, Mind, shock wounds, medical XP, and skill-point preimage; destroy only the fixture medicine; revoke the fixture-owned Medic and Doctor chain; then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "81b603498fd6a27b226fd9b3efdfa4abd85d0305f93165470b813fadbc3424df",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-heal-state-ready-20260718-121",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "heal_state.java": "0e70ec616a947d3bf251d7d33dfd7ff3f95bfec5b6646c401771c0051bd06277",
+      "precu_heal_state_command_fixture.java": "8bde1d62fc9c7eaeb48b9413cd8df69b0d15cba239475b52852880a197dba943",
+      "command_table.tab": "7b8fc3c3a598e262df280b6f6fe15b425efd893a42bf249eec5b82a202a64ea0"
+    },
+    "compiledSha256": {
+      "heal_state.class": "6f83aec8de30b501c39efd8c1a7d6457a1834f8941ce7ec0c41d869dbb57cdd2",
+      "precu_heal_state_command_fixture.class": "58d1f20aa8642684fa181e946545d943a6ee31f021c16d9c1be98c8e63991640",
+      "command_table.iff": "b93ef2e19d43b7d03af08116ad6625475be8801fad73c5fd2e37af419ca23302"
+    }
+  },
+  "clientToolsPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "protocolVersion": 23,
+    "commit": "c05982fcb18abe2fec975c87627e45ae772dde75",
+    "clientSha256": "0be36b3d2866560348e85c5c041d24a9bac25a8b1aae90525294fa7e04569d69",
+    "startupMode": "Off-focus splash bypass, login auto-connect, scheduler progression, and queue admission are enabled only by the explicit background-input bridge."
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "ac229d443d880e6725fea3221348b9bc9e9672e5",
+    "commandTableIffSha256": "b93ef2e19d43b7d03af08116ad6625475be8801fad73c5fd2e37af419ca23302"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T05:33:38-04:00",
+    "lifecycle": "f01d25aad8984213970dc5a0fbe83675",
+    "container": "swg-precu",
+    "playerOid": 39008597,
+    "clientProcessId": 56080,
+    "clientProtocolVersion": 23,
+    "clientQueueCountAtAdmission": 0,
+    "clientQueueCountAfterExecution": 0,
+    "clientQueueCountAfterCleanup": 0,
+    "clientCommandStatus": "Success",
+    "handlerCalls": 1,
+    "targetOid": 39008597,
+    "appliedState": 14,
+    "appliedStateRemoved": 1,
+    "stateDelta": 1,
+    "expectedMindCost": 18,
+    "appliedMindCost": 18,
+    "observedMindAfterRegeneration": 399,
+    "appliedChargeCost": 1,
+    "appliedMedicalXpDelta": 0,
+    "expectedRoundTime": 5,
+    "appliedRoundTime": 5,
+    "cooldownRemainingAtSevenSecondObservation": -3,
+    "handlerOutcome": "performed",
+    "preconditionRecovery": {
+      "result": "passed",
+      "dead": false,
+      "incapacitated": false,
+      "posture": 0
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "clientSha256": "0be36b3d2866560348e85c5c041d24a9bac25a8b1aae90525294fa7e04569d69"
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target five-second queued command row",
+      "six-meter organic patient and PvP-help gates",
+      "four Publish 14.1 healable combat states",
+      "state-specific medicine selection and one-charge consumption",
+      "Focus-adjusted Mind cost and injury-speed cooldown",
+      "state removal and other-player-only 50 medical XP",
+      "protocol-23 no-focus client admission",
+      "identity-bound reversible self-treatment fixture"
+    ],
+    "deferred": [
+      "live second-player 50-XP acceptance",
+      "Doctor tier-I progression"
+    ]
+  }
+}

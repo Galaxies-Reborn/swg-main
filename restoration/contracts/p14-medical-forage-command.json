@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "playerUtility": "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_medical_forage_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "commandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/MedicalForageCommand.h",
+    "managerSource": "MMOCoreORB/src/server/zone/managers/minigames/ForageManagerImplementation.cpp",
+    "areaSource": "MMOCoreORB/src/server/zone/objects/area/ForageAreaCollection.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "medicalForage",
+    "category": "",
+    "scriptHook": "medicalForage",
+    "failScriptHook": "failForage",
+    "target": "other",
+    "targetType": "none",
+    "defaultTimeSeconds": 2,
+    "executeTimeSeconds": 0,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "pendingPolicy": "one forage task per player",
+    "mountedAllowed": false,
+    "interiorAllowed": false,
+    "baseActionCost": 50,
+    "actionGovernor": "Quickness",
+    "minimumActionRule": "current Action must be greater than adjusted cost",
+    "delaySeconds": 8.5,
+    "movementToleranceMeters": 2,
+    "combatAllowedAtCompletion": false,
+    "skillMod": "medical_foraging",
+    "chanceFormula": "min(100, 15 + floor(medical_foraging * 0.6))",
+    "successRollInclusive": "random 0..80 succeeds when roll <= chance",
+    "area": {
+      "ownership": "per player",
+      "squareToleranceMeters": 10,
+      "successfulReservationsPerArea": 3,
+      "expirationSeconds": 1800,
+      "rememberedAreaCap": 120
+    },
+    "rewardRollInclusive": "random 0..200",
+    "rewards": [
+      "0..39 retained forage food",
+      "40..109 10..40 local flora resources",
+      "110..169 randomized medical component level 1",
+      "170..199 randomized medical component level 60",
+      "200 randomized medical component level 200"
+    ]
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporarySkill": "science_medic_novice",
+    "temporaryCommand": "medicalForage",
+    "forcedSuccessRoll": 0,
+    "forcedRewardRoll": 120,
+    "forcedComponentIndex": 0,
+    "cleanupPolicy": "destroy the exact fixture reward, restore Action and location, restore skill and command ownership, remove runtime and fixture roots"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "af5aea1f160917138974942f4308b93babe59ca9164754d0598e55a15c1d53d5",
+    "compiledSha256": {
+      "player_utility.class": "595fa7a768d06e4445c770ac9de12df8b88fbb45fc6ff907290ea98874d7c10f",
+      "precu_medical_forage_command_fixture.class": "afe09e4afa058190dee59cf0411b295e0e5dcf6883ba611c2a5317b051f15b5a"
+    },
+    "compiledIffSha256": {
+      "command_table.iff": "cd0f1c39ca24ffda818ec712b9995ee2ef050549bde164e3bea0c06b1a5c5b4a"
+    },
+    "clientSha256": "4a2486ce4ac5a3fd87c2500a0844298d8e6345668109ab7493366fe3618f6e91"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 72184,
+    "clientProtocolVersion": 19,
+    "lifecycle": "c8f18f64d1f44ff2a529962db932fd11",
+    "clientQueueCountAtAdmission": 0,
+    "handlerCalls": 1,
+    "handlerEnteredGameTime": 301953,
+    "finishedGameTime": 301962,
+    "elapsedGameSeconds": 9,
+    "actionBefore": 500,
+    "actionCost": 45,
+    "actionAfter": 455,
+    "medicalForagingSkillMod": 10,
+    "chance": 21,
+    "successRoll": 0,
+    "rewardRoll": 120,
+    "rewardType": "component",
+    "rewardTemplate": "object/tangible/component/chemistry/biologic_effect_controller.iff",
+    "handlerOutcome": "rewarded",
+    "clientQueueCountAfterCleanup": 0,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true
+  },
+  "narrowBoundary": {
+    "included": [
+      "authentic targetless nonqueued client command row",
+      "Quickness-adjusted Action cost",
+      "delayed stationary outdoor search",
+      "per-player area depletion and expiration",
+      "medical-foraging success chance",
+      "food, local flora resource, and tiered medical-component rewards",
+      "protocol-19 background client admission",
+      "identity-bound reversible live fixture"
+    ],
+    "deferred": [
+      "Scout forage",
+      "lair forage",
+      "shellfish harvesting",
+      "Medic and Doctor branch progression beyond novice"
+    ]
+  }
+}

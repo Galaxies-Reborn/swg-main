@@ -1,0 +1,702 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/cmd/first_aid.java b/sku.0/sys.server/compiled/game/script/player/cmd/first_aid.java
+new file mode 100644
+index 000000000..227056cb9
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/player/cmd/first_aid.java
+@@ -0,0 +1,239 @@
++package script.player.cmd;
++
++import script.obj_id;
++import script.prose_package;
++import script.string_id;
++import script.library.ai_lib;
++import script.library.dot;
++import script.library.factions;
++import script.library.healing;
++import script.library.pet_lib;
++import script.library.prose;
++
++/**
++ * Publish 14.1 organic first-aid command.
++ *
++ * First aid consumes no medicine and no Mind. It removes bleeding strength
++ * equal to three times injury treatment from the medic or an eligible
++ * six-meter organic patient.
++ */
++public class first_aid extends script.base_script
++{
++    private static final float FIRST_AID_RANGE = 6.0f;
++    private static final string_id SID_SELF_NOT_BLEEDING =
++        new string_id("healing_response", "healing_response_78");
++    private static final string_id SID_TARGET_NOT_BLEEDING =
++        new string_id("healing_response", "healing_response_80");
++    private static final string_id SID_INVALID_TARGET =
++        new string_id("healing_response", "healing_response_79");
++    private static final string_id SID_NO_LINE_OF_SIGHT =
++        new string_id("healing", "no_line_of_sight");
++    private static final String FIXTURE_ROOT =
++        "precu.firstAidCommandFixture";
++
++    public int cmdFirstAid(
++        obj_id self,
++        obj_id target,
++        String params,
++        float defaultTime)
++        throws InterruptedException
++    {
++        boolean fixture =
++            isIdValid(self) && hasObjVar(self, FIXTURE_ROOT);
++        markEntry(self, fixture);
++        if (!isIdValid(self) || !isPlayer(self) ||
++            isDead(self) || isIncapacitated(self))
++        {
++            recordOutcome(self, fixture, "medicRejected");
++            return SCRIPT_CONTINUE;
++        }
++        if (!isEligiblePatient(self, target))
++        {
++            target = self;
++        }
++        if (!isEligiblePatient(self, target))
++        {
++            sendSystemMessage(self, SID_INVALID_TARGET);
++            recordOutcome(self, fixture, "targetRejected");
++            return SCRIPT_CONTINUE;
++        }
++        if (self != target)
++        {
++            if (getDistance(self, target) > FIRST_AID_RANGE)
++            {
++                healing.sendMedicalSpam(
++                    self,
++                    script.library.consumable.SID_TARGET_OUT_OF_RANGE,
++                    COMBAT_RESULT_OUT_OF_RANGE);
++                recordOutcome(self, fixture, "outOfRange");
++                return SCRIPT_CONTINUE;
++            }
++            if (!canSee(self, target))
++            {
++                healing.sendMedicalSpam(
++                    self,
++                    SID_NO_LINE_OF_SIGHT,
++                    COMBAT_RESULT_MEDICAL);
++                recordOutcome(self, fixture, "lineOfSightRejected");
++                return SCRIPT_CONTINUE;
++            }
++            if (!pvpCanHelp(self, target) ||
++                !factions.pvpDoAllowedHelpCheck(self, target))
++            {
++                healing.sendMedicalSpam(
++                    self,
++                    healing.SID_PVP_NO_HELP,
++                    COMBAT_RESULT_MEDICAL);
++                recordOutcome(self, fixture, "pvpRejected");
++                return SCRIPT_CONTINUE;
++            }
++        }
++        if (!dot.isBleeding(target))
++        {
++            if (self == target)
++            {
++                sendSystemMessage(self, SID_SELF_NOT_BLEEDING);
++            }
++            else
++            {
++                prose_package message =
++                    prose.getPackage(SID_TARGET_NOT_BLEEDING, target);
++                sendSystemMessageProse(self, message);
++            }
++            recordOutcome(self, fixture, "notBleeding");
++            return SCRIPT_CONTINUE;
++        }
++
++        int treatment =
++            getSkillStatMod(self, "healing_injury_treatment");
++        int requestedReduction = treatment * 3;
++        int mindBefore = fixture ? getAttrib(self, MIND) : 0;
++        int reduced =
++            dot.reduceDotTypeStrength(
++                target,
++                dot.DOT_BLEEDING,
++                requestedReduction);
++        boolean performed = reduced >= 0;
++        if (performed)
++        {
++            if (self != target)
++            {
++                prose_package toMedic =
++                    prose.getPackage(
++                        healing.SID_YOU_APPLY_FIRST_AID,
++                        target);
++                healing.sendMedicalSpam(
++                    self,
++                    toMedic,
++                    COMBAT_RESULT_MEDICAL);
++                prose_package toPatient =
++                    prose.getPackage(
++                        healing.SID_APPLIES_FIRST_AID,
++                        self);
++                healing.sendMedicalSpam(
++                    target,
++                    toPatient,
++                    COMBAT_RESULT_MEDICAL);
++                pvpHelpPerformed(self, target);
++            }
++            else
++            {
++                healing.sendMedicalSpam(
++                    self,
++                    healing.SID_APPLY_FIRST_AID_SELF,
++                    COMBAT_RESULT_MEDICAL);
++            }
++            doAnimationAction(
++                self,
++                self == target ? "heal_self" : "heal_other");
++            healing.playHealDamageEffect(getLocation(target));
++        }
++        if (fixture)
++        {
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".target",
++                target.toString());
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".treatment",
++                treatment);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".requestedReduction",
++                requestedReduction);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".reportedReduction",
++                reduced);
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".mindCost",
++                mindBefore - getAttrib(self, MIND));
++            setObjVar(
++                self,
++                FIXTURE_ROOT + ".bleedingAfter",
++                dot.isBleeding(target) ? 1 : 0);
++        }
++        recordOutcome(
++            self,
++            fixture,
++            performed ? "performed" : "reductionRejected");
++        return SCRIPT_CONTINUE;
++    }
++
++    private boolean isEligiblePatient(obj_id medic, obj_id target)
++        throws InterruptedException
++    {
++        if (!isIdValid(target) || !exists(target) ||
++            !isMob(target) || isDead(target) ||
++            pet_lib.isMounted(target) ||
++            pvpCanAttack(medic, target))
++        {
++            return false;
++        }
++        if (isPlayer(target))
++        {
++            return true;
++        }
++        return
++            (pet_lib.isCreaturePet(target) ||
++                pet_lib.isNpcPet(target)) &&
++            !ai_lib.isDroid(target) &&
++            !ai_lib.isAndroid(target) &&
++            !pet_lib.isVehiclePet(target);
++    }
++
++    private void markEntry(obj_id medic, boolean fixture)
++        throws InterruptedException
++    {
++        if (!fixture)
++        {
++            return;
++        }
++        setObjVar(
++            medic,
++            FIXTURE_ROOT + ".handlerEntered",
++            getGameTime());
++        int calls = hasObjVar(medic, FIXTURE_ROOT + ".handlerCalls")
++            ? getIntObjVar(medic, FIXTURE_ROOT + ".handlerCalls")
++            : 0;
++        setObjVar(medic, FIXTURE_ROOT + ".handlerCalls", calls + 1);
++        recordOutcome(medic, true, "entered");
++    }
++
++    private void recordOutcome(
++        obj_id medic,
++        boolean fixture,
++        String outcome)
++        throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(
++                medic,
++                FIXTURE_ROOT + ".outcome",
++                outcome);
++        }
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_first_aid_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_first_aid_command_fixture.java
+new file mode 100644
+index 000000000..268660172
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_first_aid_command_fixture.java
+@@ -0,0 +1,442 @@
++package script.test;
++
++import script.obj_id;
++import script.library.dot;
++import script.library.utils;
++
++/**
++ * Identity-bound and reversible fixture for Publish 14.1 first aid.
++ *
++ * The connected client remains the sole command owner. Preparation adds one
++ * private bleeding effect, exact tier-II injury treatment, and a temporary
++ * command grant. Cleanup removes only that effect and restores all preimages.
++ */
++public class precu_first_aid_command_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++    private static final String COMMAND = "firstAid";
++    private static final String MOD = "healing_injury_treatment";
++    private static final int TREATMENT = 35;
++    private static final String DOT_ID = "precu_first_aid_fixture";
++    private static final int BLEEDING_STRENGTH = 90;
++    private static final String ROOT = "precu.firstAidCommandFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String ORIGINAL_COMMAND =
++        ROOT + ".originalCommand";
++    private static final String ORIGINAL_MOD = ROOT + ".originalMod";
++    private static final String APPLIED_MOD_DELTA =
++        ROOT + ".appliedModDelta";
++    private static final String ORIGINAL_HEALTH =
++        ROOT + ".originalHealth";
++    private static final String ORIGINAL_MIND =
++        ROOT + ".originalMind";
++    private static final String ORIGINAL_MEDICAL_XP =
++        ROOT + ".originalMedicalXp";
++    private static final String USAGE =
++        "usage: prepare|status|cleanup <playerOid> <lifecycle>";
++
++    public String executeFixture(String params)
++        throws InterruptedException
++    {
++        String[] args =
++            params == null
++                ? new String[0]
++                : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++        long playerValue;
++        try
++        {
++            playerValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (playerValue != PLAYER_OID ||
++            !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id player = obj_id.getObjId(playerValue);
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded())
++        {
++            return "error=playerNotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            return status(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, args[2]);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            if (ownership == null &&
++                getIntObjVar(player, PREPARED) == 1)
++            {
++                return "action=prepare resumed=true " +
++                    buildStatus(player);
++            }
++            if (ownership != null &&
++                !ownership.equals("error=fixtureAbsent"))
++            {
++                return ownership;
++            }
++        }
++        if (dot.isBleeding(player))
++        {
++            return "error=existingBleeding";
++        }
++
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(
++            player,
++            ORIGINAL_COMMAND,
++            hasCommand(player, COMMAND) ? 1 : 0);
++        setObjVar(
++            player,
++            ORIGINAL_MOD,
++            getSkillStatMod(player, MOD));
++        setObjVar(
++            player,
++            ORIGINAL_HEALTH,
++            getAttrib(player, HEALTH));
++        setObjVar(
++            player,
++            ORIGINAL_MIND,
++            getAttrib(player, MIND));
++        setObjVar(
++            player,
++            ORIGINAL_MEDICAL_XP,
++            getExperiencePoints(player, "medical"));
++        resetTelemetry(player);
++
++        if (!hasCommand(player, COMMAND))
++        {
++            grantCommand(player, COMMAND);
++        }
++        int modDelta =
++            TREATMENT - getSkillStatMod(player, MOD);
++        if (modDelta != 0 &&
++            !applySkillStatisticModifier(player, MOD, modDelta))
++        {
++            boolean restored = restore(player);
++            return "error=skillModPreparationFailed restored=" +
++                restored;
++        }
++        setObjVar(player, APPLIED_MOD_DELTA, modDelta);
++
++        String dotRoot = dot.getDotScriptVarName(DOT_ID);
++        utils.setScriptVar(
++            player,
++            dotRoot + dot.VAR_TYPE,
++            dot.DOT_BLEEDING);
++        utils.setScriptVar(
++            player,
++            dotRoot + dot.VAR_ATTRIBUTE,
++            HEALTH);
++        utils.setScriptVar(
++            player,
++            dotRoot + dot.VAR_STRENGTH,
++            BLEEDING_STRENGTH);
++        utils.setScriptVar(
++            player,
++            dotRoot + dot.VAR_DURATION,
++            600);
++        utils.setScriptVar(
++            player,
++            dotRoot + dot.VAR_TIME_START,
++            getGameTime());
++        boolean applied =
++            dot.isBleeding(player) &&
++            dot.getDotStrength(player, DOT_ID) ==
++                BLEEDING_STRENGTH;
++        boolean commandReady =
++            hasCommand(player, COMMAND);
++        int observedTreatment =
++            getSkillStatMod(player, MOD);
++        int observedBleedingStrength =
++            dot.getDotStrength(player, DOT_ID);
++        if (!commandReady ||
++            observedTreatment != TREATMENT ||
++            !applied ||
++            observedBleedingStrength != BLEEDING_STRENGTH)
++        {
++            boolean restored = restore(player);
++            return
++                "error=firstAidPreparationFailed" +
++                " command=" + commandReady +
++                " treatment=" + observedTreatment +
++                " dotApplied=" + applied +
++                " bleedingStrength=" +
++                    observedBleedingStrength +
++                " restored=" + restored;
++        }
++        setObjVar(player, PREPARED, 1);
++        return "action=prepare resumed=false " +
++            buildStatus(player);
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null
++            ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasCompleteSnapshot(player))
++        {
++            clearFixtureVariables(player);
++            return
++                "action=cleanup alreadyClean=false restored=false" +
++                " incompleteSnapshot=true cleared=true";
++        }
++        return "action=cleanup alreadyClean=false restored=" +
++            restore(player);
++    }
++
++    private boolean restore(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return false;
++        }
++        boolean restored = true;
++        if (dot.getDotStrength(player, DOT_ID) >= 0)
++        {
++            restored =
++                dot.removeDotEffect(player, DOT_ID, false) &&
++                restored;
++        }
++        int modDelta = hasObjVar(player, APPLIED_MOD_DELTA)
++            ? getIntObjVar(player, APPLIED_MOD_DELTA)
++            : 0;
++        if (modDelta != 0)
++        {
++            restored =
++                applySkillStatisticModifier(
++                    player,
++                    MOD,
++                    -modDelta) &&
++                restored;
++        }
++        if (getIntObjVar(player, ORIGINAL_COMMAND) == 1 &&
++            !hasCommand(player, COMMAND))
++        {
++            grantCommand(player, COMMAND);
++        }
++        else if (
++            getIntObjVar(player, ORIGINAL_COMMAND) == 0 &&
++            hasCommand(player, COMMAND))
++        {
++            revokeCommand(player, COMMAND);
++        }
++        int originalHealth =
++            getIntObjVar(player, ORIGINAL_HEALTH);
++        int originalMind =
++            getIntObjVar(player, ORIGINAL_MIND);
++        setAttrib(player, HEALTH, originalHealth);
++        setAttrib(player, MIND, originalMind);
++        restored =
++            getAttrib(player, HEALTH) == originalHealth &&
++            getAttrib(player, MIND) == originalMind &&
++            getSkillStatMod(player, MOD) ==
++                getIntObjVar(player, ORIGINAL_MOD) &&
++            getExperiencePoints(player, "medical") ==
++                getIntObjVar(player, ORIGINAL_MEDICAL_XP) &&
++            !dot.isBleeding(player) &&
++            restored;
++        clearFixtureVariables(player);
++        return restored;
++    }
++
++    private String validateOwnership(
++        obj_id player,
++        String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) ||
++            !hasObjVar(player, LIFECYCLE))
++        {
++            return "error=fixtureAbsent";
++        }
++        return lifecycle.equals(
++            getStringObjVar(player, LIFECYCLE))
++            ? null
++            : "error=lifecycleMismatch";
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        return
++            hasObjVar(player, ORIGINAL_COMMAND) &&
++            hasObjVar(player, ORIGINAL_MOD) &&
++            hasObjVar(player, ORIGINAL_HEALTH) &&
++            hasObjVar(player, ORIGINAL_MIND) &&
++            hasObjVar(player, ORIGINAL_MEDICAL_XP);
++    }
++
++    private String buildStatus(obj_id player)
++        throws InterruptedException
++    {
++        return
++            "player=" + player +
++            " command=" + hasCommand(player, COMMAND) +
++            " treatment=" + getSkillStatMod(player, MOD) +
++            " bleeding=" + dot.isBleeding(player) +
++            " bleedingStrength=" +
++                dot.getDotStrength(player, DOT_ID) +
++            " health=" + getAttrib(player, HEALTH) +
++            " mind=" + getAttrib(player, MIND) +
++            " medicalXp=" +
++                getExperiencePoints(player, "medical") +
++            " handlerCalls=" +
++                getIntOrZero(player, ROOT + ".handlerCalls") +
++            " handlerEntered=" +
++                getIntOrZero(player, ROOT + ".handlerEntered") +
++            " target=" +
++                getStringOrNone(player, ROOT + ".target") +
++            " requestedReduction=" +
++                getIntOrZero(
++                    player,
++                    ROOT + ".requestedReduction") +
++            " reportedReduction=" +
++                getIntOrZero(
++                    player,
++                    ROOT + ".reportedReduction") +
++            " mindCost=" +
++                getIntOrZero(player, ROOT + ".mindCost") +
++            " bleedingAfter=" +
++                getIntOrZero(player, ROOT + ".bleedingAfter") +
++            " outcome=" +
++                getStringOrNone(player, ROOT + ".outcome");
++    }
++
++    private int getIntOrZero(obj_id player, String name)
++        throws InterruptedException
++    {
++        return hasObjVar(player, name)
++            ? getIntObjVar(player, name)
++            : 0;
++    }
++
++    private String getStringOrNone(
++        obj_id player,
++        String name)
++        throws InterruptedException
++    {
++        return hasObjVar(player, name)
++            ? getStringObjVar(player, name)
++            : "none";
++    }
++
++    private void resetTelemetry(obj_id player)
++        throws InterruptedException
++    {
++        String[] leaves =
++        {
++            "handlerCalls",
++            "handlerEntered",
++            "target",
++            "treatment",
++            "requestedReduction",
++            "reportedReduction",
++            "mindCost",
++            "bleedingAfter",
++            "outcome"
++        };
++        for (String leaf : leaves)
++        {
++            String path = ROOT + "." + leaf;
++            if (hasObjVar(player, path))
++            {
++                removeObjVar(player, path);
++            }
++        }
++    }
++
++    private void clearFixtureVariables(obj_id player)
++        throws InterruptedException
++    {
++        String[] leaves =
++        {
++            "lifecycle",
++            "prepared",
++            "originalCommand",
++            "originalMod",
++            "appliedModDelta",
++            "originalHealth",
++            "originalMind",
++            "originalMedicalXp",
++            "handlerCalls",
++            "handlerEntered",
++            "target",
++            "treatment",
++            "requestedReduction",
++            "reportedReduction",
++            "mindCost",
++            "bleedingAfter",
++            "outcome"
++        };
++        for (String leaf : leaves)
++        {
++            String path = ROOT + "." + leaf;
++            if (hasObjVar(player, path))
++            {
++                removeObjVar(player, path);
++            }
++        }
++        if (hasObjVar(player, ROOT))
++        {
++            removeObjVar(player, ROOT);
++        }
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        return
++            lifecycle != null &&
++            lifecycle.matches("[A-Za-z0-9._-]{8,64}");
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 82391e051..f456288a8 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1916,3 +1916,4 @@ legShot1	combat	normal	legShot1	failSpecialAttack			1.5	legShot1	1	0	1	1	1	0	1	1
+ headShot2	combat	normal	headShot2	failSpecialAttack			1.5	headShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ healDamage	combat	normal	cmdHealDamage				5	healDamage	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.heal_damage	other	optional		2	0	0	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0
+ healWound	combat	normal	cmdHealWound				7	healWound	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.heal_wound	other	optional		2	0	0	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	7	0		0	0	0
++firstAid	combat	normal	cmdFirstAid				5	firstAid	1	1	1	1	1	0	1	0	0	0	0	1	1	0	1	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	1	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.cmd.first_aid	other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	5	0		0	0	0

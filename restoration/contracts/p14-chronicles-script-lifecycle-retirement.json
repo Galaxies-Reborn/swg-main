@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "feature": "chronicles-script-lifecycle-retirement",
+  "status": "ready",
+  "scope": "Keep Player Generated Chronicles attachment inert, retire it during initialization or tutorial response, and retire Storyteller player scripts while retaining their bodies for old serialized data.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "No Player Generated Chronicles, Chronicler profession, Storyteller command, saga-holocron authoring, or matching player-script lifecycle exists in the pinned Publish 14.1 Core3 tree.",
+    "attachmentBoundary": "The only residual storyteller attachment call is inside player.live_conversions, which is itself detached by both its OnInitialize handler and base_player."
+  },
+  "expected": {
+    "playerSagaQuestEnabled": false,
+    "storytellerCommandsEnabled": false,
+    "playerSagaDetachBoundaries": 2,
+    "storytellerDetachBoundaries": 2,
+    "activeProductionAttachmentCalls": 0,
+    "chroniclesTermsOrReserveMessagesOnClientReady": 0
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/167-p14-chronicles-script-lifecycle-retirement.patch",
+    "overlayPatchBytes": 2764,
+    "overlayPatchSha256": "60d1361d2673a1d496814b363c3cea15c5c66290e56104e05beb6e759956f300",
+    "sourceEvidenceEncoding": "UTF-8 with LF line endings",
+    "sourceSha256": {
+      "player_saga_quest.java": "d5ba30b6b92efed81ec19b39aeecc46141b179676e03cec376e328cb427ed2b3",
+      "storyteller_commands.java": "ee3d3b862379e616c4446aaaa853ee1c235e3a68c3fdaaa67b17a17eb22db21c"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "player_saga_quest.class": "1e848f5a2aaf00b2680be7b1e88492ad53c38b8106f877e2dec2f39360a219a1",
+      "storyteller_commands.class": "2dc41d48f4f47701da03ee3480b972f621450489eb31a539036f3d405cee2246"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 30812,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

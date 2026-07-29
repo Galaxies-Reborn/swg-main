@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-one-hand-body-hit-continuation",
+  "status": "ready",
+  "scope": "Restore melee1hBodyHit2 and melee1hBodyHit3 with exact Core3 one-handed, Health-pool, spam, timing, and generated-intensity behavior.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "commands": [
+      { "name": "melee1hBodyHit2", "source": "MMOCoreORB/bin/scripts/commands/melee1hBodyHit2.lua", "header": "MMOCoreORB/src/server/zone/objects/creature/commands/Melee1hBodyHit2Command.h", "skillOwner": "combat_1hsword_ability_01", "damageMultiplier": 2.5, "speedMultiplier": 2.0, "hamCostMultipliers": [0.75, 0.75, 1.25], "accuracyBonus": 25, "targetPool": "HEALTH", "weaponType": "ONEHANDMELEEWEAPON", "animation": "combo_4b", "animationType": "INTENSITY", "combatSpam": "saisun", "range": -1 },
+      { "name": "melee1hBodyHit3", "source": "MMOCoreORB/bin/scripts/commands/melee1hBodyHit3.lua", "header": "MMOCoreORB/src/server/zone/objects/creature/commands/Melee1hBodyHit3Command.h", "skillOwner": "combat_1hsword_ability_03", "damageMultiplier": 3.5, "speedMultiplier": 2.25, "hamCostMultipliers": [1.0, 1.0, 2.0], "accuracyBonus": 25, "targetPool": "HEALTH", "weaponType": "ONEHANDMELEEWEAPON", "animation": "combo_3a", "animationType": "INTENSITY", "combatSpam": "saitok", "range": -1 }
+    ]
+  },
+  "buildEvidence": {
+    "overlay": "restoration/patches/dsrc/208-p14-core3-one-hand-body-hit-continuation.patch",
+    "javaCompile": "passed",
+    "datatableCompile": "passed",
+    "clientBridgeTests": 28,
+    "staticContract": "passed",
+    "materializedOverlayCount": 214,
+    "materializedRestorationFileCount": 611,
+    "materializedFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "commandTableSha256": "00CC6601B417F121E6F9A3F3C1B7CD0F4EFF3CD19ADF5911E4A6CD1517329856",
+    "combatDataSha256": "D607937EC492537DB8A075C6BC61E4D106AD87D2DF24607001D4D998255B835E",
+    "overrideTableSha256": "B7D14A7F4A0AD7B3F4F400166B3408321AD6D0D4B080943609682651206453F4",
+    "spamTableSha256": "898B1BEC4FC30059C0397CF936AB9DF74ABFE76C7525DB2A0E079AB3C6C2E59E"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 112,
+    "attacker": { "stationId": 91001, "objectId": 44003778 },
+    "defender": { "stationId": 1001, "objectId": 39008597 },
+    "lifecycle": "21021021021021021021021021021021",
+    "weaponTemplate": "object/weapon/melee/sword/sword_rantok.iff",
+    "weaponType": 4,
+    "validMask": "0x0010",
+    "commands": [
+      { "name": "melee1hBodyHit2", "spamKey": "saisun_hit", "damage": 1044, "configuredTargetPool": 0, "resolvedTargetPool": 0, "hitLocation": 3, "animation": "combo_4b_medium", "animationType": 2, "queueRemoval": "Success" },
+      { "name": "melee1hBodyHit3", "spamKey": "saitok_hit", "damage": 2664, "configuredTargetPool": 0, "resolvedTargetPool": 0, "hitLocation": 0, "animation": "combo_3a_medium", "animationType": 2, "queueRemoval": "Success" }
+    ],
+    "fixtureCleanup": "passed",
+    "idempotentCleanup": "passed",
+    "serverHealthy": true,
+    "clientSha256": "31E728AF2CC18E911D5F4F172AF315AC69ADEEC08944B3AA349EED962EF26319",
+    "runtimeTreSha256": "8A744494C2324F2F45ED62B57F7AF929F8E11C1A28B6BA3207F807814D6DC06D"
+  },
+  "guardrails": [
+    "The existing identity-bound Rantok remains the only fixture weapon used by this slice.",
+    "The fixture snapshots and restores each command independently of certification and earlier one-handed commands.",
+    "No state, dot, Force, visibility, splash, multi-pool, or custom-header family is opened.",
+    "Client diagnostics never fabricate server damage, pool, spam, hit-location, or animation results."
+  ]
+}

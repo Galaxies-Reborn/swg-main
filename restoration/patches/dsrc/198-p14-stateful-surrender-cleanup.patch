@@ -1,0 +1,186 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -398,6 +398,47 @@ public class base_player extends script.base_script
+     }
+     public int OnSkillRevoked(obj_id self, String strSkill) throws InterruptedException
+     {
++        if (strSkill.equals("combat_bountyhunter_investigation_03"))
++        {
++            // Investigation III owns access to player/Jedi bounty missions.
++            // Match the Core3 surrender boundary by failing any live mission
++            // as the skill leaves the character.
++            obj_id bountyMission = bounty_hunter.getBountyMission(self);
++            if (isIdValid(bountyMission))
++            {
++                messageTo(bountyMission, "abortMission", null, 0, false);
++            }
++        }
++        if (strSkill.startsWith("outdoors_squadleader_"))
++        {
++            // SOE's retained group defense path reads the leader's live skill
++            // modifiers, so the native revoke removes passive leadership
++            // immediately.  Explicitly retire the stateful command surfaces.
++            if (!hasSkill(self, "outdoors_squadleader_offense_03"))
++            {
++                obj_id group = getGroupObject(self);
++                if (isIdValid(group))
++                {
++                    if (utils.hasScriptVar(group, combat.VAR_GROUP_VOLLEY_TARGET))
++                    {
++                        obj_id volleyTarget = utils.getObjIdScriptVar(group, combat.VAR_GROUP_VOLLEY_TARGET);
++                        if (isIdValid(volleyTarget))
++                        {
++                            dictionary cleanup = new dictionary();
++                            cleanup.put("objGroup", group);
++                            messageTo(volleyTarget, "msgUnmarkedByGroup", cleanup, 0, false);
++                        }
++                    }
++                    utils.removeScriptVar(group, combat.VAR_GROUP_VOLLEY_TARGET);
++                    utils.removeScriptVar(group, combat.VAR_GROUP_LAST_VOLLEY_TIME);
++                }
++            }
++            if (!hasSkill(self, "outdoors_squadleader_novice"))
++            {
++                squad_leader.clearRallyPoint(self);
++                xp.notifySquadLeaderXp(self);
++            }
++        }
+         if (strSkill.equals("pilot_rebel_navy_novice") || strSkill.equals("pilot_imperial_navy_novice") || strSkill.equals("pilot_neutral_novice"))
+         {
+             space_flags.clearSpaceTrack(self);
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_stateful_surrender_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_stateful_surrender_fixture.java
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_stateful_surrender_fixture.java
+@@ -0,0 +1,130 @@
++package script.test;
++
++import script.obj_id;
++import script.library.utils;
++
++public class precu_stateful_surrender_fixture extends script.base_script
++{
++    private static final String MARKER = "precu.statefulSurrender.skill";
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        if (params == null)
++        {
++            return usage();
++        }
++        String[] args = params.trim().split("\\s+");
++        if (args.length != 3)
++        {
++            return usage();
++        }
++
++        String action = args[0];
++        obj_id player;
++        try
++        {
++            player = obj_id.getObjId(Long.parseLong(args[1]));
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayerOid";
++        }
++        if (!isIdValid(player) || !player.isLoaded() ||
++            !player.isAuthoritative() || !isPlayer(player))
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        String skillName = args[2];
++        if (!isSupported(skillName))
++        {
++            return "error=unsupportedSkill";
++        }
++
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            if (hasObjVar(player, MARKER))
++            {
++                return "error=fixtureAlreadyArmed";
++            }
++            if (hasSkill(player, skillName))
++            {
++                return "error=skillAlreadyOwned";
++            }
++            grantSkill(player, skillName);
++            if (!hasSkill(player, skillName))
++            {
++                return "error=grantFailed";
++            }
++            setObjVar(player, MARKER, skillName);
++            return status("prepare", player, skillName, true);
++        }
++
++        if (!hasObjVar(player, MARKER) ||
++            !skillName.equals(getStringObjVar(player, MARKER)))
++        {
++            return "error=fixtureNotArmed";
++        }
++
++        if (action.equalsIgnoreCase("queue"))
++        {
++            boolean queued = queueCommand(
++                player,
++                getStringCrc("surrenderskill"),
++                obj_id.NULL_ID,
++                skillName,
++                COMMAND_PRIORITY_IMMEDIATE);
++            return status("queue", player, skillName, queued);
++        }
++        if (action.equalsIgnoreCase("verifyRemoved"))
++        {
++            boolean removed = !hasSkill(player, skillName);
++            if (removed)
++            {
++                removeObjVar(player, MARKER);
++            }
++            return status("verifyRemoved", player, skillName, removed);
++        }
++        if (action.equalsIgnoreCase("verifyPilotBlocked"))
++        {
++            return status("verifyPilotBlocked", player, skillName,
++                skillName.startsWith("pilot_") && hasSkill(player, skillName));
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            if (hasSkill(player, skillName))
++            {
++                if (skillName.startsWith("pilot_"))
++                {
++                    utils.setScriptVar(player, "revokePilotSkill", 1);
++                }
++                revokeSkill(player, skillName);
++                utils.removeScriptVar(player, "revokePilotSkill");
++            }
++            removeObjVar(player, MARKER);
++            return status("cleanup", player, skillName, !hasSkill(player, skillName));
++        }
++        return usage();
++    }
++
++    private boolean isSupported(String skillName)
++    {
++        return skillName.equals("combat_bountyhunter_investigation_03") ||
++            skillName.equals("outdoors_squadleader_offense_03") ||
++            skillName.equals("pilot_neutral_novice");
++    }
++
++    private String status(String action, obj_id player, String skillName, boolean passed)
++        throws InterruptedException
++    {
++        return "action=" + action + " skill=" + skillName +
++            " owned=" + hasSkill(player, skillName) +
++            " marker=" + hasObjVar(player, MARKER) +
++            " passed=" + passed;
++    }
++
++    private String usage()
++    {
++        return "usage: prepare|queue|verifyRemoved|verifyPilotBlocked|cleanup <playerOid> <skill>";
++    }
++}

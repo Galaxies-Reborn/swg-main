@@ -1,0 +1,629 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 7dc29d9fd5035d03ba98a7f5dc3fd757a56017af..90db62f5a197df761dd965d2ef8bc9cf2f1426e7 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15560,6 +15560,22 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int pistolMeleeDefense1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("pistolMeleeDefense1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int pistolMeleeDefense2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("pistolMeleeDefense2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int actionShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("actionShot1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index f8fb9b7a6e7ee8f2c9ca3b6b1c1810bdc51ba986..dcfdbcfbdef9591090bc5da18ff771011c71f7af 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -140,6 +140,12 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String MARKSMAN_PISTOL_FOUR =
+         "combat_marksman_pistol_04";
+     private static final String PISTOL_NOVICE = "combat_pistol_novice";
++    private static final String PISTOL_SUPPORT_ONE =
++        "combat_pistol_support_01";
++    private static final String PISTOL_SUPPORT_TWO =
++        "combat_pistol_support_02";
++    private static final String PISTOL_SUPPORT_THREE =
++        "combat_pistol_support_03";
+     private static final String MARKSMAN_SUPPORT_ONE = "combat_marksman_support_01";
+     private static final String MARKSMAN_SUPPORT_FOUR = "combat_marksman_support_04";
+     private static final String COMMAND = "headShot1";
+@@ -149,6 +155,10 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String BODY_SHOT_THREE_COMMAND = "bodyShot3";
+     private static final String HEALTH_SHOT_ONE_COMMAND = "healthShot1";
+     private static final String HEALTH_SHOT_TWO_COMMAND = "healthShot2";
++    private static final String PISTOL_MELEE_DEFENSE_ONE_COMMAND =
++        "pistolMeleeDefense1";
++    private static final String PISTOL_MELEE_DEFENSE_TWO_COMMAND =
++        "pistolMeleeDefense2";
+     private static final String ACTION_SHOT_ONE_COMMAND = "actionShot1";
+     private static final String ACTION_SHOT_TWO_COMMAND = "actionShot2";
+     private static final String MIND_SHOT_ONE_COMMAND = "mindShot1";
+@@ -417,6 +427,12 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalPistolFour";
+     private static final String ORIGINAL_PISTOL_NOVICE =
+         ROOT + ".originalPistolNovice";
++    private static final String ORIGINAL_PISTOL_SUPPORT_ONE =
++        ROOT + ".originalPistolSupportOne";
++    private static final String ORIGINAL_PISTOL_SUPPORT_TWO =
++        ROOT + ".originalPistolSupportTwo";
++    private static final String ORIGINAL_PISTOL_SUPPORT_THREE =
++        ROOT + ".originalPistolSupportThree";
+     private static final String ORIGINAL_SUPPORT_ONE = ROOT + ".originalSupportOne";
+     private static final String ORIGINAL_SUPPORT_FOUR = ROOT + ".originalSupportFour";
+     private static final String ORIGINAL_DURATION_CONTROL =
+@@ -433,6 +449,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalHealthShotOneCommand";
+     private static final String ORIGINAL_HEALTH_SHOT_TWO_COMMAND =
+         ROOT + ".originalHealthShotTwoCommand";
++    private static final String ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND =
++        ROOT + ".originalPistolMeleeDefenseOneCommand";
++    private static final String ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND =
++        ROOT + ".originalPistolMeleeDefenseTwoCommand";
+     private static final String ORIGINAL_ACTION_SHOT_ONE_COMMAND =
+         ROOT + ".originalActionShotOneCommand";
+     private static final String ORIGINAL_ACTION_SHOT_TWO_COMMAND =
+@@ -693,7 +713,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -762,6 +782,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armHealthShotTwo(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armPistolMeleeDefense"))
++        {
++            return armPistolMeleeDefense(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armWarcryOne"))
+         {
+             return armWarcryOne(attacker, defender, args[3]);
+@@ -1070,6 +1094,15 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean pistolNoviceGranted = pistolFourGranted &&
+             (hasSkill(attacker, PISTOL_NOVICE) ||
+                 grantSkill(attacker, PISTOL_NOVICE));
++        boolean pistolSupportOneGranted = pistolNoviceGranted &&
++            (hasSkill(attacker, PISTOL_SUPPORT_ONE) ||
++                grantSkill(attacker, PISTOL_SUPPORT_ONE));
++        boolean pistolSupportTwoGranted = pistolSupportOneGranted &&
++            (hasSkill(attacker, PISTOL_SUPPORT_TWO) ||
++                grantSkill(attacker, PISTOL_SUPPORT_TWO));
++        boolean pistolSupportThreeGranted = pistolSupportTwoGranted &&
++            (hasSkill(attacker, PISTOL_SUPPORT_THREE) ||
++                grantSkill(attacker, PISTOL_SUPPORT_THREE));
+         boolean supportOneGranted = noviceGranted &&
+             (hasSkill(attacker, MARKSMAN_SUPPORT_ONE) ||
+                 grantSkill(attacker, MARKSMAN_SUPPORT_ONE));
+@@ -1090,6 +1123,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean healthShotTwoGranted =
+             hasCommand(attacker, HEALTH_SHOT_TWO_COMMAND) ||
+             grantCommand(attacker, HEALTH_SHOT_TWO_COMMAND);
++        boolean pistolMeleeDefenseOneGranted =
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) ||
++            grantCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND);
++        boolean pistolMeleeDefenseTwoGranted =
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ||
++            grantCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND);
+         boolean actionShotOneGranted =
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, ACTION_SHOT_ONE_COMMAND);
+@@ -1424,7 +1463,9 @@ public class precu_headshot1_fixture extends script.base_script
+             !carbineAbilityFourGranted ||
+             !pistolOneGranted || !pistolTwoGranted ||
+             !pistolThreeGranted || !pistolFourGranted ||
+-            !pistolNoviceGranted || !supportOneGranted ||
++            !pistolNoviceGranted || !pistolSupportOneGranted ||
++            !pistolSupportTwoGranted || !pistolSupportThreeGranted ||
++            !supportOneGranted ||
+             !supportFourGranted ||
+             !strafeShotOneCommandGranted ||
+             !hasCommand(attacker, STRAFE_SHOT_ONE_COMMAND) ||
+@@ -1519,6 +1560,10 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, HEALTH_SHOT_ONE_COMMAND) ||
+             !healthShotTwoGranted ||
+             !hasCommand(attacker, HEALTH_SHOT_TWO_COMMAND) ||
++            !pistolMeleeDefenseOneGranted ||
++            !hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) ||
++            !pistolMeleeDefenseTwoGranted ||
++            !hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ||
+             !actionShotOneGranted ||
+             !hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) ||
+             !actionShotTwoGranted ||
+@@ -1683,6 +1728,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 " bodyShotThree=" + hasCommand(attacker, BODY_SHOT_THREE_COMMAND) +
+                 " healthShotOne=" + hasCommand(attacker, HEALTH_SHOT_ONE_COMMAND) +
+                 " healthShotTwo=" + hasCommand(attacker, HEALTH_SHOT_TWO_COMMAND) +
++                " pistolMeleeDefenseOne=" +
++                    hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) +
++                " pistolMeleeDefenseTwo=" +
++                    hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) +
+                 " mindShotOne=" + hasCommand(attacker, MIND_SHOT_ONE_COMMAND) +
+                 " mindShotTwo=" + hasCommand(attacker, MIND_SHOT_TWO_COMMAND) +
+                 " surpriseShot=" + hasCommand(attacker, SURPRISE_SHOT_COMMAND) +
+@@ -2002,6 +2051,22 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, HEALTH_SHOT_TWO_COMMAND);
+         }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND) &&
++            getIntObjVar(
++                attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND))
++        {
++            revokeCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND);
++        }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND) &&
++            getIntObjVar(
++                attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND) == 0 &&
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND))
++        {
++            revokeCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) == 0 &&
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND))
+@@ -2475,6 +2540,24 @@ public class precu_headshot1_fixture extends script.base_script
+             // Release the fixture carbine before revoking its profession tree.
+             destroyFixtureCarbine(attacker);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_THREE) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_THREE) == 0 &&
++            hasSkill(attacker, PISTOL_SUPPORT_THREE))
++        {
++            revokeSkill(attacker, PISTOL_SUPPORT_THREE);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_TWO) == 0 &&
++            hasSkill(attacker, PISTOL_SUPPORT_TWO))
++        {
++            revokeSkill(attacker, PISTOL_SUPPORT_TWO);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_ONE) == 0 &&
++            hasSkill(attacker, PISTOL_SUPPORT_ONE))
++        {
++            revokeSkill(attacker, PISTOL_SUPPORT_ONE);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_PISTOL_NOVICE) &&
+             getIntObjVar(attacker, ORIGINAL_PISTOL_NOVICE) == 0 &&
+             hasSkill(attacker, PISTOL_NOVICE))
+@@ -3169,6 +3252,35 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armPistolMeleeDefense(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        boolean boundary = hasSkill(attacker, MARKSMAN_NOVICE) &&
++            hasSkill(attacker, MARKSMAN_PISTOL_ONE) &&
++            hasSkill(attacker, MARKSMAN_PISTOL_TWO) &&
++            hasSkill(attacker, MARKSMAN_PISTOL_THREE) &&
++            hasSkill(attacker, MARKSMAN_PISTOL_FOUR) &&
++            hasSkill(attacker, PISTOL_NOVICE) &&
++            hasSkill(attacker, PISTOL_SUPPORT_ONE) &&
++            hasSkill(attacker, PISTOL_SUPPORT_TWO) &&
++            hasSkill(attacker, PISTOL_SUPPORT_THREE) &&
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) &&
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND);
++        return boundary ?
++            "action=armPistolMeleeDefense meleeDefense=" +
++                getSkillStatisticModifier(attacker, "melee_defense") +
++                " pistolSpeed=" +
++                getSkillStatisticModifier(attacker, "pistol_speed") + " " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=pistolMeleeDefenseOwnershipBoundaryFailed " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armWarcryOne(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+@@ -3704,6 +3816,12 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, MARKSMAN_PISTOL_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PISTOL_NOVICE,
+             hasSkill(player, PISTOL_NOVICE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_PISTOL_SUPPORT_ONE,
++            hasSkill(player, PISTOL_SUPPORT_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_PISTOL_SUPPORT_TWO,
++            hasSkill(player, PISTOL_SUPPORT_TWO) ? 1 : 0);
++        setObjVar(player, ORIGINAL_PISTOL_SUPPORT_THREE,
++            hasSkill(player, PISTOL_SUPPORT_THREE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SUPPORT_ONE,
+             hasSkill(player, MARKSMAN_SUPPORT_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SUPPORT_FOUR,
+@@ -3720,6 +3838,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, HEALTH_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_HEALTH_SHOT_TWO_COMMAND,
+             hasCommand(player, HEALTH_SHOT_TWO_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND,
++            hasCommand(player, PISTOL_MELEE_DEFENSE_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND,
++            hasCommand(player, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ACTION_SHOT_ONE_COMMAND,
+             hasCommand(player, ACTION_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ACTION_SHOT_TWO_COMMAND,
+@@ -4042,6 +4164,20 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, HEALTH_SHOT_TWO_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND) &&
++            getIntObjVar(
++                attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND) == 0 &&
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND))
++        {
++            revokeCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND);
++        }
++        if (hasObjVar(attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND) &&
++            getIntObjVar(
++                attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND) == 0 &&
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND))
++        {
++            revokeCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_ACTION_SHOT_ONE_COMMAND) == 0 &&
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND))
+@@ -4481,6 +4617,24 @@ public class precu_headshot1_fixture extends script.base_script
+         }
+         // Release the fixture carbine before revoking its profession tree.
+         destroyFixtureCarbine(attacker);
++        if (hasObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_THREE) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_THREE) == 0 &&
++            hasSkill(attacker, PISTOL_SUPPORT_THREE))
++        {
++            revokeSkill(attacker, PISTOL_SUPPORT_THREE);
++        }
++        if (hasObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_TWO) == 0 &&
++            hasSkill(attacker, PISTOL_SUPPORT_TWO))
++        {
++            revokeSkill(attacker, PISTOL_SUPPORT_TWO);
++        }
++        if (hasObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_SUPPORT_ONE) == 0 &&
++            hasSkill(attacker, PISTOL_SUPPORT_ONE))
++        {
++            revokeSkill(attacker, PISTOL_SUPPORT_ONE);
++        }
+         if (hasObjVar(attacker, ORIGINAL_PISTOL_NOVICE) &&
+             getIntObjVar(attacker, ORIGINAL_PISTOL_NOVICE) == 0 &&
+             hasSkill(attacker, PISTOL_NOVICE))
+@@ -4887,6 +5041,32 @@ public class precu_headshot1_fixture extends script.base_script
+             destroyFixtureConcealTarget(attacker);
+         boolean attackerRestored = restorePlayer(attacker);
+         boolean defenderRestored = restorePlayer(defender);
++        boolean pistolSkillsRestored =
++            isSkillRestored(attacker, ORIGINAL_PISTOL_SUPPORT_THREE,
++                PISTOL_SUPPORT_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_PISTOL_SUPPORT_TWO,
++                PISTOL_SUPPORT_TWO) &&
++            isSkillRestored(attacker, ORIGINAL_PISTOL_SUPPORT_ONE,
++                PISTOL_SUPPORT_ONE) &&
++            isSkillRestored(attacker, ORIGINAL_PISTOL_NOVICE,
++                PISTOL_NOVICE) &&
++            isSkillRestored(attacker, ORIGINAL_PISTOL_FOUR,
++                MARKSMAN_PISTOL_FOUR) &&
++            isSkillRestored(attacker, ORIGINAL_PISTOL_THREE,
++                MARKSMAN_PISTOL_THREE) &&
++            isSkillRestored(attacker, ORIGINAL_PISTOL_TWO,
++                MARKSMAN_PISTOL_TWO) &&
++            isSkillRestored(attacker, ORIGINAL_PISTOL_ONE,
++                MARKSMAN_PISTOL_ONE);
++        boolean pistolCommandsRestored =
++            isCommandRestored(attacker,
++                ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND,
++                PISTOL_MELEE_DEFENSE_TWO_COMMAND) &&
++            isCommandRestored(attacker,
++                ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND,
++                PISTOL_MELEE_DEFENSE_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_HEALTH_SHOT_TWO_COMMAND,
++                HEALTH_SHOT_TWO_COMMAND);
+         boolean carbineSkillsRestored =
+             isSkillRestored(attacker, ORIGINAL_CARBINE_ABILITY_FOUR,
+                 CARBINE_ABILITY_FOUR) &&
+@@ -5099,6 +5279,7 @@ public class precu_headshot1_fixture extends script.base_script
+             fixtureAcidDestroyed && fixtureFlameDestroyed &&
+             fixtureLightningDestroyed && fixtureConcealTargetDestroyed &&
+             attackerRestored && defenderRestored &&
++            pistolSkillsRestored && pistolCommandsRestored &&
+             carbineSkillsRestored && carbineCommandsRestored &&
+             riflemanSkillsRestored;
+         setObjVar(attacker,
+@@ -5134,6 +5315,12 @@ public class precu_headshot1_fixture extends script.base_script
+         setObjVar(attacker,
+             "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.defenderRestored",
+             defenderRestored ? 1 : 0);
++        setObjVar(attacker,
++            "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.pistolSkills",
++            pistolSkillsRestored ? 1 : 0);
++        setObjVar(attacker,
++            "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.pistolCommands",
++            pistolCommandsRestored ? 1 : 0);
+         setObjVar(attacker,
+             "precu.p14.marksmanTier1Fixture.liveDiagnostic.cleanup.carbineSkills",
+             carbineSkillsRestored ? 1 : 0);
+@@ -5192,6 +5379,23 @@ public class precu_headshot1_fixture extends script.base_script
+     private void retryCarbineRestoration(obj_id attacker)
+         throws InterruptedException
+     {
++        restoreSkill(attacker, ORIGINAL_PISTOL_SUPPORT_THREE,
++            PISTOL_SUPPORT_THREE);
++        restoreSkill(attacker, ORIGINAL_PISTOL_SUPPORT_TWO,
++            PISTOL_SUPPORT_TWO);
++        restoreSkill(attacker, ORIGINAL_PISTOL_SUPPORT_ONE,
++            PISTOL_SUPPORT_ONE);
++        restoreSkill(attacker, ORIGINAL_PISTOL_NOVICE, PISTOL_NOVICE);
++        restoreSkill(attacker, ORIGINAL_PISTOL_FOUR, MARKSMAN_PISTOL_FOUR);
++        restoreSkill(attacker, ORIGINAL_PISTOL_THREE, MARKSMAN_PISTOL_THREE);
++        restoreSkill(attacker, ORIGINAL_PISTOL_TWO, MARKSMAN_PISTOL_TWO);
++        restoreSkill(attacker, ORIGINAL_PISTOL_ONE, MARKSMAN_PISTOL_ONE);
++        restoreCommand(attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND,
++            PISTOL_MELEE_DEFENSE_TWO_COMMAND);
++        restoreCommand(attacker, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND,
++            PISTOL_MELEE_DEFENSE_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_HEALTH_SHOT_TWO_COMMAND,
++            HEALTH_SHOT_TWO_COMMAND);
+         restoreSkill(attacker, ORIGINAL_CARBINE_ABILITY_FOUR,
+             CARBINE_ABILITY_FOUR);
+         restoreSkill(attacker, ORIGINAL_CARBINE_ABILITY_THREE,
+@@ -5782,6 +5986,15 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean pistolNoviceReady = pistolFourReady &&
+             (hasSkill(attacker, PISTOL_NOVICE) ||
+                 grantSkill(attacker, PISTOL_NOVICE));
++        boolean pistolSupportOneReady = pistolNoviceReady &&
++            (hasSkill(attacker, PISTOL_SUPPORT_ONE) ||
++                grantSkill(attacker, PISTOL_SUPPORT_ONE));
++        boolean pistolSupportTwoReady = pistolSupportOneReady &&
++            (hasSkill(attacker, PISTOL_SUPPORT_TWO) ||
++                grantSkill(attacker, PISTOL_SUPPORT_TWO));
++        boolean pistolSupportThreeReady = pistolSupportTwoReady &&
++            (hasSkill(attacker, PISTOL_SUPPORT_THREE) ||
++                grantSkill(attacker, PISTOL_SUPPORT_THREE));
+         boolean durationControlReady = hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             grantCommand(attacker, DURATION_CONTROL_COMMAND);
+         boolean headShotThreeReady = hasCommand(attacker, HEAD_SHOT_THREE_COMMAND) ||
+@@ -5796,6 +6009,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean healthShotTwoReady =
+             hasCommand(attacker, HEALTH_SHOT_TWO_COMMAND) ||
+             grantCommand(attacker, HEALTH_SHOT_TWO_COMMAND);
++        boolean pistolMeleeDefenseOneReady =
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) ||
++            grantCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND);
++        boolean pistolMeleeDefenseTwoReady =
++            hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) ||
++            grantCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND);
+         boolean actionShotOneReady =
+             hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, ACTION_SHOT_ONE_COMMAND);
+@@ -6139,10 +6358,12 @@ public class precu_headshot1_fixture extends script.base_script
+             carbineAbilityFourReady &&
+             supportOneReady && supportFourReady &&
+             pistolOneReady && pistolTwoReady && pistolThreeReady &&
+-            pistolFourReady && pistolNoviceReady &&
++            pistolFourReady && pistolNoviceReady && pistolSupportOneReady &&
++            pistolSupportTwoReady && pistolSupportThreeReady &&
+             durationControlReady && headShotThreeReady &&
+             bodyShotTwoReady && bodyShotThreeReady &&
+             healthShotOneReady && healthShotTwoReady &&
++            pistolMeleeDefenseOneReady && pistolMeleeDefenseTwoReady &&
+             actionShotOneReady && actionShotTwoReady &&
+             mindShotOneReady && mindShotTwoReady && surpriseShotReady &&
+             sniperShotReady && concealShotReady && flurryShotOneReady &&
+@@ -6574,6 +6795,9 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_PISTOL_THREE) &&
+             hasObjVar(player, ORIGINAL_PISTOL_FOUR) &&
+             hasObjVar(player, ORIGINAL_PISTOL_NOVICE) &&
++            hasObjVar(player, ORIGINAL_PISTOL_SUPPORT_ONE) &&
++            hasObjVar(player, ORIGINAL_PISTOL_SUPPORT_TWO) &&
++            hasObjVar(player, ORIGINAL_PISTOL_SUPPORT_THREE) &&
+             hasObjVar(player, ORIGINAL_SUPPORT_ONE) &&
+             hasObjVar(player, ORIGINAL_SUPPORT_FOUR) &&
+             hasObjVar(player, ORIGINAL_DURATION_CONTROL) &&
+@@ -6582,6 +6806,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_BODY_SHOT_THREE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_HEALTH_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_HEALTH_SHOT_TWO_COMMAND) &&
++            hasObjVar(player, ORIGINAL_PISTOL_MELEE_DEFENSE_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_PISTOL_MELEE_DEFENSE_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACTION_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACTION_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_MIND_SHOT_ONE_COMMAND) &&
+@@ -6782,6 +7008,12 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(HEALTH_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformHealthShotTwo = isIdValid(weapon) ?
+             combat.canPerformAction(HEALTH_SHOT_TWO_COMMAND, attacker) : -1;
++        int canPerformPistolMeleeDefenseOne = isIdValid(weapon) ?
++            combat.canPerformAction(
++                PISTOL_MELEE_DEFENSE_ONE_COMMAND, attacker) : -1;
++        int canPerformPistolMeleeDefenseTwo = isIdValid(weapon) ?
++            combat.canPerformAction(
++                PISTOL_MELEE_DEFENSE_TWO_COMMAND, attacker) : -1;
+         int canPerformActionShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(ACTION_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformActionShotTwo = isIdValid(weapon) ?
+@@ -7000,6 +7232,10 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(HEALTH_SHOT_ONE_COMMAND);
+         combat_data healthShotTwoData =
+             combat_engine.getCombatData(HEALTH_SHOT_TWO_COMMAND);
++        combat_data pistolMeleeDefenseOneData =
++            combat_engine.getCombatData(PISTOL_MELEE_DEFENSE_ONE_COMMAND);
++        combat_data pistolMeleeDefenseTwoData =
++            combat_engine.getCombatData(PISTOL_MELEE_DEFENSE_TWO_COMMAND);
+         combat_data actionShotData =
+             combat_engine.getCombatData(ACTION_SHOT_ONE_COMMAND);
+         combat_data actionShotTwoData =
+@@ -7118,6 +7354,16 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, flameWeaponData, healthShotTwoData) :
+             new int[] {-1, -1, -1};
++        int[] pistolMeleeDefenseOneCosts =
++            pistolMeleeDefenseOneData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, pistolMeleeDefenseOneData) :
++            new int[] {-1, -1, -1};
++        int[] pistolMeleeDefenseTwoCosts =
++            pistolMeleeDefenseTwoData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, pistolMeleeDefenseTwoData) :
++            new int[] {-1, -1, -1};
+         int[] actionShotCosts =
+             actionShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, actionShotData) :
+@@ -7497,6 +7743,9 @@ public class precu_headshot1_fixture extends script.base_script
+             " pistolThree=" + hasSkill(attacker, MARKSMAN_PISTOL_THREE) +
+             " pistolFour=" + hasSkill(attacker, MARKSMAN_PISTOL_FOUR) +
+             " pistolNovice=" + hasSkill(attacker, PISTOL_NOVICE) +
++            " pistolSupportOne=" + hasSkill(attacker, PISTOL_SUPPORT_ONE) +
++            " pistolSupportTwo=" + hasSkill(attacker, PISTOL_SUPPORT_TWO) +
++            " pistolSupportThree=" + hasSkill(attacker, PISTOL_SUPPORT_THREE) +
+             " supportOne=" + hasSkill(attacker, MARKSMAN_SUPPORT_ONE) +
+             " supportFour=" + hasSkill(attacker, MARKSMAN_SUPPORT_FOUR) +
+             " hasCommand=" + hasCommand(attacker, COMMAND) +
+@@ -7506,6 +7755,10 @@ public class precu_headshot1_fixture extends script.base_script
+             " bodyShotThree=" + hasCommand(attacker, BODY_SHOT_THREE_COMMAND) +
+             " healthShotOne=" + hasCommand(attacker, HEALTH_SHOT_ONE_COMMAND) +
+             " healthShotTwo=" + hasCommand(attacker, HEALTH_SHOT_TWO_COMMAND) +
++            " pistolMeleeDefenseOne=" +
++                hasCommand(attacker, PISTOL_MELEE_DEFENSE_ONE_COMMAND) +
++            " pistolMeleeDefenseTwo=" +
++                hasCommand(attacker, PISTOL_MELEE_DEFENSE_TWO_COMMAND) +
+             " actionShotOne=" + hasCommand(attacker, ACTION_SHOT_ONE_COMMAND) +
+             " actionShotTwo=" + hasCommand(attacker, ACTION_SHOT_TWO_COMMAND) +
+             " mindShotOne=" + hasCommand(attacker, MIND_SHOT_ONE_COMMAND) +
+@@ -7710,6 +7963,10 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformBodyShotThree=" + canPerformBodyShotThree +
+             " canPerformHealthShotOne=" + canPerformHealthShotOne +
+             " canPerformHealthShotTwo=" + canPerformHealthShotTwo +
++            " canPerformPistolMeleeDefenseOne=" +
++                canPerformPistolMeleeDefenseOne +
++            " canPerformPistolMeleeDefenseTwo=" +
++                canPerformPistolMeleeDefenseTwo +
+             " canPerformActionShotOne=" + canPerformActionShotOne +
+             " canPerformActionShotTwo=" + canPerformActionShotTwo +
+             " canPerformMindShotOne=" + canPerformMindShotOne +
+@@ -7814,6 +8071,18 @@ public class precu_headshot1_fixture extends script.base_script
+             " healthShotTwoDamageMultiplier=" +
+                 (healthShotTwoData == null ? -1.0f :
+                     healthShotTwoData.percentAddFromWeapon) +
++            " pistolMeleeDefenseOneDamageMultiplier=" +
++                (pistolMeleeDefenseOneData == null ? -1.0f :
++                    pistolMeleeDefenseOneData.percentAddFromWeapon) +
++            " pistolMeleeDefenseOneKnockdownChance=" +
++                (pistolMeleeDefenseOneData == null ? -1 :
++                    pistolMeleeDefenseOneData.precuKnockdownChance) +
++            " pistolMeleeDefenseTwoDamageMultiplier=" +
++                (pistolMeleeDefenseTwoData == null ? -1.0f :
++                    pistolMeleeDefenseTwoData.percentAddFromWeapon) +
++            " pistolMeleeDefenseTwoKnockdownChance=" +
++                (pistolMeleeDefenseTwoData == null ? -1 :
++                    pistolMeleeDefenseTwoData.precuKnockdownChance) +
+             " actionShotDotAttribute=" +
+                 (actionShotData == null ? -2 : actionShotData.precuDotAttribute) +
+             " actionShotPostureDownChance=" +
+@@ -7833,6 +8102,18 @@ public class precu_headshot1_fixture extends script.base_script
+             " healthShotTwoHealthCost=" + healthShotTwoCosts[0] +
+             " healthShotTwoActionCost=" + healthShotTwoCosts[1] +
+             " healthShotTwoMindCost=" + healthShotTwoCosts[2] +
++            " pistolMeleeDefenseOneHealthCost=" +
++                pistolMeleeDefenseOneCosts[0] +
++            " pistolMeleeDefenseOneActionCost=" +
++                pistolMeleeDefenseOneCosts[1] +
++            " pistolMeleeDefenseOneMindCost=" +
++                pistolMeleeDefenseOneCosts[2] +
++            " pistolMeleeDefenseTwoHealthCost=" +
++                pistolMeleeDefenseTwoCosts[0] +
++            " pistolMeleeDefenseTwoActionCost=" +
++                pistolMeleeDefenseTwoCosts[1] +
++            " pistolMeleeDefenseTwoMindCost=" +
++                pistolMeleeDefenseTwoCosts[2] +
+             " actionShotHealthCost=" + actionShotCosts[0] +
+             " actionShotActionCost=" + actionShotCosts[1] +
+             " actionShotMindCost=" + actionShotCosts[2] +
+@@ -8334,6 +8615,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "cleanup.attackerRestored", -1) +
+             " cleanupDefenderRestored=" +
+                 readDiagnosticInt(attacker, "cleanup.defenderRestored", -1) +
++            " cleanupPistolSkills=" +
++                readDiagnosticInt(attacker, "cleanup.pistolSkills", -1) +
++            " cleanupPistolCommands=" +
++                readDiagnosticInt(attacker, "cleanup.pistolCommands", -1) +
+             " cleanupCarbineSkills=" +
+                 readDiagnosticInt(attacker, "cleanup.carbineSkills", -1) +
+             " cleanupCarbineCommands=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 2057fe082cb2b8e51c131787e24c5d4193d20fd9..351734c06aedf41b50103b9e036042de8115f04f 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1,6 +1,8 @@
+ actionName	actionNameCrc	comments	Level	minInvisLevelRequired	commandType	validTarget	hitType	healAttrib	setCombatTarget	triggerEffect	triggerEffectHardpoint	effectOnTarget	delayAttackEggTemplate	delayAttackParticle	initialDelayAttackInterval	delayAttackInterval	delayAttackLoops	delayAttackEggPosition	validEggTarget	doClientAnim	forcesCharacterIntoCombat	animDefault	anim_unarmed	anim_onehandmelee	anim_twohandmelee	anim_polearm	anim_pistol	anim_lightRifle	anim_carbine	anim_rifle	anim_heavyweapon	anim_thrown	anim_onehandlightsaber	anim_twohandlightsaber	anim_polearmlightsaber	intLeftFoot	intRightFoot	intRightHand	intLeftHand	intWeapon	attackType	coneLength	coneWidth	minRange	maxRange	addedDamage	flatActionDamage	percentAddFromWeapon	bypassArmor	hateDamageModifier	maxHate	hateAdd	hateAddTime	hateReduce	healthCost	actionCost	vigorCost	mindCost	scaleByDefenderWeaponSpeed	convertDamageToHealth	dotType	dotIntensity	dotDuration	buffNameTarget	buffStrengthTarget	buffDurationTarget	buffNameSelf	buffStrengthSelf	buffDurationSelf	canBePunishing	increaseCritical	increaseStrikethrough	reduceGlancing	reduceParry	reduceBlock	reduceDodge	overloadWeapon	minDamage	maxDamage	maxRangeOverloaded	weaponType	weaponCategory	damageType	elementalType	elementalValue	attackSpeed	damageRadius	specialLine	cancelsAutoAttack	performance_spam	hit_spam	ignore_distance	pvp_only	attack_rolls
+ s	h	c	i	i[-1]	"e(LEFT_CLICK_DEFAULT=1,RIGHT_CLICK_SPECIAL=2)[RIGHT_CLICK_SPECIAL]"	"e(NONE=-1,STANDARD=0,MOB=1,CREATURE=2,NPC=3,DROID=4,PVP=5,JEDI=6,DEAD=7,FRIEND=8)[STANDARD]"	"e(NON_ATTACK=0,ATTACK=-1,NON_DAMAGE_ATTACK=4,HEAL=5,DELAY_ATTACK=6,REVIVE=7)[ATTACK]"	"e(HEALTH=0,ACTION=2)[HEALTH]"	i[1]	s	s	s	s[object/tangible/space/content_infrastructure/generic_egg_small.iff]	s	f[-1.0]	f[3.0]	i[1]	"e(SELF=1,TARGETED_OBJECT=2,LOCATION=3)[TARGETED_OBJECT]"	"e(NONE=-1,STANDARD=0,MOB=1,CREATURE=2,NPC=3,DROID=4,PVP=5,JEDI=6,DEAD=7,FRIEND=8)[STANDARD]"	i[0]	i[0]	s	s	s	s	s	s	s	s	s	s	s	s	s	s	"e(OFF=0,ON=1)[OFF]"	"e(OFF=0,ON=1)[OFF]"	"e(OFF=0,ON=1)[OFF]"	"e(OFF=0,ON=1)[OFF]"	"e(OFF=0,ON=1)[OFF]"	"e(CONE=0,SINGLE_TARGET=1,AREA=2,TARGET_AREA=3,DUAL_WIELD=4,RAMPAGE=5,RANDOM_HATE_TARGET=6,RANDOM_HATE_TARGET_CONE=7,RANDOM_HATE_TARGET_CONE_TERMINUS=8,HATE_LIST=9,RANDOM_HATE_MULTI=10,AREA_PROGRESSIVE=11,SPLIT_DAMAGE_TARGET_AREA=12,DISTANCE_FARTHEST=13,)[SINGLE_TARGET]"	f	f	f	f	i[0]	i[0]	f[1.0]	f[0.0]	f[1.0]	i[0]	i[0]	i[0]	i[0]	f[0.0]	f[0.0]	f[0.0]	f[0.0]	f[0.0]	f[0.0]	s	i[0]	i[0]	s	f[0]	f[0]	s	f[0]	f[0]	i[1]	f[0]	f[0]	f[0]	f[0]	f[0]	f[0]	i[0]	i	i	f	"e(RIFLE=0,CARBINE=1,PISTOL=2,HEAVY=3,1HAND_MELEE=4,2HAND_MELEE=5,UNARMED=6,POLEARM=7,THROWN=8,1HAND_LIGHTSABER=9,2HAND_LIGHTSABER=10,POLEARM_LIGHTSABER=11)[PISTOL]"	"e(RANGED_WEAPON=-1,MELEE_WEAPON=-2)[RANGED_WEAPON]"	"e(KINETIC=1,ENERGY=2,BLAST=4,STUN=8,RESTAINT=16,ELEMENTAL_HEAT=32,ELEMENTAL_COLD=64,ELEMENTAL_ACID=128,ELEMENTAL_ELECTRICAL=256)[KINETIC]"	"e(KINETIC=1,ENERGY=2,BLAST=4,STUN=8,RESTAINT=16,ELEMENTAL_HEAT=32,ELEMENTAL_COLD=64,ELEMENTAL_ACID=128,ELEMENTAL_ELECTRICAL=256)[KINETIC]"	i	f	f	s	b[0]	s	"e(ACTION_NAME=0,WEAPON_NAME=1,NO_ATTACK_NAME=2,NO_HIT_SPAM=3)[ACTION_NAME]"	i[0]	i[0]	i[1]
+ healthShot2	healthShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single					fire_1_special_single									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	bleeding	100	60		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
++pistolMeleeDefense1	pistolMeleeDefense1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	ranged_melee					ranged_melee									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	10	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
++pistolMeleeDefense2	pistolMeleeDefense2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	ranged_melee					ranged_melee									OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	10	0	0	4.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+ creatureRangedAttack	creatureRangedAttack				LEFT_CLICK_DEFAULT	STANDARD	ATTACK		1											0	0	*creature_attack_ranged														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET	0	0							1						0																																			NO_ATTACK_NAME			
+ creatureMeleeAttack	creatureMeleeAttack				LEFT_CLICK_DEFAULT	STANDARD	ATTACK		1											0	0	*creature_attack_melee														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET	0	0							2						0																																			NO_ATTACK_NAME			
+ meleeHit	meleeHit				LEFT_CLICK_DEFAULT	STANDARD	ATTACK		1											1	1	"attack_high_right_medium_0,attack_high_right_medium_1,attack_high_center_medium_0,attack_high_center_medium_1,attack_high_center_1_jab_double_medium,attack_high_center_medium_2,attack_high_left_medium_0,attack_high_left_medium_1,attack_mid_left_medium_0,attack_mid_left_medium_1,attack_mid_left_medium_2,attack_mid_right_medium_0,attack_mid_right_medium_1,attack_mid_right_medium_2,attack_special_elbow_throw_medium"														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET	0	0							1						0																																			WEAPON_NAME			
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 1db174a7e6d484cfa8dfbef71ce5b5e6b5b66a85..fd1291b3f32f8807632ca37ea2e4e0170312e38a 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -2,6 +2,8 @@ actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPo
+ s	f	f	f	"e(NO_ATTRIBUTE=-2,HEALTH=0,ACTION=1,MIND=2,RANDOM=3,MULTI=4)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6,NEXT_ATTACK_DELAY=7)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6,NEXT_ATTACK_DELAY=7)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6,NEXT_ATTACK_DELAY=7)[NONE]"	i[0]	i[0]	i[0]	s	s	s	i[0]	f[0]	i[0]	i[0]	i[-1]	i[-1]	s
+ __precu_runtime_probe	0	0	0	HEALTH	0	0	NONE
+ healthShot2	0.5	1	0.5	HEALTH	2	50	RANGED	HEALTH
++pistolMeleeDefense1	0.5	0.75	0.5	RANDOM	2	50	INTENSITY																										100
++pistolMeleeDefense2	0.5	1	0.5	RANDOM	2	50	INTENSITY																										65
+ headShot1	0.5	0.5	1	MIND	1.5	5	RANGED
+ bodyShot1	0.5	0.75	0.5	HEALTH	1	50	RANGED
+ disarmingShot1	0.5	0.75	0.5	RANDOM	1.5	50	RANGED
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 25be93d7b79097a2aaac33d5902ff1123d47de88..a909bc3e0ce0dda037c5db7cb68a7e13639c2d63 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -1,6 +1,8 @@
+ actionName	combatSpam
+ s	s
+ healthShot2	sapblast
++pistolMeleeDefense1	pistolwhip
++pistolMeleeDefense2	pistolwhip
+ headShot1	headshot
+ bodyShot1	bodyshot
+ disarmingShot1	disarmshot
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 5baa9717d485770d845278f47d4af8743cf1af49..fb4e8abd2efa32bde708cddf4b4834a3b2a3f3db 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1,6 +1,8 @@
+ commandName	commandCategory	defaultPriority	scriptHook	failScriptHook	cppHook	failCppHook	defaultTime	characterAbility	L:standing	L:sneaking	L:walking	L:running	L:kneeling	L:crouchSneaking	L:crouchWalking	L:prone	L:crawling	L:climbingStationary	L:climbing	L:hovering	L:flying	L:lyingDown	L:sitting	L:skillAnimating	L:drivingVehicle	L:ridingCreature	L:knockedDown	L:incapacitated	L:dead	L:blocking	R:cover	S:cover	S:combat	S:peace	S:aiming	S:alert	S:berserk	S:feignDeath	S:combatAttitudeEvasive	S:combatAttitudeNormal	S:combatAttitudeAggressive	S:tumbling	S:rallied	S:stunned	S:blinded	S:dizzy	S:intimidated	S:immobilized	S:frozen	S:swimming	S:sittingOnChair	S:crafting	S:glowingJedi	S:maskScent	S:poisoned	S:bleeding	S:diseased	S:onFire	S:ridingMount	S:mountedCreature	S:pilotingShip	S:pilotingPobShip	S:shipOperations	S:shipGunner	S:shipInterior	S:disguised	S:electricBurned	S:coldBurned	S:acidBurned	S:energyBurned	S:kineticBurned	tempScript	target	targetType	stringId	visible	callOnTarget	commandGroup	disabled	maxRangeToTarget	godLevel	displayGroup	addToCombatQueue	validWeapon	invalidWeapon	cooldownGroup	warmupTime	executeTime	cooldownTime	cooldownGroup2	cooldownTime2	toolbarOnly	fromServerOnly
+ s	c	e(immediate=0,front=1,normal=2)[normal]	s	s	s	s	f	s	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[0]	b[0]	b[1]	b[0]	b[0]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	b[1]	s	e(friend=0,enemy=1,other=2)[other]	e(none=0,required=1,optional=2,location=3,all=4)[none]	s	i[0]	b[0]	h	b[0]	f[0]	i[0]	h	b[0]	v(RIFLE=1,CARBINE=2,PISTOL=3,HEAVY=4,1HAND_MELEE=5,2HAND_MELEE=6,UNARMED=7,POLEARM=8,THROWN=9,1HAND_LIGHTSABER=10,2HAND_LIGHTSABER=11,POLEARM_LIGHTSABER=12,GROUND_TARGETTING=13,DIRECTIONAL=14,RANGED=28,MELEE=29,ALL=30,ALL_LIGHTSABERS=31)[ALL]	v(RIFLE=1,CARBINE=2,PISTOL=3,HEAVY=4,1HAND_MELEE=5,2HAND_MELEE=6,UNARMED=7,POLEARM=8,THROWN=9,1HAND_LIGHTSABER=10,2HAND_LIGHTSABER=11,POLEARM_LIGHTSABER=12,GROUND_TARGETTING=13,DIRECTIONAL=14,RANGED=28,MELEE=29,ALL=30,ALL_LIGHTSABERS=31)[NONE]	s[defaultCooldownGroup]	f[0]	f[0]	f[0]	s	f[0]	b[0]	b[0]
+ healthShot2	combat	normal	healthShot2	failSpecialAttack			2	healthShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	2	0		0	0	0
++pistolMeleeDefense1	combat	normal	pistolMeleeDefense1	failSpecialAttack			2	pistolMeleeDefense1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	2	0		0	0	0
++pistolMeleeDefense2	combat	normal	pistolMeleeDefense2	failSpecialAttack			2	pistolMeleeDefense2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ creatureMeleeAttack	commandClicky	normal	creatureMeleeAttack				0.25		1	1	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0			0	0	1	1		1	0	1	1	1	1	1	1	1	0	1	1	1	0	0	0									0		0	0	0	0	0								enemy	optional		2		combat_general	0				1	ALL		defaultattack		0	1			1	
+ creatureRangedAttack	commandClicky	normal	creatureRangedAttack				0.25		1	1	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0			0	0	1	1		1	0	1	1	1	1	1	1	1	0	1	1	1	0	0	0									0		0	0	0	0	0								enemy	optional		2		combat_general	0				1	ALL		defaultattack		0	0.7			1	
+ meleeHit	commandClicky	normal	meleeHit	failSpecialAttack			01. Mai		1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0			0	0	1	1		1	0	1	1	1	1	1	0	1	0	1	1	1	1	0	0									0		0	0	0	0	0								enemy	required		2		combat_ranged	0				1	MELEE		defaultattack		0	1			1	

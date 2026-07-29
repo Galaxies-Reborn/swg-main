@@ -1,0 +1,269 @@
+diff --git a/engine/server/library/serverGame/src/shared/core/GameServer.cpp b/engine/server/library/serverGame/src/shared/core/GameServer.cpp
+index 5eb5f103..4a618e82 100755
+--- a/engine/server/library/serverGame/src/shared/core/GameServer.cpp
++++ b/engine/server/library/serverGame/src/shared/core/GameServer.cpp
+@@ -4671,6 +4671,16 @@ void GameServer::handleCharacterCreateNameVerification(const VerifyNameResponse
+ 
+ 	DEBUG_REPORT_LOG(true, ("VerifyNameResponse: character create name %s approved for stationId %lu\n", Unicode::wideToNarrow(vrn.getName()).c_str(), vrn.getStationId()));
+ 
++	if (!PlayerCreationManagerServer::isValidStartingProfession(createMessage->getProfession()))
++	{
++		LOG("TraceCharacterCreation", ("%d rejected invalid Pre-CU starting profession [%s] for character %s", vrn.getStationId(), createMessage->getProfession().c_str(), Unicode::wideToNarrow(vrn.getName()).c_str()));
++		GameCreateCharacterFailed const characterCreateFailed(vrn.getStationId(), vrn.getName(), NameErrors::nameDeclinedInternalError, FormattedString<2048>().sprintf("%lu rejected invalid Pre-CU starting profession [%s] for character %s", vrn.getStationId(), createMessage->getProfession().c_str(), Unicode::wideToNarrow(vrn.getName()).c_str()));
++		sendToCentralServer(characterCreateFailed);
++		m_charactersPendingCreation->erase(vrn.getStationId());
++		delete createMessage;
++		return;
++	}
++
+ 	TangibleObject *newCharacterObject = 0;
+ 
+ 	if (createMessage->getUseNewbieTutorial())
+@@ -4755,18 +4765,6 @@ void GameServer::handleCharacterCreateNameVerification(const VerifyNameResponse
+ 		}
+ 	}
+ 
+-	if (!createMessage->getProfession ().empty ())
+-	{
+-		CreatureObject * const creature = dynamic_cast<CreatureObject *>(newCharacterObject);
+-		if (creature)
+-			PlayerCreationManagerServer::setupPlayer (*creature, createMessage->getProfession (), createMessage->getStationId(), createMessage->getJedi());
+-	}
+-
+-	if (!createMessage->getBiography().empty())
+-	{
+-		BiographyManager::setBiography(newCharacterObject->getNetworkId(),createMessage->getBiography());
+-	}
+-
+ 	// ----------------------------------------------------------------------
+ 	// Set up the PlayerObject
+ 	ServerObject *playerServerObject = ServerWorld::createNewObject(ConfigServerGame::getPlayerObjectTemplate(), *newCharacterObject, false);
+@@ -4775,9 +4773,23 @@ void GameServer::handleCharacterCreateNameVerification(const VerifyNameResponse
+ 	{
+ 		play->setStationId(createMessage->getStationId());
+ 		play->setBornDate();
+-		play->setSkillTemplate(createMessage->getSkillTemplate(), true);
+-		play->setWorkingSkill(createMessage->getWorkingSkill(), true);
++		// Publish 14.1 creation does not use the later roadmap template fields.
++		// Never persist NGE defaults supplied by the retained client message.
++		play->setSkillTemplate(std::string(), true);
++		play->setWorkingSkill(std::string(), true);
+ 
++		if (!creature || !PlayerCreationManagerServer::setupPlayer(*creature, createMessage->getProfession(), createMessage->getStationId(), createMessage->getJedi(), createMessage->getUseNewbieTutorial()))
++		{
++			LOG("TraceCharacterCreation", ("%d failed Pre-CU profession setup [%s] for character %s", vrn.getStationId(), createMessage->getProfession().c_str(), Unicode::wideToNarrow(vrn.getName()).c_str()));
++			ServerWorld::removeObjectFromGame(*newCharacterObject);
++			delete newCharacterObject;
++			GameCreateCharacterFailed const characterCreateFailed(vrn.getStationId(), vrn.getName(), NameErrors::nameDeclinedInternalError, FormattedString<2048>().sprintf("%lu failed Pre-CU profession setup [%s] for character %s", vrn.getStationId(), createMessage->getProfession().c_str(), Unicode::wideToNarrow(vrn.getName()).c_str()));
++			sendToCentralServer(characterCreateFailed);
++			m_charactersPendingCreation->erase(vrn.getStationId());
++			delete createMessage;
++			return;
++		}
++
+ 		// Setup initial A-Tab inventory.
+ 		SlottedContainer * const container = ContainerInterface::getSlottedContainer(*newCharacterObject);
+ 		if(container)
+@@ -4806,10 +4818,24 @@ void GameServer::handleCharacterCreateNameVerification(const VerifyNameResponse
+ 	else
+ 	{
+ 		LOG("TraceCharacterCreation", ("%d unable to create player object for new character %s", vrn.getStationId(), newCharacterObject->getNetworkId().getValueString().c_str()));
+-		WARNING_STRICT_FATAL(true,("Unable to create PlayerObject for new character %s.\n",newCharacterObject->getNetworkId().getValueString().c_str()));
++		ServerWorld::removeObjectFromGame(*newCharacterObject);
++		delete newCharacterObject;
++		GameCreateCharacterFailed const characterCreateFailed(vrn.getStationId(), vrn.getName(), NameErrors::nameDeclinedInternalError, FormattedString<2048>().sprintf("%lu unable to create PlayerObject for Pre-CU character %s", vrn.getStationId(), Unicode::wideToNarrow(vrn.getName()).c_str()));
++		sendToCentralServer(characterCreateFailed);
++		m_charactersPendingCreation->erase(vrn.getStationId());
++		delete createMessage;
++		return;
++	}
++
++	if (!createMessage->getBiography().empty())
++	{
++		BiographyManager::setBiography(newCharacterObject->getNetworkId(),createMessage->getBiography());
+ 	}
+ 
+-	newCharacterObject->setSceneIdOnThisAndContents(createMessage->getPlanetName());
++	if (createMessage->getUseNewbieTutorial())
++		newCharacterObject->setSceneIdOnThisAndContents(NewbieTutorial::getSceneId());
++	else
++		newCharacterObject->setSceneIdOnThisAndContents(createMessage->getPlanetName());
+ 
+ 	// ----------------------------------------------------------------------
+ 	// Tell DB Process we're about to send it a character, then send it
+diff --git a/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp b/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp
+index 98fdebc8..0f5368f8 100755
+--- a/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp
++++ b/engine/server/library/serverGame/src/shared/core/NewbieTutorial.cpp
+@@ -31,18 +31,16 @@
+ namespace NewbieTutorialNamespace
+ {
+ 	const std::string        s_sceneId("tutorial");
+-	const std::string        s_tutorialTemplate("object/building/general/npe_hangar_1.iff");
++	const std::string        s_tutorialTemplate("object/building/general/newbie_hall.iff");
+ 
+-	const Vector             s_startCoords(-12.5f, 0.0f, 19.5f);
+-	const std::string        s_startCellName("medicalroom");
++	const Vector             s_startCoords(0.0f, 0.0f, -3.0f);
++	const std::string        s_startCellName("r1");
+ 
+ 	const float              s_tutorialMapWidth(16384.0f);
+ 	const float              s_tutorialSpacing(512.0f);
+ 	const int                s_sqrtMaxTutorials(static_cast<int>(s_tutorialMapWidth/s_tutorialSpacing));
+ 
+-	const std::string        s_tutorialObjVar("npe.phase_number");
+-	const std::string        s_skipTutorialObjVar("npe.skippingTutorial");
+-	const int                s_tutorialResetThreshold(2);
++	const std::string        s_tutorialObjVar("newbie.startTutorial");
+ 
+ 	const std::string        s_freeTrialPlanets [] = {"tutorial", "space_npe_falcon", "space_ord_mantell"};
+ 	const int                s_numFreeTrialPlanets = sizeof (s_freeTrialPlanets) / sizeof (s_freeTrialPlanets[0]);
+@@ -127,7 +125,7 @@ void NewbieTutorial::setupCharacterForTutorial(ServerObject* character)
+ void NewbieTutorial::setupCharacterToSkipTutorial(ServerObject* character)
+ {
+ 	if (character)
+-		character->setObjVarItem(s_skipTutorialObjVar, 1);
++		character->removeObjVarItem(s_tutorialObjVar);
+ }
+ 
+ // ----------------------------------------------------------------------
+@@ -137,14 +135,7 @@ bool NewbieTutorial::shouldStartTutorial(const ServerObject* character)
+ 	if (character)
+ 	{
+ 		if (character->getObjVars().hasItem(s_tutorialObjVar))
+-		{
+-			int npePhase = 0;
+-			character->getObjVars().getItem(s_tutorialObjVar, npePhase);
+-
+-			// if the player is in the shared space station or farther, don't restart the tutorial for them
+-			if (npePhase <= s_tutorialResetThreshold)
+-				return true;
+-		}
++			return true;
+ 	}
+ 
+ 	return false;
+diff --git a/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.cpp b/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.cpp
+index 62cc2fb3..6c7b552d 100755
+--- a/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.cpp
++++ b/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.cpp
+@@ -26,6 +26,31 @@
+ 
+ //======================================================================
+ 
++namespace PlayerCreationManagerServerNamespace
++{
++	char const * getStartingSkill(std::string const & profession)
++	{
++		if (profession == "crafting_artisan")
++			return "crafting_artisan_novice";
++		if (profession == "combat_brawler")
++			return "combat_brawler_novice";
++		if (profession == "social_entertainer")
++			return "social_entertainer_novice";
++		if (profession == "combat_marksman")
++			return "combat_marksman_novice";
++		if (profession == "science_medic")
++			return "science_medic_novice";
++		if (profession == "outdoors_scout")
++			return "outdoors_scout_novice";
++
++		return 0;
++	}
++}
++
++using namespace PlayerCreationManagerServerNamespace;
++
++//======================================================================
++
+ void PlayerCreationManagerServer::install ()
+ {
+ 	if (!PlayerCreationManager::isInstalled ())
+@@ -42,12 +67,27 @@ void PlayerCreationManagerServer::remove ()
+ 
+ //----------------------------------------------------------------------
+ 
+-bool PlayerCreationManagerServer::setupPlayer(CreatureObject & obj, const std::string & profession, StationId account, bool isJedi)
++bool PlayerCreationManagerServer::isValidStartingProfession(std::string const & profession)
++{
++	return getStartingSkill(profession) != 0;
++}
++
++//----------------------------------------------------------------------
++
++bool PlayerCreationManagerServer::setupPlayer(CreatureObject & obj, const std::string & profession, StationId account, bool isJedi, bool useNewbieTutorial)
+ {
+ 	// NOTE: the isJedi flag doesn't actually create a Jedi character, but we need it
+ 	// so that the database/login server will keep track of a player's extra character
+ 	// slots correctly
+ 	UNREF(isJedi);
++	UNREF(account);
++
++	char const * const expectedStartingSkill = getStartingSkill(profession);
++	if (!expectedStartingSkill)
++	{
++		WARNING(true, ("PlayerCreationManagerServer rejected invalid Pre-CU starting profession [%s]", profession.c_str()));
++		return false;
++	}
+ 
+ 	AttribVector attribs;
+ 	const SkillVector * skills = 0;
+@@ -69,22 +109,31 @@ bool PlayerCreationManagerServer::setupPlayer(CreatureObject & obj, const std::s
+ 	//----------------------------------------------------------------------
+ 	//-- setup skills
+ 	
+-	if (skills)
++	if (!skills || skills->size() != 1 || skills->front() != expectedStartingSkill)
+ 	{
+-		for (SkillVector::const_iterator it = skills->begin (); it != skills->end (); ++it)
+-		{
+-			const std::string & skillName = *it;
++		WARNING(true, ("PlayerCreationManagerServer profession [%s] did not resolve to its single expected starting skill [%s]", profession.c_str(), expectedStartingSkill));
++		return false;
++	}
+ 
+-			const SkillObject * skill = SkillManager::getInstance ().getSkill (*it);
+-			if (skill)
+-			{
+-				//-- newb tutorial will grant the skill
+-				obj.setObjVarItem ("newbie.hasSkill", skillName);
+-				break;
+-			}
+-			else
+-				WARNING (true, ("PlayerCreationManagerServer Bad skill [%s] for profesion [%s]", skillName.c_str (), profession.c_str ()));
++	SkillObject const * const startingSkill = SkillManager::getInstance().getSkill(expectedStartingSkill);
++	if (!startingSkill)
++	{
++		WARNING(true, ("PlayerCreationManagerServer could not resolve Pre-CU starting skill [%s]", expectedStartingSkill));
++		return false;
++	}
++
++	// The retained Publish 14.1 tutorial teaches the selected novice box in its
++	// trainer room.  Skipped-tutorial characters need the grant immediately.
++	obj.setObjVarItem("newbie.hasSkill", expectedStartingSkill);
++	if (!useNewbieTutorial)
++	{
++		if (!obj.grantSkill(*startingSkill) || !obj.hasSkill(*startingSkill))
++		{
++			WARNING(true, ("PlayerCreationManagerServer failed to grant Pre-CU starting skill [%s]", expectedStartingSkill));
++			return false;
+ 		}
++
++		obj.removeObjVarItem("newbie.hasSkill");
+ 	}
+ 	
+ 	//----------------------------------------------------------------------
+diff --git a/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.h b/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.h
+index 25e1d47f..be0f329e 100755
+--- a/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.h
++++ b/engine/server/library/serverGame/src/shared/core/PlayerCreationManagerServer.h
+@@ -24,7 +24,8 @@ public:
+ 	static void                   install ();
+ 	static void                   remove ();
+ 
+-	static bool                   setupPlayer(CreatureObject & obj, const std::string & profession, StationId account, bool isJedi);
++	static bool                   isValidStartingProfession(const std::string & profession);
++	static bool                   setupPlayer(CreatureObject & obj, const std::string & profession, StationId account, bool isJedi, bool useNewbieTutorial);
+ 	static void                   renamePlayer(int8 renameCharacterMessageSource, uint32 stationId, const NetworkId & oid, const Unicode::String & newName, const Unicode::String & oldName, const NetworkId &requestedBy);
+ };
+ 

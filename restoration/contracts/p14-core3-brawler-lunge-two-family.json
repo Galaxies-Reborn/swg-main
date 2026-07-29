@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-brawler-lunge-two-family",
+  "status": "ready",
+  "scope": "Restore all four retained Brawler-master Lunge II commands with exact Patch 12 queue admission, pinned Core3 combat data, the production knockdown/recovery path, authenticated restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "polearmLunge2.lua",
+      "unarmedLunge2.lua",
+      "melee1hLunge2.lua",
+      "melee2hLunge2.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skillOwner": "combat_brawler_master",
+    "skillParent": "combat_brawler",
+    "skillPrerequisites": [
+      "combat_brawler_unarmed_04",
+      "combat_brawler_1handmelee_04",
+      "combat_brawler_2handmelee_04",
+      "combat_brawler_polearm_04"
+    ],
+    "sharedCommand": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "historicalMaxRange": 0,
+      "addToCombatQueue": true,
+      "allowedLocomotion": [
+        "standing",
+        "walking",
+        "running",
+        "kneeling",
+        "prone",
+        "crawling"
+      ],
+      "disallowedState": [
+        "berserk"
+      ]
+    },
+    "commands": [
+      {
+        "name": "polearmLunge2",
+        "validWeapon": "POLEARM",
+        "damageMultiplier": 2.0,
+        "speedMultiplier": 2.5,
+        "healthCostMultiplier": 0.625,
+        "actionCostMultiplier": 1.5,
+        "mindCostMultiplier": 0.625,
+        "accuracyBonus": 10,
+        "animation": "lower_posture_polearm_2",
+        "combatSpam": "lungestrike"
+      },
+      {
+        "name": "unarmedLunge2",
+        "validWeapon": "UNARMED",
+        "damageMultiplier": 3.0,
+        "speedMultiplier": 2.0,
+        "healthCostMultiplier": 1.5,
+        "actionCostMultiplier": 1.5,
+        "mindCostMultiplier": 1.5,
+        "accuracyBonus": 15,
+        "animation": "knockdown_unarmed_1",
+        "combatSpam": "lungeshiak"
+      },
+      {
+        "name": "melee1hLunge2",
+        "validWeapon": "1HAND_MELEE",
+        "damageMultiplier": 3.0,
+        "speedMultiplier": 2.5,
+        "healthCostMultiplier": 0.625,
+        "actionCostMultiplier": 0.625,
+        "mindCostMultiplier": 1.5,
+        "accuracyBonus": 25,
+        "animation": "knockdown_1hmelee_1",
+        "combatSpam": "lungestab",
+        "historicalStateLengthSeconds": 10
+      },
+      {
+        "name": "melee2hLunge2",
+        "validWeapon": "2HAND_MELEE",
+        "damageMultiplier": 1.0,
+        "speedMultiplier": 2.5,
+        "healthCostMultiplier": 1.5,
+        "actionCostMultiplier": 0.625,
+        "mindCostMultiplier": 0.625,
+        "accuracyBonus": 10,
+        "animation": "knockdown_2hmelee_1",
+        "combatSpam": "lungeslam"
+      }
+    ],
+    "sharedCombat": {
+      "targetPool": "RANDOM",
+      "attackType": "SINGLE_TARGET",
+      "minRange": 0,
+      "maxRange": 20,
+      "animationType": "NONE",
+      "knockdownChance": 100,
+      "knockdownDefense": "knockdown_defense",
+      "knockdownExclusions": [
+        "knockdownRecovery",
+        "lastKnockdown"
+      ],
+      "runtimePostureDurationSeconds": 5,
+      "runtimeRecoveryDurationSeconds": 30,
+      "stateLengthNote": "Pinned Core3 computes generic state length before the KNOCKDOWN branch, but that branch intentionally ignores it and uses fixed posture and recovery durations; the one-handed row's historical stateLength=10 is therefore inert."
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T21:30:52-04:00",
+    "scratchCommit": "08f02d3010f7ce8f721e4625e32fc10c02c6ffae",
+    "overlay": "restoration/patches/dsrc/297-p14-core3-brawler-lunge-two-family.patch",
+    "overlaySha256": "9fd5e5a3492ac677e258459a4434710b17a7fad3e8b413ec0d5e4138f9192d3f",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss64m",
+    "datatableCompile": "passed-focused-four-tables-linux",
+    "clientBridgeTests": 69,
+    "clientBridgeSubtests": 1085,
+    "clientTestSuite": {
+      "passed": 198,
+      "skipped": 6,
+      "failed": 0,
+      "subtests": 1309
+    },
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 220,
+    "clientBytes": 33806848,
+    "clientSha256": "70e40a8ea5e67c6e426028c6c07f384d8945f18a54111cb3239a31eabd074ce1",
+    "materializedOverlayCount": 303,
+    "materializedRestorationFileCount": 889,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "compiledClassSha256": {
+      "script/systems/combat/combat_base.class": "6511bb9489319d75727204de151524d4287c3fb6dfad4a82b590b05938d58758",
+      "script/systems/combat/combat_actions.class": "c69a97390997a1d485f73db7b38d59cee356709bfc3b973642de78765e4f4b10",
+      "script/test/precu_headshot1_fixture.class": "971def88bc505b6c326979bbeb6ccf82914e2a77cebfad3b3420fc51723c2c25"
+    },
+    "compiledTableSha256": {
+      "datatables/combat/combat_data.iff": "db7c902d6447795b74bb11ce2ece53e2cfc59a605188fd014b443ddea4c0a0ad",
+      "datatables/combat/precu_combat_overrides.iff": "680296da28fdc37dce73439df76941bd5839b5ab6a79a4bb97465e7497ab2ea8",
+      "datatables/combat/precu_combat_spam.iff": "b90d1f0e54964589aa3351285057483eeea1d709f95800ac7b3d1813037959fe",
+      "datatables/command/command_table.iff": "db9768dae6baa341ede9a43a7be82df49ab97dfa1e7361d3c971a0805bb4c43d"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "db7c902d6447795b74bb11ce2ece53e2cfc59a605188fd014b443ddea4c0a0ad",
+      "datatables/command/command_table.iff": "db9768dae6baa341ede9a43a7be82df49ab97dfa1e7361d3c971a0805bb4c43d",
+      "precu_runtime.tre": "1513e0d01d39d591ae09b951eed899f7a688e3da6e5fb6f32afc579d8bb62485"
+    },
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "runs": 2,
+      "bytes": 134229,
+      "fileCount": 3
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T21:30:52-04:00",
+    "clientProtocolVersion": 220,
+    "attacker": {
+      "stationId": 91001,
+      "playerOid": "44003778",
+      "name": "PrecuRuntime",
+      "godLevel": 0
+    },
+    "defender": {
+      "stationId": 1001,
+      "playerOid": "39008597",
+      "name": "Icai Darkwave",
+      "godLevel": 0
+    },
+    "lifecycleId": "29900000000000000000000000000001",
+    "admission": {
+      "brawlerRoot": true,
+      "brawlerNovice": true,
+      "tierFourPrerequisites": true,
+      "brawlerMaster": true,
+      "allCommands": true,
+      "distanceCentimeters": 191
+    },
+    "attacks": [
+      {
+        "command": "polearmLunge2",
+        "weaponType": 7,
+        "validMask": "0x00000080",
+        "satisfies": true,
+        "canPerform": 0,
+        "costs": { "health": 5, "action": 57, "mind": 10 },
+        "damage": 256,
+        "configuredPool": 3,
+        "resolvedPool": 1,
+        "hitLocation": 4,
+        "combatSpam": "lungestrike_hit",
+        "combatResult": 1,
+        "animation": "lower_posture_polearm_2",
+        "knockdownRoll": 26
+      },
+      {
+        "command": "unarmedLunge2",
+        "weaponType": 6,
+        "validMask": "0x00000040",
+        "satisfies": true,
+        "canPerform": 0,
+        "costs": { "health": 6, "action": 15, "mind": 17 },
+        "damage": 15,
+        "configuredPool": 3,
+        "resolvedPool": 0,
+        "hitLocation": 0,
+        "combatSpam": "lungeshiak_hit",
+        "combatResult": 1,
+        "animation": "knockdown_unarmed_1",
+        "knockdownRoll": 15
+      },
+      {
+        "command": "melee1hLunge2",
+        "weaponType": 4,
+        "validMask": "0x00000010",
+        "satisfies": true,
+        "canPerform": 0,
+        "costs": { "health": 7, "action": 25, "mind": 43 },
+        "damage": 1367,
+        "configuredPool": 3,
+        "resolvedPool": 0,
+        "hitLocation": 3,
+        "combatSpam": "lungestab_hit",
+        "combatResult": 1,
+        "animation": "knockdown_1hmelee_1",
+        "knockdownRoll": 88
+      },
+      {
+        "command": "melee2hLunge2",
+        "weaponType": 5,
+        "validMask": "0x00000020",
+        "satisfies": true,
+        "canPerform": 0,
+        "costs": { "health": 23, "action": 21, "mind": 14 },
+        "damage": 292,
+        "configuredPool": 3,
+        "resolvedPool": 1,
+        "hitLocation": 5,
+        "combatSpam": "lungeslam_hit",
+        "combatResult": 1,
+        "animation": "knockdown_2hmelee_1",
+        "knockdownRoll": 95
+      }
+    ],
+    "sharedKnockdown": {
+      "chance": 100,
+      "defense": 0,
+      "startPosture": 0,
+      "endPosture": 12,
+      "result": "APPLIED",
+      "recoverySnapshotPresent": true,
+      "originalPostureSnapshotPresent": true
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "masterOwnershipSurvived": true,
+      "allCommandsSurvived": true,
+      "weaponSurvived": true,
+      "costsSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "transientRecoveryAbsent": true,
+      "defenderReturnedUpright": true
+    },
+    "cleanup": {
+      "restoredOriginalBrawlerRoot": false,
+      "restoredOriginalBrawlerNovice": false,
+      "restoredOriginalBrawlerMaster": false,
+      "restoredOriginalCommands": false,
+      "weaponAbsent": true,
+      "fixtureWeaponsAbsent": true,
+      "diagnosticsAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability",
+      "firstCleanupRestored": true,
+      "idempotent": true
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  }
+}

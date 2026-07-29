@@ -1,0 +1,8 @@
+param([Parameter(Mandatory=$true)][string]$SourceRoot,[ValidateSet("Build","Ready")][string]$Expectation="Build")
+$root=Split-Path -Parent $PSScriptRoot;$m=Get-Content (Join-Path $root manifest.json)-Raw|ConvertFrom-Json
+$c=Get-Content (Join-Path $root ([string]$m.contracts.p14BountyHunterProfessionClosure))-Raw|ConvertFrom-Json
+$skill=Join-Path (Resolve-Path $SourceRoot).Path ([string]$c.sourceFiles.skillTable);$l=Get-Content $skill;$e=$c.publish14Evidence
+$f=@($l|?{$_.StartsWith([string]$e.family.prefix)-and-not$_.StartsWith([string]$e.excludedCompatibilityPrefix)}|Sort-Object);$t=($f-join"`n")+"`n";$s=[Security.Cryptography.SHA256]::Create();try{$h=($s.ComputeHash([Text.Encoding]::UTF8.GetBytes($t))|%{$_.ToString("x2")})-join""}finally{$s.Dispose()}
+if($f.Count-ne19-or$h-cne[string]$e.family.normalizedSortedRowsSha256){throw "Bounty Hunter family failed"}
+if($Expectation-eq"Ready"){$b=$c.buildEvidence;$p=Join-Path $root ([string]$b.overlayPatch-replace"^restoration/","");if((Get-FileHash $skill).Hash.ToLower()-cne[string]$b.sourceSha256."skills.tab"-or(Get-FileHash $p).Hash.ToLower()-cne[string]$b.overlayPatchSha256-or$c.runtimeEvidence.professionLinks.Count-ne2){throw "Bounty Hunter ready failed"}}
+Write-Host "Publish 14.1 Bounty Hunter profession closure passed."

@@ -1,0 +1,278 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index c51bcee..f8f144c 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -37,6 +37,7 @@ public class combat_base extends script.base_script
+     public static final String PROGRESSIVE_DAMAGE_COUNTER = "hitData.progressive.counter";
+     public static final string_id SID_NONE = new string_id();
+     public static final String PRECU_COMBAT_OVERRIDES = "datatables/combat/precu_combat_overrides.iff";
++    public static final String PRECU_COMBAT_SPAM = "datatables/combat/precu_combat_spam.iff";
+     public static final String PRECU_WEAPON_PROFILES = "datatables/combat/precu_weapon_profiles.iff";
+     public static final int PRECU_PRIMARY_RESULT_FALLBACK = -1;
+     public static final int PRECU_SECONDARY_RESULT_FALLBACK = -2;
+@@ -71,6 +72,67 @@ public class combat_base extends script.base_script
+         pp = prose.setTO(pp, actionStringId);
+         sendCombatSpamMessageProse(actor, target, pp, true, true, true, spam_type);
+     }
++    public boolean sendPrecuCombatSpam(attacker_data attackerData, defender_results[] defenderResults, hit_result[] hitData, combat_data actionData) throws InterruptedException
++    {
++        dictionary spamData = dataTableGetRow(PRECU_COMBAT_SPAM, actionData.actionName);
++        if (spamData == null)
++        {
++            return false;
++        }
++        String spamStem = spamData.getString("combatSpam");
++        if (spamStem == null || spamStem.equals(""))
++        {
++            return false;
++        }
++        for (int i = 0; i < defenderResults.length; ++i)
++        {
++            String suffix = "";
++            switch (defenderResults[i].result)
++            {
++                case COMBAT_RESULT_HIT:
++                suffix = "_hit";
++                break;
++                case COMBAT_RESULT_MISS:
++                suffix = "_miss";
++                break;
++                case COMBAT_RESULT_EVADE:
++                suffix = "_evade";
++                break;
++                case COMBAT_RESULT_COUNTER:
++                case COMBAT_RESULT_LIGHTSABER_COUNTER:
++                case COMBAT_RESULT_LIGHTSABER_COUNTER_TARGET:
++                suffix = "_counter";
++                break;
++                case COMBAT_RESULT_BLOCK:
++                case COMBAT_RESULT_LIGHTSABER_BLOCK:
++                suffix = "_block";
++                break;
++            }
++            int damage = defenderResults[i].result == COMBAT_RESULT_HIT
++                ? hitData[i].damage
++                : hitData[i].rawDamage;
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "spam.key", spamStem + suffix);
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "spam.result", defenderResults[i].result);
++            recordPrecuLiveDiagnostic(
++                attackerData.id, "spam.damage", damage);
++            prose_package pp = new prose_package();
++            pp = prose.setStringId(pp, new string_id("cbt_spam", spamStem + suffix));
++            pp = prose.setTU(pp, attackerData.id);
++            pp = prose.setTT(pp, defenderResults[i].id);
++            pp = prose.setDI(pp, damage);
++            sendCombatSpamMessageProse(
++                attackerData.id,
++                defenderResults[i].id,
++                pp,
++                true,
++                true,
++                true,
++                defenderResults[i].result);
++        }
++        return true;
++    }
+     public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking) throws InterruptedException
+     {
+         return combatStandardAction(actionName, self, target, objWeapon, params, actionData, isTangibleAttacking, false, 0);
+@@ -1655,39 +1717,42 @@ public class combat_base extends script.base_script
+         }
+         if (actionData.hitSpam != combat.NO_HIT_SPAM)
+         {
+-            obj_id currentWeapon = null;
+-            if (actionData.hitSpam == combat.ACTION_NAME)
+-            {
+-                string_id attackId = new string_id("cmd_n", actionData.actionName);
+-                combat.doBasicCombatSpam(attackId, SID_NONE, currentWeapon, attackerResults, defenderResults, hitData);
+-            }
+-            else if (actionData.hitSpam == combat.WEAPON_NAME)
++            if (!sendPrecuCombatSpam(attackerData, defenderResults, hitData, actionData))
+             {
+-                if (weaponData.weaponName != null)
++                obj_id currentWeapon = null;
++                if (actionData.hitSpam == combat.ACTION_NAME)
+                 {
+-                    combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, currentWeapon, attackerResults, defenderResults, hitData);
++                    string_id attackId = new string_id("cmd_n", actionData.actionName);
++                    combat.doBasicCombatSpam(attackId, SID_NONE, currentWeapon, attackerResults, defenderResults, hitData);
+                 }
+-                else if (isValidId(weaponData.id))
++                else if (actionData.hitSpam == combat.WEAPON_NAME)
+                 {
+-                    combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, weaponData.id, attackerResults, defenderResults, hitData);
+-                }
+-                else if (isValidId(attackerResults.weapon))
+-                {
+-                    combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, attackerResults.weapon, attackerResults, defenderResults, hitData);
+-                }
+-                else if (isValidId(getCurrentWeapon(attackerResults.id)))
+-                {
+-                    combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, getCurrentWeapon(attackerResults.id), attackerResults, defenderResults, hitData);
++                    if (weaponData.weaponName != null)
++                    {
++                        combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, currentWeapon, attackerResults, defenderResults, hitData);
++                    }
++                    else if (isValidId(weaponData.id))
++                    {
++                        combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, weaponData.id, attackerResults, defenderResults, hitData);
++                    }
++                    else if (isValidId(attackerResults.weapon))
++                    {
++                        combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, attackerResults.weapon, attackerResults, defenderResults, hitData);
++                    }
++                    else if (isValidId(getCurrentWeapon(attackerResults.id)))
++                    {
++                        combat.doBasicCombatSpam(SID_NONE, weaponData.weaponName, getCurrentWeapon(attackerResults.id), attackerResults, defenderResults, hitData);
++                    }
++                    else 
++                    {
++                        combat.doBasicCombatSpam(SID_NONE, SID_NONE, currentWeapon, attackerResults, defenderResults, hitData);
++                    }
+                 }
+                 else 
+                 {
+                     combat.doBasicCombatSpam(SID_NONE, SID_NONE, currentWeapon, attackerResults, defenderResults, hitData);
+                 }
+             }
+-            else 
+-            {
+-                combat.doBasicCombatSpam(SID_NONE, SID_NONE, currentWeapon, attackerResults, defenderResults, hitData);
+-            }
+         }
+         if (actionData.hitType != 6 || actionData.delayAttackLoopsDone == 0)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 46b914b..f5d8566 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -19,6 +19,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String RIFLE_ONE = "combat_marksman_rifle_01";
+     private static final String COMMAND = "headShot1";
+     private static final String DURATION_CONTROL_COMMAND = "headShot2";
++    private static final String CDEF_CERTIFICATION = "cert_rifle_cdef";
+     private static final String COMBAT_ACTIONS_SCRIPT = "systems.combat.combat_actions";
+     private static final String ROOT = "precu.p14.headShot1Fixture";
+     private static final String LIFECYCLE = ROOT + ".lifecycle";
+@@ -39,6 +40,8 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String ORIGINAL_RIFLE_ONE = ROOT + ".originalRifleOne";
+     private static final String ORIGINAL_DURATION_CONTROL =
+         ROOT + ".originalDurationControl";
++    private static final String ORIGINAL_CDEF_CERTIFICATION =
++        ROOT + ".originalCdefCertification";
+     private static final String ORIGINAL_PERSONAL_ENEMY = ROOT + ".originalPersonalEnemy";
+     private static final String ORIGINAL_COMBAT_ACTIONS = ROOT + ".originalCombatActions";
+     private static final String PREPARED = ROOT + ".prepared";
+@@ -169,13 +172,17 @@ public class precu_headshot1_fixture extends script.base_script
+             (hasSkill(attacker, RIFLE_ONE) || grantSkill(attacker, RIFLE_ONE));
+         boolean durationControlGranted = hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             grantCommand(attacker, DURATION_CONTROL_COMMAND);
++        boolean cdefCertificationGranted = hasCommand(attacker, CDEF_CERTIFICATION) ||
++            grantCommand(attacker, CDEF_CERTIFICATION);
+         if (!noviceGranted || !rifleGranted || !hasCommand(attacker, COMMAND) ||
+-            !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND))
++            !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
++            !cdefCertificationGranted || !hasCommand(attacker, CDEF_CERTIFICATION))
+         {
+             restore(attacker, defender);
+             return "error=skillPreparationFailed novice=" + noviceGranted +
+                 " rifleOne=" + rifleGranted + " hasCommand=" + hasCommand(attacker, COMMAND) +
+-                " durationControl=" + hasCommand(attacker, DURATION_CONTROL_COMMAND);
++                " durationControl=" + hasCommand(attacker, DURATION_CONTROL_COMMAND) +
++                " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION);
+         }
+ 
+         obj_id fixtureWeapon = createObjectInInventoryAllowOverload(CDEF_TEMPLATE, attacker);
+@@ -259,6 +266,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, DURATION_CONTROL_COMMAND);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) &&
++            getIntObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) == 0 &&
++            hasCommand(attacker, CDEF_CERTIFICATION))
++        {
++            revokeCommand(attacker, CDEF_CERTIFICATION);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_RIFLE_ONE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLE_ONE) == 0 && hasSkill(attacker, RIFLE_ONE))
+         {
+@@ -371,6 +384,8 @@ public class precu_headshot1_fixture extends script.base_script
+         setObjVar(player, ORIGINAL_RIFLE_ONE, hasSkill(player, RIFLE_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_DURATION_CONTROL,
+             hasCommand(player, DURATION_CONTROL_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_CDEF_CERTIFICATION,
++            hasCommand(player, CDEF_CERTIFICATION) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PERSONAL_ENEMY,
+             pvpHasPersonalEnemyFlag(player, peer) ? 1 : 0);
+         setObjVar(player, ORIGINAL_COMBAT_ACTIONS,
+@@ -404,6 +419,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, DURATION_CONTROL_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) &&
++            getIntObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) == 0 &&
++            hasCommand(attacker, CDEF_CERTIFICATION))
++        {
++            revokeCommand(attacker, CDEF_CERTIFICATION);
++        }
+         if (hasObjVar(attacker, ORIGINAL_RIFLE_ONE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLE_ONE) == 0 &&
+             hasSkill(attacker, RIFLE_ONE))
+@@ -489,7 +510,10 @@ public class precu_headshot1_fixture extends script.base_script
+         pvpSetPermanentPersonalEnemyFlag(defender, attacker);
+         boolean durationControlReady = hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             grantCommand(attacker, DURATION_CONTROL_COMMAND);
+-        return durationControlReady && attackerStanding && defenderStanding &&
++        boolean cdefCertificationReady = hasCommand(attacker, CDEF_CERTIFICATION) ||
++            grantCommand(attacker, CDEF_CERTIFICATION);
++        return durationControlReady && cdefCertificationReady &&
++            attackerStanding && defenderStanding &&
+             attackerStationary && defenderStationary &&
+             getPosture(attacker) == POSTURE_UPRIGHT &&
+             getPosture(defender) == POSTURE_UPRIGHT &&
+@@ -542,6 +566,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_ACTION_REGEN) &&
+             hasObjVar(player, ORIGINAL_MIND_REGEN) &&
+             hasObjVar(player, ORIGINAL_DURATION_CONTROL) &&
++            hasObjVar(player, ORIGINAL_CDEF_CERTIFICATION) &&
+             hasObjVar(player, ORIGINAL_COMBAT_ACTIONS);
+     }
+ 
+@@ -614,6 +639,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " rifleOne=" + hasSkill(attacker, RIFLE_ONE) +
+             " hasCommand=" + hasCommand(attacker, COMMAND) +
+             " durationControl=" + hasCommand(attacker, DURATION_CONTROL_COMMAND) +
++            " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION) +
+             " combatActions=" + hasScript(attacker, COMBAT_ACTIONS_SCRIPT) +
+             " weapon=" + weaponTemplate +
+             " canPerformAction=" + canPerformAction +
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+index 5553d3a..611eed0 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java
+@@ -1192,6 +1192,12 @@ public class precu_marksman_tier1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "wound.applied", -1) +
+             " diagnosticShockAdded=" +
+                 readDiagnosticInt(attacker, "wound.shockAdded", -1) +
++            " diagnosticSpamKey=" +
++                readDiagnosticString(attacker, "spam.key", "none") +
++            " diagnosticSpamResult=" +
++                readDiagnosticInt(attacker, "spam.result", -1) +
++            " diagnosticSpamDamage=" +
++                readDiagnosticInt(attacker, "spam.damage", -1) +
+             " distanceCentimeters=" + (int)(getDistance(attacker, defender) * 100.0f) +
+             " pvpCanAttack=" + pvpCanAttack(attacker, defender) +
+             " attackerHealth=" + getAttrib(attacker, HEALTH) +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+new file mode 100644
+index 0000000..856cb32
+--- /dev/null
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -0,0 +1,5 @@
++actionName	combatSpam
++s	s
++headShot1	headshot
++bodyShot1	body
++legShot1	leg
