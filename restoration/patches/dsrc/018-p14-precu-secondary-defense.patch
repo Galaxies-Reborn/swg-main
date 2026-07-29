@@ -1,0 +1,265 @@
+diff --git a/sku.0/sys.server/compiled/game/script/combat_engine.java b/sku.0/sys.server/compiled/game/script/combat_engine.java
+index f2a29160e..ebbcd288e 100644
+--- a/sku.0/sys.server/compiled/game/script/combat_engine.java
++++ b/sku.0/sys.server/compiled/game/script/combat_engine.java
+@@ -570,6 +570,8 @@ public class combat_engine
+ 		public float evadeAmmount = 0.0f;	// % of damage avoided
+ 		public boolean blockResult = false; // Chance to soak damage
+ 		public int block = 0;				// Ammount of damage mitigated on a block
++		public boolean precuBlock = false;	// Core3 block: retain the hit and halve damage
++		public boolean precuCounter = false;	// Core3 counter: negate damage and queue a basic response
+ 	}
+ 
+ 	public static class combatant_data
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 8988c4c6d..19e7fcdc6 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -32,11 +32,14 @@ public class combat_base extends script.base_script
+     public static final int HIT_RESULT_HIT = 7;
+     public static final int HIT_RESULT_EVADE = 8;
+     public static final int HIT_RESULT_STRIKETHROUGH = 9;
++    public static final int HIT_RESULT_PRECU_COUNTER = 10;
+     public static final String PROGRESSIVE_DAMAGE_COUNTER = "hitData.progressive.counter";
+     public static final string_id SID_NONE = new string_id();
+     public static final String PRECU_COMBAT_OVERRIDES = "datatables/combat/precu_combat_overrides.iff";
+     public static final String PRECU_WEAPON_PROFILES = "datatables/combat/precu_weapon_profiles.iff";
+     public static final int PRECU_PRIMARY_RESULT_FALLBACK = -1;
++    public static final int PRECU_SECONDARY_RESULT_FALLBACK = -2;
++    public static final int PRECU_COUNTERATTACK_COMMAND = 1957054281;
+     public boolean combatStandardAction(String actionName, obj_id self, obj_id target, String params, String successHandler, String failHandler) throws InterruptedException
+     {
+         return combatStandardAction(actionName, self, target, getCurrentWeapon(self), params, null, false, false, 0);
+@@ -1279,7 +1282,16 @@ public class combat_base extends script.base_script
+             else 
+             {
+                 int precuPrimaryResult = getPrecuPrimaryAttackResult(attackerData, defenderData[i], weaponData, actionData);
+-                int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming) : HIT_RESULT_HIT;
++                int precuSecondaryResult = HIT_RESULT_HIT;
++                if (precuPrimaryResult == HIT_RESULT_HIT)
++                {
++                    precuSecondaryResult = getPrecuSecondaryDefenseResult(attackerData, defenderData[i], weaponData, actionData);
++                    if (precuSecondaryResult == PRECU_SECONDARY_RESULT_FALLBACK)
++                    {
++                        precuPrimaryResult = PRECU_PRIMARY_RESULT_FALLBACK;
++                    }
++                }
++                int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuSecondaryResult;
+                 int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult(attackerData, defenderData[i], actionData, isAutoAiming) : precuPrimaryResult;
+                 switch (defResult)
+                 {
+@@ -1297,7 +1309,18 @@ public class combat_base extends script.base_script
+                     break;
+                     case HIT_RESULT_BLOCK:
+                     hitData[i].success = true;
+-                    hitData[i].blockResult = true;
++                    if (precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK)
++                    {
++                        hitData[i].blockResult = true;
++                    }
++                    else
++                    {
++                        hitData[i].precuBlock = true;
++                    }
++                    break;
++                    case HIT_RESULT_PRECU_COUNTER:
++                    hitData[i].success = false;
++                    hitData[i].precuCounter = true;
+                     break;
+                     case HIT_RESULT_EVADE:
+                     hitData[i].success = true;
+@@ -1379,7 +1402,7 @@ public class combat_base extends script.base_script
+             }
+             if (hitData[i].success)
+             {
+-                defenderResults[i].result = COMBAT_RESULT_HIT;
++                defenderResults[i].result = hitData[i].precuBlock ? COMBAT_RESULT_BLOCK : COMBAT_RESULT_HIT;
+                 if (beast_lib.isBeast(attackerData.id))
+                 {
+                     addHate(defenderData[i].id, getMaster(attackerData.id), 0);
+@@ -1428,6 +1451,14 @@ public class combat_base extends script.base_script
+                     criticalHit = true;
+                 }
+                 hitData[i].damage = rand((int)minDamage, (int)maxDamage);
++                int originalElementalValue = weaponData.elementalValue;
++                if (hitData[i].precuBlock)
++                {
++                    int damageBeforeBlock = hitData[i].damage;
++                    hitData[i].damage = hitData[i].damage / 2;
++                    hitData[i].blockedDamage += damageBeforeBlock - hitData[i].damage;
++                    weaponData.elementalValue = weaponData.elementalValue / 2;
++                }
+                 if (hitType != combat.NON_DAMAGE_ATTACK)
+                 {
+                     hitData[i] = applyDamage(attackerData.id, defenderData[i].id, weaponData, hitData[i], actionData, (i == 0), overloadDamage);
+@@ -1436,6 +1467,7 @@ public class combat_base extends script.base_script
+                 {
+                     hitData[i].damage = 0;
+                 }
++                weaponData.elementalValue = originalElementalValue;
+                 effect_data defenderEffect = new effect_data();
+                 combat.applyDefenderCombatBuffs(attackerData.id, defenderData[i].id, weaponData, actionData);
+                 beast_lib.checkForSkillAcquisition(attackerData.id, defenderData[i].id, actionData.actionName);
+@@ -1519,6 +1551,11 @@ public class combat_base extends script.base_script
+                     combat.gainCombatActionAttribute(defenderData[i].id, actionToAdd);
+                 }
+             }
++            else if (hitData[i].precuCounter)
++            {
++                doPrecuCounterAttack(attackerData.id, defenderData[i].id);
++                defenderResults[i].result = COMBAT_RESULT_COUNTER;
++            }
+             else 
+             {
+                 defenderResults[i].result = COMBAT_RESULT_MISS;
+@@ -1652,9 +1689,31 @@ public class combat_base extends script.base_script
+             return -1.0f;
+         }
+ 
++        String defenseSkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "defenseSkill");
++        float accuracyTotal = getPrecuAttackerAccuracyTotal(attackerData, defenderData, weaponRow, accuracyBonus);
++
++        int defenseSkillValue = getLevel(defenderData.id);
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, defenseSkill);
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + defenseSkill);
++        if (defenseSkillValue > 125)
++        {
++            defenseSkillValue = 125;
++        }
++        if (isPlayer(attackerData.id))
++        {
++            defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_defense");
++        }
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_group_" + defenseSkill);
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "dodge_attack");
++        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_dodge_attack");
++
++        float defenseTotal = defenseSkillValue + getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion);
++        return getPrecuHitChanceEquation(accuracyTotal, defenseTotal);
++    }
++    public float getPrecuAttackerAccuracyTotal(attacker_data attackerData, defender_data defenderData, int weaponRow, int accuracyBonus) throws InterruptedException
++    {
+         String accuracySkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "accuracySkill");
+         String categoryAccuracySkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "categoryAccuracySkill");
+-        String defenseSkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "defenseSkill");
+         String weaponFamily = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "weaponFamily");
+         float postureMultiplier = dataTableGetFloat(PRECU_WEAPON_PROFILES, weaponRow, "postureMultiplier");
+ 
+@@ -1692,25 +1751,92 @@ public class combat_base extends script.base_script
+         {
+             accuracyPrivateBonus += getEnhancedSkillStatisticModifierUncapped(attackerData.id, "creature_hit_bonus");
+         }
++        return accuracySkillValue + accuracyWeapon + accuracyPostureTotal + accuracyBonus + accuracyPrivateBonus;
++    }
++    public int getPrecuSecondaryDefenseResult(attacker_data attackerData, defender_data defenderData, weapon_data weaponData, combat_data actionData) throws InterruptedException
++    {
++        obj_id defenderWeapon = getCurrentWeapon(defenderData.id);
++        if (!isIdValid(defenderWeapon))
++        {
++            return PRECU_SECONDARY_RESULT_FALLBACK;
++        }
++        int defenderWeaponRow = dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES);
++        if (defenderWeaponRow < 0)
++        {
++            return PRECU_SECONDARY_RESULT_FALLBACK;
++        }
++        String secondaryDefenseSkill = dataTableGetString(PRECU_WEAPON_PROFILES, defenderWeaponRow, "secondaryDefenseSkill");
++        String secondaryDefenseResult = dataTableGetString(PRECU_WEAPON_PROFILES, defenderWeaponRow, "secondaryDefenseResult");
++        if (secondaryDefenseSkill == null || secondaryDefenseSkill.length() == 0 || secondaryDefenseResult == null || secondaryDefenseResult.length() == 0)
++        {
++            return PRECU_SECONDARY_RESULT_FALLBACK;
++        }
++        if (getState(defenderData.id, STATE_INTIMIDATED) > 0 || getState(defenderData.id, STATE_BERSERK) > 0 || vehicle.isVehicle(defenderData.id))
++        {
++            return HIT_RESULT_HIT;
++        }
+ 
+-        int defenseSkillValue = getLevel(defenderData.id);
+-        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, defenseSkill);
+-        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + defenseSkill);
+-        if (defenseSkillValue > 125)
++        int actionRow = dataTableSearchColumnForString(actionData.actionName, "actionName", PRECU_COMBAT_OVERRIDES);
++        if (actionRow < 0 || !isIdValid(weaponData.id))
+         {
+-            defenseSkillValue = 125;
++            return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
+-        if (isPlayer(attackerData.id))
++        int accuracyBonus = dataTableGetInt(PRECU_COMBAT_OVERRIDES, actionRow, "accuracyBonus");
++        int attackerWeaponRow = dataTableSearchColumnForString(getTemplateName(weaponData.id), "templateName", PRECU_WEAPON_PROFILES);
++        if (accuracyBonus <= 0 || attackerWeaponRow < 0)
+         {
+-            defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_defense");
++            return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
+-        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_group_" + defenseSkill);
+-        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "dodge_attack");
+-        defenseSkillValue += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_dodge_attack");
+ 
+-        float accuracyTotal = accuracySkillValue + accuracyWeapon + accuracyPostureTotal + accuracyBonus + accuracyPrivateBonus;
+-        float defenseTotal = defenseSkillValue + getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion);
+-        return getPrecuHitChanceEquation(accuracyTotal, defenseTotal);
++        int defendResult = getPrecuSecondaryDefenseResultCode(secondaryDefenseResult);
++        if (defendResult == PRECU_SECONDARY_RESULT_FALLBACK)
++        {
++            return PRECU_SECONDARY_RESULT_FALLBACK;
++        }
++        int evadeSkill = getLevel(defenderData.id);
++        evadeSkill += getEnhancedSkillStatisticModifierUncapped(defenderData.id, secondaryDefenseSkill);
++        evadeSkill += getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + secondaryDefenseSkill);
++        if (evadeSkill > 125)
++        {
++            evadeSkill = 125;
++        }
++        if (evadeSkill == 0)
++        {
++            return HIT_RESULT_HIT;
++        }
++
++        float accuracyTotal = getPrecuAttackerAccuracyTotal(attackerData, defenderData, attackerWeaponRow, accuracyBonus);
++        int evadeCenter = getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_center_of_being");
++        int evadeTotal = evadeSkill + evadeCenter + getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion);
++        int attackRoll = rand(1, 500);
++        int defendRoll = rand(1, 200);
++        return accuracyTotal + attackRoll <= evadeTotal + defendRoll ? defendResult : HIT_RESULT_HIT;
++    }
++    public int getPrecuSecondaryDefenseResultCode(String secondaryDefenseResult) throws InterruptedException
++    {
++        if (secondaryDefenseResult.equals("BLOCK"))
++        {
++            return HIT_RESULT_BLOCK;
++        }
++        if (secondaryDefenseResult.equals("DODGE"))
++        {
++            return HIT_RESULT_DODGE;
++        }
++        if (secondaryDefenseResult.equals("COUNTER"))
++        {
++            return HIT_RESULT_PRECU_COUNTER;
++        }
++        if (secondaryDefenseResult.equals("RANDOM"))
++        {
++            int resultRoll = rand(1, 3);
++            return resultRoll == 1 ? HIT_RESULT_BLOCK : resultRoll == 2 ? HIT_RESULT_DODGE : HIT_RESULT_PRECU_COUNTER;
++        }
++        return PRECU_SECONDARY_RESULT_FALLBACK;
++    }
++    public void doPrecuCounterAttack(obj_id attacker, obj_id defender) throws InterruptedException
++    {
++        startCombat(defender, attacker);
++        queueCommand(defender, PRECU_COUNTERATTACK_COMMAND, attacker, "", COMMAND_PRIORITY_FRONT);
+     }
+     public float getPrecuWeaponRangeModifier(attacker_data attackerData, defender_data defenderData, int weaponRow) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+index 4c31d4999..e18f8616d 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab
+@@ -1,3 +1,4 @@
+-templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	weaponFamily	postureMultiplier
+-s	f	s	f	f	f	f	f	f	s	s	s	s	f
+-object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0	20	15	50	64	-80	rifle_accuracy	ranged_accuracy	ranged_defense	rifle	2.5
++templateName	attackSpeed	speedSkill	pointBlankRange	pointBlankAccuracy	idealRange	idealAccuracy	maxRange	maxRangeAccuracy	accuracySkill	categoryAccuracySkill	defenseSkill	weaponFamily	postureMultiplier	secondaryDefenseSkill	secondaryDefenseResult
++s	f	s	f	f	f	f	f	f	s	s	s	s	f	s	s
++object/weapon/ranged/rifle/rifle_cdef.iff	3.5	rifle_speed	0	20	15	50	64	-80	rifle_accuracy	ranged_accuracy	ranged_defense	rifle	2.5	block	BLOCK
++object/weapon/melee/unarmed/unarmed_default_player.iff	2	unarmed_speed	0	0	5	3	5	5	unarmed_accuracy	melee_accuracy	melee_defense	unarmed	1	unarmed_passive_defense	RANDOM

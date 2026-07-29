@@ -1,0 +1,923 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_real_client_band_music_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_real_client_band_music_fixture.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7589a74ecd2c03b5bae663cf2a06e2c69cf471a4
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_real_client_band_music_fixture.java
+@@ -0,0 +1,917 @@
++package script.test;
++
++import script.location;
++import script.obj_id;
++import script.library.group;
++import script.library.performance;
++import script.library.skill;
++import script.library.utils;
++
++/**
++ * Identity-bound reversible acceptance fixture for a two-player Publish 14.1
++ * band music session. Real clients own group formation, startBand,
++ * bandFlourish, stopBand, and group dissolution.
++ */
++public class precu_real_client_band_music_fixture
++    extends script.base_script
++{
++    private static final long LEADER_OID = 39008597L;
++    private static final int LEADER_STATION_ID = 1001;
++    private static final long MEMBER_OID = 44003778L;
++    private static final int MEMBER_STATION_ID = 91001;
++    private static final String ENTERTAINER_NOVICE =
++        "social_entertainer_novice";
++    private static final String SONG_ABILITY =
++        "startMusic+starwars1";
++    private static final String INSTRUMENT_ABILITY = "slitherhorn";
++    private static final String FLOURISH_ABILITY = "flourish+1";
++    private static final String INSTRUMENT_TEMPLATE =
++        "object/tangible/instrument/slitherhorn.iff";
++    private static final int STARWARS1_INDEX = 1;
++    private static final int SLITHERHORN_AUDIO_ID = 2;
++    private static final int LEADER_QUICKNESS = 400;
++    private static final int MEMBER_QUICKNESS = 300;
++    private static final int START_ACTION = 100;
++    private static final int LEADER_FLOURISH_ACTION = 91;
++    private static final int MEMBER_FLOURISH_ACTION = 90;
++    private static final int LEADER_STOPPED_ACTION = 66;
++    private static final int MEMBER_STOPPED_ACTION = 62;
++    private static final String ROOT =
++        "precu.realClientBandMusicFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PEER = ROOT + ".peer";
++    private static final String ORIGINAL_LOCATION =
++        ROOT + ".originalLocation";
++    private static final String ORIGINAL_ACTION =
++        ROOT + ".originalAction";
++    private static final String ORIGINAL_QUICKNESS =
++        ROOT + ".originalQuickness";
++    private static final String ORIGINAL_ACTION_REGEN =
++        ROOT + ".originalActionRegen";
++    private static final String ORIGINAL_POSTURE =
++        ROOT + ".originalPosture";
++    private static final String ORIGINAL_LOCOMOTION =
++        ROOT + ".originalLocomotion";
++    private static final String ORIGINAL_NOVICE =
++        ROOT + ".originalNovice";
++    private static final String ORIGINAL_INSTRUMENT_AUDIO =
++        ROOT + ".originalInstrumentAudio";
++    private static final String FIXTURE_INSTRUMENT =
++        ROOT + ".fixtureInstrument";
++    private static final String GROUPED = ROOT + ".grouped";
++    private static final String STARTED = ROOT + ".started";
++    private static final String FLOURISHED = ROOT + ".flourished";
++    private static final String STOP_REQUESTED =
++        ROOT + ".stopRequested";
++    private static final String STOPPED = ROOT + ".stopped";
++    private static final String UNGROUPED = ROOT + ".ungrouped";
++    private static final String PASSED = ROOT + ".passed";
++    private static final String USAGE =
++        "usage: inspect|recover|prepare|observeGrouped|observeStart|observeFlourish|" +
++        "observeStopRequested|observeStopped|observeUngrouped|status|" +
++        "cleanup 39008597 44003778 <lifecycle>";
++
++    public String executeFixture(String params)
++        throws InterruptedException
++    {
++        String[] args =
++            params == null
++                ? new String[0]
++                : params.trim().split("[ ]+");
++        if (args.length != 4 || !isValidLifecycle(args[3]))
++        {
++            return USAGE;
++        }
++        long leaderValue;
++        long memberValue;
++        try
++        {
++            leaderValue = Long.parseLong(args[1]);
++            memberValue = Long.parseLong(args[2]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (leaderValue != LEADER_OID ||
++            memberValue != MEMBER_OID ||
++            leaderValue == memberValue)
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id leader = obj_id.getObjId(leaderValue);
++        obj_id member = obj_id.getObjId(memberValue);
++        String validation =
++            validatePlayer(leader, LEADER_STATION_ID, "leader");
++        if (validation != null)
++        {
++            return validation;
++        }
++        validation =
++            validatePlayer(member, MEMBER_STATION_ID, "member");
++        if (validation != null)
++        {
++            return validation;
++        }
++
++        String action = args[0];
++        String lifecycle = args[3];
++        if (action.equalsIgnoreCase("inspect"))
++        {
++            return "action=inspect leaderRoot=" +
++                hasObjVar(leader, ROOT) +
++                " memberRoot=" + hasObjVar(member, ROOT) +
++                " leaderComplete=" + hasCompleteSnapshot(leader) +
++                " memberComplete=" + hasCompleteSnapshot(member) +
++                " " + buildStatus(leader, member);
++        }
++        if (action.equalsIgnoreCase("recover"))
++        {
++            return recover(leader, member);
++        }
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            return prepare(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeGrouped"))
++        {
++            return observeGrouped(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeStart"))
++        {
++            return observeStart(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeFlourish"))
++        {
++            return observeFlourish(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeStopRequested"))
++        {
++            return observeStopRequested(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeStopped"))
++        {
++            return observeStopped(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("observeUngrouped"))
++        {
++            return observeUngrouped(leader, member, lifecycle);
++        }
++        if (action.equalsIgnoreCase("status"))
++        {
++            validation =
++                validateOwnership(leader, member, lifecycle, false);
++            return validation == null
++                ? "action=status passed=" + readFlag(leader, PASSED) +
++                    " " + buildStatus(leader, member)
++                : validation;
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(leader, member, lifecycle);
++        }
++        return USAGE;
++    }
++
++    private String recover(
++        obj_id leader,
++        obj_id member) throws InterruptedException
++    {
++        if (!hasObjVar(leader, ROOT) && !hasObjVar(member, ROOT))
++        {
++            return "action=recover alreadyClean=true restored=true";
++        }
++        if (isIdValid(getGroupObject(leader)) ||
++            isIdValid(getGroupObject(member)))
++        {
++            return "error=recoveryRequiresUngroupedPlayers";
++        }
++        if (hasCompleteSnapshot(leader) &&
++            hasCompleteSnapshot(member))
++        {
++            boolean restored = restorePair(leader, member);
++            return "action=recover completeSnapshots=true restored=" +
++                restored + " " + buildStatus(leader, member);
++        }
++        boolean cleanOrphans =
++            isIdleClean(leader) &&
++            isIdleClean(member) &&
++            getInstrumentAudioId(leader) == 0 &&
++            getInstrumentAudioId(member) == 0 &&
++            !hasObjVar(leader, FIXTURE_INSTRUMENT) &&
++            !hasObjVar(member, FIXTURE_INSTRUMENT) &&
++            getRegenRate(leader, ACTION) > 0.0f &&
++            getRegenRate(member, ACTION) > 0.0f;
++        if (!cleanOrphans)
++        {
++            return "error=partialRecoveryNotProvablyClean " +
++                buildStatus(leader, member);
++        }
++        removeObjVar(leader, ROOT);
++        removeObjVar(member, ROOT);
++        boolean restored =
++            !hasObjVar(leader, ROOT) &&
++            !hasObjVar(member, ROOT);
++        return "action=recover completeSnapshots=false" +
++            " cleanOrphanMarkers=true restored=" + restored +
++            " " + buildStatus(leader, member);
++    }
++
++    private String prepare(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership =
++            validateOwnership(leader, member, lifecycle, true);
++        if (ownership == null)
++        {
++            return "action=prepare resumed=true " +
++                buildStatus(leader, member);
++        }
++        if (!"fixtureAbsent".equals(ownership))
++        {
++            return ownership;
++        }
++        if (!isIdleClean(leader) || !isIdleClean(member))
++        {
++            return "error=fixtureRequiresIdleCleanPerformers";
++        }
++        if (isIdValid(getGroupObject(leader)) ||
++            isIdValid(getGroupObject(member)))
++        {
++            return "error=fixtureRequiresUngroupedPlayers";
++        }
++        if (getInstrumentAudioId(leader) != 0 ||
++            getInstrumentAudioId(member) != 0)
++        {
++            return "error=fixtureRequiresNoEquippedInstruments";
++        }
++        location leaderLocation = getLocation(leader);
++        location memberLocation = getLocation(member);
++        if (leaderLocation == null || memberLocation == null)
++        {
++            return "error=locationUnavailable";
++        }
++
++        snapshot(leader, member, lifecycle, leaderLocation);
++        snapshot(member, leader, lifecycle, memberLocation);
++        resetTelemetry(leader);
++        resetTelemetry(member);
++        boolean prepared =
++            preparePlayer(
++                leader,
++                3500.0f,
++                -4800.0f,
++                LEADER_QUICKNESS) &&
++            preparePlayer(
++                member,
++                3502.0f,
++                -4800.0f,
++                MEMBER_QUICKNESS);
++        if (!prepared)
++        {
++            String detail = buildStatus(leader, member).replace(' ', '_');
++            boolean restored = restorePair(leader, member);
++            return "error=fixtureSetupFailed restored=" + restored +
++                " failedStatus=" + detail;
++        }
++        return "action=prepare resumed=false " +
++            buildStatus(leader, member);
++    }
++
++    private boolean preparePlayer(
++        obj_id player,
++        float x,
++        float z,
++        int expectedQuickness) throws InterruptedException
++    {
++        stopCombat(player);
++        setCombatTarget(player, obj_id.NULL_ID);
++        location destination =
++            new location(
++                x,
++                getHeightAtLocation(x, z),
++                z,
++                "tatooine",
++                null);
++        boolean moved = setLocation(player, destination);
++        boolean locomotion =
++            setLocomotion(player, LOCOMOTION_STANDING);
++        boolean posture =
++            setPostureClientImmediate(player, POSTURE_UPRIGHT);
++        setRegenRate(player, ACTION, 0.0f);
++        boolean novice =
++            hasSkill(player, ENTERTAINER_NOVICE) ||
++            skill.grantSkillToPlayer(player, ENTERTAINER_NOVICE);
++        boolean quickness =
++            setExactAttribute(player, QUICKNESS, expectedQuickness);
++        boolean action =
++            setExactAttribute(player, ACTION, START_ACTION);
++        obj_id inventory = utils.getInventoryContainer(player);
++        obj_id instrument = obj_id.NULL_ID;
++        if (isIdValid(inventory))
++        {
++            instrument = createObject(INSTRUMENT_TEMPLATE, inventory, "");
++        }
++        if (isIdValid(instrument))
++        {
++            setObjVar(player, FIXTURE_INSTRUMENT, instrument);
++        }
++        boolean instrumentReady =
++            isIdValid(instrument) &&
++            instrument.isLoaded() &&
++            equip(instrument, player) &&
++            getInstrumentAudioId(player) == SLITHERHORN_AUDIO_ID;
++        location observed = getLocation(player);
++        return observed != null &&
++            !isIdValid(observed.cell) &&
++            "tatooine".equals(observed.area) &&
++            Math.abs(observed.x - x) < 0.1f &&
++            Math.abs(observed.z - z) < 0.1f &&
++            hasCommand(player, SONG_ABILITY) &&
++            hasCommand(player, INSTRUMENT_ABILITY) &&
++            hasCommand(player, FLOURISH_ABILITY) &&
++            hasSkill(player, ENTERTAINER_NOVICE) &&
++            getAttrib(player, QUICKNESS) == expectedQuickness &&
++            getAttrib(player, ACTION) == START_ACTION &&
++            getInstrumentAudioId(player) == SLITHERHORN_AUDIO_ID &&
++            getPosture(player) == POSTURE_UPRIGHT &&
++            getLocomotion(player) == LOCOMOTION_STANDING &&
++            getRegenRate(player, ACTION) == 0.0f;
++    }
++
++    private String observeGrouped(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership =
++            validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        obj_id groupId = getGroupObject(leader);
++        boolean passed =
++            isIdValid(groupId) &&
++            group.inSameGroup(leader, member) &&
++            getGroupLeaderId(groupId) == leader &&
++            getWorldDistance(
++                getLocation(leader),
++                getLocation(member)) < 3.0f;
++        setFlagPair(leader, member, GROUPED, passed);
++        return "action=observeGrouped passed=" + passed +
++            " " + buildStatus(leader, member);
++    }
++
++    private String observeStart(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership =
++            validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        int leaderStart = getPerformanceStartTime(leader);
++        int memberStart = getPerformanceStartTime(member);
++        boolean passed =
++            readFlag(leader, GROUPED) &&
++            group.inSameGroup(leader, member) &&
++            isActiveMusic(leader) &&
++            isActiveMusic(member) &&
++            leaderStart > 0 &&
++            leaderStart == memberStart &&
++            getAttrib(leader, ACTION) == START_ACTION &&
++            getAttrib(member, ACTION) == START_ACTION;
++        setFlagPair(leader, member, STARTED, passed);
++        return "action=observeStart passed=" + passed +
++            " synchronizedStartTime=" + (leaderStart == memberStart) +
++            " " + buildStatus(leader, member);
++    }
++
++    private String observeFlourish(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership =
++            validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        boolean passed =
++            readFlag(leader, STARTED) &&
++            isActiveMusic(leader) &&
++            isActiveMusic(member) &&
++            getAttrib(leader, ACTION) ==
++                LEADER_FLOURISH_ACTION &&
++            getAttrib(member, ACTION) ==
++                MEMBER_FLOURISH_ACTION;
++        setFlagPair(leader, member, FLOURISHED, passed);
++        return "action=observeFlourish passed=" + passed +
++            " " + buildStatus(leader, member);
++    }
++
++    private String observeStopRequested(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership =
++            validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        boolean passed =
++            readFlag(leader, FLOURISHED) &&
++            hasPendingOutro(leader) &&
++            hasPendingOutro(member) &&
++            getAttrib(leader, ACTION) ==
++                LEADER_FLOURISH_ACTION &&
++            getAttrib(member, ACTION) ==
++                MEMBER_FLOURISH_ACTION;
++        setFlagPair(leader, member, STOP_REQUESTED, passed);
++        return "action=observeStopRequested passed=" + passed +
++            " " + buildStatus(leader, member);
++    }
++
++    private String observeStopped(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership =
++            validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        boolean passed =
++            readFlag(leader, STOP_REQUESTED) &&
++            isStoppedClean(leader) &&
++            isStoppedClean(member) &&
++            getAttrib(leader, ACTION) ==
++                LEADER_STOPPED_ACTION &&
++            getAttrib(member, ACTION) ==
++                MEMBER_STOPPED_ACTION;
++        setFlagPair(leader, member, STOPPED, passed);
++        return "action=observeStopped passed=" + passed +
++            " " + buildStatus(leader, member);
++    }
++
++    private String observeUngrouped(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership =
++            validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        boolean ungrouped =
++            !isIdValid(getGroupObject(leader)) &&
++            !isIdValid(getGroupObject(member));
++        setFlagPair(leader, member, UNGROUPED, ungrouped);
++        boolean passed =
++            ungrouped &&
++            readFlag(leader, GROUPED) &&
++            readFlag(leader, STARTED) &&
++            readFlag(leader, FLOURISHED) &&
++            readFlag(leader, STOP_REQUESTED) &&
++            readFlag(leader, STOPPED);
++        setFlagPair(leader, member, PASSED, passed);
++        return "action=observeUngrouped passed=" + passed +
++            " " + buildStatus(leader, member);
++    }
++
++    private String cleanup(
++        obj_id leader,
++        obj_id member,
++        String lifecycle) throws InterruptedException
++    {
++        if (!hasObjVar(leader, ROOT) && !hasObjVar(member, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership =
++            validateOwnership(leader, member, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (isIdValid(getGroupObject(leader)) ||
++            isIdValid(getGroupObject(member)))
++        {
++            return "error=groupStillActiveUseRealClientDisband";
++        }
++        boolean restored = restorePair(leader, member);
++        return restored
++            ? "action=cleanup alreadyClean=false restored=true " +
++                buildStatus(leader, member)
++            : "error=cleanupRestoreFailed " +
++                buildStatus(leader, member);
++    }
++
++    private void snapshot(
++        obj_id player,
++        obj_id peer,
++        String lifecycle,
++        location original) throws InterruptedException
++    {
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, PEER, peer);
++        setObjVar(player, ORIGINAL_LOCATION, original);
++        setObjVar(player, ORIGINAL_ACTION, getAttrib(player, ACTION));
++        setObjVar(
++            player,
++            ORIGINAL_QUICKNESS,
++            getAttrib(player, QUICKNESS));
++        setObjVar(
++            player,
++            ORIGINAL_ACTION_REGEN,
++            getRegenRate(player, ACTION));
++        setObjVar(player, ORIGINAL_POSTURE, getPosture(player));
++        setObjVar(
++            player,
++            ORIGINAL_LOCOMOTION,
++            getLocomotion(player));
++        setObjVar(
++            player,
++            ORIGINAL_NOVICE,
++            hasSkill(player, ENTERTAINER_NOVICE) ? 1 : 0);
++        setObjVar(
++            player,
++            ORIGINAL_INSTRUMENT_AUDIO,
++            getInstrumentAudioId(player));
++    }
++
++    private boolean restorePair(
++        obj_id leader,
++        obj_id member) throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(leader) ||
++            !hasCompleteSnapshot(member))
++        {
++            return false;
++        }
++        boolean leaderRestored = restorePlayer(leader);
++        boolean memberRestored = restorePlayer(member);
++        if (!leaderRestored || !memberRestored)
++        {
++            return false;
++        }
++        removeObjVar(leader, ROOT);
++        removeObjVar(member, ROOT);
++        return !hasObjVar(leader, ROOT) &&
++            !hasObjVar(member, ROOT);
++    }
++
++    private boolean restorePlayer(obj_id player)
++        throws InterruptedException
++    {
++        if (hasScript(player, performance.MUSIC_HEARTBEAT_SCRIPT))
++        {
++            detachScript(player, performance.MUSIC_HEARTBEAT_SCRIPT);
++        }
++        if (hasScript(player, performance.POST_PERFORMANCE))
++        {
++            detachScript(player, performance.POST_PERFORMANCE);
++        }
++        setPerformanceType(player, 0);
++        setPerformanceStartTime(player, 0);
++        setClientUsesAnimationLocomotion(player, false);
++        if (hasObjVar(player, performance.VAR_PERFORM))
++        {
++            removeObjVar(player, performance.VAR_PERFORM);
++        }
++        if (hasObjVar(player, performance.VAR_PERFORM_OUTRO))
++        {
++            removeObjVar(player, performance.VAR_PERFORM_OUTRO);
++        }
++        if (hasObjVar(player, performance.VAR_PERFORM_FLOURISH))
++        {
++            removeObjVar(player, performance.VAR_PERFORM_FLOURISH);
++        }
++        if (utils.hasScriptVar(player, "performance.performance_delay"))
++        {
++            utils.removeScriptVar(player, "performance.performance_delay");
++        }
++
++        boolean instrumentRemoved = removeFixtureInstrument(player);
++        if (getIntObjVar(player, ORIGINAL_NOVICE) == 0 &&
++            hasSkill(player, ENTERTAINER_NOVICE))
++        {
++            revokeSkill(player, ENTERTAINER_NOVICE);
++        }
++        boolean moved =
++            setLocation(
++                player,
++                getLocationObjVar(player, ORIGINAL_LOCATION));
++        boolean quickness =
++            setExactAttribute(
++                player,
++                QUICKNESS,
++                getIntObjVar(player, ORIGINAL_QUICKNESS));
++        setRegenRate(
++            player,
++            ACTION,
++            getFloatObjVar(player, ORIGINAL_ACTION_REGEN));
++        boolean action =
++            setExactAttribute(
++                player,
++                ACTION,
++                getIntObjVar(player, ORIGINAL_ACTION));
++        boolean locomotion =
++            setLocomotion(
++                player,
++                getIntObjVar(player, ORIGINAL_LOCOMOTION));
++        boolean posture =
++            setPostureClientImmediate(
++                player,
++                getIntObjVar(player, ORIGINAL_POSTURE));
++        return instrumentRemoved && moved && quickness && action &&
++            locomotion && posture &&
++            getRegenRate(player, ACTION) ==
++                getFloatObjVar(player, ORIGINAL_ACTION_REGEN) &&
++            getPerformanceType(player) == 0 &&
++            !hasScript(player, performance.MUSIC_HEARTBEAT_SCRIPT) &&
++            !hasScript(player, performance.POST_PERFORMANCE) &&
++            !hasObjVar(player, performance.VAR_PERFORM) &&
++            !hasObjVar(player, performance.VAR_PERFORM_OUTRO) &&
++            getInstrumentAudioId(player) ==
++                getIntObjVar(player, ORIGINAL_INSTRUMENT_AUDIO) &&
++            hasSkill(player, ENTERTAINER_NOVICE) ==
++                (getIntObjVar(player, ORIGINAL_NOVICE) == 1);
++    }
++
++    private boolean removeFixtureInstrument(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, FIXTURE_INSTRUMENT))
++        {
++            return getInstrumentAudioId(player) ==
++                getIntObjVar(player, ORIGINAL_INSTRUMENT_AUDIO);
++        }
++        obj_id instrument =
++            getObjIdObjVar(player, FIXTURE_INSTRUMENT);
++        if (isIdValid(instrument) && instrument.isLoaded())
++        {
++            obj_id inventory = utils.getInventoryContainer(player);
++            if (isIdValid(inventory))
++            {
++                putInOverloaded(instrument, inventory);
++            }
++            if (!destroyObject(instrument))
++            {
++                return false;
++            }
++        }
++        removeObjVar(player, FIXTURE_INSTRUMENT);
++        return getInstrumentAudioId(player) ==
++            getIntObjVar(player, ORIGINAL_INSTRUMENT_AUDIO);
++    }
++
++    private boolean isIdleClean(obj_id player)
++        throws InterruptedException
++    {
++        return getPerformanceType(player) == 0 &&
++            !hasScript(player, performance.DANCE_HEARTBEAT_SCRIPT) &&
++            !hasScript(player, performance.MUSIC_HEARTBEAT_SCRIPT) &&
++            !hasScript(player, performance.JUGGLE_HEARTBEAT_SCRIPT) &&
++            !hasScript(player, performance.POST_PERFORMANCE) &&
++            !hasObjVar(player, performance.VAR_PERFORM) &&
++            !hasObjVar(player, performance.VAR_PERFORM_OUTRO);
++    }
++
++    private boolean isActiveMusic(obj_id player)
++        throws InterruptedException
++    {
++        return getPerformanceType(player) == STARWARS1_INDEX &&
++            hasScript(player, performance.MUSIC_HEARTBEAT_SCRIPT) &&
++            !hasScript(player, performance.POST_PERFORMANCE) &&
++            getInstrumentAudioId(player) == SLITHERHORN_AUDIO_ID;
++    }
++
++    private boolean hasPendingOutro(obj_id player)
++        throws InterruptedException
++    {
++        return getPerformanceType(player) == STARWARS1_INDEX &&
++            hasScript(player, performance.MUSIC_HEARTBEAT_SCRIPT) &&
++            hasScript(player, performance.POST_PERFORMANCE) &&
++            hasObjVar(player, performance.VAR_PERFORM_OUTRO) &&
++            getIntObjVar(player, performance.VAR_PERFORM_OUTRO) == 1;
++    }
++
++    private boolean isStoppedClean(obj_id player)
++        throws InterruptedException
++    {
++        return getPerformanceType(player) == 0 &&
++            !hasScript(player, performance.MUSIC_HEARTBEAT_SCRIPT) &&
++            !hasScript(player, performance.POST_PERFORMANCE) &&
++            !hasObjVar(player, performance.VAR_PERFORM_OUTRO);
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE) &&
++            hasObjVar(player, PEER) &&
++            hasObjVar(player, ORIGINAL_LOCATION) &&
++            hasObjVar(player, ORIGINAL_ACTION) &&
++            hasObjVar(player, ORIGINAL_QUICKNESS) &&
++            hasObjVar(player, ORIGINAL_ACTION_REGEN) &&
++            hasObjVar(player, ORIGINAL_POSTURE) &&
++            hasObjVar(player, ORIGINAL_LOCOMOTION) &&
++            hasObjVar(player, ORIGINAL_NOVICE) &&
++            hasObjVar(player, ORIGINAL_INSTRUMENT_AUDIO);
++    }
++
++    private String validatePlayer(
++        obj_id player,
++        int stationId,
++        String role) throws InterruptedException
++    {
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded())
++        {
++            return "error=" + role + "NotLoaded";
++        }
++        if (!player.isAuthoritative() || !isPlayer(player) ||
++            getPlayerStationId(player) != stationId)
++        {
++            return "error=" + role + "NotAuthoritative";
++        }
++        return null;
++    }
++
++    private String validateOwnership(
++        obj_id leader,
++        obj_id member,
++        String lifecycle,
++        boolean allowAbsent) throws InterruptedException
++    {
++        boolean leaderRoot = hasObjVar(leader, ROOT);
++        boolean memberRoot = hasObjVar(member, ROOT);
++        if (!leaderRoot && !memberRoot)
++        {
++            return allowAbsent ? "fixtureAbsent" : "error=fixtureAbsent";
++        }
++        if (!leaderRoot || !memberRoot ||
++            !hasCompleteSnapshot(leader) ||
++            !hasCompleteSnapshot(member))
++        {
++            return "error=fixturePartial";
++        }
++        if (!lifecycle.equals(getStringObjVar(leader, LIFECYCLE)) ||
++            !lifecycle.equals(getStringObjVar(member, LIFECYCLE)) ||
++            getObjIdObjVar(leader, PEER) != member ||
++            getObjIdObjVar(member, PEER) != leader)
++        {
++            return "error=fixtureOwnershipMismatch";
++        }
++        return null;
++    }
++
++    private boolean setExactAttribute(
++        obj_id player,
++        int attribute,
++        int value) throws InterruptedException
++    {
++        setAttrib(player, attribute, value);
++        return getAttrib(player, attribute) == value;
++    }
++
++    private void resetTelemetry(obj_id player)
++        throws InterruptedException
++    {
++        setObjVar(player, GROUPED, 0);
++        setObjVar(player, STARTED, 0);
++        setObjVar(player, FLOURISHED, 0);
++        setObjVar(player, STOP_REQUESTED, 0);
++        setObjVar(player, STOPPED, 0);
++        setObjVar(player, UNGROUPED, 0);
++        setObjVar(player, PASSED, 0);
++    }
++
++    private void setFlagPair(
++        obj_id leader,
++        obj_id member,
++        String key,
++        boolean value) throws InterruptedException
++    {
++        setObjVar(leader, key, value ? 1 : 0);
++        setObjVar(member, key, value ? 1 : 0);
++    }
++
++    private boolean readFlag(obj_id player, String key)
++        throws InterruptedException
++    {
++        return hasObjVar(player, key) &&
++            getIntObjVar(player, key) == 1;
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        return lifecycle != null &&
++            lifecycle.matches("[A-Za-z0-9_-]{8,64}");
++    }
++
++    private float getWorldDistance(
++        location first,
++        location second)
++    {
++        float dx = first.x - second.x;
++        float dy = first.y - second.y;
++        float dz = first.z - second.z;
++        return (float)Math.sqrt(
++            dx * dx + dy * dy + dz * dz);
++    }
++
++    private String buildStatus(obj_id leader, obj_id member)
++        throws InterruptedException
++    {
++        obj_id leaderGroup = getGroupObject(leader);
++        return "leader=" + leader +
++            " member=" + member +
++            " grouped=" + group.inSameGroup(leader, member) +
++            " leaderOwnsGroup=" +
++                (isIdValid(leaderGroup) &&
++                    getGroupLeaderId(leaderGroup) == leader) +
++            " distanceCentimeters=" +
++                (int)(getWorldDistance(
++                    getLocation(leader),
++                    getLocation(member)) * 100.0f + 0.5f) +
++            " synchronizedStartTime=" +
++                (getPerformanceStartTime(leader) > 0 &&
++                    getPerformanceStartTime(leader) ==
++                        getPerformanceStartTime(member)) +
++            " leaderAction=" + getAttrib(leader, ACTION) +
++            " memberAction=" + getAttrib(member, ACTION) +
++            " leaderQuickness=" + getAttrib(leader, QUICKNESS) +
++            " memberQuickness=" + getAttrib(member, QUICKNESS) +
++            " leaderActionRegen=" + getRegenRate(leader, ACTION) +
++            " memberActionRegen=" + getRegenRate(member, ACTION) +
++            " leaderPosture=" + getPosture(leader) +
++            " memberPosture=" + getPosture(member) +
++            " leaderLocomotion=" + getLocomotion(leader) +
++            " memberLocomotion=" + getLocomotion(member) +
++            " leaderNovice=" +
++                hasSkill(leader, ENTERTAINER_NOVICE) +
++            " memberNovice=" +
++                hasSkill(member, ENTERTAINER_NOVICE) +
++            " leaderSongAbility=" +
++                hasCommand(leader, SONG_ABILITY) +
++            " memberSongAbility=" +
++                hasCommand(member, SONG_ABILITY) +
++            " leaderInstrumentAbility=" +
++                hasCommand(leader, INSTRUMENT_ABILITY) +
++            " memberInstrumentAbility=" +
++                hasCommand(member, INSTRUMENT_ABILITY) +
++            " leaderFlourishAbility=" +
++                hasCommand(leader, FLOURISH_ABILITY) +
++            " memberFlourishAbility=" +
++                hasCommand(member, FLOURISH_ABILITY) +
++            " leaderPerformance=" + getPerformanceType(leader) +
++            " memberPerformance=" + getPerformanceType(member) +
++            " leaderMusicScript=" +
++                hasScript(leader, performance.MUSIC_HEARTBEAT_SCRIPT) +
++            " memberMusicScript=" +
++                hasScript(member, performance.MUSIC_HEARTBEAT_SCRIPT) +
++            " leaderPostScript=" +
++                hasScript(leader, performance.POST_PERFORMANCE) +
++            " memberPostScript=" +
++                hasScript(member, performance.POST_PERFORMANCE) +
++            " leaderOutro=" +
++                (hasObjVar(leader, performance.VAR_PERFORM_OUTRO) &&
++                    getIntObjVar(
++                        leader,
++                        performance.VAR_PERFORM_OUTRO) == 1) +
++            " memberOutro=" +
++                (hasObjVar(member, performance.VAR_PERFORM_OUTRO) &&
++                    getIntObjVar(
++                        member,
++                        performance.VAR_PERFORM_OUTRO) == 1) +
++            " leaderInstrumentAudio=" +
++                getInstrumentAudioId(leader) +
++            " memberInstrumentAudio=" +
++                getInstrumentAudioId(member) +
++            " groupedObserved=" + readFlag(leader, GROUPED) +
++            " started=" + readFlag(leader, STARTED) +
++            " flourished=" + readFlag(leader, FLOURISHED) +
++            " stopRequested=" +
++                readFlag(leader, STOP_REQUESTED) +
++            " stopped=" + readFlag(leader, STOPPED) +
++            " ungroupedObserved=" +
++                readFlag(leader, UNGROUPED) +
++            " passed=" + readFlag(leader, PASSED);
++    }
++}

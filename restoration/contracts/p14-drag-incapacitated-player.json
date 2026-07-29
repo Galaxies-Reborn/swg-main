@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/drag_incap_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_drag_incapacitated_player_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "source": "MMOCoreORB/src/server/zone/objects/creature/commands/DragIncapacitatedPlayerCommand.h",
+    "publish": "14.1"
+  },
+  "clientTableReference": {
+    "source": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_command_table.tab",
+    "sha256": "f7acb20472cbfc78a182703b8cfbf48a3eeaa84af32acd5e638f9342822258d8"
+  },
+  "commandContract": {
+    "name": "dragIncapacitatedPlayer",
+    "category": "combat",
+    "scriptHook": "cmdDragIncapPlayer",
+    "tempScript": "player.cmd.drag_incap_player",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 2,
+    "executeTimeSeconds": 2,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "requiredSkill": "science_medic_injury_speed_02",
+    "targetType": "distinct loaded player",
+    "lineOfSightRequired": true,
+    "pvpHelpRequired": true,
+    "arenaDuelHelpRejected": true,
+    "outdoorsOnly": true,
+    "patientState": [
+      "incapacitated",
+      "dead"
+    ],
+    "permission": "same group or consent from patient",
+    "minimumRangeMeters": 0.01,
+    "maximumRangeFormula": "10 + healing_ability * 0.2",
+    "maximumMovementMeters": 5,
+    "maximumVerticalDifference": "maximum range",
+    "terrainFloorClamp": true,
+    "facesPatientTowardMedic": true,
+    "effect": "clienteffect/medic_drag.cef",
+    "flyText": "base_player:fly_drag",
+    "pvpHelpPerformed": true
+  },
+  "liveFixture": {
+    "medicOid": 39008597,
+    "medicStationId": 1001,
+    "patientOid": 44003778,
+    "patientStationId": 91001,
+    "actions": [
+      "inspect",
+      "recover",
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporarySkillChain": [
+      "science_medic_novice",
+      "science_medic_injury_speed_01",
+      "science_medic_injury_speed_02"
+    ],
+    "temporaryCommand": "dragIncapacitatedPlayer",
+    "healingAbility": 10,
+    "preparedSeparationMeters": 9,
+    "groupPolicy": "fixture never mutates group or consent; real clients invite, join, and disband",
+    "cleanupPolicy": "restore exact skill, command, healing-ability, incapacitation-resistance, Health-regeneration, location, posture, locomotion, Health, Action, Mind, and medical XP preimages on both identities"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "a025f892e710349eeaae8c9142fd584766d355ac83cd711a7ac867a9b315e87a",
+    "compiledSha256": {
+      "drag_incap_player.class": "f06b1fde7dc502af7f807e2f2aedbee1b4631408c4eeb63a2f5d31836d991a61",
+      "precu_drag_incapacitated_player_fixture.class": "24fc2ebce83e9fa37054caf2f93995fc4f1b5d1f44abc12b513fe2e204d99ce8"
+    },
+    "compiledIffSha256": {
+      "command_table.iff": "4c5dbe6d37c7a1320fa3f4a3c72c019a129082e1b6cd5f8cf6e66faaf991f823"
+    },
+    "clientSha256": "b03cbde225a0567a4332c0945c86305f34c2e16474fcf1b39595ed255177207a"
+  },
+  "materializationEvidence": {
+    "result": "passed",
+    "stage": "E:/SWG/SWGSource/Staging/swg-precu-drag-ready-20260718-106",
+    "overlayPatchCount": 53,
+    "phaseAFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "readyGates": [
+      "p14-drag-incapacitated-player",
+      "phase-a",
+      "p14-first-aid",
+      "p14-medic-tier1",
+      "p14-medical-forage",
+      "p14-diagnose"
+    ]
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "db4577196dfb4dc08ba814ef8b2918fe",
+    "clientProtocolVersion": 21,
+    "clientQueueCountAtAdmission": 0,
+    "handlerCalls": 1,
+    "targetOid": 44003778,
+    "healingAbility": 10,
+    "maximumRangeCentimeters": 1200,
+    "preDistanceCentimeters": 900,
+    "postDistanceCentimeters": 400,
+    "movedCentimeters": 500,
+    "grouped": true,
+    "consented": false,
+    "patientIncapacitatedAfter": true,
+    "handlerOutcome": "performed",
+    "medicHealthBefore": 950,
+    "medicHealthAfter": 950,
+    "medicActionBefore": 500,
+    "medicActionAfter": 500,
+    "medicMindBefore": 400,
+    "medicMindAfter": 400,
+    "patientHealthBefore": 0,
+    "patientHealthAfter": 0,
+    "patientActionBefore": 500,
+    "patientActionAfter": 500,
+    "patientMindBefore": 100,
+    "patientMindAfter": 100,
+    "medicalXpBefore": 0,
+    "medicalXpAfter": 0,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "groupDisbanded": true,
+    "clientQueueCountAfterCleanup": 0,
+    "serverHealthyAfterCleanup": true
+  },
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target nonqueued command row",
+      "Core3 tier-II, PvP, LOS, outdoors, state, permission, range, height, movement, effect, and help semantics",
+      "protocol-21 background client admission",
+      "identity-bound reversible two-player live fixture"
+    ],
+    "deferred": [
+      "complete Medic tier-II skill-row progression activation",
+      "remaining tier-II commands and schematics"
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 7793220..cf92f4f 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14744,6 +14744,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int overChargeShot2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("overChargeShot2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int polearmSpinAttack1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("polearmSpinAttack1", self, target, params, "", ""))
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index c5fadb0..15b9280 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1966,3 +1966,4 @@ unarmedBodyHit1	combat	normal	unarmedBodyHit1	failSpecialAttack			2	unarmedBodyH
+ unarmedLegHit1	combat	normal	unarmedLegHit1	failSpecialAttack			2	unarmedLegHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ unarmedSpinAttack1	combat	normal	unarmedSpinAttack1	failSpecialAttack			2	unarmedSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ unarmedSpinAttack2	combat	normal	unarmedSpinAttack2	failSpecialAttack			3	unarmedSpinAttack2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	3	0		0	0	0
++overChargeShot2	combat	normal	overChargeShot2	failSpecialAttack			2	overChargeShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RANGED	NONE	defaultCooldownGroup	0	2	0		0	0	0
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 7712fa4..a48bd45 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1330,3 +1330,4 @@ unarmedBodyHit1	unarmedBodyHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH
+ unarmedLegHit1	unarmedLegHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_special_foot_stomp	attack_special_foot_stomp													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+ unarmedSpinAttack1	unarmedSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3c	combo_3c													OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+ unarmedSpinAttack2	unarmedSpinAttack2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3d	combo_3d													OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
++overChargeShot2	overChargeShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3.75	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index d3c4da9..dfbe2ea 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -46,3 +46,4 @@ unarmedBodyHit1	1.75	1.75	1.75	HEALTH	2	15	INTENSITY
+ unarmedLegHit1	1.75	1.75	1.75	ACTION	2	15	INTENSITY
+ unarmedSpinAttack1	1.5	1.5	1.5	RANDOM	2	15	INTENSITY
+ unarmedSpinAttack2	2	2	2	RANDOM	3	15	INTENSITY
++overChargeShot2	1	1	1	RANDOM	2	15	RANGED
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 2aaf9e5..78f9068 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -45,3 +45,4 @@ unarmedBodyHit1	rancorrising
+ unarmedLegHit1	grondastomp
+ unarmedSpinAttack1	leapingveermok
+ unarmedSpinAttack2	unarmed_knockdown
++overChargeShot2	overchargeshot

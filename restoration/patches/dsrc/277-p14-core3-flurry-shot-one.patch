@@ -1,0 +1,374 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 7c1cb85..1ce4475 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15261,6 +15261,15 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int flurryShot1(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("flurryShot1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int sniperShot(obj_id self, obj_id target, String params,
+         float defaultTime) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index e7f4973..fbbf11c 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -40,6 +40,8 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_rifleman_accuracy_04";
+     private static final String RIFLEMAN_SPEED_ONE =
+         "combat_rifleman_speed_01";
++    private static final String RIFLEMAN_SUPPORT_ONE =
++        "combat_rifleman_support_01";
+     private static final String MARKSMAN_CARBINE_ONE =
+         "combat_marksman_carbine_01";
+     private static final String MARKSMAN_CARBINE_TWO =
+@@ -91,6 +93,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String SURPRISE_SHOT_COMMAND = "surpriseShot";
+     private static final String SNIPER_SHOT_COMMAND = "sniperShot";
+     private static final String CONCEAL_SHOT_COMMAND = "concealShot";
++    private static final String FLURRY_SHOT_ONE_COMMAND = "flurryShot1";
+     private static final String CDEF_CERTIFICATION = "cert_rifle_cdef";
+     private static final String PISTOL_CDEF_CERTIFICATION = "cert_pistol_cdef";
+     private static final String CARBINE_CDEF_CERTIFICATION = "cert_carbine_cdef";
+@@ -218,6 +221,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalRiflemanAccuracyFour";
+     private static final String ORIGINAL_RIFLEMAN_SPEED_ONE =
+         ROOT + ".originalRiflemanSpeedOne";
++    private static final String ORIGINAL_RIFLEMAN_SUPPORT_ONE =
++        ROOT + ".originalRiflemanSupportOne";
+     private static final String ORIGINAL_CARBINE_ONE =
+         ROOT + ".originalCarbineOne";
+     private static final String ORIGINAL_CARBINE_TWO =
+@@ -284,6 +289,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalSniperShotCommand";
+     private static final String ORIGINAL_CONCEAL_SHOT_COMMAND =
+         ROOT + ".originalConcealShotCommand";
++    private static final String ORIGINAL_FLURRY_SHOT_ONE_COMMAND =
++        ROOT + ".originalFlurryShotOneCommand";
+     private static final String ORIGINAL_PISTOL_CDEF_CERTIFICATION =
+         ROOT + ".originalPistolCdefCertification";
+     private static final String ORIGINAL_CARBINE_CDEF_CERTIFICATION =
+@@ -671,6 +678,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean riflemanSpeedOneGranted = riflemanNoviceGranted &&
+             (hasSkill(attacker, RIFLEMAN_SPEED_ONE) ||
+                 grantSkill(attacker, RIFLEMAN_SPEED_ONE));
++        boolean riflemanSupportOneGranted = riflemanNoviceGranted &&
++            (hasSkill(attacker, RIFLEMAN_SUPPORT_ONE) ||
++                grantSkill(attacker, RIFLEMAN_SUPPORT_ONE));
+         boolean carbineOneGranted = noviceGranted &&
+             (hasSkill(attacker, MARKSMAN_CARBINE_ONE) ||
+                 grantSkill(attacker, MARKSMAN_CARBINE_ONE));
+@@ -760,6 +770,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean concealShotGranted =
+             hasCommand(attacker, CONCEAL_SHOT_COMMAND) ||
+             grantCommand(attacker, CONCEAL_SHOT_COMMAND);
++        boolean flurryShotOneGranted =
++            hasCommand(attacker, FLURRY_SHOT_ONE_COMMAND) ||
++            grantCommand(attacker, FLURRY_SHOT_ONE_COMMAND);
+         boolean cdefCertificationGranted = hasCommand(attacker, CDEF_CERTIFICATION) ||
+             grantCommand(attacker, CDEF_CERTIFICATION);
+         boolean pistolCdefCertificationGranted =
+@@ -978,6 +991,7 @@ public class precu_headshot1_fixture extends script.base_script
+             !riflemanNoviceGranted || !riflemanAccuracyOneGranted ||
+             !riflemanAccuracyTwoGranted || !riflemanAccuracyThreeGranted ||
+             !riflemanAccuracyFourGranted || !riflemanSpeedOneGranted ||
++            !riflemanSupportOneGranted ||
+             !carbineOneGranted || !carbineTwoGranted ||
+             !carbineThreeGranted || !carbineFourGranted ||
+             !carbineNoviceGranted || !carbineAccuracyOneGranted ||
+@@ -1015,6 +1029,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, SNIPER_SHOT_COMMAND) ||
+             !concealShotGranted ||
+             !hasCommand(attacker, CONCEAL_SHOT_COMMAND) ||
++            !flurryShotOneGranted ||
++            !hasCommand(attacker, FLURRY_SHOT_ONE_COMMAND) ||
+             !cdefCertificationGranted || !hasCommand(attacker, CDEF_CERTIFICATION) ||
+             !pistolCdefCertificationGranted ||
+             !hasCommand(attacker, PISTOL_CDEF_CERTIFICATION) ||
+@@ -1165,6 +1181,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 " surpriseShot=" + hasCommand(attacker, SURPRISE_SHOT_COMMAND) +
+                 " sniperShot=" + hasCommand(attacker, SNIPER_SHOT_COMMAND) +
+                 " concealShot=" + hasCommand(attacker, CONCEAL_SHOT_COMMAND) +
++                " flurryShotOne=" +
++                    hasCommand(attacker, FLURRY_SHOT_ONE_COMMAND) +
+                 " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION) +
+                 " pistolCdefCertification=" +
+                     hasCommand(attacker, PISTOL_CDEF_CERTIFICATION) +
+@@ -1511,6 +1529,13 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, CONCEAL_SHOT_COMMAND);
+         }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND) == 0 &&
++            hasCommand(attacker, FLURRY_SHOT_ONE_COMMAND))
++        {
++            revokeCommand(attacker, FLURRY_SHOT_ONE_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) &&
+             getIntObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) == 0 &&
+             hasCommand(attacker, CDEF_CERTIFICATION))
+@@ -1701,6 +1726,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 SNIPER_SHOT_COMMAND);
+             restoreCommand(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
+                 CONCEAL_SHOT_COMMAND);
++            restoreCommand(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND,
++                FLURRY_SHOT_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+                 SCATTER_SHOT_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -2004,6 +2031,13 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, RIFLEMAN_SPEED_ONE);
+         }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_RIFLEMAN_SUPPORT_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_RIFLEMAN_SUPPORT_ONE) == 0 &&
++            hasSkill(attacker, RIFLEMAN_SUPPORT_ONE))
++        {
++            revokeSkill(attacker, RIFLEMAN_SUPPORT_ONE);
++        }
+         if (attackerRoot &&
+             hasObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) == 0 &&
+@@ -2589,6 +2623,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, RIFLEMAN_ACCURACY_FOUR) ? 1 : 0);
+         setObjVar(player, ORIGINAL_RIFLEMAN_SPEED_ONE,
+             hasSkill(player, RIFLEMAN_SPEED_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_RIFLEMAN_SUPPORT_ONE,
++            hasSkill(player, RIFLEMAN_SUPPORT_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_ONE,
+             hasSkill(player, MARKSMAN_CARBINE_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_TWO,
+@@ -2657,6 +2693,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, SNIPER_SHOT_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CONCEAL_SHOT_COMMAND,
+             hasCommand(player, CONCEAL_SHOT_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_FLURRY_SHOT_ONE_COMMAND,
++            hasCommand(player, FLURRY_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CDEF_CERTIFICATION,
+             hasCommand(player, CDEF_CERTIFICATION) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PISTOL_CDEF_CERTIFICATION,
+@@ -2943,6 +2981,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, CONCEAL_SHOT_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND) == 0 &&
++            hasCommand(attacker, FLURRY_SHOT_ONE_COMMAND))
++        {
++            revokeCommand(attacker, FLURRY_SHOT_ONE_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) &&
+             getIntObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) == 0 &&
+             hasCommand(attacker, CDEF_CERTIFICATION))
+@@ -3113,6 +3157,8 @@ public class precu_headshot1_fixture extends script.base_script
+             SNIPER_SHOT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
+             CONCEAL_SHOT_COMMAND);
++        restoreCommand(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND,
++            FLURRY_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             SCATTER_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3393,6 +3439,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, RIFLEMAN_SPEED_ONE);
+         }
++        if (hasObjVar(attacker, ORIGINAL_RIFLEMAN_SUPPORT_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_RIFLEMAN_SUPPORT_ONE) == 0 &&
++            hasSkill(attacker, RIFLEMAN_SUPPORT_ONE))
++        {
++            revokeSkill(attacker, RIFLEMAN_SUPPORT_ONE);
++        }
+         if (hasObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) == 0 &&
+             hasSkill(attacker, RIFLEMAN_ACCURACY_THREE))
+@@ -3544,6 +3596,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 SNIPER_SHOT_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
+                 CONCEAL_SHOT_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND,
++                FLURRY_SHOT_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+                 SCATTER_SHOT_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3557,6 +3611,8 @@ public class precu_headshot1_fixture extends script.base_script
+             isCommandRestored(attacker, ORIGINAL_LEG_SHOT_THREE_COMMAND,
+                 LEG_SHOT_THREE_COMMAND);
+         boolean riflemanSkillsRestored =
++            isSkillRestored(attacker, ORIGINAL_RIFLEMAN_SUPPORT_ONE,
++                RIFLEMAN_SUPPORT_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_RIFLEMAN_SPEED_ONE,
+                 RIFLEMAN_SPEED_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_RIFLEMAN_ACCURACY_FOUR,
+@@ -3728,6 +3784,8 @@ public class precu_headshot1_fixture extends script.base_script
+             SNIPER_SHOT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
+             CONCEAL_SHOT_COMMAND);
++        restoreCommand(attacker, ORIGINAL_FLURRY_SHOT_ONE_COMMAND,
++            FLURRY_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             SCATTER_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -4022,6 +4080,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean riflemanSpeedOneReady = riflemanNoviceReady &&
+             (hasSkill(attacker, RIFLEMAN_SPEED_ONE) ||
+                 grantSkill(attacker, RIFLEMAN_SPEED_ONE));
++        boolean riflemanSupportOneReady = riflemanNoviceReady &&
++            (hasSkill(attacker, RIFLEMAN_SUPPORT_ONE) ||
++                grantSkill(attacker, RIFLEMAN_SUPPORT_ONE));
+         boolean carbineOneReady =
+             hasSkill(attacker, MARKSMAN_CARBINE_ONE) ||
+             grantSkill(attacker, MARKSMAN_CARBINE_ONE);
+@@ -4108,6 +4169,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean concealShotReady =
+             hasCommand(attacker, CONCEAL_SHOT_COMMAND) ||
+             grantCommand(attacker, CONCEAL_SHOT_COMMAND);
++        boolean flurryShotOneReady =
++            hasCommand(attacker, FLURRY_SHOT_ONE_COMMAND) ||
++            grantCommand(attacker, FLURRY_SHOT_ONE_COMMAND);
+         boolean cdefCertificationReady = hasCommand(attacker, CDEF_CERTIFICATION) ||
+             grantCommand(attacker, CDEF_CERTIFICATION);
+         boolean pistolCdefCertificationReady =
+@@ -4325,7 +4389,7 @@ public class precu_headshot1_fixture extends script.base_script
+             rifleFourReady && riflemanNoviceReady &&
+             riflemanAccuracyOneReady && riflemanAccuracyTwoReady &&
+             riflemanAccuracyThreeReady && riflemanAccuracyFourReady &&
+-            riflemanSpeedOneReady &&
++            riflemanSpeedOneReady && riflemanSupportOneReady &&
+             carbineOneReady && carbineTwoReady &&
+             carbineThreeReady && carbineFourReady &&
+             carbineNoviceReady && carbineAccuracyOneReady &&
+@@ -4343,7 +4407,7 @@ public class precu_headshot1_fixture extends script.base_script
+             bodyShotTwoReady && bodyShotThreeReady &&
+             healthShotOneReady && actionShotOneReady && actionShotTwoReady &&
+             mindShotOneReady && mindShotTwoReady && surpriseShotReady &&
+-            sniperShotReady && concealShotReady &&
++            sniperShotReady && concealShotReady && flurryShotOneReady &&
+             cdefCertificationReady && pistolCdefCertificationReady &&
+             carbineCdefCertificationReady &&
+             polearmCommandReady && polearmLegTwoCommandReady &&
+@@ -4687,6 +4751,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_THREE) &&
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_FOUR) &&
+             hasObjVar(player, ORIGINAL_RIFLEMAN_SPEED_ONE) &&
++            hasObjVar(player, ORIGINAL_RIFLEMAN_SUPPORT_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_TWO) &&
+             hasObjVar(player, ORIGINAL_CARBINE_THREE) &&
+@@ -4721,6 +4786,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_SURPRISE_SHOT_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SNIPER_SHOT_COMMAND) &&
+             hasObjVar(player, ORIGINAL_CONCEAL_SHOT_COMMAND) &&
++            hasObjVar(player, ORIGINAL_FLURRY_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_CDEF_CERTIFICATION) &&
+             hasObjVar(player, ORIGINAL_PISTOL_CDEF_CERTIFICATION) &&
+             hasObjVar(player, ORIGINAL_CARBINE_CDEF_CERTIFICATION) &&
+@@ -4895,6 +4961,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(SNIPER_SHOT_COMMAND, attacker) : -1;
+         int canPerformConcealShot = isIdValid(weapon) ?
+             combat.canPerformAction(CONCEAL_SHOT_COMMAND, attacker) : -1;
++        int canPerformFlurryShotOne = isIdValid(weapon) ?
++            combat.canPerformAction(FLURRY_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformPolearm =
+             isIdValid(weapon) ? combat.canPerformAction(POLEARM_COMMAND, attacker) : -1;
+         int canPerformPolearmLegTwo = isIdValid(weapon) ?
+@@ -5108,6 +5176,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(SNIPER_SHOT_COMMAND);
+         combat_data concealShotData =
+             combat_engine.getCombatData(CONCEAL_SHOT_COMMAND);
++        combat_data flurryShotOneData =
++            combat_engine.getCombatData(FLURRY_SHOT_ONE_COMMAND);
+         int[] healthShotCosts =
+             healthShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, healthShotData) :
+@@ -5247,6 +5317,10 @@ public class precu_headshot1_fixture extends script.base_script
+             concealShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, concealShotData) :
+             new int[] {-1, -1, -1};
++        int[] flurryShotOneCosts =
++            flurryShotOneData != null && flameWeaponData != null ?
++            combat.getActionCost(attacker, flameWeaponData, flurryShotOneData) :
++            new int[] {-1, -1, -1};
+         String fixtureLightning = hasObjVar(attacker, FIXTURE_LIGHTNING) ?
+             getObjIdObjVar(attacker, FIXTURE_LIGHTNING).toString() : "none";
+         int nextAttackDelayUntil = utils.hasScriptVar(
+@@ -5284,6 +5358,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " riflemanAccuracyFour=" +
+                 hasSkill(attacker, RIFLEMAN_ACCURACY_FOUR) +
+             " riflemanSpeedOne=" + hasSkill(attacker, RIFLEMAN_SPEED_ONE) +
++            " riflemanSupportOne=" + hasSkill(attacker, RIFLEMAN_SUPPORT_ONE) +
+             " carbineOne=" + hasSkill(attacker, MARKSMAN_CARBINE_ONE) +
+             " carbineTwo=" + hasSkill(attacker, MARKSMAN_CARBINE_TWO) +
+             " carbineThree=" + hasSkill(attacker, MARKSMAN_CARBINE_THREE) +
+@@ -5329,6 +5404,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " surpriseShot=" + hasCommand(attacker, SURPRISE_SHOT_COMMAND) +
+             " sniperShot=" + hasCommand(attacker, SNIPER_SHOT_COMMAND) +
+             " concealShot=" + hasCommand(attacker, CONCEAL_SHOT_COMMAND) +
++            " flurryShotOne=" + hasCommand(attacker, FLURRY_SHOT_ONE_COMMAND) +
+             " concealTarget=" +
+                 (concealTargetExists ? concealTarget.toString() : "none") +
+             " concealTargetExists=" + concealTargetExists +
+@@ -6000,6 +6076,16 @@ public class precu_headshot1_fixture extends script.base_script
+             " concealShotDamageMultiplier=" +
+                 (concealShotData == null ? -1.0f :
+                     concealShotData.percentAddFromWeapon) +
++            " canPerformFlurryShotOne=" + canPerformFlurryShotOne +
++            " flurryShotOneHealthCost=" + flurryShotOneCosts[0] +
++            " flurryShotOneActionCost=" + flurryShotOneCosts[1] +
++            " flurryShotOneMindCost=" + flurryShotOneCosts[2] +
++            " flurryShotOnePrecuHamCostModel=" +
++                (flurryShotOneData == null ? -1 :
++                    flurryShotOneData.precuHamCostModel) +
++            " flurryShotOneDamageMultiplier=" +
++                (flurryShotOneData == null ? -1.0f :
++                    flurryShotOneData.percentAddFromWeapon) +
+             " bleedingDotStrength=" +
+                 dot.getDotStrength(defender, bleedingDotId) +
+             " bleedingDotDuration=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 2d22b3b..48b8505 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1374,3 +1374,4 @@ strafeShot1	strafeShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				obj
+ surpriseShot	surpriseShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ sniperShot	sniperShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single_medium_face								fire_1_special_single_medium_face						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ concealShot	concealShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
++flurryShot1	flurryShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single								fire_5_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index e40d9f0..b7f2ae2 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -90,3 +90,4 @@ chargeShot1	0.5	2.0	0.5	RANDOM	2.0	25	NONE																										100
+ chargeShot2	0.5	1.5	0.5	RANDOM	2.0	25	NONE																										100
+ strafeShot1	0.5	0.5	1.5	RANDOM	2.0	5	RANGED			REMOVE_COVER	75	0	10
+ concealShot	0.5	0.5	1.5	RANDOM	2.0	5	RANGED
++flurryShot1	0.5	0.5	1.5	RANDOM	2.0	5	RANGED			DIZZY	85	0	45	dizzy_defense	jedi_state_defense	resistance_states
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index e7b6b29..ed33378 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -89,3 +89,4 @@ chargeShot1	chargeshot
+ chargeShot2	chargeblast
+ strafeShot1	strafeshot
+ concealShot	concealedshot
++flurryShot1	flurryshot
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 77cab01..2ae8e73 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2024,3 +2024,4 @@ chargeShot1	combat	normal	chargeShot1	failSpecialAttack			1.5	chargeShot1	1	0	1
+ chargeShot2	combat	normal	chargeShot2	failSpecialAttack			1.5	chargeShot2	1	0	1	1	0	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ strafeShot1	combat	normal	strafeShot1	failSpecialAttack			1.5	strafeShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ concealShot	combat	normal	concealShot	failSpecialAttack			1.5	concealShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++flurryShot1	combat	normal	flurryShot1	failSpecialAttack			1.5	flurryShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

@@ -1,0 +1,1507 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/meditation.java b/sku.0/sys.server/compiled/game/script/library/meditation.java
+index e392bcd41..02ba01b8b 100755
+--- a/sku.0/sys.server/compiled/game/script/library/meditation.java
++++ b/sku.0/sys.server/compiled/game/script/library/meditation.java
+@@ -12,13 +12,42 @@ public class meditation extends script.base_script
+     }
+     public static final float INITIAL_DELAY = 3.5f;
+     public static final float TIME_TICK = 5.0f;
+-    public static final float POWERBOOST_RAMP = 60.0f;
++    public static final float POWERBOOST_RAMP = 60.0f;
++    public static final int POWERBOOST_BASE_DURATION = 300;
++    public static final int POWERBOOST_RAMP_TICKS = 20;
+     public static final String MOD_MEDITATE = "meditate";
+     public static final String VAR_MEDITATION_BASE = "meditation";
+-    public static final String VAR_POWERBOOST_ACTIVE = "meditation.powerBoost";
+-    public static final String VAR_FORCE_OF_WILL_ACTIVE = "meditation.forceOfWill";
++    public static final String VAR_POWERBOOST_ACTIVE = "meditation.powerBoost";
++    public static final String VAR_POWERBOOST_BONUS =
++        "meditation.powerBoostBonus";
++    public static final String VAR_POWERBOOST_TICK =
++        "meditation.powerBoostTick";
++    public static final String VAR_POWERBOOST_DURATION =
++        "meditation.powerBoostDuration";
++    public static final String VAR_POWERBOOST_COUNTER =
++        "meditation.powerBoostCounter";
++    public static final String VAR_POWERBOOST_HEALTH_ACTION_APPLIED =
++        "meditation.powerBoostHealthActionApplied";
++    public static final String VAR_POWERBOOST_MIND_APPLIED =
++        "meditation.powerBoostMindApplied";
++    public static final String VAR_FORCE_OF_WILL_ACTIVE = "meditation.forceOfWill";
++    public static final String MOD_POWERBOOST_DRAIN =
++        "meditation.powerboost.drain";
++    public static final String MOD_POWERBOOST_RESTORE =
++        "meditation.powerboost.restore";
++    public static final String MOD_POWERBOOST_MIND =
++        "meditation.powerboost.mind";
++    public static final String MOD_POWERBOOST_HEALTH =
++        "meditation.powerboost.health";
++    public static final String MOD_POWERBOOST_ACTION =
++        "meditation.powerboost.action";
++    public static final String MOD_FORCE_OF_WILL_PREFIX =
++        "meditation.forceofwill.";
+     public static final String SCRIPT_MEDITATE = "player.skill.meditate";
+-    public static final String HANDLER_MEDITATION_TICK = "handleMeditationTick";
++    public static final String HANDLER_MEDITATION_TICK = "handleMeditationTick";
++    public static final String HANDLER_POWERBOOST_TICK = "handlePowerBoostTick";
++    public static final String HANDLER_POWERBOOST_MIND_RISE =
++        "handlePowerBoostMindRise";
+     public static final String HANDLER_POWERBOOST_WANE = "handlePowerBoostWane";
+     public static final String HANDLER_POWERBOOST_END = "handlePowerBoostEnd";
+     public static final String STF_TERASKASI = "teraskasi";
+@@ -182,7 +211,7 @@ public class meditation extends script.base_script
+         sendSystemMessageProse(player, message);
+         return TIME_TICK;
+     }
+-    public static boolean forceOfWill(obj_id player, int delta) throws InterruptedException
++    public static boolean forceOfWill(obj_id player, int delta) throws InterruptedException
+     {
+         if (!isIdValid(player))
+         {
+@@ -197,35 +226,83 @@ public class meditation extends script.base_script
+         {
+             return false;
+         }
+-        if (delta < 10)
+-        {
+-            addShockWound(player, 100);
+-            sendSystemMessage(player, new string_id(STF_TERASKASI, "forceofwill_crit_fail"));
+-        }
+-        else if (delta < 40)
+-        {
+-            for (int i = 0; i < 3; i++)
+-            {
+-                addAttribModifier(player, i * 3, -200, 300, 0.0f, 0.0f);
+-            }
+-            addShockWound(player, 100);
+-            sendSystemMessage(player, new string_id(STF_TERASKASI, "forceofwill_marginal"));
+-        }
+-        else if (delta < 70)
+-        {
+-            for (int i = 0; i < 3; i++)
+-            {
+-                addAttribModifier(player, i * 3, -100, 300, 0.0f, 0.0f);
+-            }
+-            sendSystemMessage(player, new string_id(STF_TERASKASI, "forceofwill_normal"));
++        clearForceOfWillModifiers(player);
++        if (delta < 10)
++        {
++            for (int attribute = HEALTH; attribute <= WILLPOWER; ++attribute)
++            {
++                addWound(player, attribute, 100);
++            }
++            addShockWound(player, 100);
++            sendSystemMessage(player,
++                new string_id(STF_TERASKASI, "forceofwill_crit_fail"));
++        }
++        else if (delta < 40)
++        {
++            for (int attribute = HEALTH; attribute <= WILLPOWER; ++attribute)
++            {
++                addAttribModifier(player,
++                    MOD_FORCE_OF_WILL_PREFIX + attribute, attribute, -200,
++                    300.0f, 0.0f, 0.0f, false, false, true);
++            }
++            addShockWound(player, 100);
++            sendSystemMessage(player,
++                new string_id(STF_TERASKASI, "forceofwill_marginal"));
++        }
++        else if (delta < 70)
++        {
++            for (int attribute = HEALTH; attribute <= WILLPOWER; ++attribute)
++            {
++                addAttribModifier(player,
++                    MOD_FORCE_OF_WILL_PREFIX + attribute, attribute, -100,
++                    120.0f, 0.0f, 0.0f, false, false, true);
++            }
++            sendSystemMessage(player,
++                new string_id(STF_TERASKASI, "forceofwill_normal"));
+         }
+         else 
+         {
+             sendSystemMessage(player, new string_id(STF_TERASKASI, "forceofwill_exceptional"));
+         }
+-        innate.equalizeEffect(player);
+-        return true;
+-    }
++        innate.equalizeEffect(player);
++        utils.removeScriptVar(player, "incap.timeStamp");
++        setCount(player, 0);
++        setState(player, STATE_FEIGN_DEATH, false);
++        setPostureClientImmediate(player, POSTURE_UPRIGHT);
++        return true;
++    }
++    public static String getForceOfWillTier(int delta)
++    {
++        if (delta < 10)
++        {
++            return "critical";
++        }
++        if (delta < 40)
++        {
++            return "marginal";
++        }
++        if (delta < 70)
++        {
++            return "normal";
++        }
++        return "exceptional";
++    }
++    public static void clearForceOfWillModifiers(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player))
++        {
++            return;
++        }
++        for (int attribute = HEALTH; attribute <= WILLPOWER; ++attribute)
++        {
++            String name = MOD_FORCE_OF_WILL_PREFIX + attribute;
++            if (hasAttribModifier(player, name))
++            {
++                removeAttribOrSkillModModifier(player, name);
++            }
++        }
++    }
+     public static boolean forceOfWill(obj_id player) throws InterruptedException
+     {
+         if (!isIdValid(player))
+@@ -234,7 +311,7 @@ public class meditation extends script.base_script
+         }
+         return forceOfWill(player, rand(1, getMeditationSkillMod(player)));
+     }
+-    public static boolean powerBoost(obj_id player) throws InterruptedException
++    public static boolean powerBoost(obj_id player) throws InterruptedException
+     {
+         if (!isIdValid(player))
+         {
+@@ -250,39 +327,136 @@ public class meditation extends script.base_script
+             sendSystemMessage(player, SID_MUST_BE_MEDITATING);
+             return false;
+         }
+-        if (hasObjVar(player, VAR_POWERBOOST_ACTIVE))
++        if (hasObjVar(player, VAR_POWERBOOST_ACTIVE) ||
++            hasPowerBoostModifiers(player))
+         {
+             sendSystemMessage(player, SID_POWERBOOST_ACTIVE);
+             return false;
+         }
+-        int now = getGameTime();
+-        float duration = 300.0f + (float)(modval) * 3 * rand(0.95f, 1.05f);
+-        int maxMind = utils.getUnbuffedWoundedMaxAttrib(player, MIND);
+-        if (maxMind < 10)
++        int baseMind = utils.getUnbuffedWoundedMaxAttrib(player, MIND);
++        if (baseMind < POWERBOOST_RAMP_TICKS)
+         {
+             sendSystemMessage(player, SID_STATE_PREVENTS_POWERBOOST);
+             return false;
+         }
+-        int boost = maxMind / 2;
+-        if (getAttrib(player, MIND) <= boost)
++        int boost = baseMind / 2;
++        if (getAttrib(player, MIND) <= boost)
+         {
+             sendSystemMessage(player, SID_MIND_POOL_TOO_LOW);
+             return false;
+         }
+-        addAttribModifier(player, MIND, -boost, POWERBOOST_RAMP, 0.0f, 0.0f);
+-        addAttribModifier(player, "meditation.powerboost.mind", MIND, boost, duration, POWERBOOST_RAMP, POWERBOOST_RAMP, false, false, true);
+-        addAttribModifier(player, "meditation.powerboost.health", HEALTH, boost, duration, POWERBOOST_RAMP, POWERBOOST_RAMP, false, false, false);
+-        addAttribModifier(player, "meditation.powerboost.action", ACTION, boost, duration, POWERBOOST_RAMP, POWERBOOST_RAMP, false, false, false);
+-        int wane_time = (int)(duration + POWERBOOST_RAMP);
+-        int expire_time = wane_time + (int)POWERBOOST_RAMP;
+-        int expiration = now + expire_time;
+-        setObjVar(player, VAR_POWERBOOST_ACTIVE, expiration);
+-        dictionary d = new dictionary();
+-        d.put("expiration", expiration);
+-        messageTo(player, HANDLER_POWERBOOST_WANE, d, wane_time, false);
+-        messageTo(player, HANDLER_POWERBOOST_END, d, expire_time, true);
+-        messageTo(player, "handlePowerBoostLog", null, POWERBOOST_RAMP * 2, false);
+-        sendSystemMessage(player, SID_POWERBOOST_BEGIN);
+-        return true;
+-    }
+-}
++        int tick = boost / POWERBOOST_RAMP_TICKS;
++        int adjustedBoost = tick * POWERBOOST_RAMP_TICKS;
++        int duration = POWERBOOST_BASE_DURATION +
++            (modval / 100) * POWERBOOST_BASE_DURATION;
++        if (tick < 1 || adjustedBoost < POWERBOOST_RAMP_TICKS)
++        {
++            sendSystemMessage(player, SID_STATE_PREVENTS_POWERBOOST);
++            return false;
++        }
++        float plateau = Math.max(0.0f,
++            duration - (POWERBOOST_RAMP * 2.0f));
++        boolean applied =
++            addAttribModifier(player, MOD_POWERBOOST_DRAIN, MIND,
++                -adjustedBoost, POWERBOOST_RAMP, 0.0f, 0.0f,
++                true, false, true) &&
++            addAttribModifier(player, MOD_POWERBOOST_RESTORE, MIND,
++                adjustedBoost, 0.0f, POWERBOOST_RAMP,
++                0.0f, false, false, true) &&
++            addAttribModifier(player, MOD_POWERBOOST_HEALTH, HEALTH,
++                adjustedBoost, plateau, POWERBOOST_RAMP,
++                POWERBOOST_RAMP, false, false, false) &&
++            addAttribModifier(player, MOD_POWERBOOST_ACTION, ACTION,
++                adjustedBoost, plateau, POWERBOOST_RAMP,
++                POWERBOOST_RAMP, false, false, false);
++        if (!applied)
++        {
++            return false;
++        }
++        int now = getGameTime();
++        int expiration = now + duration;
++        setObjVar(player, VAR_POWERBOOST_ACTIVE, expiration);
++        setObjVar(player, VAR_POWERBOOST_BONUS, adjustedBoost);
++        setObjVar(player, VAR_POWERBOOST_TICK, tick);
++        setObjVar(player, VAR_POWERBOOST_DURATION, duration);
++        dictionary d = new dictionary();
++        d.put("expiration", expiration);
++        messageTo(player, HANDLER_POWERBOOST_MIND_RISE, d,
++            POWERBOOST_RAMP, false);
++        messageTo(player, HANDLER_POWERBOOST_WANE, d,
++            duration - POWERBOOST_RAMP, false);
++        messageTo(player, HANDLER_POWERBOOST_END, d, duration, true);
++        messageTo(player, "handlePowerBoostLog", null, POWERBOOST_RAMP * 2, false);
++        sendSystemMessage(player, SID_POWERBOOST_BEGIN);
++        return true;
++    }
++    public static boolean hasPowerBoostModifiers(obj_id player)
++        throws InterruptedException
++    {
++        return isIdValid(player) &&
++            (hasAttribModifier(player, MOD_POWERBOOST_DRAIN) ||
++            hasAttribModifier(player, MOD_POWERBOOST_RESTORE) ||
++            hasAttribModifier(player, MOD_POWERBOOST_MIND) ||
++            hasAttribModifier(player, MOD_POWERBOOST_HEALTH) ||
++            hasAttribModifier(player, MOD_POWERBOOST_ACTION));
++    }
++    public static void beginPowerBoostMindRise(obj_id player,
++        dictionary params) throws InterruptedException
++    {
++        if (!isIdValid(player) || params == null ||
++            !hasObjVar(player, VAR_POWERBOOST_ACTIVE))
++        {
++            return;
++        }
++        int expiration = getIntObjVar(player, VAR_POWERBOOST_ACTIVE);
++        if (params.getInt("expiration") != expiration)
++        {
++            return;
++        }
++        int tick = getIntObjVar(player, VAR_POWERBOOST_TICK);
++        int duration = getIntObjVar(player, VAR_POWERBOOST_DURATION);
++        int adjustedBoost = tick * POWERBOOST_RAMP_TICKS;
++        addAttribModifier(player, MOD_POWERBOOST_MIND, MIND,
++            adjustedBoost, Math.max(0.0f, duration - 180.0f),
++            POWERBOOST_RAMP, POWERBOOST_RAMP, false, false, true);
++    }
++    public static void endPowerBoost(obj_id player, boolean verbose)
++        throws InterruptedException
++    {
++        if (!isIdValid(player))
++        {
++            return;
++        }
++        if (hasObjVar(player, VAR_POWERBOOST_ACTIVE) &&
++            getGameTime() < getIntObjVar(player, VAR_POWERBOOST_ACTIVE))
++        {
++            return;
++        }
++        String[] modifiers =
++        {
++            MOD_POWERBOOST_DRAIN,
++            MOD_POWERBOOST_RESTORE,
++            MOD_POWERBOOST_MIND,
++            MOD_POWERBOOST_HEALTH,
++            MOD_POWERBOOST_ACTION
++        };
++        for (String modifier : modifiers)
++        {
++            if (hasAttribModifier(player, modifier))
++            {
++                removeAttribOrSkillModModifier(player, modifier);
++            }
++        }
++        removeObjVar(player, VAR_POWERBOOST_ACTIVE);
++        removeObjVar(player, VAR_POWERBOOST_BONUS);
++        removeObjVar(player, VAR_POWERBOOST_TICK);
++        removeObjVar(player, VAR_POWERBOOST_DURATION);
++        removeObjVar(player, VAR_POWERBOOST_COUNTER);
++        removeObjVar(player, VAR_POWERBOOST_HEALTH_ACTION_APPLIED);
++        removeObjVar(player, VAR_POWERBOOST_MIND_APPLIED);
++        if (verbose)
++        {
++            sendSystemMessage(player, SID_POWERBOOST_END);
++        }
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/player/skill/cleanup.java b/sku.0/sys.server/compiled/game/script/player/skill/cleanup.java
+index 3e8b1d255..0fbcd5d56 100755
+--- a/sku.0/sys.server/compiled/game/script/player/skill/cleanup.java
++++ b/sku.0/sys.server/compiled/game/script/player/skill/cleanup.java
+@@ -22,7 +22,7 @@ public class cleanup extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int handlePowerBoostWane(obj_id self, dictionary params) throws InterruptedException
++    public int handlePowerBoostWane(obj_id self, dictionary params) throws InterruptedException
+     {
+         if (!hasObjVar(self, meditation.VAR_POWERBOOST_ACTIVE))
+         {
+@@ -36,7 +36,12 @@ public class cleanup extends script.base_script
+         }
+         sendSystemMessage(self, meditation.SID_POWERBOOST_WANE);
+         return SCRIPT_CONTINUE;
+-    }
++    }
++    public int handlePowerBoostMindRise(obj_id self, dictionary params) throws InterruptedException
++    {
++        meditation.beginPowerBoostMindRise(self, params);
++        return SCRIPT_CONTINUE;
++    }
+     public int handlePowerBoostEnd(obj_id self, dictionary params) throws InterruptedException
+     {
+         if (!hasObjVar(self, meditation.VAR_POWERBOOST_ACTIVE))
+@@ -49,8 +54,7 @@ public class cleanup extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
+-        sendSystemMessage(self, meditation.SID_POWERBOOST_END);
+-        removeObjVar(self, meditation.VAR_POWERBOOST_ACTIVE);
++        meditation.endPowerBoost(self, true);
+         return SCRIPT_CONTINUE;
+     }
+     public int handlePowerBoostLog(obj_id self, dictionary params) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/player/skill/teraskasi.java b/sku.0/sys.server/compiled/game/script/player/skill/teraskasi.java
+index b5be50066..0e646dbdc 100755
+--- a/sku.0/sys.server/compiled/game/script/player/skill/teraskasi.java
++++ b/sku.0/sys.server/compiled/game/script/player/skill/teraskasi.java
+@@ -4,85 +4,151 @@ import script.library.*;
+ import script.obj_id;
+ import script.prose_package;
+ 
+-public class teraskasi extends script.systems.combat.combat_base
+-{
++public class teraskasi extends script.systems.combat.combat_base
++{
++    private static final long PRECU_ACCURACY_PLAYER_OID = 44003778L;
++    private static final int PRECU_ACCURACY_STATION_ID = 91001;
++    private static final int PRECU_ACCURACY_PROTOCOL_VERSION = 1;
++    private static final String PRECU_ACCURACY_ROOT =
++        "precu.unarmedAccuracyFixture";
+     public teraskasi()
+     {
+     }
+-    public int cmdForceOfWill(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        int modval = meditation.getMeditationSkillMod(self);
+-        if (modval < 1)
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        if (getPosture(self) != POSTURE_INCAPACITATED)
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        int stamp = getIntObjVar(self, meditation.VAR_FORCE_OF_WILL_ACTIVE);
+-        if (stamp < 0)
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        int now = getGameTime();
+-        int delta = now - (stamp + 3600);
+-        if (delta < 0)
+-        {
+-            String time_string = player_structure.assembleTimeRemaining(player_structure.convertSecondsTime(-delta));
+-            prose_package ppUnavailable = prose.getPackage(meditation.SID_FORCEOFWILL_UNAVAILABLE, time_string);
+-            return SCRIPT_CONTINUE;
+-        }
+-        int roll = rand(0, 100);
+-        if (roll < 5 || modval < roll)
+-        {
+-            setObjVar(self, meditation.VAR_FORCE_OF_WILL_ACTIVE, -1);
+-            return SCRIPT_CONTINUE;
+-        }
+-        else 
+-        {
+-            meditation.forceOfWill(self, modval - roll);
+-            setObjVar(self, meditation.VAR_FORCE_OF_WILL_ACTIVE, now);
+-        }
+-        return SCRIPT_CONTINUE;
++    public int cmdForceOfWill(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        boolean fixture = isPrecuAccuracyFixture(self);
++        recordFixture(self, fixture, "forceHandlerEntered", 1);
++        int modval = meditation.getMeditationSkillMod(self);
++        if (modval < 1)
++        {
++            recordFixtureOutcome(self, fixture, "forceNoSkill");
++            return SCRIPT_CONTINUE;
++        }
++        if (getPosture(self) != POSTURE_INCAPACITATED)
++        {
++            sendSystemMessage(self, meditation.SID_FORCEOFWILL_FAIL);
++            recordFixtureOutcome(self, fixture, "forceNotIncapacitated");
++            return SCRIPT_CONTINUE;
++        }
++        int now = getGameTime();
++        if (hasObjVar(self, meditation.VAR_FORCE_OF_WILL_ACTIVE))
++        {
++            int stamp = getIntObjVar(self,
++                meditation.VAR_FORCE_OF_WILL_ACTIVE);
++            if (stamp < 0)
++            {
++                sendSystemMessage(self, meditation.SID_FORCEOFWILL_LOST);
++                recordFixtureOutcome(self, fixture, "forceLost");
++                return SCRIPT_CONTINUE;
++            }
++            int remaining = stamp + 3600 - now;
++            if (remaining > 0)
++            {
++                String timeString = player_structure.assembleTimeRemaining(
++                    player_structure.convertSecondsTime(remaining));
++                prose_package unavailable = prose.getPackage(
++                    meditation.SID_FORCEOFWILL_UNAVAILABLE, timeString);
++                sendSystemMessageProse(self, unavailable);
++                recordFixtureOutcome(self, fixture, "forceCooldown");
++                return SCRIPT_CONTINUE;
++            }
++        }
++        int roll = fixture && hasObjVar(self,
++            PRECU_ACCURACY_ROOT + ".forcedRoll")
++                ? getIntObjVar(self,
++                    PRECU_ACCURACY_ROOT + ".forcedRoll")
++                : rand(0, 100);
++        if (fixture && hasObjVar(self,
++            PRECU_ACCURACY_ROOT + ".forcedRoll"))
++        {
++            removeObjVar(self, PRECU_ACCURACY_ROOT + ".forcedRoll");
++        }
++        recordFixture(self, fixture, "forceModifier", modval);
++        recordFixture(self, fixture, "forceRoll", roll);
++        if (roll < 5 || modval < roll)
++        {
++            setObjVar(self, meditation.VAR_FORCE_OF_WILL_ACTIVE, -1);
++            sendSystemMessage(self, meditation.SID_FORCEOFWILL_UNSUCCESSFUL);
++            recordFixtureOutcome(self, fixture, "forceUnsuccessful");
++            return SCRIPT_CONTINUE;
++        }
++        int delta = modval - roll;
++        String tier = meditation.getForceOfWillTier(delta);
++        if (meditation.forceOfWill(self, delta))
++        {
++            setObjVar(self, meditation.VAR_FORCE_OF_WILL_ACTIVE, now);
++            recordFixture(self, fixture, "forceDelta", delta);
++            if (fixture)
++            {
++                setObjVar(self, PRECU_ACCURACY_ROOT + ".forceTier", tier);
++            }
++            recordFixtureOutcome(self, fixture, "forcePassed");
++        }
++        return SCRIPT_CONTINUE;
+     }
+     public int cmdForceOfWillFail(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         return SCRIPT_CONTINUE;
+     }
+-    public int cmdPowerBoost(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        if (!isIdValid(self))
+-        {
+-            return SCRIPT_OVERRIDE;
+-        }
+-        int modval = meditation.getMeditationSkillMod(self);
+-        if ((modval < 1))
+-        {
+-            return SCRIPT_OVERRIDE;
+-        }
+-        if (!meditation.isMeditating(self))
+-        {
+-            combat.sendCombatSpamMessage(self, meditation.SID_POWERBOOST_FAIL);
+-            return SCRIPT_OVERRIDE;
+-        }
+-        if (buff.hasBuff(self, "powerBuff"))
+-        {
+-            combat.sendCombatSpamMessage(self, meditation.SID_POWERBOOST_ACTIVE);
+-            return SCRIPT_OVERRIDE;
+-        }
+-        float duration = 300.0f + ((modval) * 3.0f);
+-        if (!combatStandardAction("powerBoost", self, self, null, "", ""))
+-        {
+-            return SCRIPT_OVERRIDE;
+-        }
+-        buff.applyBuff(self, "powerBoost", duration);
+-        combat.sendCombatSpamMessage(self, meditation.SID_POWERBOOST_BEGIN);
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int cmdPowerBoostFail(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        combat.sendCombatSpamMessage(self, meditation.SID_POWERBOOST_FAIL);
+-        return SCRIPT_CONTINUE;
++    public int cmdPowerBoost(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        boolean fixture = isPrecuAccuracyFixture(self);
++        recordFixture(self, fixture, "powerHandlerEntered", 1);
++        boolean applied = meditation.powerBoost(self);
++        if (fixture)
++        {
++            recordFixture(self, true, "powerBonus",
++                hasObjVar(self, meditation.VAR_POWERBOOST_BONUS)
++                    ? getIntObjVar(self, meditation.VAR_POWERBOOST_BONUS)
++                    : 0);
++            recordFixture(self, true, "powerTick",
++                hasObjVar(self, meditation.VAR_POWERBOOST_TICK)
++                    ? getIntObjVar(self, meditation.VAR_POWERBOOST_TICK)
++                    : 0);
++            recordFixture(self, true, "powerDuration",
++                hasObjVar(self, meditation.VAR_POWERBOOST_DURATION)
++                    ? getIntObjVar(self, meditation.VAR_POWERBOOST_DURATION)
++                    : 0);
++        }
++        recordFixtureOutcome(self, fixture,
++            applied ? "powerPassed" : "powerRejected");
++        return applied ? SCRIPT_CONTINUE : SCRIPT_OVERRIDE;
+     }
+-}
++    public int cmdPowerBoostFail(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        boolean fixture = isPrecuAccuracyFixture(self);
++        recordFixture(self, fixture, "powerFailHandlerEntered", 1);
++        recordFixtureOutcome(self, fixture, "powerCommandFailed");
++        combat.sendCombatSpamMessage(self, meditation.SID_POWERBOOST_FAIL);
++        return SCRIPT_CONTINUE;
++    }
++    private boolean isPrecuAccuracyFixture(obj_id player)
++        throws InterruptedException
++    {
++        return isIdValid(player) && player.isLoaded() &&
++            player.isAuthoritative() && isPlayer(player) &&
++            player.getValue() == PRECU_ACCURACY_PLAYER_OID &&
++            getPlayerStationId(player) == PRECU_ACCURACY_STATION_ID &&
++            hasObjVar(player, PRECU_ACCURACY_ROOT + ".protocol") &&
++            getIntObjVar(player, PRECU_ACCURACY_ROOT + ".protocol") ==
++                PRECU_ACCURACY_PROTOCOL_VERSION &&
++            hasObjVar(player, PRECU_ACCURACY_ROOT + ".prepared") &&
++            getIntObjVar(player, PRECU_ACCURACY_ROOT + ".prepared") == 1;
++    }
++    private void recordFixture(obj_id player, boolean fixture, String leaf,
++        int value) throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(player, PRECU_ACCURACY_ROOT + "." + leaf, value);
++        }
++    }
++    private void recordFixtureOutcome(obj_id player, boolean fixture,
++        String outcome) throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(player, PRECU_ACCURACY_ROOT + ".outcome", outcome);
++        }
++    }
++}
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_unarmed_accuracy_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_unarmed_accuracy_fixture.java
+new file mode 100644
+index 000000000..343eb83ba
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_unarmed_accuracy_fixture.java
+@@ -0,0 +1,884 @@
++package script.test;
++
++import script.attrib_mod;
++import script.obj_id;
++import script.library.meditation;
++import script.library.pclib;
++import script.library.skill;
++import script.library.utils;
++
++/** Identity-bound reversible fixture for the Teras Kasi Accuracy lifecycle. */
++public class precu_unarmed_accuracy_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 44003778L;
++    private static final int PLAYER_STATION_ID = 91001;
++    private static final int PROTOCOL_VERSION = 1;
++    private static final String ROOT = "precu.unarmedAccuracyFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PROTOCOL = ROOT + ".protocol";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String ORIGINAL_POINTS = ROOT + ".originalPoints";
++    private static final String ORIGINAL_POSTURE = ROOT + ".originalPosture";
++    private static final String ORIGINAL_LOCOMOTION =
++        ROOT + ".originalLocomotion";
++    private static final String ORIGINAL_SHOCK = ROOT + ".originalShock";
++    private static final String ORIGINAL_TIMES_PRESENT =
++        ROOT + ".originalTimesPresent";
++    private static final String ORIGINAL_TIMES = ROOT + ".originalTimes";
++    private static final int FORCE_ROLL = 35;
++    private static final int PREPARED_MAXIMUM = 1000;
++    private static final int[] ACCEPTANCE_BASELINE =
++    {
++        69355, 1000, 300,
++        500, 300, 1000,
++        100, 100, 100
++    };
++    private static final float[] ACCEPTANCE_BASELINE_REGEN =
++    {
++        1.857143f, 6.190476f, 1.0f
++    };
++    private static final String[] COMMANDS =
++    {
++        "meditate", "powerBoost", "forceOfWill"
++    };
++    private static final String[] SKILLS =
++    {
++        "combat_brawler",
++        "combat_brawler_novice",
++        "combat_brawler_unarmed_01",
++        "combat_brawler_unarmed_02",
++        "combat_brawler_unarmed_03",
++        "combat_brawler_unarmed_04",
++        "combat_unarmed",
++        "combat_unarmed_novice",
++        "combat_unarmed_accuracy_01",
++        "combat_unarmed_accuracy_02",
++        "combat_unarmed_accuracy_03",
++        "combat_unarmed_accuracy_04"
++    };
++    private static final int[] ATTRIBUTES =
++    {
++        HEALTH, STRENGTH, CONSTITUTION,
++        ACTION, QUICKNESS, STAMINA,
++        MIND, FOCUS, WILLPOWER
++    };
++    private static final int[] PRIMARY = {HEALTH, ACTION, MIND};
++    private static final String USAGE =
++        "usage: prepare|armPower|status|clearPower|armForce|stabilize|" +
++        "cleanup|repairBaseline <playerOid> <32-hex-lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null
++            ? new String[0]
++            : params.trim().split("[ ]+");
++        if (args.length != 3 || !isValidLifecycle(args[2]))
++        {
++            return USAGE;
++        }
++        long oid;
++        try
++        {
++            oid = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayerOid";
++        }
++        if (oid != PLAYER_OID)
++        {
++            return "error=playerIdentityRejected";
++        }
++        obj_id player = obj_id.getObjId(oid);
++        if (!isAuthoritativePlayer(player))
++        {
++            return "error=playerUnavailable";
++        }
++        String action = args[0];
++        String lifecycle = args[2];
++        if (action.equalsIgnoreCase("repairBaseline"))
++        {
++            return repairBaseline(player);
++        }
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("armPower"))
++        {
++            return armPower(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("status"))
++        {
++            return status(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("clearPower"))
++        {
++            return clearPower(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("armForce"))
++        {
++            return armForce(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("stabilize"))
++        {
++            return stabilize(player, lifecycle);
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, lifecycle);
++        }
++        return USAGE;
++    }
++
++    private String repairBaseline(obj_id player) throws InterruptedException
++    {
++        if (hasObjVar(player, meditation.VAR_POWERBOOST_ACTIVE) ||
++            meditation.hasPowerBoostModifiers(player) ||
++            hasForceModifiers(player))
++        {
++            return "error=transientAbilityStillActive " + buildStatus(player);
++        }
++        clearTransientEffects(player, true);
++        revokeSkills(player);
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            restoreWound(player, ATTRIBUTES[index], 0);
++            restoreAttribute(player, ATTRIBUTES[index],
++                ACCEPTANCE_BASELINE[index], ACCEPTANCE_BASELINE[index]);
++        }
++        restoreShock(player, 0);
++        setLocomotion(player, 0);
++        setPostureClientImmediate(player, 0);
++        for (int index = 0; index < PRIMARY.length; ++index)
++        {
++            setRegenRate(player, PRIMARY[index],
++                ACCEPTANCE_BASELINE_REGEN[index]);
++        }
++        removeObjVar(player, ROOT);
++        boolean restored = !hasAnyFixtureSkill(player) &&
++            !hasAnyCommand(player) &&
++            skill.getAvailableSkillPoints(player) == 100 &&
++            getPosture(player) == 0 && getLocomotion(player) == 0;
++        for (int index = 0; restored && index < ATTRIBUTES.length; ++index)
++        {
++            restored = getAttrib(player, ATTRIBUTES[index]) ==
++                    ACCEPTANCE_BASELINE[index] &&
++                getMaxAttrib(player, ATTRIBUTES[index]) ==
++                    ACCEPTANCE_BASELINE[index] &&
++                getAttribWound(player, ATTRIBUTES[index]) == 0;
++        }
++        return "action=repairBaseline restored=" + restored +
++            " attributeCurrent=" + buildAttributeVector(player, false) +
++            " attributeMaximum=" + buildAttributeVector(player, true) +
++            " availablePoints=" + skill.getAvailableSkillPoints(player) +
++            " posture=" + getPosture(player) +
++            " locomotion=" + getLocomotion(player);
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            return ownership == null
++                ? "action=prepare resumed=true " + buildStatus(player)
++                : ownership;
++        }
++        if (hasAnyFixtureSkill(player) || hasAnyCommand(player) ||
++            meditation.isMeditating(player) ||
++            hasObjVar(player, meditation.VAR_POWERBOOST_ACTIVE) ||
++            meditation.hasPowerBoostModifiers(player) ||
++            hasObjVar(player, meditation.VAR_FORCE_OF_WILL_ACTIVE) ||
++            hasForceModifiers(player) || isIncapacitated(player) ||
++            isDead(player) || getPosture(player) != POSTURE_UPRIGHT)
++        {
++            return "error=fixtureVectorAlreadyOwned";
++        }
++        attrib_mod[] modifiers = getAllAttribModifiers(player);
++        if (modifiers != null && modifiers.length > 0)
++        {
++            return "error=foreignAttributeModifiersPresent";
++        }
++
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, PROTOCOL, PROTOCOL_VERSION);
++        setObjVar(player, ORIGINAL_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(player, ORIGINAL_POSTURE, getPosture(player));
++        setObjVar(player, ORIGINAL_LOCOMOTION, getLocomotion(player));
++        setObjVar(player, ORIGINAL_SHOCK, getShockWound(player));
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            int attribute = ATTRIBUTES[index];
++            setObjVar(player, currentPath(index), getAttrib(player, attribute));
++            setObjVar(player, maximumPath(index),
++                getMaxAttrib(player, attribute));
++            setObjVar(player, woundPath(index),
++                getAttribWound(player, attribute));
++        }
++        for (int index = 0; index < PRIMARY.length; ++index)
++        {
++            setObjVar(player, regenPath(index),
++                getRegenRate(player, PRIMARY[index]));
++        }
++        boolean timesPresent = hasObjVar(player,
++            pclib.VAR_PRECU_INCAPACITATION_TIMES);
++        setObjVar(player, ORIGINAL_TIMES_PRESENT, timesPresent ? 1 : 0);
++        if (timesPresent)
++        {
++            int[] times = getIntArrayObjVar(player,
++                pclib.VAR_PRECU_INCAPACITATION_TIMES);
++            setObjVar(player, ORIGINAL_TIMES,
++                times == null ? new int[0] : times);
++        }
++        if (!grantSkills(player) || !hasAllCommands(player) ||
++            meditation.getMeditationSkillMod(player) != 75)
++        {
++            boolean restored = restore(player);
++            return "error=skillPreparationFailed restored=" + restored;
++        }
++        for (int index = 0; index < PRIMARY.length; ++index)
++        {
++            setRegenRate(player, PRIMARY[index], 0.0f);
++        }
++        setObjVar(player, PREPARED, 1);
++        String armed = armPower(player, lifecycle);
++        if (!armed.startsWith("action=armPower"))
++        {
++            boolean restored = restore(player);
++            return "error=powerArmFailed restored=" + restored +
++                " observed=" + armed;
++        }
++        return "action=prepare resumed=false " + buildStatus(player);
++    }
++
++    private String armPower(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        clearTransientEffects(player, true);
++        prepareAttributes(player);
++        setPostureClientImmediate(player, POSTURE_SITTING);
++        boolean armed = getPosture(player) == POSTURE_SITTING &&
++            hasAllCommands(player) &&
++            meditation.getMeditationSkillMod(player) == 75 &&
++            !meditation.isMeditating(player) &&
++            !meditation.hasPowerBoostModifiers(player);
++        return armed
++            ? "action=armPower " + buildStatus(player)
++            : "error=powerArmBoundaryFailed " + buildStatus(player);
++    }
++
++    private String clearPower(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        meditation.endMeditation(player, false);
++        meditation.endPowerBoost(player, false);
++        setPostureClientImmediate(player, POSTURE_UPRIGHT);
++        setLocomotion(player, LOCOMOTION_STANDING);
++        boolean cleared = !meditation.isMeditating(player) &&
++            !hasObjVar(player, meditation.VAR_POWERBOOST_ACTIVE) &&
++            !meditation.hasPowerBoostModifiers(player) &&
++            getPosture(player) == POSTURE_UPRIGHT;
++        return cleared
++            ? "action=clearPower " + buildStatus(player)
++            : "error=powerClearFailed " + buildStatus(player);
++    }
++
++    private String armForce(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        clearTransientEffects(player, true);
++        prepareAttributes(player);
++        pclib.clearPrecuIncapacitationTimes(player);
++        setObjVar(player, ROOT + ".forcedRoll", FORCE_ROLL);
++        setAttrib(player, ACTION, -25);
++        if (getPosture(player) != POSTURE_INCAPACITATED)
++        {
++            return "error=forceIncapacitationFailed " + buildStatus(player);
++        }
++        int recoveryTime = getGameTime() + 60;
++        utils.setScriptVar(player, "incap.timeStamp", recoveryTime);
++        setCount(player, 60);
++        boolean armed = isIncapacitated(player) &&
++            getPosture(player) == POSTURE_INCAPACITATED &&
++            utils.getIntScriptVar(player, "incap.timeStamp") == recoveryTime;
++        return armed
++            ? "action=armForce " + buildStatus(player)
++            : "error=forceArmBoundaryFailed " + buildStatus(player);
++    }
++
++    private String stabilize(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        clearTransientEffects(player, false);
++        prepareAttributes(player);
++        setPostureClientImmediate(player, POSTURE_UPRIGHT);
++        setLocomotion(player, LOCOMOTION_STANDING);
++        boolean stable = !isIncapacitated(player) &&
++            !meditation.isMeditating(player) &&
++            !meditation.hasPowerBoostModifiers(player) &&
++            !hasForceModifiers(player) && hasAllCommands(player) &&
++            hasObjVar(player, meditation.VAR_FORCE_OF_WILL_ACTIVE) &&
++            getIntObjVar(player,
++                meditation.VAR_FORCE_OF_WILL_ACTIVE) >= 0;
++        return stable
++            ? "action=stabilize " + buildStatus(player)
++            : "error=stabilizeFailed " + buildStatus(player);
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null
++            ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String lifecycleError = validateLifecycle(player, lifecycle);
++        if (lifecycleError != null)
++        {
++            return lifecycleError;
++        }
++        if (!hasCompleteSnapshot(player))
++        {
++            return "action=cleanup alreadyClean=false restored=false" +
++                " incompleteSnapshot=true";
++        }
++        boolean restored = restore(player);
++        return "action=cleanup alreadyClean=false restored=" + restored +
++            (restored ? "" : " observed=" + buildStatus(player));
++    }
++
++    private boolean restore(obj_id player) throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return false;
++        }
++        clearTransientEffects(player, true);
++        revokeSkills(player);
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            int attribute = ATTRIBUTES[index];
++            restoreWound(player, attribute,
++                getIntObjVar(player, woundPath(index)));
++            restoreAttribute(player, attribute,
++                getIntObjVar(player, maximumPath(index)),
++                getIntObjVar(player, currentPath(index)));
++        }
++        restoreShock(player, getIntObjVar(player, ORIGINAL_SHOCK));
++        if (getIntObjVar(player, ORIGINAL_TIMES_PRESENT) == 1)
++        {
++            setObjVar(player, pclib.VAR_PRECU_INCAPACITATION_TIMES,
++                getIntArrayObjVar(player, ORIGINAL_TIMES));
++        }
++        else
++        {
++            pclib.clearPrecuIncapacitationTimes(player);
++        }
++        setLocomotion(player, getIntObjVar(player, ORIGINAL_LOCOMOTION));
++        setPostureClientImmediate(player,
++            getIntObjVar(player, ORIGINAL_POSTURE));
++        for (int index = 0; index < PRIMARY.length; ++index)
++        {
++            setRegenRate(player, PRIMARY[index],
++                getFloatObjVar(player, regenPath(index)));
++        }
++        boolean restored = !hasAnyFixtureSkill(player) &&
++            !hasAnyCommand(player) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) &&
++            getPosture(player) == getIntObjVar(player, ORIGINAL_POSTURE) &&
++            getLocomotion(player) ==
++                getIntObjVar(player, ORIGINAL_LOCOMOTION) &&
++            !meditation.isMeditating(player) &&
++            !meditation.hasPowerBoostModifiers(player) &&
++            !hasForceModifiers(player) &&
++            !hasObjVar(player, meditation.VAR_FORCE_OF_WILL_ACTIVE) &&
++            attributesRestored(player) &&
++            getShockWound(player) == getIntObjVar(player, ORIGINAL_SHOCK);
++        if (restored)
++        {
++            removeObjVar(player, ROOT);
++        }
++        return restored;
++    }
++
++    private void clearTransientEffects(obj_id player, boolean clearCooldown)
++        throws InterruptedException
++    {
++        meditation.endMeditation(player, false);
++        meditation.endPowerBoost(player, false);
++        meditation.clearForceOfWillModifiers(player);
++        utils.removeScriptVar(player, "incap.timeStamp");
++        setCount(player, 0);
++        setState(player, STATE_FEIGN_DEATH, false);
++        if (clearCooldown &&
++            hasObjVar(player, meditation.VAR_FORCE_OF_WILL_ACTIVE))
++        {
++            removeObjVar(player, meditation.VAR_FORCE_OF_WILL_ACTIVE);
++        }
++        if (hasObjVar(player, ROOT + ".forcedRoll"))
++        {
++            removeObjVar(player, ROOT + ".forcedRoll");
++        }
++    }
++
++    private void prepareAttributes(obj_id player) throws InterruptedException
++    {
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            int attribute = ATTRIBUTES[index];
++            restoreWound(player, attribute, 0);
++            int maximum = Math.max(PREPARED_MAXIMUM,
++                getIntObjVar(player, maximumPath(index)));
++            restoreAttribute(player, attribute, maximum, maximum);
++        }
++        restoreShock(player, 0);
++    }
++
++    private void restoreAttribute(obj_id player, int attribute, int maximum,
++        int current) throws InterruptedException
++    {
++        setMaxAttrib(player, attribute, maximum);
++        int maximumDelta = maximum - getMaxAttrib(player, attribute);
++        if (maximumDelta != 0)
++        {
++            setMaxAttrib(player, attribute, maximum + maximumDelta);
++        }
++        setAttrib(player, attribute, current);
++        int currentDelta = current - getAttrib(player, attribute);
++        if (currentDelta != 0)
++        {
++            setAttrib(player, attribute, current + currentDelta);
++        }
++    }
++
++    private void restoreWound(obj_id player, int attribute, int requested)
++        throws InterruptedException
++    {
++        int current = getAttribWound(player, attribute);
++        if (current < requested)
++        {
++            addWound(player, attribute, requested - current);
++        }
++        else if (current > requested)
++        {
++            healWound(player, attribute, current - requested);
++        }
++    }
++
++    private void restoreShock(obj_id player, int requested)
++        throws InterruptedException
++    {
++        int current = getShockWound(player);
++        if (current < requested)
++        {
++            addShockWound(player, requested - current);
++        }
++        else if (current > requested)
++        {
++            healShockWound(player, current - requested);
++        }
++    }
++
++    private boolean attributesRestored(obj_id player)
++        throws InterruptedException
++    {
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            int attribute = ATTRIBUTES[index];
++            if (getAttrib(player, attribute) !=
++                    getIntObjVar(player, currentPath(index)) ||
++                getMaxAttrib(player, attribute) !=
++                    getIntObjVar(player, maximumPath(index)) ||
++                getAttribWound(player, attribute) !=
++                    getIntObjVar(player, woundPath(index)))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private boolean grantSkills(obj_id player) throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (!skill.grantSkillToPlayer(player, skillName) ||
++                !hasSkill(player, skillName))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private void revokeSkills(obj_id player) throws InterruptedException
++    {
++        for (int index = SKILLS.length - 1; index >= 0; --index)
++        {
++            if (hasSkill(player, SKILLS[index]))
++            {
++                revokeSkill(player, SKILLS[index]);
++            }
++        }
++    }
++
++    private boolean hasAnyFixtureSkill(obj_id player)
++        throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (hasSkill(player, skillName))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private boolean hasAnyCommand(obj_id player) throws InterruptedException
++    {
++        for (String command : COMMANDS)
++        {
++            if (hasCommand(player, command))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private boolean hasAllCommands(obj_id player) throws InterruptedException
++    {
++        for (String command : COMMANDS)
++        {
++            if (!hasCommand(player, command))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private boolean hasForceModifiers(obj_id player)
++        throws InterruptedException
++    {
++        for (int attribute : ATTRIBUTES)
++        {
++            if (hasAttribModifier(player,
++                meditation.MOD_FORCE_OF_WILL_PREFIX + attribute))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        int expiration = hasObjVar(player, meditation.VAR_POWERBOOST_ACTIVE)
++            ? getIntObjVar(player, meditation.VAR_POWERBOOST_ACTIVE)
++            : 0;
++        int forceStamp = hasObjVar(player,
++            meditation.VAR_FORCE_OF_WILL_ACTIVE)
++                ? getIntObjVar(player,
++                    meditation.VAR_FORCE_OF_WILL_ACTIVE)
++                : -2;
++        int recoveryTime = utils.hasScriptVar(player, "incap.timeStamp")
++            ? utils.getIntScriptVar(player, "incap.timeStamp")
++            : 0;
++        return
++            "player=" + player +
++            " commandBits=" + buildCommandBits(player) +
++            " skillBits=" + buildSkillBits(player) +
++            " meditateMod=" + meditation.getMeditationSkillMod(player) +
++            " posture=" + getPosture(player) +
++            " locomotion=" + getLocomotion(player) +
++            " meditating=" + meditation.isMeditating(player) +
++            " powerActive=" + hasObjVar(player,
++                meditation.VAR_POWERBOOST_ACTIVE) +
++            " powerChannelBits=" + buildPowerChannelBits(player) +
++            " powerBonus=" + readInt(player, "powerBonus") +
++            " powerTick=" + readInt(player, "powerTick") +
++            " powerDuration=" + readInt(player, "powerDuration") +
++            " powerCounter=" + powerValue(player,
++                meditation.VAR_POWERBOOST_COUNTER) +
++            " powerHealthActionApplied=" + powerValue(player,
++                meditation.VAR_POWERBOOST_HEALTH_ACTION_APPLIED) +
++            " powerMindApplied=" + powerValue(player,
++                meditation.VAR_POWERBOOST_MIND_APPLIED) +
++            " powerRemaining=" + Math.max(0, expiration - getGameTime()) +
++            " powerHandlerEntered=" +
++                readInt(player, "powerHandlerEntered") +
++            " powerFailHandlerEntered=" +
++                readInt(player, "powerFailHandlerEntered") +
++            " powerCommandCooldownRemaining=" +
++                (int)Math.ceil(getCooldownTimeLeft(player, "powerBoost")) +
++            " forceHandlerEntered=" +
++                readInt(player, "forceHandlerEntered") +
++            " forceModifier=" + readInt(player, "forceModifier") +
++            " forceRoll=" + readInt(player, "forceRoll") +
++            " forceDelta=" + readInt(player, "forceDelta") +
++            " forceTier=" + readString(player, "forceTier") +
++            " forceModifierBits=" + buildForceModifierBits(player) +
++            " forceStamp=" + forceStamp +
++            " forceCooldownRemaining=" + (forceStamp >= 0
++                ? Math.max(0, forceStamp + 3600 - getGameTime())
++                : 0) +
++            " recoveryTime=" + recoveryTime +
++            " recoveryRemaining=" + Math.max(0,
++                recoveryTime - getGameTime()) +
++            " attributeCurrent=" + buildAttributeVector(player, false) +
++            " attributeMaximum=" + buildAttributeVector(player, true) +
++            " woundVector=" + buildWoundVector(player) +
++            " shock=" + getShockWound(player) +
++            " outcome=" + readString(player, "outcome") +
++            " availablePoints=" + skill.getAvailableSkillPoints(player) +
++            " originalPoints=" + readSnapshot(player, ORIGINAL_POINTS) +
++            " snapshotComplete=" + hasCompleteSnapshot(player);
++    }
++
++    private String buildCommandBits(obj_id player) throws InterruptedException
++    {
++        String bits = "";
++        for (String command : COMMANDS)
++        {
++            bits += hasCommand(player, command) ? "1" : "0";
++        }
++        return bits;
++    }
++
++    private String buildSkillBits(obj_id player) throws InterruptedException
++    {
++        String bits = "";
++        for (String skillName : SKILLS)
++        {
++            bits += hasSkill(player, skillName) ? "1" : "0";
++        }
++        return bits;
++    }
++
++    private String buildPowerChannelBits(obj_id player)
++        throws InterruptedException
++    {
++        return meditation.hasPowerBoostModifiers(player) ? "1111" : "0000";
++    }
++
++    private int powerValue(obj_id player, String path)
++        throws InterruptedException
++    {
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++
++    private String buildForceModifierBits(obj_id player)
++        throws InterruptedException
++    {
++        String bits = "";
++        for (int attribute : ATTRIBUTES)
++        {
++            bits += hasAttribModifier(player,
++                meditation.MOD_FORCE_OF_WILL_PREFIX + attribute)
++                    ? "1"
++                    : "0";
++        }
++        return bits;
++    }
++
++    private String buildAttributeVector(obj_id player, boolean maximum)
++        throws InterruptedException
++    {
++        String values = "";
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            if (index > 0)
++            {
++                values += ",";
++            }
++            values += maximum
++                ? getMaxAttrib(player, ATTRIBUTES[index])
++                : getAttrib(player, ATTRIBUTES[index]);
++        }
++        return values;
++    }
++
++    private String buildWoundVector(obj_id player)
++        throws InterruptedException
++    {
++        String values = "";
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            if (index > 0)
++            {
++                values += ",";
++            }
++            values += getAttribWound(player, ATTRIBUTES[index]);
++        }
++        return values;
++    }
++
++    private int readInt(obj_id player, String leaf)
++        throws InterruptedException
++    {
++        String path = ROOT + "." + leaf;
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++
++    private String readString(obj_id player, String leaf)
++        throws InterruptedException
++    {
++        String path = ROOT + "." + leaf;
++        return hasObjVar(player, path)
++            ? getStringObjVar(player, path)
++            : "none";
++    }
++
++    private int readSnapshot(obj_id player, String path)
++        throws InterruptedException
++    {
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : -1;
++    }
++
++    private String currentPath(int index)
++    {
++        return ROOT + ".current" + index;
++    }
++
++    private String maximumPath(int index)
++    {
++        return ROOT + ".maximum" + index;
++    }
++
++    private String woundPath(int index)
++    {
++        return ROOT + ".wound" + index;
++    }
++
++    private String regenPath(int index)
++    {
++        return ROOT + ".regen" + index;
++    }
++
++    private boolean isAuthoritativePlayer(obj_id player)
++        throws InterruptedException
++    {
++        return isIdValid(player) && player.isLoaded() &&
++            player.isAuthoritative() && isPlayer(player) &&
++            player.getValue() == PLAYER_OID &&
++            getPlayerStationId(player) == PLAYER_STATION_ID;
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String lifecycleError = validateLifecycle(player, lifecycle);
++        if (lifecycleError != null)
++        {
++            return lifecycleError;
++        }
++        return hasObjVar(player, PROTOCOL) &&
++            getIntObjVar(player, PROTOCOL) == PROTOCOL_VERSION &&
++            hasObjVar(player, PREPARED) &&
++            getIntObjVar(player, PREPARED) == 1
++                ? null
++                : "error=fixtureNotPrepared";
++    }
++
++    private String validateLifecycle(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) || !hasObjVar(player, LIFECYCLE))
++        {
++            return "error=fixtureAbsent";
++        }
++        return lifecycle.equals(getStringObjVar(player, LIFECYCLE))
++            ? null
++            : "error=lifecycleMismatch";
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, LIFECYCLE) || !hasObjVar(player, PROTOCOL) ||
++            !hasObjVar(player, PREPARED) ||
++            !hasObjVar(player, ORIGINAL_POINTS) ||
++            !hasObjVar(player, ORIGINAL_POSTURE) ||
++            !hasObjVar(player, ORIGINAL_LOCOMOTION) ||
++            !hasObjVar(player, ORIGINAL_SHOCK) ||
++            !hasObjVar(player, ORIGINAL_TIMES_PRESENT))
++        {
++            return false;
++        }
++        if (getIntObjVar(player, ORIGINAL_TIMES_PRESENT) == 1 &&
++            !hasObjVar(player, ORIGINAL_TIMES))
++        {
++            return false;
++        }
++        for (int index = 0; index < ATTRIBUTES.length; ++index)
++        {
++            if (!hasObjVar(player, currentPath(index)) ||
++                !hasObjVar(player, maximumPath(index)) ||
++                !hasObjVar(player, woundPath(index)))
++            {
++                return false;
++            }
++        }
++        for (int index = 0; index < PRIMARY.length; ++index)
++        {
++            if (!hasObjVar(player, regenPath(index)))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            if (!((value >= '0' && value <= '9') ||
++                (value >= 'a' && value <= 'f')))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 795cc5e2c..75775adbc 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -892,7 +892,7 @@ planet		immediate			planetChat																							1	1		0	1
+ planetsay		immediate			planetChat																							1	1		0	1																																										none					0				0										
+ planetwarp		immediate		failAdmin	admin_planetwarp			admin																				1	1		0	1																																										none	0				0		5	csr	0										
+ planetwarpTarget		immediate		failAdmin	admin_planetwarp			admin																				1	1		0	1												1																														required	0				0		5	csr	0										
+-powerBoost		normal	cmdPowerBoost	cmdPowerBoostFail			01. Mai	powerBoost	0	0	0	0	0	0	0	0	1	0	0	0	0	0	1	0	0	0	0			0	0	0	0		0		0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0		1	1	1	1	0	0		0	0	0	0								player.skill.teraskasi		none		2			0				1			power_boost	5	1	300				
++powerBoost		normal	cmdPowerBoost	cmdPowerBoostFail			01. Mai	powerBoost	0	0	0	0	0	0	0	0	1	0	0	0	0	0	1	1	0	0	0			0	0	0	0		0		0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0		1	1	1	1	0	0		0	0	0	0								player.skill.teraskasi		none		2			0				0			power_boost	5	1	300			0	0
+ prone		immediate	prone	proneFail	setPosture	setPosture	2		1	1	1	1	1	1	1	1	1	1	1	0	0	0	1	0	0	0	1			1	0	1	1	1	1		1	1	1	1	1	1	1	0	1	1	1	1	0	0									0		0	0	0	0		0								optional		3		posture	0				0										
+ purchaseReinforcement		immediate	purchaseReinforcement				0		1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0			0	0	0	0	1	0		0	0	1	1	1	0	0	0	0	0	0	0	0	0									0		0	0	0	0										optional		1			0				0										
+ purchaseTicket		immediate			purchaseTicket		0		1	1	1			0				0	0	0	0				0	0	0			0	0	1	0	1	0	0	0	0	1	1	1	1	0	1	0	0	0	0	0	0									0		0	0	0	0										none		1			0				0										

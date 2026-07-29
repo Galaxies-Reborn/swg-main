@@ -1,0 +1,237 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_battle_fatigue_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_battle_fatigue_fixture.java
+new file mode 100644
+index 0000000..af02a07
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_battle_fatigue_fixture.java
+@@ -0,0 +1,231 @@
++package script.test;
++
++import script.library.healing;
++import script.obj_id;
++
++/**
++ * Identity-bound ServerConsole fixture for the retained Publish 14.1
++ * patient-side battle-fatigue medicine multiplier.
++ *
++ * The fixture never consumes medicine or fabricates healing.  It snapshots
++ * and controls only the bound patient's shock wounds, then reports the
++ * production healing-library result for a neutral 1.0 multiplier.
++ */
++public class precu_battle_fatigue_fixture extends script.base_script
++{
++    private static final long PATIENT_OID = 39008597L;
++    private static final int PATIENT_STATION_ID = 1001;
++    private static final String ROOT = "precu.battleFatigueFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String ORIGINAL_SHOCK = ROOT + ".originalShock";
++    private static final String USAGE =
++        "usage: prepare|status|arm250|arm251|arm500|arm1000|cleanup " +
++        "<patientOid> <lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args =
++            params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 3)
++        {
++            return USAGE;
++        }
++
++        long patientValue;
++        try
++        {
++            patientValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (patientValue != PATIENT_OID || !isValidLifecycle(args[2]))
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id patient = obj_id.getObjId(patientValue);
++        if (patient == null || patient == obj_id.NULL_ID || !patient.isLoaded())
++        {
++            return "error=patientNotLoaded";
++        }
++        if (!patient.isAuthoritative() || !isPlayer(patient) ||
++            getPlayerStationId(patient) != PATIENT_STATION_ID)
++        {
++            return "error=patientNotAuthoritative";
++        }
++
++        String action = args[0];
++        String lifecycle = args[2];
++        if (action.equalsIgnoreCase("prepare"))
++        {
++            return prepare(patient, lifecycle);
++        }
++        if (action.equalsIgnoreCase("status"))
++        {
++            return status(patient, lifecycle);
++        }
++        if (action.equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(patient, lifecycle);
++        }
++
++        int shock = getRequestedShock(action);
++        if (shock >= 0)
++        {
++            return arm(patient, lifecycle, shock);
++        }
++        return USAGE;
++    }
++
++    private String prepare(obj_id patient, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(patient, ROOT))
++        {
++            String ownership = validateOwnership(patient, lifecycle);
++            if (ownership != null)
++            {
++                return ownership;
++            }
++            return "action=prepare resumed=true " +
++                buildStatus(patient, lifecycle);
++        }
++
++        setObjVar(patient, ORIGINAL_SHOCK, getShockWound(patient));
++        setObjVar(patient, LIFECYCLE, lifecycle);
++        String ownership = validateOwnership(patient, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        return "action=prepare resumed=false " +
++            buildStatus(patient, lifecycle);
++    }
++
++    private String arm(obj_id patient, String lifecycle, int shock)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(patient, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!setShockWound(patient, shock) || getShockWound(patient) != shock)
++        {
++            return "error=shockControlFailed requestedShock=" + shock + " " +
++                buildStatus(patient, lifecycle);
++        }
++        return "action=arm requestedShock=" + shock + " " +
++            buildStatus(patient, lifecycle);
++    }
++
++    private String status(obj_id patient, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(patient, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        return "action=status " + buildStatus(patient, lifecycle);
++    }
++
++    private String cleanup(obj_id patient, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(patient, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateOwnership(patient, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++
++        int originalShock = getIntObjVar(patient, ORIGINAL_SHOCK);
++        boolean restored =
++            setShockWound(patient, originalShock) &&
++            getShockWound(patient) == originalShock;
++        if (!restored)
++        {
++            return "error=cleanupRestoreFailed " +
++                buildStatus(patient, lifecycle);
++        }
++        removeObjVar(patient, ROOT);
++        return "action=cleanup alreadyClean=false restored=true " +
++            "shock=" + getShockWound(patient);
++    }
++
++    private String validateOwnership(obj_id patient, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(patient, ROOT) ||
++            !hasObjVar(patient, LIFECYCLE) ||
++            !hasObjVar(patient, ORIGINAL_SHOCK))
++        {
++            return "error=fixtureAbsent";
++        }
++        if (!lifecycle.equals(getStringObjVar(patient, LIFECYCLE)))
++        {
++            return "error=lifecycleMismatch";
++        }
++        return null;
++    }
++
++    private String buildStatus(obj_id patient, String lifecycle)
++        throws InterruptedException
++    {
++        int shock = getShockWound(patient);
++        float multiplier = healing.applyShockWoundModifier(1.0f, patient);
++        int scaledMedicine100 = (int)(100.0f * multiplier);
++        return "lifecycle=" + lifecycle +
++            " patient=" + patient +
++            " shock=" + shock +
++            " multiplier=" + multiplier +
++            " scaledMedicine100=" + scaledMedicine100 +
++            " originalShock=" + getIntObjVar(patient, ORIGINAL_SHOCK);
++    }
++
++    private int getRequestedShock(String action)
++    {
++        if (action.equalsIgnoreCase("arm250"))
++        {
++            return 250;
++        }
++        if (action.equalsIgnoreCase("arm251"))
++        {
++            return 251;
++        }
++        if (action.equalsIgnoreCase("arm500"))
++        {
++            return 500;
++        }
++        if (action.equalsIgnoreCase("arm1000"))
++        {
++            return 1000;
++        }
++        return -1;
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            boolean digit = value >= '0' && value <= '9';
++            boolean lowerHex = value >= 'a' && value <= 'f';
++            if (!digit && !lowerHex)
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}

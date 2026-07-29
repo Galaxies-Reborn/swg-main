@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "feature": "performance-action-drain",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "performanceLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/performance.java",
+    "activeDance": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_dance.java",
+    "activeMusic": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_music.java",
+    "activeJuggle": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/performance/active_juggle.java",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_performance_action_drain_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "costAdjustmentSource": "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
+    "performanceSource": "MMOCoreORB/src/server/zone/objects/player/sessions/EntertainingSessionImplementation.cpp",
+    "heartbeatSeconds": 10,
+    "loopFormula": "base - ((Quickness - 300) / 1200) * base",
+    "loopIntegerRule": "truncate after clamping to zero",
+    "flourishFormula": "round((((base - floor(Quickness / 35)) / 2) * 10 + 0.5) / 10), after clamping the pre-half base to zero",
+    "exhaustionRule": "reject when current Action is less than or equal to calculated cost",
+    "damageChannel": "Action"
+  },
+  "publish14Evidence": {
+    "performanceTableSource": "restoration/contracts/p14-entertainer-mind-healing.json",
+    "basicDancePerformanceIndex": 281,
+    "basicDanceActionPointsPerLoop": 28,
+    "basicDanceLoopSeconds": 10
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T00:39:02-04:00",
+    "overlayPatch": "restoration/patches/dsrc/063-p14-performance-action-drain.patch",
+    "overlayPatchSha256": "ca19f438e49c114049795eb4eda0d8aa5400b46e5c48cba50647382978e3a00b",
+    "cleanApplyBaseCommit": "36b23f8f3",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 5,
+    "initialBuild": {
+      "result": "passed",
+      "compiledJavaSources": 5
+    },
+    "finalFixtureBuild": {
+      "result": "passed",
+      "compiledJavaSources": 1
+    },
+    "sourceSha256": {
+      "performance.java": "fea50d958a6e65ff124772f82bf6145a47b8c848befab8032f24654ae835f334",
+      "active_dance.java": "90a88ef737d5270916b00ac8f2e213323dd49a75cec9ff02ebaacb8cee88e5f5",
+      "active_music.java": "f2d9e8638015720966fe534890611874b87916ef4efa7ec06574a57672ccc816",
+      "active_juggle.java": "1c82fabcac94ae6e69f22d9a7d5a38ff257c646ad93e61750051b1e34a6f074d",
+      "precu_performance_action_drain_fixture.java": "53aa0e7cb6cd4a4e24fbf6973a7a44dc19c75993474dcccf7343b32bcf91031e"
+    },
+    "compiledSha256": {
+      "performance.class": "732fed9488c2f4dce281a32608a7ac45f6f637826360960070a27347d6bf266a",
+      "active_dance.class": "8db2e5151211cac7c5f46c4fa180171cb0e2cb159f456f4328b7d15a4df26193",
+      "active_music.class": "ce47c6737a23992bd4d3b56aec4e286c4eb9f17a804bae7839f0d4a59df35531",
+      "active_juggle.class": "13aec91146006e7a8dab1ee35517741c3c7b0f04fe5e86d7e3ffc844055d4d7f",
+      "precu_performance_action_drain_fixture.class": "3e025b4091729add0d700a37931097c24784d92451ed742230569a5fc69a4c8c"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T00:36:00-04:00",
+    "container": "swg-precu",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 69512,
+    "clientProtocolVersion": 31,
+    "clientSha256": "5cf9167cad27d6a9e42c8174d735422b682b4d90caa313188b9662ce23785d3e",
+    "lifecycle": "53a398199efc45e7b9fed757ff29bb15",
+    "basicDancePerformanceIndex": 281,
+    "originalAction": 500,
+    "authoritativeQuickness": 400,
+    "originalPerformanceIndex": 0,
+    "loop": {
+      "cost": 25,
+      "beforeAction": 100,
+      "afterAction": 75,
+      "exactCostRejected": true
+    },
+    "flourish": {
+      "cost": 9,
+      "beforeAction": 100,
+      "afterAction": 91,
+      "exactCostRejected": true
+    },
+    "interruptedLifecycleRecovery": {
+      "lifecycle": "a4ca79ed79c848b9af667b9cfaf0a73f",
+      "restored": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "finalAction": 500,
+      "finalQuickness": 400,
+      "finalPerformanceIndex": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "clientProtocolVersion": 31
+  },
+  "narrowBoundary": {
+    "included": [
+      "Quickness-adjusted ten-second performance-loop Action drain",
+      "distinct Core3 flourish Action-cost equation",
+      "dance, music, and juggle heartbeat routing",
+      "solo and band flourish routing",
+      "inclusive exhaustion boundary",
+      "identity-bound reversible live acceptance"
+    ],
+    "deferred": [
+      "real-client ten-second dance and music session acceptance",
+      "performance start and stop parity",
+      "full Entertainer, Dancer, and Musician progression outside the healing branch"
+    ]
+  }
+}

@@ -1,0 +1,799 @@
+diff --git a/sku.0/sys.server/compiled/game/script/ai/pet_master.java b/sku.0/sys.server/compiled/game/script/ai/pet_master.java
+index 05df3f6..481f549 100644
+--- a/sku.0/sys.server/compiled/game/script/ai/pet_master.java
++++ b/sku.0/sys.server/compiled/game/script/ai/pet_master.java
+@@ -19,6 +19,18 @@ public class pet_master extends script.base_script
+     public static final string_id SID_SYS_ENRAGE = new string_id("pet/pet_menu", "sys_enrage");
+     public static final string_id SID_SYS_FAIL_ENRAGE = new string_id("pet/pet_menu", "sys_fail_enrage");
+     public static final string_id SID_SYS_CANT_BUFF = new string_id("pet/pet_menu", "sys_cant_buff");
++    public static final String PRECU_EMBOLDEN_BUFF = "emboldenPet";
++    public static final String PRECU_EMBOLDEN_COOLDOWN =
++        "pet.precuEmboldenCooldownUntil";
++    public static final float PRECU_EMBOLDEN_RANGE = 50.0f;
++    public static final float PRECU_EMBOLDEN_DURATION = 60.0f;
++    public static final int PRECU_EMBOLDEN_COOLDOWN_SECONDS = 300;
++    public static final int PRECU_EMBOLDEN_BASE_MIND_COST = 100;
++    private static final long PRECU_EMBOLDEN_PLAYER_OID = 44003778L;
++    private static final int PRECU_EMBOLDEN_STATION_ID = 91001;
++    private static final int PRECU_EMBOLDEN_PROTOCOL_VERSION = 1;
++    private static final String PRECU_EMBOLDEN_FIXTURE_ROOT =
++        "precu.emboldenPetsCommandFixture";
+     public int OnRemovedFromGroup(obj_id self, obj_id group) throws InterruptedException
+     {
+         if (!callable.hasAnyCallable(self))
+@@ -51,6 +63,116 @@ public class pet_master extends script.base_script
+         sendSystemMessage(self, SID_SYS_CANT_BUFF);
+         return SCRIPT_CONTINUE;
+     }
++    public int emboldenPets(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        obj_id pet = callable.getCallable(
++            self, callable.CALLABLE_TYPE_COMBAT_PET);
++        boolean fixture = isPrecuEmboldenFixture(self, pet);
++        if (fixture)
++        {
++            setObjVar(self, PRECU_EMBOLDEN_FIXTURE_ROOT + ".handlerEntered", 1);
++            setObjVar(self, PRECU_EMBOLDEN_FIXTURE_ROOT + ".handlerCalls",
++                readPrecuEmboldenInt(self, ".handlerCalls") + 1);
++            setObjVar(self, PRECU_EMBOLDEN_FIXTURE_ROOT + ".outcome", "entered");
++        }
++        if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
++            isDead(self) || isIncapacitated(self) ||
++            !hasSkill(self, "outdoors_creaturehandler_healing_02"))
++        {
++            recordPrecuEmboldenOutcome(self, fixture, "playerRejected");
++            return SCRIPT_CONTINUE;
++        }
++        if (!isIdValid(pet) || !exists(pet) ||
++            !pet_lib.isMyPet(pet, self) || !pet_lib.isCreaturePet(pet) ||
++            ai_lib.isAiDead(pet) || isIncapacitated(pet) ||
++            getDistance(self, pet) > PRECU_EMBOLDEN_RANGE)
++        {
++            sendSystemMessage(self, SID_SYS_FAIL_EMBOLDEN);
++            recordPrecuEmboldenOutcome(self, fixture, "petRejected");
++            return SCRIPT_CONTINUE;
++        }
++        int now = getGameTime();
++        if (buff.hasBuff(pet, PRECU_EMBOLDEN_BUFF) ||
++            (hasObjVar(pet, PRECU_EMBOLDEN_COOLDOWN) &&
++                getIntObjVar(pet, PRECU_EMBOLDEN_COOLDOWN) > now))
++        {
++            showFlyText(pet,
++                new string_id("combat_effects", "pet_embolden_no"),
++                1.0f, 0, 153, 0);
++            sendSystemMessage(self, SID_SYS_FAIL_EMBOLDEN);
++            recordPrecuEmboldenOutcome(self, fixture, "cooldownRejected");
++            return SCRIPT_CONTINUE;
++        }
++        int mindCost = getPrecuEmboldenMindCost(self);
++        int mindBefore = getAttrib(self, MIND);
++        if (mindBefore <= mindCost)
++        {
++            sendSystemMessage(self, SID_SYS_FAIL_EMBOLDEN);
++            recordPrecuEmboldenOutcome(self, fixture, "notEnoughMind");
++            return SCRIPT_CONTINUE;
++        }
++        if (!buff.applyBuff(
++            pet, self, PRECU_EMBOLDEN_BUFF, PRECU_EMBOLDEN_DURATION))
++        {
++            sendSystemMessage(self, SID_SYS_CANT_BUFF);
++            recordPrecuEmboldenOutcome(self, fixture, "buffRejected");
++            return SCRIPT_CONTINUE;
++        }
++        setObjVar(pet, PRECU_EMBOLDEN_COOLDOWN,
++            now + PRECU_EMBOLDEN_COOLDOWN_SECONDS);
++        setAttrib(self, MIND, mindBefore - mindCost);
++        showFlyText(pet,
++            new string_id("combat_effects", "pet_embolden"),
++            1.0f, 0, 153, 0);
++        sendSystemMessage(self, SID_SYS_EMBOLDEN);
++        if (fixture)
++        {
++            setObjVar(self, PRECU_EMBOLDEN_FIXTURE_ROOT + ".mindCost", mindCost);
++            setObjVar(self, PRECU_EMBOLDEN_FIXTURE_ROOT + ".cooldownUntil",
++                now + PRECU_EMBOLDEN_COOLDOWN_SECONDS);
++            setObjVar(self, PRECU_EMBOLDEN_FIXTURE_ROOT + ".completedAt", now);
++        }
++        recordPrecuEmboldenOutcome(self, fixture, "passed");
++        return SCRIPT_CONTINUE;
++    }
++    private int getPrecuEmboldenMindCost(obj_id player)
++        throws InterruptedException
++    {
++        float cost = PRECU_EMBOLDEN_BASE_MIND_COST;
++        cost -= ((getAttrib(player, FOCUS) - 300.0f) / 1200.0f) * cost;
++        return Math.max(0, (int)cost);
++    }
++    private boolean isPrecuEmboldenFixture(obj_id player, obj_id pet)
++        throws InterruptedException
++    {
++        return isIdValid(player) && exists(player) && isPlayer(player) &&
++            player.getValue() == PRECU_EMBOLDEN_PLAYER_OID &&
++            getPlayerStationId(player) == PRECU_EMBOLDEN_STATION_ID &&
++            hasObjVar(player, PRECU_EMBOLDEN_FIXTURE_ROOT + ".protocol") &&
++            getIntObjVar(player, PRECU_EMBOLDEN_FIXTURE_ROOT + ".protocol") ==
++                PRECU_EMBOLDEN_PROTOCOL_VERSION &&
++            hasObjVar(player, PRECU_EMBOLDEN_FIXTURE_ROOT + ".prepared") &&
++            getIntObjVar(player, PRECU_EMBOLDEN_FIXTURE_ROOT + ".prepared") == 1 &&
++            hasObjVar(player, PRECU_EMBOLDEN_FIXTURE_ROOT + ".pet") &&
++            isIdValid(pet) && pet.equals(getObjIdObjVar(
++                player, PRECU_EMBOLDEN_FIXTURE_ROOT + ".pet"));
++    }
++    private int readPrecuEmboldenInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = PRECU_EMBOLDEN_FIXTURE_ROOT + suffix;
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++    private void recordPrecuEmboldenOutcome(obj_id player, boolean fixture,
++        String outcome) throws InterruptedException
++    {
++        if (fixture)
++        {
++            setObjVar(player,
++                PRECU_EMBOLDEN_FIXTURE_ROOT + ".outcome", outcome);
++        }
++    }
+     public int OnSkillGranted(obj_id self, String skillName) throws InterruptedException
+     {
+         if (hasObjVar(self, "familiar"))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_embolden_pets_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_embolden_pets_command_fixture.java
+new file mode 100644
+index 0000000..7ae6b9a
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_embolden_pets_command_fixture.java
+@@ -0,0 +1,631 @@
++package script.test;
++
++import script.dictionary;
++import script.location;
++import script.obj_id;
++import script.library.ai_lib;
++import script.library.buff;
++import script.library.callable;
++import script.library.create;
++import script.library.pet_lib;
++import script.library.skill;
++import script.library.utils;
++
++/** Identity-bound reversible fixture for Publish 14.1 emboldenPets. */
++public class precu_embolden_pets_command_fixture extends script.base_script
++{
++    private static final long PLAYER_OID = 44003778L;
++    private static final int PLAYER_STATION_ID = 91001;
++    private static final int PROTOCOL_VERSION = 1;
++    private static final String COMMAND = "emboldenpets";
++    private static final String CREATURE_TYPE = "worrt";
++    private static final String BUFF = "emboldenPet";
++    private static final String COOLDOWN = "pet.precuEmboldenCooldownUntil";
++    private static final String ROOT = "precu.emboldenPetsCommandFixture";
++    private static final String LIFECYCLE = ROOT + ".lifecycle";
++    private static final String PROTOCOL = ROOT + ".protocol";
++    private static final String PREPARED = ROOT + ".prepared";
++    private static final String TARGET = ROOT + ".target";
++    private static final String PET = ROOT + ".pet";
++    private static final String PCD = ROOT + ".pcd";
++    private static final String ORIGINAL_MIND = ROOT + ".originalMind";
++    private static final String ORIGINAL_MIND_MAX = ROOT + ".originalMindMax";
++    private static final String ORIGINAL_FOCUS = ROOT + ".originalFocus";
++    private static final String ORIGINAL_POINTS = ROOT + ".originalPoints";
++    private static final String ORIGINAL_PET_MASTER =
++        ROOT + ".originalPetMaster";
++    private static final String BEFORE_MIND = ROOT + ".beforeMind";
++    private static final String BEFORE_HEALTH_MAX = ROOT + ".beforeHealthMax";
++    private static final String BEFORE_ACTION_MAX = ROOT + ".beforeActionMax";
++    private static final String BEFORE_MIND_MAX = ROOT + ".beforeMindMax";
++    private static final String FIXTURE_SCRIPT =
++        "test.precu_embolden_pets_command_fixture";
++    private static final String[] SKILLS =
++    {
++        "outdoors_creaturehandler",
++        "outdoors_creaturehandler_novice",
++        "outdoors_creaturehandler_healing_01",
++        "outdoors_creaturehandler_healing_02"
++    };
++    private static final String USAGE =
++        "usage: prepare|status|cleanup|recover <playerOid> <32-hex-lifecycle>";
++
++    public String executeFixture(String params) throws InterruptedException
++    {
++        String[] args = params == null
++            ? new String[0]
++            : params.trim().split("[ ]+");
++        if (args.length != 3 || !isValidLifecycle(args[2]))
++        {
++            return USAGE;
++        }
++        long oid;
++        try
++        {
++            oid = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayerOid";
++        }
++        if (oid != PLAYER_OID)
++        {
++            return "error=playerIdentityRejected";
++        }
++        obj_id player = obj_id.getObjId(oid);
++        if (!isAuthoritativePlayer(player))
++        {
++            return "error=playerUnavailable";
++        }
++        if (args[0].equalsIgnoreCase("prepare"))
++        {
++            return prepare(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("status"))
++        {
++            return status(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("cleanup"))
++        {
++            return cleanup(player, args[2]);
++        }
++        if (args[0].equalsIgnoreCase("recover"))
++        {
++            return recoverOrphan(player);
++        }
++        return USAGE;
++    }
++
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        startPoll(self);
++        return SCRIPT_CONTINUE;
++    }
++
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        startPoll(self);
++        return SCRIPT_CONTINUE;
++    }
++
++    public int handlePrecuEmboldenFixturePoll(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        if (!isFixtureOwner(self))
++        {
++            utils.removeScriptVar(self, ROOT + ".pollActive");
++            return SCRIPT_CONTINUE;
++        }
++        if (readInt(self, ".prepareRequested") == 1)
++        {
++            removeObjVar(self, ROOT + ".prepareRequested");
++            preparePet(self);
++        }
++        messageTo(self, "handlePrecuEmboldenFixturePoll", null, 1.0f, false);
++        return SCRIPT_CONTINUE;
++    }
++
++    private String prepare(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT))
++        {
++            String ownership = validateOwnership(player, lifecycle);
++            if (ownership == null && getIntObjVar(player, PREPARED) == 1)
++            {
++                return "action=prepare resumed=true " + buildStatus(player);
++            }
++            return ownership == null ? "error=fixtureNotPrepared" : ownership;
++        }
++        if (hasAnyFixtureSkill(player) || hasCommand(player, COMMAND) ||
++            callable.hasCallable(player, callable.CALLABLE_TYPE_COMBAT_PET) ||
++            callable.getNumStoredCDByType(
++                player, callable.CALLABLE_TYPE_COMBAT_PET) != 0 ||
++            hasScript(player, FIXTURE_SCRIPT))
++        {
++            return "error=fixtureVectorAlreadyOwned";
++        }
++        setObjVar(player, LIFECYCLE, lifecycle);
++        setObjVar(player, PROTOCOL, PROTOCOL_VERSION);
++        setObjVar(player, ORIGINAL_MIND, getAttrib(player, MIND));
++        setObjVar(player, ORIGINAL_MIND_MAX, getMaxAttrib(player, MIND));
++        setObjVar(player, ORIGINAL_FOCUS, getAttrib(player, FOCUS));
++        setObjVar(player, ORIGINAL_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(player, ORIGINAL_PET_MASTER,
++            hasScript(player, "ai.pet_master") ? 1 : 0);
++        resetTelemetry(player);
++        if (!grantSkills(player) || !hasCommand(player, COMMAND))
++        {
++            boolean restored = restore(player);
++            return "error=skillPreparationFailed restored=" + restored;
++        }
++        setMaxAttrib(player, MIND, Math.max(500, getMaxAttrib(player, MIND)));
++        setAttrib(player, MIND, 500);
++        setObjVar(player, PREPARED, 1);
++        attachScript(player, FIXTURE_SCRIPT);
++        if (!hasScript(player, FIXTURE_SCRIPT))
++        {
++            boolean restored = restore(player);
++            return "error=fixtureScriptAttachFailed restored=" + restored;
++        }
++        setObjVar(player, ROOT + ".prepareRequested", 1);
++        return "action=prepare resumed=false " + buildStatus(player);
++    }
++
++    private void preparePet(obj_id player) throws InterruptedException
++    {
++        if (hasObjVar(player, PET))
++        {
++            return;
++        }
++        location targetLocation = new location(getLocation(player));
++        targetLocation.x += 2.0f;
++        obj_id target = createFixtureTarget(targetLocation);
++        if (!isIdValid(target) || !target.isLoaded())
++        {
++            setObjVar(player, ROOT + ".outcome", "targetPreparationFailed");
++            return;
++        }
++        setObjVar(player, TARGET, target);
++        obj_id pcd = pet_lib.makeTamedCreature(player, target, 1);
++        if (isIdValid(pcd) && pcd.isLoaded())
++        {
++            setObjVar(player, PCD, pcd);
++        }
++        obj_id pet = isIdValid(pcd) && pcd.isLoaded()
++            ? callable.getCDCallable(pcd)
++            : obj_id.NULL_ID;
++        if (!isIdValid(pet) || !pet.isLoaded())
++        {
++            pet = callable.getCallable(
++                player, callable.CALLABLE_TYPE_COMBAT_PET);
++        }
++        if (isIdValid(pet) && pet.isLoaded())
++        {
++            setObjVar(player, PET, pet);
++        }
++        if (!isIdValid(pcd) || !pcd.isLoaded() ||
++            !isIdValid(pet) || !pet.isLoaded() || pet != target)
++        {
++            setObjVar(player, ROOT + ".outcome", "petPreparationFailed");
++            return;
++        }
++        callable.setCallable(
++            player, pet, callable.CALLABLE_TYPE_COMBAT_PET);
++        setObjVar(player, BEFORE_MIND, getAttrib(player, MIND));
++        setObjVar(player, BEFORE_HEALTH_MAX, getMaxAttrib(pet, HEALTH));
++        setObjVar(player, BEFORE_ACTION_MAX, getMaxAttrib(pet, ACTION));
++        setObjVar(player, BEFORE_MIND_MAX, getMaxAttrib(pet, MIND));
++        setObjVar(player, ROOT + ".outcome", "ready");
++    }
++
++    private String status(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(player, lifecycle);
++        return ownership == null
++            ? "action=status " + buildStatus(player)
++            : ownership;
++    }
++
++    private String cleanup(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT))
++        {
++            return "action=cleanup alreadyClean=true restored=true";
++        }
++        String ownership = validateLifecycle(player, lifecycle);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasCompleteSnapshot(player))
++        {
++            return "action=cleanup alreadyClean=false restored=false" +
++                " incompleteSnapshot=true";
++        }
++        return "action=cleanup alreadyClean=false restored=" + restore(player);
++    }
++
++    private String recoverOrphan(obj_id player) throws InterruptedException
++    {
++        if (hasObjVar(player, ROOT) || hasAnyFixtureSkill(player) ||
++            hasCommand(player, COMMAND) || hasScript(player, FIXTURE_SCRIPT))
++        {
++            return "error=recoveryRejected";
++        }
++        obj_id[] devices = callable.getDatapadCallablesByType(
++            player, callable.CALLABLE_TYPE_COMBAT_PET);
++        if (devices == null || devices.length != 1)
++        {
++            return "error=recoveryCardinality";
++        }
++        obj_id pcd = devices[0];
++        if (!isIdValid(pcd) || !pcd.isLoaded() ||
++            !hasObjVar(pcd, "pet.creatureName") ||
++            !getStringObjVar(pcd, "pet.creatureName").equals(CREATURE_TYPE))
++        {
++            return "error=recoveryIdentityRejected";
++        }
++        obj_id pet = callable.getCDCallable(pcd);
++        callable.setCallable(player, null, callable.CALLABLE_TYPE_COMBAT_PET);
++        callable.setCDCallable(pcd, null);
++        if (isIdValid(pet) && pet.isLoaded())
++        {
++            if (getMaster(pet) == player)
++            {
++                setMaster(pet, null);
++            }
++            destroyObject(pet);
++        }
++        destroyObject(pcd);
++        if (hasScript(player, "ai.pet_master"))
++        {
++            detachScript(player, "ai.pet_master");
++        }
++        boolean restored =
++            !callable.hasCallable(player, callable.CALLABLE_TYPE_COMBAT_PET) &&
++            callable.getNumStoredCDByType(
++                player, callable.CALLABLE_TYPE_COMBAT_PET) == 0 &&
++            !hasScript(player, "ai.pet_master");
++        return "action=recover count=1 restored=" + restored;
++    }
++
++    private boolean restore(obj_id player) throws InterruptedException
++    {
++        if (!hasCompleteSnapshot(player))
++        {
++            return false;
++        }
++        utils.removeScriptVar(player, ROOT + ".pollActive");
++        obj_id pcd = readObjId(player, PCD);
++        obj_id pet = readObjId(player, PET);
++        callable.setCallable(player, null, callable.CALLABLE_TYPE_COMBAT_PET);
++        if (isIdValid(pcd) && pcd.isLoaded())
++        {
++            callable.setCDCallable(pcd, null);
++        }
++        if (isIdValid(pet) && pet.isLoaded())
++        {
++            buff.removeBuff(pet, BUFF);
++            if (hasObjVar(pet, COOLDOWN))
++            {
++                removeObjVar(pet, COOLDOWN);
++            }
++            if (getMaster(pet) == player)
++            {
++                setMaster(pet, null);
++            }
++            destroyObject(pet);
++        }
++        obj_id target = readObjId(player, TARGET);
++        if (isIdValid(target) && target.isLoaded() && target != pet)
++        {
++            destroyObject(target);
++        }
++        if (isIdValid(pcd) && pcd.isLoaded())
++        {
++            destroyObject(pcd);
++        }
++        setMaxAttrib(player, MIND, getIntObjVar(player, ORIGINAL_MIND_MAX));
++        setAttrib(player, MIND, getIntObjVar(player, ORIGINAL_MIND));
++        revokeSkills(player);
++        if (getIntObjVar(player, ORIGINAL_PET_MASTER) == 0 &&
++            hasScript(player, "ai.pet_master"))
++        {
++            detachScript(player, "ai.pet_master");
++        }
++        if (hasScript(player, FIXTURE_SCRIPT))
++        {
++            detachScript(player, FIXTURE_SCRIPT);
++        }
++        boolean restored =
++            getAttrib(player, MIND) == getIntObjVar(player, ORIGINAL_MIND) &&
++            getMaxAttrib(player, MIND) ==
++                getIntObjVar(player, ORIGINAL_MIND_MAX) &&
++            getAttrib(player, FOCUS) == getIntObjVar(player, ORIGINAL_FOCUS) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) &&
++            !hasAnyFixtureSkill(player) && !hasCommand(player, COMMAND) &&
++            !callable.hasCallable(player, callable.CALLABLE_TYPE_COMBAT_PET) &&
++            callable.getNumStoredCDByType(
++                player, callable.CALLABLE_TYPE_COMBAT_PET) == 0 &&
++            getIntObjVar(player, ORIGINAL_PET_MASTER) ==
++                (hasScript(player, "ai.pet_master") ? 1 : 0);
++        removeObjVar(player, ROOT);
++        return restored;
++    }
++
++    private String buildStatus(obj_id player) throws InterruptedException
++    {
++        obj_id pet = readObjId(player, PET);
++        obj_id pcd = readObjId(player, PCD);
++        boolean petAvailable = isIdValid(pet) && pet.isLoaded();
++        boolean pcdAvailable = isIdValid(pcd) && pcd.isLoaded();
++        boolean pcdContained = false;
++        if (pcdAvailable)
++        {
++            obj_id datapad = getContainedBy(pcd);
++            pcdContained = isIdValid(datapad) && datapad.isLoaded() &&
++                getContainedBy(datapad) == player;
++        }
++        int healthMax = petAvailable ? getMaxAttrib(pet, HEALTH) : 0;
++        int actionMax = petAvailable ? getMaxAttrib(pet, ACTION) : 0;
++        int mindMax = petAvailable ? getMaxAttrib(pet, MIND) : 0;
++        int cooldownRemaining = 0;
++        if (petAvailable && hasObjVar(pet, COOLDOWN))
++        {
++            cooldownRemaining = Math.max(
++                0, getIntObjVar(pet, COOLDOWN) - getGameTime());
++        }
++        return
++            "player=" + player +
++            " pet=" + pet +
++            " petAvailable=" + petAvailable +
++            " pcd=" + pcd +
++            " pcdAvailable=" + pcdAvailable +
++            " pcdContained=" + pcdContained +
++            " masterLinked=" +
++                (petAvailable && getMaster(pet) == player) +
++            " creaturePet=" +
++                (petAvailable && pet_lib.isCreaturePet(pet)) +
++            " petScript=" +
++                (petAvailable && hasScript(pet, "ai.pet")) +
++            " command=" + hasCommand(player, COMMAND) +
++            " skillBits=" + buildSkillBits(player) +
++            " buff=" + (petAvailable && buff.hasBuff(pet, BUFF)) +
++            " buffRemaining=" +
++                (petAvailable ? buff.getBuffTimeRemaining(pet, BUFF) : 0.0f) +
++            " cooldownRemaining=" + cooldownRemaining +
++            " mind=" + getAttrib(player, MIND) +
++            " mindDelta=" + delta(player, BEFORE_MIND, getAttrib(player, MIND)) +
++            " focus=" + getAttrib(player, FOCUS) +
++            " healthMaxBefore=" + readIntPath(player, BEFORE_HEALTH_MAX) +
++            " healthMax=" + healthMax +
++            " healthMaxDelta=" + delta(player, BEFORE_HEALTH_MAX, healthMax) +
++            " actionMaxBefore=" + readIntPath(player, BEFORE_ACTION_MAX) +
++            " actionMax=" + actionMax +
++            " actionMaxDelta=" + delta(player, BEFORE_ACTION_MAX, actionMax) +
++            " mindMaxBefore=" + readIntPath(player, BEFORE_MIND_MAX) +
++            " mindMax=" + mindMax +
++            " mindMaxDelta=" + delta(player, BEFORE_MIND_MAX, mindMax) +
++            " handlerEntered=" + readInt(player, ".handlerEntered") +
++            " handlerCalls=" + readInt(player, ".handlerCalls") +
++            " mindCost=" + readInt(player, ".mindCost") +
++            " outcome=" + readString(player, ".outcome") +
++            " availablePoints=" + skill.getAvailableSkillPoints(player);
++    }
++
++    private obj_id createFixtureTarget(location targetLocation)
++        throws InterruptedException
++    {
++        dictionary creatureData =
++            dataTableGetRow(create.CREATURE_TABLE, CREATURE_TYPE);
++        if (creatureData == null)
++        {
++            return obj_id.NULL_ID;
++        }
++        String templateName = creatureData.getString("template");
++        if (templateName == null || templateName.length() == 0)
++        {
++            return obj_id.NULL_ID;
++        }
++        creatureData.put("lootTable", "");
++        obj_id target = createObject(
++            create.TEMPLATE_PREFIX + templateName, targetLocation);
++        if (!isIdValid(target))
++        {
++            return obj_id.NULL_ID;
++        }
++        create.randomlyNameCreature(target, CREATURE_TYPE);
++        create.initializeCreature(target, CREATURE_TYPE, creatureData, -1);
++        create.attachCreatureScripts(
++            target, creatureData.getString("scripts"), true);
++        if (!hasScript(target, "ai.pet_advance"))
++        {
++            attachScript(target, "ai.pet_advance");
++        }
++        return target;
++    }
++
++    private boolean grantSkills(obj_id player) throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (!grantSkill(player, skillName) || !hasSkill(player, skillName))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private void revokeSkills(obj_id player) throws InterruptedException
++    {
++        for (int index = SKILLS.length - 1; index >= 0; --index)
++        {
++            if (hasSkill(player, SKILLS[index]))
++            {
++                revokeSkill(player, SKILLS[index]);
++            }
++        }
++    }
++
++    private boolean hasAnyFixtureSkill(obj_id player)
++        throws InterruptedException
++    {
++        for (String skillName : SKILLS)
++        {
++            if (hasSkill(player, skillName))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private String buildSkillBits(obj_id player) throws InterruptedException
++    {
++        String bits = "";
++        for (String skillName : SKILLS)
++        {
++            bits += hasSkill(player, skillName) ? "1" : "0";
++        }
++        return bits;
++    }
++
++    private boolean isAuthoritativePlayer(obj_id player)
++        throws InterruptedException
++    {
++        return isIdValid(player) && player.isLoaded() && isPlayer(player) &&
++            player.getValue() == PLAYER_OID &&
++            getPlayerStationId(player) == PLAYER_STATION_ID;
++    }
++
++    private boolean isFixtureOwner(obj_id player) throws InterruptedException
++    {
++        return isAuthoritativePlayer(player) &&
++            hasObjVar(player, PROTOCOL) &&
++            getIntObjVar(player, PROTOCOL) == PROTOCOL_VERSION &&
++            hasObjVar(player, PREPARED) &&
++            getIntObjVar(player, PREPARED) == 1;
++    }
++
++    private String validateOwnership(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String lifecycleError = validateLifecycle(player, lifecycle);
++        if (lifecycleError != null)
++        {
++            return lifecycleError;
++        }
++        return isFixtureOwner(player) ? null : "error=fixtureNotPrepared";
++    }
++
++    private String validateLifecycle(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ROOT) || !hasObjVar(player, LIFECYCLE))
++        {
++            return "error=fixtureAbsent";
++        }
++        return getStringObjVar(player, LIFECYCLE).equals(lifecycle)
++            ? null
++            : "error=lifecycleMismatch";
++    }
++
++    private boolean hasCompleteSnapshot(obj_id player)
++        throws InterruptedException
++    {
++        return hasObjVar(player, LIFECYCLE) && hasObjVar(player, PROTOCOL) &&
++            hasObjVar(player, ORIGINAL_MIND) &&
++            hasObjVar(player, ORIGINAL_MIND_MAX) &&
++            hasObjVar(player, ORIGINAL_FOCUS) &&
++            hasObjVar(player, ORIGINAL_POINTS) &&
++            hasObjVar(player, ORIGINAL_PET_MASTER);
++    }
++
++    private void startPoll(obj_id player) throws InterruptedException
++    {
++        if (utils.hasScriptVar(player, ROOT + ".pollActive"))
++        {
++            return;
++        }
++        utils.setScriptVar(player, ROOT + ".pollActive", 1);
++        messageTo(player, "handlePrecuEmboldenFixturePoll", null, 1.0f, false);
++    }
++
++    private void resetTelemetry(obj_id player) throws InterruptedException
++    {
++        String[] leaves =
++        {
++            "handlerEntered", "handlerCalls", "mindCost", "completedAt",
++            "cooldownUntil", "outcome", "prepareRequested"
++        };
++        for (String leaf : leaves)
++        {
++            String path = ROOT + "." + leaf;
++            if (hasObjVar(player, path))
++            {
++                removeObjVar(player, path);
++            }
++        }
++    }
++
++    private obj_id readObjId(obj_id player, String path)
++        throws InterruptedException
++    {
++        return hasObjVar(player, path)
++            ? getObjIdObjVar(player, path)
++            : obj_id.NULL_ID;
++    }
++
++    private int readInt(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        return readIntPath(player, ROOT + suffix);
++    }
++
++    private int readIntPath(obj_id player, String path)
++        throws InterruptedException
++    {
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : 0;
++    }
++
++    private String readString(obj_id player, String suffix)
++        throws InterruptedException
++    {
++        String path = ROOT + suffix;
++        return hasObjVar(player, path)
++            ? getStringObjVar(player, path)
++            : "none";
++    }
++
++    private int delta(obj_id player, String key, int current)
++        throws InterruptedException
++    {
++        return hasObjVar(player, key)
++            ? current - getIntObjVar(player, key)
++            : 0;
++    }
++
++    private boolean isValidLifecycle(String lifecycle)
++    {
++        if (lifecycle == null || lifecycle.length() != 32)
++        {
++            return false;
++        }
++        for (int index = 0; index < lifecycle.length(); ++index)
++        {
++            char value = lifecycle.charAt(index);
++            if (!((value >= '0' && value <= '9') ||
++                (value >= 'a' && value <= 'f')))
++            {
++                return false;
++            }
++        }
++        return true;
++    }
++}
+diff --git a/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab b/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
+index d56be98..80bf51e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
+@@ -290,7 +290,7 @@ foraged_vegetable_3	food			0	buffs.foodVegetable	300	constitution_modified	10	ag
+ foraged_vegetable_4	food			0	buffs.foodVegetable	300	stamina_modified	10	luck_modified	10		0		0		0	STATE_NONE	none			1	0		1	1	1	0	1	1	0	1	1	1
+ foraged_vegetable_5	food			0	buffs.foodVegetable	300	agility_modified	10	stamina_modified	10		0		0		0	STATE_NONE	none			1	0		1	1	1	0	1	1	0	1	1	1
+ enragePet	enragePet			1	command.enragepets	60	private_melee_dmg_bonus	25	private_defense_penalty	40		0		0		0	STATE_BERSERK	none			1	0		0	1	1	0	1	1	0	1	1	1
+-emboldenPet	emboldenPet			1	command.emboldenpets	300	healthPercent	15		0		0		0		0	STATE_NONE	none			1	0		0	1	1	0	1	1	0	1	1	1
++emboldenPet	emboldenPet			1	command.emboldenpets	60	healthPercent	15	actionPercent	15	mindPercent	15		0		0	STATE_NONE	none			1	0		0	1	1	0	1	1	0	1	1	1
+ perform_inspire_1	performance			1	buffs.genericBuff	300	script_var	0		0		0		0		0	STATE_NONE	none			1	0		0	1	1	0	1	1	0	1	1	1
+ cyborgStrengthBuff	cyborgStrengthBuff			99	command.cyborgStrengthBuff	60	strength_modified	200	stamina_modified	100		0		0		0	STATE_NONE	none			1	0		0	1	1	0	1	1	0	1	1	1
+ cyberneticLegs	cyborgLegBoost			1	command.burstRun	-1	movement	0		0		0		0		0	STATE_NONE	none			1	0		0	1	1	0	1	1	0	1	1	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index e4aa1b5..f2e8db7 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1977,3 +1977,4 @@ fireLightningCone1	combat	normal	fireLightningCone1	failSpecialAttack			2	fireLi
+ fireLightningCone2	combat	normal	fireLightningCone2	failSpecialAttack			2	fireLightningCone2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ fireLightningSingle2	combat	normal	fireLightningSingle2	failSpecialAttack			2	fireLightningSingle2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	16	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ tame	combat	normal	cmdTame				0.5		1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	0	0	0	0	0	1	0	1	1	1	1	0	1	0	1	1	1	1	1	0	0	0	0	0	0	1	1	0	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1	player.skill.taming	other	required		2	0	0	0	32	0	0	0	ALL	NONE	defaultCooldownGroup	0	0.5	0		0	0	0
++emboldenpets	combat	normal	emboldenPets	failPetBuff			1.5	emboldenpets	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	0	0	0	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	1	1	1	1	1	1	1		other	optional		2	0	0	0	0	0	0	0	ALL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

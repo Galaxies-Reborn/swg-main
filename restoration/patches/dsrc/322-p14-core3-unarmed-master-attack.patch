@@ -1,0 +1,389 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 91c3d070a..3ab00e956 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15289,14 +15289,22 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int unarmedHit2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        if (!combatStandardAction("unarmedHit2", self, target, params, "", ""))
+-        {
+-            return SCRIPT_OVERRIDE;
+-        }
+-        return SCRIPT_CONTINUE;
+-    }
++    public int unarmedHit2(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("unarmedHit2", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int unarmedHit3(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("unarmedHit3", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int unarmedBodyHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("unarmedBodyHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 78627a718..b1a06ac35 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -95,6 +95,19 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_unarmed_speed_03";
+     private static final String TERAS_KASI_SPEED_FOUR =
+         "combat_unarmed_speed_04";
++    private static final String[] TERAS_KASI_MASTER_SKILLS =
++    {
++        "combat_unarmed", "combat_unarmed_novice",
++        "combat_unarmed_accuracy_01", "combat_unarmed_accuracy_02",
++        "combat_unarmed_accuracy_03", "combat_unarmed_accuracy_04",
++        "combat_unarmed_speed_01", "combat_unarmed_speed_02",
++        "combat_unarmed_speed_03", "combat_unarmed_speed_04",
++        "combat_unarmed_ability_01", "combat_unarmed_ability_02",
++        "combat_unarmed_ability_03", "combat_unarmed_ability_04",
++        "combat_unarmed_support_01", "combat_unarmed_support_02",
++        "combat_unarmed_support_03", "combat_unarmed_support_04",
++        "combat_unarmed_master"
++    };
+     private static final String BRAWLER_POLEARM_ONE =
+         "combat_brawler_polearm_01";
+     private static final String BRAWLER_POLEARM_TWO =
+@@ -379,6 +392,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String TWO_HAND_MIND_HIT_TWO_COMMAND =
+         "melee2hMindHit2";
+     private static final String TWO_HAND_HIT_THREE_COMMAND = "melee2hHit3";
++    private static final String UNARMED_HIT_THREE_COMMAND = "unarmedHit3";
+     private static final String UNARMED_KNOCKDOWN_ONE_COMMAND =
+         "unarmedKnockdown1";
+     private static final String UNARMED_KNOCKDOWN_TWO_COMMAND =
+@@ -582,6 +596,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".m321.originalTerasKasiSpeedThree";
+     private static final String ORIGINAL_TERAS_KASI_SPEED_FOUR =
+         ROOT + ".m321.originalTerasKasiSpeedFour";
++    private static final String ORIGINAL_TERAS_KASI_MASTER_SKILL_BITS =
++        ROOT + ".m324.originalTerasKasiMasterSkillBits";
++    private static final String ORIGINAL_UNARMED_HIT_THREE_COMMAND =
++        ROOT + ".m324.originalUnarmedHitThreeCommand";
+     private static final String ORIGINAL_BRAWLER_POLEARM_ONE =
+         ROOT + ".originalBrawlerPolearmOne";
+     private static final String ORIGINAL_BRAWLER_POLEARM_TWO =
+@@ -1061,7 +1079,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|prepareUnarmedMaster|statusUnarmedMaster|armUnarmedMaster|cleanupUnarmedMaster|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -1129,6 +1147,22 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return cleanupUnarmedSpeed(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("prepareUnarmedMaster"))
++        {
++            return prepareUnarmedMaster(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("statusUnarmedMaster"))
++        {
++            return statusUnarmedMaster(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("armUnarmedMaster"))
++        {
++            return armUnarmedMaster(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("cleanupUnarmedMaster"))
++        {
++            return cleanupUnarmedMaster(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("status"))
+         {
+             validation = validateOwnership(attacker, defender, args[3], true);
+@@ -5337,6 +5371,228 @@ public class precu_headshot1_fixture extends script.base_script
+                     defender, combat_base.PRECU_KNOCKDOWN_RECOVERY);
+     }
+ 
++    private String prepareUnarmedMaster(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String prepared = prepare(attacker, defender, lifecycle);
++        if (!prepared.startsWith("action=prepare"))
++        {
++            return prepared;
++        }
++        boolean skillSnapshot = hasObjVar(attacker,
++            ORIGINAL_TERAS_KASI_MASTER_SKILL_BITS);
++        boolean commandSnapshot = hasObjVar(attacker,
++            ORIGINAL_UNARMED_HIT_THREE_COMMAND);
++        if (skillSnapshot != commandSnapshot)
++        {
++            return "error=unarmedMasterSnapshotPartial " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        if (!skillSnapshot)
++        {
++            String bits = "";
++            for (String skillName : TERAS_KASI_MASTER_SKILLS)
++            {
++                bits += hasSkill(attacker, skillName) ? "1" : "0";
++            }
++            setObjVar(attacker, ORIGINAL_TERAS_KASI_MASTER_SKILL_BITS, bits);
++            setObjVar(attacker, ORIGINAL_UNARMED_HIT_THREE_COMMAND,
++                hasCommand(attacker, UNARMED_HIT_THREE_COMMAND) ? 1 : 0);
++        }
++        boolean skillsReady = true;
++        for (String skillName : TERAS_KASI_MASTER_SKILLS)
++        {
++            if (!hasSkill(attacker, skillName) &&
++                !grantSkill(attacker, skillName))
++            {
++                skillsReady = false;
++                break;
++            }
++        }
++        boolean commandReady =
++            hasCommand(attacker, UNARMED_HIT_THREE_COMMAND) ||
++            grantCommand(attacker, UNARMED_HIT_THREE_COMMAND);
++        if (!skillsReady || !commandReady ||
++            !"1111111111111111111".equals(
++                buildUnarmedMasterSkillBits(attacker)))
++        {
++            return "error=unarmedMasterGrantFailed skillsReady=" +
++                skillsReady + " commandReady=" + commandReady + " " +
++                buildUnarmedMasterStatus(attacker, defender, lifecycle);
++        }
++        return "action=prepareUnarmedMaster resumed=" + skillSnapshot + " " +
++            buildUnarmedMasterStatus(attacker, defender, lifecycle);
++    }
++
++    private String statusUnarmedMaster(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        return ownership == null ?
++            "action=statusUnarmedMaster " +
++                buildUnarmedMasterStatus(attacker, defender, lifecycle) :
++            ownership;
++    }
++
++    private String armUnarmedMaster(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armGenerated(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armGenerated"))
++        {
++            return armed;
++        }
++        obj_id current = getObjectInSlot(attacker, "hold_r");
++        if (isIdValid(current))
++        {
++            obj_id inventory = utils.getInventoryContainer(attacker);
++            if (!isIdValid(inventory) || !putInOverloaded(current, inventory))
++            {
++                return "error=unarmedMasterUnequipFailed " +
++                    buildUnarmedMasterStatus(attacker, defender, lifecycle);
++            }
++        }
++        boolean proofStateBuffsCleared = clearProofStateBuffs(defender);
++        boolean boundary =
++            "1111111111111111111".equals(
++                buildUnarmedMasterSkillBits(attacker)) &&
++            hasCommand(attacker, UNARMED_HIT_THREE_COMMAND) &&
++            combat.canPerformAction(UNARMED_HIT_THREE_COMMAND, attacker) == 0 &&
++            !isIdValid(getObjectInSlot(attacker, "hold_r")) &&
++            proofStateBuffsCleared &&
++            getState(defender, STATE_BLINDED) == 0 &&
++            !buff.hasBuff(defender, "blind") &&
++            getPosture(defender) == POSTURE_UPRIGHT;
++        return boundary ?
++            "action=armUnarmedMaster unarmed=true defenderPosture=" +
++                getPosture(defender) + " " +
++                buildUnarmedMasterStatus(attacker, defender, lifecycle) :
++            "error=unarmedMasterOwnershipBoundaryFailed " +
++                buildUnarmedMasterStatus(attacker, defender, lifecycle);
++    }
++
++    private String cleanupUnarmedMaster(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, true);
++        if ("fixtureAbsent".equals(ownership))
++        {
++            return "action=cleanupUnarmedMaster alreadyClean=true restored=true";
++        }
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasObjVar(attacker, ORIGINAL_TERAS_KASI_MASTER_SKILL_BITS) ||
++            !hasObjVar(attacker, ORIGINAL_UNARMED_HIT_THREE_COMMAND))
++        {
++            return "error=unarmedMasterSnapshotMissing " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        String bits = getStringObjVar(attacker,
++            ORIGINAL_TERAS_KASI_MASTER_SKILL_BITS);
++        if (bits == null || bits.length() != TERAS_KASI_MASTER_SKILLS.length)
++        {
++            return "error=unarmedMasterSnapshotInvalid " +
++                buildStatus(attacker, defender, lifecycle);
++        }
++        if (getIntObjVar(attacker,
++            ORIGINAL_UNARMED_HIT_THREE_COMMAND) == 0 &&
++            hasCommand(attacker, UNARMED_HIT_THREE_COMMAND))
++        {
++            revokeCommand(attacker, UNARMED_HIT_THREE_COMMAND);
++        }
++        for (int index = TERAS_KASI_MASTER_SKILLS.length - 1;
++            index >= 0; --index)
++        {
++            if (bits.charAt(index) == '0' &&
++                hasSkill(attacker, TERAS_KASI_MASTER_SKILLS[index]))
++            {
++                revokeSkillSilent(attacker, TERAS_KASI_MASTER_SKILLS[index]);
++            }
++        }
++        boolean restored = true;
++        for (int index = 0; index < TERAS_KASI_MASTER_SKILLS.length; ++index)
++        {
++            boolean expected = bits.charAt(index) == '1';
++            if (expected && !hasSkill(attacker,
++                TERAS_KASI_MASTER_SKILLS[index]))
++            {
++                restored = grantSkill(attacker,
++                    TERAS_KASI_MASTER_SKILLS[index]);
++            }
++            if (hasSkill(attacker, TERAS_KASI_MASTER_SKILLS[index]) != expected)
++            {
++                restored = false;
++            }
++        }
++        boolean commandExpected = getIntObjVar(attacker,
++            ORIGINAL_UNARMED_HIT_THREE_COMMAND) != 0;
++        if (commandExpected && !hasCommand(attacker,
++            UNARMED_HIT_THREE_COMMAND))
++        {
++            restored = grantCommand(attacker, UNARMED_HIT_THREE_COMMAND) &&
++                restored;
++        }
++        restored = restored &&
++            hasCommand(attacker, UNARMED_HIT_THREE_COMMAND) == commandExpected;
++        if (!restored)
++        {
++            return "error=unarmedMasterRestorationFailed " +
++                buildUnarmedMasterStatus(attacker, defender, lifecycle);
++        }
++        String baseCleanup = cleanup(attacker, defender, lifecycle);
++        return baseCleanup.startsWith("action=cleanup") ?
++            "action=cleanupUnarmedMaster alreadyClean=false restored=true " +
++                baseCleanup :
++            baseCleanup;
++    }
++
++    private String buildUnarmedMasterSkillBits(obj_id attacker)
++        throws InterruptedException
++    {
++        String bits = "";
++        for (String skillName : TERAS_KASI_MASTER_SKILLS)
++        {
++            bits += hasSkill(attacker, skillName) ? "1" : "0";
++        }
++        return bits;
++    }
++
++    private String buildUnarmedMasterStatus(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        combat_data data = combat_engine.getCombatData(
++            UNARMED_HIT_THREE_COMMAND);
++        weapon_data weaponData = getWeaponData(getCurrentWeapon(attacker));
++        int[] costs = data != null && weaponData != null ?
++            combat.getActionCost(attacker, weaponData, data) :
++            new int[] {-1, -1, -1};
++        obj_id held = getObjectInSlot(attacker, "hold_r");
++        return buildStatus(attacker, defender, lifecycle) +
++            " unarmedMasterSkillBits=" +
++                buildUnarmedMasterSkillBits(attacker) +
++            " unarmedHitThreeCommand=" +
++                hasCommand(attacker, UNARMED_HIT_THREE_COMMAND) +
++            " unarmedHitThreeCanPerform=" +
++                combat.canPerformAction(UNARMED_HIT_THREE_COMMAND, attacker) +
++            " unarmedHitThreeHealthCost=" + costs[0] +
++            " unarmedHitThreeActionCost=" + costs[1] +
++            " unarmedHitThreeMindCost=" + costs[2] +
++            " unarmedHitThreePrecuHamCostModel=" +
++                (data == null ? -1 : data.precuHamCostModel) +
++            " unarmedHitThreeDamageMultiplier=" +
++                (data == null ? -1.0f : data.percentAddFromWeapon) +
++            " unarmedHitThreeTargetPool=" +
++                (data == null ? -1 : data.precuTargetPool) +
++            " unarmedMasterMeditateModifier=" +
++                getSkillStatisticModifier(attacker, "meditate") +
++            " heldWeapon=" + (isIdValid(held) ? held : "none") +
++            " defenderBlindState=" + getState(defender, STATE_BLINDED) +
++            " defenderBlindBuff=" + buff.hasBuff(defender, "blind") +
++            " defenderPosture=" + getPosture(defender);
++    }
++
+     private String armPolearmNovice(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 2deae3fb2..bb7295b89 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1343,7 +1343,8 @@ disarmingShot2	disarmingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1
+ fanShot	disarmingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area					fire_area									OFF	OFF	OFF	OFF	OFF	CONE	64	60	0	64	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				pistoleer	0		ACTION_NAME	0	0	1
+ burstShot2	burstShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_7_single							fire_7_single							OFF	OFF	OFF	OFF	OFF	CONE	64	30	0	64	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				carbineer	0		ACTION_NAME	0	0	1
+ unarmedHit1	unarmedHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_2d	combo_2d													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+-unarmedHit2	unarmedHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3a	combo_3a													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
++unarmedHit2	unarmedHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3a	combo_3a													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
++unarmedHit3	unarmedHit3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_5a	combo_5a													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	4	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+ unarmedBodyHit1	unarmedBodyHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_special_shoulder_bash	attack_special_shoulder_bash													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+ unarmedLegHit1	unarmedLegHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_special_foot_stomp	attack_special_foot_stomp													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+ unarmedSpinAttack1	unarmedSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3c	combo_3c													OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				teras_kasi	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 18d190fdb..47e02b0d4 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -58,6 +58,7 @@ fanShot	0.5	1	0.5	RANDOM	2	50	INTENSITY
+ burstShot2	2	1.25	0.5	RANDOM	2	25	RANGED
+ unarmedHit1	1	1	1	RANDOM	1.5	15	INTENSITY
+ unarmedHit2	1.5	1.5	1.5	RANDOM	2.5	15	INTENSITY
++unarmedHit3	2	2	2	RANDOM	3	15	INTENSITY		0	BLIND	40	0	30	blind_defense	jedi_state_defense	resistance_states
+ unarmedBodyHit1	1.75	1.75	1.75	HEALTH	2	15	INTENSITY
+ unarmedLegHit1	1.75	1.75	1.75	ACTION	2	15	INTENSITY
+ unarmedSpinAttack1	1.5	1.5	1.5	RANDOM	2	15	INTENSITY
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 06b8c6702..c5efcba8c 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -57,6 +57,7 @@ fanShot	fanshot
+ burstShot2	burstblast
+ unarmedHit1	steelhands
+ unarmedHit2	goraxsmash
++unarmedHit3	spittingrawl
+ unarmedBodyHit1	rancorrising
+ unarmedLegHit1	grondastomp
+ unarmedSpinAttack1	leapingveermok
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 75775adbc..010cb5f57 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1980,6 +1980,7 @@ fanShot	combat	normal	fanShot	failSpecialAttack			2	fanShot	1	0	1	1	1	0	1	1	1	0
+ burstShot2	combat	normal	burstShot2	failSpecialAttack			2	burstShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	64	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ unarmedHit1	combat	normal	unarmedHit1	failSpecialAttack			1.5	unarmedHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedHit2	combat	normal	unarmedHit2	failSpecialAttack			2.5	unarmedHit2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	2.5	0		0	0	0
++unarmedHit3	combat	normal	unarmedHit3	failSpecialAttack			3	unarmedHit3	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	3	0		0	0	0
+ unarmedBodyHit1	combat	normal	unarmedBodyHit1	failSpecialAttack			2	unarmedBodyHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ unarmedLegHit1	combat	normal	unarmedLegHit1	failSpecialAttack			2	unarmedLegHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	2	0		0	0	0
+ unarmedSpinAttack1	combat	normal	unarmedSpinAttack1	failSpecialAttack			2	unarmedSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	2	0		0	0	0

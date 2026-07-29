@@ -1,0 +1,368 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 45b8ce2..5bb9ffa 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -16036,6 +16036,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int melee1hHit3(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("melee1hHit3", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int melee2hHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("melee2hHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 4c13768..d0e3c9f 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -100,6 +100,8 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_1hsword_ability_03";
+     private static final String ONE_HAND_SWORD_ABILITY_FOUR =
+         "combat_1hsword_ability_04";
++    private static final String ONE_HAND_SWORD_MASTER =
++        "combat_1hsword_master";
+     private static final String RIFLEMAN_ACCURACY_ONE =
+         "combat_rifleman_accuracy_01";
+     private static final String RIFLEMAN_ACCURACY_TWO =
+@@ -311,6 +313,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String ONE_HAND_BODY_THREE_COMMAND = "melee1hBodyHit3";
+     private static final String ONE_HAND_HIT_ONE_COMMAND = "melee1hHit1";
+     private static final String ONE_HAND_HIT_TWO_COMMAND = "melee1hHit2";
++    private static final String ONE_HAND_HIT_THREE_COMMAND = "melee1hHit3";
+     private static final String TWO_HAND_AREA_COMMAND = "melee2hSpinAttack1";
+     private static final String TWO_HAND_AREA_TWO_COMMAND = "melee2hSpinAttack2";
+     private static final String TWO_HAND_HEAD_ONE_COMMAND = "melee2hHeadHit1";
+@@ -413,6 +416,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalOneHandSwordAbilityThree";
+     private static final String ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR =
+         ROOT + ".originalOneHandSwordAbilityFour";
++    private static final String ORIGINAL_ONE_HAND_SWORD_MASTER =
++        ROOT + ".originalOneHandSwordMaster";
+     private static final String ORIGINAL_BRAWLER_TWO_HAND_ONE =
+         ROOT + ".originalBrawlerTwoHandOne";
+     private static final String ORIGINAL_BRAWLER_TWO_HAND_TWO =
+@@ -746,6 +751,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalOneHandHitOneCommand";
+     private static final String ORIGINAL_ONE_HAND_HIT_TWO_COMMAND =
+         ROOT + ".originalOneHandHitTwoCommand";
++    private static final String ORIGINAL_ONE_HAND_HIT_THREE_COMMAND =
++        ROOT + ".originalOneHandHitThreeCommand";
+     private static final String ORIGINAL_TWO_HAND_AREA_COMMAND =
+         ROOT + ".originalTwoHandAreaCommand";
+     private static final String ORIGINAL_TWO_HAND_AREA_TWO_COMMAND =
+@@ -826,7 +833,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -923,6 +930,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armOneHandAbility(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armOneHandMaster"))
++        {
++            return armOneHandMaster(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armWarcryOne"))
+         {
+             return armWarcryOne(attacker, defender, args[3]);
+@@ -1131,6 +1142,13 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean oneHandSwordAbilityFourGranted = oneHandSwordAbilityThreeGranted &&
+             (hasSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR) ||
+                 grantSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR));
++        boolean oneHandSwordMasterGranted =
++            oneHandSwordSupportFourGranted &&
++            oneHandSwordAccuracyFourGranted &&
++            oneHandSwordSpeedFourGranted &&
++            oneHandSwordAbilityFourGranted &&
++            (hasSkill(attacker, ONE_HAND_SWORD_MASTER) ||
++                grantSkill(attacker, ONE_HAND_SWORD_MASTER));
+         boolean brawlerTwoHandOneGranted = brawlerNoviceGranted &&
+             (hasSkill(attacker, BRAWLER_TWO_HAND_ONE) ||
+                 grantSkill(attacker, BRAWLER_TWO_HAND_ONE));
+@@ -1626,6 +1644,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean oneHandHitTwoCommandGranted =
+             hasCommand(attacker, ONE_HAND_HIT_TWO_COMMAND) ||
+             grantCommand(attacker, ONE_HAND_HIT_TWO_COMMAND);
++        boolean oneHandHitThreeCommandGranted =
++            hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_HIT_THREE_COMMAND);
+         boolean twoHandAreaCommandGranted =
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
+             grantCommand(attacker, TWO_HAND_AREA_COMMAND);
+@@ -1750,6 +1771,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasSkill(attacker, ONE_HAND_SWORD_ABILITY_THREE) ||
+             !oneHandSwordAbilityFourGranted ||
+             !hasSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR) ||
++            !oneHandSwordMasterGranted ||
++            !hasSkill(attacker, ONE_HAND_SWORD_MASTER) ||
+             !brawlerTwoHandOneGranted ||
+             !hasSkill(attacker, BRAWLER_TWO_HAND_ONE) ||
+             !brawlerTwoHandTwoGranted ||
+@@ -1974,6 +1997,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, ONE_HAND_HIT_ONE_COMMAND) ||
+             !oneHandHitTwoCommandGranted ||
+             !hasCommand(attacker, ONE_HAND_HIT_TWO_COMMAND) ||
++            !oneHandHitThreeCommandGranted ||
++            !hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND) ||
+             !twoHandAreaCommandGranted ||
+             !hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
+             !twoHandAreaTwoCommandGranted ||
+@@ -2095,6 +2120,8 @@ public class precu_headshot1_fixture extends script.base_script
+                     hasCommand(attacker, ONE_HAND_HIT_ONE_COMMAND) +
+                 " oneHandHitTwoCommand=" +
+                     hasCommand(attacker, ONE_HAND_HIT_TWO_COMMAND) +
++                " oneHandHitThreeCommand=" +
++                    hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND) +
+                 " twoHandAreaCommand=" +
+                     hasCommand(attacker, TWO_HAND_AREA_COMMAND) +
+                 " twoHandAreaTwoCommand=" +
+@@ -2785,6 +2812,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, ONE_HAND_HIT_TWO_COMMAND);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_ONE_HAND_HIT_THREE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_HIT_THREE_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_HIT_THREE_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) == 0 &&
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND))
+@@ -3163,6 +3196,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, BRAWLER_UNARMED_FOUR);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_MASTER) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_MASTER) == 0 &&
++            hasSkill(attacker, ONE_HAND_SWORD_MASTER))
++        {
++            revokeSkill(attacker, ONE_HAND_SWORD_MASTER);
++        }
+         if (attackerRoot &&
+             hasObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR) &&
+             getIntObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR) == 0 &&
+@@ -3933,6 +3972,32 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armOneHandMaster(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String armed = armOneHandAbility(attacker, defender, lifecycle);
++        if (!armed.startsWith("action=armOneHandAbility"))
++        {
++            return armed;
++        }
++        boolean proofStateBuffsCleared = clearProofStateBuffs(defender);
++        boolean boundary =
++            hasSkill(attacker, ONE_HAND_SWORD_SUPPORT_FOUR) &&
++            hasSkill(attacker, ONE_HAND_SWORD_ACCURACY_FOUR) &&
++            hasSkill(attacker, ONE_HAND_SWORD_SPEED_FOUR) &&
++            hasSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR) &&
++            hasSkill(attacker, ONE_HAND_SWORD_MASTER) &&
++            hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND) &&
++            proofStateBuffsCleared &&
++            getState(defender, STATE_BLINDED) == 0 &&
++            !buff.hasBuff(defender, "blind");
++        return boundary ?
++            "action=armOneHandMaster equipped=true " +
++                buildStatus(attacker, defender, lifecycle) :
++            "error=oneHandMasterOwnershipBoundaryFailed " +
++                buildStatus(attacker, defender, lifecycle);
++    }
++
+     private String armWarcryOne(obj_id attacker, obj_id defender,
+         String lifecycle) throws InterruptedException
+     {
+@@ -4396,6 +4461,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, ONE_HAND_SWORD_ABILITY_THREE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR,
+             hasSkill(player, ONE_HAND_SWORD_ABILITY_FOUR) ? 1 : 0);
++        setObjVar(player, ORIGINAL_ONE_HAND_SWORD_MASTER,
++            hasSkill(player, ONE_HAND_SWORD_MASTER) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_ONE,
+             hasSkill(player, BRAWLER_TWO_HAND_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_TWO,
+@@ -4734,6 +4801,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, ONE_HAND_HIT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ONE_HAND_HIT_TWO_COMMAND,
+             hasCommand(player, ONE_HAND_HIT_TWO_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_ONE_HAND_HIT_THREE_COMMAND,
++            hasCommand(player, ONE_HAND_HIT_THREE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_TWO_HAND_AREA_COMMAND,
+             hasCommand(player, TWO_HAND_AREA_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_TWO_HAND_AREA_TWO_COMMAND,
+@@ -5286,6 +5355,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, ONE_HAND_HIT_TWO_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_ONE_HAND_HIT_THREE_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_HIT_THREE_COMMAND) == 0 &&
++            hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND))
++        {
++            revokeCommand(attacker, ONE_HAND_HIT_THREE_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_TWO_HAND_AREA_COMMAND) == 0 &&
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND))
+@@ -5636,6 +5711,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, BRAWLER_UNARMED_FOUR);
+         }
++        if (hasObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_MASTER) &&
++            getIntObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_MASTER) == 0 &&
++            hasSkill(attacker, ONE_HAND_SWORD_MASTER))
++        {
++            revokeSkill(attacker, ONE_HAND_SWORD_MASTER);
++        }
+         if (hasObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR) &&
+             getIntObjVar(attacker, ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR) == 0 &&
+             hasSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR))
+@@ -6170,6 +6251,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 ONE_HAND_SWORD_ABILITY_THREE) &&
+             isSkillRestored(attacker, ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR,
+                 ONE_HAND_SWORD_ABILITY_FOUR) &&
++            isSkillRestored(attacker, ORIGINAL_ONE_HAND_SWORD_MASTER,
++                ONE_HAND_SWORD_MASTER) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_TWO_HAND_ONE,
+                 BRAWLER_TWO_HAND_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_BRAWLER_TWO_HAND_TWO,
+@@ -6849,6 +6932,13 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean oneHandSwordAbilityFourReady = oneHandSwordAbilityThreeReady &&
+             (hasSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR) ||
+                 grantSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR));
++        boolean oneHandSwordMasterReady =
++            oneHandSwordSupportFourReady &&
++            oneHandSwordAccuracyFourReady &&
++            oneHandSwordSpeedFourReady &&
++            oneHandSwordAbilityFourReady &&
++            (hasSkill(attacker, ONE_HAND_SWORD_MASTER) ||
++                grantSkill(attacker, ONE_HAND_SWORD_MASTER));
+         boolean brawlerTwoHandOneReady = brawlerNoviceReady &&
+             (hasSkill(attacker, BRAWLER_TWO_HAND_ONE) ||
+                 grantSkill(attacker, BRAWLER_TWO_HAND_ONE));
+@@ -7338,6 +7428,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean oneHandHitTwoCommandReady =
+             hasCommand(attacker, ONE_HAND_HIT_TWO_COMMAND) ||
+             grantCommand(attacker, ONE_HAND_HIT_TWO_COMMAND);
++        boolean oneHandHitThreeCommandReady =
++            hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_HIT_THREE_COMMAND);
+         boolean twoHandAreaCommandReady =
+             hasCommand(attacker, TWO_HAND_AREA_COMMAND) ||
+             grantCommand(attacker, TWO_HAND_AREA_COMMAND);
+@@ -7480,6 +7573,7 @@ public class precu_headshot1_fixture extends script.base_script
+             oneHandSwordAbilityTwoReady &&
+             oneHandSwordAbilityThreeReady &&
+             oneHandSwordAbilityFourReady &&
++            oneHandSwordMasterReady &&
+             oneHandHealthHitOneCommandReady &&
+             oneHandSpinAttackTwoCommandReady &&
+             oneHandHealthHitTwoCommandReady &&
+@@ -7505,6 +7599,7 @@ public class precu_headshot1_fixture extends script.base_script
+             oneHandBodyOneCommandReady &&
+             oneHandBodyTwoCommandReady && oneHandBodyThreeCommandReady &&
+             oneHandHitOneCommandReady && oneHandHitTwoCommandReady &&
++            oneHandHitThreeCommandReady &&
+             twoHandAreaCommandReady && twoHandAreaTwoCommandReady &&
+             twoHandHeadOneCommandReady &&
+             twoHandHeadTwoCommandReady && twoHandHeadThreeCommandReady &&
+@@ -7837,6 +7932,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_ONE_HAND_SWORD_ABILITY_TWO) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_SWORD_ABILITY_THREE) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_SWORD_ABILITY_FOUR) &&
++            hasObjVar(player, ORIGINAL_ONE_HAND_SWORD_MASTER) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_ONE) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_TWO) &&
+             hasObjVar(player, ORIGINAL_BRAWLER_TWO_HAND_THREE) &&
+@@ -8006,6 +8102,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_ONE_HAND_BODY_THREE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_HIT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ONE_HAND_HIT_TWO_COMMAND) &&
++            hasObjVar(player, ORIGINAL_ONE_HAND_HIT_THREE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_AREA_COMMAND) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_AREA_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_TWO_HAND_HEAD_ONE_COMMAND) &&
+@@ -8318,6 +8415,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(ONE_HAND_HIT_ONE_COMMAND, attacker) : -1;
+         int canPerformOneHandHitTwo = isIdValid(weapon) ?
+             combat.canPerformAction(ONE_HAND_HIT_TWO_COMMAND, attacker) : -1;
++        int canPerformOneHandHitThree = isIdValid(weapon) ?
++            combat.canPerformAction(ONE_HAND_HIT_THREE_COMMAND, attacker) : -1;
+         int canPerformTwoHandArea = isIdValid(weapon) ?
+             combat.canPerformAction(TWO_HAND_AREA_COMMAND, attacker) : -1;
+         int canPerformTwoHandAreaTwo = isIdValid(weapon) ?
+@@ -8879,6 +8978,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasSkill(attacker, ONE_HAND_SWORD_ABILITY_THREE) +
+             " oneHandSwordAbilityFour=" +
+                 hasSkill(attacker, ONE_HAND_SWORD_ABILITY_FOUR) +
++            " oneHandSwordMaster=" +
++                hasSkill(attacker, ONE_HAND_SWORD_MASTER) +
+             " brawlerTwoHandOne=" +
+                 hasSkill(attacker, BRAWLER_TWO_HAND_ONE) +
+             " brawlerTwoHandTwo=" +
+@@ -9172,6 +9273,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, ONE_HAND_HIT_ONE_COMMAND) +
+             " oneHandHitTwoCommand=" +
+                 hasCommand(attacker, ONE_HAND_HIT_TWO_COMMAND) +
++            " oneHandHitThreeCommand=" +
++                hasCommand(attacker, ONE_HAND_HIT_THREE_COMMAND) +
+             " twoHandAreaCommand=" +
+                 hasCommand(attacker, TWO_HAND_AREA_COMMAND) +
+             " twoHandAreaTwoCommand=" +
+@@ -9276,6 +9379,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformOneHandBodyThree=" + canPerformOneHandBodyThree +
+             " canPerformOneHandHitOne=" + canPerformOneHandHitOne +
+             " canPerformOneHandHitTwo=" + canPerformOneHandHitTwo +
++            " canPerformOneHandHitThree=" + canPerformOneHandHitThree +
+             " canPerformTwoHandArea=" + canPerformTwoHandArea +
+             " canPerformTwoHandAreaTwo=" + canPerformTwoHandAreaTwo +
+             " canPerformTwoHandHeadOne=" + canPerformTwoHandHeadOne +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 78479c8..268b31e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1410,3 +1410,4 @@ melee1hScatterHit2	melee1hScatterHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	H
+ melee1hHealthHit1	melee1hHealthHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	counter_low_left		counter_low_left												OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	bleeding	100	30		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee1hSpinAttack2	melee1hSpinAttack2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_2hmelee_6		lower_posture_2hmelee_6												OFF	OFF	OFF	OFF	OFF	AREA	16		0	3	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee1hHealthHit2	melee1hHealthHit2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_3c		combo_3c												OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	3.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0	bleeding	100	60		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++melee1hHit3	melee1hHit3			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_5a				combo_5a										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	3	0	0	5.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index a3a098f..43a4507 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -126,3 +126,4 @@ melee1hScatterHit2	1.25	1.25	2.0	MULTI	2.5	25	INTENSITY
+ melee1hHealthHit1	0.5	0.5	0.625	HEALTH	1.5	25	INTENSITY	HEALTH
+ melee1hSpinAttack2	1.25	1.25	2.0	RANDOM	2.5	25	INTENSITY		0	BLIND	40	0	30	blind_defense	jedi_state_defense	resistance_states
+ melee1hHealthHit2	0.75	0.75	1.25	HEALTH	2.0	25	INTENSITY	HEALTH
++melee1hHit3	1	1	2	RANDOM	2.25	25	INTENSITY		0	BLIND	40	0	30	blind_defense	jedi_state_defense	resistance_states
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 9ead63e..110b30c 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -125,3 +125,4 @@ melee1hScatterHit2	scattershiak
+ melee1hHealthHit1	shiim
+ melee1hSpinAttack2	blindspin
+ melee1hHealthHit2	shiimshiak
++melee1hHit3	chomok
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index b11d041..7963bd3 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2063,3 +2063,4 @@ melee1hScatterHit2	combat	normal	melee1hScatterHit2	failSpecialAttack			1.5	mele
+ melee1hHealthHit1	combat	normal	melee1hHealthHit1	failSpecialAttack			1.5	melee1hHealthHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee1hSpinAttack2	combat	normal	melee1hSpinAttack2	failSpecialAttack			1.5	melee1hSpinAttack2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee1hHealthHit2	combat	normal	melee1hHealthHit2	failSpecialAttack			1.5	melee1hHealthHit2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++melee1hHit3	combat	normal	melee1hHit3	failSpecialAttack			1.5	melee1hHit3	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	3	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

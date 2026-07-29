@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-startle-shot-one",
+  "status": "ready",
+  "scope": "Restore retained Rifleman Ability II startleShot1 with exact Patch 12 queue admission, pinned Core3 rifle damage and posture-up recovery semantics, authenticated runtime, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Command": "startleShot1.lua",
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "skillOwner": "combat_rifleman_ability_02",
+    "skillPrerequisites": ["combat_rifleman_ability_01"],
+    "command": {
+      "name": "startleShot1",
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "validWeapon": "RIFLE",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "allowedLocomotion": ["standing", "walking", "running", "kneeling", "prone", "crawling"],
+      "disallowedState": ["berserk"]
+    },
+    "combat": {
+      "damageMultiplier": 2.0,
+      "speedMultiplier": 2.0,
+      "healthCostMultiplier": 0.5,
+      "actionCostMultiplier": 0.5,
+      "mindCostMultiplier": 1.5,
+      "accuracyBonus": 5,
+      "targetPool": "RANDOM_ATTRIBUTE",
+      "attackType": "SINGLE_TARGET",
+      "maxRange": 64,
+      "animation": "fire_defender_posture_change_up",
+      "animationType": "NONE",
+      "combatSpam": "startle",
+      "weaponType": "RIFLE"
+    },
+    "postureUp": {
+      "type": "POSTURE_UP",
+      "chance": 100,
+      "defense": "posture_change_up_defense",
+      "recoverySeconds": 30,
+      "firstTransition": "PRONE_TO_CROUCHED",
+      "activeRecoveryTransition": "NON_UPRIGHT_TO_UPRIGHT",
+      "core3PostureChangeDelayMilliseconds": 2500,
+      "runtimeBoundary": "The Java script API exposes posture and recovery but not Core3's internal postureChangeDelay cooldown timer."
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T09:06:00-04:00",
+    "overlay": "restoration/patches/dsrc/280-p14-core3-startle-shot-one.patch",
+    "overlaySha256": "5c97e5bb59ccb71500c07f44258f4f2e0b73b4028347c6ffd33e1ea43d340b51",
+    "changedFileCount": 7,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 8,
+    "javaCompile": "passed-focused-three-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss16m",
+    "datatableCompile": "passed-focused-four-tables-linux",
+    "clientBridgeTests": 69,
+    "clientBridgeSubtests": 923,
+    "clientTestSuite": {"passed": 198, "skipped": 6, "failed": 0, "subtests": 1147},
+    "clientBuildConfiguration": "Release|x64",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 203,
+    "clientBytes": 32644096,
+    "clientSha256": "bf727a4dcf35cf81b8693d28155e609676c4d573af7ab95b334cca15f8ebf3a7",
+    "materializedOverlayCount": 286,
+    "materializedRestorationFileCount": 838,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "base": "def777b6cdde3f6950af3e1480a21b5a8e3f5c384733d84ebee49e41a9bc40c2",
+      "actions": "d30d36e1c4c880706daf9ce03006a729528a3074a7d9cc1c27d0812b3e55fb6f",
+      "fixture": "b4fb4050198e432b9f659b60a79cb8cfe1d3882b03f1bd763f042e0f7e0e92ed",
+      "combat": "922f602cbaefe800cc0ba9a55305e1e825c33c87fea1cd113045e21da4bfa03d",
+      "override": "a7dcd92c1b81644cb7818cab84f8e3518e93871271d64cb16fe65375383c9e6f",
+      "spam": "5ba13ec7bafc70e6fd5f57ef2ae803fb71cd0188d729e54f48cf8362005bb2a2",
+      "command": "b368a3b50909f5a4fc02e680a37399fb74416f42d55e91f8c82045eda8eefd44"
+    },
+    "compiledClassSha256": {
+      "combat_base.class": "5a29b71943907c7c9dab66c9a34a85196c23932cceb6bb6d329b559da5511de3",
+      "combat_actions.class": "cd10951bf4282a26fc680aaae6a66d553c77adc065ba458db874f4ab80952682",
+      "precu_headshot1_fixture.class": "12a0322a1911e1345c6abaf5428223d81b3edcb5edfab2a46694fd05ca822a5d"
+    },
+    "compiledTableSha256": {
+      "datatables/combat/combat_data.iff": "41c34b7d9ccdc75362d4536bb8e4cdd939a6c97314b77fb5e6cf01f457b6f23d",
+      "datatables/combat/precu_combat_overrides.iff": "5aafda43aeb5947b6d09ff21b63890ab7b831e3be46e9af697e81042b48be3bb",
+      "datatables/combat/precu_combat_spam.iff": "e25da8a418e3138fdea49d9c4655aeef7d007448044c1cd9fd8a08eb875f5bd9",
+      "datatables/command/command_table.iff": "0ddadcf748b41d8dccb311f0071f52a7ed6502d7b4433728afeaf51a86c9f534"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "41c34b7d9ccdc75362d4536bb8e4cdd939a6c97314b77fb5e6cf01f457b6f23d",
+      "datatables/command/command_table.iff": "0ddadcf748b41d8dccb311f0071f52a7ed6502d7b4433728afeaf51a86c9f534",
+      "precu_runtime.tre": "75aef78dc7237ac19e760529f9dbe252764d1ed4acc7cd40066cc10284aae823"
+    },
+    "assetArchiveRebuild": {"deterministic": true, "runs": 2, "bytes": 133260, "fileCount": 3},
+    "legacyAssetTestSuite": {
+      "status": "known-stale-baseline",
+      "passed": 48,
+      "failed": 33,
+      "errors": 0,
+      "subtests": 16,
+      "regression": "none-in-m282-published-tables",
+      "note": "Failures are locked-hash expectations for previously restored skill and command assets; M282's source, compiled-table, synchronized-client, deterministic-archive, materialization, and authenticated-runtime gates passed."
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T09:10:00-04:00",
+    "clientProtocolVersion": 203,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime"},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave"},
+    "lifecycleId": "28200000000000000000000000000001",
+    "admission": {
+      "riflemanAbilityOne": true,
+      "riflemanAbilityTwo": true,
+      "riflemanAbilityThree": true,
+      "riflemanAbilityFour": true,
+      "riflemanMaster": true,
+      "command": true,
+      "weaponType": 0,
+      "validMask": "0x00000001",
+      "satisfies": true,
+      "canPerform": 0,
+      "costs": {"health": 2, "action": 7, "mind": 17}
+    },
+    "firstAttack": {
+      "queueStatus": "Success",
+      "damage": 42,
+      "damagePool": "HEALTH",
+      "configuredPool": 3,
+      "resolvedPool": 0,
+      "hitLocation": 3,
+      "combatSpam": "startle_hit",
+      "animation": "fire_defender_posture_change_up",
+      "animationType": 0,
+      "postureStart": 2,
+      "postureEnd": 1,
+      "result": "APPLIED",
+      "roll": 67,
+      "threshold": 103,
+      "defense": 0,
+      "recoveryPresent": true
+    },
+    "recoveryAttack": {
+      "queueStatus": "Success",
+      "damage": 40,
+      "postureStart": 1,
+      "postureEnd": 0,
+      "result": "RECOVERY",
+      "roll": -1,
+      "appliedSnapshotPreserved": true
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "abilityChainSurvived": true,
+      "commandSurvived": true,
+      "weaponSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "transientRecoveryAbsent": true
+    },
+    "cleanup": {
+      "restoredOriginalAbilityTwo": false,
+      "restoredOriginalMaster": false,
+      "restoredOriginalCommand": false,
+      "restoredOriginalWeapon": "none",
+      "recoveryAbsent": true,
+      "idempotent": true
+    },
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  }
+}

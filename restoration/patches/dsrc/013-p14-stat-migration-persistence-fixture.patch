@@ -1,0 +1,75 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_stat_migration_persistence_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_stat_migration_persistence_fixture.java
+new file mode 100644
+index 0000000..e8b4c26
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_stat_migration_persistence_fixture.java
+@@ -0,0 +1,69 @@
++package script.test;
++
++import script.obj_id;
++
++/**
++ * Read-only, identity-bound ServerConsole probe for the durable Publish 14
++ * stat-migration record. Production commands remain the only writers.
++ */
++public class precu_stat_migration_persistence_fixture extends script.base_script
++{
++    private static final long RECIPIENT_OID = 39008597L;
++    private static final int RECIPIENT_STATION_ID = 1001;
++    private static final String ROOT = "precu.statMigration";
++    private static final String STATE = ROOT + ".state";
++    private static final String TARGETS = ROOT + ".targets";
++    private static final String USAGE = "usage: status <recipientOid>";
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        String[] args = params == null ? new String[0] : params.trim().split("[ ]+");
++        if (args.length != 2 || !args[0].equalsIgnoreCase("status"))
++        {
++            return USAGE;
++        }
++
++        long recipientValue;
++        try
++        {
++            recipientValue = Long.parseLong(args[1]);
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (recipientValue != RECIPIENT_OID)
++        {
++            return "error=identityNotAllowed";
++        }
++
++        obj_id recipient = obj_id.getObjId(recipientValue);
++        if (recipient == null || recipient == obj_id.NULL_ID || !recipient.isLoaded())
++        {
++            return "error=recipientNotLoaded";
++        }
++        if (!recipient.isAuthoritative() || !isPlayer(recipient) ||
++            getPlayerStationId(recipient) != RECIPIENT_STATION_ID)
++        {
++            return "error=recipientNotAuthoritative";
++        }
++
++        boolean present = hasObjVar(recipient, ROOT);
++        int state = hasObjVar(recipient, STATE) ? getIntObjVar(recipient, STATE) : 0;
++        int[] targets = hasObjVar(recipient, TARGETS) ?
++            getIntArrayObjVar(recipient, TARGETS) : new int[0];
++        int sum = 0;
++        String targetList = "";
++        for (int index = 0; index < targets.length; ++index)
++        {
++            if (index > 0)
++            {
++                targetList += ",";
++            }
++            targetList += targets[index];
++            sum += targets[index];
++        }
++        return "oid=" + recipient + " present=" + present + " state=" + state +
++            " targetCount=" + targets.length + " targets=" + targetList + " sum=" + sum;
++    }
++}

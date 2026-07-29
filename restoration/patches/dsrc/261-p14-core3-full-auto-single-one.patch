@@ -1,0 +1,1059 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 7fb2339..ad318e0 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14664,15 +14664,25 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int legShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-      if (!combatStandardAction("legShot1", self, target, params, "", ""))
+-      {
+-          return SCRIPT_OVERRIDE;
+-      }
+-      return SCRIPT_CONTINUE;
+-    }
+-    public int burstShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    public int legShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++      if (!combatStandardAction("legShot1", self, target, params, "", ""))
++      {
++          return SCRIPT_OVERRIDE;
++      }
++      return SCRIPT_CONTINUE;
++    }
++    public int fullAutoSingle1(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction(
++            "fullAutoSingle1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
++    public int burstShot1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+       if (!combatStandardAction("burstShot1", self, target, params, "", ""))
+       {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 4037924..d513ce8 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -47,8 +47,12 @@ public class combat_base extends script.base_script
+         "precu.p14.marksmanTier1Fixture.liveDiagnostic";
+     public static final String PRECU_LIVE_DIAGNOSTIC_ENABLED =
+         PRECU_LIVE_DIAGNOSTIC_ROOT + ".enabled";
+-    public static final String PRECU_POSTURE_DOWN_RECOVERY =
+-        "combat.precuPostureDownTime";
++    public static final String PRECU_POSTURE_DOWN_RECOVERY =
++        "combat.precuPostureDownTime";
++    public static final int PRECU_STATE_EFFECT_NONE = 0;
++    public static final int PRECU_STATE_EFFECT_DIZZY = 1;
++    public static final int PRECU_STATE_EFFECT_BLIND = 2;
++    public static final int PRECU_STATE_EFFECT_STUN = 3;
+     public boolean combatStandardAction(String actionName, obj_id self, obj_id target, String params, String successHandler, String failHandler) throws InterruptedException
+     {
+         return combatStandardAction(actionName, self, target, getCurrentWeapon(self), params, null, false, false, 0);
+@@ -1552,12 +1556,17 @@ public class combat_base extends script.base_script
+                         "secondary.blockElementalAfter",
+                         weaponData.elementalValue);
+                 }
+-                if (hitType != combat.NON_DAMAGE_ATTACK)
+-                {
+-                    hitData[i] = applyDamage(attackerData.id, defenderData[i].id, weaponData, hitData[i], actionData, (i == 0), overloadDamage);
+-                    defenderResults[i].endPosture = applyPrecuPostureDown(
+-                        attackerData.id,
+-                        defenderData[i].id,
++                if (hitType != combat.NON_DAMAGE_ATTACK)
++                {
++                    hitData[i] = applyDamage(attackerData.id, defenderData[i].id, weaponData, hitData[i], actionData, (i == 0), overloadDamage);
++                    if (!hitData[i].precuBlock)
++                    {
++                        applyPrecuStateEffects(
++                            attackerData.id, defenderData[i].id, actionData);
++                    }
++                    defenderResults[i].endPosture = applyPrecuPostureDown(
++                        attackerData.id,
++                        defenderData[i].id,
+                         actionData,
+                         defenderResults[i].endPosture);
+                 }
+@@ -1896,15 +1905,169 @@ public class combat_base extends script.base_script
+             setObjVar(attacker, PRECU_LIVE_DIAGNOSTIC_ROOT + "." + leaf, value);
+         }
+     }
+-    public void recordPrecuLiveDiagnostic(obj_id attacker, String leaf, String value) throws InterruptedException
+-    {
+-        if (isPrecuLiveDiagnosticEnabled(attacker))
+-        {
+-            setObjVar(attacker, PRECU_LIVE_DIAGNOSTIC_ROOT + "." + leaf, value);
+-        }
+-    }
+-    public int applyPrecuPostureDown(obj_id attacker, obj_id defender,
+-        combat_data actionData, int currentPosture) throws InterruptedException
++    public void recordPrecuLiveDiagnostic(obj_id attacker, String leaf, String value) throws InterruptedException
++    {
++        if (isPrecuLiveDiagnosticEnabled(attacker))
++        {
++            setObjVar(attacker, PRECU_LIVE_DIAGNOSTIC_ROOT + "." + leaf, value);
++        }
++    }
++    private int getPrecuStateConstant(int effectType)
++    {
++        switch (effectType)
++        {
++            case PRECU_STATE_EFFECT_DIZZY:
++                return STATE_DIZZY;
++            case PRECU_STATE_EFFECT_BLIND:
++                return STATE_BLINDED;
++            case PRECU_STATE_EFFECT_STUN:
++                return STATE_STUNNED;
++            default:
++                return -1;
++        }
++    }
++    private String getPrecuStateBuff(int effectType)
++    {
++        switch (effectType)
++        {
++            case PRECU_STATE_EFFECT_DIZZY:
++                return "dizzy";
++            case PRECU_STATE_EFFECT_BLIND:
++                return "blind";
++            case PRECU_STATE_EFFECT_STUN:
++                return "stun";
++            default:
++                return "";
++        }
++    }
++    private boolean isPrecuStateEffectImmune(obj_id defender, int effectType)
++        throws InterruptedException
++    {
++        return isImmuneToStateChange(defender) ||
++            (effectType == PRECU_STATE_EFFECT_STUN &&
++                utils.hasScriptVar(defender, "immunity.state.stun"));
++    }
++    private boolean applyPrecuStateEffect(obj_id attacker, obj_id defender,
++        dictionary row, int slot) throws InterruptedException
++    {
++        String prefix = "stateEffect." + slot + ".";
++        String suffix = Integer.toString(slot);
++        int effectType = row.getInt("stateEffect" + suffix);
++        int chance = row.getInt("stateChance" + suffix);
++        int strength = row.getInt("stateStrength" + suffix);
++        int baseDuration = row.getInt("stateDuration" + suffix);
++        String defenseMod = row.getString("stateDefense" + suffix);
++        String jediDefenseMod = row.getString("stateJediDefense" + suffix);
++        String resistanceMod = row.getString("stateResistance" + suffix);
++        int state = getPrecuStateConstant(effectType);
++        String buffName = getPrecuStateBuff(effectType);
++
++        recordPrecuLiveDiagnostic(attacker, prefix + "type", effectType);
++        recordPrecuLiveDiagnostic(attacker, prefix + "chance", chance);
++        recordPrecuLiveDiagnostic(attacker, prefix + "strength", strength);
++        recordPrecuLiveDiagnostic(
++            attacker, prefix + "durationBase", baseDuration);
++        recordPrecuLiveDiagnostic(attacker, prefix + "roll", -1);
++        recordPrecuLiveDiagnostic(attacker, prefix + "threshold", -1);
++        recordPrecuLiveDiagnostic(attacker, prefix + "resolvedDuration", 0);
++        recordPrecuLiveDiagnostic(attacker, prefix + "result", "NONE");
++        if (effectType == PRECU_STATE_EFFECT_NONE || state < 0 ||
++            chance <= 0 || baseDuration <= 0 || !isIdValid(defender))
++        {
++            return false;
++        }
++        int stateBefore = getState(defender, state);
++        recordPrecuLiveDiagnostic(
++            attacker, prefix + "stateBefore", stateBefore);
++        if (isDead(defender) || isIncapacitated(defender))
++        {
++            recordPrecuLiveDiagnostic(attacker, prefix + "result", "POST_DAMAGE");
++            recordPrecuLiveDiagnostic(
++                attacker, prefix + "stateAfter", getState(defender, state));
++            return false;
++        }
++        if (isPrecuStateEffectImmune(defender, effectType))
++        {
++            recordPrecuLiveDiagnostic(attacker, prefix + "result", "IMMUNE");
++            recordPrecuLiveDiagnostic(
++                attacker, prefix + "stateAfter", getState(defender, state));
++            return false;
++        }
++
++        int playerLevel = isPlayer(defender) ? getLevel(defender) - 5 : 0;
++        int defense = defenseMod == null || defenseMod.equals("") ? 0 :
++            getSkillStatisticModifier(defender, defenseMod);
++        int jediDefense =
++            jediDefenseMod == null || jediDefenseMod.equals("") ? 0 :
++                getSkillStatisticModifier(defender, jediDefenseMod);
++        int resistance =
++            resistanceMod == null || resistanceMod.equals("") ? 0 :
++                getSkillStatisticModifier(defender, resistanceMod);
++        int roll = rand(0, 100);
++        int threshold =
++            (int)(chance - ((float)defense / 1.5f) - playerLevel);
++        boolean passed = roll <= threshold;
++        if (passed && isPlayer(defender) && isJedi(defender))
++        {
++            if (jediDefenseMod != null && !jediDefenseMod.equals(""))
++            {
++                passed = roll <=
++                    (int)(chance - ((float)jediDefense / 1.5f) - playerLevel);
++            }
++            if (passed && resistanceMod != null && !resistanceMod.equals(""))
++            {
++                passed = roll <=
++                    (int)(chance - ((float)resistance / 1.5f) - playerLevel);
++            }
++        }
++        int duration = (int)Math.max(
++            5.0f,
++            (float)baseDuration *
++                (1.0f - ((float)(defense - strength) / 120.0f)));
++        recordPrecuLiveDiagnostic(attacker, prefix + "playerLevel", playerLevel);
++        recordPrecuLiveDiagnostic(attacker, prefix + "defense", defense);
++        recordPrecuLiveDiagnostic(attacker, prefix + "jediDefense", jediDefense);
++        recordPrecuLiveDiagnostic(attacker, prefix + "resistance", resistance);
++        recordPrecuLiveDiagnostic(attacker, prefix + "roll", roll);
++        recordPrecuLiveDiagnostic(attacker, prefix + "threshold", threshold);
++        recordPrecuLiveDiagnostic(
++            attacker, prefix + "resolvedDuration", duration);
++        if (!passed)
++        {
++            recordPrecuLiveDiagnostic(attacker, prefix + "result", "RESISTED");
++            recordPrecuLiveDiagnostic(
++                attacker, prefix + "stateAfter", getState(defender, state));
++            return false;
++        }
++        boolean applied =
++            buff.applyBuff(defender, attacker, buffName, (float)duration);
++        recordPrecuLiveDiagnostic(
++            attacker, prefix + "result", applied ? "APPLIED" : "APPLY_FAILED");
++        recordPrecuLiveDiagnostic(
++            attacker, prefix + "stateAfter", getState(defender, state));
++        return applied;
++    }
++    public void applyPrecuStateEffects(obj_id attacker, obj_id defender,
++        combat_data actionData) throws InterruptedException
++    {
++        dictionary row =
++            dataTableGetRow(PRECU_COMBAT_OVERRIDES, actionData.actionName);
++        if (row == null)
++        {
++            return;
++        }
++        int applied = 0;
++        for (int slot = 1; slot <= 3; ++slot)
++        {
++            if (applyPrecuStateEffect(attacker, defender, row, slot))
++            {
++                ++applied;
++            }
++        }
++        recordPrecuLiveDiagnostic(attacker, "stateEffect.appliedCount", applied);
++    }
++    public int applyPrecuPostureDown(obj_id attacker, obj_id defender,
++        combat_data actionData, int currentPosture) throws InterruptedException
+     {
+         int chance = actionData.precuPostureDownChance;
+         recordPrecuLiveDiagnostic(attacker, "postureDown.chance", chance);
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index f5a5431..82603f5 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -4,10 +4,11 @@ import script.location;
+ import script.obj_id;
+ import script.combat_engine;
+ import script.combat_engine.combat_data;
+-import script.combat_engine.weapon_data;
+-import script.library.combat;
+-import script.library.dot;
+-import script.library.utils;
++import script.combat_engine.weapon_data;
++import script.library.buff;
++import script.library.combat;
++import script.library.dot;
++import script.library.utils;
+ import script.systems.combat.combat_base;
+ 
+ /**
+@@ -22,8 +23,12 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final long DEFENDER_OID = 39008597L;
+     private static final int DEFENDER_STATION_ID = 1001;
+     private static final String MARKSMAN_NOVICE = "combat_marksman_novice";
+-    private static final String RIFLE_ONE = "combat_marksman_rifle_01";
+-    private static final String RIFLE_TWO = "combat_marksman_rifle_02";
++    private static final String RIFLE_ONE = "combat_marksman_rifle_01";
++    private static final String RIFLE_TWO = "combat_marksman_rifle_02";
++    private static final String MARKSMAN_CARBINE_ONE =
++        "combat_marksman_carbine_01";
++    private static final String MARKSMAN_CARBINE_TWO =
++        "combat_marksman_carbine_02";
+     private static final String MARKSMAN_PISTOL_ONE = "combat_marksman_pistol_01";
+     private static final String MARKSMAN_PISTOL_TWO = "combat_marksman_pistol_02";
+     private static final String MARKSMAN_SUPPORT_ONE = "combat_marksman_support_01";
+@@ -62,7 +67,9 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String ROLL_SHOT_COMMAND = "rollShot";
+     private static final String DIVE_SHOT_COMMAND = "diveShot";
+     private static final String KIP_UP_SHOT_COMMAND = "kipUpShot";
+-    private static final String TAKE_COVER_COMMAND = "takeCover";
++    private static final String TAKE_COVER_COMMAND = "takeCover";
++    private static final String FULL_AUTO_SINGLE_ONE_COMMAND =
++        "fullAutoSingle1";
+     private static final String ACID_SINGLE_ONE_COMMAND = "fireAcidSingle1";
+     private static final String ACID_CONE_ONE_COMMAND = "fireAcidCone1";
+     private static final String ACID_CONE_TWO_COMMAND = "fireAcidCone2";
+@@ -106,7 +113,13 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String ORIGINAL_LOCATION = ROOT + ".originalLocation";
+     private static final String ORIGINAL_POSTURE = ROOT + ".originalPosture";
+     private static final String ORIGINAL_LOCOMOTION = ROOT + ".originalLocomotion";
+-    private static final String ORIGINAL_COVER_STATE = ROOT + ".originalCoverState";
++    private static final String ORIGINAL_COVER_STATE = ROOT + ".originalCoverState";
++    private static final String ORIGINAL_DIZZY_BUFF =
++        ROOT + ".originalDizzyBuff";
++    private static final String ORIGINAL_BLIND_BUFF =
++        ROOT + ".originalBlindBuff";
++    private static final String ORIGINAL_STUN_BUFF =
++        ROOT + ".originalStunBuff";
+     private static final String ORIGINAL_HEALTH = ROOT + ".originalHealth";
+     private static final String ORIGINAL_MAX_HEALTH = ROOT + ".originalMaxHealth";
+     private static final String ORIGINAL_STRENGTH = ROOT + ".originalStrength";
+@@ -122,8 +135,12 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String ORIGINAL_ACTION_REGEN = ROOT + ".originalActionRegen";
+     private static final String ORIGINAL_MIND_REGEN = ROOT + ".originalMindRegen";
+     private static final String ORIGINAL_NOVICE = ROOT + ".originalNovice";
+-    private static final String ORIGINAL_RIFLE_ONE = ROOT + ".originalRifleOne";
+-    private static final String ORIGINAL_RIFLE_TWO = ROOT + ".originalRifleTwo";
++    private static final String ORIGINAL_RIFLE_ONE = ROOT + ".originalRifleOne";
++    private static final String ORIGINAL_RIFLE_TWO = ROOT + ".originalRifleTwo";
++    private static final String ORIGINAL_CARBINE_ONE =
++        ROOT + ".originalCarbineOne";
++    private static final String ORIGINAL_CARBINE_TWO =
++        ROOT + ".originalCarbineTwo";
+     private static final String ORIGINAL_PISTOL_ONE = ROOT + ".originalPistolOne";
+     private static final String ORIGINAL_PISTOL_TWO = ROOT + ".originalPistolTwo";
+     private static final String ORIGINAL_SUPPORT_ONE = ROOT + ".originalSupportOne";
+@@ -194,8 +211,10 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalDiveShotCommand";
+     private static final String ORIGINAL_KIP_UP_SHOT_COMMAND =
+         ROOT + ".originalKipUpShotCommand";
+-    private static final String ORIGINAL_TAKE_COVER_COMMAND =
+-        ROOT + ".originalTakeCoverCommand";
++    private static final String ORIGINAL_TAKE_COVER_COMMAND =
++        ROOT + ".originalTakeCoverCommand";
++    private static final String ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND =
++        ROOT + ".originalFullAutoSingleOneCommand";
+     private static final String ORIGINAL_ACID_SINGLE_ONE_COMMAND =
+         ROOT + ".originalAcidSingleOneCommand";
+     private static final String ORIGINAL_ACID_CONE_ONE_COMMAND =
+@@ -399,11 +418,20 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return ownership;
+         }
+-        if (getState(attacker, STATE_AIMING) != 0 ||
+-            hasSkillModModifier(attacker, combat_base.PRECU_AIM_MODIFIER))
+-        {
+-            return "error=preexistingAimState";
+-        }
++        if (getState(attacker, STATE_AIMING) != 0 ||
++            hasSkillModModifier(attacker, combat_base.PRECU_AIM_MODIFIER))
++        {
++            return "error=preexistingAimState";
++        }
++        if (getState(defender, STATE_DIZZY) != 0 ||
++            getState(defender, STATE_BLINDED) != 0 ||
++            getState(defender, STATE_STUNNED) != 0 ||
++            buff.hasBuff(defender, "dizzy") ||
++            buff.hasBuff(defender, "blind") ||
++            buff.hasBuff(defender, "stun"))
++        {
++            return "error=preexistingFullAutoState";
++        }
+ 
+         location attackerOriginal = getLocation(attacker);
+         location defenderOriginal = getLocation(defender);
+@@ -436,8 +464,14 @@ public class precu_headshot1_fixture extends script.base_script
+             grantSkill(attacker, MARKSMAN_NOVICE);
+         boolean rifleGranted = noviceGranted &&
+             (hasSkill(attacker, RIFLE_ONE) || grantSkill(attacker, RIFLE_ONE));
+-        boolean rifleTwoGranted = rifleGranted &&
+-            (hasSkill(attacker, RIFLE_TWO) || grantSkill(attacker, RIFLE_TWO));
++        boolean rifleTwoGranted = rifleGranted &&
++            (hasSkill(attacker, RIFLE_TWO) || grantSkill(attacker, RIFLE_TWO));
++        boolean carbineOneGranted = noviceGranted &&
++            (hasSkill(attacker, MARKSMAN_CARBINE_ONE) ||
++                grantSkill(attacker, MARKSMAN_CARBINE_ONE));
++        boolean carbineTwoGranted = carbineOneGranted &&
++            (hasSkill(attacker, MARKSMAN_CARBINE_TWO) ||
++                grantSkill(attacker, MARKSMAN_CARBINE_TWO));
+         boolean pistolOneGranted = noviceGranted &&
+             (hasSkill(attacker, MARKSMAN_PISTOL_ONE) ||
+                 grantSkill(attacker, MARKSMAN_PISTOL_ONE));
+@@ -542,9 +576,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean kipUpShotCommandGranted =
+             hasCommand(attacker, KIP_UP_SHOT_COMMAND) ||
+             grantCommand(attacker, KIP_UP_SHOT_COMMAND);
+-        boolean takeCoverCommandGranted =
+-            hasCommand(attacker, TAKE_COVER_COMMAND) ||
+-            grantCommand(attacker, TAKE_COVER_COMMAND);
++        boolean takeCoverCommandGranted =
++            hasCommand(attacker, TAKE_COVER_COMMAND) ||
++            grantCommand(attacker, TAKE_COVER_COMMAND);
++        boolean fullAutoSingleOneCommandGranted =
++            hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) ||
++            grantCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND);
+         boolean acidSingleOneCommandGranted =
+             hasCommand(attacker, ACID_SINGLE_ONE_COMMAND) ||
+             grantCommand(attacker, ACID_SINGLE_ONE_COMMAND);
+@@ -641,7 +678,8 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean lightningCertificationGranted =
+             hasCommand(attacker, LIGHTNING_CERTIFICATION) ||
+             grantCommand(attacker, LIGHTNING_CERTIFICATION);
+-        if (!noviceGranted || !rifleGranted || !rifleTwoGranted ||
++        if (!noviceGranted || !rifleGranted || !rifleTwoGranted ||
++            !carbineOneGranted || !carbineTwoGranted ||
+             !pistolOneGranted ||
+             !pistolTwoGranted || !supportOneGranted ||
+             !supportFourGranted ||
+@@ -701,8 +739,10 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, SUPPRESSION_FIRE_ONE_COMMAND) ||
+             !rollShotCommandGranted || !hasCommand(attacker, ROLL_SHOT_COMMAND) ||
+             !diveShotCommandGranted || !hasCommand(attacker, DIVE_SHOT_COMMAND) ||
+-            !kipUpShotCommandGranted || !hasCommand(attacker, KIP_UP_SHOT_COMMAND) ||
+-            !takeCoverCommandGranted || !hasCommand(attacker, TAKE_COVER_COMMAND) ||
++            !kipUpShotCommandGranted || !hasCommand(attacker, KIP_UP_SHOT_COMMAND) ||
++            !takeCoverCommandGranted || !hasCommand(attacker, TAKE_COVER_COMMAND) ||
++            !fullAutoSingleOneCommandGranted ||
++            !hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) ||
+             !acidSingleOneCommandGranted ||
+             !hasCommand(attacker, ACID_SINGLE_ONE_COMMAND) ||
+             !acidConeOneCommandGranted ||
+@@ -1259,8 +1299,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 DIVE_SHOT_COMMAND);
+             restoreCommand(attacker, ORIGINAL_KIP_UP_SHOT_COMMAND,
+                 KIP_UP_SHOT_COMMAND);
+-            restoreCommand(attacker, ORIGINAL_TAKE_COVER_COMMAND,
+-                TAKE_COVER_COMMAND);
++            restoreCommand(attacker, ORIGINAL_TAKE_COVER_COMMAND,
++                TAKE_COVER_COMMAND);
++            restoreCommand(attacker, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND,
++                FULL_AUTO_SINGLE_ONE_COMMAND);
+         }
+         if (attackerRoot &&
+             hasObjVar(attacker, ORIGINAL_ACID_SINGLE_ONE_COMMAND) &&
+@@ -1428,12 +1470,24 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, MARKSMAN_PISTOL_TWO);
+         }
+-        if (attackerRoot && hasObjVar(attacker, ORIGINAL_PISTOL_ONE) &&
+-            getIntObjVar(attacker, ORIGINAL_PISTOL_ONE) == 0 &&
+-            hasSkill(attacker, MARKSMAN_PISTOL_ONE))
+-        {
+-            revokeSkill(attacker, MARKSMAN_PISTOL_ONE);
+-        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_PISTOL_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_ONE) == 0 &&
++            hasSkill(attacker, MARKSMAN_PISTOL_ONE))
++        {
++            revokeSkill(attacker, MARKSMAN_PISTOL_ONE);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_CARBINE_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_TWO) == 0 &&
++            hasSkill(attacker, MARKSMAN_CARBINE_TWO))
++        {
++            revokeSkill(attacker, MARKSMAN_CARBINE_TWO);
++        }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_CARBINE_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_ONE) == 0 &&
++            hasSkill(attacker, MARKSMAN_CARBINE_ONE))
++        {
++            revokeSkill(attacker, MARKSMAN_CARBINE_ONE);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_RIFLE_TWO) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLE_TWO) == 0 &&
+             hasSkill(attacker, RIFLE_TWO))
+@@ -1738,8 +1792,14 @@ public class precu_headshot1_fixture extends script.base_script
+         setObjVar(player, PEER, peer);
+         setObjVar(player, ORIGINAL_LOCATION, original);
+         setObjVar(player, ORIGINAL_POSTURE, getPosture(player));
+-        setObjVar(player, ORIGINAL_LOCOMOTION, getLocomotion(player));
+-        setObjVar(player, ORIGINAL_COVER_STATE, getState(player, STATE_COVER));
++        setObjVar(player, ORIGINAL_LOCOMOTION, getLocomotion(player));
++        setObjVar(player, ORIGINAL_COVER_STATE, getState(player, STATE_COVER));
++        setObjVar(player, ORIGINAL_DIZZY_BUFF,
++            buff.hasBuff(player, "dizzy") ? 1 : 0);
++        setObjVar(player, ORIGINAL_BLIND_BUFF,
++            buff.hasBuff(player, "blind") ? 1 : 0);
++        setObjVar(player, ORIGINAL_STUN_BUFF,
++            buff.hasBuff(player, "stun") ? 1 : 0);
+         setObjVar(player, ORIGINAL_HEALTH, getAttrib(player, HEALTH));
+         setObjVar(player, ORIGINAL_MAX_HEALTH, getMaxAttrib(player, HEALTH));
+         setObjVar(player, ORIGINAL_STRENGTH, getAttrib(player, STRENGTH));
+@@ -1760,8 +1820,12 @@ public class precu_headshot1_fixture extends script.base_script
+         setObjVar(player, ORIGINAL_ACTION_REGEN, getRegenRate(player, ACTION));
+         setObjVar(player, ORIGINAL_MIND_REGEN, getRegenRate(player, MIND));
+         setObjVar(player, ORIGINAL_NOVICE, hasSkill(player, MARKSMAN_NOVICE) ? 1 : 0);
+-        setObjVar(player, ORIGINAL_RIFLE_ONE, hasSkill(player, RIFLE_ONE) ? 1 : 0);
+-        setObjVar(player, ORIGINAL_RIFLE_TWO, hasSkill(player, RIFLE_TWO) ? 1 : 0);
++        setObjVar(player, ORIGINAL_RIFLE_ONE, hasSkill(player, RIFLE_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_RIFLE_TWO, hasSkill(player, RIFLE_TWO) ? 1 : 0);
++        setObjVar(player, ORIGINAL_CARBINE_ONE,
++            hasSkill(player, MARKSMAN_CARBINE_ONE) ? 1 : 0);
++        setObjVar(player, ORIGINAL_CARBINE_TWO,
++            hasSkill(player, MARKSMAN_CARBINE_TWO) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PISTOL_ONE,
+             hasSkill(player, MARKSMAN_PISTOL_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PISTOL_TWO,
+@@ -1836,8 +1900,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, DIVE_SHOT_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_KIP_UP_SHOT_COMMAND,
+             hasCommand(player, KIP_UP_SHOT_COMMAND) ? 1 : 0);
+-        setObjVar(player, ORIGINAL_TAKE_COVER_COMMAND,
+-            hasCommand(player, TAKE_COVER_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_TAKE_COVER_COMMAND,
++            hasCommand(player, TAKE_COVER_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND,
++            hasCommand(player, FULL_AUTO_SINGLE_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ACID_SINGLE_ONE_COMMAND,
+             hasCommand(player, ACID_SINGLE_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_ACID_CONE_ONE_COMMAND,
+@@ -2135,8 +2201,10 @@ public class precu_headshot1_fixture extends script.base_script
+             DIVE_SHOT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_KIP_UP_SHOT_COMMAND,
+             KIP_UP_SHOT_COMMAND);
+-        restoreCommand(attacker, ORIGINAL_TAKE_COVER_COMMAND,
+-            TAKE_COVER_COMMAND);
++        restoreCommand(attacker, ORIGINAL_TAKE_COVER_COMMAND,
++            TAKE_COVER_COMMAND);
++        restoreCommand(attacker, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND,
++            FULL_AUTO_SINGLE_ONE_COMMAND);
+         if (hasObjVar(attacker, ORIGINAL_ACID_SINGLE_ONE_COMMAND) &&
+             getIntObjVar(attacker, ORIGINAL_ACID_SINGLE_ONE_COMMAND) == 0 &&
+             hasCommand(attacker, ACID_SINGLE_ONE_COMMAND))
+@@ -2295,12 +2363,24 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, MARKSMAN_PISTOL_TWO);
+         }
+-        if (hasObjVar(attacker, ORIGINAL_PISTOL_ONE) &&
+-            getIntObjVar(attacker, ORIGINAL_PISTOL_ONE) == 0 &&
+-            hasSkill(attacker, MARKSMAN_PISTOL_ONE))
+-        {
+-            revokeSkill(attacker, MARKSMAN_PISTOL_ONE);
+-        }
++        if (hasObjVar(attacker, ORIGINAL_PISTOL_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_PISTOL_ONE) == 0 &&
++            hasSkill(attacker, MARKSMAN_PISTOL_ONE))
++        {
++            revokeSkill(attacker, MARKSMAN_PISTOL_ONE);
++        }
++        if (hasObjVar(attacker, ORIGINAL_CARBINE_TWO) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_TWO) == 0 &&
++            hasSkill(attacker, MARKSMAN_CARBINE_TWO))
++        {
++            revokeSkill(attacker, MARKSMAN_CARBINE_TWO);
++        }
++        if (hasObjVar(attacker, ORIGINAL_CARBINE_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_CARBINE_ONE) == 0 &&
++            hasSkill(attacker, MARKSMAN_CARBINE_ONE))
++        {
++            revokeSkill(attacker, MARKSMAN_CARBINE_ONE);
++        }
+         if (hasObjVar(attacker, ORIGINAL_RIFLE_TWO) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLE_TWO) == 0 &&
+             hasSkill(attacker, RIFLE_TWO))
+@@ -2366,18 +2446,81 @@ public class precu_headshot1_fixture extends script.base_script
+         return !hasObjVar(attacker, ROOT) && !hasObjVar(defender, ROOT);
+     }
+ 
+-    private void restoreCommand(obj_id player, String originalObjVar,
+-        String commandName) throws InterruptedException
++    private void restoreCommand(obj_id player, String originalObjVar,
++        String commandName) throws InterruptedException
+     {
+         if (hasObjVar(player, originalObjVar) &&
+             getIntObjVar(player, originalObjVar) == 0 &&
+             hasCommand(player, commandName))
+         {
+             revokeCommand(player, commandName);
+-        }
+-    }
+-
+-    private boolean restorePlayer(obj_id player) throws InterruptedException
++        }
++    }
++
++    private boolean clearProofStateBuffs(obj_id player)
++        throws InterruptedException
++    {
++        if (!hasObjVar(player, ORIGINAL_DIZZY_BUFF) ||
++            !hasObjVar(player, ORIGINAL_BLIND_BUFF) ||
++            !hasObjVar(player, ORIGINAL_STUN_BUFF) ||
++            getIntObjVar(player, ORIGINAL_DIZZY_BUFF) != 0 ||
++            getIntObjVar(player, ORIGINAL_BLIND_BUFF) != 0 ||
++            getIntObjVar(player, ORIGINAL_STUN_BUFF) != 0)
++        {
++            return false;
++        }
++        if (buff.hasBuff(player, "dizzy"))
++        {
++            buff.removeBuff(player, "dizzy");
++        }
++        if (buff.hasBuff(player, "blind"))
++        {
++            buff.removeBuff(player, "blind");
++        }
++        if (buff.hasBuff(player, "stun"))
++        {
++            buff.removeBuff(player, "stun");
++        }
++        return !buff.hasBuff(player, "dizzy") &&
++            !buff.hasBuff(player, "blind") &&
++            !buff.hasBuff(player, "stun") &&
++            getState(player, STATE_DIZZY) == 0 &&
++            getState(player, STATE_BLINDED) == 0 &&
++            getState(player, STATE_STUNNED) == 0;
++    }
++
++    private boolean restoreProofStateBuffs(obj_id player)
++        throws InterruptedException
++    {
++        boolean restored = true;
++        if (getIntObjVar(player, ORIGINAL_DIZZY_BUFF) == 0 &&
++            buff.hasBuff(player, "dizzy"))
++        {
++            buff.removeBuff(player, "dizzy");
++        }
++        if (getIntObjVar(player, ORIGINAL_BLIND_BUFF) == 0 &&
++            buff.hasBuff(player, "blind"))
++        {
++            buff.removeBuff(player, "blind");
++        }
++        if (getIntObjVar(player, ORIGINAL_STUN_BUFF) == 0 &&
++            buff.hasBuff(player, "stun"))
++        {
++            buff.removeBuff(player, "stun");
++        }
++        restored &= getIntObjVar(player, ORIGINAL_DIZZY_BUFF) != 0 ||
++            (!buff.hasBuff(player, "dizzy") &&
++                getState(player, STATE_DIZZY) == 0);
++        restored &= getIntObjVar(player, ORIGINAL_BLIND_BUFF) != 0 ||
++            (!buff.hasBuff(player, "blind") &&
++                getState(player, STATE_BLINDED) == 0);
++        restored &= getIntObjVar(player, ORIGINAL_STUN_BUFF) != 0 ||
++            (!buff.hasBuff(player, "stun") &&
++                getState(player, STATE_STUNNED) == 0);
++        return restored;
++    }
++
++    private boolean restorePlayer(obj_id player) throws InterruptedException
+     {
+         if (!hasCompleteSnapshot(player))
+         {
+@@ -2390,9 +2533,10 @@ public class precu_headshot1_fixture extends script.base_script
+             setPostureClientImmediate(player, getIntObjVar(player, ORIGINAL_POSTURE));
+         setState(
+             player, STATE_COVER, getIntObjVar(player, ORIGINAL_COVER_STATE) != 0);
+-        boolean coverStateRestored =
+-            getState(player, STATE_COVER) ==
+-                getIntObjVar(player, ORIGINAL_COVER_STATE);
++        boolean coverStateRestored =
++            getState(player, STATE_COVER) ==
++                getIntObjVar(player, ORIGINAL_COVER_STATE);
++        boolean stateBuffsRestored = restoreProofStateBuffs(player);
+         setRegenRate(player, HEALTH, getFloatObjVar(player, ORIGINAL_HEALTH_REGEN));
+         setRegenRate(player, ACTION, getFloatObjVar(player, ORIGINAL_ACTION_REGEN));
+         setRegenRate(player, MIND, getFloatObjVar(player, ORIGINAL_MIND_REGEN));
+@@ -2420,8 +2564,8 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             utils.removeScriptVar(player, combat_base.PRECU_POSTURE_DOWN_RECOVERY);
+         }
+-        return moved && postureRestored && locomotionRestored &&
+-            coverStateRestored &&
++        return moved && postureRestored && locomotionRestored &&
++            coverStateRestored && stateBuffsRestored &&
+             maxHealthRestored && maxActionRestored && maxMindRestored &&
+             woundsRestored && healthRestored && actionRestored && mindRestored;
+     }
+@@ -2490,8 +2634,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean defenderStationary = setLocomotion(defender, LOCOMOTION_STANDING);
+         boolean attackerStanding = setPostureClientImmediate(attacker, POSTURE_UPRIGHT);
+         boolean defenderStanding = setPostureClientImmediate(defender, POSTURE_UPRIGHT);
+-        setState(attacker, STATE_COVER, false);
+-        boolean coverCleared = getState(attacker, STATE_COVER) == 0;
++        setState(attacker, STATE_COVER, false);
++        boolean coverCleared = getState(attacker, STATE_COVER) == 0;
++        boolean proofStateBuffsCleared = clearProofStateBuffs(defender);
+         setRegenRate(attacker, HEALTH, 0.0f);
+         setRegenRate(attacker, ACTION, 0.0f);
+         setRegenRate(attacker, MIND, 0.0f);
+@@ -2505,8 +2650,14 @@ public class precu_headshot1_fixture extends script.base_script
+             grantSkill(attacker, MARKSMAN_SUPPORT_ONE);
+         boolean rifleOneReady =
+             hasSkill(attacker, RIFLE_ONE) || grantSkill(attacker, RIFLE_ONE);
+-        boolean rifleTwoReady = rifleOneReady &&
+-            (hasSkill(attacker, RIFLE_TWO) || grantSkill(attacker, RIFLE_TWO));
++        boolean rifleTwoReady = rifleOneReady &&
++            (hasSkill(attacker, RIFLE_TWO) || grantSkill(attacker, RIFLE_TWO));
++        boolean carbineOneReady =
++            hasSkill(attacker, MARKSMAN_CARBINE_ONE) ||
++            grantSkill(attacker, MARKSMAN_CARBINE_ONE);
++        boolean carbineTwoReady = carbineOneReady &&
++            (hasSkill(attacker, MARKSMAN_CARBINE_TWO) ||
++                grantSkill(attacker, MARKSMAN_CARBINE_TWO));
+         boolean supportFourReady =
+             hasSkill(attacker, MARKSMAN_SUPPORT_FOUR) ||
+             grantSkill(attacker, MARKSMAN_SUPPORT_FOUR);
+@@ -2608,9 +2759,12 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean kipUpShotCommandReady =
+             hasCommand(attacker, KIP_UP_SHOT_COMMAND) ||
+             grantCommand(attacker, KIP_UP_SHOT_COMMAND);
+-        boolean takeCoverCommandReady =
+-            hasCommand(attacker, TAKE_COVER_COMMAND) ||
+-            grantCommand(attacker, TAKE_COVER_COMMAND);
++        boolean takeCoverCommandReady =
++            hasCommand(attacker, TAKE_COVER_COMMAND) ||
++            grantCommand(attacker, TAKE_COVER_COMMAND);
++        boolean fullAutoSingleOneCommandReady =
++            hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) ||
++            grantCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND);
+         boolean acidSingleOneCommandReady =
+             hasCommand(attacker, ACID_SINGLE_ONE_COMMAND) ||
+             grantCommand(attacker, ACID_SINGLE_ONE_COMMAND);
+@@ -2707,7 +2861,8 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean lightningCertificationReady =
+             hasCommand(attacker, LIGHTNING_CERTIFICATION) ||
+             grantCommand(attacker, LIGHTNING_CERTIFICATION);
+-        return rifleOneReady && rifleTwoReady &&
++        return rifleOneReady && rifleTwoReady &&
++            carbineOneReady && carbineTwoReady &&
+             supportOneReady && supportFourReady &&
+             pistolOneReady && pistolTwoReady &&
+             durationControlReady && headShotThreeReady &&
+@@ -2726,8 +2881,9 @@ public class precu_headshot1_fixture extends script.base_script
+             pointBlankSingleOneCommandReady && aimCommandReady &&
+             threatenShotCommandReady &&
+             warningShotCommandReady && suppressionFireOneCommandReady &&
+-            rollShotCommandReady && diveShotCommandReady &&
+-            kipUpShotCommandReady && takeCoverCommandReady &&
++            rollShotCommandReady && diveShotCommandReady &&
++            kipUpShotCommandReady && takeCoverCommandReady &&
++            fullAutoSingleOneCommandReady &&
+             acidSingleOneCommandReady &&
+             acidConeOneCommandReady && acidConeTwoCommandReady &&
+             acidSingleTwoCommandReady && flameSingleOneCommandReady &&
+@@ -2748,7 +2904,7 @@ public class precu_headshot1_fixture extends script.base_script
+             acidCertificationReady && flameCertificationReady &&
+             lightningCertificationReady &&
+             attackerStanding && defenderStanding &&
+-            coverCleared &&
++            coverCleared && proofStateBuffsCleared &&
+             attackerStationary && defenderStationary &&
+             getPosture(attacker) == POSTURE_UPRIGHT &&
+             getPosture(defender) == POSTURE_UPRIGHT &&
+@@ -2983,8 +3139,11 @@ public class precu_headshot1_fixture extends script.base_script
+     {
+         return hasObjVar(player, ORIGINAL_LOCATION) &&
+             hasObjVar(player, ORIGINAL_POSTURE) &&
+-            hasObjVar(player, ORIGINAL_LOCOMOTION) &&
+-            hasObjVar(player, ORIGINAL_COVER_STATE) &&
++            hasObjVar(player, ORIGINAL_LOCOMOTION) &&
++            hasObjVar(player, ORIGINAL_COVER_STATE) &&
++            hasObjVar(player, ORIGINAL_DIZZY_BUFF) &&
++            hasObjVar(player, ORIGINAL_BLIND_BUFF) &&
++            hasObjVar(player, ORIGINAL_STUN_BUFF) &&
+             hasObjVar(player, ORIGINAL_HEALTH) &&
+             hasObjVar(player, ORIGINAL_MAX_HEALTH) &&
+             hasObjVar(player, ORIGINAL_STRENGTH) &&
+@@ -3000,8 +3159,10 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_ACTION_REGEN) &&
+             hasObjVar(player, ORIGINAL_MIND_REGEN) &&
+             hasObjVar(player, ORIGINAL_NOVICE) &&
+-            hasObjVar(player, ORIGINAL_RIFLE_ONE) &&
+-            hasObjVar(player, ORIGINAL_RIFLE_TWO) &&
++            hasObjVar(player, ORIGINAL_RIFLE_ONE) &&
++            hasObjVar(player, ORIGINAL_RIFLE_TWO) &&
++            hasObjVar(player, ORIGINAL_CARBINE_ONE) &&
++            hasObjVar(player, ORIGINAL_CARBINE_TWO) &&
+             hasObjVar(player, ORIGINAL_PISTOL_ONE) &&
+             hasObjVar(player, ORIGINAL_PISTOL_TWO) &&
+             hasObjVar(player, ORIGINAL_SUPPORT_ONE) &&
+@@ -3038,8 +3199,9 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_SUPPRESSION_FIRE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ROLL_SHOT_COMMAND) &&
+             hasObjVar(player, ORIGINAL_DIVE_SHOT_COMMAND) &&
+-            hasObjVar(player, ORIGINAL_KIP_UP_SHOT_COMMAND) &&
+-            hasObjVar(player, ORIGINAL_TAKE_COVER_COMMAND) &&
++            hasObjVar(player, ORIGINAL_KIP_UP_SHOT_COMMAND) &&
++            hasObjVar(player, ORIGINAL_TAKE_COVER_COMMAND) &&
++            hasObjVar(player, ORIGINAL_FULL_AUTO_SINGLE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACID_SINGLE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACID_CONE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_ACID_CONE_TWO_COMMAND) &&
+@@ -3198,8 +3360,10 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(DIVE_SHOT_COMMAND, attacker) : -1;
+         int canPerformKipUpShot = isIdValid(weapon) ?
+             combat.canPerformAction(KIP_UP_SHOT_COMMAND, attacker) : -1;
+-        int canPerformTakeCover =
+-            combat.canPerformAction(TAKE_COVER_COMMAND, attacker);
++        int canPerformTakeCover =
++            combat.canPerformAction(TAKE_COVER_COMMAND, attacker);
++        int canPerformFullAutoSingleOne = isIdValid(weapon) ?
++            combat.canPerformAction(FULL_AUTO_SINGLE_ONE_COMMAND, attacker) : -1;
+         int canPerformAcidSingleOne = isIdValid(weapon) ?
+             combat.canPerformAction(ACID_SINGLE_ONE_COMMAND, attacker) : -1;
+         int canPerformAcidConeOne = isIdValid(weapon) ?
+@@ -3299,10 +3463,12 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(ROLL_SHOT_COMMAND);
+         combat_data diveShotData =
+             combat_engine.getCombatData(DIVE_SHOT_COMMAND);
+-        combat_data kipUpShotData =
+-            combat_engine.getCombatData(KIP_UP_SHOT_COMMAND);
+-        combat_data mindShotData =
+-            combat_engine.getCombatData(MIND_SHOT_ONE_COMMAND);
++        combat_data kipUpShotData =
++            combat_engine.getCombatData(KIP_UP_SHOT_COMMAND);
++        combat_data fullAutoSingleOneData =
++            combat_engine.getCombatData(FULL_AUTO_SINGLE_ONE_COMMAND);
++        combat_data mindShotData =
++            combat_engine.getCombatData(MIND_SHOT_ONE_COMMAND);
+         int[] healthShotCosts =
+             healthShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, healthShotData) :
+@@ -3348,10 +3514,15 @@ public class precu_headshot1_fixture extends script.base_script
+             diveShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, diveShotData) :
+             new int[] {-1, -1, -1};
+-        int[] kipUpShotCosts =
+-            kipUpShotData != null && flameWeaponData != null ?
+-            combat.getActionCost(attacker, flameWeaponData, kipUpShotData) :
+-            new int[] {-1, -1, -1};
++        int[] kipUpShotCosts =
++            kipUpShotData != null && flameWeaponData != null ?
++            combat.getActionCost(attacker, flameWeaponData, kipUpShotData) :
++            new int[] {-1, -1, -1};
++        int[] fullAutoSingleOneCosts =
++            fullAutoSingleOneData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, fullAutoSingleOneData) :
++            new int[] {-1, -1, -1};
+         int[] mindShotCosts =
+             mindShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, mindShotData) :
+@@ -3368,9 +3539,11 @@ public class precu_headshot1_fixture extends script.base_script
+             " attackerLocomotion=" + getLocomotion(attacker) +
+             " defenderPosture=" + getPosture(defender) +
+             " defenderLocomotion=" + getLocomotion(defender) +
+-            " novice=" + hasSkill(attacker, MARKSMAN_NOVICE) +
+-            " rifleOne=" + hasSkill(attacker, RIFLE_ONE) +
+-            " rifleTwo=" + hasSkill(attacker, RIFLE_TWO) +
++            " novice=" + hasSkill(attacker, MARKSMAN_NOVICE) +
++            " rifleOne=" + hasSkill(attacker, RIFLE_ONE) +
++            " rifleTwo=" + hasSkill(attacker, RIFLE_TWO) +
++            " carbineOne=" + hasSkill(attacker, MARKSMAN_CARBINE_ONE) +
++            " carbineTwo=" + hasSkill(attacker, MARKSMAN_CARBINE_TWO) +
+             " pistolOne=" + hasSkill(attacker, MARKSMAN_PISTOL_ONE) +
+             " pistolTwo=" + hasSkill(attacker, MARKSMAN_PISTOL_TWO) +
+             " supportOne=" + hasSkill(attacker, MARKSMAN_SUPPORT_ONE) +
+@@ -3424,8 +3597,10 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, SUPPRESSION_FIRE_ONE_COMMAND) +
+             " rollShotCommand=" + hasCommand(attacker, ROLL_SHOT_COMMAND) +
+             " diveShotCommand=" + hasCommand(attacker, DIVE_SHOT_COMMAND) +
+-            " kipUpShotCommand=" + hasCommand(attacker, KIP_UP_SHOT_COMMAND) +
+-            " takeCoverCommand=" + hasCommand(attacker, TAKE_COVER_COMMAND) +
++            " kipUpShotCommand=" + hasCommand(attacker, KIP_UP_SHOT_COMMAND) +
++            " takeCoverCommand=" + hasCommand(attacker, TAKE_COVER_COMMAND) +
++            " fullAutoSingleOneCommand=" +
++                hasCommand(attacker, FULL_AUTO_SINGLE_ONE_COMMAND) +
+             " acidSingleOneCommand=" +
+                 hasCommand(attacker, ACID_SINGLE_ONE_COMMAND) +
+             " acidConeOneCommand=" +
+@@ -3519,8 +3694,9 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformSuppressionFireOne=" + canPerformSuppressionFireOne +
+             " canPerformRollShot=" + canPerformRollShot +
+             " canPerformDiveShot=" + canPerformDiveShot +
+-            " canPerformKipUpShot=" + canPerformKipUpShot +
+-            " canPerformTakeCover=" + canPerformTakeCover +
++            " canPerformKipUpShot=" + canPerformKipUpShot +
++            " canPerformTakeCover=" + canPerformTakeCover +
++            " canPerformFullAutoSingleOne=" + canPerformFullAutoSingleOne +
+             " canPerformAcidSingleOne=" + canPerformAcidSingleOne +
+             " canPerformAcidConeOne=" + canPerformAcidConeOne +
+             " canPerformAcidConeTwo=" + canPerformAcidConeTwo +
+@@ -3650,9 +3826,120 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticInt(attacker, "takeCover.roll", -1) +
+             " takeCoverDiagnosticResult=" +
+                 readDiagnosticString(attacker, "takeCover.result", "none") +
+-            " takeCoverDiagnosticState=" +
+-                readDiagnosticInt(attacker, "takeCover.coverState", -1) +
+-            " mindShotHealthCost=" + mindShotCosts[0] +
++            " takeCoverDiagnosticState=" +
++                readDiagnosticInt(attacker, "takeCover.coverState", -1) +
++            " fullAutoSingleOneHealthCost=" + fullAutoSingleOneCosts[0] +
++            " fullAutoSingleOneActionCost=" + fullAutoSingleOneCosts[1] +
++            " fullAutoSingleOneMindCost=" + fullAutoSingleOneCosts[2] +
++            " fullAutoSingleOnePrecuHamCostModel=" +
++                (fullAutoSingleOneData == null ? -1 :
++                    fullAutoSingleOneData.precuHamCostModel) +
++            " defenderLevel=" + getLevel(defender) +
++            " defenderDizzyDefense=" +
++                getSkillStatisticModifier(defender, "dizzy_defense") +
++            " defenderBlindDefense=" +
++                getSkillStatisticModifier(defender, "blind_defense") +
++            " defenderStunDefense=" +
++                getSkillStatisticModifier(defender, "stun_defense") +
++            " defenderDizzyState=" + getState(defender, STATE_DIZZY) +
++            " defenderBlindState=" + getState(defender, STATE_BLINDED) +
++            " defenderStunState=" + getState(defender, STATE_STUNNED) +
++            " defenderDizzyBuff=" + buff.hasBuff(defender, "dizzy") +
++            " defenderBlindBuff=" + buff.hasBuff(defender, "blind") +
++            " defenderStunBuff=" + buff.hasBuff(defender, "stun") +
++            " stateEffectAppliedCount=" +
++                readDiagnosticInt(attacker, "stateEffect.appliedCount", -1) +
++            " stateEffect1Type=" +
++                readDiagnosticInt(attacker, "stateEffect.1.type", -1) +
++            " stateEffect1Chance=" +
++                readDiagnosticInt(attacker, "stateEffect.1.chance", -1) +
++            " stateEffect1Strength=" +
++                readDiagnosticInt(attacker, "stateEffect.1.strength", -1) +
++            " stateEffect1DurationBase=" +
++                readDiagnosticInt(attacker, "stateEffect.1.durationBase", -1) +
++            " stateEffect1Roll=" +
++                readDiagnosticInt(attacker, "stateEffect.1.roll", -1) +
++            " stateEffect1Threshold=" +
++                readDiagnosticInt(attacker, "stateEffect.1.threshold", -1) +
++            " stateEffect1ResolvedDuration=" +
++                readDiagnosticInt(
++                    attacker, "stateEffect.1.resolvedDuration", -1) +
++            " stateEffect1Result=" +
++                readDiagnosticString(
++                    attacker, "stateEffect.1.result", "none") +
++            " stateEffect1StateBefore=" +
++                readDiagnosticInt(attacker, "stateEffect.1.stateBefore", -1) +
++            " stateEffect1StateAfter=" +
++                readDiagnosticInt(attacker, "stateEffect.1.stateAfter", -1) +
++            " stateEffect1PlayerLevel=" +
++                readDiagnosticInt(attacker, "stateEffect.1.playerLevel", -1) +
++            " stateEffect1Defense=" +
++                readDiagnosticInt(attacker, "stateEffect.1.defense", -1) +
++            " stateEffect1JediDefense=" +
++                readDiagnosticInt(attacker, "stateEffect.1.jediDefense", -1) +
++            " stateEffect1Resistance=" +
++                readDiagnosticInt(attacker, "stateEffect.1.resistance", -1) +
++            " stateEffect2Type=" +
++                readDiagnosticInt(attacker, "stateEffect.2.type", -1) +
++            " stateEffect2Chance=" +
++                readDiagnosticInt(attacker, "stateEffect.2.chance", -1) +
++            " stateEffect2Strength=" +
++                readDiagnosticInt(attacker, "stateEffect.2.strength", -1) +
++            " stateEffect2DurationBase=" +
++                readDiagnosticInt(attacker, "stateEffect.2.durationBase", -1) +
++            " stateEffect2Roll=" +
++                readDiagnosticInt(attacker, "stateEffect.2.roll", -1) +
++            " stateEffect2Threshold=" +
++                readDiagnosticInt(attacker, "stateEffect.2.threshold", -1) +
++            " stateEffect2ResolvedDuration=" +
++                readDiagnosticInt(
++                    attacker, "stateEffect.2.resolvedDuration", -1) +
++            " stateEffect2Result=" +
++                readDiagnosticString(
++                    attacker, "stateEffect.2.result", "none") +
++            " stateEffect2StateBefore=" +
++                readDiagnosticInt(attacker, "stateEffect.2.stateBefore", -1) +
++            " stateEffect2StateAfter=" +
++                readDiagnosticInt(attacker, "stateEffect.2.stateAfter", -1) +
++            " stateEffect2PlayerLevel=" +
++                readDiagnosticInt(attacker, "stateEffect.2.playerLevel", -1) +
++            " stateEffect2Defense=" +
++                readDiagnosticInt(attacker, "stateEffect.2.defense", -1) +
++            " stateEffect2JediDefense=" +
++                readDiagnosticInt(attacker, "stateEffect.2.jediDefense", -1) +
++            " stateEffect2Resistance=" +
++                readDiagnosticInt(attacker, "stateEffect.2.resistance", -1) +
++            " stateEffect3Type=" +
++                readDiagnosticInt(attacker, "stateEffect.3.type", -1) +
++            " stateEffect3Chance=" +
++                readDiagnosticInt(attacker, "stateEffect.3.chance", -1) +
++            " stateEffect3Strength=" +
++                readDiagnosticInt(attacker, "stateEffect.3.strength", -1) +
++            " stateEffect3DurationBase=" +
++                readDiagnosticInt(attacker, "stateEffect.3.durationBase", -1) +
++            " stateEffect3Roll=" +
++                readDiagnosticInt(attacker, "stateEffect.3.roll", -1) +
++            " stateEffect3Threshold=" +
++                readDiagnosticInt(attacker, "stateEffect.3.threshold", -1) +
++            " stateEffect3ResolvedDuration=" +
++                readDiagnosticInt(
++                    attacker, "stateEffect.3.resolvedDuration", -1) +
++            " stateEffect3Result=" +
++                readDiagnosticString(
++                    attacker, "stateEffect.3.result", "none") +
++            " stateEffect3StateBefore=" +
++                readDiagnosticInt(attacker, "stateEffect.3.stateBefore", -1) +
++            " stateEffect3StateAfter=" +
++                readDiagnosticInt(attacker, "stateEffect.3.stateAfter", -1) +
++            " stateEffect3PlayerLevel=" +
++                readDiagnosticInt(attacker, "stateEffect.3.playerLevel", -1) +
++            " stateEffect3Defense=" +
++                readDiagnosticInt(attacker, "stateEffect.3.defense", -1) +
++            " stateEffect3JediDefense=" +
++                readDiagnosticInt(attacker, "stateEffect.3.jediDefense", -1) +
++            " stateEffect3Resistance=" +
++                readDiagnosticInt(attacker, "stateEffect.3.resistance", -1) +
++            " mindShotHealthCost=" + mindShotCosts[0] +
+             " mindShotActionCost=" + mindShotCosts[1] +
+             " mindShotMindCost=" + mindShotCosts[2] +
+             " bleedingDotStrength=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 5579a17..f002db0 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1355,4 +1355,5 @@ fireLightningSingle2	fireLightningSingle2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTA
+ suppressionFire1	suppressionFire1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_defender_posture_change_down														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1.5	0.0	1.0	0	0	0	0	0	150	0.0	0	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ rollShot	rollShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_acrobatic														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	50	0.0	0	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+ diveShot	diveShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_acrobatic														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	50	0.0	0	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+-kipUpShot	kipUpShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_acrobatic														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	50	0.0	0	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
++kipUpShot	kipUpShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_acrobatic														OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	50	0.0	0	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				PISTOL	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
++fullAutoSingle1	fullAutoSingle1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single							fire_5_special_single							OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				CARBINE	RANGED_WEAPON	ENERGY	KINETIC				marksman	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 6d271d4..2fb3060 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -1,5 +1,5 @@
+-actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus	animationType	dotAttribute	postureDownChance
+-s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2,RANDOM=3)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]
++actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus	animationType	dotAttribute	postureDownChance	stateEffect1	stateChance1	stateStrength1	stateDuration1	stateDefense1	stateJediDefense1	stateResistance1	stateEffect2	stateChance2	stateStrength2	stateDuration2	stateDefense2	stateJediDefense2	stateResistance2	stateEffect3	stateChance3	stateStrength3	stateDuration3	stateDefense3	stateJediDefense3	stateResistance3
++s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2,RANDOM=3)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3)[NONE]"	i[0]	i[0]	i[0]	s	s	s
+ __precu_runtime_probe	0	0	0	HEALTH	0	0	NONE
+ headShot1	0.5	0.5	1	MIND	1.5	5	RANGED
+ bodyShot1	0.5	0.75	0.5	HEALTH	1	50	RANGED
+@@ -71,4 +71,5 @@ fireLightningSingle2	1	1	1	RANDOM	2	0	INTENSITY
+ suppressionFire1	1.75	1.25	0.5	HEALTH	1.5	25	NONE		100
+ rollShot	0.5	0.75	0.5	RANDOM	1.5	50	NONE
+ diveShot	0.5	0.75	0.5	RANDOM	1.5	50	NONE
+-kipUpShot	0.5	0.75	0.5	RANDOM	1.5	50	NONE
++kipUpShot	0.5	0.75	0.5	RANDOM	1.5	50	NONE
++fullAutoSingle1	1.75	2.5	0.5	RANDOM	1.5	25	RANGED			DIZZY	30	0	30	dizzy_defense	jedi_state_defense	resistance_states	BLIND	30	0	40	blind_defense	jedi_state_defense	resistance_states	STUN	30	0	30	stun_defense	jedi_state_defense	resistance_states
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 02ef7f0..739c6e4 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -70,4 +70,5 @@ fireLightningSingle2	firelightningsingle2
+ suppressionFire1	suppressionfire
+ rollShot	rollshot
+ diveShot	diveshot
+-kipUpShot	kipup
++kipUpShot	kipup
++fullAutoSingle1	fullautoattack
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 918279b..b0b6db3 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2005,4 +2005,5 @@ suppressionFire1	combat	normal	suppressionFire1	failSpecialAttack			1.5	suppress
+ rollShot	combat	normal	rollShot	failSpecialAttack			1.5	rollShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ diveShot	combat	normal	diveShot	failSpecialAttack			1.5	diveShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ kipUpShot	combat	normal	kipUpShot	failSpecialAttack			1.5	kipUpShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+-takeCover	combat	normal	takeCover	failSpecialAttack			4	takeCover	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	-560185247	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	4	0		0	0	0
++takeCover	combat	normal	takeCover	failSpecialAttack			4	takeCover	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	-560185247	0	0	0	0	1	ALL	NONE	defaultCooldownGroup	0	4	0		0	0	0
++fullAutoSingle1	combat	normal	fullAutoSingle1	failSpecialAttack			1.5	fullAutoSingle1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

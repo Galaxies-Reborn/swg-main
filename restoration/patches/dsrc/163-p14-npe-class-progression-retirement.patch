@@ -1,0 +1,312 @@
+diff --git a/sku.0/sys.server/compiled/game/script/npe/trigger_journal.java b/sku.0/sys.server/compiled/game/script/npe/trigger_journal.java
+--- a/sku.0/sys.server/compiled/game/script/npe/trigger_journal.java
++++ b/sku.0/sys.server/compiled/game/script/npe/trigger_journal.java
+@@ -57,7 +57,6 @@ public class trigger_journal extends script.base_script
+     }
+     public int OnSkillGranted(obj_id self, String skill) throws InterruptedException
+     {
+-        String playerTemplate = getSkillTemplate(self);
+         if (!utils.isProfession(self, utils.TRADER) && !utils.isProfession(self, utils.ENTERTAINER))
+         {
+             if (!hasObjVar(self, "npe.firstSkillGranted"))
+diff --git a/sku.0/sys.server/compiled/game/script/npe/handoff_to_tatooine.java b/sku.0/sys.server/compiled/game/script/npe/handoff_to_tatooine.java
+--- a/sku.0/sys.server/compiled/game/script/npe/handoff_to_tatooine.java
++++ b/sku.0/sys.server/compiled/game/script/npe/handoff_to_tatooine.java
+@@ -14,47 +14,8 @@ public class handoff_to_tatooine extends script.base_script
+     public static final String questCrafterEntertainer = "quest/tatooine_eisley_noncombat";
+     public int OnLogin(obj_id self) throws InterruptedException
+     {
+-        location origin = getLocation(self);
+-        location fighting = new location(3521.0f, 0.0f, -4821.0f, origin.area);
+-        location crafty = new location(3309.0f, 6.0f, -4785.0f, origin.area);
+-        String profession = getSkillTemplate(self);
+-        int crafter = profession.indexOf("trader");
+-        int entertainer = profession.indexOf("entertainer");
+-        int bountyhunter = profession.indexOf("bounty_hunter");
+-        if (crafter > -1 || entertainer > -1)
+-        {
+-            if (!groundquests.isQuestActiveOrComplete(self, questCrafterEntertainer))
+-            {
+-                groundquests.grantQuest(self, questCrafterEntertainer);
+-            }
+-        }
+-        else if (bountyhunter > -1)
+-        {
+-            if (groundquests.hasCompletedQuest(self, questNewbieStartBH) || groundquests.isQuestActive(self, questNewbieStartBH))
+-            {
+-                detachScript(self, "npe.handoff_to_tatooine");
+-            }
+-            else 
+-            {
+-                groundquests.requestGrantQuest(self, questNewbieStartBH);
+-            }
+-        }
+-        else 
+-        {
+-            if (groundquests.hasCompletedQuest(self, questNewbieStart) || groundquests.isQuestActive(self, questNewbieStart))
+-            {
+-                detachScript(self, "npe.handoff_to_tatooine");
+-            }
+-            else 
+-            {
+-                groundquests.requestGrantQuest(self, questNewbieStart);
+-            }
+-        }
+-        if (crafter > -1)
+-        {
+-            newbieTutorialSetToolbarElement(self, 10, "/survey");
+-        }
+-        newbieTutorialEnableHudElement(self, "radar", true, 0);
++        // The post-CU Tatooine handoff grants NPE quests and rewrites the
++        // toolbar from one class template. Publish 14.1 startup owns neither.
+         detachScript(self, "npe.handoff_to_tatooine");
+         return SCRIPT_CONTINUE;
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_force_sensitive.java b/sku.0/sys.server/compiled/game/script/conversation/npe_force_sensitive.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_force_sensitive.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_force_sensitive.java
+@@ -58,15 +58,7 @@ public class npe_force_sensitive extends script.base_script
+     }
+     public boolean npe_force_sensitive_condition_isFSTemplate(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("force_sensitive"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public void npe_force_sensitive_action_giveFSQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_commando.java b/sku.0/sys.server/compiled/game/script/conversation/npe_commando.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_commando.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_commando.java
+@@ -19,15 +19,7 @@ public class npe_commando extends script.base_script
+     }
+     public boolean npe_commando_condition_isCommandoTemplate(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String playerTemplate = getSkillTemplate(player);
+-        if (playerTemplate.contains("commando"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public boolean npe_commando_condition_fromBrawler(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_profession_trader.java b/sku.0/sys.server/compiled/game/script/conversation/npe_profession_trader.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_profession_trader.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_profession_trader.java
+@@ -23,15 +23,7 @@ public class npe_profession_trader extends script.base_script
+     }
+     public boolean npe_profession_trader_condition_isTrader(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("trader"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public boolean npe_profession_trader_condition_onEntertainer1quest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_profession_entertainer.java b/sku.0/sys.server/compiled/game/script/conversation/npe_profession_entertainer.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_profession_entertainer.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_profession_entertainer.java
+@@ -23,15 +23,7 @@ public class npe_profession_entertainer extends script.base_script
+     }
+     public boolean npe_profession_entertainer_condition_isEntertainer(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("entertainer"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public boolean npe_profession_entertainer_condition_onEntertainer1quest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_medic2.java b/sku.0/sys.server/compiled/game/script/conversation/npe_medic2.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_medic2.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_medic2.java
+@@ -79,15 +79,7 @@ public class npe_medic2 extends script.base_script
+     }
+     public boolean npe_medic2_condition_isMedTemplate(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("medic"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public void npe_medic2_action_giveMedQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_spy.java b/sku.0/sys.server/compiled/game/script/conversation/npe_spy.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_spy.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_spy.java
+@@ -54,15 +54,7 @@ public class npe_spy extends script.base_script
+     }
+     public boolean npe_spy_condition_isSYTemplate(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("spy"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public void npe_spy_action_giveSpyQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_station_inaldra2.java b/sku.0/sys.server/compiled/game/script/conversation/npe_station_inaldra2.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_station_inaldra2.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_station_inaldra2.java
+@@ -38,15 +38,7 @@ public class npe_station_inaldra2 extends script.base_script
+     }
+     public boolean npe_station_inaldra2_condition_isBH(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("bounty_hunter"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public void npe_station_inaldra2_action_forwardInaldraQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_main_bartender.java b/sku.0/sys.server/compiled/game/script/conversation/npe_main_bartender.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_main_bartender.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_main_bartender.java
+@@ -15,15 +15,7 @@ public class npe_main_bartender extends script.base_script
+     }
+     public boolean npe_main_bartender_condition_onPointerQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("trader"))
+-        {
+-            return true;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public boolean npe_main_bartender_condition_completedAssignment(obj_id player, obj_id npc) throws InterruptedException
+     {
+@@ -43,17 +35,6 @@ public class npe_main_bartender extends script.base_script
+     }
+     public boolean npe_main_bartender_condition_ifBHPointed(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("bounty_hunter"))
+-        {
+-            if (groundquests.isQuestActive(player, "npe_pointer_artisan"))
+-            {
+-                if (!hasObjVar(player, "npe.finishedTemplate"))
+-                {
+-                    return true;
+-                }
+-            }
+-        }
+         return false;
+     }
+     public void npe_main_bartender_action_facePlayer(obj_id player, obj_id npc) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/npe_entertainer_1_questgiver.java b/sku.0/sys.server/compiled/game/script/conversation/npe_entertainer_1_questgiver.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/npe_entertainer_1_questgiver.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/npe_entertainer_1_questgiver.java
+@@ -31,35 +31,11 @@ public class npe_entertainer_1_questgiver extends script.base_script
+     }
+     public boolean npe_entertainer_1_questgiver_condition_notEntertainer(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("entertainer"))
+-        {
+-            return false;
+-        }
+-        else if (hasObjVar(player, "npe.finishedTemplate"))
+-        {
+-            return false;
+-        }
+-        else 
+-        {
+-            return true;
+-        }
++        return false;
+     }
+     public boolean npe_entertainer_1_questgiver_condition_startingconversation(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        if (pTemplate.contains("entertainer"))
+-        {
+-            return true;
+-        }
+-        else if (!hasObjVar(player, "npe.finishedTemplate"))
+-        {
+-            return false;
+-        }
+-        else 
+-        {
+-            return false;
+-        }
++        return false;
+     }
+     public void npe_entertainer_1_questgiver_action_facePlayer(obj_id player, obj_id npc) throws InterruptedException
+     {
+@@ -72,26 +48,8 @@ public class npe_entertainer_1_questgiver extends script.base_script
+     }
+     public void npe_entertainer_1_questgiver_action_giveQuest(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        String pTemplate = getSkillTemplate(player);
+-        groundquests.grantQuest(player, "npe_entertainer_1");
+-        groundquests.sendSignal(player, "talked_to_anvar");
+-        npe.givePerformPopUp(player, npc);
+-        newbieTutorialSetToolbarElement(player, 9, "/StartDance");
+-        newbieTutorialSetToolbarElement(player, 10, "/StopDance");
+-        newbieTutorialHighlightUIElement(player, "/GroundHUD.Toolbar.volume.9", 5.0f);
+-        newbieTutorialHighlightUIElement(player, "/GroundHUD.Toolbar.volume.10", 5.0f);
+-        if (pTemplate.contains("entertainer"))
+-        {
+-            newbieTutorialSetToolbarElement(player, 4, "/flourish+1");
+-            newbieTutorialSetToolbarElement(player, 5, "/flourish+2");
+-            newbieTutorialSetToolbarElement(player, 6, "/flourish+3");
+-            newbieTutorialSetToolbarElement(player, 7, "/flourish+4");
+-            newbieTutorialSetToolbarElement(player, 16, "/flourish+5");
+-            newbieTutorialSetToolbarElement(player, 17, "/flourish+6");
+-            newbieTutorialSetToolbarElement(player, 18, "/flourish+7");
+-            newbieTutorialSetToolbarElement(player, 19, "/flourish+8");
+-            newbieTutorialHighlightUIElement(player, "/GroundHUD.Toolbar.volume.4", 5.0f);
+-        }
++        // Retired NPE action: Publish 14.1 entertainer training is handled by
++        // skill teachers and must not grant later quests or rewrite toolbar.
+     }
+     public int npe_entertainer_1_questgiver_handleBranch2(obj_id player, obj_id npc, string_id response) throws InterruptedException
+     {

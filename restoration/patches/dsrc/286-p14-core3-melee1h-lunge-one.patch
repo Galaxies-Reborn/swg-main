@@ -1,0 +1,234 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 11f1ae4..6fd5c4d 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14879,6 +14879,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int melee1hLunge1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("melee1hLunge1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int unarmedHeadHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("unarmedHeadHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index aa9333d..4a02de7 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -163,6 +163,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String FLUSHING_SHOT_TWO_COMMAND = "flushingShot2";
+     private static final String POLEARM_LUNGE_ONE_COMMAND = "polearmLunge1";
+     private static final String UNARMED_LUNGE_ONE_COMMAND = "unarmedLunge1";
++    private static final String ONE_HAND_LUNGE_ONE_COMMAND = "melee1hLunge1";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
+@@ -430,6 +431,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalPolearmLungeOneCommand";
+     private static final String ORIGINAL_UNARMED_LUNGE_ONE_COMMAND =
+         ROOT + ".originalUnarmedLungeOneCommand";
++    private static final String ORIGINAL_ONE_HAND_LUNGE_ONE_COMMAND =
++        ROOT + ".originalOneHandLungeOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_TWO_COMMAND =
+@@ -1017,6 +1020,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean unarmedLungeOneCommandGranted =
+             hasCommand(attacker, UNARMED_LUNGE_ONE_COMMAND) ||
+             grantCommand(attacker, UNARMED_LUNGE_ONE_COMMAND);
++        boolean oneHandLungeOneCommandGranted =
++            hasCommand(attacker, ONE_HAND_LUNGE_ONE_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_LUNGE_ONE_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -1175,6 +1181,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, POLEARM_LUNGE_ONE_COMMAND) ||
+             !unarmedLungeOneCommandGranted ||
+             !hasCommand(attacker, UNARMED_LUNGE_ONE_COMMAND) ||
++            !oneHandLungeOneCommandGranted ||
++            !hasCommand(attacker, ONE_HAND_LUNGE_ONE_COMMAND) ||
+             !hasCommand(attacker, COMMAND) ||
+             !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             !headShotThreeGranted || !hasCommand(attacker, HEAD_SHOT_THREE_COMMAND) ||
+@@ -1910,6 +1918,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 POLEARM_LUNGE_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_UNARMED_LUNGE_ONE_COMMAND,
+                 UNARMED_LUNGE_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_ONE_HAND_LUNGE_ONE_COMMAND,
++                ONE_HAND_LUNGE_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -3106,6 +3116,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, POLEARM_LUNGE_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_UNARMED_LUNGE_ONE_COMMAND,
+             hasCommand(player, UNARMED_LUNGE_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_ONE_HAND_LUNGE_ONE_COMMAND,
++            hasCommand(player, ONE_HAND_LUNGE_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3520,6 +3532,8 @@ public class precu_headshot1_fixture extends script.base_script
+             POLEARM_LUNGE_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_UNARMED_LUNGE_ONE_COMMAND,
+             UNARMED_LUNGE_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_ONE_HAND_LUNGE_ONE_COMMAND,
++            ONE_HAND_LUNGE_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4053,6 +4067,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 POLEARM_LUNGE_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_UNARMED_LUNGE_ONE_COMMAND,
+                 UNARMED_LUNGE_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_ONE_HAND_LUNGE_ONE_COMMAND,
++                ONE_HAND_LUNGE_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4283,6 +4299,8 @@ public class precu_headshot1_fixture extends script.base_script
+             POLEARM_LUNGE_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_UNARMED_LUNGE_ONE_COMMAND,
+             UNARMED_LUNGE_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_ONE_HAND_LUNGE_ONE_COMMAND,
++            ONE_HAND_LUNGE_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4855,6 +4873,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean unarmedLungeOneCommandReady =
+             hasCommand(attacker, UNARMED_LUNGE_ONE_COMMAND) ||
+             grantCommand(attacker, UNARMED_LUNGE_ONE_COMMAND);
++        boolean oneHandLungeOneCommandReady =
++            hasCommand(attacker, ONE_HAND_LUNGE_ONE_COMMAND) ||
++            grantCommand(attacker, ONE_HAND_LUNGE_ONE_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -5029,6 +5050,7 @@ public class precu_headshot1_fixture extends script.base_script
+             flushingShotTwoCommandReady &&
+             polearmLungeOneCommandReady &&
+             unarmedLungeOneCommandReady &&
++            oneHandLungeOneCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -5441,6 +5463,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_FLUSHING_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_POLEARM_LUNGE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_UNARMED_LUNGE_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_ONE_HAND_LUNGE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
+@@ -5663,6 +5686,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(POLEARM_LUNGE_ONE_COMMAND, attacker) : -1;
+         int canPerformUnarmedLungeOne =
+             combat.canPerformAction(UNARMED_LUNGE_ONE_COMMAND, attacker);
++        int canPerformOneHandLungeOne = isIdValid(weapon) ?
++            combat.canPerformAction(ONE_HAND_LUNGE_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotTwo = isIdValid(weapon) ?
+@@ -5806,6 +5831,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(POLEARM_LUNGE_ONE_COMMAND);
+         combat_data unarmedLungeOneData =
+             combat_engine.getCombatData(UNARMED_LUNGE_ONE_COMMAND);
++        combat_data oneHandLungeOneData =
++            combat_engine.getCombatData(ONE_HAND_LUNGE_ONE_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+         combat_data scatterShotTwoData =
+@@ -5958,6 +5985,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, currentWeaponData, unarmedLungeOneData) :
+             new int[] {-1, -1, -1};
++        int[] oneHandLungeOneCosts =
++            oneHandLungeOneData != null && flameWeaponData != null ?
++            combat.getActionCost(
++                attacker, flameWeaponData, oneHandLungeOneData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -6197,6 +6229,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, POLEARM_LUNGE_ONE_COMMAND) +
+             " unarmedLungeOneCommand=" +
+                 hasCommand(attacker, UNARMED_LUNGE_ONE_COMMAND) +
++            " oneHandLungeOneCommand=" +
++                hasCommand(attacker, ONE_HAND_LUNGE_ONE_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+             " scatterShotTwoCommand=" +
+@@ -6576,6 +6610,16 @@ public class precu_headshot1_fixture extends script.base_script
+             " unarmedLungeOneDamageMultiplier=" +
+                 (unarmedLungeOneData == null ? -1.0f :
+                     unarmedLungeOneData.percentAddFromWeapon) +
++            " oneHandLungeOneCanPerform=" + canPerformOneHandLungeOne +
++            " oneHandLungeOneHealthCost=" + oneHandLungeOneCosts[0] +
++            " oneHandLungeOneActionCost=" + oneHandLungeOneCosts[1] +
++            " oneHandLungeOneMindCost=" + oneHandLungeOneCosts[2] +
++            " oneHandLungeOnePrecuHamCostModel=" +
++                (oneHandLungeOneData == null ? -1 :
++                    oneHandLungeOneData.precuHamCostModel) +
++            " oneHandLungeOneDamageMultiplier=" +
++                (oneHandLungeOneData == null ? -1.0f :
++                    oneHandLungeOneData.percentAddFromWeapon) +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+             " scatterShotOneMindCost=" + scatterShotOneCosts[2] +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 22d1aed..d78fa5e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1300,6 +1300,7 @@ headShot2	headShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/
+ polearmLegHit1	polearmLegHit1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_low_left_medium_0				attack_low_left_medium_0										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ polearmLunge1	polearmLunge1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_polearm_2				lower_posture_polearm_2										OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	1.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ unarmedLunge1	unarmedLunge1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_unarmed_1	lower_posture_unarmed_1													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++melee1hLunge1	melee1hLunge1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	lower_posture_1hmelee_1		lower_posture_1hmelee_1												OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	20	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ polearmSpinAttack1	polearmSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_left_light_2				attack_high_left_light_2										OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				POLEARM	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee1hSpinAttack1	melee1hSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_right_medium_2		attack_high_right_medium_2												OFF	OFF	OFF	OFF	OFF	AREA	16		0	3	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				1HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ melee2hSpinAttack1	melee2hSpinAttack1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_right_light_2			attack_high_right_light_2											OFF	OFF	OFF	OFF	OFF	AREA	16		0	5	0	0	2.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				2HAND_MELEE	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index c84f5a8..5ae0aea 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -25,6 +25,7 @@ legShot1	2.25	1.25	0.5	ACTION	2	25	NONE
+ polearmLegHit1	1	0.5	0.5	ACTION	1.25	10	NONE
+ polearmLunge1	0.5	1.0	0.5	RANDOM	1.5	10	NONE		100
+ unarmedLunge1	1.0	1.0	1.0	RANDOM	1.5	15	NONE		100
++melee1hLunge1	0.5	0.5	1.0	RANDOM	1.5	25	NONE		100
+ polearmSpinAttack1	1.5	1	1	RANDOM	1.5	10	NONE
+ melee1hSpinAttack1	1	1	1.5	RANDOM	1.5	25	NONE
+ melee2hSpinAttack1	1	1.5	1	RANDOM	1.5	10	NONE
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index bdee5a9..12cadf5 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -24,6 +24,7 @@ legShot1	leg
+ polearmLegHit1	legbruiser
+ polearmLunge1	lungestrike
+ unarmedLunge1	ridingbantha
++melee1hLunge1	lungestab
+ polearmSpinAttack1	limbsmasher
+ melee1hSpinAttack1	slashspin
+ melee2hSpinAttack1	spinstrike
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 11865e7..ff7a491 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -1938,6 +1938,7 @@ revivePlayer	combat	normal	cmdRevivePlayer				10	revivePlayer	1	0	1	1	1	0	0	0	0
+ polearmLegHit1	combat	normal	polearmLegHit1	failSpecialAttack			1.5	polearmLegHit1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ polearmLunge1	combat	normal	polearmLunge1	failSpecialAttack			1.5	polearmLunge1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	20	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedLunge1	combat	normal	unarmedLunge1	failSpecialAttack			1.5	unarmedLunge1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	20	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++melee1hLunge1	combat	normal	melee1hLunge1	failSpecialAttack			1.5	melee1hLunge1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	20	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ polearmSpinAttack1	combat	normal	polearmSpinAttack1	failSpecialAttack			1.5	polearmSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	POLEARM	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee1hSpinAttack1	combat	normal	melee1hSpinAttack1	failSpecialAttack			1.5	melee1hSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	3	0	0	1	1HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ melee2hSpinAttack1	combat	normal	melee2hSpinAttack1	failSpecialAttack			1.5	melee2hSpinAttack1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	5	0	0	1	2HAND_MELEE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

@@ -1,0 +1,932 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/combat.java b/sku.0/sys.server/compiled/game/script/library/combat.java
+index cde573a50..1e95b11b5 100755
+--- a/sku.0/sys.server/compiled/game/script/library/combat.java
++++ b/sku.0/sys.server/compiled/game/script/library/combat.java
+@@ -5,9 +5,30 @@ import script.combat_engine.*;
+ 
+ import java.util.Vector;
+ 
+-public class combat extends script.base_script
+-{
+-    public static final String PRECU_WEAPON_HAM_COST_TABLE = "datatables/combat/precu_weapon_ham_costs.iff";
++public class combat extends script.base_script
++{
++    public static final String PRECU_WEAPON_HAM_COST_TABLE = "datatables/combat/precu_weapon_ham_costs.iff";
++    public static final String PRECU_FEIGN_PENDING =
++        "precu.feignDeath.pending";
++    public static final String PRECU_FEIGN_PENDING_DEFENSE_MODIFIER =
++        "precu_feign_pending_defense";
++    public static final String PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER =
++        "precu_feign_damage_divisor";
++    public static final String PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER =
++        "precu_feign_damage_multiplier";
++    public static final String PRECU_FEIGN_SAVED_HEALTH =
++        "precu.feignDeath.savedHealth";
++    public static final String PRECU_FEIGN_FINALIZING =
++        "precu.feignDeath.finalizing";
++    public static final String PRECU_FEIGN_FIXTURE_ROOT =
++        "precu.p14.headShot1Fixture.m329";
++    public static final String PRECU_FEIGN_DIAGNOSTIC_ROOT =
++        PRECU_FEIGN_FIXTURE_ROOT + ".liveDiagnostic";
++    public static final String PRECU_FEIGN_FORCED_ROLL =
++        PRECU_FEIGN_FIXTURE_ROOT + ".forcedRoll";
++    private static final long PRECU_FEIGN_FIXTURE_PLAYER_OID = 44003778L;
++    private static final int PRECU_FEIGN_FIXTURE_STATION_ID = 91001;
++    private static final int PRECU_FEIGN_MAX_DEFENDERS = 5;
+     public combat()
+     {
+     }
+@@ -2757,7 +2778,7 @@ public class combat extends script.base_script
+             setRegenRate(self, HEALTH, 0);
+         }
+     }
+-    public static boolean clearCombatDebuffs(obj_id self) throws InterruptedException
++    public static boolean clearCombatDebuffs(obj_id self) throws InterruptedException
+     {
+         if (getGameTime() > utils.getIntScriptVar(self, "incap.timeStamp"))
+         {
+@@ -2769,9 +2790,309 @@ public class combat extends script.base_script
+                 return true;
+             }
+         }
+-        return false;
+-    }
+-    public static boolean isInCombat(obj_id objTarget) throws InterruptedException
++        return false;
++    }
++    public static boolean armPrecuFeignDeath(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !isPlayer(player) ||
++            isDead(player) ||
++            !hasSkill(player, "combat_smuggler_combat_01"))
++        {
++            recordPrecuFeignDiagnostic(player, "outcome", "playerRejected");
++            return false;
++        }
++        if (getState(player, STATE_FEIGN_DEATH) == 1 ||
++            buff.hasBuff(player, "feign_death"))
++        {
++            boolean revealed = revealPrecuFeignDeath(player, "toggle");
++            recordPrecuFeignDiagnostic(player, "outcome",
++                revealed ? "revealed" : "revealFailed");
++            return revealed;
++        }
++        if (isIncapacitated(player))
++        {
++            recordPrecuFeignDiagnostic(player, "outcome", "playerRejected");
++            return false;
++        }
++        if (!isInCombat(player))
++        {
++            sendSystemMessage(player,
++                new string_id("combat_effects", "feign_no_combat"));
++            recordPrecuFeignDiagnostic(player, "outcome", "noCombat");
++            return false;
++        }
++        clearPrecuFeignPending(player);
++        setObjVar(player, PRECU_FEIGN_PENDING, getGameTime());
++        boolean modifierApplied = addSkillModModifier(player,
++            PRECU_FEIGN_PENDING_DEFENSE_MODIFIER, "private_defense",
++            -99999999, -1.0f, false, false);
++        if (!modifierApplied)
++        {
++            removeObjVar(player, PRECU_FEIGN_PENDING);
++            recordPrecuFeignDiagnostic(player, "outcome",
++                "pendingModifierFailed");
++            return false;
++        }
++        sendSystemMessage(player,
++            new string_id("cbt_spam", "feign_get_hit_single"));
++        recordPrecuFeignDiagnostic(player, "outcome", "pendingDamage");
++        recordPrecuFeignDiagnostic(player, "pending", 1);
++        recordPrecuFeignDiagnostic(player, "privateDefense",
++            getEnhancedSkillStatisticModifierUncapped(player,
++                "private_defense"));
++        return true;
++    }
++    public static boolean consumePrecuFeignDeathOnDamage(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) ||
++            !hasObjVar(player, PRECU_FEIGN_PENDING))
++        {
++            return false;
++        }
++        clearPrecuFeignPending(player);
++        int skillMod = getSkillStatisticModifier(player, "feign_death");
++        obj_id[] targeting = getWhoIsTargetingMe(player);
++        int defenderCount = targeting == null ? 0 :
++            Math.min(PRECU_FEIGN_MAX_DEFENDERS, targeting.length);
++        recordPrecuFeignDiagnostic(player, "pending", 0);
++        recordPrecuFeignDiagnostic(player, "skillMod", skillMod);
++        recordPrecuFeignDiagnostic(player, "defenderCount", defenderCount);
++        if (getState(player, STATE_RIDING_MOUNT) == 1 ||
++            getLocomotion(player) == LOCOMOTION_KNEELING ||
++            (getAttrib(player, HEALTH) <= 100 &&
++                getAttrib(player, ACTION) <= 100 &&
++                getAttrib(player, MIND) <= 100))
++        {
++            sendSystemMessage(player,
++                new string_id("cbt_spam", "feign_fail_single"));
++            recordPrecuFeignDiagnostic(player, "outcome",
++                "boundaryRejected");
++            return false;
++        }
++        String rolls = "";
++        boolean accepted = true;
++        for (int index = 0; index < defenderCount; ++index)
++        {
++            int roll = isPrecuFeignFixture(player) &&
++                hasObjVar(player, PRECU_FEIGN_FORCED_ROLL) ?
++                getIntObjVar(player, PRECU_FEIGN_FORCED_ROLL) :
++                rand(0, 100);
++            rolls += (index == 0 ? "" : ",") + roll;
++            if (roll > skillMod)
++            {
++                accepted = false;
++                break;
++            }
++        }
++        recordPrecuFeignDiagnostic(player, "rolls", rolls);
++        if (!accepted)
++        {
++            sendSystemMessage(player,
++                new string_id("cbt_spam", "feign_fail_single"));
++            recordPrecuFeignDiagnostic(player, "outcome", "rollFailed");
++            return false;
++        }
++        boolean buffApplied = buff.applyBuff(player, player, "feign_death");
++        boolean divisorApplied = addSkillModModifier(player,
++            PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER,
++            "private_damage_divisor", 4, -1.0f, false, false);
++        boolean multiplierApplied = addSkillModModifier(player,
++            PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER,
++            "private_damage_multiplier", 5, -1.0f, false, false);
++        if (!buffApplied || !divisorApplied || !multiplierApplied)
++        {
++            revealPrecuFeignDeath(player, "entryRollback");
++            sendSystemMessage(player,
++                new string_id("cbt_spam", "feign_fail_single"));
++            recordPrecuFeignDiagnostic(player, "outcome", "entryFailed");
++            return false;
++        }
++        stopCombat(player);
++        messageTo(player, "precuFinalizeFeignDeath", null, 1.0f, false);
++        recordPrecuFeignDiagnostic(player, "outcome", "finalizePending");
++        return true;
++    }
++    public static boolean finalizePrecuFeignDeath(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) ||
++            !buff.hasBuff(player, "feign_death") ||
++            !hasSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER) ||
++            !hasSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER))
++        {
++            return false;
++        }
++        if (!hasObjVar(player, PRECU_FEIGN_SAVED_HEALTH))
++        {
++            setObjVar(player, PRECU_FEIGN_SAVED_HEALTH,
++                Math.max(1, getAttrib(player, HEALTH)));
++        }
++        setObjVar(player, PRECU_FEIGN_FINALIZING, 1);
++        setAttrib(player, HEALTH, -100);
++        setPostureClientImmediate(player, POSTURE_INCAPACITATED);
++        setState(player, STATE_FEIGN_DEATH, true);
++        removeObjVar(player, PRECU_FEIGN_FINALIZING);
++        stopCombat(player);
++        boolean finalized = getState(player, STATE_FEIGN_DEATH) == 1 &&
++            getPosture(player) == POSTURE_INCAPACITATED;
++        recordPrecuFeignDiagnostic(player, "outcome",
++            finalized ? "feigned" : "finalizeFailed");
++        recordPrecuFeignDiagnostic(player, "state",
++            getState(player, STATE_FEIGN_DEATH));
++        recordPrecuFeignDiagnostic(player, "posture", getPosture(player));
++        recordPrecuFeignDiagnostic(player, "locomotion",
++            getLocomotion(player));
++        recordPrecuFeignDiagnostic(player, "inCombat",
++            isInCombat(player) ? 1 : 0);
++        if (!finalized)
++        {
++            revealPrecuFeignDeath(player, "finalizeRollback");
++        }
++        return finalized;
++    }
++    public static boolean restorePrecuFeignDeathOnLoad(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) ||
++            !hasObjVar(player, PRECU_FEIGN_SAVED_HEALTH))
++        {
++            return false;
++        }
++        setObjVar(player, PRECU_FEIGN_FINALIZING, 1);
++        boolean buffReady = buff.hasBuff(player, "feign_death") ||
++            buff.applyBuff(player, player, "feign_death");
++        boolean divisorReady = hasSkillModModifier(player,
++            PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER) ||
++            addSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER,
++                "private_damage_divisor", 4, -1.0f, false, false);
++        boolean multiplierReady = hasSkillModModifier(player,
++            PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER) ||
++            addSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER,
++                "private_damage_multiplier", 5, -1.0f, false, false);
++        setAttrib(player, HEALTH, -100);
++        setPostureClientImmediate(player, POSTURE_INCAPACITATED);
++        setState(player, STATE_FEIGN_DEATH, true);
++        removeObjVar(player, PRECU_FEIGN_FINALIZING);
++        stopCombat(player);
++        boolean restored = buffReady && divisorReady && multiplierReady &&
++            buff.hasBuff(player, "feign_death") &&
++            hasSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER) &&
++            hasSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER) &&
++            getState(player, STATE_FEIGN_DEATH) == 1 &&
++            getPosture(player) == POSTURE_INCAPACITATED;
++        recordPrecuFeignDiagnostic(player, "outcome",
++            restored ? "restoredAfterLoad" : "loadRestoreFailed");
++        if (!restored)
++        {
++            revealPrecuFeignDeath(player, "loadRollback");
++        }
++        return restored;
++    }
++    public static boolean revealPrecuFeignDeath(obj_id player, String source)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player))
++        {
++            return false;
++        }
++        boolean active = getState(player, STATE_FEIGN_DEATH) == 1 ||
++            buff.hasBuff(player, "feign_death") ||
++            hasSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER) ||
++            hasSkillModModifier(player,
++                PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER);
++        if (active)
++        {
++            clearPrecuFeignPending(player);
++        }
++        if (buff.hasBuff(player, "feign_death"))
++        {
++            buff.removeBuff(player, "feign_death");
++        }
++        setState(player, STATE_FEIGN_DEATH, false);
++        removeAttribOrSkillModModifier(player,
++            PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER);
++        removeAttribOrSkillModModifier(player,
++            PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER);
++        if (hasObjVar(player, PRECU_FEIGN_FINALIZING))
++        {
++            removeObjVar(player, PRECU_FEIGN_FINALIZING);
++        }
++        if (hasObjVar(player, PRECU_FEIGN_SAVED_HEALTH))
++        {
++            int restoredHealth = Math.max(1, Math.min(
++                getIntObjVar(player, PRECU_FEIGN_SAVED_HEALTH),
++                getMaxAttrib(player, HEALTH)));
++            setAttrib(player, HEALTH, restoredHealth);
++            removeObjVar(player, PRECU_FEIGN_SAVED_HEALTH);
++        }
++        if (active && getPosture(player) == POSTURE_INCAPACITATED)
++        {
++            setPosture(player, POSTURE_UPRIGHT);
++        }
++        if (active)
++        {
++            recordPrecuFeignDiagnostic(player, "outcome", "revealed");
++            recordPrecuFeignDiagnostic(player, "revealSource", source);
++            recordPrecuFeignDiagnostic(player, "state",
++                getState(player, STATE_FEIGN_DEATH));
++            recordPrecuFeignDiagnostic(player, "posture",
++                getPosture(player));
++        }
++        return active && getState(player, STATE_FEIGN_DEATH) == 0 &&
++            !buff.hasBuff(player, "feign_death");
++    }
++    public static void clearPrecuFeignPending(obj_id player)
++        throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player))
++        {
++            return;
++        }
++        if (hasObjVar(player, PRECU_FEIGN_PENDING))
++        {
++            removeObjVar(player, PRECU_FEIGN_PENDING);
++        }
++        removeAttribOrSkillModModifier(player,
++            PRECU_FEIGN_PENDING_DEFENSE_MODIFIER);
++    }
++    private static boolean isPrecuFeignFixture(obj_id player)
++        throws InterruptedException
++    {
++        return isIdValid(player) && player.getValue() ==
++            PRECU_FEIGN_FIXTURE_PLAYER_OID &&
++            getPlayerStationId(player) == PRECU_FEIGN_FIXTURE_STATION_ID &&
++            hasObjVar(player, PRECU_FEIGN_DIAGNOSTIC_ROOT + ".enabled") &&
++            getIntObjVar(player,
++                PRECU_FEIGN_DIAGNOSTIC_ROOT + ".enabled") == 1;
++    }
++    private static void recordPrecuFeignDiagnostic(obj_id player,
++        String key, int value) throws InterruptedException
++    {
++        if (isPrecuFeignFixture(player))
++        {
++            setObjVar(player, PRECU_FEIGN_DIAGNOSTIC_ROOT + "." + key,
++                value);
++        }
++    }
++    private static void recordPrecuFeignDiagnostic(obj_id player,
++        String key, String value) throws InterruptedException
++    {
++        if (isPrecuFeignFixture(player))
++        {
++            setObjVar(player, PRECU_FEIGN_DIAGNOSTIC_ROOT + "." + key,
++                value == null ? "" : value);
++        }
++    }
++    public static boolean isInCombat(obj_id objTarget) throws InterruptedException
+     {
+         return getState(objTarget, STATE_COMBAT) > 0 ? true : false;
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index defe04fb4..9cc5c7bcb 100755
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -1105,9 +1105,17 @@ public class base_player extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnIncapacitated(obj_id self, obj_id killer) throws InterruptedException
+-    {
+-        utils.setScriptVar(self, "lastKiller", killer);
++    public int OnIncapacitated(obj_id self, obj_id killer) throws InterruptedException
++    {
++        if ((getState(self, STATE_FEIGN_DEATH) == 1 ||
++                hasObjVar(self, combat.PRECU_FEIGN_FINALIZING)) &&
++            buff.hasBuff(self, "feign_death"))
++        {
++            stopCombat(self);
++            clearAllAiEnemyFlags(self);
++            return SCRIPT_CONTINUE;
++        }
++        utils.setScriptVar(self, "lastKiller", killer);
+         if (!isIdValid(killer))
+         {
+             killer = self;
+@@ -1451,10 +1459,11 @@ public class base_player extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+-    public int OnLogin(obj_id self) throws InterruptedException
+-    {
+-        restorePrecuBerserkState(self);
+-        restorePrecuRetreatState(self);
++    public int OnLogin(obj_id self) throws InterruptedException
++    {
++        restorePrecuBerserkState(self);
++        restorePrecuRetreatState(self);
++        combat.restorePrecuFeignDeathOnLoad(self);
+         boolean ctsDisconnectRequested = false;
+         if (hasObjVar(self, "disableLoginCtsInProgress"))
+         {
+@@ -13562,7 +13571,7 @@ public class base_player extends script.base_script
+         missions.clearDailyObjVars(self);
+         return SCRIPT_CONTINUE;
+     }
+-    public int cmdMeditate(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    public int cmdMeditate(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (ai_lib.isInCombat(self))
+         {
+@@ -13580,10 +13589,22 @@ public class base_player extends script.base_script
+             sendSystemMessage(self, new string_id("jedi_spam", "already_in_meditative_state"));
+             return SCRIPT_CONTINUE;
+         }
+-        meditation.startMeditation(self);
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int cmdMeditateFail(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++        meditation.startMeditation(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int feignIncapacitation(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        return combat.armPrecuFeignDeath(self) ?
++            SCRIPT_CONTINUE : SCRIPT_OVERRIDE;
++    }
++    public int precuFinalizeFeignDeath(obj_id self, dictionary params)
++        throws InterruptedException
++    {
++        combat.finalizePrecuFeignDeath(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int cmdMeditateFail(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         sendSystemMessage(self, meditation.SID_MED_FAIL);
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 0b3a3f2e6..be13ab98a 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -8445,10 +8445,11 @@ public class combat_actions extends script.systems.combat.combat_base
+     {
+         return SCRIPT_OVERRIDE;
+     }
+-    public int failSpecialAttack(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+-    {
+-        return SCRIPT_CONTINUE;
+-    }
++    public int failSpecialAttack(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        combat.revealPrecuFeignDeath(self, "failedCombatCommand");
++        return SCRIPT_CONTINUE;
++    }
+     public int failProc(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 60a44f809..52917e053 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -167,9 +167,10 @@ public class combat_base extends script.base_script
+     {
+         return combatStandardAction(actionName, self, target, objWeapon, params, actionData, isTangibleAttacking, false, 0);
+     }
+-    public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage) throws InterruptedException
+-    {
+-        if (combat.isStunned(self))
++    public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage) throws InterruptedException
++    {
++        combat.revealPrecuFeignDeath(self, "combatCommand");
++        if (combat.isStunned(self))
+         {
+             return false;
+         }
+@@ -1589,8 +1590,14 @@ public class combat_base extends script.base_script
+                         attackerData.id,
+                         "secondary.blockElementalAfter",
+                         weaponData.elementalValue);
+-                }
+-                if (hitType != combat.NON_DAMAGE_ATTACK)
++                }
++                if (hitData[i].success &&
++                    (hitData[i].damage > 0 || weaponData.elementalValue > 0))
++                {
++                    combat.consumePrecuFeignDeathOnDamage(
++                        defenderData[i].id);
++                }
++                if (hitType != combat.NON_DAMAGE_ATTACK)
+                 {
+                     hitData[i] = applyDamage(attackerData.id, defenderData[i].id, weaponData, hitData[i], actionData, (i == 0), overloadDamage);
+                     if (!hitData[i].precuBlock)
+@@ -1736,16 +1743,16 @@ public class combat_base extends script.base_script
+             {
+                 defenderResults[i].result = COMBAT_RESULT_MISS;
+             }
+-            if (defenderResults[i].result != COMBAT_RESULT_TETHERED)
+-            {
+-                combat.addHateProcess(attackerData.id, defenderData[i].id, hitData[i], actionData);
+-                applyPrecuConcealThreat(
++            if (defenderResults[i].result != COMBAT_RESULT_TETHERED)
++            {
++                combat.addHateProcess(attackerData.id, defenderData[i].id, hitData[i], actionData);
++                applyPrecuConcealThreat(
+                     attackerData.id,
+                     defenderData[i].id,
+-                    defenderResults[i].result,
+-                    actionData);
+-            }
+-            playbackNames[i] = combat.getPrecuActionAnimation(
++                    defenderResults[i].result,
++                    actionData);
++            }
++            playbackNames[i] = combat.getPrecuActionAnimation(
+                 actionData,
+                 combat.getWeaponStringType(weaponData.weaponType),
+                 hitData[i].hitLocation,
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 3fe02d58e..7af73dd3a 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -703,6 +703,19 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".m328.originalSmugglerCombatPrerequisiteBits";
+     private static final String ORIGINAL_SMUGGLER_COMBAT_COMMAND_BITS =
+         ROOT + ".m328.originalSmugglerCombatCommandBits";
++    private static final String M329_ROOT = ROOT + ".m329";
++    private static final String M329_ORIGINAL_FEIGN_COMMAND =
++        M329_ROOT + ".originalFeignCommand";
++    private static final String M329_ORIGINAL_DEFENDER_HEADSHOT_COMMAND =
++        M329_ROOT + ".originalDefenderHeadShotCommand";
++    private static final String M329_ORIGINAL_DEFENDER_CERTIFICATION =
++        M329_ROOT + ".originalDefenderCertification";
++    private static final String M329_ORIGINAL_DEFENDER_WEAPON =
++        M329_ROOT + ".originalDefenderWeapon";
++    private static final String M329_ORIGINAL_DEFENDER_WEAPON_PRESENT =
++        M329_ROOT + ".originalDefenderWeaponPresent";
++    private static final String M329_FIXTURE_DEFENDER_RIFLE =
++        M329_ROOT + ".fixtureDefenderRifle";
+     private static final String ORIGINAL_BRAWLER_POLEARM_ONE =
+         ROOT + ".originalBrawlerPolearmOne";
+     private static final String ORIGINAL_BRAWLER_POLEARM_TWO =
+@@ -1182,7 +1195,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|prepareUnarmedMaster|statusUnarmedMaster|armUnarmedMaster|cleanupUnarmedMaster|prepareBountyHunterDroidControl|statusBountyHunterDroidControl|armBountyHunterDroidControl|cleanupBountyHunterDroidControl|recoverBountyHunterDroidControl|prepareBountyHunterDroidResponse|statusBountyHunterDroidResponse|armBountyHunterDroidResponse|cleanupBountyHunterDroidResponse|prepareBountyHunterMaster|statusBountyHunterMaster|armBountyHunterMasterCarbine|armBountyHunterMasterPistol|cleanupBountyHunterMaster|prepareSmugglerCombat|statusSmugglerCombat|armSmugglerCombat|cleanupSmugglerCombat|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|prepareUnarmedSpeed|statusUnarmedSpeed|armUnarmedSpeed|cleanupUnarmedSpeed|prepareUnarmedMaster|statusUnarmedMaster|armUnarmedMaster|cleanupUnarmedMaster|prepareBountyHunterDroidControl|statusBountyHunterDroidControl|armBountyHunterDroidControl|cleanupBountyHunterDroidControl|recoverBountyHunterDroidControl|prepareBountyHunterDroidResponse|statusBountyHunterDroidResponse|armBountyHunterDroidResponse|cleanupBountyHunterDroidResponse|prepareBountyHunterMaster|statusBountyHunterMaster|armBountyHunterMasterCarbine|armBountyHunterMasterPistol|cleanupBountyHunterMaster|prepareSmugglerCombat|statusSmugglerCombat|armSmugglerCombat|cleanupSmugglerCombat|prepareFeignDeath|statusFeignDeath|armFeignDeathNoCombat|armFeignDeathFailure|armFeignDeathSuccess|cleanupFeignDeath|armNoPartial|armGenerated|armHealthShotTwo|armPistolMeleeDefense|armMarksmanTumble|armOneHandBlind|armOneHandSupport|armOneHandAccuracy|armOneHandSpeed|armOneHandAbility|armOneHandMaster|armTwoHandAccuracy|armTwoHandSpeed|armTwoHandAbility|armTwoHandSupport|armTwoHandMaster|armPolearmNovice|armPolearmAccuracy|armPolearmSpeed|armPolearmAbility|armPolearmSupport|armPolearmMaster|armWarcryOne|armWarcryTwo|armLungeTwoFamily|armTaunt|armConceal|armStrafeCover|armPostureUp|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -1338,6 +1351,30 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return cleanupSmugglerCombat(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("prepareFeignDeath"))
++        {
++            return prepareFeignDeath(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("statusFeignDeath"))
++        {
++            return statusFeignDeath(attacker, defender, args[3]);
++        }
++        if (args[0].equalsIgnoreCase("armFeignDeathNoCombat"))
++        {
++            return armFeignDeath(attacker, defender, args[3], 35, false);
++        }
++        if (args[0].equalsIgnoreCase("armFeignDeathFailure"))
++        {
++            return armFeignDeath(attacker, defender, args[3], 71, true);
++        }
++        if (args[0].equalsIgnoreCase("armFeignDeathSuccess"))
++        {
++            return armFeignDeath(attacker, defender, args[3], 35, true);
++        }
++        if (args[0].equalsIgnoreCase("cleanupFeignDeath"))
++        {
++            return cleanupFeignDeath(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("status"))
+         {
+             validation = validateOwnership(attacker, defender, args[3], true);
+@@ -6647,6 +6684,341 @@ public class precu_headshot1_fixture extends script.base_script
+             " defenderPosture=" + getPosture(defender);
+     }
+ 
++    private String prepareFeignDeath(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        boolean snapshotPresent = hasObjVar(attacker,
++            M329_ORIGINAL_FEIGN_COMMAND);
++        int originalFeignCommand = hasCommand(attacker, "feignDeath") ? 1 : 0;
++        String prepared = prepareSmugglerCombat(attacker, defender, lifecycle);
++        if (!prepared.startsWith("action=prepareSmugglerCombat"))
++        {
++            return prepared;
++        }
++        if (!snapshotPresent)
++        {
++            setObjVar(attacker, M329_ORIGINAL_FEIGN_COMMAND,
++                originalFeignCommand);
++            setObjVar(attacker, M329_ORIGINAL_DEFENDER_HEADSHOT_COMMAND,
++                hasCommand(defender, COMMAND) ? 1 : 0);
++            setObjVar(attacker, M329_ORIGINAL_DEFENDER_CERTIFICATION,
++                hasCommand(defender, CDEF_CERTIFICATION) ? 1 : 0);
++            obj_id held = getObjectInSlot(defender, "hold_r");
++            boolean heldPresent = isIdValid(held);
++            setObjVar(attacker, M329_ORIGINAL_DEFENDER_WEAPON_PRESENT,
++                heldPresent ? 1 : 0);
++            if (heldPresent)
++            {
++                setObjVar(attacker, M329_ORIGINAL_DEFENDER_WEAPON, held);
++            }
++        }
++        else if (!hasObjVar(attacker,
++            M329_ORIGINAL_DEFENDER_WEAPON_PRESENT))
++        {
++            // Heal snapshots created by the original M329 fixture revision:
++            // NULL_ID objvars are not retained, so an absent weapon objvar
++            // unambiguously represented an originally empty hand slot.
++            setObjVar(attacker, M329_ORIGINAL_DEFENDER_WEAPON_PRESENT, 0);
++        }
++        if (!hasCommand(attacker, "feignDeath") ||
++            (!hasCommand(defender, COMMAND) &&
++                !grantCommand(defender, COMMAND)) ||
++            (!hasCommand(defender, CDEF_CERTIFICATION) &&
++                !grantCommand(defender, CDEF_CERTIFICATION)))
++        {
++            return "error=feignDeathCommandPreparationFailed " +
++                buildFeignDeathStatus(attacker, defender, lifecycle);
++        }
++        obj_id defenderRifle = hasObjVar(attacker,
++            M329_FIXTURE_DEFENDER_RIFLE) ? getObjIdObjVar(attacker,
++                M329_FIXTURE_DEFENDER_RIFLE) : obj_id.NULL_ID;
++        if (!isIdValid(defenderRifle) || !exists(defenderRifle))
++        {
++            defenderRifle = createObjectInInventoryAllowOverload(
++                CDEF_TEMPLATE, defender);
++            if (!isIdValid(defenderRifle) || !exists(defenderRifle) ||
++                !CDEF_TEMPLATE.equals(getTemplateName(defenderRifle)))
++            {
++                return "error=feignDeathDefenderRifleCreationFailed " +
++                    buildFeignDeathStatus(attacker, defender, lifecycle);
++            }
++            setObjVar(attacker, M329_FIXTURE_DEFENDER_RIFLE,
++                defenderRifle);
++        }
++        setObjVar(attacker,
++            combat.PRECU_FEIGN_DIAGNOSTIC_ROOT + ".enabled", 1);
++        return "action=prepareFeignDeath resumed=" + snapshotPresent + " " +
++            buildFeignDeathStatus(attacker, defender, lifecycle);
++    }
++
++    private String statusFeignDeath(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle,
++            false);
++        return ownership == null ? "action=statusFeignDeath " +
++            buildFeignDeathStatus(attacker, defender, lifecycle) : ownership;
++    }
++
++    private String armFeignDeath(obj_id attacker, obj_id defender,
++        String lifecycle, int forcedRoll, boolean enterCombat)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle,
++            false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasObjVar(attacker, M329_ORIGINAL_FEIGN_COMMAND) ||
++            !hasObjVar(attacker,
++                M329_ORIGINAL_DEFENDER_HEADSHOT_COMMAND) ||
++            !hasObjVar(attacker, M329_ORIGINAL_DEFENDER_CERTIFICATION) ||
++            !hasObjVar(attacker,
++                M329_ORIGINAL_DEFENDER_WEAPON_PRESENT) ||
++            (getIntObjVar(attacker,
++                M329_ORIGINAL_DEFENDER_WEAPON_PRESENT) == 1 &&
++                !hasObjVar(attacker, M329_ORIGINAL_DEFENDER_WEAPON)) ||
++            !hasObjVar(attacker, M329_FIXTURE_DEFENDER_RIFLE))
++        {
++            return "error=feignDeathSnapshotMissing " +
++                buildFeignDeathStatus(attacker, defender, lifecycle);
++        }
++        String generated = armSmugglerCombat(attacker, defender, lifecycle);
++        if (!generated.startsWith("action=armSmugglerCombat"))
++        {
++            return generated;
++        }
++        obj_id defenderRifle = getObjIdObjVar(attacker,
++            M329_FIXTURE_DEFENDER_RIFLE);
++        if (!equipM329Weapon(defender, defenderRifle))
++        {
++            return "error=feignDeathDefenderRifleEquipFailed " +
++                buildFeignDeathStatus(attacker, defender, lifecycle);
++        }
++        combat.revealPrecuFeignDeath(attacker, "fixtureArm");
++        combat.clearPrecuFeignPending(attacker);
++        if (hasObjVar(attacker, combat.PRECU_FEIGN_DIAGNOSTIC_ROOT))
++        {
++            removeObjVar(attacker, combat.PRECU_FEIGN_DIAGNOSTIC_ROOT);
++        }
++        setObjVar(attacker,
++            combat.PRECU_FEIGN_DIAGNOSTIC_ROOT + ".enabled", 1);
++        setObjVar(attacker, combat.PRECU_FEIGN_FORCED_ROLL, forcedRoll);
++        setPostureClientImmediate(attacker, POSTURE_UPRIGHT);
++        setLocomotion(attacker, LOCOMOTION_STANDING);
++        setPostureClientImmediate(defender, POSTURE_UPRIGHT);
++        setLocomotion(defender, LOCOMOTION_STANDING);
++        stopCombat(attacker);
++        stopCombat(defender);
++        setCombatTarget(attacker, enterCombat ? defender : obj_id.NULL_ID);
++        setCombatTarget(defender, enterCombat ? attacker : obj_id.NULL_ID);
++        if (enterCombat)
++        {
++            startCombat(attacker, defender);
++            startCombat(defender, attacker);
++        }
++        boolean boundary = hasCommand(attacker, "feignDeath") &&
++            hasCommand(defender, COMMAND) &&
++            hasCommand(defender, CDEF_CERTIFICATION) &&
++            getObjectInSlot(defender, "hold_r") == defenderRifle &&
++            combat.canPerformAction(COMMAND, defender) == 0 &&
++            (enterCombat == combat.isInCombat(attacker));
++        return boundary ? "action=armFeignDeath mode=" +
++            (enterCombat ? (forcedRoll == 35 ? "success" : "failure") :
++                "noCombat") + " forcedRoll=" + forcedRoll + " " +
++            buildFeignDeathStatus(attacker, defender, lifecycle) :
++            "error=feignDeathBoundaryFailed enterCombat=" + enterCombat +
++                " " + buildFeignDeathStatus(attacker, defender, lifecycle);
++    }
++
++    private String cleanupFeignDeath(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle,
++            true);
++        if ("fixtureAbsent".equals(ownership))
++        {
++            return "action=cleanupFeignDeath alreadyClean=true restored=true";
++        }
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (!hasObjVar(attacker, M329_ORIGINAL_FEIGN_COMMAND) ||
++            !hasObjVar(attacker,
++                M329_ORIGINAL_DEFENDER_HEADSHOT_COMMAND) ||
++            !hasObjVar(attacker, M329_ORIGINAL_DEFENDER_CERTIFICATION) ||
++            !hasObjVar(attacker,
++                M329_ORIGINAL_DEFENDER_WEAPON_PRESENT) ||
++            (getIntObjVar(attacker,
++                M329_ORIGINAL_DEFENDER_WEAPON_PRESENT) == 1 &&
++                !hasObjVar(attacker, M329_ORIGINAL_DEFENDER_WEAPON)))
++        {
++            return "error=feignDeathSnapshotMissing " +
++                buildFeignDeathStatus(attacker, defender, lifecycle);
++        }
++        int originalFeign = getIntObjVar(attacker,
++            M329_ORIGINAL_FEIGN_COMMAND);
++        int originalDefenderCommand = getIntObjVar(attacker,
++            M329_ORIGINAL_DEFENDER_HEADSHOT_COMMAND);
++        int originalDefenderCertification = getIntObjVar(attacker,
++            M329_ORIGINAL_DEFENDER_CERTIFICATION);
++        obj_id originalDefenderWeapon = getIntObjVar(attacker,
++            M329_ORIGINAL_DEFENDER_WEAPON_PRESENT) == 1 ?
++                getObjIdObjVar(attacker,
++                    M329_ORIGINAL_DEFENDER_WEAPON) : obj_id.NULL_ID;
++        combat.revealPrecuFeignDeath(attacker, "fixtureCleanup");
++        combat.clearPrecuFeignPending(attacker);
++        stopCombat(attacker);
++        stopCombat(defender);
++        obj_id defenderRifle = hasObjVar(attacker,
++            M329_FIXTURE_DEFENDER_RIFLE) ? getObjIdObjVar(attacker,
++                M329_FIXTURE_DEFENDER_RIFLE) : obj_id.NULL_ID;
++        if (isIdValid(defenderRifle) && exists(defenderRifle))
++        {
++            destroyObject(defenderRifle);
++        }
++        boolean defenderWeaponRestored = !isIdValid(originalDefenderWeapon) ||
++            (exists(originalDefenderWeapon) &&
++                equipM329Weapon(defender, originalDefenderWeapon));
++        if (originalDefenderCommand == 0 && hasCommand(defender, COMMAND))
++        {
++            revokeCommand(defender, COMMAND);
++        }
++        else if (originalDefenderCommand == 1 &&
++            !hasCommand(defender, COMMAND))
++        {
++            grantCommand(defender, COMMAND);
++        }
++        if (originalDefenderCertification == 0 &&
++            hasCommand(defender, CDEF_CERTIFICATION))
++        {
++            revokeCommand(defender, CDEF_CERTIFICATION);
++        }
++        else if (originalDefenderCertification == 1 &&
++            !hasCommand(defender, CDEF_CERTIFICATION))
++        {
++            grantCommand(defender, CDEF_CERTIFICATION);
++        }
++        String baseCleanup = cleanupSmugglerCombat(attacker, defender,
++            lifecycle);
++        if (!baseCleanup.startsWith("action=cleanupSmugglerCombat"))
++        {
++            return baseCleanup;
++        }
++        if (originalFeign == 0 && hasCommand(attacker, "feignDeath"))
++        {
++            revokeCommand(attacker, "feignDeath");
++        }
++        else if (originalFeign == 1 && !hasCommand(attacker, "feignDeath"))
++        {
++            grantCommand(attacker, "feignDeath");
++        }
++        boolean restored = defenderWeaponRestored &&
++            hasCommand(attacker, "feignDeath") == (originalFeign == 1) &&
++            hasCommand(defender, COMMAND) ==
++                (originalDefenderCommand == 1) &&
++            hasCommand(defender, CDEF_CERTIFICATION) ==
++                (originalDefenderCertification == 1) &&
++            getState(attacker, STATE_FEIGN_DEATH) == 0 &&
++            !buff.hasBuff(attacker, "feign_death") &&
++            !hasObjVar(attacker, combat.PRECU_FEIGN_PENDING);
++        return restored ?
++            "action=cleanupFeignDeath alreadyClean=false restored=true" :
++            "error=feignDeathRestorationFailed";
++    }
++
++    private boolean equipM329Weapon(obj_id player, obj_id weapon)
++        throws InterruptedException
++    {
++        if (!isIdValid(weapon) || !exists(weapon))
++        {
++            return false;
++        }
++        obj_id current = getObjectInSlot(player, "hold_r");
++        if (current != weapon && isIdValid(current))
++        {
++            obj_id inventory = getObjectInSlot(player, "inventory");
++            if (!isIdValid(inventory) || !putInOverloaded(current, inventory))
++            {
++                return false;
++            }
++        }
++        boolean scriptAttached = hasScript(weapon,
++            "systems.combat.combat_weapon");
++        if (scriptAttached)
++        {
++            detachScript(weapon, "systems.combat.combat_weapon");
++        }
++        boolean equipped = getObjectInSlot(player, "hold_r") == weapon ||
++            equipOverride(weapon, player);
++        if (scriptAttached)
++        {
++            attachScript(weapon, "systems.combat.combat_weapon");
++        }
++        return equipped && getObjectInSlot(player, "hold_r") == weapon;
++    }
++
++    private String buildFeignDeathStatus(obj_id attacker, obj_id defender,
++        String lifecycle) throws InterruptedException
++    {
++        obj_id[] targeting = getWhoIsTargetingMe(attacker);
++        obj_id defenderRifle = hasObjVar(attacker,
++            M329_FIXTURE_DEFENDER_RIFLE) ? getObjIdObjVar(attacker,
++                M329_FIXTURE_DEFENDER_RIFLE) : obj_id.NULL_ID;
++        String diagnostic = combat.PRECU_FEIGN_DIAGNOSTIC_ROOT;
++        return buildSmugglerCombatStatus(attacker, defender, lifecycle) +
++            " feignCommand=" + hasCommand(attacker, "feignDeath") +
++            " feignCanPerform=" +
++                combat.canPerformAction("feignDeath", attacker) +
++            " feignModifier=" +
++                getSkillStatisticModifier(attacker, "feign_death") +
++            " feignPending=" +
++                hasObjVar(attacker, combat.PRECU_FEIGN_PENDING) +
++            " pendingDefenseModifier=" + hasSkillModModifier(attacker,
++                combat.PRECU_FEIGN_PENDING_DEFENSE_MODIFIER) +
++            " feignBuff=" + buff.hasBuff(attacker, "feign_death") +
++            " feignState=" + getState(attacker, STATE_FEIGN_DEATH) +
++            " feignPosture=" + getPosture(attacker) +
++            " feignLocomotion=" + getLocomotion(attacker) +
++            " feignInCombat=" + combat.isInCombat(attacker) +
++            " targetingCount=" + (targeting == null ? 0 : targeting.length) +
++            " damageDivisorModifier=" + hasSkillModModifier(attacker,
++                combat.PRECU_FEIGN_DAMAGE_DIVISOR_MODIFIER) +
++            " damageMultiplierModifier=" + hasSkillModModifier(attacker,
++                combat.PRECU_FEIGN_DAMAGE_MULTIPLIER_MODIFIER) +
++            " feignCooldown=" + getCooldownTimeLeft(attacker, "feignDeath") +
++            " diagnosticOutcome=" + readM329String(attacker,
++                diagnostic + ".outcome", "NONE") +
++            " diagnosticRolls=" + readM329String(attacker,
++                diagnostic + ".rolls", "NONE") +
++            " diagnosticSkillMod=" + readM329Int(attacker,
++                diagnostic + ".skillMod", -1) +
++            " diagnosticDefenderCount=" + readM329Int(attacker,
++                diagnostic + ".defenderCount", -1) +
++            " diagnosticRevealSource=" + readM329String(attacker,
++                diagnostic + ".revealSource", "NONE") +
++            " defenderHeadShotCommand=" + hasCommand(defender, COMMAND) +
++            " defenderCertification=" +
++                hasCommand(defender, CDEF_CERTIFICATION) +
++            " defenderRifle=" + defenderRifle +
++            " defenderHeldWeapon=" + getObjectInSlot(defender, "hold_r");
++    }
++
++    private int readM329Int(obj_id player, String path, int fallback)
++        throws InterruptedException
++    {
++        return hasObjVar(player, path) ? getIntObjVar(player, path) : fallback;
++    }
++
++    private String readM329String(obj_id player, String path,
++        String fallback) throws InterruptedException
++    {
++        return hasObjVar(player, path) ? getStringObjVar(player, path) :
++            fallback;
++    }
++
+     private String buildOwnershipBits(obj_id player, String[] names,
+         boolean skills) throws InterruptedException
+     {
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 1c8e4cb8a..d90ec3c4c 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2094,3 +2094,4 @@ fastBlast		normal	fastBlast	failSpecialAttack			1.5	fastBlast	1	0	1	1	1	0	1	1	1
+ panicShot		normal	coneDelay	failSpecialAttack			1.5	panicShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ lowBlow		normal	lowBlow	failSpecialAttack			1.5	lowBlow	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ lastDitch		normal	lastDitch	failSpecialAttack			1.5	lastDitch	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	PISTOL	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++feignDeath	combat	normal	feignIncapacitation	failSpecialAttack			3	feignDeath	1	1	1	1	1	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	-560185247	0	0	0	0	1	ALL	NONE	command_message	0	3	5		0	0	0

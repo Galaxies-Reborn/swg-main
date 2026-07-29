@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-pistol-melee-defense-family",
+  "status": "ready",
+  "scope": "Restore Pistoleer support pistolMeleeDefense1 and pistolMeleeDefense2 with their retained skill chain, pinned Core3 random-pool damage and knockdown lifecycle, authenticated client admission, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/pistolMeleeDefense1.lua",
+      "MMOCoreORB/bin/scripts/commands/pistolMeleeDefense2.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skillChain": [
+      {
+        "name": "combat_pistol_support_01",
+        "parent": "combat_pistol",
+        "requires": "combat_pistol_novice",
+        "commands": ["private_pistol_defense_1", "pistolMeleeDefense1"],
+        "skillMods": {"melee_defense": 10, "pistol_speed": 6, "private_pistol_combat_difficulty": 125}
+      },
+      {
+        "name": "combat_pistol_support_02",
+        "parent": "combat_pistol_support_01",
+        "requires": "combat_pistol_support_01",
+        "commands": ["private_pistol_defense_2"],
+        "skillMods": {"melee_defense": 10, "pistol_speed": 6, "private_pistol_combat_difficulty": 100}
+      },
+      {
+        "name": "combat_pistol_support_03",
+        "parent": "combat_pistol_support_02",
+        "requires": "combat_pistol_support_02",
+        "commands": ["private_pistol_defense_3", "pistolMeleeDefense2"],
+        "skillMods": {"melee_defense": 10, "pistol_speed": 6, "pistol_accuracy_while_standing": 15, "private_pistol_combat_difficulty": 100}
+      }
+    ],
+    "commandDefaults": {
+      "defaultPriority": "normal",
+      "publish12DefaultTime": 1.5,
+      "publish12ExecuteTime": 1.5,
+      "productionDefaultTime": 2.0,
+      "productionExecuteTime": 2.0,
+      "timingAdaptation": "The retained production rows follow Core3's 2.0 speed multiplier so client queue timing and server HAM calculation share one value.",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true,
+      "validWeapon": "PISTOL",
+      "runtimeMaxRange": 10,
+      "targetPool": "RANDOM",
+      "accuracyBonus": 50,
+      "animation": "ranged_melee",
+      "generatedAnimation": "ranged_melee_medium",
+      "combatSpam": "pistolwhip"
+    },
+    "commands": {
+      "pistolMeleeDefense1": {"damageMultiplier": 3.0, "speedMultiplier": 2.0, "hamCostMultipliers": [0.5, 0.75, 0.5], "knockdownChance": 100},
+      "pistolMeleeDefense2": {"damageMultiplier": 4.0, "speedMultiplier": 2.0, "hamCostMultipliers": [0.5, 1.0, 0.5], "knockdownChance": 65}
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T01:01:59-04:00",
+    "scratchCommit": "585f0bba4b26d0cdd1b42b6663f7c400cfa40dec",
+    "overlay": "restoration/patches/dsrc/300-p14-core3-pistol-melee-defense-family.patch",
+    "overlaySha256": "6c11bd19bb4fdeca607a7500ce9c35f6dd0b96a31f2b57f93b20bd6f0b74da54",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss64m",
+    "datatableCompile": "passed-focused-four-tables-linux",
+    "clientBridgeTests": 69,
+    "clientTestSuite": {"passed": 199, "skipped": 3, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 223,
+    "clientBytes": 33808384,
+    "clientSha256": "69d87c11b37268d3c37b88c270119938be41cd04e27123c89fdc945bf2746e9b",
+    "materializedOverlayCount": 306,
+    "materializedRestorationFileCount": 898,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "026e0eeda544bd7904273ceab3c919f8ca1fab70e454d89d30b04252851b4280",
+      "precu_headshot1_fixture.java": "9bcfdb9c57cf9ef0f9cf83b82cbdcf1bc93553aa7193784e31540e63607eb1b2",
+      "combat_data.tab": "6425e252240da52f3f7e8dabc892fb3be82ed8f8353392a06f906192a85c677d",
+      "precu_combat_overrides.tab": "ed3d583b44710e6e7e4ef82c677f8bf91f2d7b22c60e412785655d40669afbb0",
+      "precu_combat_spam.tab": "29b06ac79e72557ae7238d28bbdc4dabcb19e2b6894ac910540e9350063b4993",
+      "command_table.tab": "086ea0fc8a9b79b30b36170b90fd1e488ecb33b63f95a5c0d89198c32443785e"
+    },
+    "compiledClassSha256": {
+      "script/systems/combat/combat_actions.class": "4ae37d97c6c2cb6a69346779c0fc8889e687d87c8c23db354851679243d9bc20",
+      "script/systems/combat/combat_base.class": "6511bb9489319d75727204de151524d4287c3fb6dfad4a82b590b05938d58758",
+      "script/test/precu_headshot1_fixture.class": "0d728c74bf1a830e0055ebc9dae566e26ac14ae89b0810f62354228428fefe0a"
+    },
+    "compiledTableSha256": {
+      "datatables/combat/combat_data.iff": "779d037c6609c034c7f1f4af47a1ce0c032fb194147b80ef86ac3d1bc13f0aa3",
+      "datatables/combat/precu_combat_overrides.iff": "2a02e3557ab9bbaba2f2442eaa6c704cb61f12955aed496ecae74f9e572cef4a",
+      "datatables/combat/precu_combat_spam.iff": "ec868d5bf212016e9da8a37c18658e135ceae5da6b7901e50385ca6bf7f0c301",
+      "datatables/command/command_table.iff": "fd732495bd7b810e1540780d15f2c36610ff71abc2d24ad96bc14b34949cc7bb"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "779d037c6609c034c7f1f4af47a1ce0c032fb194147b80ef86ac3d1bc13f0aa3",
+      "datatables/command/command_table.iff": "fd732495bd7b810e1540780d15f2c36610ff71abc2d24ad96bc14b34949cc7bb",
+      "precu_runtime.tre": "e6b8a0565546bd22d1ef09a8428d40f497508993eba223c7723c0f31865940f3"
+    },
+    "assetArchiveRebuild": {"deterministic": true, "runs": 2, "bytes": 134533, "fileCount": 3}
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-27T01:01:59-04:00",
+    "clientProtocolVersion": 223,
+    "attacker": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "defender": {"stationId": 1001, "playerOid": "39008597", "name": "Icai Darkwave", "godLevel": 0},
+    "lifecycleId": "30200000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "marksmanPistolChain": true,
+      "pistoleerNovice": true,
+      "pistoleerSupportChain": true,
+      "commands": ["pistolMeleeDefense1", "pistolMeleeDefense2"],
+      "meleeDefense": 79,
+      "pistolSpeed": 48,
+      "canPerform": {"pistolMeleeDefense1": 0, "pistolMeleeDefense2": 0},
+      "weaponType": 2,
+      "validWeaponMask": "0x00000004",
+      "weaponSatisfies": true,
+      "adjustedHamCosts": {"pistolMeleeDefense1": [2, 11, 5], "pistolMeleeDefense2": [2, 15, 5]}
+    },
+    "commands": {
+      "pistolMeleeDefense1": {
+        "queueRemoval": "Success",
+        "combatSpam": "pistolwhip_hit",
+        "combatResult": 1,
+        "directDamage": 47,
+        "configuredTargetPool": 3,
+        "resolvedTargetPool": 1,
+        "hitLocation": 4,
+        "animation": "ranged_melee_medium",
+        "animationType": 2,
+        "knockdown": {"configuredChance": 100, "defense": 0, "roll": 58, "startPosture": 0, "endPosture": 12, "result": "APPLIED"}
+      },
+      "pistolMeleeDefense2": {
+        "queueRemoval": "Success",
+        "combatSpam": "pistolwhip_hit",
+        "combatResult": 1,
+        "directDamage": 45,
+        "configuredTargetPool": 3,
+        "resolvedTargetPool": 0,
+        "hitLocation": 0,
+        "animation": "ranged_melee_medium",
+        "animationType": 2,
+        "sharedRecoveryGuardObserved": true,
+        "knockdown": {"configuredChance": 65, "defense": 0, "roll": 99, "startPosture": 0, "endPosture": 0, "result": "RESISTED"}
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "ownershipSurvived": true,
+      "commandsSurvived": true,
+      "weaponSurvived": true,
+      "costsSurvived": true,
+      "terminalDiagnosticsSurvived": true,
+      "defenderPosture": 0,
+      "transientKnockdownRecoveryAbsent": true,
+      "transientOriginalPostureAbsent": true
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "preparedAfterCleanup": false,
+      "temporaryPistolSkillsAbsent": true,
+      "temporaryPistoleerSkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "fixturePistolAbsent": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupAbilityRejected": true
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

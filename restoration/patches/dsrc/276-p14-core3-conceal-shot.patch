@@ -1,0 +1,777 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 79912cf6290d153165921e34710006a09aacd3e9..7c1cb8532b8fe445e7328c7d61a2ba1987c9b861 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15252,6 +15252,15 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int concealShot(obj_id self, obj_id target, String params,
++        float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("concealShot", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int sniperShot(obj_id self, obj_id target, String params,
+         float defaultTime) throws InterruptedException
+     {
+
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index c327d3a0e9079fc3ea36fffdc955dd814f852c53..6e1ef5ec95e9c75188ffe37789728ad780ed8a0e 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -1723,6 +1723,11 @@ public class combat_base extends script.base_script
+             if (defenderResults[i].result != COMBAT_RESULT_TETHERED)
+             {
+                 combat.addHateProcess(attackerData.id, defenderData[i].id, hitData[i], actionData);
++                applyPrecuConcealThreat(
++                    attackerData.id,
++                    defenderData[i].id,
++                    defenderResults[i].result,
++                    actionData);
+             }
+             playbackNames[i] = combat.getPrecuActionAnimation(
+                 actionData,
+@@ -1952,6 +1957,67 @@ public class combat_base extends script.base_script
+             setObjVar(attacker, PRECU_LIVE_DIAGNOSTIC_ROOT + "." + leaf, value);
+         }
+     }
++    public void applyPrecuConcealThreat(obj_id attacker, obj_id defender,
++        int combatResult, combat_data actionData) throws InterruptedException
++    {
++        if (actionData == null ||
++            !"concealShot".equals(actionData.actionName))
++        {
++            return;
++        }
++
++        boolean aiTarget = isIdValid(defender) && isMob(defender) &&
++            !isPlayer(defender) && !isIdValid(getMaster(defender));
++        float distance = isIdValid(attacker) && isIdValid(defender) ?
++            getDistance(attacker, defender) : -1.0f;
++        int posture = isIdValid(attacker) ? getPosture(attacker) : -1;
++        int threshold = posture == POSTURE_PRONE ? 3 :
++            (posture == POSTURE_CROUCHED ? 2 :
++                (posture == POSTURE_UPRIGHT ? 1 : 0));
++        int missBefore = 0;
++        int missAfter = 0;
++        float hateBefore = 0.0f;
++        float hateAfter = 0.0f;
++        String result = "INELIGIBLE";
++
++        if (aiTarget)
++        {
++            String missPath = "combat.precuConcealMiss." + attacker;
++            missBefore = hasObjVar(defender, missPath) ?
++                getIntObjVar(defender, missPath) : 0;
++            missAfter = missBefore;
++            if (combatResult == COMBAT_RESULT_MISS)
++            {
++                missAfter = missBefore + 1;
++                setObjVar(defender, missPath, missAfter);
++            }
++            hateBefore = getHate(defender, attacker);
++            if (!isDead(defender) && distance >= 40.0f &&
++                threshold > 0 && missAfter <= threshold)
++            {
++                removeHateTarget(defender, attacker);
++                result = "REMOVED";
++            }
++            else
++            {
++                result = isDead(defender) ? "DEAD" :
++                    (distance < 40.0f ? "RANGE" :
++                        (threshold == 0 ? "POSTURE" : "MISS_LIMIT"));
++            }
++            hateAfter = getHate(defender, attacker);
++        }
++
++        recordPrecuLiveDiagnostic(attacker, "conceal.target", defender.toString());
++        recordPrecuLiveDiagnostic(attacker, "conceal.aiTarget", aiTarget ? 1 : 0);
++        recordPrecuLiveDiagnostic(attacker, "conceal.distance", distance);
++        recordPrecuLiveDiagnostic(attacker, "conceal.posture", posture);
++        recordPrecuLiveDiagnostic(attacker, "conceal.threshold", threshold);
++        recordPrecuLiveDiagnostic(attacker, "conceal.missBefore", missBefore);
++        recordPrecuLiveDiagnostic(attacker, "conceal.missAfter", missAfter);
++        recordPrecuLiveDiagnostic(attacker, "conceal.hateBefore", hateBefore);
++        recordPrecuLiveDiagnostic(attacker, "conceal.hateAfter", hateAfter);
++        recordPrecuLiveDiagnostic(attacker, "conceal.result", result);
++    }
+     private int getPrecuStateConstant(int effectType)
+     {
+         switch (effectType)
+
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index 3fbde4bb4d772f30bbb75ad343620d22ccd5ff2c..e7f49739ff832695cc97bc0a95ce87c6db011f47 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -1,5 +1,6 @@
+ package script.test;
+ 
++import script.dictionary;
+ import script.location;
+ import script.obj_id;
+ import script.combat_engine;
+@@ -7,6 +8,7 @@ import script.combat_engine.combat_data;
+ import script.combat_engine.weapon_data;
+ import script.library.buff;
+ import script.library.combat;
++import script.library.create;
+ import script.library.dot;
+ import script.library.utils;
+ import script.systems.combat.combat_base;
+@@ -36,6 +38,8 @@ public class precu_headshot1_fixture extends script.base_script
+         "combat_rifleman_accuracy_03";
+     private static final String RIFLEMAN_ACCURACY_FOUR =
+         "combat_rifleman_accuracy_04";
++    private static final String RIFLEMAN_SPEED_ONE =
++        "combat_rifleman_speed_01";
+     private static final String MARKSMAN_CARBINE_ONE =
+         "combat_marksman_carbine_01";
+     private static final String MARKSMAN_CARBINE_TWO =
+@@ -86,6 +90,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String MIND_SHOT_TWO_COMMAND = "mindShot2";
+     private static final String SURPRISE_SHOT_COMMAND = "surpriseShot";
+     private static final String SNIPER_SHOT_COMMAND = "sniperShot";
++    private static final String CONCEAL_SHOT_COMMAND = "concealShot";
+     private static final String CDEF_CERTIFICATION = "cert_rifle_cdef";
+     private static final String PISTOL_CDEF_CERTIFICATION = "cert_pistol_cdef";
+     private static final String CARBINE_CDEF_CERTIFICATION = "cert_carbine_cdef";
+@@ -211,6 +216,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalRiflemanAccuracyThree";
+     private static final String ORIGINAL_RIFLEMAN_ACCURACY_FOUR =
+         ROOT + ".originalRiflemanAccuracyFour";
++    private static final String ORIGINAL_RIFLEMAN_SPEED_ONE =
++        ROOT + ".originalRiflemanSpeedOne";
+     private static final String ORIGINAL_CARBINE_ONE =
+         ROOT + ".originalCarbineOne";
+     private static final String ORIGINAL_CARBINE_TWO =
+@@ -275,6 +282,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalSurpriseShotCommand";
+     private static final String ORIGINAL_SNIPER_SHOT_COMMAND =
+         ROOT + ".originalSniperShotCommand";
++    private static final String ORIGINAL_CONCEAL_SHOT_COMMAND =
++        ROOT + ".originalConcealShotCommand";
+     private static final String ORIGINAL_PISTOL_CDEF_CERTIFICATION =
+         ROOT + ".originalPistolCdefCertification";
+     private static final String ORIGINAL_CARBINE_CDEF_CERTIFICATION =
+@@ -441,6 +450,13 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String FIXTURE_ACID = ROOT + ".fixtureAcid";
+     private static final String FIXTURE_FLAME = ROOT + ".fixtureFlame";
+     private static final String FIXTURE_LIGHTNING = ROOT + ".fixtureLightning";
++    private static final String FIXTURE_CONCEAL_TARGET =
++        ROOT + ".fixtureConcealTarget";
++    private static final String CONCEAL_TARGET_OWNED =
++        ROOT + ".concealTargetOwned";
++    private static final String CONCEAL_TARGET_OWNER =
++        ROOT + ".concealTargetOwner";
++    private static final String CONCEAL_TARGET_CREATURE = "worrt";
+     private static final int FIXTURE_HAM_MAXIMUM = 20000;
+     private static final String CDEF_TEMPLATE = "object/weapon/ranged/rifle/rifle_cdef.iff";
+     private static final String CDEF_PISTOL_TEMPLATE =
+@@ -460,7 +476,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String LIGHTNING_TEMPLATE =
+         "object/weapon/ranged/rifle/rifle_lightning.iff";
+     private static final String USAGE =
+-        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armStrafeCover|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
++        "usage: inspect|recover|prepare|status|armNoPartial|armGenerated|armConceal|armStrafeCover|probeStrafeDelay|equipFixtureAcid|equipFixtureFlame|cleanup 44003778 39008597 <32-hex-lifecycle>";
+ 
+     public String executeFixture(String params) throws InterruptedException
+     {
+@@ -525,6 +541,10 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             return armGenerated(attacker, defender, args[3]);
+         }
++        if (args[0].equalsIgnoreCase("armConceal"))
++        {
++            return armConceal(attacker, defender, args[3]);
++        }
+         if (args[0].equalsIgnoreCase("armStrafeCover"))
+         {
+             return armStrafeCover(attacker, defender, args[3]);
+@@ -648,6 +668,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean riflemanAccuracyFourGranted = riflemanAccuracyThreeGranted &&
+             (hasSkill(attacker, RIFLEMAN_ACCURACY_FOUR) ||
+                 grantSkill(attacker, RIFLEMAN_ACCURACY_FOUR));
++        boolean riflemanSpeedOneGranted = riflemanNoviceGranted &&
++            (hasSkill(attacker, RIFLEMAN_SPEED_ONE) ||
++                grantSkill(attacker, RIFLEMAN_SPEED_ONE));
+         boolean carbineOneGranted = noviceGranted &&
+             (hasSkill(attacker, MARKSMAN_CARBINE_ONE) ||
+                 grantSkill(attacker, MARKSMAN_CARBINE_ONE));
+@@ -734,6 +757,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean sniperShotGranted =
+             hasCommand(attacker, SNIPER_SHOT_COMMAND) ||
+             grantCommand(attacker, SNIPER_SHOT_COMMAND);
++        boolean concealShotGranted =
++            hasCommand(attacker, CONCEAL_SHOT_COMMAND) ||
++            grantCommand(attacker, CONCEAL_SHOT_COMMAND);
+         boolean cdefCertificationGranted = hasCommand(attacker, CDEF_CERTIFICATION) ||
+             grantCommand(attacker, CDEF_CERTIFICATION);
+         boolean pistolCdefCertificationGranted =
+@@ -951,7 +977,7 @@ public class precu_headshot1_fixture extends script.base_script
+             !rifleThreeGranted || !rifleFourGranted ||
+             !riflemanNoviceGranted || !riflemanAccuracyOneGranted ||
+             !riflemanAccuracyTwoGranted || !riflemanAccuracyThreeGranted ||
+-            !riflemanAccuracyFourGranted ||
++            !riflemanAccuracyFourGranted || !riflemanSpeedOneGranted ||
+             !carbineOneGranted || !carbineTwoGranted ||
+             !carbineThreeGranted || !carbineFourGranted ||
+             !carbineNoviceGranted || !carbineAccuracyOneGranted ||
+@@ -987,6 +1013,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, SURPRISE_SHOT_COMMAND) ||
+             !sniperShotGranted ||
+             !hasCommand(attacker, SNIPER_SHOT_COMMAND) ||
++            !concealShotGranted ||
++            !hasCommand(attacker, CONCEAL_SHOT_COMMAND) ||
+             !cdefCertificationGranted || !hasCommand(attacker, CDEF_CERTIFICATION) ||
+             !pistolCdefCertificationGranted ||
+             !hasCommand(attacker, PISTOL_CDEF_CERTIFICATION) ||
+@@ -1136,6 +1164,7 @@ public class precu_headshot1_fixture extends script.base_script
+                 " mindShotTwo=" + hasCommand(attacker, MIND_SHOT_TWO_COMMAND) +
+                 " surpriseShot=" + hasCommand(attacker, SURPRISE_SHOT_COMMAND) +
+                 " sniperShot=" + hasCommand(attacker, SNIPER_SHOT_COMMAND) +
++                " concealShot=" + hasCommand(attacker, CONCEAL_SHOT_COMMAND) +
+                 " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION) +
+                 " pistolCdefCertification=" +
+                     hasCommand(attacker, PISTOL_CDEF_CERTIFICATION) +
+@@ -1476,6 +1505,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, SNIPER_SHOT_COMMAND);
+         }
++        if (attackerRoot && hasObjVar(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND) == 0 &&
++            hasCommand(attacker, CONCEAL_SHOT_COMMAND))
++        {
++            revokeCommand(attacker, CONCEAL_SHOT_COMMAND);
++        }
+         if (attackerRoot && hasObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) &&
+             getIntObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) == 0 &&
+             hasCommand(attacker, CDEF_CERTIFICATION))
+@@ -1664,6 +1699,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 SURPRISE_SHOT_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SNIPER_SHOT_COMMAND,
+                 SNIPER_SHOT_COMMAND);
++            restoreCommand(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
++                CONCEAL_SHOT_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+                 SCATTER_SHOT_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -1960,6 +1997,13 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, RIFLEMAN_ACCURACY_FOUR);
+         }
++        if (attackerRoot &&
++            hasObjVar(attacker, ORIGINAL_RIFLEMAN_SPEED_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_RIFLEMAN_SPEED_ONE) == 0 &&
++            hasSkill(attacker, RIFLEMAN_SPEED_ONE))
++        {
++            revokeSkill(attacker, RIFLEMAN_SPEED_ONE);
++        }
+         if (attackerRoot &&
+             hasObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) == 0 &&
+@@ -2270,6 +2314,150 @@ public class precu_headshot1_fixture extends script.base_script
+                 buildStatus(attacker, defender, lifecycle);
+     }
+ 
++    private String armConceal(obj_id attacker, obj_id defender, String lifecycle)
++        throws InterruptedException
++    {
++        String ownership = validateOwnership(attacker, defender, lifecycle, false);
++        if (ownership != null)
++        {
++            return ownership;
++        }
++        if (getIntObjVar(attacker, PREPARED) != 1 ||
++            getIntObjVar(defender, PREPARED) != 1)
++        {
++            return "error=fixtureNotPrepared";
++        }
++        if (!destroyFixtureConcealTarget(attacker))
++        {
++            return "error=concealTargetCleanupFailed";
++        }
++
++        location attackerDestination =
++            new location(3500.0f,
++                getHeightAtLocation(3500.0f, -4800.0f),
++                -4800.0f, "tatooine", null);
++        location defenderDestination =
++            new location(3503.0f,
++                getHeightAtLocation(3503.0f, -4800.0f),
++                -4800.0f, "tatooine", null);
++        location[] targetDestinations = new location[]
++        {
++            new location(3545.0f,
++                getHeightAtLocation(3545.0f, -4800.0f),
++                -4800.0f, "tatooine", null),
++            new location(3500.0f,
++                getHeightAtLocation(3500.0f, -4755.0f),
++                -4755.0f, "tatooine", null),
++            new location(3455.0f,
++                getHeightAtLocation(3455.0f, -4800.0f),
++                -4800.0f, "tatooine", null),
++            new location(3500.0f,
++                getHeightAtLocation(3500.0f, -4845.0f),
++                -4845.0f, "tatooine", null),
++            new location(3532.0f,
++                getHeightAtLocation(3532.0f, -4768.0f),
++                -4768.0f, "tatooine", null),
++            new location(3468.0f,
++                getHeightAtLocation(3468.0f, -4768.0f),
++                -4768.0f, "tatooine", null),
++            new location(3468.0f,
++                getHeightAtLocation(3468.0f, -4832.0f),
++                -4832.0f, "tatooine", null),
++            new location(3532.0f,
++                getHeightAtLocation(3532.0f, -4832.0f),
++                -4832.0f, "tatooine", null)
++        };
++        boolean moved = setLocation(attacker, attackerDestination) &
++            setLocation(defender, defenderDestination);
++        boolean ready = reassertPreparedState(attacker, defender);
++        resetLiveDiagnostic(attacker);
++        obj_id concealTarget = obj_id.NULL_ID;
++        int selectedTargetCandidate = -1;
++        for (int i = 0; i < targetDestinations.length; ++i)
++        {
++            obj_id candidate = createFixtureConcealTarget(
++                targetDestinations[i], attacker);
++            if (!isIdValid(candidate))
++            {
++                continue;
++            }
++            if (getDistance(attacker, candidate) >= 40.0f &&
++                canSee(attacker, candidate))
++            {
++                concealTarget = candidate;
++                selectedTargetCandidate = i;
++                break;
++            }
++            pvpRemovePersonalEnemyFlags(candidate, attacker);
++            pvpRemovePersonalEnemyFlags(attacker, candidate);
++            pvpSetAttackableOverride(candidate, false);
++            destroyObject(candidate);
++        }
++        if (!isIdValid(concealTarget))
++        {
++            return "error=concealTargetVisibilityFailed moved=" + moved +
++                " ready=" + ready;
++        }
++        setObjVar(concealTarget, CONCEAL_TARGET_OWNED, 1);
++        setObjVar(concealTarget, CONCEAL_TARGET_OWNER, attacker);
++        setObjVar(attacker, FIXTURE_CONCEAL_TARGET, concealTarget);
++        stopCombat(attacker);
++        stopCombat(concealTarget);
++        setCombatTarget(attacker, obj_id.NULL_ID);
++        setPostureClientImmediate(attacker, POSTURE_UPRIGHT);
++        addHate(concealTarget, attacker, 100.0f);
++        float distance = getDistance(attacker, concealTarget);
++        float hate = getHate(concealTarget, attacker);
++        boolean attackable = pvpCanAttack(attacker, concealTarget);
++        boolean visible = canSee(attacker, concealTarget);
++        return moved && ready && distance >= 40.0f && hate > 0.0f &&
++            attackable && visible ?
++              "action=armConceal concealTarget=" + concealTarget +
++                  " targetCandidate=" + selectedTargetCandidate +
++                  " expectedMinimumDistanceMeters=40 distanceMeters=" + distance +
++                  " initialHate=" + hate + " attackable=" + attackable +
++                  " visible=" + visible + " " +
++                  buildStatus(attacker, defender, lifecycle) :
++              "error=concealPreparationFailed moved=" + moved +
++                  " ready=" + ready +
++                  " targetCandidate=" + selectedTargetCandidate +
++                  " distanceMeters=" + distance +
++                  " hate=" + hate + " attackable=" + attackable +
++                  " visible=" + visible + " " +
++                  buildStatus(attacker, defender, lifecycle);
++    }
++
++    private obj_id createFixtureConcealTarget(
++        location targetLocation, obj_id attacker)
++        throws InterruptedException
++    {
++        dictionary creatureData =
++            dataTableGetRow(create.CREATURE_TABLE, CONCEAL_TARGET_CREATURE);
++        if (creatureData == null)
++        {
++            return obj_id.NULL_ID;
++        }
++        String templateName = creatureData.getString("template");
++        if (templateName == null || templateName.length() == 0)
++        {
++            return obj_id.NULL_ID;
++        }
++        creatureData.put("lootTable", "");
++        obj_id target = createObject(
++            create.TEMPLATE_PREFIX + templateName, targetLocation);
++        if (!isIdValid(target))
++        {
++            return obj_id.NULL_ID;
++        }
++        create.initializeCreature(
++            target, CONCEAL_TARGET_CREATURE, creatureData, -1);
++        setName(target, "Precu Conceal Shot Worrt");
++        pvpSetAttackableOverride(target, true);
++        pvpSetPermanentPersonalEnemyFlag(target, attacker);
++        pvpSetPermanentPersonalEnemyFlag(attacker, target);
++        return target;
++    }
++
+     private String armStrafeCover(
+         obj_id attacker, obj_id defender, String lifecycle)
+         throws InterruptedException
+@@ -2399,6 +2587,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasSkill(player, RIFLEMAN_ACCURACY_THREE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_FOUR,
+             hasSkill(player, RIFLEMAN_ACCURACY_FOUR) ? 1 : 0);
++        setObjVar(player, ORIGINAL_RIFLEMAN_SPEED_ONE,
++            hasSkill(player, RIFLEMAN_SPEED_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_ONE,
+             hasSkill(player, MARKSMAN_CARBINE_ONE) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CARBINE_TWO,
+@@ -2465,6 +2655,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, SURPRISE_SHOT_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SNIPER_SHOT_COMMAND,
+             hasCommand(player, SNIPER_SHOT_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_CONCEAL_SHOT_COMMAND,
++            hasCommand(player, CONCEAL_SHOT_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_CDEF_CERTIFICATION,
+             hasCommand(player, CDEF_CERTIFICATION) ? 1 : 0);
+         setObjVar(player, ORIGINAL_PISTOL_CDEF_CERTIFICATION,
+@@ -2745,6 +2937,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeCommand(attacker, SNIPER_SHOT_COMMAND);
+         }
++        if (hasObjVar(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND) &&
++            getIntObjVar(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND) == 0 &&
++            hasCommand(attacker, CONCEAL_SHOT_COMMAND))
++        {
++            revokeCommand(attacker, CONCEAL_SHOT_COMMAND);
++        }
+         if (hasObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) &&
+             getIntObjVar(attacker, ORIGINAL_CDEF_CERTIFICATION) == 0 &&
+             hasCommand(attacker, CDEF_CERTIFICATION))
+@@ -2913,6 +3111,8 @@ public class precu_headshot1_fixture extends script.base_script
+             SURPRISE_SHOT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SNIPER_SHOT_COMMAND,
+             SNIPER_SHOT_COMMAND);
++        restoreCommand(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
++            CONCEAL_SHOT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             SCATTER_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3187,6 +3387,12 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             revokeSkill(attacker, RIFLEMAN_ACCURACY_FOUR);
+         }
++        if (hasObjVar(attacker, ORIGINAL_RIFLEMAN_SPEED_ONE) &&
++            getIntObjVar(attacker, ORIGINAL_RIFLEMAN_SPEED_ONE) == 0 &&
++            hasSkill(attacker, RIFLEMAN_SPEED_ONE))
++        {
++            revokeSkill(attacker, RIFLEMAN_SPEED_ONE);
++        }
+         if (hasObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) &&
+             getIntObjVar(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE) == 0 &&
+             hasSkill(attacker, RIFLEMAN_ACCURACY_THREE))
+@@ -3271,6 +3477,8 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean fixtureAcidDestroyed = destroyFixtureAcid(attacker);
+         boolean fixtureFlameDestroyed = destroyFixtureFlame(attacker);
+         boolean fixtureLightningDestroyed = destroyFixtureLightning(attacker);
++        boolean fixtureConcealTargetDestroyed =
++            destroyFixtureConcealTarget(attacker);
+         boolean attackerRestored = restorePlayer(attacker);
+         boolean defenderRestored = restorePlayer(defender);
+         boolean carbineSkillsRestored =
+@@ -3334,6 +3542,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 SURPRISE_SHOT_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SNIPER_SHOT_COMMAND,
+                 SNIPER_SHOT_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
++                CONCEAL_SHOT_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+                 SCATTER_SHOT_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3347,6 +3557,8 @@ public class precu_headshot1_fixture extends script.base_script
+             isCommandRestored(attacker, ORIGINAL_LEG_SHOT_THREE_COMMAND,
+                 LEG_SHOT_THREE_COMMAND);
+         boolean riflemanSkillsRestored =
++            isSkillRestored(attacker, ORIGINAL_RIFLEMAN_SPEED_ONE,
++                RIFLEMAN_SPEED_ONE) &&
+             isSkillRestored(attacker, ORIGINAL_RIFLEMAN_ACCURACY_FOUR,
+                 RIFLEMAN_ACCURACY_FOUR) &&
+             isSkillRestored(attacker, ORIGINAL_RIFLEMAN_ACCURACY_THREE,
+@@ -3366,7 +3578,7 @@ public class precu_headshot1_fixture extends script.base_script
+             fixturePolearmDestroyed &&
+             fixtureOneHandDestroyed && fixtureTwoHandDestroyed &&
+             fixtureAcidDestroyed && fixtureFlameDestroyed &&
+-            fixtureLightningDestroyed &&
++            fixtureLightningDestroyed && fixtureConcealTargetDestroyed &&
+             attackerRestored && defenderRestored &&
+             carbineSkillsRestored && carbineCommandsRestored &&
+             riflemanSkillsRestored;
+@@ -3514,6 +3726,8 @@ public class precu_headshot1_fixture extends script.base_script
+             SURPRISE_SHOT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SNIPER_SHOT_COMMAND,
+             SNIPER_SHOT_COMMAND);
++        restoreCommand(attacker, ORIGINAL_CONCEAL_SHOT_COMMAND,
++            CONCEAL_SHOT_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             SCATTER_SHOT_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3805,6 +4019,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean riflemanAccuracyFourReady = riflemanAccuracyThreeReady &&
+             (hasSkill(attacker, RIFLEMAN_ACCURACY_FOUR) ||
+                 grantSkill(attacker, RIFLEMAN_ACCURACY_FOUR));
++        boolean riflemanSpeedOneReady = riflemanNoviceReady &&
++            (hasSkill(attacker, RIFLEMAN_SPEED_ONE) ||
++                grantSkill(attacker, RIFLEMAN_SPEED_ONE));
+         boolean carbineOneReady =
+             hasSkill(attacker, MARKSMAN_CARBINE_ONE) ||
+             grantSkill(attacker, MARKSMAN_CARBINE_ONE);
+@@ -3888,6 +4105,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean sniperShotReady =
+             hasCommand(attacker, SNIPER_SHOT_COMMAND) ||
+             grantCommand(attacker, SNIPER_SHOT_COMMAND);
++        boolean concealShotReady =
++            hasCommand(attacker, CONCEAL_SHOT_COMMAND) ||
++            grantCommand(attacker, CONCEAL_SHOT_COMMAND);
+         boolean cdefCertificationReady = hasCommand(attacker, CDEF_CERTIFICATION) ||
+             grantCommand(attacker, CDEF_CERTIFICATION);
+         boolean pistolCdefCertificationReady =
+@@ -4105,6 +4325,7 @@ public class precu_headshot1_fixture extends script.base_script
+             rifleFourReady && riflemanNoviceReady &&
+             riflemanAccuracyOneReady && riflemanAccuracyTwoReady &&
+             riflemanAccuracyThreeReady && riflemanAccuracyFourReady &&
++            riflemanSpeedOneReady &&
+             carbineOneReady && carbineTwoReady &&
+             carbineThreeReady && carbineFourReady &&
+             carbineNoviceReady && carbineAccuracyOneReady &&
+@@ -4122,7 +4343,7 @@ public class precu_headshot1_fixture extends script.base_script
+             bodyShotTwoReady && bodyShotThreeReady &&
+             healthShotOneReady && actionShotOneReady && actionShotTwoReady &&
+             mindShotOneReady && mindShotTwoReady && surpriseShotReady &&
+-            sniperShotReady &&
++            sniperShotReady && concealShotReady &&
+             cdefCertificationReady && pistolCdefCertificationReady &&
+             carbineCdefCertificationReady &&
+             polearmCommandReady && polearmLegTwoCommandReady &&
+@@ -4399,6 +4620,39 @@ public class precu_headshot1_fixture extends script.base_script
+         return destroyed;
+     }
+ 
++    private boolean destroyFixtureConcealTarget(obj_id attacker)
++        throws InterruptedException
++    {
++        if (!hasObjVar(attacker, FIXTURE_CONCEAL_TARGET))
++        {
++            return true;
++        }
++        obj_id target = getObjIdObjVar(attacker, FIXTURE_CONCEAL_TARGET);
++        if (!isIdValid(target) || !exists(target))
++        {
++            removeObjVar(attacker, FIXTURE_CONCEAL_TARGET);
++            return true;
++        }
++        if (!hasObjVar(target, CONCEAL_TARGET_OWNED) ||
++            getIntObjVar(target, CONCEAL_TARGET_OWNED) != 1 ||
++            !hasObjVar(target, CONCEAL_TARGET_OWNER) ||
++            getObjIdObjVar(target, CONCEAL_TARGET_OWNER) != attacker)
++        {
++            return false;
++        }
++        stopCombat(target);
++        removeHateTarget(target, attacker);
++        pvpRemovePersonalEnemyFlags(target, attacker);
++        pvpRemovePersonalEnemyFlags(attacker, target);
++        pvpSetAttackableOverride(target, false);
++        boolean destroyed = destroyObject(target);
++        if (destroyed)
++        {
++            removeObjVar(attacker, FIXTURE_CONCEAL_TARGET);
++        }
++        return destroyed;
++    }
++
+     private boolean hasCompleteSnapshot(obj_id player) throws InterruptedException
+     {
+         return hasObjVar(player, ORIGINAL_LOCATION) &&
+@@ -4432,6 +4686,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_TWO) &&
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_THREE) &&
+             hasObjVar(player, ORIGINAL_RIFLEMAN_ACCURACY_FOUR) &&
++            hasObjVar(player, ORIGINAL_RIFLEMAN_SPEED_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_ONE) &&
+             hasObjVar(player, ORIGINAL_CARBINE_TWO) &&
+             hasObjVar(player, ORIGINAL_CARBINE_THREE) &&
+@@ -4465,6 +4720,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_MIND_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SURPRISE_SHOT_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SNIPER_SHOT_COMMAND) &&
++            hasObjVar(player, ORIGINAL_CONCEAL_SHOT_COMMAND) &&
+             hasObjVar(player, ORIGINAL_CDEF_CERTIFICATION) &&
+             hasObjVar(player, ORIGINAL_PISTOL_CDEF_CERTIFICATION) &&
+             hasObjVar(player, ORIGINAL_CARBINE_CDEF_CERTIFICATION) &&
+@@ -4603,6 +4859,14 @@ public class precu_headshot1_fixture extends script.base_script
+     {
+         location attackerLocation = getLocation(attacker);
+         location defenderLocation = getLocation(defender);
++        obj_id concealTarget = hasObjVar(attacker, FIXTURE_CONCEAL_TARGET) ?
++            getObjIdObjVar(attacker, FIXTURE_CONCEAL_TARGET) : obj_id.NULL_ID;
++        boolean concealTargetExists = isIdValid(concealTarget) &&
++            exists(concealTarget);
++        float concealTargetDistance = concealTargetExists ?
++            getDistance(attacker, concealTarget) : -1.0f;
++        float concealTargetHate = concealTargetExists ?
++            getHate(concealTarget, attacker) : -1.0f;
+         obj_id weapon = getObjectInSlot(attacker, "hold_r");
+         String weaponTemplate =
+             weapon == null || weapon == obj_id.NULL_ID ? "none" : getTemplateName(weapon);
+@@ -4629,6 +4893,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(SURPRISE_SHOT_COMMAND, attacker) : -1;
+         int canPerformSniperShot = isIdValid(weapon) ?
+             combat.canPerformAction(SNIPER_SHOT_COMMAND, attacker) : -1;
++        int canPerformConcealShot = isIdValid(weapon) ?
++            combat.canPerformAction(CONCEAL_SHOT_COMMAND, attacker) : -1;
+         int canPerformPolearm =
+             isIdValid(weapon) ? combat.canPerformAction(POLEARM_COMMAND, attacker) : -1;
+         int canPerformPolearmLegTwo = isIdValid(weapon) ?
+@@ -4840,6 +5106,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(SURPRISE_SHOT_COMMAND);
+         combat_data sniperShotData =
+             combat_engine.getCombatData(SNIPER_SHOT_COMMAND);
++        combat_data concealShotData =
++            combat_engine.getCombatData(CONCEAL_SHOT_COMMAND);
+         int[] healthShotCosts =
+             healthShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, healthShotData) :
+@@ -4975,6 +5243,10 @@ public class precu_headshot1_fixture extends script.base_script
+             sniperShotData != null && flameWeaponData != null ?
+             combat.getActionCost(attacker, flameWeaponData, sniperShotData) :
+             new int[] {-1, -1, -1};
++        int[] concealShotCosts =
++            concealShotData != null && flameWeaponData != null ?
++            combat.getActionCost(attacker, flameWeaponData, concealShotData) :
++            new int[] {-1, -1, -1};
+         String fixtureLightning = hasObjVar(attacker, FIXTURE_LIGHTNING) ?
+             getObjIdObjVar(attacker, FIXTURE_LIGHTNING).toString() : "none";
+         int nextAttackDelayUntil = utils.hasScriptVar(
+@@ -5011,6 +5283,7 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasSkill(attacker, RIFLEMAN_ACCURACY_THREE) +
+             " riflemanAccuracyFour=" +
+                 hasSkill(attacker, RIFLEMAN_ACCURACY_FOUR) +
++            " riflemanSpeedOne=" + hasSkill(attacker, RIFLEMAN_SPEED_ONE) +
+             " carbineOne=" + hasSkill(attacker, MARKSMAN_CARBINE_ONE) +
+             " carbineTwo=" + hasSkill(attacker, MARKSMAN_CARBINE_TWO) +
+             " carbineThree=" + hasSkill(attacker, MARKSMAN_CARBINE_THREE) +
+@@ -5055,6 +5328,14 @@ public class precu_headshot1_fixture extends script.base_script
+             " mindShotTwo=" + hasCommand(attacker, MIND_SHOT_TWO_COMMAND) +
+             " surpriseShot=" + hasCommand(attacker, SURPRISE_SHOT_COMMAND) +
+             " sniperShot=" + hasCommand(attacker, SNIPER_SHOT_COMMAND) +
++            " concealShot=" + hasCommand(attacker, CONCEAL_SHOT_COMMAND) +
++            " concealTarget=" +
++                (concealTargetExists ? concealTarget.toString() : "none") +
++            " concealTargetExists=" + concealTargetExists +
++            " concealTargetIsMob=" +
++                (concealTargetExists && isMob(concealTarget)) +
++            " concealTargetDistanceMeters=" + concealTargetDistance +
++            " concealTargetHate=" + concealTargetHate +
+             " cdefCertification=" + hasCommand(attacker, CDEF_CERTIFICATION) +
+             " pistolCdefCertification=" +
+                 hasCommand(attacker, PISTOL_CDEF_CERTIFICATION) +
+@@ -5199,6 +5480,7 @@ public class precu_headshot1_fixture extends script.base_script
+             " canPerformMindShotTwo=" + canPerformMindShotTwo +
+             " canPerformSurpriseShot=" + canPerformSurpriseShot +
+             " canPerformSniperShot=" + canPerformSniperShot +
++            " canPerformConcealShot=" + canPerformConcealShot +
+             " canPerformPolearm=" + canPerformPolearm +
+             " canPerformPolearmLegTwo=" + canPerformPolearmLegTwo +
+             " canPerformPolearmLegThree=" + canPerformPolearmLegThree +
+@@ -5709,6 +5991,15 @@ public class precu_headshot1_fixture extends script.base_script
+             " sniperShotHitIncapacitatedTarget=" +
+                 (sniperShotData == null ? -1 :
+                     sniperShotData.precuHitIncapacitatedTarget) +
++            " concealShotHealthCost=" + concealShotCosts[0] +
++            " concealShotActionCost=" + concealShotCosts[1] +
++            " concealShotMindCost=" + concealShotCosts[2] +
++            " concealShotPrecuHamCostModel=" +
++                (concealShotData == null ? -1 :
++                    concealShotData.precuHamCostModel) +
++            " concealShotDamageMultiplier=" +
++                (concealShotData == null ? -1.0f :
++                    concealShotData.percentAddFromWeapon) +
+             " bleedingDotStrength=" +
+                 dot.getDotStrength(defender, bleedingDotId) +
+             " bleedingDotDuration=" +
+@@ -5731,6 +6022,26 @@ public class precu_headshot1_fixture extends script.base_script
+                 readDiagnosticString(attacker, "animation.generated", "none") +
+             " diagnosticAnimationType=" +
+                 readDiagnosticInt(attacker, "animation.type", -1) +
++            " diagnosticConcealTarget=" +
++                readDiagnosticString(attacker, "conceal.target", "none") +
++            " diagnosticConcealAiTarget=" +
++                readDiagnosticInt(attacker, "conceal.aiTarget", -1) +
++            " diagnosticConcealDistance=" +
++                readDiagnosticFloat(attacker, "conceal.distance", -1.0f) +
++            " diagnosticConcealPosture=" +
++                readDiagnosticInt(attacker, "conceal.posture", -1) +
++            " diagnosticConcealThreshold=" +
++                readDiagnosticInt(attacker, "conceal.threshold", -1) +
++            " diagnosticConcealMissBefore=" +
++                readDiagnosticInt(attacker, "conceal.missBefore", -1) +
++            " diagnosticConcealMissAfter=" +
++                readDiagnosticInt(attacker, "conceal.missAfter", -1) +
++            " diagnosticConcealHateBefore=" +
++                readDiagnosticFloat(attacker, "conceal.hateBefore", -1.0f) +
++            " diagnosticConcealHateAfter=" +
++                readDiagnosticFloat(attacker, "conceal.hateAfter", -1.0f) +
++            " diagnosticConcealResult=" +
++                readDiagnosticString(attacker, "conceal.result", "none") +
+             " diagnosticPostureDownChance=" +
+                 readDiagnosticInt(attacker, "postureDown.chance", -1) +
+             " diagnosticPostureDownDefense=" +
+
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index 47dcef7f254342e355471f958b28a4217f83f2b1..2d22b3beb7d556597e342977c7de0e8493bb0a9e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1373,3 +1373,4 @@ chargeShot2	chargeShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				obj
+ strafeShot1	strafeShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_5_special_single								fire_5_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ surpriseShot	surpriseShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	3	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ sniperShot	sniperShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single_medium_face								fire_1_special_single_medium_face						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	1	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
++concealShot	concealShot			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_1_special_single								fire_1_special_single						OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	64	0	0	2.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index 45264693244ffd1118d1e3c20619422c6ea021cf..e40d9f0e31678cf8f9c27af93182aa281c908c92 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -89,3 +89,4 @@ fullAutoArea2	2.5	2.5	0.5	RANDOM	1.5	25	INTENSITY			DIZZY	30	0	30	dizzy_defense
+ chargeShot1	0.5	2.0	0.5	RANDOM	2.0	25	NONE																										100
+ chargeShot2	0.5	1.5	0.5	RANDOM	2.0	25	NONE																										100
+ strafeShot1	0.5	0.5	1.5	RANDOM	2.0	5	RANGED			REMOVE_COVER	75	0	10
++concealShot	0.5	0.5	1.5	RANDOM	2.0	5	RANGED
+
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index b00689454ee9b4b20b789bf3f627233e76e66acd..e7b6b2958a234b89ad67b2abd76c59e7aa6a5c4e 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -88,3 +88,4 @@ fullAutoArea2	a_auto
+ chargeShot1	chargeshot
+ chargeShot2	chargeblast
+ strafeShot1	strafeshot
++concealShot	concealedshot
+
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index d7dd70c50bd97a2ce35c8be84e74829479acb5d5..77cab01d99b2afe6594607bea9e7dc1ab1cb6f0b 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2023,3 +2023,4 @@ fullAutoArea2	combat	normal	fullAutoArea2	failSpecialAttack			0.0	fullAutoArea2
+ chargeShot1	combat	normal	chargeShot1	failSpecialAttack			1.5	chargeShot1	1	0	1	1	0	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ chargeShot2	combat	normal	chargeShot2	failSpecialAttack			1.5	chargeShot2	1	0	1	1	0	0	1	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	CARBINE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ strafeShot1	combat	normal	strafeShot1	failSpecialAttack			1.5	strafeShot1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	0	0	0	0	0	0		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++concealShot	combat	normal	concealShot	failSpecialAttack			1.5	concealShot	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+

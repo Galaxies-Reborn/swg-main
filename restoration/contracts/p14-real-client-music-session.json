@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "feature": "real-client-music-session",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "performanceTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/performance/performance.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "instrumentTable": "dsrc/sku.0/sys.server/compiled/game/datatables/tangible/instrument_datatable.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_real_client_music_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "startCommandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/StartMusicCommand.h",
+    "stopCommandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/StopMusicCommand.h",
+    "sessionSource": "MMOCoreORB/src/server/zone/objects/player/sessions/EntertainingSessionImplementation.cpp",
+    "startRule": "require an equipped playable instrument, resolve the named song for that instrument, require both abilities, and start one authoritative entertaining session",
+    "stopRule": "require an active music session and stop it through the authoritative session",
+    "swgSourceCompatibility": "the retained Publish 14.1 script path preserves the authentic fifteen-second music outro for both explicit stop and heartbeat exhaustion"
+  },
+  "publish14Evidence": {
+    "song": "starwars1",
+    "instrument": "slitherhorn",
+    "instrumentTemplate": "object/tangible/instrument/slitherhorn.iff",
+    "instrumentAudioId": 2,
+    "performanceIndex": 1,
+    "actionPointsPerLoop": 28,
+    "tableLoopSeconds": 5,
+    "heartbeatSeconds": 10,
+    "outroSeconds": 15,
+    "requiredSongAbility": "startMusic+starwars1",
+    "requiredInstrumentAbility": "slitherhorn",
+    "flourishAbility": "flourish+1",
+    "referenceQuickness": 400,
+    "flourishCost": 9,
+    "loopCost": 25
+  },
+  "clientCommandBoundary": {
+    "protocolVersion": 33,
+    "identityBoundPlayerOid": 39008597,
+    "commands": [
+      {
+        "helperAction": "StartMusicStarwars1",
+        "clientCommand": "startMusic",
+        "parameters": "starwars1"
+      },
+      {
+        "helperAction": "FlourishOne",
+        "clientCommand": "flourish",
+        "parameters": "1"
+      },
+      {
+        "helperAction": "StopMusic",
+        "clientCommand": "stopMusic",
+        "parameters": ""
+      }
+    ],
+    "serverAuthority": [
+      "instrument equip state and audio identity",
+      "song and instrument ability ownership",
+      "posture, grouping, and current-performance admission",
+      "performance and post-performance script lifecycle",
+      "Action calculation and inclusive exhaustion boundary",
+      "ten-second heartbeat and fifteen-second outro"
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T02:01:52-04:00",
+    "overlayPatch": "restoration/patches/dsrc/065-p14-real-client-music-session.patch",
+    "overlayPatchSha256": "af6e51b908e1ec55efeb8e16f021a0d01d88cfb396b47b1deb38fd39df39dcb7",
+    "cleanApplyBaseCommit": "b0f92541d9b213137ffd33a294660ea90a43fc05",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 1,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledJavaSources": 1,
+      "fullTreeCompiledJavaSources": 5679
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "configuration": "Release|x64",
+      "protocolVersion": 33,
+      "executableBytes": 32557568,
+      "executableSha256": "117492a254e34561aff7b8bafe1569fe7de9e470a2a63de9d1351ee8e1f5f906"
+    },
+    "sourceSha256": {
+      "precu_real_client_music_fixture.java": "2f22fe3938b25c98cfa535d9527f4a7112aa85e481cc7c1a278759e072bbcbf5",
+      "ClientMain.cpp": "e21e6be736a40b52730809792cb7ad31674d25bd2af247d068cb4f3fd791cdf6",
+      "Invoke-PrecuBackgroundInput.ps1": "ce1d1681d6a9a88d1a8df2a16e67d2573847d24ad99682df3ea8dcf352419336",
+      "test_precu_background_input_bridge.py": "59f97304f1f5245a8a51c91dd15df6eb3e7aca0530b7f7410292c401bfff95b6"
+    },
+    "compiledSha256": {
+      "precu_real_client_music_fixture.class": "741f1f1e99414e1079817fc08a2c7aaa452dd7126fc05e7289e3fa01abf53e0f"
+    },
+    "clientSourceTests": {
+      "result": "passed",
+      "bridgeTests": 22,
+      "fullSuiteTests": 143,
+      "expectedSourceDataSkips": 1
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-19T02:01:52-04:00",
+    "container": "swg-precu",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 70488,
+    "clientProtocolVersion": 33,
+    "clientSha256": "117492a254e34561aff7b8bafe1569fe7de9e470a2a63de9d1351ee8e1f5f906",
+    "lifecycle": "756be5bfd6cc4b9699d929146b140065",
+    "authoritativeQuickness": 400,
+    "starwars1PerformanceIndex": 1,
+    "slitherhornAudioId": 2,
+    "explicitSession": {
+      "startAccepted": true,
+      "flourishAccepted": true,
+      "flourishBeforeAction": 100,
+      "flourishAfterAction": 91,
+      "stopAccepted": true,
+      "outroObserved": true,
+      "actionAfterOutro": 66,
+      "performanceAfterOutro": 0,
+      "musicScriptAfterOutro": false,
+      "postPerformanceScriptAfterOutro": false
+    },
+    "automaticExhaustion": {
+      "startAccepted": true,
+      "boundaryAction": 25,
+      "outroObserved": true,
+      "actionAfterHeartbeat": 25,
+      "performanceAfterOutro": 0,
+      "musicScriptAfterOutro": false,
+      "postPerformanceScriptAfterOutro": false,
+      "inclusiveBoundaryPreserved": true
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "finalAction": 500,
+      "finalQuickness": 400,
+      "finalActionRegen": 6.190476,
+      "finalPerformanceIndex": 0,
+      "finalInstrumentAudioId": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "clientBridgeHealthyAfterCleanup": true
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": false,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": false,
+    "evidenceRepositoryContainsGameplayCode": false
+  },
+  "narrowBoundary": {
+    "included": [
+      "fixture-owned slitherhorn creation, equip, and destruction",
+      "ordinary real-client startMusic starwars1 admission",
+      "ordinary real-client flourish 1 admission and Action charge",
+      "ordinary real-client stopMusic and fifteen-second outro",
+      "automatic too-tired stop request at exactly 25 Action",
+      "identity-bound reversible live acceptance"
+    ],
+    "deferred": [
+      "band music synchronization",
+      "instrument-specific progression beyond slitherhorn",
+      "remaining Musician profession rows"
+    ]
+  }
+}

@@ -1,0 +1,293 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -882,151 +882,14 @@ public class skill extends script.base_script
+     }
+     public static int getPlayerStatForLevel(obj_id player, int intLevel, String statString) throws InterruptedException
+     {
+-        int intStat = 0;
+-        if (intLevel < 1 || intLevel > 90)
+-        {
+-            LOG("skill.scriptlib", "getPlayerStatForLevel BAD level");
+-            return 0;
+-        }
+-        int playerRace = getSpecies(player);
+-        String strProfession = getProfessionName(getSkillTemplate(player));
+-        player_levels.level_data stats = player_levels.getPlayerLevelData(strProfession, intLevel);
+-        if (stats == null)
+-        {
+-            LOG("skill.scriptlib", "setPlayerStatsForLevel stats == null");
+-            return 0;
+-        }
+-        if (playerRace > 7)
+-        {
+-            if (playerRace == 33)
+-            {
+-                playerRace = 8;
+-            }
+-            else if (playerRace == 49)
+-            {
+-                playerRace = 9;
+-            }
+-            else 
+-            {
+-                sendSystemMessageTestingOnly(player, "Unknown race, defaulting to human");
+-                LOG("npe", "library.skill - getPlayerStatForLevel invalid race, using human defaults");
+-                playerRace = 0;
+-            }
+-        }
+-        int racialStatColumnReference = (playerRace * NUM_STATS);
+-        if (statString.equals("luck"))
+-        {
+-            intStat = stats.luck;
+-            intStat += dataTableGetInt(DATATABLE_RACIAL_STATS, intLevel - 1, racialStatColumnReference + 1);
+-            return intStat;
+-        }
+-        if (statString.equals("precision"))
+-        {
+-            intStat = stats.precision;
+-            intStat += dataTableGetInt(DATATABLE_RACIAL_STATS, intLevel - 1, racialStatColumnReference + 2);
+-            return intStat;
+-        }
+-        if (statString.equals("strength"))
+-        {
+-            intStat = stats.strength;
+-            intStat += dataTableGetInt(DATATABLE_RACIAL_STATS, intLevel - 1, racialStatColumnReference + 3);
+-            return intStat;
+-        }
+-        if (statString.equals("constitution"))
+-        {
+-            intStat = stats.constitution;
+-            intStat += dataTableGetInt(DATATABLE_RACIAL_STATS, intLevel - 1, racialStatColumnReference + 4);
+-            return intStat;
+-        }
+-        if (statString.equals("stamina"))
+-        {
+-            intStat = stats.stamina;
+-            intStat += dataTableGetInt(DATATABLE_RACIAL_STATS, intLevel - 1, racialStatColumnReference + 5);
+-            return intStat;
+-        }
+-        if (statString.equals("agility"))
+-        {
+-            intStat = stats.agility;
+-            intStat += dataTableGetInt(DATATABLE_RACIAL_STATS, intLevel - 1, racialStatColumnReference + 6);
+-            return intStat;
+-        }
+-        if (statString.equals("health"))
+-        {
+-            intStat = stats.health;
+-            return intStat;
+-        }
+-        if (statString.equals("action"))
+-        {
+-            intStat = stats.action;
+-            return intStat;
+-        }
+-        return intStat;
++        // Compatibility entry point retained for later-era callers. Publish
++        // 14.1 HAM and secondary statistics are not derived from combat level.
++        return 0;
+     }
+     public static void sendlevelUpStatChangeSystemMessages(obj_id player, int oldCombatLevel, int newCombatLevel) throws InterruptedException
+     {
+-        if (!isPlayer(player))
+-        {
+-            return;
+-        }
+-        if (newCombatLevel < 1 || newCombatLevel > 90)
+-        {
+-            return;
+-        }
+-        int levelDelta = newCombatLevel - oldCombatLevel;
+-        if (levelDelta != 1)
+-        {
+-            return;
+-        }
+-        String[] statStrings = 
+-        {
+-            "luck",
+-            "precision",
+-            "strength",
+-            "constitution",
+-            "stamina",
+-            "agility"
+-        };
+-        for (int i = 0; i < statStrings.length; i++)
+-        {
+-            int currentStat = getPlayerStatForLevel(player, newCombatLevel, statStrings[i]);
+-            int lastStat = getPlayerStatForLevel(player, oldCombatLevel, statStrings[i]);
+-            int statDelta = currentStat - lastStat;
+-            if (statDelta > 0)
+-            {
+-                prose_package ppStatGainSpam = new prose_package();
+-                ppStatGainSpam.stringId = new string_id("spam", "level_up_stat_gain_" + i);
+-                ppStatGainSpam.digitInteger = statDelta;
+-                sendSystemMessageProse(player, ppStatGainSpam);
+-            }
+-        }
+-        int currentCon = getPlayerStatForLevel(player, newCombatLevel, "constitution");
+-        int lastCon = getPlayerStatForLevel(player, oldCombatLevel, "constitution");
+-        int currentSta = getPlayerStatForLevel(player, newCombatLevel, "stamina");
+-        int lastSta = getPlayerStatForLevel(player, oldCombatLevel, "stamina");
+-        int currentHealth = getPlayerStatForLevel(player, newCombatLevel, "health");
+-        int lastHealth = getPlayerStatForLevel(player, oldCombatLevel, "health");
+-        int currentAction = getPlayerStatForLevel(player, newCombatLevel, "action");
+-        int lastAction = getPlayerStatForLevel(player, oldCombatLevel, "action");
+-        int forRealsHealthCurrent = currentHealth + (currentCon * HEALTH_POINTS_PER_CONSTITUTION) + (currentSta * HEALTH_POINTS_PER_STAMINA);
+-        int forRealsHealthLast = lastHealth + (lastCon * HEALTH_POINTS_PER_CONSTITUTION) + (lastSta * HEALTH_POINTS_PER_STAMINA);
+-        int forRealsActionCurrent = currentAction + (currentCon * ACTION_POINTS_PER_CONSTITUTION) + (currentSta * ACTION_POINTS_PER_STAMINA);
+-        int forRealsActionLast = lastAction + (lastCon * ACTION_POINTS_PER_CONSTITUTION) + (lastSta * ACTION_POINTS_PER_STAMINA);
+-        int healthDelta = forRealsHealthCurrent - forRealsHealthLast;
+-        int actionDelta = forRealsActionCurrent - forRealsActionLast;
+-        if (healthDelta > 0)
+-        {
+-            prose_package ppStatGainSpam = new prose_package();
+-            ppStatGainSpam.stringId = new string_id("spam", "level_up_stat_gain_6");
+-            ppStatGainSpam.digitInteger = healthDelta;
+-            sendSystemMessageProse(player, ppStatGainSpam);
+-        }
+-        if (actionDelta > 0)
+-        {
+-            prose_package ppStatGainSpam = new prose_package();
+-            ppStatGainSpam.stringId = new string_id("spam", "level_up_stat_gain_7");
+-            ppStatGainSpam.digitInteger = actionDelta;
+-            sendSystemMessageProse(player, ppStatGainSpam);
+-        }
++        // Publish 14.1 clients receive skill-box acquisition feedback instead
++        // of NGE combat-level stat-gain spam.
+     }
+     public static String getProfessionName(String strTemplate) throws InterruptedException
+     {
+@@ -1158,45 +1021,15 @@ public class skill extends script.base_script
+         {
+             return false;
+         }
+-        String skillTemplate = getSkillTemplate(player);
+-        String profession = getProfessionName(skillTemplate);
+-        boolean isTrader = false;
+-        if (profession.equals("trader"))
+-        {
+-            isTrader = true;
+-            if (skillTemplate.equals("trader_0a"))
+-            {
+-                profession = "trader_dom";
+-            }
+-            if (skillTemplate.equals("trader_0b"))
+-            {
+-                profession = "trader_struct";
+-            }
+-            if (skillTemplate.equals("trader_0c"))
+-            {
+-                profession = "trader_mun";
+-            }
+-            if (skillTemplate.equals("trader_0d"))
+-            {
+-                profession = "trader_eng";
+-            }
+-        }
+-        for (String expertiseSkill : expertiseSkills) {
+-            int row = dataTableSearchColumnForString(expertiseSkill, "NAME", DATATABLE_EXPERTISE);
+-            if (row < 0) {
+-                continue;
+-            }
+-            String reqProf = dataTableGetString(DATATABLE_EXPERTISE, row, "REQ_PROF");
+-            if (!reqProf.equals(profession)) {
+-                if ((!reqProf.equals("trader") || !isTrader) && !reqProf.equals("all")) {
+-                    sendSystemMessage(player, SID_EXPERTISE_WRONG_PROFESSION);
+-                    utils.fullExpertiseReset(player, false);
+-                    CustomerServiceLog("SuspectedCheaterChannel: ", "DualProfessionCheat: Player " + getFirstName(player) + "(" + player + ") has an expertise that is not for thier profession. All expertises have been revoked.");
+-                    CustomerServiceLog("SuspectedCheaterChannel: ", "DualProfessionCheat: Player " + getFirstName(player) + "(" + player + ")'s profession is " + profession + " and the skill they have is " + expertiseSkill + ".");
+-                    return false;
+-                }
+-            }
+-        }
+-        return true;
++        // Expertises are an NGE progression layer. Remove only the persisted
++        // expertise allocation; the broad later-era reset also strips buffs
++        // and mutates respec state that Publish 14.1 owns independently.
++        resetExpertises(player);
++        CustomerServiceLog(
++            "precuExpertiseRetirement:",
++            "Player " + getFirstName(player) + "(" + player +
++            ") had " + expertiseSkills.length +
++            " later-era expertise allocation(s) removed.");
++        return false;
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_skill_library_retirement_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_skill_library_retirement_fixture.java
+new file mode 100644
+--- /dev/null
++++ b/sku.0/sys.server/compiled/game/script/test/precu_skill_library_retirement_fixture.java
+@@ -0,0 +1,72 @@
++package script.test;
++
++import script.obj_id;
++import script.library.expertise;
++import script.library.skill;
++
++/**
++ * Identity-bound proof that residual level-stat and NGE expertise helpers
++ * cannot reintroduce later-era progression into the Publish 14.1 runtime.
++ */
++public class precu_skill_library_retirement_fixture
++    extends script.base_script
++{
++    private static final long PLAYER_OID = 39008597L;
++    private static final int PLAYER_STATION_ID = 1001;
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        long value;
++        try
++        {
++            value = Long.parseLong(params == null ? "" : params.trim());
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidOid";
++        }
++        if (value != PLAYER_OID)
++        {
++            return "error=identityNotAllowed";
++        }
++        obj_id player = obj_id.getObjId(value);
++        if (player == null || player == obj_id.NULL_ID ||
++            !player.isLoaded() || !player.isAuthoritative() ||
++            !isPlayer(player) ||
++            getPlayerStationId(player) != PLAYER_STATION_ID)
++        {
++            return "error=playerNotAuthoritative";
++        }
++
++        String[] beforeExpertise = expertise.getExpertiseAllocation(player);
++        int beforeCount =
++            beforeExpertise == null ? 0 : beforeExpertise.length;
++        boolean validateResult = skill.validateExpertise(player);
++        String[] afterExpertise = expertise.getExpertiseAllocation(player);
++        int afterCount = afterExpertise == null ? 0 : afterExpertise.length;
++        int healthAtOne =
++            skill.getPlayerStatForLevel(player, 1, "health");
++        int healthAtNinety =
++            skill.getPlayerStatForLevel(player, 90, "health");
++        int luckAtNinety =
++            skill.getPlayerStatForLevel(player, 90, "luck");
++
++        skill.sendlevelUpStatChangeSystemMessages(player, 89, 90);
++
++        boolean passed =
++            !validateResult &&
++            afterCount == 0 &&
++            healthAtOne == 0 &&
++            healthAtNinety == 0 &&
++            luckAtNinety == 0;
++        return
++            "action=probe authoritative=true" +
++            " expertiseBefore=" + beforeCount +
++            " expertiseAfter=" + afterCount +
++            " validateResult=" + validateResult +
++            " healthLevel1=" + healthAtOne +
++            " healthLevel90=" + healthAtNinety +
++            " luckLevel90=" + luckAtNinety +
++            " passed=" + passed;
++    }
++}

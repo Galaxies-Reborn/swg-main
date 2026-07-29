@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "feature": "incapacitation-recovery-lifecycle",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "playerLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_incapacitation_recovery_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "playerManager": "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+    "playerObject": "MMOCoreORB/src/server/zone/objects/player/PlayerObjectImplementation.cpp",
+    "recoveryTask": "MMOCoreORB/src/server/zone/objects/player/events/PlayerIncapacitationRecoverTask.h",
+    "publish": "14.1",
+    "rollingWindowSeconds": 600,
+    "automaticDeathCount": 3,
+    "timerFormula": {
+      "condition": "minimum current Health, Action, or Mind",
+      "lessThanFiveDamageSeconds": 5,
+      "otherwise": "(-condition) / 5",
+      "maximumSeconds": 60,
+      "boundarySeconds": {
+        "0": 5,
+        "-4": 5,
+        "-5": 1,
+        "-25": 5,
+        "-100": 20,
+        "-500": 60
+      }
+    },
+    "recovery": "raise every non-positive primary pool to 1, clear feigned death, return upright through the native recapacitation callback",
+    "death": "clear the rolling incap counter"
+  },
+  "runtimeContract": {
+    "counterObjvar": "combat.precuIncapacitationTimes",
+    "legacyNgeBuffRetired": "incapWeaken",
+    "legacyNgeCounterRetired": "combat.intIncapacitationCount",
+    "staleRecoveryGuard": "message recoveryTime must equal the current incap.timeStamp scriptvar",
+    "primaryPools": [
+      "Health",
+      "Action",
+      "Mind"
+    ],
+    "nativePostureCallbacksPreserved": true,
+    "deathBlowPathPreserved": true
+  },
+  "fixture": {
+    "playerOid": 44003778,
+    "playerStationId": 91001,
+    "actions": [
+      "prepare",
+      "timerProbe",
+      "incapOne",
+      "status",
+      "incapTwo",
+      "status",
+      "incapThree",
+      "cleanup"
+    ],
+    "incapacitations": [
+      {
+        "attribute": "Health",
+        "condition": -25,
+        "expectedTimerSeconds": 5,
+        "expectedCounter": 1
+      },
+      {
+        "attribute": "Action",
+        "condition": -100,
+        "expectedTimerSeconds": 20,
+        "expectedCounter": 2
+      },
+      {
+        "attribute": "Mind",
+        "condition": -25,
+        "expectedAutomaticDeath": true,
+        "expectedCounterAfterDeath": 0
+      }
+    ],
+    "cleanupPolicy": "Restore posture, locomotion, all nine current attributes, all three primary regeneration rates, and the exact pre-existing pre-CU counter; cancel stale recovery and close any death state. Repeated cleanup is idempotent."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "sourceCommit": "b9e9986d6",
+    "isolatedBuildVolume": "swg-precu-incapacitation-clean-build-146",
+    "targets": [
+      "clean compile_java of every materialized Java source"
+    ],
+    "patchSha256": "2452da7334a6220b60b1565ce7f08f858b3491ed4fef1474236cfdb36541de3c",
+    "compiledSha256": {
+      "pclib.class": "4a080d7a6ecab4b2906881b81bede52cee4d5f85f6c06b2fb541c3cc4032b086",
+      "base_player.class": "bdbe1eda093174bdf1d19682bddc1604b514f7cff74340d6b0551fc22830af15",
+      "precu_incapacitation_recovery_fixture.class": "06a2180d8f6a8ecf5d178e5b8efb30836253fc8ce62734932c569ed7f475b82e"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "verifiedAt": "2026-07-18T16:35:44-04:00",
+    "clientProtocolVersion": 29,
+    "lifecycle": "5ba71f9676a7477587cbe1580e49e299",
+    "playerClientProcessId": 61188,
+    "peerClientProcessId": 63912,
+    "timerProbe": {
+      "timer0": 5,
+      "timerMinus4": 5,
+      "timerMinus5": 1,
+      "timerMinus25": 5,
+      "timerMinus100": 20,
+      "timerMinus500": 60
+    },
+    "firstIncap": {
+      "pool": "Health",
+      "condition": -25,
+      "recoverySeconds": 5,
+      "counter": 1,
+      "incapPosture": 13,
+      "recovered": true,
+      "healthAfter": 1,
+      "legacyIncapWeaken": false
+    },
+    "secondIncap": {
+      "pool": "Action",
+      "condition": -100,
+      "recoverySeconds": 20,
+      "counter": 2,
+      "incapPosture": 13,
+      "recovered": true,
+      "actionAfter": 1,
+      "legacyIncapWeaken": false
+    },
+    "thirdIncap": {
+      "pool": "Mind",
+      "condition": -25,
+      "automaticDeath": true,
+      "deathPosture": 14,
+      "counterAfterDeath": 0,
+      "recoveryScheduled": false
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "posture": 0,
+      "health": 1435,
+      "action": 500,
+      "mind": 100,
+      "counter": 0,
+      "legacyIncapWeaken": false
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "rollbackVolume": "swg-precu-work-pre-incapacitation-20260718",
+    "runtimeSourceArchive": "swg-precu-runtime-source-pre-incapacitation-20260718"
+  },
+  "publicationBoundary": {
+    "serverCodeChanged": true,
+    "productionGameplayCodeChanged": true,
+    "clientToolsChanged": false,
+    "clientAssetsChanged": false,
+    "reason": "The retained player script owned the NGE two-incap weakness buff and health-only recovery; the existing protocol-29 client already represents posture, countdown, and death state."
+  },
+  "narrowBoundary": {
+    "included": [
+      "rolling three-incap death threshold",
+      "Core3-derived recovery timer",
+      "Health, Action, and Mind recovery",
+      "stale recovery-message cancellation",
+      "counter reset on every player-death path",
+      "reversible live lifecycle fixture"
+    ],
+    "deferred": [
+      "incap_recovery food consumption",
+      "Force of Will",
+      "death-blow range and line-of-sight parity",
+      "clone-location and clone-wound parity",
+      "PvP/FRS incap reward parity"
+    ]
+  }
+}

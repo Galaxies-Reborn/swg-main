@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-unarmed-accuracy-branch",
+  "status": "ready",
+  "scope": "Restore Teras Kasi Accuracy I-IV ownership plus production Power Boost and Force of Will lifecycles with Core3 timing, all-nine-attribute outcomes, synchronized command assets, authenticated execution, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Sources": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/PowerBoostCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceOfWillCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/buffs/PowerBoostBuffImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/buffs/PowerBoostBuffDurationEvent.h"
+    ],
+    "skills": [
+      "combat_unarmed_accuracy_01",
+      "combat_unarmed_accuracy_02",
+      "combat_unarmed_accuracy_03",
+      "combat_unarmed_accuracy_04"
+    ],
+    "commands": ["powerBoost", "forceOfWill"],
+    "meditateModifier": 75,
+    "powerBoost": {
+      "bonusFormula": "unbuffedMind/2 rounded down to 20 equal ticks",
+      "tickSeconds": 3,
+      "healthActionRampSeconds": 60,
+      "mindRestoreSeconds": 60,
+      "mindBoostSeconds": 60,
+      "durationFormula": "300 + floor(meditateModifier/100)*300",
+      "durationAtModifier75": 300,
+      "waneSecondsBeforeEnd": 60
+    },
+    "forceOfWill": {
+      "successCooldownSeconds": 3600,
+      "forcedAcceptanceRoll": 35,
+      "normalTierDelta": 40,
+      "normalTierModifier": -100,
+      "normalTierDurationSeconds": 120,
+      "affectedAttributes": ["health", "strength", "constitution", "action", "quickness", "stamina", "mind", "focus", "willpower"]
+    },
+    "integrationCorrection": {
+      "powerBoostSkillAnimatingAllowed": true,
+      "powerBoostImmediateNonCombatRouting": true,
+      "reason": "The retained combat-queue row deadlocked while the command's required meditation locomotion was active."
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T04:02:45-04:00",
+    "scratchCommit": "cb7b3487b2363b0884609a2c75be35d841be0962",
+    "overlay": "restoration/patches/dsrc/321-p14-core3-unarmed-accuracy-branch.patch",
+    "overlaySha256": "7fe320e92309f9180851ef3d12610b1551671acd12071fb59a7751b8950a5df1",
+    "changedFileCount": 5,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "compiledClassSha256": {
+      "script/library/meditation.class": "82aca25abfadfe2fe1ddde2117169812fbddb37b0dcbf6c7ba3297d1c83759b1",
+      "script/player/skill/teraskasi.class": "26feb66bbbaa34fc7afad1b258f11fcea94e90a3fb3ba1c03adf78108949fae3",
+      "script/player/skill/cleanup.class": "bc1bbd30937861baa3d89193a3c9bc817145fb5f6b0a9389c4de8da8ed9e28dc",
+      "script/test/precu_unarmed_accuracy_fixture.class": "f700ed3cb6b2684a7745c682951fba89874c8197e5f08bb4cf87c1c62b6c3490"
+    },
+    "datatableCompile": "passed-native-linux",
+    "commandTableRows": 2082,
+    "commandTableBytes": 853436,
+    "commandTableSha256": "ad204af161d7acecd46d055b78a15e583cbd1dbf67b1a932fde05ebc32ef1838",
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "runs": 2,
+      "bytes": 135896,
+      "fileCount": 3,
+      "sha256": "0df903dd41959b17577643f25579d6964619665e80e2364ae39be750dfe8470b"
+    },
+    "clientBridgeTests": {"passed": 69, "failed": 0, "subtests": 1552},
+    "clientTestSuite": {"passed": 198, "skipped": 6, "failed": 0},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientBuildWarnings": 82,
+    "clientProtocolVersion": 241,
+    "clientBytes": 33810944,
+    "clientSha256": "873007fa01e05a9eef6a600f8addafaf9072d0448370579d004a1e833ebc3f9c",
+    "materializedOverlayCount": 327,
+    "materializedRestorationFileCount": 963,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "meditation.java": "fcf7a3649612b4dc60e1ba6d8b4ec3208a8e68fe1502bd21b817e51177d522ad",
+      "teraskasi.java": "029729b4f8fb67cb82e92d634c3e7b21078a139bdd5f9ba2a04c6da63d664b7d",
+      "cleanup.java": "8889e4a0879bd08fdc2c289197a554297906b1aac5ce451bbf86bec42da4e024",
+      "precu_unarmed_accuracy_fixture.java": "9154ce3c4c75ef5b7731f79527feb4ab095ba5fa22693f43a3d7ad736b2fc1e5",
+      "command_table.tab": "6cb41cfb6d937a887f70bbb4ab6088d6654c9fbff00e89ad8e244fd021599af8",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T04:02:45-04:00",
+    "clientProtocolVersion": 241,
+    "player": {"stationId": 91001, "playerOid": "44003778", "name": "PrecuRuntime", "godLevel": 0},
+    "lifecycleId": "32300000000000000000000000000001",
+    "admission": {
+      "freshAuthentication": true,
+      "commandBits": "111",
+      "skillBits": "111111111111",
+      "meditateModifier": 75,
+      "availablePoints": 51,
+      "originalPoints": 100,
+      "snapshotComplete": true
+    },
+    "powerBoost": {
+      "serverAccepted": true,
+      "queueCountAfterImmediateRouting": 0,
+      "bonus": 500,
+      "tick": 25,
+      "durationSeconds": 300,
+      "initialMindCurrent": 500,
+      "initialMaximumDelta": {"health": 8, "action": 8, "mind": -492},
+      "firstRampBoundary": {"remainingSeconds": 243, "healthDelta": 475, "actionDelta": 475, "mindDelta": -25},
+      "secondRampObserved": {"remainingSeconds": 227, "healthDelta": 500, "actionDelta": 500, "mindDelta": 100},
+      "plateau": {"remainingSeconds": 155, "healthDelta": 500, "actionDelta": 500, "mindDelta": 500},
+      "wane": {"remainingSeconds": 44, "healthDelta": 367, "actionDelta": 367, "mindDelta": 375},
+      "naturalExpiry": true,
+      "maximumsReturnedExactlyToBaseline": true
+    },
+    "forceOfWill": {
+      "serverAccepted": true,
+      "roll": 35,
+      "modifier": 75,
+      "delta": 40,
+      "tier": "normal",
+      "allNineModifierBits": "111111111",
+      "allNineMaximumDelta": -100,
+      "recoveryCancelled": true,
+      "upright": true,
+      "cooldownInitialSeconds": 3595,
+      "naturalModifierExpiry": true
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshAuthentication": true,
+      "lifecycleSurvived": true,
+      "allTwelveSkillsSurvived": true,
+      "allThreeCommandsSurvived": true,
+      "meditateModifierSurvived": true,
+      "availablePointsSurvived": true,
+      "identityBoundSnapshotsSurvived": true,
+      "forceCooldownSurvivedSeconds": 3328,
+      "transientPowerBoostAbsent": true,
+      "transientForceModifiersAbsent": true,
+      "maximumsAtBaseline": true
+    },
+    "cleanup": {
+      "clientInputResetBeforeRestore": true,
+      "clientStandBeforeRestore": true,
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "acceptanceBaselineRepairIdempotent": true,
+      "baselineCurrent": "69355,1000,300,500,300,1000,100,100,100",
+      "baselineMaximum": "69355,1000,300,500,300,1000,100,100,100",
+      "availablePoints": 100,
+      "posture": 0,
+      "locomotion": 0,
+      "fixtureAbsentAfterCleanup": true
+    },
+    "isolatedClientStopped": true,
+    "isolatedClientFilesRestoredToM322": true,
+    "loginClientIdRestored": 1001,
+    "configuredClusterPortRestored": 44452,
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "connectionServerCount": 1,
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

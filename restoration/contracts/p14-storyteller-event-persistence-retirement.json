@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "feature": "storyteller-event-persistence-retirement",
+  "status": "ready",
+  "scope": "Retire later-era Storyteller event-anchor persistence while preserving the deleteEventProps operator cleanup switch and independent event scripts.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "No Storyteller anniversary anchor persistence or deleteEventProps lifecycle exists in the pinned Publish 14.1 Core3 tree.",
+    "cleanupBoundary": "On initialization, deleteEventProps still destroys the anchor immediately; otherwise the persistence script detaches. New attachments detach without persisting."
+  },
+  "expected": {
+    "automaticAnchorPersistence": false,
+    "operatorDeleteSwitchRetained": true,
+    "independentEventScriptsRetained": true,
+    "retiredSourceCount": 1
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/173-p14-storyteller-event-persistence-retirement.patch",
+    "overlayPatchBytes": 1661,
+    "overlayPatchSha256": "d249215a5817f0a11d41cb9bcd278bcc866414a650d0563936a0870cf7101a53",
+    "sourceSha256": {
+      "anniversary_event_nyms.java": "2373a64b52cdc9bdc1a73404ce3638fc5c156db02a5291819bb614fd77ed4409"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "anniversary_event_nyms.class": "c8828200b87da3c2fa995850c24ebc784a442f34d86a83ede55f62268196058d"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 66988,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

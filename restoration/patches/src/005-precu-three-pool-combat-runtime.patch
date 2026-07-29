@@ -1,0 +1,294 @@
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+index 254c15e..2106b6b 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+@@ -4108,25 +4108,29 @@ void CreatureObject::testIncapacitation(const NetworkId & attackerId)
+ 	WARNING_STRICT_FATAL(!isAuthoritative(), ("CreatureObject::testIncapacitation invoked on non-authoritative object %s:%s", getObjectTemplateName(), getNetworkId().getValueString().c_str()));
+ 
+ 	if (m_deferComputeTotalAttributes <= 0)
+ 	{
+ 		int const health = getAttribute(Attributes::Health);
++		int const action = getAttribute(Attributes::Action);
++		int const mind = getAttribute(Attributes::Mind);
++		bool const anyPrimaryPoolEmpty = health <= 0 || action <= 0 || mind <= 0;
++		bool const allPrimaryPoolsPositive = health > 0 && action > 0 && mind > 0;
+ 
+ 		if (!isIncapacitated())
+ 		{
+ 			// see if we are incapacitated
+ 
+-			if (health <= 0)
++			if (anyPrimaryPoolEmpty)
+ 			{
+ 				setIncapacitated(true, attackerId);
+ 			}
+ 		}
+ 		else
+ 		{
+-			// recapacitate if any attribute is above 0
++			// recapacitate only after all three primary pools recover
+ 
+-			if (health > 0)
++			if (allPrimaryPoolsPositive)
+ 			{
+ 				setIncapacitated(false, attackerId);
+ 			}
+ 		}
+ 	}
+@@ -7365,10 +7369,33 @@ bool CreatureObject::drainAttributes(Attributes::Value action, Attributes::Value
+ 	return true;
+ }	// CreatureObject::drainAttributes
+ 
+ //----------------------------------------------------------------------
+ 
++bool CreatureObject::drainCombatAttributes(Attributes::Value health, Attributes::Value action, Attributes::Value mind)
++{
++	Attributes::Value const costs[3] = {health, action, mind};
++
++	for (int i = 0; i < 3; ++i)
++	{
++		if (costs[i] < 0)
++			return false;
++		if (costs[i] > 0 && getAttribute(Attributes::POOLS[i]) <= costs[i])
++			return false;
++	}
++
++	for (int i = 0; i < 3; ++i)
++	{
++		if (costs[i] > 0)
++			alterAttribute(Attributes::POOLS[i], -costs[i], false, NetworkId::cms_invalid, true);
++	}
++
++	return true;
++}
++
++//----------------------------------------------------------------------
++
+ /**
+  * Tests draining an attribute, but does not actually modify the attrib.
+  *
+  * @param attribute		the attribute to test
+  * @param value			the amount to drain the attribute by
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.h b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+index c1161c7..78ffa71 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.h
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+@@ -223,10 +223,11 @@ public:
+ 	Attributes::Value   getUnmodifiedMaxAttribute(Attributes::Enumerator attribute) const;
+ 	Attributes::Value   getAttributeBonus        (Attributes::Enumerator attribute) const;
+ 	void                resetAttribute           (Attributes::Enumerator attrib, Attributes::Value);
+ 	void                initializeAttribute      (Attributes::Enumerator attrib, Attributes::Value);
+ 	bool                drainAttributes          (Attributes::Value action, Attributes::Value mind);
++	bool                drainCombatAttributes    (Attributes::Value health, Attributes::Value action, Attributes::Value mind);
+ 	int                 testDrainAttribute       (Attributes::Enumerator attribute, Attributes::Value value) const;
+ 	int                 getShockWounds           () const;
+ 	void                setShockWounds           (int wound);
+ 	void                setAttribute             (Attributes::Enumerator attribute, Attributes::Value value);
+ 	virtual void        getAttributes            (std::vector<std::pair<std::string, Unicode::String> > &data) const;
+diff --git a/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp b/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp
+index 42c4720..e2f3b81 100644
+--- a/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp
++++ b/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp
+@@ -74,10 +74,11 @@ namespace ScriptMethodsAttributesNamespace
+ 	jint         JNICALL getShockWound(JNIEnv *env, jobject self, jlong target);
+ 	jboolean     JNICALL setShockWound(JNIEnv *env, jobject self, jlong target, jint wound);
+ 	jboolean     JNICALL addShockWound(JNIEnv *env, jobject self, jlong target, jint wound);
+ 	jboolean     JNICALL healShockWound(JNIEnv *env, jobject self, jlong target, jint value);
+ 	jboolean     JNICALL drainAttributes(JNIEnv *env, jobject self, jlong target, jint action, jint mind);
++	jboolean     JNICALL drainCombatAttributes(JNIEnv *env, jobject self, jlong target, jint health, jint action, jint mind);
+ 	jint         JNICALL testDrainAttribute(JNIEnv *env, jobject self, jlong target, jint attribute, jint value);
+ 	jboolean     JNICALL addBuffIcon(JNIEnv *env, jobject self, jlong target, jstring modName, jfloat time);
+ 	jboolean     JNICALL clearBuffIcon(JNIEnv *env, jobject self, jlong target, jstring modName);
+ 	jfloat       JNICALL getRegenRate(JNIEnv *env, jobject self, jlong target, jint attrib);
+ 	void         JNICALL setRegenRate(JNIEnv *env, jobject self, jlong target, jint attrib, jfloat value);
+@@ -127,10 +128,11 @@ const JNINativeMethod NATIVES[] = {
+ 	JF("_getShockWound", "(J)I", getShockWound),
+ 	JF("_setShockWound", "(JI)Z", setShockWound),
+ 	JF("_addShockWound", "(JI)Z", addShockWound),
+ 	JF("_healShockWound", "(JI)Z", healShockWound),
+ 	JF("_drainAttributes", "(JII)Z", drainAttributes),
++	JF("_drainCombatAttributes", "(JIII)Z", drainCombatAttributes),
+ 	JF("_testDrainAttribute", "(JII)I", testDrainAttribute),
+ 	JF("_addBuffIcon", "(JLjava/lang/String;F)Z", addBuffIcon),
+ 	JF("_clearBuffIcon", "(JLjava/lang/String;)Z", clearBuffIcon),
+ 	JF("_getRegenRate", "(JI)F", getRegenRate),
+ 	JF("_setRegenRate", "(JIF)V", setRegenRate),
+@@ -1371,10 +1373,25 @@ jboolean JNICALL ScriptMethodsAttributesNamespace::drainAttributes(JNIEnv *env,
+ 	if (result)
+ 		return JNI_TRUE;
+ 	return JNI_FALSE;
+ }	// JavaLibrary::drainAttributes
+ 
++jboolean JNICALL ScriptMethodsAttributesNamespace::drainCombatAttributes(JNIEnv *env, jobject self, jlong target, jint health, jint action, jint mind)
++{
++	UNREF(self);
++
++	CreatureObject * creature = 0;
++	if (!JavaLibrary::getObject(target, creature))
++		return JNI_FALSE;
++
++	bool const result = creature->drainCombatAttributes(
++		static_cast<Attributes::Value>(health),
++		static_cast<Attributes::Value>(action),
++		static_cast<Attributes::Value>(mind));
++	return result ? JNI_TRUE : JNI_FALSE;
++}
++
+ /**
+  * Tests draining an attribute, but does not actually modify the attrib.
+  *
+  * @param env		    Java environment
+  * @param self		    class calling this function
+diff --git a/engine/server/library/serverScript/src/shared/ScriptMethodsCombat.cpp b/engine/server/library/serverScript/src/shared/ScriptMethodsCombat.cpp
+index fdb842b..568b38f 100644
+--- a/engine/server/library/serverScript/src/shared/ScriptMethodsCombat.cpp
++++ b/engine/server/library/serverScript/src/shared/ScriptMethodsCombat.cpp
+@@ -97,10 +97,11 @@ namespace ScriptMethodsCombatNamespace
+ 	void         JNICALL stopCombat(JNIEnv *env, jobject self, jlong object);
+ 	jboolean     JNICALL getCombatData(JNIEnv *env, jobject self, jlongArray attackers, jlongArray defenders, jobjectArray attackersData, jobjectArray defendersData, jobjectArray weaponsData);
+ 	jboolean     JNICALL getWeaponData(JNIEnv *env, jobject self, jlong weapon, jobject weaponData);
+ 	jboolean     JNICALL doDamage(JNIEnv *env, jobject self, jlong attacker, jlong defender, jlong weapon, jint damage, jint hitLocation);
+ 	jboolean     JNICALL doDamageNoWeapon(JNIEnv *env, jobject self, jlong attacker, jlong defender, jint damage, jint hitLocation);
++	jboolean     JNICALL doDamageNoWeaponToPool(JNIEnv *env, jobject self, jlong attacker, jlong defender, jint damage, jint hitLocation, jint pool);
+ 	jboolean     JNICALL doCombatResults(JNIEnv *env, jobject self, jstring animationId, jobject attackerResult, jobjectArray defenderResult);
+ 	jboolean     JNICALL callDefenderCombatAction(JNIEnv *env, jobject self, jlongArray defenders, jintArray results, jlong attacker, jlong weapon);
+ 	void         JNICALL setWantSawAttackTriggers(JNIEnv *env, jobject self, jlong obj, jboolean enable);
+ 	jboolean     JNICALL addSlowDownEffect(JNIEnv *env, jobject self, jlong attacker, jlong defender, jfloat coneLength, jfloat coneAngle, jfloat slopeAngle, jfloat effectTime);
+ 	jboolean     JNICALL removeSlowDownEffect(JNIEnv *env, jobject self, jlong attacker);
+@@ -174,10 +175,11 @@ const JNINativeMethod NATIVES[] = {
+ 	JF("_stopCombat", "(J)V", stopCombat),
+ 	JF("__getCombatData", "([J[J[Lscript/combat_engine$attacker_data;[Lscript/combat_engine$defender_data;[Lscript/combat_engine$weapon_data;)Z", getCombatData),
+ 	JF("__getWeaponData", "(JLscript/combat_engine$weapon_data;)Z", getWeaponData),
+ 	JF("__doDamage", "(JJJII)Z", doDamage),
+ 	JF("__doDamageNoWeapon", "(JJII)Z", doDamageNoWeapon),
++	JF("__doDamageNoWeaponToPool", "(JJIII)Z", doDamageNoWeaponToPool),
+ 	JF("doCombatResults", "(Ljava/lang/String;Lscript/base_class$attacker_results;[Lscript/base_class$defender_results;)Z", doCombatResults),
+ 	JF("_callDefenderCombatAction", "([J[IJJ)Z", callDefenderCombatAction),
+ 	JF("_setWantSawAttackTriggers", "(JZ)V", setWantSawAttackTriggers),
+ 	JF("_addSlowDownEffect", "(JJFFFF)Z", addSlowDownEffect),
+ 	JF("_removeSlowDownEffect", "(J)Z", removeSlowDownEffect),
+@@ -1639,10 +1641,31 @@ jboolean JNICALL ScriptMethodsCombatNamespace::doDamageNoWeapon(JNIEnv *env, job
+ 	if (result)
+ 		return JNI_TRUE;
+ 	return JNI_FALSE;
+ }	// JavaLibrary::doDamage
+ 
++jboolean JNICALL ScriptMethodsCombatNamespace::doDamageNoWeaponToPool(JNIEnv *env, jobject self, jlong attackerId, jlong defenderId, jint damage, jint hitLocation, jint pool)
++{
++	UNREF(self);
++
++	if (damage <= 0)
++		return JNI_TRUE;
++	if (pool < 0 || pool >= 3)
++		return JNI_FALSE;
++
++	TangibleObject * attacker = nullptr;
++	if (!JavaLibrary::getObject(attackerId, attacker))
++		return JNI_FALSE;
++
++	TangibleObject * defender = nullptr;
++	if (!JavaLibrary::getObject(defenderId, defender))
++		return JNI_FALSE;
++
++	bool const result = CombatEngine::onSuccessfulAttack(*attacker, *defender, damage, hitLocation, Attributes::POOLS[pool]);
++	return result ? JNI_TRUE : JNI_FALSE;
++}
++
+ // ------------------------------------------------------------------------------------
+ 
+ /**
+  * Creates a package to be sent to the client for displaying combat results.
+  *
+diff --git a/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.cpp b/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.cpp
+index 2123bc1..0b54229 100644
+--- a/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.cpp
++++ b/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.cpp
+@@ -308,10 +308,17 @@ bool CombatEngine::onSuccessfulAttack(const TangibleObject & attacker,
+  * @return true on success, false if there was an error
+  */
+ bool CombatEngine::onSuccessfulAttack(const TangibleObject & attacker, 
+ 	TangibleObject & defender, int damageAmount, 
+ 	int hitLocation)
++{
++	return onSuccessfulAttack(attacker, defender, damageAmount, hitLocation, Attributes::Health);
++}
++
++bool CombatEngine::onSuccessfulAttack(const TangibleObject & attacker,
++	TangibleObject & defender, int damageAmount,
++	int hitLocation, Attributes::Enumerator targetPool)
+ {
+ 	const bool creatureDefender = defender.asCreatureObject() != nullptr;
+ 	const bool isVehicle        = GameObjectTypes::isTypeOf (defender.getGameObjectType (), SharedObjectTemplate::GOT_vehicle);
+ 
+ 	// if attacking an object, always hit location 0
+@@ -329,11 +336,11 @@ bool CombatEngine::onSuccessfulAttack(const TangibleObject & attacker,
+ 	// put a attribMod structure on the defender's damage list for each type of 
+ 	// damage received
+ 	DamageList damageList;
+ 	if (creatureDefender && !isVehicle)
+ 	{
+-		computeCreatureDamage(&hitLocationData, damageAmount, damageList);
++		computeCreatureDamage(&hitLocationData, damageAmount, targetPool, damageList);
+ 	}
+ 	else
+ 	{
+ 		computeObjectDamage(&hitLocationData, damageAmount, damageList);
+ 	}
+@@ -602,15 +609,26 @@ void CombatEngine::damage(const Vector &center, float radius,
+ void CombatEngine::computeCreatureDamage(
+ 	const ConfigCombatEngineData::BodyAttackMod *hitLocation,
+ 	int damageDone, 
+ 	DamageList & damageList)
+ {
+-	// put all damage into health
++	computeCreatureDamage(hitLocation, damageDone, Attributes::Health, damageList);
++}
++
++void CombatEngine::computeCreatureDamage(
++	const ConfigCombatEngineData::BodyAttackMod *hitLocation,
++	int damageDone,
++	Attributes::Enumerator targetPool,
++	DamageList & damageList)
++{
++	if (targetPool != Attributes::Health && targetPool != Attributes::Action && targetPool != Attributes::Mind)
++		return;
++
+ 	damageList.push_back(AttribMod::AttribMod());
+ 	AttribMod::AttribMod & attribMod = damageList.back();
+ 	attribMod.tag = 0;
+-	attribMod.attrib = Attributes::Health;
++	attribMod.attrib = targetPool;
+ 	attribMod.value = -damageDone;
+ 	attribMod.attack = 0.0f;
+ 	attribMod.sustain = 0.0f;
+ 	attribMod.decay = ServerWeaponObjectTemplate::AMDS_pool;
+ 	attribMod.flags = AttribMod::AMF_directDamage;
+diff --git a/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.h b/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.h
+index 5748254..549e624 100644
+--- a/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.h
++++ b/game/server/application/SwgGameServer/src/shared/combat/CombatEngine.h
+@@ -44,10 +44,11 @@ public:
+ 	static bool addAttackAction(TangibleObject & attacker, const NetworkId & weapon, int weaponMode);
+ 	static bool addAimAction(TangibleObject & attacker);
+ 
+ 	static bool onSuccessfulAttack(const TangibleObject & attacker, TangibleObject & defender, const WeaponObject & weapon, int damage, int hitLocation);
+ 	static bool onSuccessfulAttack(const TangibleObject & attacker, TangibleObject & defender, int damage, int hitLocation);
++	static bool onSuccessfulAttack(const TangibleObject & attacker, TangibleObject & defender, int damage, int hitLocation, Attributes::Enumerator targetPool);
+ 	static bool damage(TangibleObject & defender, const WeaponObject & weapon, int damageAmount, int hitLocation);
+ 	static void damage(TangibleObject & defender, ServerWeaponObjectTemplate::DamageType damageType, uint16 hitLocation, int damage);
+ 	static void damage(const Vector &center, float radius, ServerWeaponObjectTemplate::DamageType damageType, int damage);
+ 	static void alter(TangibleObject & object);
+ 
+@@ -57,9 +58,12 @@ private:
+ 	static uint16 getNextActionId(void);
+ 
+ 	static void computeCreatureDamage(
+ 		const ConfigCombatEngineData::BodyAttackMod *hitLocation,
+ 		int damage, DamageList & damageList);
++	static void computeCreatureDamage(
++		const ConfigCombatEngineData::BodyAttackMod *hitLocation,
++		int damage, Attributes::Enumerator targetPool, DamageList & damageList);
+ 	static void computeObjectDamage(
+ 		const ConfigCombatEngineData::BodyAttackMod *hitLocation,
+ 		int damage, DamageList & damageList);
+ };

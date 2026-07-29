@@ -1,0 +1,520 @@
+diff --git b/sku.0/sys.server/compiled/game/script/library/xp.java a/sku.0/sys.server/compiled/game/script/library/xp.java
+index 741d8d40b..5ba790adf 100755
+--- b/sku.0/sys.server/compiled/game/script/library/xp.java
++++ a/sku.0/sys.server/compiled/game/script/library/xp.java
+@@ -13,7 +13,6 @@ public class xp extends script.base_script
+     public static final float COMBAT_GENERAL_EXCHANGE_RATE = 0.10f;
+     public static final float JEDI_GENERAL_EXCHANGE_RATE = 0.18f;
+     public static final float SOCIAL_ENTERTAINER_EXCHANGE_RATE = 1.0f;
+-    public static final float CRAFTING_MERCHANT_EXCHANGE_RATE = 0.25f;
+     public static final float SQUADLEADER_XP_RATIO = 1.0f;
+     public static final float SOCIAL_COMBAT_XP_MOD = 1.0f;
+     public static final String VAR_SQUADLEADER_BASE = "squadleader";
+@@ -122,8 +121,6 @@ public class xp extends script.base_script
+     public static final float GROUP_XP_BONUS = 0.35f;
+     public static final float GROUP_XP_DIVIDER = 0.6f;
+     public static final int MAX_GROUP_BONUS_COUNT = 8;
+-    public static final float TRADER_XP_MOD = 7.6f;
+-    public static final float ENTERTAINER_XP_MOD = 3.4f;
+     public static final String VAR_COMBAT_RESULTS = "combatResults";
+     public static final String VAR_TOP_DAMAGE = VAR_COMBAT_RESULTS + ".top_damage";
+     public static final String VAR_TOP_GROUP = VAR_COMBAT_RESULTS + ".top_group";
+@@ -250,11 +247,7 @@ public class xp extends script.base_script
+             result = true;
+             int current = getExperiencePoints(target, xp_type);
+             delta = current - prior;
+-            if (skill_template.isQualifiedForWorkingSkill(target))
+-            {
+-                skill_template.earnWorkingSkill(target);
+-            }
+-            metrics.doXpRateMetrics(target, xp_type, amt);
++            metrics.doXpRateMetrics(target, xp_type, amt);
+         }
+         if (isIdValid(callbackId))
+         {
+@@ -1240,118 +1233,42 @@ public class xp extends script.base_script
+         displayXpFlyText(player, player, totalXpGranted);
+         displayXpMsg(player, null, totalXpGranted);
+     }
+-    public static int grantSocialStyleXp(obj_id player, String xpType, int amount) throws InterruptedException
+-    {
+-        amount = Math.round(amount * ENTERTAINER_XP_MOD);
+-        String templateXp = skill_template.getTemplateSkillXpType(player, false);
+-        if (templateXp != null)
+-        {
+-            if (isSocialXpType(templateXp))
+-            {
+-                amount = grant(player, templateXp, amount, false);
+-            }
+-            else 
+-            {
+-                amount = 0;
+-            }
+-        }
+-        else 
+-        {
+-            amount = 0;
+-        }
+-        return amount;
+-    }
+-    public static int grantCraftingQuestXp(obj_id player, int amount) throws InterruptedException
+-    {
+-        String templateXp = skill_template.getTemplateSkillXpType(player, false);
+-        if (templateXp != null)
+-        {
+-            if (isCraftingXpType(templateXp))
+-            {
+-                amount = grant(player, templateXp, amount, false);
+-            }
+-            else 
+-            {
+-                amount = 0;
+-            }
+-        }
+-        else 
+-        {
+-            amount = 0;
+-        }
+-        return amount;
+-    }
+-    public static int grantCraftingStyleXp(obj_id player, String xpType, int amount) throws InterruptedException
+-    {
+-        amount = Math.round(amount * TRADER_XP_MOD);
+-        int merchantXP = (int)(amount * CRAFTING_MERCHANT_EXCHANGE_RATE);
+-        float xpRatio = skill_template.NON_TEMPLATE_XP_RATIO;
+-        if (xpType.equals(QUEST_CRAFTING))
+-        {
+-            merchantXP = 0;
+-            xpRatio = skill_template.QUEST_XP_RATIO;
+-        }
+-        String templateXp = skill_template.getTemplateSkillXpType(player, false);
+-        if (templateXp != null)
+-        {
+-            if (isCraftingXpType(templateXp))
+-            {
+-                if (!xpType.equals(templateXp))
+-                {
+-                    amount = (int)(amount * xpRatio);
+-                }
+-                if (!templateXp.equals(MERCHANT))
+-                {
+-                    merchantXP = (int)(merchantXP * xpRatio);
+-                }
+-                amount += merchantXP;
+-                amount = grant(player, templateXp, amount, false);
+-            }
+-            else 
+-            {
+-                amount = 0;
+-            }
+-        }
+-        else 
+-        {
+-            amount = 0;
+-        }
+-        return amount;
+-    }
+-    public static int grantCombatStyleXp(obj_id player, String xpType, int amount) throws InterruptedException
+-    {
+-        float xpRatio = skill_template.NON_TEMPLATE_XP_RATIO;
+-        if (xpType.equals(QUEST_COMBAT))
+-        {
+-            xpRatio = skill_template.QUEST_XP_RATIO;
+-        }
+-        String templateXp = skill_template.getTemplateSkillXpType(player, false);
+-        if (templateXp != null)
+-        {
+-            if (isCombatXpType(templateXp))
+-            {
+-                if (!xpType.equals(templateXp))
+-                {
+-                    amount = (int)(amount * xpRatio);
+-                }
+-                amount = grant(player, templateXp, amount, false);
+-            }
+-            else 
+-            {
+-                amount = 0;
+-            }
+-        }
+-        else 
+-        {
+-            amount = 0;
+-        }
+-        return amount;
+-    }
+-    public static void displayXpMsg(obj_id player, String xpType, int amt) throws InterruptedException
+-    {
+-        if (xpType == null)
+-        {
+-            xpType = skill_template.getTemplateSkillXpType(player, true);
++    public static int grantSocialStyleXp(obj_id player, String xpType, int amount) throws InterruptedException
++    {
++        String directXpType = getPrecuSocialXpType(xpType);
++        if (directXpType == null)
++        {
++            return 0;
++        }
++        return grant(player, directXpType, amount, false);
++    }
++    public static int grantCraftingQuestXp(obj_id player, int amount) throws InterruptedException
++    {
++        return grant(player, CRAFTING_GENERAL, amount, false);
++    }
++    public static int grantCraftingStyleXp(obj_id player, String xpType, int amount) throws InterruptedException
++    {
++        String directXpType = getPrecuCraftingXpType(xpType);
++        if (directXpType == null)
++        {
++            return 0;
++        }
++        return grant(player, directXpType, amount, false);
++    }
++    public static int grantCombatStyleXp(obj_id player, String xpType, int amount) throws InterruptedException
++    {
++        String directXpType = getPrecuCombatXpType(xpType);
++        if (directXpType == null)
++        {
++            return 0;
++        }
++        return grant(player, directXpType, amount, false);
++    }
++    public static void displayXpMsg(obj_id player, String xpType, int amt) throws InterruptedException
++    {
++        if (xpType == null)
++        {
++            xpType = COMBAT_GENERAL;
+         }
+         if (xpType == null || xpType.equals(""))
+         {
+@@ -1464,7 +1381,7 @@ public class xp extends script.base_script
+         }
+         return new color(red, green, blue, 255);
+     }
+-    public static boolean isCombatXpType(String xpType) throws InterruptedException
++    public static boolean isCombatXpType(String xpType) throws InterruptedException
+     {
+         switch (xpType) {
+             case COMBAT_GENERAL:
+@@ -1490,9 +1407,21 @@ public class xp extends script.base_script
+             case QUEST_GENERAL:
+                 return true;
+         }
+-        return false;
+-    }
+-    public static boolean isSocialXpType(String xpType) throws InterruptedException
++        return false;
++    }
++    public static String getPrecuCombatXpType(String xpType) throws InterruptedException
++    {
++        if (xpType == null || xpType.equals(""))
++        {
++            return null;
++        }
++        if (xpType.equals(QUEST_COMBAT) || xpType.equals(QUEST_GENERAL))
++        {
++            return COMBAT_GENERAL;
++        }
++        return isCombatXpType(xpType) ? xpType : null;
++    }
++    public static boolean isSocialXpType(String xpType) throws InterruptedException
+     {
+         switch (xpType) {
+             case MUSIC:
+@@ -1505,9 +1434,21 @@ public class xp extends script.base_script
+             case QUEST_GENERAL:
+                 return true;
+         }
+-        return false;
+-    }
+-    public static boolean isCraftingXpType(String xpType) throws InterruptedException
++        return false;
++    }
++    public static String getPrecuSocialXpType(String xpType) throws InterruptedException
++    {
++        if (xpType == null || xpType.equals(""))
++        {
++            return null;
++        }
++        if (xpType.equals(QUEST_SOCIAL) || xpType.equals(QUEST_COMBAT) || xpType.equals(QUEST_GENERAL))
++        {
++            return ENTERTAINER;
++        }
++        return isSocialXpType(xpType) ? xpType : null;
++    }
++    public static boolean isCraftingXpType(String xpType) throws InterruptedException
+     {
+         switch (xpType) {
+             case HARVEST_INORGANIC:
+@@ -1529,8 +1470,20 @@ public class xp extends script.base_script
+             case "crafting":
+                 return true;
+         }
+-        return false;
+-    }
++        return false;
++    }
++    public static String getPrecuCraftingXpType(String xpType) throws InterruptedException
++    {
++        if (xpType == null || xpType.equals(""))
++        {
++            return null;
++        }
++        if (xpType.equals(QUEST_CRAFTING) || xpType.equals(QUEST_GENERAL) || xpType.equals("crafting"))
++        {
++            return CRAFTING_GENERAL;
++        }
++        return isCraftingXpType(xpType) ? xpType : null;
++    }
+     public static String[] getXpTypes(obj_id self) throws InterruptedException
+     {
+         Vector xpTypes = new Vector();
+diff --git b/sku.0/sys.server/compiled/game/script/player/base/base_player.java a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index dcf116dc6..4a603dfb7 100755
+--- b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -710,8 +710,7 @@ public class base_player extends script.base_script
+         {
+             attachScript(self, "systems.skills.stealth.player_stealth");
+         }
+-        skill_template.validateWorkingSkill(self);
+-        LOG("base_player - OnInitialize", "calling armor.recalculateArmorForPlayer(self); with a 'self' of:  " + self);
++        LOG("base_player - OnInitialize", "calling armor.recalculateArmorForPlayer(self); with a 'self' of:  " + self);
+         armor.recalculateArmorForPlayer(self);
+         obj_id objWeapon = getDefaultWeapon(self);
+         String strTemplate = getTemplateName(objWeapon);
+diff --git b/sku.0/sys.server/compiled/game/script/test/precu_xp_routing_runtime.java a/sku.0/sys.server/compiled/game/script/test/precu_xp_routing_runtime.java
+new file mode 100644
+index 000000000..a1e379e78
+--- /dev/null
++++ a/sku.0/sys.server/compiled/game/script/test/precu_xp_routing_runtime.java
+@@ -0,0 +1,229 @@
++package script.test;
++
++import script.*;
++import script.library.xp;
++
++public class precu_xp_routing_runtime extends script.base_script
++{
++    private static final int RUNTIME_STATION_ID = 1001;
++    private static final String VAR_ROOT = "test.precuXpRoute";
++    private static final String VAR_FAMILY = VAR_ROOT + ".family";
++    private static final String VAR_REQUESTED_TYPE = VAR_ROOT + ".requestedType";
++    private static final String VAR_EFFECTIVE_TYPE = VAR_ROOT + ".effectiveType";
++    private static final String VAR_BASELINE_XP = VAR_ROOT + ".baselineXp";
++    private static final String VAR_BASELINE_SKILLS = VAR_ROOT + ".baselineSkills";
++    private static final String VAR_AMOUNT = VAR_ROOT + ".amount";
++    private static final String USAGE =
++        "usage: begin <playerOid> combat|social|crafting|craftingQuest <xpType> <amount>; " +
++        "verify <playerOid>; cancel <playerOid>";
++
++    public String executeProbe(String params) throws InterruptedException
++    {
++        if (params == null || params.trim().length() == 0)
++        {
++            return USAGE;
++        }
++
++        String[] args = params.trim().split("\\s+");
++        if (args.length < 2 || !args[1].matches("[0-9]+"))
++        {
++            return USAGE;
++        }
++
++        obj_id player;
++        try
++        {
++            player = obj_id.getObjId(Long.parseLong(args[1]));
++        }
++        catch (NumberFormatException exception)
++        {
++            return "error=invalidPlayerOid";
++        }
++
++        String playerError = validatePlayer(player);
++        if (playerError != null)
++        {
++            return playerError;
++        }
++
++        String action = args[0];
++        if (action.equalsIgnoreCase("begin"))
++        {
++            if (args.length != 5 || hasObjVar(player, VAR_ROOT))
++            {
++                return hasObjVar(player, VAR_ROOT) ? "error=probeAlreadyActive" : USAGE;
++            }
++
++            int amount;
++            try
++            {
++                amount = Integer.parseInt(args[4]);
++            }
++            catch (NumberFormatException exception)
++            {
++                return "error=invalidAmount";
++            }
++            if (amount < 1 || amount > 1000)
++            {
++                return "error=amountOutOfRange";
++            }
++
++            String family = args[2];
++            String requestedType = args[3];
++            String effectiveType = getEffectiveType(family, requestedType);
++            if (effectiveType == null)
++            {
++                return "error=invalidRoute family=" + family + " xpType=" + requestedType;
++            }
++
++            int baselineXp = getExperiencePoints(player, effectiveType);
++            int baselineSkills = getSkillCount(player);
++            setObjVar(player, VAR_FAMILY, family);
++            setObjVar(player, VAR_REQUESTED_TYPE, requestedType);
++            setObjVar(player, VAR_EFFECTIVE_TYPE, effectiveType);
++            setObjVar(player, VAR_BASELINE_XP, baselineXp);
++            setObjVar(player, VAR_BASELINE_SKILLS, baselineSkills);
++            setObjVar(player, VAR_AMOUNT, amount);
++
++            int queued = grantRoute(player, family, requestedType, amount);
++            return "action=begin queued=" + (queued > 0) +
++                " oid=" + player + " family=" + family +
++                " requestedType=" + requestedType + " effectiveType=" + effectiveType +
++                " amount=" + amount + " baselineXp=" + baselineXp +
++                " baselineSkills=" + baselineSkills;
++        }
++
++        if (action.equalsIgnoreCase("verify"))
++        {
++            if (args.length != 2 || !hasObjVar(player, VAR_ROOT))
++            {
++                return args.length == 2 ? "error=noActiveProbe" : USAGE;
++            }
++
++            String family = getStringObjVar(player, VAR_FAMILY);
++            String requestedType = getStringObjVar(player, VAR_REQUESTED_TYPE);
++            String effectiveType = getStringObjVar(player, VAR_EFFECTIVE_TYPE);
++            int amount = getIntObjVar(player, VAR_AMOUNT);
++            int baselineXp = getIntObjVar(player, VAR_BASELINE_XP);
++            int baselineSkills = getIntObjVar(player, VAR_BASELINE_SKILLS);
++            int observedXp = getExperiencePoints(player, effectiveType);
++            int observedSkills = getSkillCount(player);
++            int delta = observedXp - baselineXp;
++            boolean skillsStable = observedSkills == baselineSkills;
++
++            if (delta != 0)
++            {
++                grantExperiencePoints(player, effectiveType, -delta);
++            }
++            int restoredXp = getExperiencePoints(player, effectiveType);
++            removeObjVar(player, VAR_ROOT);
++
++            return "action=verify oid=" + player + " family=" + family +
++                " requestedType=" + requestedType + " effectiveType=" + effectiveType +
++                " amount=" + amount + " delta=" + delta +
++                " baselineSkills=" + baselineSkills + " observedSkills=" + observedSkills +
++                " skillsStable=" + skillsStable + " restored=" + (restoredXp == baselineXp) +
++                " restoredXp=" + restoredXp;
++        }
++
++        if (action.equalsIgnoreCase("cancel"))
++        {
++            if (args.length != 2)
++            {
++                return USAGE;
++            }
++            if (!hasObjVar(player, VAR_ROOT))
++            {
++                return "action=cancel active=false";
++            }
++            String effectiveType = getStringObjVar(player, VAR_EFFECTIVE_TYPE);
++            int baselineXp = getIntObjVar(player, VAR_BASELINE_XP);
++            int currentXp = getExperiencePoints(player, effectiveType);
++            if (currentXp != baselineXp)
++            {
++                grantExperiencePoints(player, effectiveType, baselineXp - currentXp);
++            }
++            removeObjVar(player, VAR_ROOT);
++            return "action=cancel active=true restored=" +
++                (getExperiencePoints(player, effectiveType) == baselineXp);
++        }
++
++        return USAGE;
++    }
++
++    private String validatePlayer(obj_id player) throws InterruptedException
++    {
++        if (player == null || player == obj_id.NULL_ID)
++        {
++            return "error=invalidPlayer";
++        }
++        if (!player.isLoaded())
++        {
++            return "error=playerNotLoaded oid=" + player;
++        }
++        if (!player.isAuthoritative())
++        {
++            return "error=playerNotAuthoritative oid=" + player +
++                " process=" + player.getProcessId();
++        }
++        if (!isPlayer(player))
++        {
++            return "error=objectIsNotPlayer oid=" + player;
++        }
++        if (getPlayerStationId(player) != RUNTIME_STATION_ID)
++        {
++            return "error=stationNotAllowed oid=" + player;
++        }
++        return null;
++    }
++
++    private String getEffectiveType(String family, String requestedType)
++        throws InterruptedException
++    {
++        if (family.equalsIgnoreCase("combat"))
++        {
++            return xp.getPrecuCombatXpType(requestedType);
++        }
++        if (family.equalsIgnoreCase("social"))
++        {
++            return xp.getPrecuSocialXpType(requestedType);
++        }
++        if (family.equalsIgnoreCase("crafting"))
++        {
++            return xp.getPrecuCraftingXpType(requestedType);
++        }
++        if (family.equalsIgnoreCase("craftingQuest"))
++        {
++            return xp.CRAFTING_GENERAL;
++        }
++        return null;
++    }
++
++    private int grantRoute(obj_id player, String family, String requestedType, int amount)
++        throws InterruptedException
++    {
++        if (family.equalsIgnoreCase("combat"))
++        {
++            return xp.grantCombatStyleXp(player, requestedType, amount);
++        }
++        if (family.equalsIgnoreCase("social"))
++        {
++            return xp.grantSocialStyleXp(player, requestedType, amount);
++        }
++        if (family.equalsIgnoreCase("crafting"))
++        {
++            return xp.grantCraftingStyleXp(player, requestedType, amount);
++        }
++        if (family.equalsIgnoreCase("craftingQuest"))
++        {
++            return xp.grantCraftingQuestXp(player, amount);
++        }
++        return 0;
++    }
++
++    private int getSkillCount(obj_id player) throws InterruptedException
++    {
++        String[] skills = getSkillListingForPlayer(player);
++        return skills == null ? 0 : skills.length;
++    }
++}

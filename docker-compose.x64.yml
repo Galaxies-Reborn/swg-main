@@ -1,0 +1,23 @@
+# Compatibility shim.
+#
+# The base docker-compose.yml now builds a 64-bit server by default on this
+# branch, so this override is no longer required. It is kept so existing
+# invocations of
+#
+#   docker compose -f docker-compose.yml -f docker-compose.x64.yml ...
+#
+# keep working unchanged. It only restates what the base file already does.
+#
+# For the 32-bit fallback use docker-compose.32.yml instead.
+services:
+  swg-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.x64
+    environment:
+      SWG_SERVER_BITS: "64"
+    volumes:
+      - swg-work-x64:/swg-main
+
+volumes:
+  swg-work-x64:

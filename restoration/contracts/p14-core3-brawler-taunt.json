@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-brawler-taunt",
+  "status": "ready",
+  "scope": "Restore the retained Brawler-novice taunt command with Patch 12 queue admission, pinned Core3 AI-only two-roll resolution, temporary taunt ownership and aggro, authenticated expiry, restart persistence, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Command": "MMOCoreORB/bin/scripts/commands/taunt.lua",
+    "core3Handler": "MMOCoreORB/src/server/zone/objects/creature/commands/TauntCommand.h",
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skillOwner": "combat_brawler_novice",
+    "skillParent": "combat_brawler",
+    "skillPrerequisites": [],
+    "skillMod": { "name": "taunt", "value": 10 },
+    "command": {
+      "defaultPriority": "normal",
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "historicalMaxRange": 0,
+      "runtimeMaxRange": 64,
+      "addToCombatQueue": true,
+      "validWeapon": "ALL",
+      "combatSpam": "taunt",
+      "effect": "clienteffect/combat_special_attacker_taunt.cef",
+      "targetPool": "NO_ATTRIBUTE",
+      "damageMultiplier": 1.0,
+      "speedMultiplier": 1.0,
+      "healthCostMultiplier": 1.0,
+      "actionCostMultiplier": 1.0,
+      "mindCostMultiplier": 1.0
+    },
+    "resolution": {
+      "targetMustBeAi": true,
+      "targetMustBeTauntable": true,
+      "levelCombine": "attackerLevel + targetLevel",
+      "successFormula": "random(levelCombine + tauntMod) >= random(levelCombine - tauntMod)",
+      "tauntDurationMilliseconds": "tauntMod * 1000",
+      "aggro": "tauntMod * 10",
+      "successSpam": "taunt_success_single",
+      "failureSpam": "taunt_fail_single"
+    },
+    "engineAdaptation": {
+      "reason": "The retained Java engine exposes tauntability and hate-map primitives but not Core3 ThreatMap::setThreatState.",
+      "behavior": "For the Core3 duration, the production handler raises the attacker above the current hate leader while preserving the exact tauntMod-times-ten aggro floor, then subtracts only its applied temporary delta at expiry so organic hate gained during the window survives.",
+      "observable": [
+        "AI target only",
+        "attacker becomes the target's hate leader on success",
+        "duration equals tauntMod seconds",
+        "temporary delta expires",
+        "pre-existing and organically gained hate is preserved"
+      ]
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T22:43:09-04:00",
+    "scratchCommit": "4444cdfc944087569a16b8f1738d579bccd6bcf0",
+    "overlay": "restoration/patches/dsrc/298-p14-core3-brawler-taunt.patch",
+    "overlaySha256": "6efe395ca571ee6ca145d2d26572da2aedc047fd80241e8ade40da35cae5fe4e",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-production-and-acceptance-sources",
+    "javaCompilerStack": "-J-Xss64m",
+    "datatableCompile": "passed-focused-four-tables-linux",
+    "clientBridgeTests": 69,
+    "clientBridgeSubtests": 1094,
+    "clientTestSuite": {
+      "passed": 199,
+      "skipped": 3,
+      "failed": 0,
+      "subtests": 1318
+    },
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 221,
+    "clientBytes": 33807872,
+    "clientSha256": "175c8b2c8b6d356df30afc9c8a13de37b15f408c7b30c8f43daf5a93428d3d8e",
+    "materializedOverlayCount": 304,
+    "materializedRestorationFileCount": 892,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "compiledClassSha256": {
+      "script/systems/combat/combat_base.class": "6511bb9489319d75727204de151524d4287c3fb6dfad4a82b590b05938d58758",
+      "script/systems/combat/combat_actions.class": "0be72d2c412fe90e4b2f0b7d3de12fc22171568a23894439264b83b35253f8e2",
+      "script/test/precu_headshot1_fixture.class": "eb653521a5f9990183b9660064028c82b9ef2816e42f328b60f43653e4ce48fe"
+    },
+    "compiledTableSha256": {
+      "datatables/combat/combat_data.iff": "f596f4819e285b4b8675b7723fc7cdeccdb75d7fa3ab07add3e3d4e406616bf7",
+      "datatables/combat/precu_combat_overrides.iff": "090ef5a06c28de1bea5622abac72441a95962c38c549e5da57f51b0eeba69a3f",
+      "datatables/combat/precu_combat_spam.iff": "f4d1958f67fadd8172db6e439b95aef875df44ba541f5ab2ae23091c7e363b9b",
+      "datatables/command/command_table.iff": "8cb6abffca82c0ddfd68694ceddb3ee063aa2b283e52d68b442a0861946df82e"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "f596f4819e285b4b8675b7723fc7cdeccdb75d7fa3ab07add3e3d4e406616bf7",
+      "datatables/command/command_table.iff": "8cb6abffca82c0ddfd68694ceddb3ee063aa2b283e52d68b442a0861946df82e",
+      "precu_runtime.tre": "26047539c4671d12e3cefe7555358e1cdd36892d4af1e2f756f3ae44de8a9010"
+    },
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "runs": 2,
+      "bytes": 134287,
+      "fileCount": 3
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-26T22:43:09-04:00",
+    "clientProtocolVersion": 221,
+    "attacker": {
+      "stationId": 91001,
+      "playerOid": "44003778",
+      "name": "PrecuRuntime",
+      "godLevel": 0
+    },
+    "defender": {
+      "stationId": 1001,
+      "playerOid": "39008597",
+      "name": "Icai Darkwave",
+      "godLevel": 0
+    },
+    "lifecycleId": "30000000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "brawlerRoot": true,
+      "brawlerNovice": true,
+      "brawlerMaster": true,
+      "command": true,
+      "aiTarget": true,
+      "tauntable": true,
+      "playerTarget": false,
+      "petTarget": false,
+      "distanceCentimeters": 407,
+      "canPerform": 0,
+      "validWeaponMask": "0x20000000",
+      "satisfiesWeapon": true,
+      "costs": { "health": 4, "action": 10, "mind": 11 }
+    },
+    "taunt": {
+      "success": true,
+      "aiTarget": true,
+      "targetOid": "1263061923",
+      "tauntMod": 40,
+      "attackerLevel": 69,
+      "targetLevel": 6,
+      "levelCombine": 75,
+      "upperBound": 115,
+      "lowerBound": 35,
+      "upperRoll": 103,
+      "lowerRoll": 7,
+      "durationSeconds": 40,
+      "aggro": 400,
+      "attackerHateBefore": 0.0,
+      "topHateBefore": 200.0,
+      "appliedTemporaryDelta": 400.0,
+      "attackerHateAfter": 400.0,
+      "topBefore": "39008597",
+      "topAfter": "44003778",
+      "temporaryHateLeader": true,
+      "combatSpam": "taunt_hit",
+      "combatResult": 1,
+      "expired": true,
+      "hateBeforeExpiry": 400.0,
+      "hateAfterExpiry": 0.0,
+      "topAfterExpiry": "39008597"
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "brawlerOwnershipSurvived": true,
+      "commandSurvived": true,
+      "tauntModifierSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "spawnedTargetAbsent": true,
+      "transientThreatStateAbsent": true
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "fixtureAbsent": true,
+      "postCleanupAbilityRejected": true,
+      "postCleanupQueueStatus": "Ability"
+    },
+    "acceptanceAccountGodLevelsRestored": true,
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "clientsStopped": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "protectedClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  }
+}

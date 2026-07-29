@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-bounty-hunter-droid-response-branch",
+  "status": "ready",
+  "scope": "Restore Bounty Hunter Droid Response I-IV and bleedingShot, eyeShot, and torsoShot with pinned Core3 pistol damage, defended BLIND, bleeding and fire DOT, client admission, persistence, and reversible prerequisite-closure cleanup semantics.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "MMOCoreORB/bin/scripts/commands/bleedingShot.lua",
+      "MMOCoreORB/bin/scripts/commands/eyeShot.lua",
+      "MMOCoreORB/bin/scripts/commands/torsoShot.lua"
+    ],
+    "publish12CommandTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+    "publish12SkillTable": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+    "skills": {
+      "chain": ["combat_bountyhunter", "combat_bountyhunter_novice", "combat_bountyhunter_droidresponse_01", "combat_bountyhunter_droidresponse_02", "combat_bountyhunter_droidresponse_03", "combat_bountyhunter_droidresponse_04"],
+      "commandsByTier": {
+        "combat_bountyhunter_droidresponse_01": ["bleedingShot"],
+        "combat_bountyhunter_droidresponse_02": ["eyeShot"],
+        "combat_bountyhunter_droidresponse_03": [],
+        "combat_bountyhunter_droidresponse_04": ["torsoShot"]
+      },
+      "branchPistolAccuracy": 50,
+      "branchPistolSpeed": 50
+    },
+    "commandDefaults": {"defaultPriority": "normal", "defaultTime": 1.5, "executeTime": 1.5, "target": "other", "targetType": "optional", "commandGroup": 391413347, "maxRangeToTarget": 0, "addToCombatQueue": true, "validWeapon": "PISTOL", "failScriptHook": "failSpecialAttack"},
+    "combat": [
+      {"command": "bleedingShot", "damageMultiplier": 2.0, "speedMultiplier": 1.5, "hamCostMultipliers": [1.0,1.0,1.0], "targetPool": "RANDOM", "animation": "fire_3_single", "animationType": "RANGED", "combatSpam": "bleedingshot", "dot": {"type": "BLEEDING", "attribute": "MIND", "chance": 100, "strength": 30, "duration": 30, "resistances": ["resistance_bleeding", "bleed_resist"]}},
+      {"command": "eyeShot", "damageMultiplier": 3.0, "speedMultiplier": 2.0, "hamCostMultipliers": [1.0,1.0,1.0], "targetPool": "MIND", "animation": "fire_3_special_single", "animationType": "RANGED", "combatSpam": "eyeshot", "state": {"type": "BLIND", "chance": 100, "strength": 0, "duration": 40, "defenses": ["blind_defense", "jedi_state_defense", "resistance_states"]}},
+      {"command": "torsoShot", "damageMultiplier": 3.0, "speedMultiplier": 2.3, "hamCostMultipliers": [1.0,1.0,1.0], "targetPool": "HEALTH", "animation": "fire_3_special_single", "animationType": "RANGED", "combatSpam": "torsoshot", "dot": {"type": "FIRE", "attribute": "HEALTH", "chance": 100, "strength": 30, "duration": 30, "primaryPercent": 50, "secondaryPercent": 10, "resistances": ["resistance_fire", "fire_resist"]}}
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T07:07:04-04:00",
+    "scratchCommit": "114a47d5ae",
+    "overlay": "restoration/patches/dsrc/324-p14-core3-bounty-hunter-droid-response-branch.patch",
+    "overlaySha256": "19c27ad8e369831cbed4ea69eadad3cf1cf49f8b37e99b6a846b915b3d7eee2e",
+    "changedFileCount": 6,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaTarget": 7,
+    "javaCompile": "passed-focused-scratch-and-clean-materialization",
+    "compiledClassSha256": {
+      "script/systems/combat/combat_actions.class": "fea12074a1d6129b46385895f9b0022ea3f4b7b33ebaa88b36ed73ece81f4b6f",
+      "script/test/precu_headshot1_fixture.class": "5501fed79b0f0977a4384cf55530a1bebe0bdbdebbe399057f2447f01e158dc9"
+    },
+    "datatableRowCounts": {"command_table.iff": 2089, "combat_data.iff": 1436, "precu_combat_overrides.iff": 152, "precu_combat_spam.iff": 151},
+    "datatableCompile": "passed-two-independent-native-linux-builds",
+    "datatableBuildsDeterministic": true,
+    "datatableToolSha256": "4ab422beb0ef1f1dce1e639110b2fdf954d36bb261f780748e790205bd1dbab7",
+    "datatableInvocation": "legacy-default-output dsrc-to-data path; explicit -o is rejected by the pinned production binary",
+    "compiledTableBytes": {
+      "datatables/command/command_table.iff": 856323,
+      "datatables/combat/combat_data.iff": 770004,
+      "datatables/combat/precu_combat_overrides.iff": 23544,
+      "datatables/combat/precu_combat_spam.iff": 3910
+    },
+    "compiledTableSha256": {
+      "datatables/command/command_table.iff": "754e9e76321de6515e4d458fec6ea5bf7a792d941c886d820c2aeacc6abc4a14",
+      "datatables/combat/combat_data.iff": "5f26fd0c1db2042ada96d2f6ecfb0795993aea02b4194adcf84afff777b8d0b8",
+      "datatables/combat/precu_combat_overrides.iff": "ce4fdd0a6fe85e7106eab162b521e9b47768d22c7cdd63c00baf0ca727c31992",
+      "datatables/combat/precu_combat_spam.iff": "c63684e16c365ae942d2dfe738bf04723bcf67fec065e486a15d771d524b5c09"
+    },
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "runs": 2,
+      "bytes": 148795,
+      "fileCount": 3,
+      "sha256": "5ca8bf56224488d252b96358944648f7fd8ce376f9418dff4705e78e79dbe0bd"
+    },
+    "clientBridgeTests": {"passed": 69, "failed": 0, "subtests": 1378},
+    "clientTestSuite": {"passed": 198, "skipped": 6, "failed": 0, "subtests": 1602},
+    "clientBuildConfiguration": "Release|x64 swg.sln /t:SwgClient /p:PlatformToolset=v143",
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 244,
+    "clientBytes": 33811456,
+    "clientSha256": "20d5b96b236e0efbb22ad61795e2ed2367998a65efe1ff89bfcccaa7ce3597a4",
+    "materializedOverlayCount": 330,
+    "materializedRestorationFileCount": 972,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "combat_actions.java": "49fcabbe0781505840f34c82ad9e6e90a5567a51cc72249ba0157a9ae78b4bbb",
+      "precu_headshot1_fixture.java": "8aaa53925a72440c392d3819aedc6e2d5b03100751b29bac0868ef9e80c65036",
+      "command_table.tab": "bb2ab17367795da600cbd27de038d6ece525586aebb657af5a69d050cbe55999",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "combat_data.tab": "860b8183be6b89464e176854ffff47b1fd175f8524e86ed6aca7818695430cef",
+      "precu_combat_overrides.tab": "7b4e361dc42e11016d390f1614da0d7a21a7461363e34a53fbe85f5e9124427f",
+      "precu_combat_spam.tab": "70fca396a04671cd83c44f1c6fe31514af059660a21e6a2e6f31c6a295dc5cfe"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-28T11:06:56-04:00",
+    "clientProtocolVersion": 244,
+    "attacker": {
+      "stationId": 91001,
+      "playerOid": "44003778",
+      "name": "PrecuRuntime",
+      "godLevel": 0,
+      "initialClientProcessId": 36712,
+      "postRestartClientProcessId": 61684
+    },
+    "defender": {
+      "stationId": 1001,
+      "playerOid": "39008597",
+      "name": "Icai Darkwave",
+      "godLevel": 0,
+      "initialClientProcessId": 48616,
+      "postRestartClientProcessId": 58892
+    },
+    "lifecycleId": "32600000000000000000000000000001",
+    "admission": {
+      "freshDualAuthentication": true,
+      "defenderAvatarSelection": "window-targeted bridge selected Icai Darkwave from the three-avatar station-1001 account",
+      "distanceCentimeters": 203,
+      "prerequisiteBits": "1111111",
+      "skillBits": "111111",
+      "commandBits": "111",
+      "marksmanMaster": true,
+      "scoutMovementFour": true,
+      "canPerform": {"bleedingShot": 0, "eyeShot": 0, "torsoShot": 0},
+      "pistolAccuracy": 115,
+      "pistolSpeed": 103,
+      "heldWeapon": "fixture-pistol",
+      "actionCosts": {
+        "bleedingShot": [4, 15, 11],
+        "eyeShot": [4, 15, 11],
+        "torsoShot": [4, 15, 11]
+      },
+      "clientWeaponStatus": {
+        "bleedingShot": true,
+        "eyeShot": true,
+        "torsoShot": true,
+        "weaponType": 2,
+        "validMask": "0x00000004",
+        "satisfies": true,
+        "packed": "0x0000000000045702"
+      }
+    },
+    "commands": {
+      "bleedingShot": {
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 22,
+        "configuredPool": "RANDOM",
+        "resolvedPool": "ACTION",
+        "hitLocation": 5,
+        "combatSpam": "bleedingshot_hit",
+        "animation": "fire_3_single_medium",
+        "animationType": 1,
+        "dot": {"type": "BLEEDING", "attribute": "MIND", "chance": 100, "strength": 30, "configuredDuration": 30, "observedRemainingDuration": 26}
+      },
+      "eyeShot": {
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 51,
+        "configuredPool": "MIND",
+        "resolvedPool": "MIND",
+        "combatSpam": "eyeshot_hit",
+        "animation": "fire_3_special_single_medium_face",
+        "animationType": 1,
+        "state": {"type": "BLIND", "chance": 100, "strength": 0, "duration": 40, "result": "APPLIED", "before": 0, "after": 1}
+      },
+      "torsoShot": {
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 49,
+        "configuredPool": "HEALTH",
+        "resolvedPool": "HEALTH",
+        "combatSpam": "torsoshot_hit",
+        "animation": "fire_3_special_single_medium",
+        "animationType": 1,
+        "dot": {"type": "FIRE", "attribute": "HEALTH", "chance": 100, "strength": 30, "configuredDuration": 30, "observedRemainingDuration": 27}
+      }
+    },
+    "persistence": {
+      "fullServerRestart": true,
+      "freshDualAuthentication": true,
+      "lifecycleSurvived": true,
+      "allPrerequisitesSurvived": true,
+      "allSkillsSurvived": true,
+      "allCommandsSurvived": true,
+      "allCanPerformSurvived": true,
+      "postRestartDistanceCentimeters": 175,
+      "postRestartHeldWeapon": "fixture-pistol",
+      "postRestartExecution": {
+        "command": "torsoShot",
+        "presentationRearmed": true,
+        "distanceCentimeters": 195,
+        "serverAccepted": true,
+        "queueStatus": "Success",
+        "packedQueueStatus": "0x010000004351c000",
+        "combatResult": 1,
+        "directDamage": 38,
+        "configuredPool": "HEALTH",
+        "resolvedPool": "HEALTH",
+        "combatSpam": "torsoshot_hit",
+        "animation": "fire_3_special_single_medium",
+        "dotStrength": 30,
+        "dotAttribute": "HEALTH",
+        "observedRemainingDuration": 28
+      }
+    },
+    "cleanup": {
+      "restored": true,
+      "firstCleanupAlreadyClean": false,
+      "secondCleanupAlreadyClean": true,
+      "idempotent": true,
+      "identityBoundSnapshotsRestored": true,
+      "prerequisiteSnapshotRestored": true,
+      "temporaryPrerequisitesAbsent": true,
+      "temporarySkillsAbsent": true,
+      "temporaryCommandsAbsent": true,
+      "postCleanupQueueStatus": "Ability",
+      "postCleanupPackedQueueStatus": "0x0100000243510000",
+      "rejectionTargetabilityLifecycle": "32600000000000000000000000000003",
+      "rejectionTargetabilityDistanceCentimeters": 195,
+      "rejectionTargetabilityLifecycleRestored": true,
+      "rejectionTargetabilityCleanupIdempotent": true
+    },
+    "isolatedClientsStopped": true,
+    "isolatedClientFilesRestoredToM323": true,
+    "loginClientIdsRestored": [1001, 1001],
+    "serverHealth": "healthy",
+    "oracleHealth": "healthy",
+    "configuredClusterPortRestored": 44452,
+    "connectionServerCount": 1,
+    "restoredServerSha256": {
+      "combat_actions.class": "ca8865e374f9f89d2051daa87626b9a57f421f1563f71d8cac52dbd8d4216779",
+      "precu_headshot1_fixture.class": "f32127231cbcb403db98c335e03e3bd949f70e9dd39c4e1eef61293e5689cc76",
+      "command_table.iff": "b35818dbe130b7ba45f7b71553c624de2561ae15994dc1c6f738ae01cc38e0ef",
+      "combat_data.iff": "7db2d31cad033724ef292a92482c44aa021b8ec0c340314ddf9e354bbc5cfc46",
+      "precu_combat_overrides.iff": "b14f2503c6a78d28038879c4448f691ffd447058889544b198382554d7c30b6f",
+      "precu_combat_spam.iff": "164658699b83d32593f7affaa436014ea3523ca46da23c663a6306ab24a3d892"
+    },
+    "restoredIsolatedClientSha256": {
+      "SwgClient_r.exe": "065d19d4326a543292c0d31a04cf1eca613d85aaf6dcd3f6590bc02ad6310599",
+      "precu_runtime.tre": "d27d5958470106ff1d593580988a7f5ccb2e87998018b9ebd4778d3f4860dff7",
+      "command_table.iff": "b68434725de6a7e808a8a1dd8da94ab27195d82ef68ff62b522ee97a2d3f8d6d",
+      "combat_data.iff": "7db2d31cad033724ef292a92482c44aa021b8ec0c340314ddf9e354bbc5cfc46"
+    }
+  },
+  "publicationBoundary": {"serverProductionGameplayCodeChanged": true, "serverAcceptanceFixtureChanged": true, "clientToolsChanged": true, "clientAssetsChanged": true, "evidenceRepositoryContainsGameplayCode": false}
+}

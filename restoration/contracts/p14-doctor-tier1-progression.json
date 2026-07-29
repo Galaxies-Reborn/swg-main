@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "feature": "doctor-tier1-progression",
+  "status": "ready",
+  "scope": "Authentic Publish 14.1 Doctor tier-I progression across all four branches, exact prerequisites, XP and skill-point costs, removal of NGE commands and modifiers, six retail schematics, compiled client tables, and reversible live purchase.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "schematicGroupTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_doctor_tier1_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/authentic/skills.precu_merged.tab",
+    "skillSourceSha256": "5d8882200a4061b0086537cd4a18e2d505048e979e830caae777c55ae607dfeb",
+    "schematicTre": "patch_12_00.tre",
+    "schematicTableSha256": "7558a8671a75154ba713c2d9b2ea415907f59b947d05c699a3417aefce7d67a7",
+    "meaningfulMedicDoctorFieldDiffsAtAudit": 237,
+    "meaningfulRowsAtAudit": 38
+  },
+  "skills": [
+    {
+      "name": "science_doctor_wound_01",
+      "parent": "science_doctor",
+      "graphType": "",
+      "moneyRequired": "6000",
+      "pointsRequired": "5",
+      "skillsRequired": "science_doctor_novice",
+      "xpType": "medical",
+      "xpCost": "15000",
+      "xpCap": "40000",
+      "commands": "",
+      "skillMods": "healing_wound_treatment=10",
+      "schematics": ""
+    },
+    {
+      "name": "science_doctor_wound_speed_01",
+      "parent": "science_doctor",
+      "graphType": "",
+      "moneyRequired": "6000",
+      "pointsRequired": "5",
+      "skillsRequired": "science_doctor_novice",
+      "xpType": "medical",
+      "xpCost": "15000",
+      "xpCap": "40000",
+      "commands": "",
+      "skillMods": "healing_wound_speed=15",
+      "schematics": ""
+    },
+    {
+      "name": "science_doctor_ability_01",
+      "parent": "science_doctor",
+      "graphType": "",
+      "moneyRequired": "6000",
+      "pointsRequired": "5",
+      "skillsRequired": "science_doctor_novice",
+      "xpType": "medical",
+      "xpCost": "15000",
+      "xpCap": "40000",
+      "commands": "",
+      "skillMods": "healing_ability=5",
+      "schematics": ""
+    },
+    {
+      "name": "science_doctor_support_01",
+      "parent": "science_doctor",
+      "graphType": "",
+      "moneyRequired": "6000",
+      "pointsRequired": "5",
+      "skillsRequired": "science_doctor_novice",
+      "xpType": "crafting_medicine_general",
+      "xpCost": "15000",
+      "xpCap": "28000",
+      "commands": "",
+      "skillMods": "medicine_assembly=10,medicine_experimentation=10",
+      "schematics": "craftCureDiseaseGroupA,craftMedpackEnhanceGroupA,craftStimpackStateGroupB"
+    }
+  ],
+  "rejectedNgeCommands": [
+    "bandage",
+    "countertoxin",
+    "bactaInfusion_1",
+    "poisonInnoculation",
+    "endorphineInjection"
+  ],
+  "schematicGroups": {
+    "craftMedpackEnhanceGroupA": [
+      "object/draft_schematic/chemistry/medpack_enhance_action_a.iff",
+      "object/draft_schematic/chemistry/medpack_enhance_health_a.iff"
+    ],
+    "craftStimpackStateGroupB": [
+      "object/draft_schematic/chemistry/med_stimpack_state_intimidated_a.iff",
+      "object/draft_schematic/chemistry/med_stimpack_state_stunned_a.iff"
+    ],
+    "craftCureDiseaseGroupA": [
+      "object/draft_schematic/chemistry/medpack_cure_disease_a.iff",
+      "object/draft_schematic/chemistry/medpack_cure_disease_area_a.iff"
+    ]
+  },
+  "retainedSharedTemplates": [
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_enhance_action_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_enhance_health_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_med_stimpack_state_intimidated_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_med_stimpack_state_stunned_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_cure_disease_a.tpf",
+    "dsrc/sku.0/sys.shared/compiled/game/object/draft_schematic/chemistry/shared_medpack_cure_disease_area_a.tpf"
+  ],
+  "fixtureBoundary": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "purchase",
+      "status",
+      "cleanup"
+    ],
+    "purchaseOperations": [
+      "skill.getAvailableSkillPoints",
+      "skill.hasRequiredSkillsForSkillPurchase",
+      "skill.hasRequiredXpForSkillPurchase",
+      "skill.grantSkillToPlayer",
+      "skill.deductXpCostForSkillPurchase"
+    ],
+    "omittedNotification": "handleHolocronEvent",
+    "reason": "ServerConsole runScript has no script owner context; production gameplay validation, grant, XP mutation, commands, modifiers, schematics, caps, and point accounting remain authoritative.",
+    "cleanupPolicy": "Revoke all four Doctor tier-I boxes, novice Doctor, and the complete Medic tree; restore both XP pools and original skill points; verify all commands and schematics absent; then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "aaa2e3babbf0f651efe2e57e20b5fcb72ce10f854cae44744f452cd0b6cd7c67",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-doctor-tier1-ready-20260718-123",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "skills.tab": "ba82920def46a4625207f2614eb92748313fd9d3ed20d6d25f6096a1838c84a8",
+      "schematic_group.tab": "17081f50a2392c772f2cbb2edd70ac6bc4c133e1cd4825c898730260f2c74474",
+      "precu_doctor_tier1_fixture.java": "b5ca72e5f542191691dc99519cbe586614d75833014a227e0a22d551cd7330b6"
+    },
+    "compiledSha256": {
+      "precu_doctor_tier1_fixture.class": "0bb490206c67e806463df91b614be0cc44542bd7fbc4b077a54e71a23ccd35b1",
+      "skills.iff": "7ecd41569bbb750117ab4a52620019a25b2cc541ad9be450c5efda19716a5523",
+      "schematic_group.iff": "5ee934b54f7d96283d9e4d2e76675e77b4c1689d881a0bd8321b0e4f630a6565"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "921fb5fa22f18ba9ddc5ceba7db848456474deab",
+    "skillsIffSha256": "7ecd41569bbb750117ab4a52620019a25b2cc541ad9be450c5efda19716a5523",
+    "schematicGroupIffSha256": "5ee934b54f7d96283d9e4d2e76675e77b4c1689d881a0bd8321b0e4f630a6565"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "acceptedAt": "2026-07-18T06:01:31-04:00",
+    "container": "swg-precu",
+    "oracleContainer": "swg-precu-oracle",
+    "clientProtocolVersion": 23,
+    "clientProcessId": 42520,
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "lifecycleId": "de71e7f9b2cc45fd896c4f7b9a0dcc69",
+    "prerequisites": "1111111111111111111",
+    "tierSkills": "1111",
+    "noviceCommands": "11",
+    "ngeCommands": "00000",
+    "schematics": "111111",
+    "purchaseResults": {
+      "wound": true,
+      "speed": true,
+      "ability": true,
+      "support": true
+    },
+    "modifierDeltas": {
+      "healing_wound_treatment": 10,
+      "healing_wound_speed": 15,
+      "healing_ability": 5,
+      "medicine_assembly": 10,
+      "medicine_experimentation": 10
+    },
+    "medicalXpAfter": 0,
+    "medicalXpCapAfter": 40000,
+    "craftingXpAfter": 0,
+    "craftingXpCapAfter": 28000,
+    "availableSkillPointsAfter": 147,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "all four Doctor tier-I purchases",
+      "exact prerequisites, XP, caps, money, and skill-point costs",
+      "authentic passive modifiers and zero tier-I command grants",
+      "explicit rejection of five NGE command grants",
+      "six exact retail schematics across three groups",
+      "compiled client skill and schematic-group tables",
+      "identity-bound reversible live purchase"
+    ],
+    "deferred": [
+      "Doctor tier-II progression and commands",
+      "schematic crafting gameplay beyond ownership",
+      "repeat profession-tree visual capture"
+    ]
+  }
+}

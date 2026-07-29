@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "feature": "entertainer-attribute-buff-session",
+  "status": "ready",
+  "scope": "Restore the Publish 14.1 entertainer mind/focus/willpower buff session on the surviving watch/listen lifecycle without reactivating NGE profession inspiration.",
+  "core3Evidence": {
+    "repository": "swgemu/Core3",
+    "commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "sessionSource": "MMOCoreORB/src/server/zone/objects/player/sessions/EntertainingSessionImplementation.cpp",
+    "buffSource": "MMOCoreORB/src/server/zone/objects/creature/buffs/PerformanceBuffImplementation.cpp",
+    "activationSource": "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp"
+  },
+  "sourceFiles": {
+    "performanceLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/performance.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_attribute_buff_fixture.java"
+  },
+  "expected": {
+    "venueCapability": "private_buff_mind",
+    "targetAdmission": "same group or explicit performance.buff_target",
+    "denyServiceRejected": true,
+    "durationMinutesPerTick": 2.0,
+    "maximumDurationMinutes": 120.16667,
+    "minimumSessionSeconds": 60,
+    "minimumBuffSeconds": 10,
+    "maximumStrengthPercent": 125,
+    "danceAttribute": "MIND",
+    "musicAttributes": [
+      "FOCUS",
+      "WILLPOWER"
+    ],
+    "baseAttributeSource": "getUnmodifiedMaxAttrib",
+    "strongerExistingBuffPreserved": true,
+    "activationBoundary": "stopWatch/stopListen",
+    "ngeInspirationReactivated": false
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/147-p14-entertainer-attribute-buff-session.patch",
+    "overlayPatchBytes": 22403,
+    "overlayPatchSha256": "ac343845cc803076dbc7c0f60c24b7d0982427253e572070ff1fe4b92c255dd4",
+    "overlayPatchEvidenceEncoding": "UTF-8 with LF line endings",
+    "javaCompile": "passed",
+    "sourceSha256": {
+      "performance.java": "2da64d50b32ea18c3d41039100ee788ab330cecb59f43392cb78b7b82e19c156",
+      "precu_entertainer_attribute_buff_fixture.java": "6cc1df2e2c08a489c028a0f64860cb63ce7c51d77b462c276e4553dc7adb0588"
+    },
+    "classSha256": {
+      "performance.class": "b9c9264307e86a44105364ce7ea810964f921f85f1d8936f9c253db7e59c90d1",
+      "precu_entertainer_attribute_buff_fixture.class": "355c4a06b5bfe496087b873f73985e92edf704948fa4843351e7b8d9781e26cb"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 48992,
+    "backgroundInputProtocol": 85,
+    "character": "Icai Darkwave",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "scene": "tatooine",
+    "danceApplied": true,
+    "expectedMind": 48,
+    "danceValue": 48,
+    "weakerDanceRejected": true,
+    "musicApplied": true,
+    "expectedFocus": 40,
+    "focusValue": 40,
+    "expectedWillpower": 40,
+    "willpowerValue": 40,
+    "restored": true,
+    "serverHealthy": true,
+    "fatalSevereExceptionCount": 0
+  },
+  "followUp": "Continue the Core3 evidence queue at the next active corpse, trader, or crafting class consumer.",
+  "requiredBeforeReady": []
+}

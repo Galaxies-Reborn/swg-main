@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "feature": "dancer-ability-one-progression",
+  "status": "ready",
+  "scope": "Exact Publish 14.1 Dancer Ability I data, production purchase, actor-routed client surrender, Dancer novice retention, modifier and XP-cap recomputation, and reversible live acceptance.",
+  "sourceFiles": {
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java"
+  },
+  "publish14Evidence": {
+    "skillSource": "E:/GameDev/GalaxiesReborn/precu-restore/precu_client_skills.tab",
+    "abilityOne": {
+      "name": "social_dancer_ability_01",
+      "parent": "social_dancer",
+      "graphType": "fourByFour",
+      "isTitle": "0",
+      "isProfession": "0",
+      "moneyRequired": "6000",
+      "pointsRequired": "5",
+      "skillsRequired": "social_dancer_novice",
+      "xpType": "dance",
+      "xpCost": "87500",
+      "xpCap": "500000",
+      "commands": "spotlight,colorlights,dazzle",
+      "skillMods": "healing_dance_mind=10",
+      "schematics": "",
+      "searchable": "1"
+    },
+    "removedNgeSurface": {
+      "graphType": "",
+      "xpType": "entertainer",
+      "xpCost": "25000",
+      "xpCap": "200000",
+      "skillMods": "",
+      "searchable": "0"
+    }
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "contract": "Qualification precedes point and XP costs; purchase applies only archived commands, modifiers, and schematics; actor-routed surrender returns points, removes only unshared grants, retains the parent box, and recomputes the Dance XP cap without refund."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "overlayPatch": "restoration/patches/dsrc/081-p14-dancer-ability-one-progression.patch",
+    "overlayPatchSha256": "d29df33673b5767b698016f068cb826d6c47e663003c9b899e6512010af1dc46",
+    "cleanApplyServerCommit": "0a6e2ca2122485c3efee840a8612e372ce12eb7f",
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "changedFileCount": 2,
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledBytes": 35289,
+      "compiledSha256": "90ff90a2b56ff44f8acba2fb04fafb1d9709cd1c759ae8568fe3f33abc3fcf38"
+    },
+    "clientTableBuild": {
+      "result": "passed",
+      "compiledBytes": 578171,
+      "compiledSha256": "ba5f3fc1955314788f653542c387e5311558d5d72f18e5874a693df777f725dd"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "protocolVersion": 49,
+      "testCount": 144,
+      "expectedSkipCount": 1,
+      "sourceCommit": "55c6bd123f39afc8f21606a95ea320a89ee9e338",
+      "executableBytes": 32572416,
+      "executableSha256": "a0d4903d772f8b5349f7d4c532258a82797ac43d8fe7843b01c8cec7973a3486",
+      "clientMainSha256": "b22f223e87b0880845b8d885cb1e6283606167e8cc72ad1ea25f3936b64e120b"
+    },
+    "sourceSha256": {
+      "precu_entertainer_dance_one_fixture.java": "50de9081606283f308fa7b55fbbd0fcea62c24f9f251836968c6eb2303dddc35",
+      "skills.tab": "a6b59db82ee67e4012598045349c84eea73dc206cb06e09563598fb0ae321a79"
+    }
+  },
+  "clientAssetPublication": {
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "6c69b43cea54ba6b9a82bbade7db0dbb70b032ac",
+    "skillsIffSha256": "ba5f3fc1955314788f653542c387e5311558d5d72f18e5874a693df777f725dd"
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "lifecycle": "d212ff81769b46879d10576f8613a86f",
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "clientProcessId": 25620,
+    "clientProtocolVersion": 49,
+    "purchase": {
+      "passed": true,
+      "danceXpBefore": 87500,
+      "danceXpAfter": 0,
+      "pointCost": 5,
+      "availablePointsBefore": 210,
+      "availablePointsAfter": 205,
+      "commandsAfter": "111",
+      "danceAbilityDelta": 0,
+      "danceWoundDelta": 0,
+      "danceShockDelta": 0,
+      "danceMindDelta": 10,
+      "xpCapAfter": 500000
+    },
+    "surrender": {
+      "clientSubmitted": true,
+      "serverRemoved": true,
+      "dancerNoviceRetained": true,
+      "dancerNoviceCommandsAfter": "111",
+      "abilityOneCommandsAfter": "000",
+      "pointsRecovered": 5,
+      "danceXpRefund": 0,
+      "dancerNoviceXpCapAfter": 350000,
+      "modifierDeltasAfter": "0,0,0,0"
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "availablePoints": 250,
+      "performanceType": 0
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true
+  },
+  "requiredBeforeReady": [],
+  "nextBoundary": "Dancer Ability II progression"
+}

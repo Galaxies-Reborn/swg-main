@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "feature": "cure-disease-command",
+  "status": "ready",
+  "scope": "Publish 14.1 Doctor Cure Disease command admission and server behavior, including optional targeting, disease antidote selection and power, Focus-adjusted Mind cost, shared condition-treatment recovery, one-charge consumption, DOT-strength reduction, area-pack retention, and fixed other-player medical XP.",
+  "sourceFiles": {
+    "healingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/cure_disease.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_cure_disease_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "specialization": "MMOCoreORB/src/server/zone/objects/creature/commands/CureDiseaseCommand.h",
+    "sharedCommand": "MMOCoreORB/src/server/zone/objects/creature/commands/CurePackCommand.h",
+    "publish": "14.1"
+  },
+  "commandContract": {
+    "name": "cureDisease",
+    "category": "combat",
+    "scriptHook": "cureDisease",
+    "tempScript": "player.cmd.cure_disease",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "addToCombatQueue": false,
+    "validWeapon": "ALL",
+    "invalidWeapon": "NONE",
+    "expectedColumnCount": 94
+  },
+  "productionContract": {
+    "invalidTargetFallback": "self",
+    "eligibleTargets": [
+      "living player",
+      "living organic creature pet"
+    ],
+    "maximumOtherTargetRangeMeters": 7,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "requiredDot": "disease",
+    "medicineType": "healing.cure_dot=disease",
+    "baseMindCost": 100,
+    "mindCostFunction": "healing.getMedicalMindCost",
+    "roundTimeFormula": "max(4, round((20 - healing_injury_speed / 5) * (100 - heal_recovery) / 100))",
+    "sharedCooldown": "healing.can_heal_state",
+    "medicineChargesConsumed": 1,
+    "singlePackPower": "dot_power * (1 + healing_wound_treatment / 100)",
+    "areaPackPower": "dot_power",
+    "medicalXpForOtherPlayer": 50,
+    "medicalXpForSelfOrPet": 0
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "temporaryCommand": "cureDisease",
+    "preparedDiseaseStrength": 90,
+    "preparedMedicinePower": 200,
+    "preparedMedicineCharges": 2,
+    "cleanupPolicy": "Restore the exact shared condition cooldown, Mind, medical XP, and skill-point preimage; remove only the fixture disease DOT and medicine; revoke the fixture-owned Medic-through-Doctor-Wound-Speed-IV chain; then remove the fixture root."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "clean 5668-source compile_java and full compile_tab",
+    "patchSha256": "e138428f012e2ae44a1ddeacc9161854e94c91583f3fa44f70e3a4666cc7b36b",
+    "sourceCommit": "49086e222c836b5e107bd0b313a6530b8573a983",
+    "materialization": "E:/SWG/SWGSource/Staging/swg-precu-cure-disease-ready-20260718-136",
+    "materializationFingerprint": "87692599a2e9509d6f551fff30cdcf3ee1d5c7531caba1d383bce4d7268bec7e",
+    "sourceSha256": {
+      "healing.java": "1bbdcad2c11000431d0e5038ece8592dedc95a8ed2679dd36db318837430b70c",
+      "cure_disease.java": "895a6f5b90926315b41342277ba67ebbe323a4349b5fa72861da7ebaf5b8fc36",
+      "precu_cure_disease_command_fixture.java": "78bfc27d357b8d26057aa0fec4243660d48a83210044123d0363e47e91270d32",
+      "command_table.tab": "bc20a8ccf03a6c766bae39d3684ae2d0f438fd7d1da9cc833d49b2e9ea8b0ee0"
+    },
+    "compiledSha256": {
+      "healing.class": "446f0bcf9317c3710b6b96626ae6c3bafa7eb99f9506ab90c2b4eae500eeed60",
+      "cure_disease.class": "32e50b07e6712059b2a6808160fe99d6c0bef38d78a8e32f1d3e29db04f5a1da",
+      "precu_cure_disease_command_fixture.class": "b85e34e3f4e2f5e7ebe37474333a7dfe365e3b04bf66d4af31de78894ff43bda",
+      "command_table.iff": "4dee86fb221270c99c8528d745e33bcb44c92734dbe7f950232a3b9d38c18544"
+    }
+  },
+  "clientToolsPublication": {
+    "result": "passed",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-tools",
+    "branch": "agent/m2-skills-professions-runtime",
+    "protocolVersion": 28,
+    "commit": "1a705b88c08535050e26e412c87fd05b9eb07829",
+    "clientSha256": "dca8d50d9b634c7670a44ad1b0e52f19c0c85d4f993b07866b5fec0087a18059",
+    "startupMode": "Off-focus splash bypass, login auto-connect, scheduler progression, and Cure Disease admission are enabled only by the explicit background-input bridge."
+  },
+  "clientAssetPublication": {
+    "result": "passed",
+    "repository": "https://github.com/swgsais/pre-cu-reborn-assets",
+    "branch": "x64-dx9",
+    "commit": "eb1b951bf21087b0ca848edc46db8dd5d24c2bcb",
+    "commandTableIffSha256": "4dee86fb221270c99c8528d745e33bcb44c92734dbe7f950232a3b9d38c18544",
+    "treEntryCount": 26513,
+    "treSha256": "c45d0681a59af84d42d143ea2e28029d46442d66368a79e5b00e822034bf0691",
+    "treExtractionVerified": true,
+    "runtimePolicy": "The retail client loads the changed command table as a loose IFF; the full swgsource_3.0.tre remains an unreferenced archival/server publication."
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "executedAt": "2026-07-18T12:39:08.0298247-04:00",
+    "lifecycle": "43fad5b6c76d44b3a050491879adc319",
+    "container": "swg-precu",
+    "oracleContainer": "swg-precu-oracle",
+    "clientProcessId": 47824,
+    "clientProtocolVersion": 28,
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "skillVector": "11111111111111111111111",
+    "clientQueueCountAtAdmission": 0,
+    "clientQueueCountAfterExecution": 0,
+    "clientQueueCountAfterCleanup": 0,
+    "clientCommandStatus": "Success",
+    "handlerCalls": 1,
+    "handlerOutcome": "performed",
+    "targetOid": 39008597,
+    "medicinePower": 200,
+    "diseaseBefore": 90,
+    "diseaseAfter": 0,
+    "diseaseReduction": 90,
+    "expectedMindCost": 91,
+    "appliedMindCost": 91,
+    "observedMindAfterRegeneration": 329,
+    "appliedChargeCost": 1,
+    "appliedMedicalXpDelta": 0,
+    "expectedRoundTime": 5,
+    "appliedRoundTime": 5,
+    "cooldownRemainingAtObservation": -4,
+    "availableSkillPoints": 153,
+    "cleanup": {
+      "restored": true,
+      "idempotent": true
+    },
+    "serverHealthyAfterCleanup": true,
+    "oracleHealthyAfterCleanup": true,
+    "clientSha256": "dca8d50d9b634c7670a44ad1b0e52f19c0c85d4f993b07866b5fec0087a18059",
+    "commandTableIffSha256": "4dee86fb221270c99c8528d745e33bcb44c92734dbe7f950232a3b9d38c18544"
+  },
+  "requiredBeforeReady": [],
+  "narrowBoundary": {
+    "included": [
+      "authentic optional-target five-second nonqueued command row",
+      "seven-meter organic patient, line-of-sight, and PvP-help gates",
+      "disease-specific medicine selection and one-charge consumption",
+      "retained single and area cure-power mechanics",
+      "Focus-adjusted 100-Mind cost and shared condition-treatment cooldown",
+      "fixed 50 medical XP for another player and zero for self or pets",
+      "protocol-28 no-focus client admission",
+      "identity-bound reversible self-treatment fixture"
+    ],
+    "deferred": [
+      "live second-player 50-XP acceptance",
+      "live area-pack multi-target acceptance",
+      "Revive Player gameplay adapter",
+      "hospital placement gameplay"
+    ]
+  }
+}

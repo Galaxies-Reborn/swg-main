@@ -1,0 +1,357 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java
+index e1f0bfa1b..203780a26 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java
+@@ -7,7 +7,8 @@ import script.obj_id;
+ 
+ /**
+  * Identity-bound reversible fixture for exact Publish 14.1 Entertainer
+- * Dance I-IV, Dancer novice, Dancer Ability I-IV, and Dancer Wound I-IV
++ * Dance I-IV, Dancer novice, Dancer Ability I-IV, Dancer Wound I-IV,
++ * and Dancer Shock I
+  * purchase,
+  * real-client performance use, and production surrender.
+  */
+@@ -46,6 +47,8 @@ public class precu_entertainer_dance_one_fixture
+         "social_dancer_wound_03";
+     private static final String DANCER_WOUND_FOUR =
+         "social_dancer_wound_04";
++    private static final String DANCER_SHOCK_ONE =
++        "social_dancer_shock_01";
+     private static final String DANCE_XP = "dance";
+     private static final String ENTERTAINER_HEALING_XP =
+         "entertainer_healing";
+@@ -79,6 +82,8 @@ public class precu_entertainer_dance_one_fixture
+     private static final String SMOKE_BOMB_ABILITY = "smokebomb";
+     private static final String NGE_CENTER_STAGE_ABILITY = "centerStage";
+     private static final String NGE_FLOOR_LIGHTS_ABILITY = "floorLights";
++    private static final String NGE_DOUBLE_RIBBON_ABILITY =
++        "prop_double_ribbon";
+     private static final String NGE_BUNDUKI_ABILITY =
+         "startDance+bunduki";
+     private static final String NGE_PROP_RIBBON_ABILITY =
+@@ -87,6 +92,8 @@ public class precu_entertainer_dance_one_fixture
+         "prop_dual_wield";
+     private static final String NGE_PROP_SCHEMATIC =
+         "object/draft_schematic/dance_prop/prop_ribbon_r.iff";
++    private static final String NGE_DOUBLE_RIBBON_SCHEMATIC =
++        "object/draft_schematic/dance_prop/prop_double_ribbon_r.iff";
+     private static final String DANCE_MOD =
+         "healing_dance_ability";
+     private static final String DANCE_WOUND_MOD =
+@@ -95,6 +102,7 @@ public class precu_entertainer_dance_one_fixture
+         "healing_dance_shock";
+     private static final String DANCE_MIND_MOD =
+         "healing_dance_mind";
++    private static final String PROP_ASSEMBLY_MOD = "prop_assembly";
+     private static final int BASIC_TWO_INDEX = 282;
+     private static final int RHYTHMIC_TWO_INDEX = 284;
+     private static final int FOOTLOOSE_INDEX = 285;
+@@ -126,6 +134,8 @@ public class precu_entertainer_dance_one_fixture
+     private static final int DANCER_WOUND_THREE_POINT_COST = 3;
+     private static final int DANCER_WOUND_FOUR_XP_COST = 125000;
+     private static final int DANCER_WOUND_FOUR_POINT_COST = 2;
++    private static final int DANCER_SHOCK_ONE_XP_COST = 25000;
++    private static final int DANCER_SHOCK_ONE_POINT_COST = 5;
+     private static final int REFERENCE_QUICKNESS = 400;
+     private static final int START_ACTION = 100;
+     private static final int FIRST_LOOP_ACTION = 72;
+@@ -159,6 +169,8 @@ public class precu_entertainer_dance_one_fixture
+         ROOT + ".baseDanceShockMod";
+     private static final String BASE_DANCE_MIND_MOD =
+         ROOT + ".baseDanceMindMod";
++    private static final String BASE_PROP_ASSEMBLY_MOD =
++        ROOT + ".basePropAssemblyMod";
+     private static final String PURCHASED = ROOT + ".purchased";
+     private static final String STARTED = ROOT + ".started";
+     private static final String STOPPED = ROOT + ".stopped";
+@@ -191,6 +203,8 @@ public class precu_entertainer_dance_one_fixture
+         "observeSurrenderDancerWoundThree|" +
+         "prepareDancerWoundFour|purchaseDancerWoundFour|" +
+         "observeSurrenderDancerWoundFour|" +
++        "prepareDancerShockOne|purchaseDancerShockOne|" +
++        "observeSurrenderDancerShockOne|" +
+         "status|cleanup " +
+         "<playerOid> <lifecycle>";
+ 
+@@ -285,6 +299,10 @@ public class precu_entertainer_dance_one_fixture
+         {
+             return prepareDancerWoundFour(player, args[2]);
+         }
++        if (action.equalsIgnoreCase("prepareDancerShockOne"))
++        {
++            return prepareDancerShockOne(player, args[2]);
++        }
+         if (action.equalsIgnoreCase("cleanup") &&
+             !hasObjVar(player, ROOT))
+         {
+@@ -347,6 +365,10 @@ public class precu_entertainer_dance_one_fixture
+         {
+             return purchaseDancerWoundFour(player);
+         }
++        if (action.equalsIgnoreCase("purchaseDancerShockOne"))
++        {
++            return purchaseDancerShockOne(player);
++        }
+         if (action.equalsIgnoreCase("observeBasicTwoStart"))
+         {
+             return observeBasicTwoStart(player);
+@@ -448,6 +470,11 @@ public class precu_entertainer_dance_one_fixture
+         {
+             return observeSurrenderDancerWoundFour(player);
+         }
++        if (action.equalsIgnoreCase(
++            "observeSurrenderDancerShockOne"))
++        {
++            return observeSurrenderDancerShockOne(player);
++        }
+         if (action.equalsIgnoreCase("status"))
+         {
+             return "action=status " + buildStatus(player);
+@@ -484,6 +511,7 @@ public class precu_entertainer_dance_one_fixture
+             hasSkill(player, DANCER_WOUND_TWO) ||
+             hasSkill(player, DANCER_WOUND_THREE) ||
+             hasSkill(player, DANCER_WOUND_FOUR) ||
++            hasSkill(player, DANCER_SHOCK_ONE) ||
+             hasCommand(player, BASIC_TWO_ABILITY) ||
+             hasCommand(player, PRIVATE_ABILITY) ||
+             hasCommand(player, RHYTHMIC_TWO_ABILITY) ||
+@@ -1566,6 +1594,89 @@ public class precu_entertainer_dance_one_fixture
+             buildStatus(player);
+     }
+ 
++    private String prepareDancerShockOne(
++        obj_id player,
++        String lifecycle)
++        throws InterruptedException
++    {
++        String preparedNovice =
++            prepareDancerNovice(player, lifecycle);
++        if (preparedNovice.startsWith("error="))
++        {
++            return preparedNovice;
++        }
++        if (hasSkill(player, DANCER_SHOCK_ONE))
++        {
++            return "action=prepareDancerShockOne resumed=true " +
++                buildStatus(player);
++        }
++
++        boolean noviceReady =
++            hasSkill(player, DANCER_NOVICE) ||
++            (skill.grantSkillToPlayer(player, DANCER_NOVICE) &&
++                hasSkill(player, DANCER_NOVICE));
++        setObjVar(
++            player,
++            BASE_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(
++            player,
++            BASE_DANCE_MOD,
++            getSkillStatMod(player, DANCE_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_WOUND_MOD,
++            getSkillStatMod(player, DANCE_WOUND_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_SHOCK_MOD,
++            getSkillStatMod(player, DANCE_SHOCK_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_MIND_MOD,
++            getSkillStatMod(player, DANCE_MIND_MOD));
++        setObjVar(
++            player,
++            BASE_PROP_ASSEMBLY_MOD,
++            getSkillStatMod(player, PROP_ASSEMBLY_MOD));
++        boolean xpReady =
++            setXpExact(
++                player,
++                ENTERTAINER_HEALING_XP,
++                DANCER_SHOCK_ONE_XP_COST);
++        resetTelemetry(player);
++
++        boolean prepared =
++            noviceReady &&
++            xpReady &&
++            hasSkill(player, DANCER_NOVICE) &&
++            !hasSkill(player, DANCER_SHOCK_ONE) &&
++            !hasCommand(player, NGE_DOUBLE_RIBBON_ABILITY) &&
++            !hasSchematic(player, NGE_DOUBLE_RIBBON_SCHEMATIC) &&
++            getExperienceCap(player, ENTERTAINER_HEALING_XP) == 75000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) -
++                    15 - DANCE_ONE_POINT_COST -
++                    DANCE_TWO_POINT_COST -
++                    DANCE_THREE_POINT_COST -
++                    DANCE_FOUR_POINT_COST -
++                    DANCE_FOUR_POINT_COST -
++                    DANCER_NOVICE_POINT_COST;
++        if (!prepared)
++        {
++            String detail = buildStatus(player);
++            boolean restored = restoreSnapshot(player);
++            if (restored)
++            {
++                removeObjVar(player, ROOT);
++            }
++            return "error=fixtureDancerShockOneSetupFailed " +
++                "restored=" + restored + " " + detail;
++        }
++        return "action=prepareDancerShockOne resumed=false " +
++            buildStatus(player);
++    }
++
+     private String purchaseTwo(obj_id player)
+         throws InterruptedException
+     {
+@@ -1984,6 +2095,45 @@ public class precu_entertainer_dance_one_fixture
+             " purchased=" + purchased + " " + buildStatus(player);
+     }
+ 
++    private String purchaseDancerShockOne(obj_id player)
++        throws InterruptedException
++    {
++        if (readFlag(player, PURCHASED))
++        {
++            return "action=purchaseDancerShockOne resumed=true " +
++                buildStatus(player);
++        }
++        boolean purchased =
++            purchaseWithoutHolocron(
++                player,
++                DANCER_SHOCK_ONE,
++                DANCER_SHOCK_ONE_POINT_COST);
++        boolean passed =
++            purchased &&
++            hasSkill(player, DANCER_SHOCK_ONE) &&
++            getSkillStatMod(player, DANCE_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MOD) &&
++            getSkillStatMod(player, DANCE_WOUND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_WOUND_MOD) &&
++            getSkillStatMod(player, DANCE_SHOCK_MOD) -
++                getIntObjVar(player, BASE_DANCE_SHOCK_MOD) == 10 &&
++            getSkillStatMod(player, DANCE_MIND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MIND_MOD) &&
++            getSkillStatMod(player, PROP_ASSEMBLY_MOD) ==
++                getIntObjVar(player, BASE_PROP_ASSEMBLY_MOD) &&
++            !hasCommand(player, NGE_DOUBLE_RIBBON_ABILITY) &&
++            !hasSchematic(player, NGE_DOUBLE_RIBBON_SCHEMATIC) &&
++            getExperiencePoints(player, ENTERTAINER_HEALING_XP) == 0 &&
++            getExperienceCap(player, ENTERTAINER_HEALING_XP) == 200000 &&
++            getExperienceCap(player, DANCE_XP) == 350000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS) -
++                    DANCER_SHOCK_ONE_POINT_COST;
++        setObjVar(player, PURCHASED, passed ? 1 : 0);
++        return "action=purchaseDancerShockOne passed=" + passed +
++            " purchased=" + purchased + " " + buildStatus(player);
++    }
++
+     private boolean purchaseWithoutHolocron(
+         obj_id player,
+         String skillName,
+@@ -2571,6 +2721,38 @@ public class precu_entertainer_dance_one_fixture
+             passed + " " + buildStatus(player);
+     }
+ 
++    private String observeSurrenderDancerShockOne(obj_id player)
++        throws InterruptedException
++    {
++        boolean passed =
++            readFlag(player, PURCHASED) &&
++            !hasSkill(player, DANCER_SHOCK_ONE) &&
++            hasSkill(player, DANCER_NOVICE) &&
++            hasCommand(player, POPULAR_ABILITY) &&
++            hasCommand(player, POPLOCK_ABILITY) &&
++            hasCommand(player, REGISTER_ABILITY) &&
++            !hasCommand(player, NGE_DOUBLE_RIBBON_ABILITY) &&
++            !hasSchematic(player, NGE_DOUBLE_RIBBON_SCHEMATIC) &&
++            getSkillStatMod(player, DANCE_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MOD) &&
++            getSkillStatMod(player, DANCE_WOUND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_WOUND_MOD) &&
++            getSkillStatMod(player, DANCE_SHOCK_MOD) ==
++                getIntObjVar(player, BASE_DANCE_SHOCK_MOD) &&
++            getSkillStatMod(player, DANCE_MIND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MIND_MOD) &&
++            getSkillStatMod(player, PROP_ASSEMBLY_MOD) ==
++                getIntObjVar(player, BASE_PROP_ASSEMBLY_MOD) &&
++            getExperiencePoints(player, ENTERTAINER_HEALING_XP) == 0 &&
++            getExperienceCap(player, ENTERTAINER_HEALING_XP) == 75000 &&
++            getExperienceCap(player, DANCE_XP) == 350000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS);
++        setObjVar(player, SURRENDERED, passed ? 1 : 0);
++        return "action=observeSurrenderDancerShockOne passed=" +
++            passed + " " + buildStatus(player);
++    }
++
+     private String cleanup(obj_id player)
+         throws InterruptedException
+     {
+@@ -2596,6 +2778,10 @@ public class precu_entertainer_dance_one_fixture
+             return false;
+         }
+         clearPerformanceState(player);
++        if (hasSkill(player, DANCER_SHOCK_ONE))
++        {
++            revokeSkill(player, DANCER_SHOCK_ONE);
++        }
+         if (hasSkill(player, DANCER_WOUND_FOUR))
+         {
+             revokeSkill(player, DANCER_WOUND_FOUR);
+@@ -2695,6 +2881,7 @@ public class precu_entertainer_dance_one_fixture
+             actionRestored &&
+             locomotionRestored &&
+             postureRestored &&
++            !hasSkill(player, DANCER_SHOCK_ONE) &&
+             !hasSkill(player, DANCER_WOUND_FOUR) &&
+             !hasSkill(player, DANCER_WOUND_THREE) &&
+             !hasSkill(player, DANCER_WOUND_TWO) &&
+@@ -2848,6 +3035,8 @@ public class precu_entertainer_dance_one_fixture
+                 (hasSkill(player, DANCER_WOUND_THREE) ? "1" : "0") +
+             " dancerWoundFour=" +
+                 (hasSkill(player, DANCER_WOUND_FOUR) ? "1" : "0") +
++            " dancerShockOne=" +
++                (hasSkill(player, DANCER_SHOCK_ONE) ? "1" : "0") +
+             " commands=" +
+                 (hasCommand(player, BASIC_TWO_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, PRIVATE_ABILITY) ? "1" : "0") +
+@@ -2902,6 +3091,10 @@ public class precu_entertainer_dance_one_fixture
+                 (hasCommand(
+                     player,
+                     NGE_PROP_DUAL_ABILITY) ? "1" : "0") +
++            " ngeShockOneCommand=" +
++                (hasCommand(
++                    player,
++                    NGE_DOUBLE_RIBBON_ABILITY) ? "1" : "0") +
+             " danceModDelta=" +
+                 (getSkillStatMod(player, DANCE_MOD) - baseMod) +
+             " danceWoundDelta=" +
+@@ -2913,6 +3106,11 @@ public class precu_entertainer_dance_one_fixture
+             " danceMindDelta=" +
+                 (getSkillStatMod(player, DANCE_MIND_MOD) -
+                     baseMindMod) +
++            " propAssemblyDelta=" +
++                (hasObjVar(player, BASE_PROP_ASSEMBLY_MOD)
++                    ? getSkillStatMod(player, PROP_ASSEMBLY_MOD) -
++                        getIntObjVar(player, BASE_PROP_ASSEMBLY_MOD)
++                    : 0) +
+             " danceXp=" + getExperiencePoints(player, DANCE_XP) +
+             " danceCap=" + getExperienceCap(player, DANCE_XP) +
+             " healingXp=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index f6dc923dc..6b9dd884a 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -383,7 +383,7 @@ social_dancer_knowledge_01	social_dancer		0	0	0	0	6000	5		social_dancer_novice
+ social_dancer_knowledge_02	social_dancer_knowledge_01		0	0	0	0	7000	4		social_dancer_knowledge_01		dance	125000	700000							"startDance+poplock2,startDance+tumble2"	healing_dance_ability=10			0	0
+ social_dancer_knowledge_03	social_dancer_knowledge_02		0	0	0	0	8000	3		social_dancer_knowledge_02		dance	175000	900000							"startDance+lyrical,startDance+breakdance"	healing_dance_ability=10			0	0
+ social_dancer_knowledge_04	social_dancer_knowledge_03		0	1	0	0	9000	2		social_dancer_knowledge_03		dance	225000	900000							"startDance+breakdance2,startDance+exotic,startDance+exotic2"	healing_dance_ability=10			0	0
+-social_dancer_shock_01	social_dancer		0	0	0	0	6000	5		social_dancer_novice		entertainer	25000	200000							prop_double_ribbon	prop_assembly=10	craftDancePropG		0	0
++social_dancer_shock_01	social_dancer	fourByFour	0	0	0	0	6000	5	0	social_dancer_novice		entertainer_healing	25000	200000		0			none			healing_dance_shock=10			1	0
+ social_dancer_shock_02	social_dancer_shock_01		0	0	0	0	7000	4		social_dancer_shock_01		entertainer	50000	400000							prop_ribbon_magic	prop_assembly=10	craftDancePropH		0	0
+ social_dancer_shock_03	social_dancer_shock_02		0	0	0	0	8000	3		social_dancer_shock_02		entertainer	100000	500000							prop_double_ribbon_magic	prop_assembly=10	craftDancePropI		0	0
+ social_dancer_shock_04	social_dancer_shock_03		0	1	0	0	9000	2		social_dancer_shock_03		entertainer	125000	500000							prop_ribbon_spark	prop_assembly=10	craftDancePropJ		0	0

@@ -1,0 +1,327 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java
+index 21e638a02..09b1d0e2d 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_dance_one_fixture.java
+@@ -29,6 +29,8 @@ public class precu_entertainer_dance_one_fixture
+         "social_entertainer_healing_04";
+     private static final String DANCER_NOVICE =
+         "social_dancer_novice";
++    private static final String DANCER_ABILITY_ONE =
++        "social_dancer_ability_01";
+     private static final String DANCE_XP = "dance";
+     private static final String BASIC_TWO_ABILITY =
+         "startDance+basic2";
+@@ -52,6 +54,9 @@ public class precu_entertainer_dance_one_fixture
+         "startDance+poplock";
+     private static final String REGISTER_ABILITY =
+         "registerWithLocation";
++    private static final String SPOTLIGHT_ABILITY = "spotlight";
++    private static final String COLOR_LIGHTS_ABILITY = "colorlights";
++    private static final String DAZZLE_ABILITY = "dazzle";
+     private static final String NGE_BUNDUKI_ABILITY =
+         "startDance+bunduki";
+     private static final String NGE_PROP_RIBBON_ABILITY =
+@@ -83,6 +88,8 @@ public class precu_entertainer_dance_one_fixture
+     private static final int DANCE_FOUR_POINT_COST = 5;
+     private static final int DANCER_NOVICE_XP_COST = 50000;
+     private static final int DANCER_NOVICE_POINT_COST = 6;
++    private static final int DANCER_ABILITY_ONE_XP_COST = 87500;
++    private static final int DANCER_ABILITY_ONE_POINT_COST = 5;
+     private static final int REFERENCE_QUICKNESS = 400;
+     private static final int START_ACTION = 100;
+     private static final int FIRST_LOOP_ACTION = 72;
+@@ -130,6 +137,8 @@ public class precu_entertainer_dance_one_fixture
+         "prepareDancerNovice|purchaseDancerNovice|" +
+         "observePopularStart|observePopularStop|" +
+         "observeSurrenderDancerNovice|" +
++        "prepareDancerAbilityOne|purchaseDancerAbilityOne|" +
++        "observeSurrenderDancerAbilityOne|" +
+         "status|cleanup " +
+         "<playerOid> <lifecycle>";
+ 
+@@ -192,6 +201,10 @@ public class precu_entertainer_dance_one_fixture
+         {
+             return prepareDancerNovice(player, args[2]);
+         }
++        if (action.equalsIgnoreCase("prepareDancerAbilityOne"))
++        {
++            return prepareDancerAbilityOne(player, args[2]);
++        }
+         if (action.equalsIgnoreCase("cleanup") &&
+             !hasObjVar(player, ROOT))
+         {
+@@ -222,6 +235,10 @@ public class precu_entertainer_dance_one_fixture
+         {
+             return purchaseDancerNovice(player);
+         }
++        if (action.equalsIgnoreCase("purchaseDancerAbilityOne"))
++        {
++            return purchaseDancerAbilityOne(player);
++        }
+         if (action.equalsIgnoreCase("observeBasicTwoStart"))
+         {
+             return observeBasicTwoStart(player);
+@@ -283,6 +300,11 @@ public class precu_entertainer_dance_one_fixture
+         {
+             return observeSurrenderDancerNovice(player);
+         }
++        if (action.equalsIgnoreCase(
++            "observeSurrenderDancerAbilityOne"))
++        {
++            return observeSurrenderDancerAbilityOne(player);
++        }
+         if (action.equalsIgnoreCase("status"))
+         {
+             return "action=status " + buildStatus(player);
+@@ -311,6 +333,7 @@ public class precu_entertainer_dance_one_fixture
+             hasSkill(player, DANCE_FOUR) ||
+             hasSkill(player, HEALING_FOUR) ||
+             hasSkill(player, DANCER_NOVICE) ||
++            hasSkill(player, DANCER_ABILITY_ONE) ||
+             hasCommand(player, BASIC_TWO_ABILITY) ||
+             hasCommand(player, PRIVATE_ABILITY) ||
+             hasCommand(player, RHYTHMIC_TWO_ABILITY) ||
+@@ -321,7 +344,10 @@ public class precu_entertainer_dance_one_fixture
+             hasCommand(player, PRIVATE_FOUR_ABILITY) ||
+             hasCommand(player, POPULAR_ABILITY) ||
+             hasCommand(player, POPLOCK_ABILITY) ||
+-            hasCommand(player, REGISTER_ABILITY))
++            hasCommand(player, REGISTER_ABILITY) ||
++            hasCommand(player, SPOTLIGHT_ABILITY) ||
++            hasCommand(player, COLOR_LIGHTS_ABILITY) ||
++            hasCommand(player, DAZZLE_ABILITY))
+         {
+             return "error=fixtureRequiresUntrainedEntertainer";
+         }
+@@ -718,6 +744,88 @@ public class precu_entertainer_dance_one_fixture
+             buildStatus(player);
+     }
+ 
++    private String prepareDancerAbilityOne(
++        obj_id player,
++        String lifecycle)
++        throws InterruptedException
++    {
++        String preparedNovice =
++            prepareDancerNovice(player, lifecycle);
++        if (preparedNovice.startsWith("error="))
++        {
++            return preparedNovice;
++        }
++        if (hasSkill(player, DANCER_ABILITY_ONE))
++        {
++            return "action=prepareDancerAbilityOne resumed=true " +
++                buildStatus(player);
++        }
++
++        boolean noviceReady =
++            hasSkill(player, DANCER_NOVICE) ||
++            (skill.grantSkillToPlayer(player, DANCER_NOVICE) &&
++                hasSkill(player, DANCER_NOVICE));
++        setObjVar(
++            player,
++            BASE_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(
++            player,
++            BASE_DANCE_MOD,
++            getSkillStatMod(player, DANCE_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_WOUND_MOD,
++            getSkillStatMod(player, DANCE_WOUND_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_SHOCK_MOD,
++            getSkillStatMod(player, DANCE_SHOCK_MOD));
++        setObjVar(
++            player,
++            BASE_DANCE_MIND_MOD,
++            getSkillStatMod(player, DANCE_MIND_MOD));
++        boolean xpReady =
++            setXpExact(
++                player,
++                DANCE_XP,
++                DANCER_ABILITY_ONE_XP_COST);
++        resetTelemetry(player);
++
++        boolean prepared =
++            noviceReady &&
++            xpReady &&
++            hasSkill(player, DANCER_NOVICE) &&
++            !hasSkill(player, DANCER_ABILITY_ONE) &&
++            hasCommand(player, POPULAR_ABILITY) &&
++            hasCommand(player, POPLOCK_ABILITY) &&
++            hasCommand(player, REGISTER_ABILITY) &&
++            !hasCommand(player, SPOTLIGHT_ABILITY) &&
++            !hasCommand(player, COLOR_LIGHTS_ABILITY) &&
++            !hasCommand(player, DAZZLE_ABILITY) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) -
++                    15 - DANCE_ONE_POINT_COST -
++                    DANCE_TWO_POINT_COST -
++                    DANCE_THREE_POINT_COST -
++                    DANCE_FOUR_POINT_COST -
++                    DANCE_FOUR_POINT_COST -
++                    DANCER_NOVICE_POINT_COST;
++        if (!prepared)
++        {
++            String detail = buildStatus(player);
++            boolean restored = restoreSnapshot(player);
++            if (restored)
++            {
++                removeObjVar(player, ROOT);
++            }
++            return "error=fixtureDancerAbilityOneSetupFailed " +
++                "restored=" + restored + " " + detail;
++        }
++        return "action=prepareDancerAbilityOne resumed=false " +
++            buildStatus(player);
++    }
++
+     private String purchaseTwo(obj_id player)
+         throws InterruptedException
+     {
+@@ -849,6 +957,43 @@ public class precu_entertainer_dance_one_fixture
+             " purchased=" + purchased + " " + buildStatus(player);
+     }
+ 
++    private String purchaseDancerAbilityOne(obj_id player)
++        throws InterruptedException
++    {
++        if (readFlag(player, PURCHASED))
++        {
++            return "action=purchaseDancerAbilityOne resumed=true " +
++                buildStatus(player);
++        }
++        boolean purchased =
++            purchaseWithoutHolocron(
++                player,
++                DANCER_ABILITY_ONE,
++                DANCER_ABILITY_ONE_POINT_COST);
++        boolean passed =
++            purchased &&
++            hasSkill(player, DANCER_ABILITY_ONE) &&
++            hasCommand(player, SPOTLIGHT_ABILITY) &&
++            hasCommand(player, COLOR_LIGHTS_ABILITY) &&
++            hasCommand(player, DAZZLE_ABILITY) &&
++            getSkillStatMod(player, DANCE_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MOD) &&
++            getSkillStatMod(player, DANCE_WOUND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_WOUND_MOD) &&
++            getSkillStatMod(player, DANCE_SHOCK_MOD) ==
++                getIntObjVar(player, BASE_DANCE_SHOCK_MOD) &&
++            getSkillStatMod(player, DANCE_MIND_MOD) -
++                getIntObjVar(player, BASE_DANCE_MIND_MOD) == 10 &&
++            getExperiencePoints(player, DANCE_XP) == 0 &&
++            getExperienceCap(player, DANCE_XP) == 500000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS) -
++                    DANCER_ABILITY_ONE_POINT_COST;
++        setObjVar(player, PURCHASED, passed ? 1 : 0);
++        return "action=purchaseDancerAbilityOne passed=" + passed +
++            " purchased=" + purchased + " " + buildStatus(player);
++    }
++
+     private boolean purchaseWithoutHolocron(
+         obj_id player,
+         String skillName,
+@@ -1201,6 +1346,36 @@ public class precu_entertainer_dance_one_fixture
+             passed + " " + buildStatus(player);
+     }
+ 
++    private String observeSurrenderDancerAbilityOne(obj_id player)
++        throws InterruptedException
++    {
++        boolean passed =
++            readFlag(player, PURCHASED) &&
++            !hasSkill(player, DANCER_ABILITY_ONE) &&
++            hasSkill(player, DANCER_NOVICE) &&
++            !hasCommand(player, SPOTLIGHT_ABILITY) &&
++            !hasCommand(player, COLOR_LIGHTS_ABILITY) &&
++            !hasCommand(player, DAZZLE_ABILITY) &&
++            hasCommand(player, POPULAR_ABILITY) &&
++            hasCommand(player, POPLOCK_ABILITY) &&
++            hasCommand(player, REGISTER_ABILITY) &&
++            getSkillStatMod(player, DANCE_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MOD) &&
++            getSkillStatMod(player, DANCE_WOUND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_WOUND_MOD) &&
++            getSkillStatMod(player, DANCE_SHOCK_MOD) ==
++                getIntObjVar(player, BASE_DANCE_SHOCK_MOD) &&
++            getSkillStatMod(player, DANCE_MIND_MOD) ==
++                getIntObjVar(player, BASE_DANCE_MIND_MOD) &&
++            getExperiencePoints(player, DANCE_XP) == 0 &&
++            getExperienceCap(player, DANCE_XP) == 350000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS);
++        setObjVar(player, SURRENDERED, passed ? 1 : 0);
++        return "action=observeSurrenderDancerAbilityOne passed=" +
++            passed + " " + buildStatus(player);
++    }
++
+     private String cleanup(obj_id player)
+         throws InterruptedException
+     {
+@@ -1226,6 +1401,10 @@ public class precu_entertainer_dance_one_fixture
+             return false;
+         }
+         clearPerformanceState(player);
++        if (hasSkill(player, DANCER_ABILITY_ONE))
++        {
++            revokeSkill(player, DANCER_ABILITY_ONE);
++        }
+         if (hasSkill(player, DANCER_NOVICE))
+         {
+             revokeSkill(player, DANCER_NOVICE);
+@@ -1287,6 +1466,7 @@ public class precu_entertainer_dance_one_fixture
+             actionRestored &&
+             locomotionRestored &&
+             postureRestored &&
++            !hasSkill(player, DANCER_ABILITY_ONE) &&
+             !hasSkill(player, DANCER_NOVICE) &&
+             !hasSkill(player, HEALING_FOUR) &&
+             !hasSkill(player, DANCE_FOUR) &&
+@@ -1305,6 +1485,9 @@ public class precu_entertainer_dance_one_fixture
+             !hasCommand(player, POPULAR_ABILITY) &&
+             !hasCommand(player, POPLOCK_ABILITY) &&
+             !hasCommand(player, REGISTER_ABILITY) &&
++            !hasCommand(player, SPOTLIGHT_ABILITY) &&
++            !hasCommand(player, COLOR_LIGHTS_ABILITY) &&
++            !hasCommand(player, DAZZLE_ABILITY) &&
+             !hasCommand(player, NGE_BUNDUKI_ABILITY) &&
+             !hasCommand(player, NGE_PROP_RIBBON_ABILITY) &&
+             !hasCommand(player, NGE_PROP_DUAL_ABILITY) &&
+@@ -1408,6 +1591,8 @@ public class precu_entertainer_dance_one_fixture
+                 (hasSkill(player, HEALING_FOUR) ? "1" : "0") +
+             " dancerNovice=" +
+                 (hasSkill(player, DANCER_NOVICE) ? "1" : "0") +
++            " dancerAbilityOne=" +
++                (hasSkill(player, DANCER_ABILITY_ONE) ? "1" : "0") +
+             " commands=" +
+                 (hasCommand(player, BASIC_TWO_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, PRIVATE_ABILITY) ? "1" : "0") +
+@@ -1436,6 +1621,10 @@ public class precu_entertainer_dance_one_fixture
+                 (hasCommand(player, POPULAR_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, POPLOCK_ABILITY) ? "1" : "0") +
+                 (hasCommand(player, REGISTER_ABILITY) ? "1" : "0") +
++            " abilityOneCommands=" +
++                (hasCommand(player, SPOTLIGHT_ABILITY) ? "1" : "0") +
++                (hasCommand(player, COLOR_LIGHTS_ABILITY) ? "1" : "0") +
++                (hasCommand(player, DAZZLE_ABILITY) ? "1" : "0") +
+             " ngeCommands=" +
+                 (hasCommand(player, NGE_BUNDUKI_ABILITY) ? "1" : "0") +
+                 (hasCommand(
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index 53ffa969b..47dd9c969 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -371,7 +371,7 @@ social_entertainer_healing_04	social_entertainer_healing_03		0	1	0	0	4000	5		soc
+ social_dancer	social	fourByFour	0	0	1	0	0	0	0				0	0		0			none						1	0
+ social_dancer_novice	social_dancer	fourByFour	0	1	0	0	5000	6	0	"social_entertainer_dance_04,social_entertainer_healing_04"		dance	50000	350000		0			none		"startDance+popular,startDance+poplock,registerWithLocation"	"healing_dance_ability=10,healing_dance_wound=5,healing_dance_shock=10,healing_dance_mind=10"			1	0
+ social_dancer_master	social_dancer		0	1	0	0	10000	1		"social_dancer_ability_04,social_dancer_wound_04,social_dancer_knowledge_04,social_dancer_shock_04"		dance	350000	500000							"startDance+lyrical2,startDance+exotic3,startDance+exotic4,place_cantina,place_theater,prop_double_ribbon_spark"	"healing_dance_ability=10,healing_dance_wound=25,melee_defense=7,ranged_defense=7,private_place_cantina=100,private_place_theater=100,prop_assembly=10"	craftDancePropK		0	0
+-social_dancer_ability_01	social_dancer		0	0	0	0	6000	5		social_dancer_novice		entertainer	25000	200000							"spotlight,colorlights,dazzle"				0	0
++social_dancer_ability_01	social_dancer	fourByFour	0	0	0	0	6000	5	0	social_dancer_novice		dance	87500	500000		0			none		"spotlight,colorlights,dazzle"	healing_dance_mind=10			1	0
+ social_dancer_ability_02	social_dancer_ability_01		0	0	0	0	7000	4		social_dancer_ability_01		entertainer	50000	400000							"distract,colorSwirl"				0	0
+ social_dancer_ability_03	social_dancer_ability_02		0	0	0	0	8000	3		social_dancer_ability_02		entertainer	100000	500000							"smokebomb,centerStage"				0	0
+ social_dancer_ability_04	social_dancer_ability_03		0	1	0	0	9000	2		social_dancer_ability_03		entertainer	125000	500000							floorLights				0	0

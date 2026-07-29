@@ -1,0 +1,425 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 1489dfca382d6b2945cf6878d11143d265775662..859e552fb79134438f1dc6e7dd8a58def93e9273 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -14941,6 +14941,14 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+         return SCRIPT_CONTINUE;
+     }
++    public int intimidate1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
++    {
++        if (!combatStandardAction("intimidate1", self, target, params, "", ""))
++        {
++            return SCRIPT_OVERRIDE;
++        }
++        return SCRIPT_CONTINUE;
++    }
+     public int unarmedHeadHit1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+         if (!combatStandardAction("unarmedHeadHit1", self, target, params, "", ""))
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index eb66d144bf94b5d899042b6aff2e9082c13dcf7f..bed277356654d64abe55c3285b7218bfb365b717 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -62,6 +62,8 @@ public class combat_base extends script.base_script
+     public static final int PRECU_STATE_EFFECT_STUN = 3;
+     public static final int PRECU_STATE_EFFECT_REMOVE_COVER = 4;
+     public static final int PRECU_STATE_EFFECT_POSTURE_UP = 5;
++    public static final int PRECU_STATE_EFFECT_INTIMIDATE = 6;
++    public static final int PRECU_TARGET_POOL_NO_ATTRIBUTE = -2;
+     public static final String PRECU_NEXT_ATTACK_DELAY_UNTIL =
+         "combat.precuNextAttackDelayUntil";
+     public static final String PRECU_NEXT_ATTACK_DELAY_RESULT =
+@@ -2036,6 +2038,8 @@ public class combat_base extends script.base_script
+                 return STATE_BLINDED;
+             case PRECU_STATE_EFFECT_STUN:
+                 return STATE_STUNNED;
++            case PRECU_STATE_EFFECT_INTIMIDATE:
++                return STATE_INTIMIDATED;
+             default:
+                 return -1;
+         }
+@@ -2075,6 +2079,8 @@ public class combat_base extends script.base_script
+                 return "blind";
+             case PRECU_STATE_EFFECT_STUN:
+                 return "stun";
++            case PRECU_STATE_EFFECT_INTIMIDATE:
++                return "intimidate";
+             default:
+                 return "";
+         }
+@@ -2550,7 +2556,8 @@ public class combat_base extends script.base_script
+         {
+             return -1.0f;
+         }
+-        int accuracyBonus = dataTableGetInt(PRECU_COMBAT_OVERRIDES, actionRow, "accuracyBonus");
++        int accuracyBonus = getPrecuActionAccuracyBonus(
++            attackerData.id, actionRow);
+         if (accuracyBonus <= 0 || !isIdValid(weaponData.id))
+         {
+             return -1.0f;
+@@ -2597,6 +2604,20 @@ public class combat_base extends script.base_script
+         recordPrecuLiveDiagnostic(attackerData.id, "primary.hitChance", hitChance);
+         return hitChance;
+     }
++    private int getPrecuActionAccuracyBonus(obj_id attacker, int actionRow)
++        throws InterruptedException
++    {
++        int accuracyBonus = dataTableGetInt(
++            PRECU_COMBAT_OVERRIDES, actionRow, "accuracyBonus");
++        String accuracySkillMod = dataTableGetString(
++            PRECU_COMBAT_OVERRIDES, actionRow, "accuracySkillMod");
++        if (accuracySkillMod != null && accuracySkillMod.length() > 0)
++        {
++            accuracyBonus += getEnhancedSkillStatisticModifierUncapped(
++                attacker, accuracySkillMod);
++        }
++        return accuracyBonus;
++    }
+     public float getPrecuAttackerAccuracyTotal(attacker_data attackerData, defender_data defenderData, int weaponRow, int accuracyBonus) throws InterruptedException
+     {
+         String accuracySkill = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "accuracySkill");
+@@ -2757,7 +2778,8 @@ public class combat_base extends script.base_script
+         {
+             return PRECU_SECONDARY_RESULT_FALLBACK;
+         }
+-        int accuracyBonus = dataTableGetInt(PRECU_COMBAT_OVERRIDES, actionRow, "accuracyBonus");
++        int accuracyBonus = getPrecuActionAccuracyBonus(
++            attackerData.id, actionRow);
+         int attackerWeaponRow = dataTableSearchColumnForString(getTemplateName(weaponData.id), "templateName", PRECU_WEAPON_PROFILES);
+         if (accuracyBonus <= 0 || attackerWeaponRow < 0)
+         {
+@@ -4066,6 +4088,12 @@ public class combat_base extends script.base_script
+             recordPrecuLiveDiagnostic(
+                 attacker, "poolDamage.totalApplied", totalAppliedDamage);
+         }
++        else if (precuResolvedTargetPool == PRECU_TARGET_POOL_NO_ATTRIBUTE)
++        {
++            hitData.damage = 0;
++            hitData.elementalDamage = 0;
++            damageApplied = false;
++        }
+         else if (precuResolvedTargetPool >= 0)
+         {
+             damageApplied =
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+index d7c3f0ad7a9c3b1a886381e63138426303873b55..2afe65def5f771ab03ea2705db3c23fd2a7ee6db 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java
+@@ -195,6 +195,7 @@ public class precu_headshot1_fixture extends script.base_script
+     private static final String POLEARM_STUN_ONE_COMMAND = "polearmStun1";
+     private static final String UNARMED_BLIND_ONE_COMMAND = "unarmedBlind1";
+     private static final String UNARMED_STUN_ONE_COMMAND = "unarmedStun1";
++    private static final String INTIMIDATE_ONE_COMMAND = "intimidate1";
+     private static final String SCATTER_SHOT_ONE_COMMAND = "scatterShot1";
+     private static final String SCATTER_SHOT_TWO_COMMAND = "scatterShot2";
+     private static final String WILD_SHOT_ONE_COMMAND = "wildShot1";
+@@ -251,6 +252,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalBlindBuff";
+     private static final String ORIGINAL_STUN_BUFF =
+         ROOT + ".originalStunBuff";
++    private static final String ORIGINAL_INTIMIDATE_BUFF =
++        ROOT + ".originalIntimidateBuff";
+     private static final String ORIGINAL_HEALTH = ROOT + ".originalHealth";
+     private static final String ORIGINAL_MAX_HEALTH = ROOT + ".originalMaxHealth";
+     private static final String ORIGINAL_STRENGTH = ROOT + ".originalStrength";
+@@ -500,6 +503,8 @@ public class precu_headshot1_fixture extends script.base_script
+         ROOT + ".originalUnarmedBlindOneCommand";
+     private static final String ORIGINAL_UNARMED_STUN_ONE_COMMAND =
+         ROOT + ".originalUnarmedStunOneCommand";
++    private static final String ORIGINAL_INTIMIDATE_ONE_COMMAND =
++        ROOT + ".originalIntimidateOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_ONE_COMMAND =
+         ROOT + ".originalScatterShotOneCommand";
+     private static final String ORIGINAL_SCATTER_SHOT_TWO_COMMAND =
+@@ -765,9 +770,11 @@ public class precu_headshot1_fixture extends script.base_script
+         if (getState(defender, STATE_DIZZY) != 0 ||
+             getState(defender, STATE_BLINDED) != 0 ||
+             getState(defender, STATE_STUNNED) != 0 ||
++            getState(defender, STATE_INTIMIDATED) != 0 ||
+             buff.hasBuff(defender, "dizzy") ||
+             buff.hasBuff(defender, "blind") ||
+-            buff.hasBuff(defender, "stun"))
++            buff.hasBuff(defender, "stun") ||
++            buff.hasBuff(defender, "intimidate"))
+         {
+             return "error=preexistingFullAutoState";
+         }
+@@ -1144,6 +1151,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean unarmedStunOneCommandGranted =
+             hasCommand(attacker, UNARMED_STUN_ONE_COMMAND) ||
+             grantCommand(attacker, UNARMED_STUN_ONE_COMMAND);
++        boolean intimidateOneCommandGranted =
++            hasCommand(attacker, INTIMIDATE_ONE_COMMAND) ||
++            grantCommand(attacker, INTIMIDATE_ONE_COMMAND);
+         boolean scatterShotOneCommandGranted =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -1340,6 +1350,8 @@ public class precu_headshot1_fixture extends script.base_script
+             !hasCommand(attacker, UNARMED_BLIND_ONE_COMMAND) ||
+             !unarmedStunOneCommandGranted ||
+             !hasCommand(attacker, UNARMED_STUN_ONE_COMMAND) ||
++            !intimidateOneCommandGranted ||
++            !hasCommand(attacker, INTIMIDATE_ONE_COMMAND) ||
+             !hasCommand(attacker, COMMAND) ||
+             !durationControlGranted || !hasCommand(attacker, DURATION_CONTROL_COMMAND) ||
+             !headShotThreeGranted || !hasCommand(attacker, HEAD_SHOT_THREE_COMMAND) ||
+@@ -2089,6 +2101,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 UNARMED_BLIND_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_UNARMED_STUN_ONE_COMMAND,
+                 UNARMED_STUN_ONE_COMMAND);
++            restoreCommand(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
++                INTIMIDATE_ONE_COMMAND);
+             restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND);
+             restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -3137,6 +3151,8 @@ public class precu_headshot1_fixture extends script.base_script
+             buff.hasBuff(player, "blind") ? 1 : 0);
+         setObjVar(player, ORIGINAL_STUN_BUFF,
+             buff.hasBuff(player, "stun") ? 1 : 0);
++        setObjVar(player, ORIGINAL_INTIMIDATE_BUFF,
++            buff.hasBuff(player, "intimidate") ? 1 : 0);
+         setObjVar(player, ORIGINAL_HEALTH, getAttrib(player, HEALTH));
+         setObjVar(player, ORIGINAL_MAX_HEALTH, getMaxAttrib(player, HEALTH));
+         setObjVar(player, ORIGINAL_STRENGTH, getAttrib(player, STRENGTH));
+@@ -3395,6 +3411,8 @@ public class precu_headshot1_fixture extends script.base_script
+             hasCommand(player, UNARMED_BLIND_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_UNARMED_STUN_ONE_COMMAND,
+             hasCommand(player, UNARMED_STUN_ONE_COMMAND) ? 1 : 0);
++        setObjVar(player, ORIGINAL_INTIMIDATE_ONE_COMMAND,
++            hasCommand(player, INTIMIDATE_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND,
+             hasCommand(player, SCATTER_SHOT_ONE_COMMAND) ? 1 : 0);
+         setObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND,
+@@ -3823,6 +3841,8 @@ public class precu_headshot1_fixture extends script.base_script
+             UNARMED_BLIND_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_UNARMED_STUN_ONE_COMMAND,
+             UNARMED_STUN_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
++            INTIMIDATE_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4443,6 +4463,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 UNARMED_BLIND_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_UNARMED_STUN_ONE_COMMAND,
+                 UNARMED_STUN_ONE_COMMAND) &&
++            isCommandRestored(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
++                INTIMIDATE_ONE_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+                 MIND_SHOT_TWO_COMMAND) &&
+             isCommandRestored(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4711,6 +4733,8 @@ public class precu_headshot1_fixture extends script.base_script
+             UNARMED_BLIND_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_UNARMED_STUN_ONE_COMMAND,
+             UNARMED_STUN_ONE_COMMAND);
++        restoreCommand(attacker, ORIGINAL_INTIMIDATE_ONE_COMMAND,
++            INTIMIDATE_ONE_COMMAND);
+         restoreCommand(attacker, ORIGINAL_MIND_SHOT_TWO_COMMAND,
+             MIND_SHOT_TWO_COMMAND);
+         restoreCommand(attacker, ORIGINAL_SURPRISE_SHOT_COMMAND,
+@@ -4743,9 +4767,11 @@ public class precu_headshot1_fixture extends script.base_script
+         if (!hasObjVar(player, ORIGINAL_DIZZY_BUFF) ||
+             !hasObjVar(player, ORIGINAL_BLIND_BUFF) ||
+             !hasObjVar(player, ORIGINAL_STUN_BUFF) ||
++            !hasObjVar(player, ORIGINAL_INTIMIDATE_BUFF) ||
+             getIntObjVar(player, ORIGINAL_DIZZY_BUFF) != 0 ||
+             getIntObjVar(player, ORIGINAL_BLIND_BUFF) != 0 ||
+-            getIntObjVar(player, ORIGINAL_STUN_BUFF) != 0)
++            getIntObjVar(player, ORIGINAL_STUN_BUFF) != 0 ||
++            getIntObjVar(player, ORIGINAL_INTIMIDATE_BUFF) != 0)
+         {
+             return false;
+         }
+@@ -4761,12 +4787,18 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             buff.removeBuff(player, "stun");
+         }
++        if (buff.hasBuff(player, "intimidate"))
++        {
++            buff.removeBuff(player, "intimidate");
++        }
+         return !buff.hasBuff(player, "dizzy") &&
+             !buff.hasBuff(player, "blind") &&
+             !buff.hasBuff(player, "stun") &&
++            !buff.hasBuff(player, "intimidate") &&
+             getState(player, STATE_DIZZY) == 0 &&
+             getState(player, STATE_BLINDED) == 0 &&
+-            getState(player, STATE_STUNNED) == 0;
++            getState(player, STATE_STUNNED) == 0 &&
++            getState(player, STATE_INTIMIDATED) == 0;
+     }
+ 
+     private boolean restoreProofStateBuffs(obj_id player)
+@@ -4788,6 +4820,11 @@ public class precu_headshot1_fixture extends script.base_script
+         {
+             buff.removeBuff(player, "stun");
+         }
++        if (getIntObjVar(player, ORIGINAL_INTIMIDATE_BUFF) == 0 &&
++            buff.hasBuff(player, "intimidate"))
++        {
++            buff.removeBuff(player, "intimidate");
++        }
+         restored &= getIntObjVar(player, ORIGINAL_DIZZY_BUFF) != 0 ||
+             (!buff.hasBuff(player, "dizzy") &&
+                 getState(player, STATE_DIZZY) == 0);
+@@ -4797,6 +4834,9 @@ public class precu_headshot1_fixture extends script.base_script
+         restored &= getIntObjVar(player, ORIGINAL_STUN_BUFF) != 0 ||
+             (!buff.hasBuff(player, "stun") &&
+                 getState(player, STATE_STUNNED) == 0);
++        restored &= getIntObjVar(player, ORIGINAL_INTIMIDATE_BUFF) != 0 ||
++            (!buff.hasBuff(player, "intimidate") &&
++                getState(player, STATE_INTIMIDATED) == 0);
+         return restored;
+     }
+ 
+@@ -5340,6 +5380,9 @@ public class precu_headshot1_fixture extends script.base_script
+         boolean unarmedStunOneCommandReady =
+             hasCommand(attacker, UNARMED_STUN_ONE_COMMAND) ||
+             grantCommand(attacker, UNARMED_STUN_ONE_COMMAND);
++        boolean intimidateOneCommandReady =
++            hasCommand(attacker, INTIMIDATE_ONE_COMMAND) ||
++            grantCommand(attacker, INTIMIDATE_ONE_COMMAND);
+         boolean scatterShotOneCommandReady =
+             hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) ||
+             grantCommand(attacker, SCATTER_SHOT_ONE_COMMAND);
+@@ -5529,6 +5572,7 @@ public class precu_headshot1_fixture extends script.base_script
+             polearmStunOneCommandReady &&
+             unarmedBlindOneCommandReady &&
+             unarmedStunOneCommandReady &&
++            intimidateOneCommandReady &&
+             scatterShotOneCommandReady && scatterShotTwoCommandReady &&
+             wildShotOneCommandReady && wildShotTwoCommandReady &&
+             legShotTwoCommandReady && legShotThreeCommandReady &&
+@@ -5825,6 +5869,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_DIZZY_BUFF) &&
+             hasObjVar(player, ORIGINAL_BLIND_BUFF) &&
+             hasObjVar(player, ORIGINAL_STUN_BUFF) &&
++            hasObjVar(player, ORIGINAL_INTIMIDATE_BUFF) &&
+             hasObjVar(player, ORIGINAL_HEALTH) &&
+             hasObjVar(player, ORIGINAL_MAX_HEALTH) &&
+             hasObjVar(player, ORIGINAL_STRENGTH) &&
+@@ -5960,6 +6005,7 @@ public class precu_headshot1_fixture extends script.base_script
+             hasObjVar(player, ORIGINAL_POLEARM_STUN_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_UNARMED_BLIND_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_UNARMED_STUN_ONE_COMMAND) &&
++            hasObjVar(player, ORIGINAL_INTIMIDATE_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_ONE_COMMAND) &&
+             hasObjVar(player, ORIGINAL_SCATTER_SHOT_TWO_COMMAND) &&
+             hasObjVar(player, ORIGINAL_WILD_SHOT_ONE_COMMAND) &&
+@@ -6196,6 +6242,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.canPerformAction(UNARMED_BLIND_ONE_COMMAND, attacker);
+         int canPerformUnarmedStunOne =
+             combat.canPerformAction(UNARMED_STUN_ONE_COMMAND, attacker);
++        int canPerformIntimidateOne =
++            combat.canPerformAction(INTIMIDATE_ONE_COMMAND, attacker);
+         int canPerformScatterShotOne = isIdValid(weapon) ?
+             combat.canPerformAction(SCATTER_SHOT_ONE_COMMAND, attacker) : -1;
+         int canPerformScatterShotTwo = isIdValid(weapon) ?
+@@ -6353,6 +6401,8 @@ public class precu_headshot1_fixture extends script.base_script
+             combat_engine.getCombatData(UNARMED_BLIND_ONE_COMMAND);
+         combat_data unarmedStunOneData =
+             combat_engine.getCombatData(UNARMED_STUN_ONE_COMMAND);
++        combat_data intimidateOneData =
++            combat_engine.getCombatData(INTIMIDATE_ONE_COMMAND);
+         combat_data scatterShotOneData =
+             combat_engine.getCombatData(SCATTER_SHOT_ONE_COMMAND);
+         combat_data scatterShotTwoData =
+@@ -6540,6 +6590,11 @@ public class precu_headshot1_fixture extends script.base_script
+             combat.getActionCost(
+                 attacker, currentWeaponData, unarmedStunOneData) :
+             new int[] {-1, -1, -1};
++        int[] intimidateOneCosts =
++            intimidateOneData != null && currentWeaponData != null ?
++            combat.getActionCost(
++                attacker, currentWeaponData, intimidateOneData) :
++            new int[] {-1, -1, -1};
+         int[] scatterShotOneCosts =
+             scatterShotOneData != null && flameWeaponData != null ?
+             combat.getActionCost(
+@@ -6817,6 +6872,8 @@ public class precu_headshot1_fixture extends script.base_script
+                 hasCommand(attacker, UNARMED_BLIND_ONE_COMMAND) +
+             " unarmedStunOneCommand=" +
+                 hasCommand(attacker, UNARMED_STUN_ONE_COMMAND) +
++            " intimidateOneCommand=" +
++                hasCommand(attacker, INTIMIDATE_ONE_COMMAND) +
+             " scatterShotOneCommand=" +
+                 hasCommand(attacker, SCATTER_SHOT_ONE_COMMAND) +
+             " scatterShotTwoCommand=" +
+@@ -7269,6 +7326,18 @@ public class precu_headshot1_fixture extends script.base_script
+             " unarmedStunOneDamageMultiplier=" +
+                 (unarmedStunOneData == null ? -1.0f :
+                     unarmedStunOneData.percentAddFromWeapon) +
++            " intimidateOneCanPerform=" + canPerformIntimidateOne +
++            " intimidateOneHealthCost=" + intimidateOneCosts[0] +
++            " intimidateOneActionCost=" + intimidateOneCosts[1] +
++            " intimidateOneMindCost=" + intimidateOneCosts[2] +
++            " intimidateOnePrecuHamCostModel=" +
++                (intimidateOneData == null ? -1 :
++                    intimidateOneData.precuHamCostModel) +
++            " intimidateOneDamageMultiplier=" +
++                (intimidateOneData == null ? -1.0f :
++                    intimidateOneData.percentAddFromWeapon) +
++            " intimidateOneAccuracySkill=" +
++                getSkillStatisticModifier(attacker, "intimidate") +
+             " scatterShotOneHealthCost=" + scatterShotOneCosts[0] +
+             " scatterShotOneActionCost=" + scatterShotOneCosts[1] +
+             " scatterShotOneMindCost=" + scatterShotOneCosts[2] +
+@@ -7364,9 +7433,13 @@ public class precu_headshot1_fixture extends script.base_script
+             " defenderDizzyState=" + getState(defender, STATE_DIZZY) +
+             " defenderBlindState=" + getState(defender, STATE_BLINDED) +
+             " defenderStunState=" + getState(defender, STATE_STUNNED) +
++            " defenderIntimidateState=" +
++                getState(defender, STATE_INTIMIDATED) +
+             " defenderDizzyBuff=" + buff.hasBuff(defender, "dizzy") +
+             " defenderBlindBuff=" + buff.hasBuff(defender, "blind") +
+             " defenderStunBuff=" + buff.hasBuff(defender, "stun") +
++            " defenderIntimidateBuff=" +
++                buff.hasBuff(defender, "intimidate") +
+             " cleanupFixtureWeapon=" +
+                 readDiagnosticInt(attacker, "cleanup.fixtureWeapon", -1) +
+             " cleanupFixturePistol=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+index ccf6b368a89439713f4018da9745af60734f2bc6..b0b7c0135854e6932e2b1b700f0c4c6b67aa3b42 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab
+@@ -1390,3 +1390,4 @@ flushingShot1	flushingShot1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1
+ flushingShot2	flushingShot2			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	fire_area								fire_area						OFF	OFF	OFF	OFF	OFF	CONE	64	15	0	64	0	0	4.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				RIFLE	RANGED_WEAPON	ENERGY	KINETIC				rifleman	0		ACTION_NAME	0	0	1
+ unarmedBlind1	unarmedBlind1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	attack_high_center_light_1	attack_high_center_light_1													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.5	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+ unarmedStun1	unarmedStun1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1				object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	combo_4c	combo_4c													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	5	0	0	1.25	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
++intimidate1	intimidate1			-1	RIGHT_CLICK_SPECIAL	STANDARD	ATTACK	HEALTH	1	clienteffect/combat_special_attacker_intimidate.cef	root		object/tangible/space/content_infrastructure/generic_egg_small.iff		-1.0	3.0	1	TARGETED_OBJECT	STANDARD	1	1	intimidate	intimidate													OFF	OFF	OFF	OFF	OFF	SINGLE_TARGET			0	24	0	0	0.0	0.0	1.0	0	0	0	0	0	100	0.0	40	0.0	0.0		0	0		0	0		0	0	1	0	0	0	0	0	0	0				UNARMED	MELEE_WEAPON	KINETIC	KINETIC				brawler	0		ACTION_NAME	0	0	1
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+index f491d32af3ff814814073227518eaad12c2d29e0..354a37a62615ff1842938f5d93d28ffc5c2e7507 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab
+@@ -1,5 +1,5 @@
+-actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus	animationType	dotAttribute	postureDownChance	stateEffect1	stateChance1	stateStrength1	stateDuration1	stateDefense1	stateJediDefense1	stateResistance1	stateEffect2	stateChance2	stateStrength2	stateDuration2	stateDefense2	stateJediDefense2	stateResistance2	stateEffect3	stateChance3	stateStrength3	stateDuration3	stateDefense3	stateJediDefense3	stateResistance3	poolDamageRolls	poolDamageIncrement	knockdownChance	hitIncapacitatedTarget	fixedMinDamage	fixedMaxDamage
+-s	f	f	f	"e(HEALTH=0,ACTION=1,MIND=2,RANDOM=3,MULTI=4)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5)[NONE]"	i[0]	i[0]	i[0]	s	s	s	i[0]	f[0]	i[0]	i[0]	i[-1]	i[-1]
++actionName	healthCostMultiplier	actionCostMultiplier	mindCostMultiplier	targetPool	speedMultiplier	accuracyBonus	animationType	dotAttribute	postureDownChance	stateEffect1	stateChance1	stateStrength1	stateDuration1	stateDefense1	stateJediDefense1	stateResistance1	stateEffect2	stateChance2	stateStrength2	stateDuration2	stateDefense2	stateJediDefense2	stateResistance2	stateEffect3	stateChance3	stateStrength3	stateDuration3	stateDefense3	stateJediDefense3	stateResistance3	poolDamageRolls	poolDamageIncrement	knockdownChance	hitIncapacitatedTarget	fixedMinDamage	fixedMaxDamage	accuracySkillMod
++s	f	f	f	"e(NO_ATTRIBUTE=-2,HEALTH=0,ACTION=1,MIND=2,RANDOM=3,MULTI=4)[HEALTH]"	f	i	"e(NONE=0,RANGED=1,INTENSITY=2)[NONE]"	"e(NONE=-1,HEALTH=0,ACTION=3,MIND=6)[NONE]"	i[0]	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6)[NONE]"	i[0]	i[0]	i[0]	s	s	s	"e(NONE=0,DIZZY=1,BLIND=2,STUN=3,REMOVE_COVER=4,POSTURE_UP=5,INTIMIDATE=6)[NONE]"	i[0]	i[0]	i[0]	s	s	s	i[0]	f[0]	i[0]	i[0]	i[-1]	i[-1]	s
+ __precu_runtime_probe	0	0	0	HEALTH	0	0	NONE
+ headShot1	0.5	0.5	1	MIND	1.5	5	RANGED
+ bodyShot1	0.5	0.75	0.5	HEALTH	1	50	RANGED
+@@ -106,3 +106,4 @@ flushingShot1	0.5	0.5	1.5	RANDOM	2.0	5	RANGED			STUN	100	0	35	stun_defense	jedi_
+ flushingShot2	0.5	0.5	2.0	RANDOM	2.0	5	INTENSITY			STUN	100	0	35	stun_defense	jedi_state_defense	resistance_states	POSTURE_UP	100	0	0	posture_change_up_defense
+ unarmedBlind1	1.5	1.5	1.5	RANDOM	2.0	15	NONE		0	BLIND	100	0	50	blind_defense	jedi_state_defense	resistance_states
+ unarmedStun1	1.5	1.5	1.5	RANDOM	2.0	15	INTENSITY		0	STUN	100	0	60	stun_defense	jedi_state_defense	resistance_states
++intimidate1	0	0	0	NO_ATTRIBUTE	1.0	0	NONE		0	INTIMIDATE	100	0	30																								intimidate
+diff --git a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+index 2e839bb93164d64bddab834e9f72a529f32097c2..8fd97317898e0fd64e417bfd619350a5931ecc89 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab
+@@ -105,3 +105,4 @@ flushingShot1	flushingshot
+ flushingShot2	flushingvolley
+ unarmedBlind1	aryxslash
+ unarmedStun1	screamingsquill
++intimidate1	intim
+diff --git a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+index 5513c61b6ccc74bf11b525089c5e671eb15557a6..45a998a5dba050f4dc5e9a6ca91a211331f03eec 100644
+--- a/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab
+@@ -2040,3 +2040,4 @@ flushingShot1	combat	normal	flushingShot1	failSpecialAttack			1.5	flushingShot1
+ flushingShot2	combat	normal	flushingShot2	failSpecialAttack			1.5	flushingShot2	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	RIFLE	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedBlind1	combat	normal	unarmedBlind1	failSpecialAttack			1.5	unarmedBlind1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
+ unarmedStun1	combat	normal	unarmedStun1	failSpecialAttack			1.5	unarmedStun1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0
++intimidate1	combat	normal	intimidate1	failSpecialAttack			1.5	intimidate1	1	0	1	1	1	0	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	1	0	0	1	1	1	1	0	1	1	1	1	1	1	0	0	1	1	0	1	1	1	1	1	0	1	0	0	0	0	0	1	1	1	1	1	1		other	optional		2	0	391413347	0	0	0	0	1	UNARMED	NONE	defaultCooldownGroup	0	1.5	0		0	0	0

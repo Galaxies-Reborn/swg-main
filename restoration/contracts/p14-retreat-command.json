@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-retreat-command",
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "movementTable": "dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_retreat_command_fixture.java"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "b3f81c104acf9851def65bab5f0638e68a0cdede",
+    "retreatSource": "MMOCoreORB/src/server/zone/objects/creature/commands/RetreatCommand.h",
+    "squadLeaderSource": "MMOCoreORB/src/server/zone/objects/creature/commands/SquadLeaderCommand.h",
+    "leaderRule": "the actor must lead a real group",
+    "costRule": "base 100 reduced by group_burst_run, multiplied by one plus group size divided by 20, then Quickness/Focus adjusted with strict current-pool affordability",
+    "memberRule": "eligible living non-leader player members receive speed and acceleration multiplier 1.822 for 30 seconds with a matching cooldown and PvP-help accounting"
+  },
+  "publish14Evidence": {
+    "command": "retreat",
+    "ownerSkill": "outdoors_squadleader_support_03",
+    "historicalClientArchive": "PreCU-Client/data_other_00.tre",
+    "historicalCommandRow": 277,
+    "historicalCommandColumns": 66,
+    "restoredCommandColumns": 94,
+    "baseCost": 100,
+    "groupSize": 2,
+    "groupBurstRunModifier": 25,
+    "reducedBaseCost": 75,
+    "adjustedBaseCost": 82,
+    "durationSeconds": 30,
+    "speedMultiplier": 1.822,
+    "accelerationMultiplier": 1.822
+  },
+  "clientCommandBoundary": {
+    "protocolVersion": 160,
+    "leader": {
+      "playerOid": 44003778,
+      "stationId": 91001,
+      "avatar": "PrecuRuntime"
+    },
+    "member": {
+      "playerOid": 207005062,
+      "stationId": 1391050504,
+      "avatar": "Isot Spogik"
+    },
+    "commands": [
+      "TargetSquadCounterpart",
+      "InviteTarget",
+      "JoinGroup",
+      "QueueRetreat",
+      "DisbandGroup"
+    ],
+    "serverAuthority": [
+      "identity and command ownership",
+      "group membership, size, and leadership",
+      "skillmod-reduced adjusted HAM affordability and charge",
+      "member eligibility and movement application",
+      "natural effect expiry, cooldown, and PvP-help accounting"
+    ]
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T06:20:00-04:00",
+    "overlayPatch": "restoration/patches/dsrc/246-p14-retreat-command.patch",
+    "patchSha256": "15658a62aaa0511f084c2b681c61eff42b589cb7d01d15f5efe907bfa7ba0cfa",
+    "runtimeRunner": "restoration/scripts/Invoke-P14RetreatRuntime.ps1",
+    "runtimeRunnerSha256": "17a12772054ee2b812c0551c331ba8fe6204deccc08fca3f084ad413b956f2a9",
+    "changedFileCount": 4,
+    "cleanApplyCheck": "passed",
+    "reverseApplyCheck": "passed",
+    "cleanMaterializationFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "serverJavaBuild": {
+      "result": "passed",
+      "compiledJavaSources": 2,
+      "fixtureCorrectionRecompiledSources": 1
+    },
+    "serverTabBuild": {
+      "result": "passed",
+      "compiledTables": 2,
+      "movementTableIffSha256": "cfcac24a10339582859c21144115603550cc80f9e7b9e6019321e1f76667cfd0",
+      "commandTableIffSha256": "790d0d563e5146b77d4a3742055f8a1fb2dff7a9b4d9a00c8431fd31b4d6efe6"
+    },
+    "clientNativeBuild": {
+      "result": "passed",
+      "configuration": "Release|x64",
+      "platformToolset": "v143",
+      "protocolVersion": 160,
+      "executableBytes": 32636928,
+      "executableSha256": "6d9fc6b587ed9fddd2cb316b008cebf45350c5ee55b880405e7fbaf13800d6d8"
+    },
+    "clientSourceTests": {
+      "result": "passed",
+      "bridgeTests": 56
+    },
+    "sourceSha256": {
+      "command_table.tab": "69d4ebe7eb16fcb572fa901ee2a51884f42825bfa54e37daa47c156f9873adab",
+      "skills.tab": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97",
+      "movement.tab": "88d3ed20d230c9c0f2aec068b55069a5bf5d9dd6a8e9e37456f61869103f3bdf",
+      "base_player.java": "996462c792bca4edfbe690e226c4b577df59abbcac06f641978a06547cb66ae0",
+      "precu_retreat_command_fixture.java": "94883c3e8e5e97eaed47d87757f38e51d92ac78b81d895dfef59b76e62db4dfb",
+      "ClientMain.cpp": "7cb61490cd101605d94b30ffcd061d73cdeb1005f32039786eb19dcc34446ced",
+      "Invoke-PrecuBackgroundInput.ps1": "3cbbd7f49b71ebf129e98a3e31fd7e0598212c9ec6a255a164dabdefffb8003e",
+      "test_precu_background_input_bridge.py": "d62fd00ee873725480bebbc97d99d6e0958eaa966b694f90011183c4f0d246d6"
+    },
+    "compiledSha256": {
+      "base_player.class": "687ac8a40ba0a019433ac60d03bf0d6140a2f25957cea0d57d06ec1837455130",
+      "precu_retreat_command_fixture.class": "7a0adec40e671f034202d8605152ac9000534e9f6e6f640e2b22c5f1c6f02ca5"
+    },
+    "clientAssetSha256": {
+      "datatables/command/command_table.iff": "790d0d563e5146b77d4a3742055f8a1fb2dff7a9b4d9a00c8431fd31b4d6efe6",
+      "precu_runtime.tre": "ab79507db5450bcbcf6866a91dae7595b7f425b50a70ce6777379b448308512a"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-23T06:20:00-04:00",
+    "container": "swg-precu",
+    "lifecycle": "9c63a00ea202420bb6c24f3903b84333",
+    "clientProtocolVersion": 160,
+    "clientSha256": "6d9fc6b587ed9fddd2cb316b008cebf45350c5ee55b880405e7fbaf13800d6d8",
+    "leader": {
+      "playerOid": 44003778,
+      "stationId": 91001,
+      "avatar": "PrecuRuntime",
+      "clientProcessId": 69612
+    },
+    "member": {
+      "playerOid": 207005062,
+      "stationId": 1391050504,
+      "avatar": "Isot Spogik",
+      "clientProcessId": 67748
+    },
+    "preflightRecovery": {
+      "restored": true,
+      "alreadyClean": true
+    },
+    "groupLifecycle": {
+      "inviteAccepted": true,
+      "joinAccepted": true,
+      "sameGroupObserved": true,
+      "leaderObserved": true,
+      "groupSize": 2,
+      "disbandAccepted": true,
+      "ungroupedObserved": true
+    },
+    "command": {
+      "accepted": true,
+      "handlerCalls": 1,
+      "groupBurstRunModifier": 25,
+      "adjustedBaseCost": 82,
+      "actionCost": 82,
+      "mindCost": 95,
+      "membersApplied": 1,
+      "leaderActionBefore": 500,
+      "leaderActionAfter": 418,
+      "leaderMindBefore": 100,
+      "leaderMindAfter": 5,
+      "leaderMovementMultiplier": 1.0,
+      "leaderAccelerationMultiplier": 1.0,
+      "memberActiveMovementMultiplier": 1.822,
+      "memberActiveAccelerationMultiplier": 1.822,
+      "memberExpiredMovementMultiplier": 1.0,
+      "memberExpiredAccelerationMultiplier": 1.0,
+      "memberOutcome": "expired"
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "settledBeforeClientExitSeconds": 15,
+      "normalizedDatabaseRelation": "OBJECT_VARIABLES_VIEW",
+      "normalizedDatabaseMarkerCount": 0,
+      "legacyFlattenedCompatibilityMarkerCount": 18,
+      "legacyFlattenedCompatibilityColumnsAuthoritative": false
+    },
+    "serverHealthyAfterCleanup": true,
+    "bothProofClientsStopped": true,
+    "userClientUntouched": true
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  },
+  "narrowBoundary": {
+    "included": [
+      "exact retained 94-column command registration",
+      "Support III command ownership",
+      "group-size and skillmod adjusted Action/Mind charge",
+      "eligible non-leader movement and acceleration multiplier",
+      "natural 30-second expiry and cooldown",
+      "identity-bound reversible cleanup"
+    ],
+    "deferred": [
+      "groups larger than two",
+      "mixed building contexts",
+      "PvP-enemy group policy",
+      "boostmorale and steadyaim"
+    ]
+  }
+}

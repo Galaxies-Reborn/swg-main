@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "status": "ready",
+  "requiredBeforeReady": [],
+  "sourceFiles": {
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "tendDamageHandler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/tend_damage.java",
+    "tendWoundHandler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/tend_wound.java",
+    "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_tending_command_fixture.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "commonSource": "MMOCoreORB/src/server/zone/objects/creature/commands/TendCommand.h",
+    "tendDamageSource": "MMOCoreORB/src/server/zone/objects/creature/commands/TendDamageCommand.h",
+    "tendWoundSource": "MMOCoreORB/src/server/zone/objects/creature/commands/TendWoundCommand.h",
+    "publish": "14.1",
+    "scope": "organic queued injury and wound tending"
+  },
+  "commandContract": {
+    "category": "combat",
+    "target": "other",
+    "targetType": "optional",
+    "defaultTimeSeconds": 5,
+    "executeTimeSeconds": 5,
+    "addToCombatQueue": true,
+    "validWeapon": "ALL",
+    "expectedColumnCount": 94,
+    "commands": [
+      {
+        "name": "tendDamage",
+        "scriptHook": "cmdTendDamage",
+        "tempScript": "player.cmd.tend_damage"
+      },
+      {
+        "name": "tendWound",
+        "scriptHook": "cmdTendWound",
+        "tempScript": "player.cmd.tend_wound"
+      }
+    ]
+  },
+  "productionContract": {
+    "medicineRequired": false,
+    "maximumRangeMeters": 6,
+    "combatAllowed": true,
+    "lineOfSightRequiredForOtherTarget": true,
+    "pvpHelpRequiredForOtherTarget": true,
+    "mindCostFormula": "truncate(baseCost - (((Focus - 300) / 1200) * baseCost))",
+    "focusWoundCost": 5,
+    "willpowerWoundCost": 5,
+    "battleFatigueMultiplier": "clamp((1250 - patientBattleFatigue) / 1000, 0.25, 1.0)",
+    "tendDamage": {
+      "baseMindCost": 200,
+      "powerFormula": "round((healing_injury_treatment / 3 + 20) * battleFatigueMultiplier)",
+      "healedPools": [
+        "Health",
+        "Action"
+      ],
+      "medicalXp": 0
+    },
+    "tendWound": {
+      "baseMindCost": 400,
+      "powerFormula": "round((healing_wound_treatment / 3 + 20) * battleFatigueMultiplier)",
+      "eligibleWounds": [
+        "Health",
+        "Strength",
+        "Constitution",
+        "Action",
+        "Quickness",
+        "Stamina"
+      ],
+      "defaultSelection": "first wounded eligible attribute",
+      "excludedWounds": [
+        "Mind",
+        "Focus",
+        "Willpower"
+      ],
+      "medicalXpFormula": "truncate(wound healed * 2.5)",
+      "medicalXpGrant": "xp.grant",
+      "medicalXpOtherTargetOnly": true
+    },
+    "fixtureTelemetryRequiresFixtureRoot": true
+  },
+  "liveFixture": {
+    "playerOid": 39008597,
+    "stationId": 1001,
+    "actions": [
+      "prepare",
+      "status",
+      "cleanup"
+    ],
+    "scope": "identity-bound healer-state snapshot and command telemetry",
+    "patientFixtures": {
+      "tendDamage": "precu_heal_damage_command_fixture",
+      "tendWound": "precu_heal_wound_command_fixture"
+    },
+    "patientPolicy": "compose with the established single-purpose disposable patient fixtures; do not create medicine or patients in the tending telemetry fixture",
+    "healerPools": "top off authoritative Mind, Focus, and Willpower maxima without rewriting derived maxima",
+    "temporarySkill": "science_medic_novice",
+    "expectedTreatmentPowerAtZeroBattleFatigue": 22,
+    "expectedTendDamageMedicalXp": 0,
+    "expectedTendWoundMedicalXp": 55,
+    "packedObjvarPolicy": "active lifecycle mismatches fail closed; restored packed leaves may be re-keyed and are overwritten with fresh snapshots and zeroed telemetry",
+    "cleanupPolicy": "restore healer Mind, Focus, Willpower, Focus/Willpower wounds, medical XP, skill, and commands; companion fixtures destroy their own patients"
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "target": "compile_java and compile_tab",
+    "patchSha256": "c5d1bff66d19794a4987fe813d644eecab19614f229592307551f1e103b3520b",
+    "compiledSha256": {
+      "healing.class": "fe04624bf34376f9bf41976d4d1d8e76e39c1c5f88f59321bf1ee47bd66bb789",
+      "tend_damage.class": "9ab5ee63c8e341b59a5d251935d080ccac94b36f4932dbbda18475d21af87d40",
+      "tend_wound.class": "e5bb61d4a70db6d6852258df57f7b7abf2813d3fb4008012ed0b57869720b5a2",
+      "precu_tending_command_fixture.class": "04fbe91123a9e2f4daba38edc63e4f11229201022114f0e5321535b8054139bd"
+    },
+    "compiledIffSha256": {
+      "command_table.iff": "36c191da0980bd4237e6802eb085aabed54b655315fdd0e7429caf14a34b3d8a",
+      "skills.iff": "39f8bc038eaad9f18967e9e6945987dc0f10f3b475cd2dd58d64b4e68092b188"
+    }
+  },
+  "liveEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 62352,
+    "clientProtocolVersion": 17,
+    "tendingLifecycle": "4549f009afa148b5a790ea957e79b862",
+    "patientLifecycles": {
+      "tendDamage": "a18cad35007c4a36ba7cccd4284869c0",
+      "tendWound": "dcc9c664cd2f4f7ea2f470488560fa19"
+    },
+    "tendDamage": {
+      "patientOid": 757548171,
+      "handlerEnteredGameTime": 298593,
+      "handlerOutcome": "performed",
+      "expectedTreatmentPower": 22,
+      "appliedHealthHeal": 22,
+      "appliedActionHeal": 22,
+      "expectedMindCost": 183,
+      "appliedMindCost": 183,
+      "appliedFocusWoundCost": 5,
+      "appliedWillpowerWoundCost": 5,
+      "appliedMedicalXp": 0,
+      "clientQueueCountAtAdmission": 1
+    },
+    "tendWound": {
+      "patientOid": 757548778,
+      "handlerEnteredGameTime": 298602,
+      "handlerOutcome": "performed",
+      "attribute": "Health",
+      "startingWound": 300,
+      "remainingWound": 278,
+      "expectedTreatmentPower": 22,
+      "appliedWoundHeal": 22,
+      "expectedMindCost": 368,
+      "appliedMindCost": 368,
+      "appliedFocusWoundCost": 5,
+      "appliedWillpowerWoundCost": 5,
+      "appliedMedicalXp": 55,
+      "xpObservation": "companion patient fixture after the asynchronous xp.grant",
+      "commandExecuteTimeSeconds": 5,
+      "clientQueueCountAtAdmission": 1,
+      "clientQueueCountAtObservation": 0
+    },
+    "cleanup": {
+      "damagePatientRestored": true,
+      "woundPatientRestored": true,
+      "restored": true,
+      "clientQueueCount": 0
+    }
+  },
+  "narrowBoundary": {
+    "included": [
+      "authentic tendDamage and tendWound queued commands",
+      "real client combat-queue admission",
+      "patient, range, line-of-sight, PvP, skill, and treatment gates",
+      "Focus-adjusted Mind costs",
+      "organic Focus and Willpower wound costs",
+      "patient battle-fatigue treatment scaling",
+      "Health and Action tendDamage",
+      "Health-through-Stamina tendWound selection",
+      "other-target tendWound medical XP",
+      "identity-bound reversible healer telemetry composed with established disposable patient fixtures"
+    ],
+    "deferred": [
+      "all six tendWound attribute choices live acceptance",
+      "player-target tending acceptance",
+      "diagnose command and SUI",
+      "medicalForage focused parity",
+      "full Medic and Doctor branch progression"
+    ]
+  }
+}

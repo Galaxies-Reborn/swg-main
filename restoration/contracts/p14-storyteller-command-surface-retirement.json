@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "feature": "storyteller-command-surface-retirement",
+  "status": "ready",
+  "scope": "Fail residual Storyteller movement, rotation, radial-queue, and city-zoning command surfaces closed while retaining command handler linkage, ordinary city zoning, and CSR cleanup commands.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "No Storyteller object movement, rotation, radial movement, or special city-zoning command exists in the pinned Publish 14.1 Core3 tree.",
+    "linkBoundary": "All command-linked Java method signatures remain loadable, but their handlers return without state mutation.",
+    "cleanupBoundary": "CSR Storyteller destruction commands and deployed cleanup controllers are retained for removal of existing later-era objects."
+  },
+  "expected": {
+    "movementCommandsMutateState": false,
+    "rotationCommandsMutateState": false,
+    "radialMovementQueuesCommands": false,
+    "storytellerZoningOptionVisible": false,
+    "directStorytellerZoningMutatesState": false,
+    "ordinaryCityZoningRetained": true,
+    "csrCleanupCommandsRetained": true,
+    "retiredSourceCount": 2
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/170-p14-storyteller-command-surface-retirement.patch",
+    "overlayPatchBytes": 17896,
+    "overlayPatchSha256": "a4cd6508c2b3de865d9c1fa0fbe24e00d0e66f8a99296b19c7f080c6ae81a932",
+    "sourceEvidenceEncoding": "UTF-8 with LF line endings",
+    "sourceSha256": {
+      "base_player.java": "b58ae55a33cdcdbd3082753084611f0fd07de6d3e9e1b2f917f6e5cf1d8c1b9c",
+      "st_object_movement.java": "607f30b26a5ca1f4969fcc54e732407562c8e2282dd4a327da327fd4051f88f0"
+    },
+    "javaCompile": "passed",
+    "classSha256": {
+      "base_player.class": "cf308e364c5b3e3428be43ac441ebebde76a4c6600b82e4c847a24c803b850fa",
+      "st_object_movement.class": "e28151e86fe0581e2b2ea97e29d47705d40300e0c0ef8ad6924640a7ddf4aec2"
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "clientProcessId": 43908,
+    "backgroundInputProtocol": 85,
+    "characterOid": 39008597,
+    "professionRequirementProbe": "passed-and-restored",
+    "serverHealthy": true,
+    "structuredLogFatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

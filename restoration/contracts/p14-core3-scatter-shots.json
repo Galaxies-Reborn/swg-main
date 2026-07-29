@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-scatter-shots",
+  "status": "ready",
+  "scope": "Restore retained Carbineer scatterShot1 and scatterShot2 with exact profession ownership, historical queued-command admission, pinned Core3 randomized three-pool multipliers and spillover, authenticated runtime, persistence observation, and reversible identity-bound cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Commands": [
+      "ScatterShot1Command",
+      "ScatterShot2Command"
+    ],
+    "skillOwners": {
+      "scatterShot1": "combat_carbine_accuracy_01",
+      "scatterShot2": "combat_carbine_accuracy_03"
+    },
+    "command": {
+      "defaultTime": 1.5,
+      "executeTime": 1.5,
+      "validWeapon": "CARBINE",
+      "target": "other",
+      "targetType": "optional",
+      "commandGroup": 391413347,
+      "addToCombatQueue": true
+    },
+    "combat": {
+      "scatterShot1": {
+        "damageMultiplier": 3.25,
+        "speedMultiplier": 2.0,
+        "healthCostMultiplier": 1.75,
+        "actionCostMultiplier": 1.25,
+        "mindCostMultiplier": 0.5,
+        "accuracyBonus": 25,
+        "distributionRolls": 2,
+        "distributionIncrement": 0.5,
+        "animation": "fire_5_single",
+        "animationType": "GENERATE_RANGED",
+        "combatSpam": "scattershot"
+      },
+      "scatterShot2": {
+        "damageMultiplier": 5.0,
+        "speedMultiplier": 2.0,
+        "healthCostMultiplier": 2.0,
+        "actionCostMultiplier": 1.25,
+        "mindCostMultiplier": 0.5,
+        "accuracyBonus": 25,
+        "distributionRolls": 3,
+        "distributionIncrement": 0.34,
+        "animation": "fire_5_single",
+        "animationType": "GENERATE_RANGED",
+        "combatSpam": "scatterblast"
+      }
+    },
+    "poolResolution": {
+      "algorithm": "Initialize Health, Action, and Mind multipliers to zero; each independent inclusive random(0,2) roll increments one pool.",
+      "spillover": "Use the pinned Core3 0.0834-per-missing-pool spill multiplier and integer distribution to pools whose direct multiplier is zero.",
+      "wounds": "Select only among directly damaged pools after a successful wound roll."
+    }
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-24T01:46:39-04:00",
+    "overlay": "restoration/patches/dsrc/262-p14-core3-scatter-shots.patch",
+    "overlaySha256": "e9a79cfdbd46a053e1ffff118e6d67fc4af8084906d486925600671ab3dd1dac",
+    "changedFileCount": 8,
+    "cleanApplyCheck": "passed-by-clean-materializer",
+    "reverseApplyCheck": "passed",
+    "javaRelease": 11,
+    "javaCompile": "passed-focused-four-production-and-acceptance-sources",
+    "datatableCompile": "passed-focused-four-tables",
+    "clientBridgeTests": 68,
+    "clientTestSuite": {
+      "passed": 198,
+      "skipped": 3,
+      "failed": 0
+    },
+    "clientBuildErrors": 0,
+    "clientProtocolVersion": 185,
+    "clientBytes": 32642048,
+    "clientSha256": "68ba87ccfd6b14aae6fc9c4d2d1498cdf7a0a092f5ea23f6a6d4f763efeb9bc4",
+    "materializedOverlayCount": 268,
+    "materializedRestorationFileCount": 784,
+    "materializedFingerprint": "17780ffebe4a91ba41f08915e5684d14da5b149ae88039b69015010c4f3196c6",
+    "sourceSha256": {
+      "actions": "fd71803bb3ff3df98f1b1ae24e8c19097cc43d1f466684f646caf59c7bbc5b76",
+      "engine": "428ce55cee8ec6d5f2e84d8615b3b608a17777737505427c7d349dfa48f3a3d2",
+      "base": "e95cfacd2d80b81cdc12fbda8193b34867b091ee3e9feece2a5410275c044b36",
+      "fixture": "d7af2968a98f532d127daa2b41de351bd7b2bfd47446d5448c86eb51a493662e",
+      "combat": "12c86ab2191d8676a9372169952a2c13714d190f7e50735320f755303c7a1fc6",
+      "override": "466494184eb01e830b9df162bbfe2ca9cf6a44779c8a3defdcbe0fb3cc3a5a59",
+      "spam": "6ce0d97fad0b34aa7303b60b2e026e0b088965bcc8d17ec4df375127198f316d",
+      "command": "2f0d6f5420fbd66807693ec028e8865f1af0733305040d3e19158826b0f2e215",
+      "skills": "f3dd04bef717ac9c3d0e0d1c6071948540da50f7b2085ae867c17fc799d90e97"
+    },
+    "clientSourceSha256": {
+      "ClientMain.cpp": "a2445fe2428b466e5d49f2aea57ea9a9c7e5d29fc07b1de7df4b46b97823c170",
+      "Invoke-PrecuBackgroundInput.ps1": "db89e3400aace1750d708f2504bb56b1c1905180f5f2785c0979c0b85d0eae31",
+      "test_precu_background_input_bridge.py": "42f9bd5c594ff1c0d150c066e5d039d274c9715141aae16205ff2722805822b2",
+      "docs/precu/README.md": "5654248704821a47e33dab63398ab3f83e14bbf31add0dfd9231bcaefd8df608",
+      "tools/README.md": "6896b7eb63e492660bed2b9305bd814edc68b77425e3063b2b93753dd9867ba9"
+    },
+    "compiledSha256": {
+      "combat_engine.class": "55251ff13e4c0d1d001b773d5092a1e98bbaced2077105def55585ff6594e211",
+      "combat_engine$combat_data.class": "05481f9f72a07032fbdfdf6e199786719a7caaba9eecdc3693758e3a8166c787",
+      "combat_actions.class": "15eedb10922ff21b319ff1a9d728598ecdca71c18d4d555fa4b604cbac1738ab",
+      "combat_base.class": "15c471100fb4b2d4e7f13f64768bf3a0f58b278786fc77c751bcd4a9f17a6508",
+      "precu_headshot1_fixture.class": "926c39263e9f6271bcf43f37b7d1450a3fb5aeb0d85bbe33673a5de9797f3cde",
+      "combat_data.iff": "3a5ad1ce075b291451c6146803a6c66b9ac3c4af8333c54ce984cd7021c2d687",
+      "precu_combat_overrides.iff": "f8ccb508dea9bb17b0915469f88cbb0a1e55d24a941fa4bf39eb3fda779a72a1",
+      "precu_combat_spam.iff": "f5e119ddc94d3ae070425dfea23b8d3d2d405310181921c98281bd7b9b24d8d7",
+      "command_table.iff": "4c3053e816c2c1f0db1125e50dabbb7d9c601a40e4b5df1efea52f386c3c5373"
+    },
+    "clientAssetsSha256": {
+      "datatables/combat/combat_data.iff": "3a5ad1ce075b291451c6146803a6c66b9ac3c4af8333c54ce984cd7021c2d687",
+      "datatables/command/command_table.iff": "4c3053e816c2c1f0db1125e50dabbb7d9c601a40e4b5df1efea52f386c3c5373",
+      "precu_runtime.tre": "2065664784d3b0dcb91d282f197b9ca3325f9cccf7b322d4656530ceb02e9f66"
+    },
+    "assetArchiveRebuild": {
+      "deterministic": true,
+      "fileCount": 3
+    },
+    "legacyAssetTestSuite": {
+      "passed": 48,
+      "failed": 33,
+      "subtestsPassed": 16,
+      "disposition": "Known stale hash-locked entertainer/progression and surrender expectations; all M264-owned focused table compilation, deterministic archive, authenticated client admission, and runtime checks passed."
+    }
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "capturedAt": "2026-07-24T01:46:39-04:00",
+    "container": "swg-precu",
+    "backgroundInputProtocol": 185,
+    "lifecycle": "26420000000000000000000000000001",
+    "attacker": {
+      "stationId": 91001,
+      "objectId": 44003778,
+      "avatar": "PrecuRuntime"
+    },
+    "defender": {
+      "stationId": 1001,
+      "objectId": 39008597,
+      "avatar": "Icai Darkwave"
+    },
+    "weaponAdmission": {
+      "heldWeaponType": 1,
+      "validMask": "0x00000002",
+      "scatterShot1CommandFound": true,
+      "scatterShot2CommandFound": true,
+      "scatterShot1Satisfies": true,
+      "scatterShot2Satisfies": true
+    },
+    "clientQueueAdmission": {
+      "scatterShot1CountAfterAdmission": 1,
+      "scatterShot2CountAfterAdmission": 1,
+      "productionTargetObjectId": 39008597,
+      "immediatePackedStatus": "0x0000000043510001"
+    },
+    "distanceCentimeters": 194,
+    "scatterShot1": {
+      "canPerformAction": 0,
+      "hamCosts": {
+        "health": 7,
+        "action": 18,
+        "mind": 5
+      },
+      "rolls": [
+        1,
+        2
+      ],
+      "increment": 0.5,
+      "activePoolMask": 6,
+      "multipliers": {
+        "health": 0.0,
+        "action": 0.5,
+        "mind": 0.5
+      },
+      "directDamage": {
+        "health": 0,
+        "action": 24,
+        "mind": 24
+      },
+      "appliedDamage": {
+        "health": 2,
+        "action": 24,
+        "mind": 24,
+        "total": 50
+      },
+      "spillDamage": 2,
+      "combatResult": {
+        "spamKey": "scattershot_hit",
+        "spamResult": 1,
+        "damage": 50,
+        "configuredTargetPool": 4,
+        "resolvedTargetPool": 4,
+        "hitLocation": 1,
+        "animation": "fire_5_single_medium_face",
+        "animationType": 1
+      }
+    },
+    "scatterShot2": {
+      "canPerformAction": 0,
+      "hamCosts": {
+        "health": 8,
+        "action": 18,
+        "mind": 5
+      },
+      "rolls": [
+        2,
+        2,
+        0
+      ],
+      "increment": 0.34,
+      "activePoolMask": 5,
+      "multipliers": {
+        "health": 0.34,
+        "action": 0.0,
+        "mind": 0.68
+      },
+      "directDamage": {
+        "health": 24,
+        "action": 0,
+        "mind": 49
+      },
+      "appliedDamage": {
+        "health": 24,
+        "action": 3,
+        "mind": 49,
+        "total": 76
+      },
+      "spillDamage": 3,
+      "combatResult": {
+        "spamKey": "scatterblast_hit",
+        "spamResult": 1,
+        "damage": 76,
+        "configuredTargetPool": 4,
+        "resolvedTargetPool": 4,
+        "hitLocation": 1,
+        "animation": "fire_5_single_medium_face",
+        "animationType": 1
+      }
+    },
+    "persistence": {
+      "observed": true,
+      "mode": "server-restart-and-client-reconnect",
+      "serverRestartSeconds": 18,
+      "lifecycleSnapshotSurvived": true,
+      "diagnosticEvidenceSurvived": true,
+      "rollsAfterReconnect": [
+        2,
+        2,
+        0
+      ],
+      "activePoolMaskAfterReconnect": 5,
+      "multipliersAfterReconnect": {
+        "health": 0.34,
+        "action": 0.0,
+        "mind": 0.68
+      },
+      "directDamageAfterReconnect": {
+        "health": 24,
+        "action": 0,
+        "mind": 49
+      },
+      "appliedDamageAfterReconnect": {
+        "health": 24,
+        "action": 3,
+        "mind": 49,
+        "total": 76
+      },
+      "spamKeyAfterReconnect": "scatterblast_hit",
+      "animationAfterReconnect": "fire_5_single_medium_face"
+    },
+    "cleanup": {
+      "restored": true,
+      "idempotent": true,
+      "scatterShot1CommandAfterCleanup": false,
+      "scatterShot2CommandAfterCleanup": false,
+      "carbineAccuracyOneAfterCleanup": false,
+      "carbineAccuracyThreeAfterCleanup": false,
+      "fixtureCarbineAfterCleanup": "none",
+      "diagnosticRollsAfterCleanup": -1
+    },
+    "serverHealthy": true,
+    "proofClientsStopped": true,
+    "proofClientStationIdsRestored": true,
+    "userClientUntouched": true,
+    "userClientSha256": "0b1d019a69fbb374b645153049204b72655cc3418808d71efd784784be68d821"
+  },
+  "publicationBoundary": {
+    "serverProductionGameplayCodeChanged": true,
+    "serverAcceptanceFixtureChanged": true,
+    "clientToolsChanged": true,
+    "clientAssetsChanged": true,
+    "evidenceRepositoryContainsGameplayCode": false
+  }
+}

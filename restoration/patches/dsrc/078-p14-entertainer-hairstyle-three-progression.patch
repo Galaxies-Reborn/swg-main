@@ -1,0 +1,286 @@
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_hairstyle_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_hairstyle_fixture.java
+index 82e937266..f679146c4 100644
+--- a/sku.0/sys.server/compiled/game/script/test/precu_entertainer_hairstyle_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_entertainer_hairstyle_fixture.java
+@@ -5,7 +5,7 @@ import script.obj_id;
+ 
+ /**
+  * Identity-bound reversible fixture for exact Publish 14.1 Entertainer
+- * Hairstyle I-II purchase and production surrender.
++ * Hairstyle I-III purchase and production surrender.
+  */
+ public class precu_entertainer_hairstyle_fixture
+     extends script.base_script
+@@ -17,10 +17,14 @@ public class precu_entertainer_hairstyle_fixture
+         "social_entertainer_hairstyle_01";
+     private static final String HAIRSTYLE_TWO =
+         "social_entertainer_hairstyle_02";
++    private static final String HAIRSTYLE_THREE =
++        "social_entertainer_hairstyle_03";
+     private static final String HAIR_ONE_COMMAND =
+         "private_entertainer_hair_1";
+     private static final String HAIR_TWO_COMMAND =
+         "private_entertainer_hair_2";
++    private static final String HAIR_THREE_COMMAND =
++        "private_entertainer_hair_3";
+     private static final String IMAGE_DESIGNER_XP = "imagedesigner";
+     private static final String HAIR_MOD = "hair";
+     private static final String FACE_MOD = "face";
+@@ -29,6 +33,8 @@ public class precu_entertainer_hairstyle_fixture
+     private static final int POINT_COST = 2;
+     private static final int TWO_XP_COST = 5000;
+     private static final int TWO_POINT_COST = 3;
++    private static final int THREE_XP_COST = 10000;
++    private static final int THREE_POINT_COST = 4;
+     private static final String ROOT =
+         "precu.entertainerHairstyleFixture";
+     private static final String LIFECYCLE = ROOT + ".lifecycle";
+@@ -50,7 +56,8 @@ public class precu_entertainer_hairstyle_fixture
+     private static final String SURRENDERED = ROOT + ".surrendered";
+     private static final String USAGE =
+         "usage: prepare|purchase|observeSurrender|prepareTwo|" +
+-        "purchaseTwo|observeSurrenderTwo|status|cleanup " +
++        "purchaseTwo|observeSurrenderTwo|prepareThree|" +
++        "purchaseThree|observeSurrenderThree|status|cleanup " +
+         "<playerOid> <lifecycle>";
+ 
+     public String executeFixture(String params)
+@@ -95,6 +102,10 @@ public class precu_entertainer_hairstyle_fixture
+         {
+             return prepareTwo(player, args[2]);
+         }
++        if (action.equalsIgnoreCase("prepareThree"))
++        {
++            return prepareThree(player, args[2]);
++        }
+         if (action.equalsIgnoreCase("cleanup") &&
+             !hasObjVar(player, ROOT))
+         {
+@@ -113,6 +124,10 @@ public class precu_entertainer_hairstyle_fixture
+         {
+             return purchaseTwo(player);
+         }
++        if (action.equalsIgnoreCase("purchaseThree"))
++        {
++            return purchaseThree(player);
++        }
+         if (action.equalsIgnoreCase("observeSurrender"))
+         {
+             return observeSurrender(player);
+@@ -121,6 +136,10 @@ public class precu_entertainer_hairstyle_fixture
+         {
+             return observeSurrenderTwo(player);
+         }
++        if (action.equalsIgnoreCase("observeSurrenderThree"))
++        {
++            return observeSurrenderThree(player);
++        }
+         if (action.equalsIgnoreCase("status"))
+         {
+             return "action=status " + buildStatus(player);
+@@ -145,8 +164,10 @@ public class precu_entertainer_hairstyle_fixture
+         if (hasSkill(player, NOVICE) ||
+             hasSkill(player, HAIRSTYLE_ONE) ||
+             hasSkill(player, HAIRSTYLE_TWO) ||
++            hasSkill(player, HAIRSTYLE_THREE) ||
+             hasCommand(player, HAIR_ONE_COMMAND) ||
+-            hasCommand(player, HAIR_TWO_COMMAND))
++            hasCommand(player, HAIR_TWO_COMMAND) ||
++            hasCommand(player, HAIR_THREE_COMMAND))
+         {
+             return "error=fixtureRequiresUntrainedEntertainer";
+         }
+@@ -279,6 +300,70 @@ public class precu_entertainer_hairstyle_fixture
+             buildStatus(player);
+     }
+ 
++    private String prepareThree(obj_id player, String lifecycle)
++        throws InterruptedException
++    {
++        String preparedTwo = prepareTwo(player, lifecycle);
++        if (preparedTwo.startsWith("error="))
++        {
++            return preparedTwo;
++        }
++        if (hasSkill(player, HAIRSTYLE_THREE))
++        {
++            return "action=prepareThree resumed=true " +
++                buildStatus(player);
++        }
++        boolean prerequisiteGranted =
++            hasSkill(player, HAIRSTYLE_TWO) ||
++            (skill.grantSkillToPlayer(player, HAIRSTYLE_TWO) &&
++                hasSkill(player, HAIRSTYLE_TWO));
++        setObjVar(
++            player,
++            BASE_POINTS,
++            skill.getAvailableSkillPoints(player));
++        setObjVar(
++            player,
++            BASE_HAIR,
++            getSkillStatMod(player, HAIR_MOD));
++        setObjVar(
++            player,
++            BASE_FACE,
++            getSkillStatMod(player, FACE_MOD));
++        setObjVar(
++            player,
++            BASE_MARKINGS,
++            getSkillStatMod(player, MARKINGS_MOD));
++        boolean xpReady = setXpExact(player, THREE_XP_COST);
++        setObjVar(player, PURCHASED, 0);
++        setObjVar(player, SURRENDERED, 0);
++
++        boolean prepared =
++            prerequisiteGranted &&
++            xpReady &&
++            hasSkill(player, HAIRSTYLE_ONE) &&
++            hasSkill(player, HAIRSTYLE_TWO) &&
++            !hasSkill(player, HAIRSTYLE_THREE) &&
++            hasCommand(player, HAIR_ONE_COMMAND) &&
++            hasCommand(player, HAIR_TWO_COMMAND) &&
++            !hasCommand(player, HAIR_THREE_COMMAND) &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, ORIGINAL_POINTS) -
++                    15 - POINT_COST - TWO_POINT_COST;
++        if (!prepared)
++        {
++            String detail = buildStatus(player);
++            boolean restored = restoreSnapshot(player);
++            if (restored)
++            {
++                removeObjVar(player, ROOT);
++            }
++            return "error=fixtureThreeSetupFailed restored=" +
++                restored + " " + detail;
++        }
++        return "action=prepareThree resumed=false " +
++            buildStatus(player);
++    }
++
+     private String purchase(obj_id player)
+         throws InterruptedException
+     {
+@@ -398,6 +483,73 @@ public class precu_entertainer_hairstyle_fixture
+             passed + " " + buildStatus(player);
+     }
+ 
++    private String purchaseThree(obj_id player)
++        throws InterruptedException
++    {
++        int cost = skill.getSkillPointCost(HAIRSTYLE_THREE);
++        boolean purchased =
++            cost == THREE_POINT_COST &&
++            skill.hasRequiredSkillsForSkillPurchase(
++                player,
++                HAIRSTYLE_THREE) &&
++            skill.hasRequiredXpForSkillPurchase(
++                player,
++                HAIRSTYLE_THREE) &&
++            skill.grantSkillToPlayer(player, HAIRSTYLE_THREE);
++        if (purchased &&
++            !skill.deductXpCostForSkillPurchase(
++                player,
++                HAIRSTYLE_THREE))
++        {
++            revokeSkill(player, HAIRSTYLE_THREE);
++            purchased = false;
++        }
++        boolean passed =
++            purchased &&
++            hasSkill(player, HAIRSTYLE_THREE) &&
++            hasCommand(player, HAIR_THREE_COMMAND) &&
++            getSkillStatMod(player, HAIR_MOD) -
++                getIntObjVar(player, BASE_HAIR) == 1 &&
++            getSkillStatMod(player, FACE_MOD) ==
++                getIntObjVar(player, BASE_FACE) &&
++            getSkillStatMod(player, MARKINGS_MOD) ==
++                getIntObjVar(player, BASE_MARKINGS) &&
++            getExperiencePoints(player, IMAGE_DESIGNER_XP) == 0 &&
++            getExperienceCap(player, IMAGE_DESIGNER_XP) == 30000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS) -
++                    THREE_POINT_COST;
++        setObjVar(player, PURCHASED, passed ? 1 : 0);
++        return "action=purchaseThree passed=" + passed +
++            " purchased=" + purchased + " " + buildStatus(player);
++    }
++
++    private String observeSurrenderThree(obj_id player)
++        throws InterruptedException
++    {
++        boolean passed =
++            getIntObjVar(player, PURCHASED) == 1 &&
++            !hasSkill(player, HAIRSTYLE_THREE) &&
++            hasSkill(player, HAIRSTYLE_TWO) &&
++            hasSkill(player, HAIRSTYLE_ONE) &&
++            !hasCommand(player, HAIR_THREE_COMMAND) &&
++            hasCommand(player, HAIR_TWO_COMMAND) &&
++            hasCommand(player, HAIR_ONE_COMMAND) &&
++            getSkillStatMod(player, HAIR_MOD) ==
++                getIntObjVar(player, BASE_HAIR) &&
++            getSkillStatMod(player, FACE_MOD) ==
++                getIntObjVar(player, BASE_FACE) &&
++            getSkillStatMod(player, MARKINGS_MOD) ==
++                getIntObjVar(player, BASE_MARKINGS) &&
++            getExperiencePoints(player, IMAGE_DESIGNER_XP) == 0 &&
++            getExperienceCap(player, IMAGE_DESIGNER_XP) == 20000 &&
++            skill.getAvailableSkillPoints(player) ==
++                getIntObjVar(player, BASE_POINTS);
++        setObjVar(player, SURRENDERED, passed ? 1 : 0);
++        return "action=observeSurrenderThree passed=" +
++            passed + " " + buildStatus(player);
++    }
++
+     private String cleanup(obj_id player)
+         throws InterruptedException
+     {
+@@ -426,6 +578,10 @@ public class precu_entertainer_hairstyle_fixture
+         {
+             return false;
+         }
++        if (hasSkill(player, HAIRSTYLE_THREE))
++        {
++            revokeSkill(player, HAIRSTYLE_THREE);
++        }
+         if (hasSkill(player, HAIRSTYLE_TWO))
+         {
+             revokeSkill(player, HAIRSTYLE_TWO);
+@@ -442,9 +598,11 @@ public class precu_entertainer_hairstyle_fixture
+             setXpExact(player, getIntObjVar(player, ORIGINAL_XP)) &&
+             !hasSkill(player, HAIRSTYLE_ONE) &&
+             !hasSkill(player, HAIRSTYLE_TWO) &&
++            !hasSkill(player, HAIRSTYLE_THREE) &&
+             !hasSkill(player, NOVICE) &&
+             !hasCommand(player, HAIR_ONE_COMMAND) &&
+             !hasCommand(player, HAIR_TWO_COMMAND) &&
++            !hasCommand(player, HAIR_THREE_COMMAND) &&
+             getSkillStatMod(player, HAIR_MOD) ==
+                 getIntObjVar(player, ORIGINAL_HAIR) &&
+             getSkillStatMod(player, FACE_MOD) ==
+@@ -490,9 +648,12 @@ public class precu_entertainer_hairstyle_fixture
+                 (hasSkill(player, HAIRSTYLE_ONE) ? "1" : "0") +
+             " hairstyleTwo=" +
+                 (hasSkill(player, HAIRSTYLE_TWO) ? "1" : "0") +
++            " hairstyleThree=" +
++                (hasSkill(player, HAIRSTYLE_THREE) ? "1" : "0") +
+             " commands=" +
+                 (hasCommand(player, HAIR_ONE_COMMAND) ? "1" : "0") +
+                 (hasCommand(player, HAIR_TWO_COMMAND) ? "1" : "0") +
++                (hasCommand(player, HAIR_THREE_COMMAND) ? "1" : "0") +
+             " hairDelta=" +
+                 (getSkillStatMod(player, HAIR_MOD) - baseHair) +
+             " faceDelta=" +
+diff --git a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+index 8cb6a8452..e8845ea69 100755
+--- a/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab
+@@ -354,7 +354,7 @@ social_entertainer_novice	social_entertainer	fourByFour	0	1	0	0	100	15	0				0	0
+ social_entertainer_master	social_entertainer	fourByFour	0	1	0	0	5000	6	0	"social_entertainer_hairstyle_04,social_entertainer_music_04,social_entertainer_dance_04,social_entertainer_healing_04"			0	0		0			none		"private_entertainer_master,startDance+footloose2,startDance+formal2,startMusic+ceremonial,mandoviol"	"healing_dance_ability=10,healing_music_ability=10,healing_dance_wound=10,healing_music_wound=10"			1	0
+ social_entertainer_hairstyle_01	social_entertainer	fourByFour	0	0	0	0	1000	2	0	social_entertainer_novice		imagedesigner	1000	10000		0			none		private_entertainer_hair_1	hair=1			1	0
+ social_entertainer_hairstyle_02	social_entertainer_hairstyle_01	fourByFour	0	0	0	0	2000	3	0	social_entertainer_hairstyle_01		imagedesigner	5000	20000		0			none		private_entertainer_hair_2	"markings=1,face=1"			1	0
+-social_entertainer_hairstyle_03	social_entertainer_hairstyle_02		0	0	0	0	3000	4		social_entertainer_hairstyle_02		imagedesigner	10000	30000							private_entertainer_hair_3	hair=1			0	0
++social_entertainer_hairstyle_03	social_entertainer_hairstyle_02	fourByFour	0	0	0	0	3000	4	0	social_entertainer_hairstyle_02		imagedesigner	10000	30000		0			none		private_entertainer_hair_3	hair=1			1	0
+ social_entertainer_hairstyle_04	social_entertainer_hairstyle_03		0	1	0	0	4000	5		social_entertainer_hairstyle_03		imagedesigner	15000	30000							private_entertainer_hair_4	"hair=1,face=1"			0	0
+ social_entertainer_music_01	social_entertainer	fourByFour	0	0	0	0	1000	2	0	social_entertainer_novice		music	1000	10000		0			none		"private_entertainer_music_1,startMusic+rock,fizz"	healing_music_ability=5			1	0
+ social_entertainer_music_02	social_entertainer_music_01	fourByFour	0	0	0	0	2000	3	0	social_entertainer_music_01		music	5000	30000		0			none		"private_entertainer_music_2,startMusic+starwars2"	healing_music_ability=5	craftInstrumentGroupB		1	0
