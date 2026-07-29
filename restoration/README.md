@@ -118,6 +118,12 @@ tutorial commit, and authenticated normal-world Image Designer transaction:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatMigration.ps1 -SourceRoot <materialized-staging-directory>
 
+Validate the later expansion-world scene set, authentic Mustafar/Kashyyyk
+starport matrix, Tansarii instance routing, all Ord Mantell shards, and the
+Hoth/Nova Orion/heroic buildouts after materializing the overlays:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PrecuExpansionWorlds.ps1 -SourceRoot <materialized-staging-directory>
+
 This M3 seam restores atomic strict-positive Health/Action/Mind ability costs,
 the Core3-derived cost formula from authoritative Strength/Quickness/Focus,
 explicit primary target-pool

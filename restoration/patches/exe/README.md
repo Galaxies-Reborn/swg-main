@@ -8,3 +8,8 @@ restored runtime must use `xpMultiplier=1`.
 The same overlay gives the dedicated cluster a private TransferServer endpoint.
 CentralServer uses that endpoint for named-account bank transfers, including
 ordinary trainer payment/accounting paths.
+
+The overlay also enables all six `space_ord_mantell` shards already present in
+the x64 source corpus. The NPE station transport library probes those scene
+IDs at runtime and load-balances station Gamma traffic only across shards that
+CentralServer actually started.
