@@ -1,0 +1,66 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/image_designer/player_image_designer.java b/sku.0/sys.server/compiled/game/script/systems/image_designer/player_image_designer.java
+--- a/sku.0/sys.server/compiled/game/script/systems/image_designer/player_image_designer.java
++++ b/sku.0/sys.server/compiled/game/script/systems/image_designer/player_image_designer.java
+@@ -1,5 +1,6 @@
+ package script.systems.image_designer;
+ 
++import script.library.camping;
+ import script.library.prose;
+ import script.library.utils;
+ import script.obj_id;
+@@ -150,6 +150,16 @@ public class player_image_designer extends script.base_script
+                 }
+             }
+         }
++        if (!isIdValid(closestTerminal))
++        {
++            obj_id entertainmentCamp = camping.getCurrentAdvancedCamp(self);
++            if (isIdValid(entertainmentCamp) &&
++                camping.isInEntertainmentCamp(self, entertainmentCamp) &&
++                camping.isInEntertainmentCamp(design_target, entertainmentCamp))
++            {
++                closestTerminal = entertainmentCamp;
++            }
++        }
+         utils.setScriptVar(design_target, VAR_IMAGE_DESIGN_CONFIRM, design_target);
+         utils.setScriptVar(self, VAR_IMAGE_DESIGN_LD, design_target);
+         attachScript(self, SCRIPT_IMAGE_DESIGNER_RESPONSE);
+diff --git a/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java b/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java
+--- a/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java
++++ b/sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java
+@@ -1,7 +1,8 @@
+ package script.systems.image_designer;
+ 
+ import script.dictionary;
+ import script.library.buff;
++import script.library.camping;
+ import script.library.prose;
+ import script.library.utils;
+ import script.library.xp;
+@@ -133,6 +133,15 @@ public class image_designer_response extends script.base_script
+         obj_id closestTerminal = null;
+         obj_id structure = getTopMostContainer(self);
+         obj_id targetStructure = getTopMostContainer(target);
++        boolean validSalon = (structure != self) &&
++            structure == targetStructure &&
++            terminalId == structure &&
++            utils.hasObjVar(structure, "salon");
++        obj_id entertainmentCamp = camping.getCurrentAdvancedCamp(self);
++        boolean validEntertainmentCamp = isIdValid(entertainmentCamp) &&
++            terminalId == entertainmentCamp &&
++            camping.isInEntertainmentCamp(self, entertainmentCamp) &&
++            camping.isInEntertainmentCamp(target, entertainmentCamp);
+         if ((structure != self) && utils.hasObjVar(structure, "salon"))
+         {
+             if ((targetStructure != target) && utils.hasObjVar(targetStructure, "salon"))
+@@ -162,6 +171,10 @@ public class image_designer_response extends script.base_script
+         {
+             accepted = false;
+         }
++        if (designType == 2 && !validSalon && !validEntertainmentCamp)
++        {
++            accepted = false;
++        }
+         int cost = IMAGE_DESIGN_COST_BASE * designType;
+         int action = getAttrib(self, ACTION);
+         LOG("LOG_CHANNEL", "cost ->" + cost + " action ->" + action);

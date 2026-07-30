@@ -221,6 +221,11 @@ identity-bound ServerConsole probe for the recipient's durable migration
 record. It reports the state marker, nine targets, and sum but exposes no
 mutation action; production client commands remain the only writers.
 
+`332-p14-stat-migration-entertainer-camps.patch` records the exact active
+entertainment-module camp as the Image Designer terminal only when both players
+are inside its `campsite` trigger volume. Validation rechecks the same camp
+before forwarding a stat-migration commit to the native server boundary.
+
 `014-p14-headshot1-vertical-slice.patch` activates the first authenticated
 Publish 14.1 combat command. Marksman Rifle I grants the queued `headShot1`
 entry, its thin script wrapper uses the production standard-combat path, combat

@@ -89,3 +89,9 @@ authoritative full-or-skipped fresh-character tutorial lifecycle rather than a
 nonexistent scene name. After first-planet handoff, the native commit boundary
 requires a distinct entertainer who still owns `imagedesign`, plus both players
 inside the same server-verified `salon` structure.
+
+`332-p14-stat-migration-entertainer-camps.patch` extends that normal-world
+boundary to crafted camps carrying `modules.entertainer`. The authenticated
+session terminal must be the exact camp object, and its `campsite` trigger
+volume must still contain both players when the server commits the allocation.
+Permanent saloons retain their stricter shared-topmost-container check.

@@ -351,9 +351,11 @@ and does not claim Core3 wire-format equivalence.
 The stat-migration gate requires authentic Publish 14.1 racial limits, racial
 modifiers, and profession allocations plus all four retained command entry
 points. The server owns target initialization, bounds, and total validation.
-Tutorial allocations commit immediately only in `newbie_hall`; normal-world
-targets remain pending until the Image Designer transaction milestone restores
-its authoritative commit and persistence boundary.
+Fresh-character allocations commit immediately while either authoritative
+tutorial lifecycle marker remains present. First-planet handoff retires that
+free path. Normal-world targets remain pending until a distinct entertainer
+commits them with both players still in the exact permanent salon or
+entertainment-module camp recorded by the authenticated Image Designer session.
 
 The registered Phase-A overlays restore table-derived training and skill-point
 enforcement, add the surrender command/service, harden schematic revocation,

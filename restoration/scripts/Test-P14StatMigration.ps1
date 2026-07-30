@@ -177,17 +177,28 @@ $controllerAuthenticationReady = `
     $text.playerController.Contains("cancelSession(session.designerId, session.recipientId)")
 Assert-Contract -Condition $controllerAuthenticationReady -Name "p14.stat-migration.image-designer.controller-session-identity"
 
-$salonTransactionReady = `
+$venueTransactionReady = `
     $text.imageDesignerManager.Contains("session.designType == ImageDesignChangeMessage::DT_STAT_MIGRATION") -and `
     $text.imageDesignerManager.Contains("designer != recipient") -and `
     $text.imageDesignerManager.Contains('designer->hasCommand("imagedesign")') -and `
     $text.imageDesignerManager.Contains("!recipient->isInTutorial()") -and `
-    $text.imageDesignerManager.Contains('statMigrationSalon->getObjVars().hasItem("salon")') -and `
+    $text.imageDesignerManager.Contains('statMigrationVenue->getObjVars().hasItem("salon")') -and `
+    $text.imageDesignerManager.Contains('statMigrationVenue->getObjVars().hasItem("modules.entertainer")') -and `
+    $text.imageDesignerManager.Contains('statMigrationVenue->getTriggerVolume("campsite")') -and `
+    $text.imageDesignerManager.Contains("entertainmentCampVolume->hasObject(*designer)") -and `
+    $text.imageDesignerManager.Contains("entertainmentCampVolume->hasObject(*recipient)") -and `
     $text.imageDesignerManager.Contains("designerTopmost->getNetworkId() == session.terminalId") -and `
     $text.imageDesignerManager.Contains("recipientTopmost->getNetworkId() == session.terminalId") -and `
+    $text.playerImageDesigner.Contains("import script.library.camping;") -and `
+    $text.playerImageDesigner.Contains("camping.getCurrentAdvancedCamp(self)") -and `
+    $text.playerImageDesigner.Contains("camping.isInEntertainmentCamp(design_target, entertainmentCamp)") -and `
+    $text.imageDesignerScript.Contains("import script.library.camping;") -and `
+    $text.imageDesignerScript.Contains("boolean validEntertainmentCamp") -and `
+    $text.imageDesignerScript.Contains("camping.isInEntertainmentCamp(target, entertainmentCamp)") -and `
+    $text.imageDesignerScript.Contains("designType == 2 && !validSalon && !validEntertainmentCamp") -and `
     $text.imageDesignerManager.Contains("CommandCppFuncs::canCommitStatMigration(recipient->getNetworkId())") -and `
     $text.imageDesignerManager.Contains("CommandCppFuncs::commitStatMigration(recipient->getNetworkId())")
-Assert-Contract -Condition $salonTransactionReady -Name "p14.stat-migration.image-designer.normal-world-entertainer-salon-transaction"
+Assert-Contract -Condition $venueTransactionReady -Name "p14.stat-migration.image-designer.normal-world-entertainer-salon-or-camp-transaction"
 
 $nativeCallbackReady = `
     $text.imageDesignerNative.Contains("SharedImageDesignerManager::getSession(session.designerId, authenticatedSession)") -and `
