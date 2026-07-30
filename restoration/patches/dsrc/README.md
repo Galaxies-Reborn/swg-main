@@ -1292,3 +1292,12 @@ animation, `sapblast` spam, and posture-down chance are table-driven. The
 existing identity-bound fixture adds reversible ownership and cost/status
 evidence while reusing the proven CDEF carbine, posture resolver, recovery,
 and exact cleanup lifecycle.
+
+`328-p14-center-of-being-lifecycle.patch` replaces the NGE combat-data
+execution of `centerOfBeing` with the pinned Core3 lifecycle. Brawler novices
+receive a weapon-family duration and efficacy driven `private_center_of_being`
+modifier, a replicated `command.centerOfBeing` status icon, and green/red
+start and expiry feedback. The existing Pre-CU secondary-defense resolver
+consumes the modifier, native buff expiry removes it, and the obsolete NGE
+combat execution path is not entered. The handler instead admits and drains
+the row's authentic 50-point Action cost as one transaction.
