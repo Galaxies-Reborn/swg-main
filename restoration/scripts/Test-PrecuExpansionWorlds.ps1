@@ -120,6 +120,19 @@ Assert-Contract `
     -Condition $travelReady `
     -Name "precu.expansion-worlds.starports.authentic-mustafar-kashyyyk-matrix"
 
+$mustafarStarport = [string]$contract.travelSemantics.starports.mustafar
+$kashyyykStarport = [string]$contract.travelSemantics.starports.kashyyyk_main
+$starportRegistrationReady = `
+    $text.mustafarBuildout.Contains("structure.municipal.starport") -and `
+    $text.mustafarBuildout.Contains("travel.point_name|4|$mustafarStarport") -and `
+    $text.mustafarBuildout.Contains("mustafar 0|travel.base_object") -and `
+    $text.kashyyykBuildout.Contains("structure.municipal.starport") -and `
+    $text.kashyyykBuildout.Contains("travel.point_name|4|$kashyyykStarport") -and `
+    $text.kashyyykBuildout.Contains("kashyyyk_main 0|travel.base_object")
+Assert-Contract `
+    -Condition $starportRegistrationReady `
+    -Name "precu.expansion-worlds.starports.live-travel-points-registered-by-buildouts"
+
 $widthRows = @(Read-TabTable -Value $text.planetWidth)
 $mustafarWidth = @($widthRows | Where-Object { $_.Planet -ceq "mustafar" })[0]
 $kashyyykWidth = @($widthRows | Where-Object { $_.Planet -ceq "kashyyyk_main" })[0]
