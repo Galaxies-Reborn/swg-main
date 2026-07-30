@@ -17,3 +17,8 @@ container-address discovery compatible with fail-fast shell execution.
 runtime filter. The complete scene set remains registered in source, while the
 dedicated local acceptance container can start a bounded test set without
 saturating the host and delaying gameplay commands.
+
+`005-precu-docker-runtime-parity.patch` closes direct-repository drift in the
+isolated Pre-CU Compose definition, networking/port configuration, operator
+documentation, and repository text rules. It intentionally preserves the
+TransferServer supervisor already restored by patch 001.
