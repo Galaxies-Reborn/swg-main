@@ -16,33 +16,55 @@
     "internalHandlerParameters": ["shared", "stackable", "weapon_lock"],
     "fallbackIcon": "buffs.genericBuff"
   },
+  "presentation": {
+    "uniqueVisibleRows": 1845,
+    "distinctIconPaths": 500,
+    "publish14AuthoredPaths": 45,
+    "exactImportedPaths": 442,
+    "reviewedAliasPaths": 13,
+    "importedTextureSheets": 23,
+    "generatedStylesSha256": "8A66F45DC1730638D51C8B532AAF5266B9C6F59D3747405EFFFADFADDD19640D"
+  },
+  "serverApplications": {
+    "directCalls": 607,
+    "applyBuffCalls": 595,
+    "stackCalls": 12,
+    "resolvedStatuses": 407,
+    "dynamicCalls": 116,
+    "retiredOrphanCallbacks": ["sm_double_fire_recourse", "sm_false_hope_recourse"]
+  },
   "lifecycleFixtures": {
     "positive": "proc_generic_test",
     "debuffStackable": "co_hw_dot_fire_1",
     "serverExpiry": ["precu_berserk_status", "centerOfBeing"]
   },
   "overlay": "restoration/patches/dsrc/330-p14-status-catalog-integrity.patch",
+  "applicationOverlay": "restoration/patches/dsrc/331-p14-status-application-closure.patch",
   "buildEvidence": {
     "result": "passed",
     "tableCompile": "buff.iff SHA256 3076868D7FE98DA0BA55999BDAEFCDB0AFF0EBE3E7D25FFCACEA3C8096B57756; effect_mapping.iff SHA256 0967807A778B72F54BD74AC3633A658BDD8AB3048438EB314CCA691B54D66722",
-    "assetTests": "12 focused status, Berserk, and Center of Being asset tests passed",
-    "clientTests": "85 focused client status and background bridge tests passed",
-    "dx11Build": "Release x64 SwgClient_r.exe built and linked successfully; SHA256 61D41EA6619B5F3430C7DD111B8A14A6379E075EDBA9ED8A74DFB88F01C5B48E",
-    "runtimeTre": "precu_runtime.tre SHA256 1AB26A61B63985E5D55E334FD540E0EFDCF3F969C486803CF118FA1C3A5E9E62"
+    "assetTests": "15 focused status, Berserk, Center of Being, authored-style, and texture-provenance tests passed",
+    "clientTests": "86 focused client status and background bridge tests passed",
+    "serverReachability": "Balanced parser classified all 607 direct applyBuff calls: 407 distinct literal/constant/prefix-resolved catalog statuses and 116 data-driven call expressions, with zero resolved names outside the catalog; two orphan callback handlers for absent NGE statuses were retired.",
+    "dx11Build": "Release x64 SwgClient_r.exe built and linked successfully; SHA256 4AA5170517853456C6DB929A52AF3EDCA3637DDD3FE8BC108EE6BC43534A0033",
+    "runtimeTre": "precu_runtime.tre SHA256 B3046C7540B8883B57C26D167B0AA0371DB575F76BB9A160E4A56C7D2B777434"
   },
   "runtimeEvidence": {
     "result": "passed",
     "observedAt": "2026-07-30",
     "character": "Eteb Eso",
-    "bridgeProtocol": 253,
+    "bridgeProtocol": 255,
     "observations": [
-      "The live catalog audit loaded 1,845 unique visible records: 1,329 positive and 516 debuffs. It found 426 missing authored styles, all resolved by polarity-safe compatibility icons, with zero unresolved icons.",
+      "The corrected non-truncating live catalog audit loaded 1,845 unique visible records: 1,329 positive and 516 debuffs, with zero missing authored styles and zero unresolved icons.",
+      "The first audit layout exposed only ten bits for authored misses and folded the true pre-overlay count of 1,450 to 426; protocol 255 allocates eleven bits and its regression test covers the full retained range.",
+      "The generated Publish 14.1 style overlay resolves all 500 distinct visible icon paths using 442 exact authored imports and 13 reviewed aliases backed by 23 hash-verified texture sheets.",
       "An otherwise empty panel reported zero replicated statuses, zero rendered icons, a hidden page, and matching counts.",
-      "The positive proc_generic_test and stackable co_hw_dot_fire_1 debuff fixtures produced exactly two replicated and two rendered icons with correct polarity.",
+      "The positive proc_generic_test and stackable co_hw_dot_fire_1 debuff fixtures produced exactly two replicated and two rendered, visually distinct authored icons with correct polarity.",
       "Refreshing the same CRCs updated positive value, debuff value, duration, tooltip metadata, and debuff stack from 3 to 4 without adding duplicate icons; counts remained two of two.",
       "Clearing both fixtures removed both icons and collapsed the empty status page.",
-      "A real Berserk I activation succeeded on the fourth authentic random attempt, showed exactly one positive command.berserk icon, and server expiry removed the icon and collapsed the panel after 20 seconds.",
-      "The existing Center of Being server lifecycle remained covered by its prior live activation and expiry proof."
+      "A real Berserk I activation succeeded on the first authentic random attempt. The raw replicated map contained precu_berserk_status under the expected CRC, and the panel reported exactly one positive command.berserk icon with one rendered widget; server expiry returned the raw map, visible count, rendered count, and panel visibility to zero after 20 seconds.",
+      "A fresh Center of Being activation independently produced one raw replicated centerofbeing entry and one rendered positive icon; its five-second server expiry removed the entry and collapsed the panel.",
+      "The instrumented Berserk screenshot is SHA256 4C46341E4BE36B9BB8F3B6CA5CC65D76DBD428A860F7152222422A0A67B21F9."
     ]
   }
 }

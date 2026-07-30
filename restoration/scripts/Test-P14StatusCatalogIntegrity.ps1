@@ -86,10 +86,30 @@ foreach ($file in Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter *.java
     $text = Get-Content -LiteralPath $file.FullName -Raw
     foreach ($match in [regex]::Matches($text, $literalPattern)) { [void]$literalBuffNames.Add($match.Groups[1].Value) }
 }
-$missingLiterals = @($literalBuffNames | Where-Object { -not $byName.ContainsKey($_) -and -not @($buffs.NAME) -ccontains $_ })
+$catalogNames = @($buffs.NAME)
+$missingLiterals = @($literalBuffNames | Where-Object {
+    $candidate = $_
+    -not $byName.ContainsKey($candidate) -and
+    -not ($catalogNames -ccontains $candidate) -and
+    @($catalogNames | Where-Object { $_.StartsWith($candidate, [StringComparison]::Ordinal) }).Count -eq 0
+})
 Assert ($missingLiterals.Count -eq 0) "Server applies literal statuses absent from the catalog: $([string]::Join(', ', $missingLiterals))"
+
+$analyzer = Join-Path $PSScriptRoot "analyze_p14_status_applications.py"
+Assert (Test-Path -LiteralPath $analyzer -PathType Leaf) "Balanced status-application analyzer is missing"
+$python = Get-Command python -ErrorAction SilentlyContinue
+Assert ($null -ne $python) "Python is required for the balanced status-application audit"
+$analysisJson = (& $python.Source $analyzer --buff-table $buffPath --script-root $scriptRoot | Out-String)
+Assert ($LASTEXITCODE -eq 0) "Balanced status-application audit found missing catalog rows"
+$analysis = $analysisJson | ConvertFrom-Json
+Assert ([int]$analysis.callCount -eq [int]$contract.serverApplications.directCalls) "Direct status-application count drifted"
+Assert ([int]$analysis.methodCounts.applyBuff -eq [int]$contract.serverApplications.applyBuffCalls) "applyBuff call count drifted"
+Assert ([int]$analysis.methodCounts.applyBuffWithStackCount -eq [int]$contract.serverApplications.stackCalls) "stacked applyBuff call count drifted"
+Assert ([int]$analysis.resolvedStatusCount -eq [int]$contract.serverApplications.resolvedStatuses) "Resolved server status set drifted"
+Assert ([int]$analysis.resolutionCounts.dynamic -eq [int]$contract.serverApplications.dynamicCalls) "Dynamic status boundary count drifted"
+Assert (@($analysis.missingStatuses).Count -eq 0) "Balanced status-application audit found missing catalog rows"
 
 if ($Expectation -ceq "Ready") {
     Assert ([string]$contract.status -ceq "ready" -and [string]$contract.runtimeEvidence.result -ceq "passed") "Status catalog integrity is not Ready"
 }
-Write-Host "Publish 14.1 status catalog integrity contract passed ($($visible.Count) visible rows; $($literalBuffNames.Count) literal server applications)."
+Write-Host "Publish 14.1 status catalog integrity contract passed ($($visible.Count) visible rows; $($analysis.callCount) direct server applications; $($analysis.resolvedStatusCount) resolved statuses; $($analysis.unresolvedExpressionCount) data-driven expressions)."

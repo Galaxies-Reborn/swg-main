@@ -1956,10 +1956,13 @@ Validate:
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkStatusReplication.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
 
 Milestone 265 validates the complete retained status catalog consumed by the
-x64 DX11 client: all 1,851 visible rows have usable icons, valid polarity and
-stack metadata, every user-facing effect is describable, duplicate names are
-client-compatible, and literal server applications resolve to table rows. Its
-live gate covers positive, debuff, stacked, refreshed, cleared, and real
+x64 DX11 client: all 1,845 unique visible rows resolve through 500 authored
+style paths with valid polarity and stack metadata, every user-facing effect
+is describable, and duplicate names are client-compatible. A balanced parser
+classifies all 607 direct server applications, expands concatenated families,
+and rejects resolved names outside the table; two orphan NGE recourse handlers
+were retired. The protocol-255 live gate reports zero authored or unresolved
+icon misses and covers positive, debuff, stacked, refreshed, cleared, and real
 server-expired panel lifecycles. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatusCatalogIntegrity.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
