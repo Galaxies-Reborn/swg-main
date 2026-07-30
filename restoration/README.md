@@ -124,6 +124,13 @@ Hoth/Nova Orion/heroic buildouts after materializing the overlays:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PrecuExpansionWorlds.ps1 -SourceRoot <materialized-staging-directory>
 
+All scenes remain registered and available in the materialized source. The
+dedicated `docker-compose.precu.yml` profile sets `SWG_START_PLANETS` to a
+bounded local acceptance set so a workstation does not start every ground,
+space, and instance process simultaneously. Override
+`SWG_PRECU_START_PLANETS` for a different test set, or set it to the complete
+source list for a full-world deployment.
+
 This M3 seam restores atomic strict-positive Health/Action/Mind ability costs,
 the Core3-derived cost formula from authoritative Strength/Quickness/Focus,
 explicit primary target-pool

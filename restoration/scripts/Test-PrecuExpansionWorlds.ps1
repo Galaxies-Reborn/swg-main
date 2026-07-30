@@ -115,7 +115,20 @@ foreach ($scene in $allScenes)
 }
 Assert-Contract `
     -Condition ($disabledScenes.Count -eq 0) `
-    -Name "precu.expansion-worlds.central-server.all-scenes-enabled"
+    -Name "precu.expansion-worlds.central-server.full-scene-source-profile-available"
+
+$allRegisteredScenes = @($planetNames | Sort-Object -Unique)
+$invalidAcceptanceScenes = @($contract.localAcceptanceScenes | Where-Object {
+    $allRegisteredScenes -cnotcontains [string]$_
+})
+$expectedLocalProfile = @($contract.localAcceptanceScenes) -join ','
+$entrypointProfileReady = `
+    $text.entrypoint.Contains('SWG_START_PLANETS="${SWG_START_PLANETS:-}"') -and `
+    $text.entrypoint.Contains('apply_runtime_scene_profile()') -and `
+    $text.entrypoint.Contains('grep -Fxc "startPlanet=${scene}"')
+Assert-Contract `
+    -Condition ($invalidAcceptanceScenes.Count -eq 0 -and $entrypointProfileReady -and $expectedLocalProfile.Length -gt 0) `
+    -Name "precu.expansion-worlds.local-acceptance-profile.bounded-and-reproducible"
 
 $ordScenes = @($contract.spaceScenes | Where-Object { [string]$_ -like "space_ord_mantell*" })
 $ordEnabledExactlyOnce = $true
