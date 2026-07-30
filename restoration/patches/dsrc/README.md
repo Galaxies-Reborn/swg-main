@@ -1301,3 +1301,10 @@ start and expiry feedback. The existing Pre-CU secondary-defense resolver
 consumes the modifier, native buff expiry removes it, and the obsolete NGE
 combat execution path is not entered. The handler instead admits and drains
 the row's authentic 50-point Action cost as one transaction.
+
+`329-p14-berserk-status-replication.patch` mirrors the existing durable
+`berserk1` and `berserk2` timed state into a visible `command.berserk` status
+row. The row is presentation-only: it has no effect parameters and owns no
+state, avoiding the retained later-era melee-damage bonuses. Both command
+transactions roll the icon back on a failed debit, expiry removes it, relog
+reapplies the exact remaining interval, and both fixtures clean it up.

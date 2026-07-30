@@ -1,0 +1,197 @@
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -26,6 +26,8 @@ public class base_player extends script.base_script
+     public static final int PRECU_BERSERK_DURATION_SECONDS = 20;
+     private static final String PRECU_BERSERK_EXPIRY =
+         "precu.berserk.expiresAt";
++    private static final String PRECU_BERSERK_STATUS_BUFF =
++        "precu_berserk_status";
+     private static final long PRECU_BERSERK_ONE_PLAYER_OID = 44003778L;
+     private static final int PRECU_BERSERK_ONE_STATION_ID = 91001;
+     private static final int PRECU_BERSERK_ONE_PROTOCOL_VERSION = 1;
+@@ -3911,7 +3913,8 @@ public class base_player extends script.base_script
+         if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
+             isDead(self) || isIncapacitated(self) ||
+             !hasSkill(self, "combat_brawler_novice") ||
+-            getState(self, STATE_BERSERK) == 1)
++            getState(self, STATE_BERSERK) == 1 ||
++            buff.hasBuff(self, PRECU_BERSERK_STATUS_BUFF))
+         {
+             recordPrecuBerserkOneOutcome(self, fixture, "playerRejected");
+             return SCRIPT_CONTINUE;
+@@ -3955,11 +3958,18 @@ public class base_player extends script.base_script
+             return SCRIPT_CONTINUE;
+         }
+ 
++        if (!buff.applyBuff(self, self, PRECU_BERSERK_STATUS_BUFF,
++            PRECU_BERSERK_DURATION_SECONDS))
++        {
++            recordPrecuBerserkOneOutcome(self, fixture, "buffApplyFailed");
++            return SCRIPT_CONTINUE;
++        }
+         int healthBefore = getAttrib(self, HEALTH);
+         int actionBefore = getAttrib(self, ACTION);
+         int mindBefore = getAttrib(self, MIND);
+         if (!drainCombatAttributes(self, healthCost, actionCost, mindCost))
+         {
++            buff.removeBuff(self, PRECU_BERSERK_STATUS_BUFF);
+             recordPrecuBerserkOneOutcome(self, fixture, "hamDrainFailed");
+             return SCRIPT_CONTINUE;
+         }
+@@ -4019,7 +4029,8 @@ public class base_player extends script.base_script
+         if (!isIdValid(self) || !exists(self) || !isPlayer(self) ||
+             isDead(self) || isIncapacitated(self) ||
+             !hasSkill(self, "combat_brawler_master") ||
+-            getState(self, STATE_BERSERK) == 1)
++            getState(self, STATE_BERSERK) == 1 ||
++            buff.hasBuff(self, PRECU_BERSERK_STATUS_BUFF))
+         {
+             recordPrecuBerserkTwoOutcome(self, fixture, "playerRejected");
+             return SCRIPT_CONTINUE;
+@@ -4063,11 +4074,18 @@ public class base_player extends script.base_script
+             return SCRIPT_CONTINUE;
+         }
+ 
++        if (!buff.applyBuff(self, self, PRECU_BERSERK_STATUS_BUFF,
++            PRECU_BERSERK_TWO_DURATION_SECONDS))
++        {
++            recordPrecuBerserkTwoOutcome(self, fixture, "buffApplyFailed");
++            return SCRIPT_CONTINUE;
++        }
+         int healthBefore = getAttrib(self, HEALTH);
+         int actionBefore = getAttrib(self, ACTION);
+         int mindBefore = getAttrib(self, MIND);
+         if (!drainCombatAttributes(self, healthCost, actionCost, mindCost))
+         {
++            buff.removeBuff(self, PRECU_BERSERK_STATUS_BUFF);
+             recordPrecuBerserkTwoOutcome(self, fixture, "hamDrainFailed");
+             return SCRIPT_CONTINUE;
+         }
+@@ -4869,6 +4887,10 @@ public class base_player extends script.base_script
+             schedulePrecuBerserkExpiry(self, currentExpiry);
+             return SCRIPT_CONTINUE;
+         }
++        if (buff.hasBuff(self, PRECU_BERSERK_STATUS_BUFF))
++        {
++            buff.removeBuff(self, PRECU_BERSERK_STATUS_BUFF);
++        }
+         setState(self, STATE_BERSERK, false);
+         removeObjVar(self, PRECU_BERSERK_EXPIRY);
+         boolean fixture = isPrecuBerserkOneFixture(self);
+@@ -4892,15 +4914,28 @@ public class base_player extends script.base_script
+     {
+         if (!hasObjVar(player, PRECU_BERSERK_EXPIRY))
+         {
++            if (buff.hasBuff(player, PRECU_BERSERK_STATUS_BUFF))
++            {
++                buff.removeBuff(player, PRECU_BERSERK_STATUS_BUFF);
++            }
+             return;
+         }
+         int expiresAt = getIntObjVar(player, PRECU_BERSERK_EXPIRY);
+         if (expiresAt <= getGameTime())
+         {
++            if (buff.hasBuff(player, PRECU_BERSERK_STATUS_BUFF))
++            {
++                buff.removeBuff(player, PRECU_BERSERK_STATUS_BUFF);
++            }
+             setState(player, STATE_BERSERK, false);
+             removeObjVar(player, PRECU_BERSERK_EXPIRY);
+             return;
+         }
++        if (!buff.hasBuff(player, PRECU_BERSERK_STATUS_BUFF))
++        {
++            buff.applyBuff(player, player, PRECU_BERSERK_STATUS_BUFF,
++                expiresAt - getGameTime());
++        }
+         setState(player, STATE_BERSERK, true);
+         schedulePrecuBerserkExpiry(player, expiresAt);
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java
+--- a/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_berserk_one_command_fixture.java
+@@ -1,6 +1,7 @@
+ package script.test;
+ 
+ import script.obj_id;
++import script.library.buff;
+ import script.library.combat;
+ import script.library.skill;
+ 
+@@ -17,6 +18,7 @@ public class precu_berserk_one_command_fixture extends script.base_script
+     private static final String PREPARED = ROOT + ".prepared";
+     private static final String ORIGINAL_POINTS = ROOT + ".originalPoints";
+     private static final String BERSERK_EXPIRY = "precu.berserk.expiresAt";
++    private static final String BERSERK_STATUS_BUFF = "precu_berserk_status";
+     private static final String[] SKILLS =
+     {
+         "combat_brawler",
+@@ -163,6 +165,10 @@ public class precu_berserk_one_command_fixture extends script.base_script
+             return false;
+         }
+         setState(player, STATE_BERSERK, false);
++        if (buff.hasBuff(player, BERSERK_STATUS_BUFF))
++        {
++            buff.removeBuff(player, BERSERK_STATUS_BUFF);
++        }
+         if (hasObjVar(player, BERSERK_EXPIRY))
+         {
+             removeObjVar(player, BERSERK_EXPIRY);
+@@ -173,6 +179,7 @@ public class precu_berserk_one_command_fixture extends script.base_script
+             restoreAttribute(player, index, ATTRIBUTES[index]);
+         }
+         boolean restored = getState(player, STATE_BERSERK) == 0 &&
++            !buff.hasBuff(player, BERSERK_STATUS_BUFF) &&
+             !hasObjVar(player, BERSERK_EXPIRY) &&
+             !hasAnyFixtureSkill(player) && !hasCommand(player, COMMAND) &&
+             skill.getAvailableSkillPoints(player) ==
+diff --git a/sku.0/sys.server/compiled/game/script/test/precu_berserk_two_command_fixture.java b/sku.0/sys.server/compiled/game/script/test/precu_berserk_two_command_fixture.java
+--- a/sku.0/sys.server/compiled/game/script/test/precu_berserk_two_command_fixture.java
++++ b/sku.0/sys.server/compiled/game/script/test/precu_berserk_two_command_fixture.java
+@@ -1,6 +1,7 @@
+ package script.test;
+ 
+ import script.obj_id;
++import script.library.buff;
+ import script.library.combat;
+ import script.library.skill;
+ 
+@@ -17,6 +18,7 @@ public class precu_berserk_two_command_fixture extends script.base_script
+     private static final String PREPARED = ROOT + ".prepared";
+     private static final String ORIGINAL_POINTS = ROOT + ".originalPoints";
+     private static final String BERSERK_EXPIRY = "precu.berserk.expiresAt";
++    private static final String BERSERK_STATUS_BUFF = "precu_berserk_status";
+     private static final String[] SKILLS =
+     {
+         "combat_brawler",
+@@ -181,6 +183,10 @@ public class precu_berserk_two_command_fixture extends script.base_script
+             return false;
+         }
+         setState(player, STATE_BERSERK, false);
++        if (buff.hasBuff(player, BERSERK_STATUS_BUFF))
++        {
++            buff.removeBuff(player, BERSERK_STATUS_BUFF);
++        }
+         if (hasObjVar(player, BERSERK_EXPIRY))
+         {
+             removeObjVar(player, BERSERK_EXPIRY);
+@@ -191,6 +197,7 @@ public class precu_berserk_two_command_fixture extends script.base_script
+             restoreAttribute(player, index, ATTRIBUTES[index]);
+         }
+         boolean restored = getState(player, STATE_BERSERK) == 0 &&
++            !buff.hasBuff(player, BERSERK_STATUS_BUFF) &&
+             !hasObjVar(player, BERSERK_EXPIRY) &&
+             !hasAnyFixtureSkill(player) && !hasCommand(player, COMMAND) &&
+             getSkillStatMod(player, "berserk") == 0 &&
+diff --git a/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab b/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
+--- a/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
++++ b/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab
+@@ -69,6 +69,7 @@ armorBreak_1	armorBreak			3	command.armorBreak	20	private_armor_break	100		0		0		0		0	STATE_NONE	none			0	1		1	1	1	0	1	1	0	1	1	1
+ armorBreak_2	armorBreak			4	command.armorBreak	30	private_armor_break	150		0		0		0		0	STATE_NONE	none			0	1		1	1	1	0	1	1	0	1	1	1
+ berserk	berserk			1	command.berserk	20	private_melee_dmg_bonus	25		0		0		0		0	STATE_BERSERK	none			1	0		1	1	1	0	1	1	0	1	1	1
+ berserk_1	berserk			2	command.berserk	20	private_melee_dmg_bonus	50		0		0		0		0	STATE_BERSERK	none			1	0		1	1	1	0	1	1	0	1	1	1
++precu_berserk_status	precuBerserkStatus			1	command.berserk	0		0		0		0		0		0	STATE_NONE	none			1	0		0	1	0	0	1	0	0	1	1	1
+ startleShot	startleShot			1	command.startleShot	5	private_posture_override	1		0		0		0		0	STATE_NONE	none			0	1		1	1	1	0	1	1	0	1	1	1
+ startleShot_1	startleShot			2	command.startleShot	5	private_posture_override	1		0		0		0		0	STATE_NONE	none			0	1		1	1	1	0	1	1	0	1	1	1
+ startleShot_2	startleShot	daze		3	command.startleShot	5	private_posture_override	1	delay_attack	0		0		0		0	STATE_NONE	dazeRecourse			0	1		1	1	1	0	1	1	0	1	1	1

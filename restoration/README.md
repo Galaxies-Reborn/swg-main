@@ -1945,3 +1945,12 @@ damage and bleeding, posture application, recovery, and reversible idempotent
 two-client cleanup. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionShotTwoCone.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 264 makes the existing 20-second `berserk1` and 40-second `berserk2`
+state lifecycle visible in the client status panel. A dedicated, effect-free
+`command.berserk` row deliberately avoids the retained later-era 25/50-percent
+melee damage bonuses. Application precedes the HAM debit, failure rolls the
+icon back, expiry removes it, and relog restores only the remaining interval.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkStatusReplication.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
