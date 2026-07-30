@@ -125,7 +125,10 @@ $expectedLocalProfile = @($contract.localAcceptanceScenes) -join ','
 $entrypointProfileReady = `
     $text.entrypoint.Contains('SWG_START_PLANETS="${SWG_START_PLANETS:-}"') -and `
     $text.entrypoint.Contains('apply_runtime_scene_profile()') -and `
-    $text.entrypoint.Contains('grep -Fxc "startPlanet=${scene}"')
+    $text.entrypoint.Contains('grep -Fxc "startPlanet=${scene}"') -and `
+    $text.entrypoint.Contains('while IFS= read -r line || [ -n "${line}" ]') -and `
+    $text.entrypoint.Contains('case " ${requested} " in') -and `
+    -not $text.entrypoint.Contains('awk -v requested=')
 Assert-Contract `
     -Condition ($invalidAcceptanceScenes.Count -eq 0 -and $entrypointProfileReady -and $expectedLocalProfile.Length -gt 0) `
     -Name "precu.expansion-worlds.local-acceptance-profile.bounded-and-reproducible"

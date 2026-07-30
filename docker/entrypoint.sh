@@ -361,6 +361,8 @@ apply_runtime_scene_profile() {
     local requested
     local scene
     local scene_count
+    local line
+    local config_scene
     local tmp="${cfg}.scene-profile-tmp"
 
     if [ -z "${SWG_START_PLANETS}" ]; then
@@ -387,24 +389,21 @@ apply_runtime_scene_profile() {
         fi
     done
 
-    awk -v requested="${requested}" '
-        BEGIN {
-            count = split(requested, scenes, /[[:space:]]+/)
-            for (index = 1; index <= count; ++index) {
-                if (scenes[index] != "") wanted[scenes[index]] = 1
-            }
-        }
-        {
-            line = $0
-            sub(/\r$/, "", line)
-            if (line ~ /^startPlanet=/) {
-                scene = substr(line, length("startPlanet=") + 1)
-                if (scene in wanted) print line
-                next
-            }
-            print line
-        }
-    ' "${cfg}" > "${tmp}"
+    : > "${tmp}"
+    while IFS= read -r line || [ -n "${line}" ]; do
+        line="${line%$'\r'}"
+        case "${line}" in
+            startPlanet=*)
+                config_scene="${line#startPlanet=}"
+                case " ${requested} " in
+                    *" ${config_scene} "*) printf '%s\n' "${line}" >> "${tmp}" ;;
+                esac
+                ;;
+            *)
+                printf '%s\n' "${line}" >> "${tmp}"
+                ;;
+        esac
+    done < "${cfg}"
     mv "${tmp}" "${cfg}"
     echo "Applied local scene profile: $(printf '%s' "${requested}" | xargs)"
 }
