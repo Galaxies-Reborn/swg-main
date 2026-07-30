@@ -1308,3 +1308,9 @@ row. The row is presentation-only: it has no effect parameters and owns no
 state, avoiding the retained later-era melee-damage bonuses. Both command
 transactions roll the icon back on a failed debit, expiry removes it, relog
 reapplies the exact remaining interval, and both fixtures clean it up.
+
+`330-p14-status-catalog-integrity.patch` closes the retained status-table
+display gaps exposed by the DX11 panel audit. It assigns a safe authored icon
+to the one visible blank-icon row and adds the three missing user-facing effect
+mappings, while retaining internal handler-only parameters as nonlocalized
+metadata.

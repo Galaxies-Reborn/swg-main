@@ -1954,3 +1954,12 @@ icon back, expiry removes it, and relog restores only the remaining interval.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14BerserkStatusReplication.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 265 validates the complete retained status catalog consumed by the
+x64 DX11 client: all 1,851 visible rows have usable icons, valid polarity and
+stack metadata, every user-facing effect is describable, duplicate names are
+client-compatible, and literal server applications resolve to table rows. Its
+live gate covers positive, debuff, stacked, refreshed, cleared, and real
+server-expired panel lifecycles. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatusCatalogIntegrity.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

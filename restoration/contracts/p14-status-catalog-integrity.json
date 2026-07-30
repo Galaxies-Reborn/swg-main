@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-status-catalog-integrity",
+  "status": "ready",
+  "scope": "Keep every visible retained status renderable and describable by the x64 DX11 Pre-CU client, while covering positive, negative, stacked, refreshed, removed, and server-expired status lifecycles.",
+  "sourceFiles": {
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "effectMapping": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab",
+    "serverScripts": "dsrc/sku.0/sys.server/compiled/game/script"
+  },
+  "catalog": {
+    "rawRows": 1993,
+    "visibleRows": 1851,
+    "positiveRows": 1335,
+    "debuffRows": 516,
+    "internalHandlerParameters": ["shared", "stackable", "weapon_lock"],
+    "fallbackIcon": "buffs.genericBuff"
+  },
+  "lifecycleFixtures": {
+    "positive": "proc_generic_test",
+    "debuffStackable": "co_hw_dot_fire_1",
+    "serverExpiry": ["precu_berserk_status", "centerOfBeing"]
+  },
+  "overlay": "restoration/patches/dsrc/330-p14-status-catalog-integrity.patch",
+  "buildEvidence": {
+    "result": "passed",
+    "tableCompile": "buff.iff SHA256 3076868D7FE98DA0BA55999BDAEFCDB0AFF0EBE3E7D25FFCACEA3C8096B57756; effect_mapping.iff SHA256 0967807A778B72F54BD74AC3633A658BDD8AB3048438EB314CCA691B54D66722",
+    "assetTests": "12 focused status, Berserk, and Center of Being asset tests passed",
+    "clientTests": "85 focused client status and background bridge tests passed",
+    "dx11Build": "Release x64 SwgClient_r.exe built and linked successfully; SHA256 61D41EA6619B5F3430C7DD111B8A14A6379E075EDBA9ED8A74DFB88F01C5B48E",
+    "runtimeTre": "precu_runtime.tre SHA256 1AB26A61B63985E5D55E334FD540E0EFDCF3F969C486803CF118FA1C3A5E9E62"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "observedAt": "2026-07-30",
+    "character": "Eteb Eso",
+    "bridgeProtocol": 253,
+    "observations": [
+      "The live catalog audit loaded 1,845 unique visible records: 1,329 positive and 516 debuffs. It found 426 missing authored styles, all resolved by polarity-safe compatibility icons, with zero unresolved icons.",
+      "An otherwise empty panel reported zero replicated statuses, zero rendered icons, a hidden page, and matching counts.",
+      "The positive proc_generic_test and stackable co_hw_dot_fire_1 debuff fixtures produced exactly two replicated and two rendered icons with correct polarity.",
+      "Refreshing the same CRCs updated positive value, debuff value, duration, tooltip metadata, and debuff stack from 3 to 4 without adding duplicate icons; counts remained two of two.",
+      "Clearing both fixtures removed both icons and collapsed the empty status page.",
+      "A real Berserk I activation succeeded on the fourth authentic random attempt, showed exactly one positive command.berserk icon, and server expiry removed the icon and collapsed the panel after 20 seconds.",
+      "The existing Center of Being server lifecycle remained covered by its prior live activation and expiry proof."
+    ]
+  }
+}
