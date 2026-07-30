@@ -62,6 +62,30 @@ function Read-TabTable
     return $rows.ToArray()
 }
 
+function Get-IniSectionText
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Value,
+        [Parameter(Mandatory = $true)][string]$SectionName
+    )
+
+    $currentSection = ""
+    $sectionLines = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in @($Value -split "`r?`n"))
+    {
+        if ($line -match '^\s*\[([^\]]+)\]\s*$')
+        {
+            $currentSection = [string]$Matches[1]
+            continue
+        }
+        if ($currentSection -ceq $SectionName)
+        {
+            $sectionLines.Add([string]$line)
+        }
+    }
+    return $sectionLines -join "`n"
+}
+
 $text = @{}
 foreach ($property in $contract.sourceFiles.psobject.Properties)
 {
@@ -80,10 +104,11 @@ Assert-Contract `
     -Condition ($missingPlanetCrc.Count -eq 0) `
     -Name "precu.expansion-worlds.planet-crc.complete-scene-registration"
 
+$centralServerConfig = Get-IniSectionText -Value $text.localOptions -SectionName "CentralServer"
 $disabledScenes = @()
 foreach ($scene in $allScenes)
 {
-    if ($text.localOptions -notmatch "(?m)^startPlanet=$([regex]::Escape([string]$scene))`r?$")
+    if ($centralServerConfig -notmatch "(?m)^startPlanet=$([regex]::Escape([string]$scene))$")
     {
         $disabledScenes += [string]$scene
     }
@@ -96,7 +121,7 @@ $ordScenes = @($contract.spaceScenes | Where-Object { [string]$_ -like "space_or
 $ordEnabledExactlyOnce = $true
 foreach ($scene in $ordScenes)
 {
-    $matches = [regex]::Matches($text.localOptions, "(?m)^startPlanet=$([regex]::Escape([string]$scene))`r?$")
+    $matches = [regex]::Matches($centralServerConfig, "(?m)^startPlanet=$([regex]::Escape([string]$scene))$")
     if ($matches.Count -ne 1) { $ordEnabledExactlyOnce = $false }
 }
 Assert-Contract `
