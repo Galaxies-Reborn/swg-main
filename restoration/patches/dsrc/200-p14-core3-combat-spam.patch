@@ -10,12 +10,17 @@ index c51bcee..f8f144c 100644
      public static final String PRECU_WEAPON_PROFILES = "datatables/combat/precu_weapon_profiles.iff";
      public static final int PRECU_PRIMARY_RESULT_FALLBACK = -1;
      public static final int PRECU_SECONDARY_RESULT_FALLBACK = -2;
-@@ -71,6 +72,67 @@ public class combat_base extends script.base_script
+@@ -71,6 +72,72 @@ public class combat_base extends script.base_script
          pp = prose.setTO(pp, actionStringId);
          sendCombatSpamMessageProse(actor, target, pp, true, true, true, spam_type);
      }
 +    public boolean sendPrecuCombatSpam(attacker_data attackerData, defender_results[] defenderResults, hit_result[] hitData, combat_data actionData) throws InterruptedException
 +    {
++        if (!actionData.actionName.equals("creatureMeleeAttack") &&
++            !actionData.actionName.equals("creatureRangedAttack"))
++        {
++            return false;
++        }
 +        dictionary spamData = dataTableGetRow(PRECU_COMBAT_SPAM, actionData.actionName);
 +        if (spamData == null)
 +        {
@@ -78,7 +83,7 @@ index c51bcee..f8f144c 100644
      public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking) throws InterruptedException
      {
          return combatStandardAction(actionName, self, target, objWeapon, params, actionData, isTangibleAttacking, false, 0);
-@@ -1655,39 +1717,42 @@ public class combat_base extends script.base_script
+@@ -1655,39 +1723,53 @@ public class combat_base extends script.base_script
          }
          if (actionData.hitSpam != combat.NO_HIT_SPAM)
          {
@@ -89,7 +94,18 @@ index c51bcee..f8f144c 100644
 -                combat.doBasicCombatSpam(attackId, SID_NONE, currentWeapon, attackerResults, defenderResults, hitData);
 -            }
 -            else if (actionData.hitSpam == combat.WEAPON_NAME)
-+            if (!sendPrecuCombatSpam(attackerData, defenderResults, hitData, actionData))
++            boolean creatureDefaultAttack =
++                actionData.actionName.equals("creatureMeleeAttack") ||
++                actionData.actionName.equals("creatureRangedAttack");
++            if (!creatureDefaultAttack)
++            {
++                obj_id currentWeapon = null;
++                string_id attackId = new string_id("cmd_n", actionData.actionName);
++                combat.doBasicCombatSpam(attackId, SID_NONE, currentWeapon, attackerResults, defenderResults, hitData);
++                recordPrecuLiveDiagnostic(
++                    attackerData.id, "spam.key", "cmd_n:" + actionData.actionName);
++            }
++            else if (!sendPrecuCombatSpam(attackerData, defenderResults, hitData, actionData))
              {
 -                if (weaponData.weaponName != null)
 +                obj_id currentWeapon = null;

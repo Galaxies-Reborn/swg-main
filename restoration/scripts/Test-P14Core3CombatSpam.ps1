@@ -19,6 +19,8 @@ $spamTable = Get-Content -LiteralPath $spamTablePath
 foreach ($required in @(
     'PRECU_COMBAT_SPAM = "datatables/combat/precu_combat_spam.iff"',
     'dataTableGetRow(PRECU_COMBAT_SPAM, actionData.actionName)',
+    '!actionData.actionName.equals("creatureMeleeAttack")',
+    '!actionData.actionName.equals("creatureRangedAttack")',
     'suffix = "_hit"',
     'suffix = "_miss"',
     'suffix = "_evade"',
@@ -30,7 +32,11 @@ foreach ($required in @(
     'prose.setTU(pp, attackerData.id)',
     'prose.setTT(pp, defenderResults[i].id)',
     'prose.setDI(pp, damage)',
-    'if (!sendPrecuCombatSpam(attackerData, defenderResults, hitData, actionData))',
+    'boolean creatureDefaultAttack =',
+    'if (!creatureDefaultAttack)',
+    'new string_id("cmd_n", actionData.actionName)',
+    '"cmd_n:" + actionData.actionName',
+    'else if (!sendPrecuCombatSpam(attackerData, defenderResults, hitData, actionData))',
     'combat.doBasicCombatSpam'
 ))
 {
@@ -83,7 +89,7 @@ if ($Expectation -eq "Ready")
         $contract.buildEvidence.datatableCompile -ne "passed" -or
         $contract.buildEvidence.staticContract -ne "passed" -or
         $contract.runtimeEvidence.result -ne "passed" -or
-        $contract.runtimeEvidence.diagnosticSpamKey -ne "headshot_hit" -or
+        $contract.runtimeEvidence.diagnosticSpamKey -ne "cmd_n:headShot1" -or
         -not $contract.runtimeEvidence.serverHealthy -or
         $contract.runtimeEvidence.fixtureCleanup -ne "passed")
     {
