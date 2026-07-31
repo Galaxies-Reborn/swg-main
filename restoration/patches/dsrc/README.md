@@ -1319,3 +1319,7 @@ display gaps exposed by the DX11 panel audit. It assigns a safe authored icon
 to the one visible blank-icon row and adds the three missing user-facing effect
 mappings, while retaining internal handler-only parameters as nonlocalized
 metadata.
+
+`334-precu-combat-presentation.patch` maps default creature attacks to the
+retail Pre-CU `creature_*` combat-spam family and replaces the incorrect
+Unarmed Lunge 1 `ridingbantha_*` label with the retained unarmed lunge family.

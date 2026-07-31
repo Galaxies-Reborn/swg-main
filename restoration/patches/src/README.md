@@ -101,3 +101,8 @@ request receives an empty authoritative response when its buildout target is
 temporarily unavailable, intentionally menu-less, or lacks a script object.
 This prevents one unanswered world-snapshot object from blocking every later
 interaction while authority transfer requests retain their normal retry path.
+
+`334-precu-creature-attack-timing.patch` keeps AI default attacks on the
+authoritative weapon attack time (with the Pre-CU one-second floor) instead of
+the retained NGE command-table execute time. Player commands continue through
+their existing explicit Pre-CU override/profile timing path.

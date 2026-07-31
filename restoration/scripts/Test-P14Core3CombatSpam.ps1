@@ -38,9 +38,12 @@ foreach ($required in @(
 }
 
 $expectedRows = @(
+    "creatureMeleeAttack`tcreature",
+    "creatureRangedAttack`tcreature",
     "headShot1`theadshot",
     "bodyShot1`tbodyshot",
-    "legShot1`tleg"
+    "legShot1`tleg",
+    "unarmedLunge1`tlungeshiak"
 )
 foreach ($expectedRow in $expectedRows)
 {

@@ -168,6 +168,12 @@ Assert-Contract -Condition (
     ([regex]::Matches($helper, [regex]::Escape('return command.m_execTime;')).Count -ge 4) -and
     $helper.Contains('if (speedMultiplier <= 0.0f)')) -Name "p14.duration.runtime.fail-closed-static-fallback"
 Assert-Contract -Condition (
+    $helper.Contains('!owner.isPlayerControlled()') -and
+    $helper.Contains('command.m_commandName == "creatureMeleeAttack"') -and
+    $helper.Contains('command.m_commandName == "creatureRangedAttack"') -and
+    $helper.Contains('creatureWeapon->getAttackTime()') -and
+    $helper.Contains('return attackTime > 1.0f ? attackTime : 1.0f;')) -Name "p14.duration.runtime.creature-default-weapon-timing"
+Assert-Contract -Condition (
     $helper.Contains('return 4.0f;') -and
     $helper.Contains('return executeTime > 1.0f ? executeTime : 1.0f;')) -Name "p14.duration.runtime.null-and-floor"
 Assert-Contract -Condition (

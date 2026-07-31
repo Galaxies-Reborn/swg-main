@@ -1,0 +1,23 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+@@ -77,6 +77,19 @@ namespace CommandQueueNamespace
+ 
+ 	float getCommandExecuteTime(CreatureObject & owner, Command const & command)
+ 	{
++		bool const isCreatureDefaultAttack =
++			!owner.isPlayerControlled() &&
++			(command.m_commandName == "creatureMeleeAttack" ||
++			 command.m_commandName == "creatureRangedAttack");
++		if (isCreatureDefaultAttack)
++		{
++			WeaponObject * const creatureWeapon = owner.getCurrentWeapon();
++			if (creatureWeapon == nullptr)
++				return 4.0f;
++			float const attackTime = creatureWeapon->getAttackTime();
++			return attackTime > 1.0f ? attackTime : 1.0f;
++		}
++
+ 		DataTable * const commandTable = DataTableManager::getTable(cs_precuCombatOverridesTable, true);
+ 		if (commandTable == nullptr)
+ 			return command.m_execTime;
