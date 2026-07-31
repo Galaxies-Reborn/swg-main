@@ -95,3 +95,9 @@ boundary to crafted camps carrying `modules.entertainer`. The authenticated
 session terminal must be the exact camp object, and its `campsite` trigger
 volume must still contain both players when the server commits the allocation.
 Permanent saloons retain their stricter shared-topmost-container check.
+
+`333-precu-radial-menu-recovery.patch` guarantees a terminal or NPC radial
+request receives an empty authoritative response when its buildout target is
+temporarily unavailable, intentionally menu-less, or lacks a script object.
+This prevents one unanswered world-snapshot object from blocking every later
+interaction while authority transfer requests retain their normal retry path.
