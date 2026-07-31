@@ -1,0 +1,153 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+index 0d16fad4..a0dce141 100755
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+@@ -45,12 +45,6 @@ namespace CommandQueueNamespace
+ 	const bool         cs_debug                   = false;
+ #endif
+ 
+-	/**
+-	 * @brief the maximum number of combat commands that are allowed in
+-	 * the queue at any given time.
+-	 */
+-	const uint32       cs_maxQueuedCombatCommands = 2;
+-	
+ 	/**
+ 	 * @brief the number of seconds in a real-time day.
+ 	 *
+@@ -101,32 +95,8 @@ PropertyId CommandQueue::getClassPropertyId()
+ 
+ bool CommandQueue::isFull() const
+ {
+-	// is it empty?
+-	if ( m_combatCount.get() == 0 )
+-	{
+-		return false;
+-	}
+-	
+-	// is it at the max?
+-	if ( m_combatCount.get() >= cs_maxQueuedCombatCommands )
+-	{
+-		return true;
+-	}
+-	
+-	// test to see if the current command is waiting on a cooldown.  we're considered
+-	// full if we're waiting on a cooldown timer
+-	
+-	if ( m_state.get() == State_Waiting && !m_queue.empty() )
+-	{
+-		const CommandQueueEntry &entry = *(m_queue.begin());
+-	
+-		if ( (getCooldownTimeLeft( entry.m_command->m_coolGroup ) > 0.f) ||
+-			 (getCooldownTimeLeft( entry.m_command->m_coolGroup2) > 0.f) )
+-		{
+-			return true;
+-		}
+-	}
+-	
++	// Publish 14 combat queues are intentionally player-sized.  Cooldowns
++	// govern execution order; they must not replace already queued attacks.
+ 	return false;
+ }
+ 
+@@ -175,41 +145,9 @@ void CommandQueue::enqueue(Command const &command, NetworkId const &targetId, Un
+ 
+   		executeCommand(command, targetId, params, status, statusDetail, false);
+ 		notifyClientOfCommandRemoval(sequenceId, 0.0f, status, statusDetail);
+-  	}
+-  	else
+-  	{
+-	  	if ( command.m_addToCombatQueue && isFull() )
+-		{
+-			// we do special things if the command queue is full or the current command is waiting on a cooldown
+-			// timer of combat actions and the player tries to add another
+-			// combat action!
+-			 
+-			// look in the queue for a command to replace this with
+-	
+-			for ( EntryList::iterator it = m_queue.begin(); it != m_queue.end(); )
+-			{
+-				EntryList::iterator j = it++;
+-				
+-				// if there's a command warming up or executing then we can skip the first command in the queue
+-				if ( m_state.get() != State_Waiting && j == m_queue.begin() )
+-				{
+-					continue;
+-				}
+-				
+-				const CommandQueueEntry &entry = *j;
+-				
+-				// test to see of this command is a combat command
+-				if ( entry.m_command->m_addToCombatQueue )
+-				{					
+-					// remove command from queue
+-					m_queue.erase( j );
+-					
+-					// we want to end this loop
+-					it = m_queue.end();
+-				}
+-			}
+-		}
+-		
++	}
++	else
++	{
+ 		// create the command queue entry object
+ 		const CommandQueueEntry entry( command, targetId, params, sequenceId, clearable, priority, false );
+ 	   			
+@@ -937,40 +875,28 @@ void CommandQueue::switchState()
+ 
+ void CommandQueue::clearPendingCombatCommands()
+ {
+-	DEBUG_REPORT_LOG( cs_debug, ( "%s: attempting to cancel pending commands (queueSize=%d)\n", Unicode::wideToNarrow( getServerOwner().getObjectName() ).c_str(), m_queue.size() ) );
++	DEBUG_REPORT_LOG( cs_debug, ( "%s: attempting to cancel combat commands (queueSize=%d)\n", Unicode::wideToNarrow( getServerOwner().getObjectName() ).c_str(), m_queue.size() ) );
+ 	
+ 	for ( EntryList::iterator it = m_queue.begin(); it != m_queue.end(); )
+ 	{
+-		EntryList::iterator j = it++;
+-		
+-		const CommandQueueEntry &entry = *j;
+-
+-		// if ( command is combat command )
+-		// {
+-		//    if ( ( command is at the top and is not executing ) or ( command is not at the top )
+-		//    {
+-		//       remove command		
+-		//    }
+-		// }
+-
+-		if ( entry.m_command->m_addToCombatQueue && ( j != m_queue.begin() || m_state.get() != State_Execute ) )
++		if ( !it->m_command->m_addToCombatQueue )
+ 		{
+-
+-			handleEntryRemoved(entry );
+-			
+-			if ( j == m_queue.begin() )
+-			{
+-				cancelCurrentCommand();
+-			}
+-			else
+-			{
+-				m_queue.erase( j );
+-			}
+-
++			++it;
++			continue;
+ 		}
+ 
++		if ( it == m_queue.begin() )
++		{
++			cancelCurrentCommand();
++			it = m_queue.begin();
++		}
++		else
++		{
++			EntryList::iterator const removed = it++;
++			handleEntryRemoved(*removed);
++			m_queue.erase(removed);
++		}
+ 	}
+-	
+ }
+ 
+ // ----------------------------------------------------------------------
