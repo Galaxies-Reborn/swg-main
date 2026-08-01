@@ -1,0 +1,323 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/combat.java b/sku.0/sys.server/compiled/game/script/library/combat.java
+--- a/sku.0/sys.server/compiled/game/script/library/combat.java
++++ b/sku.0/sys.server/compiled/game/script/library/combat.java
+@@ -34,10 +34,11 @@ public class combat extends script.base_script
+     }
+     public static final float IN_COMBAT_REGEN_MULT = 1.0f;
+     public static final float OUT_COMBAT_REGEN_MULT = 4.0f;
+     public static final int PLAYER_COMBAT_BASE_DAMAGE = 60;
+     public static final int PLAYER_ATTACKER_DAMAGE_LEVEL_MULTIPLIER = 5;
++    public static final float PRECU_UNCERTIFIED_WEAPON_MISS_PENALTY = 50.0f;
+     public static final int RANGED_WEAPON = -1;
+     public static final int MELEE_WEAPON = -2;
+     public static final int ALL_WEAPONS = -3;
+     public static final int ALL_LIGHTSABERS = -4;
+     public static final int FORCE_POWER = -5;
+@@ -2691,10 +2692,44 @@ public class combat extends script.base_script
+     }
+     public static boolean hasCertification(obj_id objPlayer, obj_id objWeapon) throws InterruptedException
+     {
+         return hasCertification(objPlayer, objWeapon, true);
+     }
++    public static boolean isPrecuStarterWeapon(obj_id objWeapon) throws InterruptedException
++    {
++        if (!isIdValid(objWeapon) || !exists(objWeapon))
++        {
++            return false;
++        }
++        int legacyLevel = -1;
++        if (hasObjVar(objWeapon, weapons.OBJVAR_WP_LEVEL))
++        {
++            legacyLevel = getIntObjVar(objWeapon, weapons.OBJVAR_WP_LEVEL);
++        }
++        else if (static_item.isDynamicItem(objWeapon) &&
++            hasObjVar(objWeapon, "dynamic_item.intLevelRequired"))
++        {
++            legacyLevel = getIntObjVar(objWeapon, "dynamic_item.intLevelRequired");
++        }
++        else if (static_item.isStaticItem(objWeapon))
++        {
++            dictionary itemData = static_item.getMasterItemDictionary(objWeapon);
++            if (itemData != null)
++            {
++                legacyLevel = itemData.getInt("required_level");
++            }
++        }
++        else
++        {
++            String template = getTemplateName(objWeapon);
++            if (template != null)
++            {
++                legacyLevel = dataTableGetInt(WEAPON_LEVEL_TABLE, template, "weapon_level");
++            }
++        }
++        return legacyLevel >= 0 && legacyLevel <= 1;
++    }
+     public static boolean hasCertification(obj_id objPlayer, obj_id objWeapon, boolean verbose) throws InterruptedException
+     {
+         boolean hasCert = true;
+         if (utils.hasScriptVar(objPlayer, "combat.weaponCertified"))
+         {
+@@ -2734,10 +2769,15 @@ public class combat extends script.base_script
+             if (!factions.isImperial(objPlayer))
+             {
+                 hasCert = false;
+             }
+         }
++        if (hasCert && isPrecuStarterWeapon(objWeapon))
++        {
++            utils.setScriptVar(objPlayer, "combat.weaponCertified", objWeapon);
++            return true;
++        }
+         String[] requiredCertifications = getRequiredCertifications(objWeapon);
+         if (requiredCertifications != null)
+         {
+             for (String requirement : requiredCertifications)
+             {
+@@ -3462,10 +3502,16 @@ public class combat extends script.base_script
+     public static float getMissChance(attacker_data attackerData, defender_data defenderData, combat_data actionData, boolean autoAim) throws InterruptedException
+     {
+         obj_id attacker = attackerData.id;
+         obj_id defender = defenderData.id;
+         float missChance = isPlayer(attacker) ? 0.0f : 5.0f;
++        obj_id currentWeapon = getCurrentWeapon(attacker);
++        if (isPlayer(attacker) && isIdValid(currentWeapon) &&
++            !hasCertification(attacker, currentWeapon, false))
++        {
++            missChance += PRECU_UNCERTIFIED_WEAPON_MISS_PENALTY;
++        }
+         if (autoAim && isRangedWeapon(getCurrentWeapon(attacker)))
+         {
+             missChance += 5.0f;
+             boolean attackerMovePenalty = (getLocomotion(attacker) == LOCOMOTION_RUNNING && isRangedWeapon(getCurrentWeapon(attacker)));
+             boolean defenderMovePenalty = (getLocomotion(defender) == LOCOMOTION_RUNNING && isRangedWeapon(getCurrentWeapon(defender)));
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -3528,16 +3528,10 @@ public class combat_base extends script.base_script
+         if (actionData.attackType == combat.SPLIT_DAMAGE_TARGET_AREA)
+         {
+             addedDamage = Math.round((float)addedDamage / numTargets);
+         }
+         float percentAddFromWeapon = actionData.percentAddFromWeapon;
+-        if (!combat.checkWeaponCerts(attacker, weaponData, false))
+-        {
+-            combat.combatLog(attacker, null, "getRawDamage", "Weapon Certification Failed.  Modifying damage to 5 min, 10 max.");
+-            minDamage = 5.0f;
+-            maxDamage = 10.0f;
+-        }
+         if (beast_lib.isBeastMaster(attacker) || beast_lib.isBeast(attacker))
+         {
+             minDamage = minDamage + (minDamage * (beast_lib.getBeastModDamageBonus(attacker) / 100.0f));
+             maxDamage = maxDamage + (maxDamage * (beast_lib.getBeastModDamageBonus(attacker) / 100.0f));
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java
+@@ -226,18 +226,12 @@ public class combat_weapon extends script.base_script
+         }
+         return SCRIPT_CONTINUE;
+     }
+     public int OnAboutToBeTransferred(obj_id self, obj_id destContainer, obj_id transferer) throws InterruptedException
+     {
+-        if (isPlayer(destContainer) && !combat.hasCertification(destContainer, self))
+-        {
+-            prose_package pp = new prose_package();
+-            pp = prose.setStringId(pp, new string_id("spam", "weapon_no_cert"));
+-            pp = prose.setTT(pp, self);
+-            sendSystemMessageProse(destContainer, pp);
+-            return SCRIPT_OVERRIDE;
+-        }
++        // PRE-CU permits uncertified weapons to be equipped.  Certification
++        // is enforced as a substantial accuracy penalty during combat.
+         return SCRIPT_CONTINUE;
+     }
+     public int OnTransferred(obj_id self, obj_id sourceContainer, obj_id destContainer, obj_id transferer) throws InterruptedException
+     {
+         expertiseRangeModify(self);
+@@ -289,31 +283,10 @@ public class combat_weapon extends script.base_script
+             dictionary itemData = new dictionary();
+             if (staticItem)
+             {
+                 itemData = static_item.getMasterItemDictionary(self);
+             }
+-            int levelRequired = -1;
+-            if (hasObjVar(self, weapons.OBJVAR_WP_LEVEL))
+-            {
+-                levelRequired = getIntObjVar(self, weapons.OBJVAR_WP_LEVEL);
+-            }
+-            else 
+-            {
+-                levelRequired = dataTableGetInt(combat.WEAPON_LEVEL_TABLE, template, "weapon_level");
+-                if (staticItem)
+-                {
+-                    levelRequired = itemData.getInt("required_level");
+-                }
+-                if (static_item.isDynamicItem(self))
+-                {
+-                    levelRequired = getIntObjVar(self, "dynamic_item.intLevelRequired");
+-                }
+-            }
+-            names[free] = "healing_combat_level_required";
+-            attribs[free++] = "" + levelRequired;
+-            names[free] = "tooltip.healing_combat_level_required";
+-            attribs[free++] = "" + levelRequired;
+             String skillRequired = dataTableGetString(combat.WEAPON_LEVEL_TABLE, template, "secondary_restriction");
+             if (staticItem)
+             {
+                 skillRequired = itemData.getString("required_skill");
+             }
+diff --git a/sku.0/sys.server/compiled/game/script/library/utils.java b/sku.0/sys.server/compiled/game/script/library/utils.java
+--- a/sku.0/sys.server/compiled/game/script/library/utils.java
++++ b/sku.0/sys.server/compiled/game/script/library/utils.java
+@@ -217,20 +217,10 @@ public class utils extends script.base_script
+                     pp = prose.setTT(pp, equipSlot);
+                     sendSystemMessageProse(player, pp);
+                 }
+             }
+         }
+-        obj_id weapon = getCurrentWeapon(player);
+-        if (isIdValid(weapon) && !combat.hasCertification(player, weapon))
+-        {
+-            totalUnequipped++;
+-            pp = new prose_package();
+-            pp = prose.setStringId(pp, new string_id("spam", "weapon_lost_cert"));
+-            pp = prose.setTT(pp, weapon);
+-            sendSystemMessageProse(player, pp);
+-            putInOverloaded(weapon, inv);
+-        }
+         obj_id hold_l = getObjectInSlot(player, "hold_l");
+         obj_id hold_r = getObjectInSlot(player, "hold_r");
+         if (isIdValid(hold_l) && !performance.isDancePropCertified(player, hold_l))
+         {
+             totalUnequipped++;
+diff --git a/sku.0/sys.server/compiled/game/script/item/armor/dynamic_armor.java b/sku.0/sys.server/compiled/game/script/item/armor/dynamic_armor.java
+--- a/sku.0/sys.server/compiled/game/script/item/armor/dynamic_armor.java
++++ b/sku.0/sys.server/compiled/game/script/item/armor/dynamic_armor.java
+@@ -57,17 +57,10 @@ public class dynamic_armor extends script.base_script
+                 else if (isAPlayerAppearanceInventoryContainer(destContainer))
+                 {
+                     transferer = getContainedBy(destContainer);
+                 }
+             }
+-            int requiredLevel = getIntObjVar(self, "dynamic_item.intLevelRequired");
+-            int playerLevel = getLevel(transferer);
+-            if (playerLevel < requiredLevel)
+-            {
+-                sendSystemMessage(transferer, SID_ITEM_LEVEL_TOO_LOW);
+-                canTransfer = false;
+-            }
+             String requiredSkill = getStringObjVar(self, "dynamic_item.required_skill");
+             if (requiredSkill != null && !requiredSkill.equals("") &&
+                 !utils.meetsProfessionRequirement(transferer, requiredSkill))
+             {
+                 sendSystemMessage(transferer, SID_ITEM_NOT_ENOUGH_SKILL);
+@@ -120,16 +113,10 @@ public class dynamic_armor extends script.base_script
+         int free = getFirstFreeIndex(names);
+         if (free == -1)
+         {
+             return SCRIPT_CONTINUE;
+         }
+-        int requiredLevelToEquip = getIntObjVar(self, "dynamic_item.intLevelRequired");
+-        if (requiredLevelToEquip != 0)
+-        {
+-            names[free] = utils.packStringId(new string_id("proc/proc", "required_combat_level"));
+-            attribs[free++] = Integer.toString(requiredLevelToEquip);
+-        }
+         String requiredSkillToEquip = getStringObjVar(self, "dynamic_item.required_skill");
+         if (requiredSkillToEquip != null && !requiredSkillToEquip.equals(""))
+         {
+             names[free] = utils.packStringId(new string_id("proc/proc", "required_skill"));
+             attribs[free++] = utils.packStringId(new string_id("ui_roadmap", requiredSkillToEquip));
+diff --git a/sku.0/sys.server/compiled/game/script/item/static_item_base.java b/sku.0/sys.server/compiled/game/script/item/static_item_base.java
+--- a/sku.0/sys.server/compiled/game/script/item/static_item_base.java
++++ b/sku.0/sys.server/compiled/game/script/item/static_item_base.java
+@@ -52,16 +52,18 @@ public class static_item_base extends script.base_script
+                     transferer = getContainedBy(destContainer);
+                 }
+             }
+             int requiredLevel = itemData.getInt("required_level");
+             String requiredSkill = itemData.getString("required_skill");
+-            if (!static_item.validateLevelRequired(transferer, requiredLevel))
++            int itemType = itemData.getInt("type");
++            boolean precuEquipment = itemType == 1 || itemType == 2;
++            if (!precuEquipment && !static_item.validateLevelRequired(transferer, requiredLevel))
+             {
+                 sendSystemMessage(transferer, SID_ITEM_LEVEL_TOO_LOW);
+                 canTransfer = false;
+             }
+-            if (requiredSkill != null && !requiredSkill.equals("") &&
++            if (itemType != 1 && requiredSkill != null && !requiredSkill.equals("") &&
+                 !utils.meetsProfessionRequirement(transferer, requiredSkill))
+             {
+                 sendSystemMessage(transferer, SID_ITEM_NOT_ENOUGH_SKILL);
+                 canTransfer = false;
+             }
+@@ -165,16 +167,10 @@ public class static_item_base extends script.base_script
+         if (typeData == null)
+         {
+             LOG("static_item_base", getStaticItemName(self) + ": typeData is null. Could not find this item in its static item stats datatable.");
+             return SCRIPT_CONTINUE;
+         }
+-        int requiredLevelToEquip = itemData.getInt("required_level");
+-        if (requiredLevelToEquip != 0 && !hasScript(self, "systems.combat.combat_weapon"))
+-        {
+-            names[free] = utils.packStringId(new string_id("proc/proc", "required_combat_level"));
+-            attribs[free++] = Integer.toString(requiredLevelToEquip);
+-        }
+         String requiredSkillToEquip = itemData.getString("required_skill");
+         if (requiredSkillToEquip != null && !requiredSkillToEquip.equals("") && !hasScript(self, "systems.combat.combat_weapon"))
+         {
+             names[free] = utils.packStringId(new string_id("proc/proc", "required_skill"));
+             attribs[free++] = utils.packStringId(new string_id("ui_roadmap", requiredSkillToEquip));
+diff --git a/sku.0/sys.server/compiled/game/script/library/static_item.java b/sku.0/sys.server/compiled/game/script/library/static_item.java
+--- a/sku.0/sys.server/compiled/game/script/library/static_item.java
++++ b/sku.0/sys.server/compiled/game/script/library/static_item.java
+@@ -469,10 +469,15 @@ public class static_item extends script.base_script
+     {
+         return getLevel(player) >= requiredLevel;
+     }
+     public static boolean validateLevelRequired(obj_id player, obj_id item) throws InterruptedException
+     {
++        int got = getGameObjectType(item);
++        if (isGameObjectTypeOf(got, GOT_weapon) || isGameObjectTypeOf(got, GOT_armor))
++        {
++            return true;
++        }
+         int playerLevel = getLevel(player);
+         dictionary itemData = getMasterItemDictionary(item);
+         if (itemData != null)
+         {
+             int requiredLevel = itemData.getInt("required_level");
+@@ -1074,15 +1079,10 @@ public class static_item extends script.base_script
+     public static void getStaticWeaponObjectAttributes(obj_id player, String staticItemName, String[] names, String[] attribs) throws InterruptedException
+     {
+         String at = "@obj_attr_n:";
+         int free = 0;
+         dictionary itemData = static_item.getMergedItemDictionary(staticItemName);
+-        int levelRequired = itemData.getInt("required_level");
+-        names[free] = "healing_combat_level_required";
+-        attribs[free++] = "" + levelRequired;
+-        names[free] = "tooltip.healing_combat_level_required";
+-        attribs[free++] = "" + levelRequired;
+         String skillRequired = itemData.getString("required_skill");
+         String skillRequiredAttribute;
+         if (skillRequired != null && !skillRequired.equals(""))
+         {
+             skillRequiredAttribute = "@skl_n:" + skillRequired;
+@@ -1154,15 +1154,10 @@ public class static_item extends script.base_script
+     public static void getStaticArmorObjectAttributes(obj_id player, String staticItemName, String[] names, String[] attribs) throws InterruptedException
+     {
+         String at = "@obj_attr_n:";
+         int free = 0;
+         dictionary itemData = static_item.getMergedItemDictionary(staticItemName);
+-        int levelRequired = itemData.getInt("required_level");
+-        names[free] = "healing_combat_level_required";
+-        attribs[free++] = "" + levelRequired;
+-        names[free] = "tooltip.healing_combat_level_required";
+-        attribs[free++] = "" + levelRequired;
+         String skillRequired = itemData.getString("required_skill");
+         String skillRequiredAttribute;
+         if (skillRequired != null && !skillRequired.equals(""))
+         {
+             skillRequiredAttribute = "@skl_n:" + skillRequired;

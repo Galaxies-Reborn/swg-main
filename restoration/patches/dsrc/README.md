@@ -1323,3 +1323,9 @@ metadata.
 `334-precu-combat-presentation.patch` maps default creature attacks to the
 retail Pre-CU `creature_*` combat-spam family and replaces the incorrect
 Unarmed Lunge 1 `ridingbantha_*` label with the retained unarmed lunge family.
+
+`337-precu-equipment-certification.patch` removes NGE combat-level equipment
+gates and attributes from weapons and armor. Legacy CL1 weapons are treated as
+starter-certified, while other uncertified weapons remain equippable and take
+a 50-point miss-chance penalty without changing weapon damage, speed, or
+elemental damage.

@@ -1976,3 +1976,11 @@ icon misses and covers positive, debuff, stacked, refreshed, cleared, and real
 server-expired panel lifecycles. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14StatusCatalogIntegrity.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+The PRE-CU equipment certification overlay retires NGE combat-level equip
+requirements and their weapon/armor attribute labels. Legacy CL1 starter
+weapons are certified by default; all other uncertified weapons may still be
+equipped but suffer a 50-point miss-chance penalty. Weapon minimum/maximum
+damage, speed, and elemental damage remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuEquipmentCertification.ps1 -SourceRoot <materialized-staging-directory>
