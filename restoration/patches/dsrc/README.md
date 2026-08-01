@@ -1347,3 +1347,10 @@ PRE-CU attacks out of retained NGE stealth, expertise lifecycle, hate-transfer,
 beast-hate, and post-result proc paths. It restores Core3 prone-ranged range,
 miss combat-state, and base-hate behavior, removes three player expertise
 callbacks, and revalidates Novice Scout at the final corpse script callback.
+
+`352-p14-precu-conversation-profession-gates.patch` converts the remaining
+generated conversation checks for impossible NGE `class_*` skills to exact
+Publish-era profession boxes. Kashyyyk, Mustafar, space bounty-hunter, holiday,
+crafting, and entertainer content remains available without restoring NGE
+progression authority. The NGE Chronicles profession offer is retired instead
+of granting a forbidden class skill.

@@ -2195,3 +2195,12 @@ The pass is idempotent and deliberately does not delete expansion quests,
 conversations, zones, or their independent state. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PersistedNgeSkillRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 280 preserves retained expansion conversations after NGE class
+progression retirement. Twenty direct `class_*` checks across twelve generated
+conversation scripts now use exact PRE-CU profession boxes. Smuggler language
+content uses the Underworld I box that grants universal comprehension, while
+the NGE Chronicles profession grant is explicitly retired. No combat or system
+package is broadened by this content adapter. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuConversationProfessionGates.ps1 -SourceRoot <materialized-staging-directory>

@@ -90,6 +90,8 @@ source_command_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datata
 work_command_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 source_skills="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 work_skills="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
+work_conversation="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -121,7 +123,22 @@ cmp -s "$source_travel" "$work_travel"
 cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
-cmp -s "$source_local_options" "$work_local_options"
+for conversation_file in \
+    dath_bh_wanted_list_01 ep3_kachirho_missing_son ep3_myyydril_pers \
+    ep3_myyydril_weaponsmith ep3_rodian_junk_dealer ep3_wke_junk_dealer \
+    fan_faire_pgc_c3po imperial_empire_day_kaythree mun_quest_marauder \
+    quest_crowd_pleaser_manager rebel_remembrance_day_rieekan som_kenobi_epo_qetora
+do
+    cmp -s "$source_conversation/$conversation_file.java" "$work_conversation/$conversation_file.java"
+done
+# localOptions.cfg is a runtime-rendered configuration, not a copied build
+# artifact. Authenticate the immutable template and the required rendered
+# values independently instead of demanding impossible byte equality.
+grep -Fq 'clusterName=CLUSTERNAME' "$source_local_options"
+grep -Fq 'transferServerAddress=HOSTIP' "$source_local_options"
+grep -Fq 'clusterName=swg' "$work_local_options"
+grep -Eq '^transferServerAddress=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' "$work_local_options"
+grep -Fq '### BEGIN Docker runtime overrides' "$work_local_options"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'String outdoors_scout_novice'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'Method canPlayerHarvestCreature'
@@ -142,6 +159,13 @@ javap -classpath "$class_root" -c script.corpse.ai_corpse | grep -Fq 'corpse.can
 ! javap -classpath "$class_root" -v script.systems.combat.combat_player | grep -Fq 'expertise_of_last_words_1'
 javap -classpath "$class_root" -c script.library.travel | grep -Fq 'rejected retired NGE group-pickup travel'
 javap -classpath "$class_root" -v script.player.player_travel | grep -Fq 'Ignored retired NGE group-pickup travel request'
+! grep -R -Fq 'class_' "$work_conversation"
+javap -classpath "$class_root" -v script.conversation.ep3_myyydril_weaponsmith | grep -Fq 'crafting_weaponsmith_novice'
+javap -classpath "$class_root" -v script.conversation.ep3_kachirho_missing_son | grep -Fq 'combat_smuggler_underworld_01'
+javap -classpath "$class_root" -v script.conversation.som_kenobi_epo_qetora | grep -Fq 'combat_smuggler_novice'
+javap -classpath "$class_root" -v script.conversation.imperial_empire_day_kaythree | grep -Fq 'crafting_architect_novice'
+! javap -classpath "$class_root" -v script.conversation.fan_faire_pgc_c3po | grep -Fq 'class_chronicles_novice'
+! javap -classpath "$class_root" -v script.conversation.fan_faire_pgc_c3po | grep -Fq 'grantSkill'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
 grep -Fq 'isWeaponCadenceAttack' "$work_queue"
 grep -Fq 'if (!owner.isPlayerControlled())' "$work_queue"
