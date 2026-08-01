@@ -55,6 +55,56 @@ function Read-NumericField
         [Globalization.CultureInfo]::InvariantCulture)
 }
 
+function Read-ResistFields
+{
+    param([string]$Text)
+
+    $match = [regex]::Match(
+        $Text,
+        '(?ms)^\s*resists\s*=\s*\{([^}]*)\}\s*,')
+    if (-not $match.Success)
+    {
+        return $null
+    }
+
+    $values = @(
+        $match.Groups[1].Value -split ',' |
+            ForEach-Object {
+                [double]::Parse(
+                    $_.Trim(),
+                    [Globalization.CultureInfo]::InvariantCulture)
+            })
+    if ($values.Count -ne 9)
+    {
+        return $null
+    }
+
+    return [pscustomobject][ordered]@{
+        resistKinetic = $values[0]
+        resistEnergy = $values[1]
+        resistBlast = $values[2]
+        resistHeat = $values[3]
+        resistCold = $values[4]
+        resistElectric = $values[5]
+        resistAcid = $values[6]
+        resistStun = $values[7]
+        resistLightsaber = $values[8]
+    }
+}
+
+function Convert-Core3ResistForMitigation
+{
+    param([double]$Value)
+
+    # Core3 encodes special protection as 100 + protection. The special bit is
+    # presentation metadata; combat uses the value after subtracting 100.
+    if ($Value -gt 100.0)
+    {
+        return $Value - 100.0
+    }
+    return $Value
+}
+
 function Get-LowerMedian
 {
     param([double[]]$Values)
@@ -85,6 +135,17 @@ $profileFields = @(
     "baseHAM",
     "baseHAMmax",
     "armor")
+$resistFields = @(
+    "resistKinetic",
+    "resistEnergy",
+    "resistBlast",
+    "resistHeat",
+    "resistCold",
+    "resistElectric",
+    "resistAcid",
+    "resistStun",
+    "resistLightsaber")
+$allProfileFields = @($profileFields + $resistFields)
 $profiles = @{}
 foreach ($file in Get-ChildItem -LiteralPath $mobileRoot -Recurse -File -Filter "*.lua")
 {
@@ -117,12 +178,22 @@ foreach ($file in Get-ChildItem -LiteralPath $mobileRoot -Recurse -File -Filter 
         continue
     }
 
+    $resists = Read-ResistFields -Text $text
+    if ($null -eq $resists)
+    {
+        continue
+    }
+    foreach ($field in $resistFields)
+    {
+        $values[$field] = [double]$resists.$field
+    }
+
     $key = [string]$values.creatureName
     if ($profiles.ContainsKey($key))
     {
         $existing = $profiles[$key]
         $same = $true
-        foreach ($field in $profileFields)
+        foreach ($field in $allProfileFields)
         {
             if ([double]$existing.$field -ne [double]$values[$field])
             {
@@ -197,6 +268,15 @@ foreach ($creature in $currentCreatures)
             baseHAM = [double]$source.baseHAM
             baseHAMmax = [double]$source.baseHAMmax
             armor = [double]$source.armor
+            resistKinetic = [double]$source.resistKinetic
+            resistEnergy = [double]$source.resistEnergy
+            resistBlast = [double]$source.resistBlast
+            resistHeat = [double]$source.resistHeat
+            resistCold = [double]$source.resistCold
+            resistElectric = [double]$source.resistElectric
+            resistAcid = [double]$source.resistAcid
+            resistStun = [double]$source.resistStun
+            resistLightsaber = [double]$source.resistLightsaber
         }
     }
 }
@@ -224,6 +304,15 @@ foreach ($group in $safeProfiles | Group-Object { [int]$_.level })
         baseHAM = Get-LowerMedian -Values @($group.Group | ForEach-Object { [double]$_.baseHAM })
         baseHAMmax = Get-LowerMedian -Values @($group.Group | ForEach-Object { [double]$_.baseHAMmax })
         armor = Get-LowerMedian -Values @($group.Group | ForEach-Object { [double]$_.armor })
+        resistKinetic = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistKinetic) })
+        resistEnergy = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistEnergy) })
+        resistBlast = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistBlast) })
+        resistHeat = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistHeat) })
+        resistCold = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistCold) })
+        resistElectric = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistElectric) })
+        resistAcid = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistAcid) })
+        resistStun = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistStun) })
+        resistLightsaber = Get-LowerMedian -Values @($group.Group | ForEach-Object { Convert-Core3ResistForMitigation -Value ([double]$_.resistLightsaber) })
     }
 }
 
@@ -256,7 +345,7 @@ for ($level = 1; $level -le 500; $level++)
             sourceKey = "__core3_level_interpolation"
             level = [double]$level
         }
-        foreach ($field in $profileFields | Where-Object { $_ -ne "level" })
+        foreach ($field in $allProfileFields | Where-Object { $_ -ne "level" })
         {
             $row[$field] = [double]$low.$field + (([double]$high.$field - [double]$low.$field) * $ratio)
         }
@@ -278,6 +367,15 @@ for ($level = 1; $level -le 500; $level++)
         baseHAM = [double]$nearest.baseHAM * $scale
         baseHAMmax = [double]$nearest.baseHAMmax * $scale
         armor = [double]$nearest.armor
+        resistKinetic = [double]$nearest.resistKinetic
+        resistEnergy = [double]$nearest.resistEnergy
+        resistBlast = [double]$nearest.resistBlast
+        resistHeat = [double]$nearest.resistHeat
+        resistCold = [double]$nearest.resistCold
+        resistElectric = [double]$nearest.resistElectric
+        resistAcid = [double]$nearest.resistAcid
+        resistStun = [double]$nearest.resistStun
+        resistLightsaber = [double]$nearest.resistLightsaber
     }
 }
 
@@ -308,8 +406,8 @@ for ($level = 1; $level -le 500; $level++)
 }
 
 $lines = [System.Collections.Generic.List[string]]::new()
-$lines.Add("creatureName`tsourceKey`tlevel`tchanceHit`tdamageMin`tdamageMax`tbaseXp`tbaseHAM`tbaseHAMmax`tarmor")
-$lines.Add("s`ts`ti`tf`ti`ti`ti`ti`ti`ti")
+$lines.Add("creatureName`tsourceKey`tlevel`tchanceHit`tdamageMin`tdamageMax`tbaseXp`tbaseHAM`tbaseHAMmax`tarmor`tresistKinetic`tresistEnergy`tresistBlast`tresistHeat`tresistCold`tresistElectric`tresistAcid`tresistStun`tresistLightsaber")
+$lines.Add("s`ts`ti`tf`ti`ti`ti`ti`ti`ti`ti`ti`ti`ti`ti`ti`ti`ti`ti")
 foreach ($row in $allRows)
 {
     $lines.Add((@(
@@ -322,7 +420,16 @@ foreach ($row in $allRows)
         (Format-Integer -Value ([double]$row.baseXp)),
         (Format-Integer -Value ([double]$row.baseHAM)),
         (Format-Integer -Value ([double]$row.baseHAMmax)),
-        (Format-Integer -Value ([double]$row.armor))
+        (Format-Integer -Value ([double]$row.armor)),
+        (Format-Integer -Value ([double]$row.resistKinetic)),
+        (Format-Integer -Value ([double]$row.resistEnergy)),
+        (Format-Integer -Value ([double]$row.resistBlast)),
+        (Format-Integer -Value ([double]$row.resistHeat)),
+        (Format-Integer -Value ([double]$row.resistCold)),
+        (Format-Integer -Value ([double]$row.resistElectric)),
+        (Format-Integer -Value ([double]$row.resistAcid)),
+        (Format-Integer -Value ([double]$row.resistStun)),
+        (Format-Integer -Value ([double]$row.resistLightsaber))
     ) -join "`t"))
 }
 

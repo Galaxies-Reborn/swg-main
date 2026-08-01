@@ -75,6 +75,8 @@ foreach ($expected in $contract.representativeProfiles.psobject.Properties)
 }
 
 $create = Get-Content -LiteralPath $paths.createLibrary -Raw
+$combat = Get-Content -LiteralPath $paths.combatLibrary -Raw
+$combatBase = Get-Content -LiteralPath $paths.combatBase -Raw
 $corpse = Get-Content -LiteralPath $paths.corpseLibrary -Raw
 $loot = Get-Content -LiteralPath $paths.lootLibrary -Raw
 $generator = Get-Content -LiteralPath $paths.generator -Raw
@@ -82,13 +84,43 @@ $overlayHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $paths.overlay).Hash
 
 Assert-Contract ($generator.Contains("6ea64f60ef33b89121c2a8d188b93f4bc6f158e8") -and
     $generator.Contains("Expected 3622 unique complete Core3 creature profiles") -and
+    $generator.Contains('function Read-ResistFields') -and
+    $generator.Contains('function Convert-Core3ResistForMitigation') -and
+    $generator.Contains('$Value -gt 100.0') -and
     $generator.Contains('$level -le 500')) "p14.creature-profile.generator-pinned"
+$missingArmorColumns = @(@(
+    "armor",
+    "resistKinetic",
+    "resistEnergy",
+    "resistBlast",
+    "resistHeat",
+    "resistCold",
+    "resistElectric",
+    "resistAcid",
+    "resistStun",
+    "resistLightsaber") | Where-Object {
+        -not ($rows[0].psobject.Properties.Name -contains $_)
+    })
+Assert-Contract ($missingArmorColumns.Count -eq 0) "p14.creature-profile.armor-columns"
 Assert-Contract ($create.Contains('PRECU_CREATURE_COMBAT_PROFILE_TABLE = "datatables/mob/precu_creature_combat_profiles.iff"') -and
     $create.Contains('precuCombatProfile.getInt("damageMin")') -and
     $create.Contains('precuCombatProfile.getInt("baseHAM")') -and
     $create.Contains('precuCombatProfile.getFloat("chanceHit") * 100.0f') -and
     $create.Contains('setObjVar(creature, "precu.combatProfile"') -and
+    $create.Contains('setObjVar(creature, "precu.armor.rating", precuCombatProfile.getInt("armor"))') -and
+    $create.Contains('setObjVar(creature, "precu.armor.kinetic", precuCombatProfile.getInt("resistKinetic"))') -and
+    $create.Contains('setObjVar(creature, "precu.armor.lightsaber", precuCombatProfile.getInt("resistLightsaber"))') -and
     $create.Contains('initializeArmor(creature, creatureDict, 0)')) "p14.creature-profile.factory-route"
+Assert-Contract ($combat.Contains('applyPrecuCreatureArmorProtection(') -and
+    $combat.Contains('getPrecuCreatureArmorResistance(') -and
+    $combat.Contains('return rawResistance > 100 ? rawResistance - 100 : rawResistance;') -and
+    $combat.Contains('if (resistance < 0)') -and
+    $combat.Contains('if (damageString == null)') -and
+    $combat.Contains('getPrecuArmorPiercingMultiplier(armorPiercing, armorRating)') -and
+    $combatBase.Contains('else if (hasObjVar(defender, "precu.combatProfile"))') -and
+    $combatBase.Contains('combat.applyPrecuCreatureArmorProtection(') -and
+    $combatBase.Contains('combat.getPrecuCreatureArmorRating(defender)') -and
+    $combatBase.Contains('combat.getPrecuCreatureArmorResistance(')) "p14.creature-profile.armor-route"
 Assert-Contract ((-not $create.Contains('float damagePerSecond = dataTableGetFloat(STAT_BALANCE_TABLE')) -and
     (-not $create.Contains('int avgAttribHealth = dataTableGetInt(STAT_BALANCE_TABLE')) -and
     (-not $create.Contains('int avgAttribAction = dataTableGetInt(STAT_BALANCE_TABLE'))) "p14.creature-profile.nge-scaling-retired"

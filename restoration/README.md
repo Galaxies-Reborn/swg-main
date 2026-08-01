@@ -2107,3 +2107,16 @@ share one authenticated catalog hash on Windows and Linux.
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build
+
+Milestone 274 closes the creature-armor split authority left by the first
+Core3 profile pass. The generated catalog now carries each mobile's exact
+armor category and nine raw resistance values. The PRE-CU resolver preserves
+Core3's special-protection encoding (raw values above 100 mitigate at raw
+minus 100), treats `-1` as a true vulnerability that bypasses armor rating,
+and applies the Core3 armor-piercing multiplier before resistance reduction.
+Retained expansion creatures receive level-derived PRE-CU defense fallbacks;
+the NGE NPC armor resolver and `creatures.tab` resistance columns no longer
+participate for profiled creatures. Vehicles and non-creature destructible
+objects retain their existing object-specific mitigation. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CreatureCombatProfiles.ps1 -SourceRoot <materialized-staging-directory>
