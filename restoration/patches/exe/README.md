@@ -22,3 +22,8 @@ legacy log streams or changing combat behavior.
 `003-p14-scout-harvest-log-target.patch` routes native and Java
 `PreCuScoutHarvest` rejection evidence to a dedicated runtime log, leaving the
 normal server log categories unchanged.
+
+`004-p14-npc-conversation-log-target.patch` routes only the native
+`PreCuConversation` lifecycle and rejection records to
+`logs/precuNpcConversation.log`, so a missing UI response can be distinguished
+from distance, target, parameter, script-trigger, or stale-session failure.

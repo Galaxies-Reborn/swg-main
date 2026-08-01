@@ -128,3 +128,10 @@ authoritative player persistence during database load. The removal happens
 before `setupSkillData()` reconstructs commands, modifiers, schematics, and
 level, so relogging cannot reactivate NGE progression authority. Quest,
 conversation, zone, and independent quest/object-variable state remain intact.
+
+`351-p14-npc-conversation-lifecycle-recovery.patch` makes a fresh player
+converse request recover an older native conversation session before starting
+the requested NPC. End triggers still run, but their `SCRIPT_OVERRIDE` result
+can no longer skip proxy removal, object deletion, and the client's stop
+message. Dedicated result and rejection telemetry makes every live request
+observable in release builds.

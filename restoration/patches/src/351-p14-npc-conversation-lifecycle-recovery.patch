@@ -1,0 +1,179 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -6647,42 +6647,55 @@ static void commandFuncNpcConversationStart(Command const &, NetworkId const &ac
+ 	ServerObject * const actorObject = safe_cast<ServerObject *>(NetworkIdManager::getObjectById(actor));
+ 	CreatureObject * const player = actorObject != nullptr ? actorObject->asCreatureObject() : nullptr;
+ 	if (player == nullptr)
+ 	{
+ 		DEBUG_WARNING(true, ("commandFuncNpcConversationStart: couldn't find actor"));
++		LOG("PreCuConversation", ("command-start rejected actor=%s target=%s reason=actor-unavailable",
++			actor.getValueString().c_str(), target.getValueString().c_str()));
+ 		return;
+ 	}
+ 
+ 	ServerObject * const npcObject = safe_cast<ServerObject *>(NetworkIdManager::getObjectById(target));
+ 	TangibleObject * const npc = npcObject != nullptr ? npcObject->asTangibleObject() : nullptr;
+ 	if (npc == nullptr)
+ 	{
+ 		DEBUG_WARNING(true, ("commandFuncNpcConversationStart: Couldn't find npc to converse with"));
++		LOG("PreCuConversation", ("command-start rejected actor=%s target=%s reason=target-unavailable",
++			actor.getValueString().c_str(), target.getValueString().c_str()));
+ 		return;
+ 	}
+ 
+ 	if (!ServerWorld::isSpaceScene())
+ 	{
+ 		Container::ContainerErrorCode error = Container::CEC_Success;
+ 		if (!player->canManipulateObject(*npc, false, false, false, 30.0f, error))
+ 		{
+ 			DEBUG_WARNING(true, ("commandFuncNpcConversationStart (ground): failed canManipulateObject check"));
++			LOG("PreCuConversation", ("command-start rejected actor=%s target=%s reason=manipulation-check error=%d",
++				actor.getValueString().c_str(), target.getValueString().c_str(), static_cast<int>(error)));
+ 			return;
+ 		}
+ 	}
+ 
+ 	std::string const & realParams = Unicode::wideToNarrow(params);
+ 	if (realParams.size() < 2)
+ 	{
+ 		DEBUG_WARNING(true, ("commandFuncNpcConversationStart: bad params %s", realParams.c_str()));
++		LOG("PreCuConversation", ("command-start rejected actor=%s target=%s reason=bad-params length=%u",
++			actor.getValueString().c_str(), target.getValueString().c_str(), static_cast<unsigned int>(realParams.size())));
+ 		return;
+ 	}
+ 
+ 	const char * const conversationName = &realParams[2];
+ 	NpcConversationData::ConversationStarter const starter = static_cast<NpcConversationData::ConversationStarter>(atoi(realParams.c_str()));
+ 
+-	player->startNpcConversation(*npc, conversationName, starter, 0);
++	bool const started = player->startNpcConversation(*npc, conversationName, starter, 0);
++	LOG("PreCuConversation", ("command-start actor=%s target=%s starter=%d result=%d",
++		actor.getValueString().c_str(),
++		target.getValueString().c_str(),
++		static_cast<int>(starter),
++		started ? 1 : 0));
+ }
+ 
+ //----------------------------------------------------------------------
+ 
+ static void commandFuncNpcConversationStop(Command const &, NetworkId const &actor, NetworkId const & target, Unicode::String const &params)
+diff --git a/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp b/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp
+index ec4373bc..81e4bf11 100755
+--- a/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp
++++ b/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp
+@@ -17,6 +17,7 @@
+ #include "sharedObject/Controller.h"
+ #include "sharedObject/NetworkIdManager.h"
+ #include "sharedFoundation/NetworkId.h"
++#include "sharedLog/Log.h"
+ 
+ //======================================================================
+ 
+@@ -44,13 +44,38 @@ bool TangibleObject::startNpcConversation(TangibleObject & npc, const std::strin
+ 
+ 		// test that the npc isn't a player
+ 		if (npc.isPlayerControlled())
+ 			return false;
+ 
+-		// test if already in a conversation
++		// A fresh player request is authoritative intent to begin a new
++		// conversation.  Recover an older session first so a lost client stop
++		// message or a script cleanup veto cannot pin all later interactions.
+ 		if (m_npcConversation != nullptr)
+-			return false;
++		{
++			if (starter != NpcConversationData::CS_Player)
++			{
++				LOG("PreCuConversation", ("start rejected player=%s npc=%s reason=session-active starter=%d",
++					getNetworkId().getValueString().c_str(),
++					npc.getNetworkId().getValueString().c_str(),
++					static_cast<int>(starter)));
++				return false;
++			}
++
++			NetworkId const previousNpc = m_npcConversation->getNPC();
++			LOG("PreCuConversation", ("recover stale-session player=%s previousNpc=%s requestedNpc=%s",
++				getNetworkId().getValueString().c_str(),
++				previousNpc.getValueString().c_str(),
++				npc.getNetworkId().getValueString().c_str()));
++			endNpcConversation();
++			if (m_npcConversation != nullptr)
++			{
++				LOG("PreCuConversation", ("start rejected player=%s npc=%s reason=stale-session-cleanup-failed",
++					getNetworkId().getValueString().c_str(),
++					npc.getNetworkId().getValueString().c_str()));
++				return false;
++			}
++		}
+ 
+ 		if (starter == NpcConversationData::CS_Player)
+ 		{
+ 			// trigger OnStartNpcConversation
+ 			ScriptParams params;
+@@ -68,10 +93,14 @@ bool TangibleObject::startNpcConversation(TangibleObject & npc, const std::strin
+ 				ScriptParams playerParams;
+ 				playerParams.addParam(npc.getNetworkId());
+ 				IGNORE_RETURN(getScriptObject()->trigAllScripts(Scripting::TRIG_START_CONVERSATION, playerParams));
+ 			}
+ 
++			LOG("PreCuConversation", ("player-trigger player=%s npc=%s result=%d",
++				getNetworkId().getValueString().c_str(),
++				npc.getNetworkId().getValueString().c_str(),
++				npcHadTrigger ? 1 : 0));
+ 			return npcHadTrigger;
+ 		}
+ 
+ 		if (convoName.empty())
+ 		{
+@@ -83,10 +112,14 @@ bool TangibleObject::startNpcConversation(TangibleObject & npc, const std::strin
+ 		m_npcConversation = new NpcConversation(*this, npc, convoName, appearanceOverrideSharedTemplateCrc);
+ 
+ 		// update any proxies
+ 		addConversation(npc.getNetworkId());
+ 		npc.addConversation(getNetworkId());
++		LOG("PreCuConversation", ("session-started player=%s npc=%s conversation=%s",
++			getNetworkId().getValueString().c_str(),
++			npc.getNetworkId().getValueString().c_str(),
++			convoName.c_str()));
+ 	}
+ 	else
+ 	{
+ 		MessageQueueStartNpcConversation * const message = new MessageQueueStartNpcConversation;
+ 		message->setNpc(npc.getNetworkId());
+@@ -145,12 +178,16 @@ void TangibleObject::endNpcConversation()
+ 					if (getScriptObject()->trigAllScripts(Scripting::TRIG_END_CONVERSATION, playerParams) == SCRIPT_OVERRIDE)
+ 					{
+ 						overridden = true;
+ 					}
+ 
+-					if(overridden)
+-						return;
++					if (overridden)
++					{
++						LOG("PreCuConversation", ("ignored cleanup-veto player=%s npc=%s",
++							getNetworkId().getValueString().c_str(),
++							npc->getNetworkId().getValueString().c_str()));
++					}
+ 
+ 					// update any proxies
+ 					npc->removeConversation(getNetworkId());
+ 				}
+ 				removeConversation(m_npcConversation->getNPC());
+@@ -160,12 +197,16 @@ void TangibleObject::endNpcConversation()
+ 				DEBUG_WARNING(true,("TangibleObject::endNpcConversation: creature %s has a non-nullptr m_npcConversation pointer %p but is not a player-controlled object!", 
+ 					getNetworkId().getValueString().c_str(), m_npcConversation));
+ 				m_conversations.clear();
+ 			}
+ 
++			NetworkId const previousNpc = m_npcConversation->getNPC();
+ 			delete m_npcConversation;
+ 			m_npcConversation = nullptr;
++			LOG("PreCuConversation", ("session-ended player=%s npc=%s",
++				getNetworkId().getValueString().c_str(),
++				previousNpc.getValueString().c_str()));
+ 		}
+ 		else
+ 		{
+ 			// I am an npc, end conversations with players
+ 

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-npc-conversation-lifecycle-recovery",
+  "status": "ready-for-live-verification",
+  "scope": "Keep retained PRE-CU and expansion NPC conversations usable after a client stop is lost or an OnEndNpcConversation script requests an override.",
+  "diagnosis": {
+    "date": "2026-08-01",
+    "liveCharacter": "Icai Darkwave",
+    "characterObject": 39008597,
+    "symptom": "NPC converse actions stopped producing a conversation window and later NPC attempts also did nothing.",
+    "cause": "The native conversation start path silently rejected every request while m_npcConversation was non-null, and the native end path returned before proxy removal and deletion whenever an end trigger returned SCRIPT_OVERRIDE. Release builds compiled out the only rejection warnings."
+  },
+  "expected": {
+    "freshPlayerRequestRecoversOlderSession": true,
+    "scriptEndTriggersStillRun": true,
+    "scriptOverrideCannotVetoNativeCleanup": true,
+    "conversationProxiesRemoved": true,
+    "clientReceivesStopFromConversationDestructor": true,
+    "newConversationStartsAfterRecovery": true,
+    "dedicatedTelemetryCategory": "PreCuConversation",
+    "dedicatedTelemetryPath": "logs/precuNpcConversation.log"
+  },
+  "sourceFiles": {
+    "commandDispatch": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp",
+    "conversationLifecycle": "src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp",
+    "runtimeConfig": "exe/linux/localOptions.cfg"
+  },
+  "buildEvidence": {
+    "overlayPatches": [
+      {
+        "component": "src",
+        "path": "restoration/patches/src/351-p14-npc-conversation-lifecycle-recovery.patch",
+        "bytes": 7875,
+        "sha256": "cb3e147a0d16aeba84199d06a1e5d1b34acec4c898734a3c3dd0fefdaa001227"
+      },
+      {
+        "component": "exe",
+        "path": "restoration/patches/exe/004-p14-npc-conversation-log-target.patch",
+        "bytes": 455,
+        "sha256": "895ba4647b5b710d652dac3cf28e2a04f3a21283b044ba59645c13d4c9b42832"
+      }
+    ],
+    "materialization": {
+      "patchesApplied": 381,
+      "acceptanceFiles": 1082,
+      "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+      "overlayReverseApplyCheck": "passed"
+    },
+    "contractTest": "passed",
+    "cppCompile": "passed",
+    "fullBuild": "passed",
+    "architecture": "ELF 64-bit LSB shared object, x86-64",
+    "serverBinarySha256": "3c5539ddafbebe098f66e123c537ae0f948ce87963c4baf3e392f0665a30d5c4",
+    "serverGameArchiveSha256": "6a8c05992eccb7cb9b035022b5277b9ae7af506766ad13d2bc3a34a590c3d230",
+    "buildId": "36596f886263e0c07dc976ba33f78b5e269de797",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-01T21:10:04.664701626Z",
+    "containerHealth": "healthy",
+    "deployProbe": "passed",
+    "result": "passed"
+  },
+  "liveEvidence": {
+    "date": "2026-08-01",
+    "client": {
+      "processId": 21136,
+      "processName": "Galaxies Reborn PRECU",
+      "windowTitle": "Galaxies Reborn PRECU",
+      "responding": true
+    },
+    "target": {
+      "object": 2299042435,
+      "script": "conversation.c_bounty_hunter_taibela",
+      "conversation": "c_bounty_hunter_taibela"
+    },
+    "conversationAttempt": "A direct native session started at 1.88 meters, explicit end changed isInNpcConversation from true to false, an immediate repeat started at 3.02 meters, and its explicit end again changed true to false.",
+    "telemetry": [
+      "session-started player=39008597 npc=2299042435 conversation=c_bounty_hunter_taibela",
+      "session-ended player=39008597 npc=2299042435",
+      "session-started player=39008597 npc=2299042435 conversation=c_bounty_hunter_taibela",
+      "session-ended player=39008597 npc=2299042435"
+    ],
+    "temporaryQaScriptsRemoved": true,
+    "playerLocationRestored": "(3439.7246,4.9963436,-4913.978,tatooine)",
+    "result": "native lifecycle and repeat-session recovery passed; a normal player-initiated ground conversation UI retest remains"
+  },
+  "requiredBeforeReady": [
+    "a fresh player converse request on a conversational NPC opens the world-anchored ground conversation UI and produces command-start/player-trigger telemetry"
+  ]
+}

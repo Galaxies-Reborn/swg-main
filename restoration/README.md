@@ -2222,3 +2222,13 @@ quest requires Master Armorsmith. Combat and expertise packages remain
 untouched. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedCraftingContentGates.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 283 repairs the native NPC conversation lifecycle. A fresh player
+converse request now closes an older retained session before dispatching the
+new NPC trigger, so a lost client stop cannot disable all later conversations.
+End scripts still receive both retained callbacks, but `SCRIPT_OVERRIDE` no
+longer vetoes native proxy cleanup, session deletion, or the destructor's stop
+message. A dedicated release-build log records accepted, rejected, recovered,
+started, and ended requests. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NpcConversationLifecycleRecovery.ps1 -SourceRoot <materialized-staging-directory>
