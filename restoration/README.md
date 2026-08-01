@@ -2213,3 +2213,12 @@ seven-point proficiency from Slicing I through IV plus Smuggler Master. NGE
 combat and expertise packages remain untouched. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuMissionSlicingProfessionGates.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 282 restores retained crafting-content admission after NGE class
+retirement. Death Watch Bunker stations and doors now require their exact
+PRE-CU Armorsmith, Droid Engineer, Artisan, or Tailor boxes. The Mustafar
+mining droid requires Novice Droid Engineer, and the armorsmith profession
+quest requires Master Armorsmith. Combat and expertise packages remain
+untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedCraftingContentGates.ps1 -SourceRoot <materialized-staging-directory>

@@ -1361,3 +1361,9 @@ Bounty Hunter owns mission terminals and informants, Novice Smuggler owns locked
 containers, Slicing I owns terminals and keypads, and the Corvette computer
 weights the four slicing boxes plus Smuggler Master to the retained seven-point
 maximum.
+
+`354-p14-precu-retained-crafting-content-gates.patch` replaces impossible NGE
+class checks in retained Death Watch Bunker, Mustafar, and armorsmith quest
+content with exact PRE-CU crafting boxes. Mandalorian armor, jetpack, tailor,
+droid-engineer, and mining-droid interactions remain available without
+restoring NGE profession progression.

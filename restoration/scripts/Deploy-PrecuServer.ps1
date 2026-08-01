@@ -146,6 +146,20 @@ do
     cmp -s "$source_script/$profession_gate_file" "$work_script/$profession_gate_file"
     ! grep -Fq 'class_' "$work_script/$profession_gate_file"
 done
+for crafting_gate_file in \
+    theme_park/dungeon/death_watch_bunker/craft_armorsmith_droid.java \
+    theme_park/dungeon/death_watch_bunker/craft_droidengineer_droid.java \
+    theme_park/dungeon/death_watch_bunker/craft_jetpack_droid.java \
+    theme_park/dungeon/death_watch_bunker/craft_tailor_droid.java \
+    theme_park/dungeon/death_watch_bunker/door_lock_crafting_armor.java \
+    theme_park/dungeon/death_watch_bunker/door_lock_crafting_de.java \
+    theme_park/dungeon/death_watch_bunker/door_lock_crafting_tailor.java \
+    theme_park/dungeon/mustafar_trials/valley_battleground/mining_droid.java \
+    npc/static_quest/quest_armorsmith.java
+do
+    cmp -s "$source_script/$crafting_gate_file" "$work_script/$crafting_gate_file"
+    ! grep -Fq 'class_' "$work_script/$crafting_gate_file"
+done
 # localOptions.cfg is a runtime-rendered configuration, not a copied build
 # artifact. Authenticate the immutable template and the required rendered
 # values independently instead of demanding impossible byte equality.
@@ -189,6 +203,14 @@ javap -classpath "$class_root" -v script.theme_park.dungeon.corvette.computer | 
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'class_bountyhunter'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_terminal | grep -Fq 'class_smuggler'
 ! javap -classpath "$class_root" -v script.theme_park.dungeon.corvette.computer | grep -Fq 'class_smuggler'
+javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_armorsmith_droid | grep -Fq 'crafting_armorsmith_master'
+javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_jetpack_droid | grep -Fq 'crafting_artisan_master'
+javap -classpath "$class_root" -v script.theme_park.dungeon.mustafar_trials.valley_battleground.mining_droid | grep -Fq 'crafting_droidengineer_novice'
+javap -classpath "$class_root" -v script.npc.static_quest.quest_armorsmith | grep -Fq 'crafting_armorsmith_master'
+! javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_armorsmith_droid | grep -Fq 'class_munitions'
+! javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_jetpack_droid | grep -Fq 'class_engineering'
+! javap -classpath "$class_root" -v script.theme_park.dungeon.mustafar_trials.valley_battleground.mining_droid | grep -Fq 'class_engineering'
+! javap -classpath "$class_root" -v script.npc.static_quest.quest_armorsmith | grep -Fq 'class_munitions'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
 grep -Fq 'isWeaponCadenceAttack' "$work_queue"
 grep -Fq 'if (!owner.isPlayerControlled())' "$work_queue"
