@@ -2130,6 +2130,18 @@ instead of falling through to the NGE hit tables. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3DamageAuthority.ps1 -SourceRoot <materialized-staging-directory>
 
+Milestone 277 makes the pinned Core3 action-preparation envelope authoritative
+before PRE-CU hit and damage resolution. Authenticated actions retain their
+authored command identity, HAM model, delay, range, cone/area geometry, and raw
+weapon values. An unspecified command range uses Core3's `max(10, weapon max)`
+rule, while an explicit command range wins. NGE buff attack replacement,
+expertise action mutation, kill-meter vigor cost, cybernetic/expertise range,
+expertise geometry and delay, weapon overload, player elemental doubling, and
+killing-spree rampage injection remain available only to non-PRE-CU content.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionPreparationAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
 Milestone 273 closes the attack-cadence retarget escape hatch exposed by
 expanded live telemetry. The ordinary Core3 two-second AI interval was present,
 but cancelling a queued command or changing targets reset the queue timer and

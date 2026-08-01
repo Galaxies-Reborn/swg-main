@@ -1335,3 +1335,9 @@ elemental damage.
 menu construction, menu selection, command dispatch, and final extraction. It
 also removes the retained AI script override that zeroed the native command
 cooldown, leaving combat cadence under one authoritative native timer.
+
+`350-p14-core3-action-preparation-authority.patch` prevents authenticated
+PRE-CU commands from being replaced or modified by retained NGE buff,
+expertise, kill-meter, cybernetic range, overload, elemental-doubling, and
+killing-spree systems. Command range follows the pinned Core3 fallback and
+authored delays and cone/area values remain authoritative.

@@ -1,0 +1,243 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 94a290918d9271369e1f4a92a7bb79d84223ff08..18d8651c132a7250101e0eb26c884d886ca4ae92 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -212,12 +212,29 @@ public class combat_base extends script.base_script
+         {
+             actionData = combat_engine.getCombatData(actionName);
+         }
+-        actionData = attackOverrideByBuff(self, actionData);
+         if (actionData == null)
+         {
+             combat.combatLog(self, target, "combatStandardAction", "Attack Aborted - Not a valid combat action - " + actionName);
+             return false;
+         }
++        boolean precuAuthoritativeAction =
++            isPrecuAuthoritativeAttack(self, actionData);
++        if (!precuAuthoritativeAction)
++        {
++            actionData = attackOverrideByBuff(self, actionData);
++        }
++        if (actionData == null)
++        {
++            combat.combatLog(
++                self,
++                target,
++                "combatStandardAction",
++                "Attack Aborted - Buff override returned no combat action - " +
++                    actionName);
++            return false;
++        }
++        precuAuthoritativeAction =
++            isPrecuAuthoritativeAttack(self, actionData);
+         if (isEggWeapon && actionName.equals("forceThrow"))
+         {
+             self = utils.getObjIdScriptVar(objWeapon, "objOwner");
+@@ -347,7 +364,7 @@ public class combat_base extends script.base_script
+         {
+             actionData.targetLoc = targetLoc;
+         }
+-        if (!isTangibleAttacking)
++        if (!isTangibleAttacking && !precuAuthoritativeAction)
+         {
+             actionData = modifyActionDataByExpertise(self, actionData);
+         }
+@@ -423,8 +440,9 @@ public class combat_base extends script.base_script
+                 stealth.reinstateInvisFromCombat(self);
+                 return false;
+             }
+-            int killMeterCost = (int)actionData.vigorCost;
+-            if (killMeterCost > 0)
++            int killMeterCost = precuAuthoritativeAction ? 0 :
++                (int)actionData.vigorCost;
++            if (!precuAuthoritativeAction && killMeterCost > 0)
+             {
+                 if (!beast_lib.isBeast(attackerData.id) && isPlayer(attackerData.id))
+                 {
+@@ -632,11 +650,18 @@ public class combat_base extends script.base_script
+             }
+         }
+         obj_id objOwner = utils.getObjIdScriptVar(objEgg, "objOwner");
+-        if (isIdValid(objOwner))
++        if (isIdValid(objOwner) &&
++            !isPrecuAuthoritativeAttack(objOwner, actionData))
+         {
+             delay += (int)getSkillStatisticModifier(objOwner, "expertise_delay_line_" + actionData.specialLine);
+             delay -= (int)getSkillStatisticModifier(objOwner, "expertise_delay_reduce_line_" + actionData.specialLine);
+         }
++        else if (isIdValid(objOwner))
++        {
++            recordPrecuLiveDiagnostic(objOwner, "preparation.delay", delay);
++            recordPrecuLiveDiagnostic(
++                objOwner, "preparation.ngeDelayApplied", 0);
++        }
+         if (delay < 0)
+         {
+             delay = 0;
+@@ -792,6 +817,8 @@ public class combat_base extends script.base_script
+         float dist = getDistance(attacker, target);
+         float adjustMin = 0.0f;
+         float adjustMax = 0.0f;
++        boolean precuAuthoritativeAction =
++            isPrecuAuthoritativeAttack(attacker, actionData);
+         if (dist > combat_engine.getMaxCombatRange() && actionData.ignore_distance == 0)
+         {
+             if (verbose)
+@@ -802,7 +829,17 @@ public class combat_base extends script.base_script
+             combat.combatLog(attacker, target, "doCombatPreCheck", "Aborting Attack - Target is further than max combat range");
+             return false;
+         }
+-        if (actionData.overloadWeaponType == WEAPON_TYPE_THROWN)
++        if (precuAuthoritativeAction)
++        {
++            float core3Range = actionData.maxRange > 0.0f ?
++                actionData.maxRange : Math.max(10.0f, weaponData.maxRange);
++            weaponData.maxRange = core3Range;
++            recordPrecuLiveDiagnostic(
++                attacker, "preparation.maxRange", core3Range);
++            recordPrecuLiveDiagnostic(
++                attacker, "preparation.ngeRangeApplied", 0);
++        }
++        else if (actionData.overloadWeaponType == WEAPON_TYPE_THROWN)
+         {
+             weaponData.maxRange = cybernetic.getThrowRangeMod(attacker, weaponData.maxRange);
+         }
+@@ -941,6 +978,8 @@ public class combat_base extends script.base_script
+         int validTargetType = actionData.validTarget;
+         int attackType = actionData.attackType;
+         int hitType = actionData.hitType;
++        boolean precuAuthoritativeAction =
++            isPrecuAuthoritativeAttack(self, actionData);
+         boolean isOffensive = true;
+         int pvpOnly = actionData.pvp_only;
+         if (validTargetType == combat.VALID_TARGET_FRIEND || validTargetType == combat.VALID_TARGET_DEAD || hitType == combat.HEAL || hitType == combat.REVIVE)
+@@ -984,20 +1023,32 @@ public class combat_base extends script.base_script
+             String specialLine = actionData.specialLine;
+             float expertiseConeLengthBonus = 0.0f;
+             float expertiseConeWidthBonus = 0.0f;
+-            if (actionName != null && !actionName.equals(""))
+-            {
+-                expertiseConeLengthBonus = getSkillStatisticModifier(self, "expertise_cone_length_single_" + actionName);
+-            }
+-            if (specialLine != null && !specialLine.equals(""))
+-            {
+-                expertiseConeLengthBonus += getSkillStatisticModifier(self, "expertise_cone_length_line_" + specialLine);
+-            }
+-            if (specialLine != null && !actionName.equals(""))
++            if (!precuAuthoritativeAction)
+             {
+-                expertiseConeWidthBonus += getSkillStatisticModifier(self, "expertise_cone_width_line_" + specialLine);
++                if (actionName != null && !actionName.equals(""))
++                {
++                    expertiseConeLengthBonus = getSkillStatisticModifier(self, "expertise_cone_length_single_" + actionName);
++                }
++                if (specialLine != null && !specialLine.equals(""))
++                {
++                    expertiseConeLengthBonus += getSkillStatisticModifier(self, "expertise_cone_length_line_" + specialLine);
++                }
++                if (specialLine != null && !actionName.equals(""))
++                {
++                    expertiseConeWidthBonus += getSkillStatisticModifier(self, "expertise_cone_width_line_" + specialLine);
++                }
+             }
+             length += expertiseConeLengthBonus;
+             width += (expertiseConeWidthBonus / 2.0f);
++            if (precuAuthoritativeAction)
++            {
++                recordPrecuLiveDiagnostic(
++                    self, "preparation.coneLength", length);
++                recordPrecuLiveDiagnostic(
++                    self, "preparation.coneWidth", width);
++                recordPrecuLiveDiagnostic(
++                    self, "preparation.ngeGeometryApplied", 0);
++            }
+             if (actionData.maxRange == 0)
+             {
+                 length = weaponData.maxRange;
+@@ -1035,15 +1086,25 @@ public class combat_base extends script.base_script
+             String actionName = actionData.actionName;
+             String specialLine = actionData.specialLine;
+             float expertiseConeLengthBonus = 0.0f;
+-            if (actionName != null && !actionName.equals(""))
++            if (!precuAuthoritativeAction)
+             {
+-                expertiseConeLengthBonus = getSkillStatisticModifier(self, "expertise_area_size_single_" + actionName);
++                if (actionName != null && !actionName.equals(""))
++                {
++                    expertiseConeLengthBonus = getSkillStatisticModifier(self, "expertise_area_size_single_" + actionName);
++                }
++                if (specialLine != null && !specialLine.equals(""))
++                {
++                    expertiseConeLengthBonus += getSkillStatisticModifier(self, "expertise_area_size_line_" + specialLine);
++                }
+             }
+-            if (specialLine != null && !specialLine.equals(""))
++            area += expertiseConeLengthBonus;
++            if (precuAuthoritativeAction)
+             {
+-                expertiseConeLengthBonus += getSkillStatisticModifier(self, "expertise_area_size_line_" + specialLine);
++                recordPrecuLiveDiagnostic(
++                    self, "preparation.areaRange", area);
++                recordPrecuLiveDiagnostic(
++                    self, "preparation.ngeGeometryApplied", 0);
+             }
+-            area += expertiseConeLengthBonus;
+             if (area <= 0)
+             {
+                 area = weaponData.maxRange;
+@@ -1895,15 +1956,18 @@ public class combat_base extends script.base_script
+         {
+             doMultiDefenderCombatResults(playbackNames, attackerResults, defenderResults, weaponData, actionData, hitData);
+         }
+-        int rampageAttacks = getEnhancedSkillStatisticModifierUncapped(attackerData.id, "expertise_co_killing_spree_target");
+-        if (actionData.commandType == combat.LEFT_CLICK_DEFAULT && buff.hasBuff(attackerData.id, "co_killing_spree") && rampageAttacks > 0)
++        if (!precuAuthoritativeAttack)
+         {
+-            obj_id[] hateList = getHateList(attackerData.id);
+-            for (int q = 0; q < rampageAttacks; q++)
++            int rampageAttacks = getEnhancedSkillStatisticModifierUncapped(attackerData.id, "expertise_co_killing_spree_target");
++            if (actionData.commandType == combat.LEFT_CLICK_DEFAULT && buff.hasBuff(attackerData.id, "co_killing_spree") && rampageAttacks > 0)
+             {
+-                if (hateList != null && hateList.length > 0)
++                obj_id[] hateList = getHateList(attackerData.id);
++                for (int q = 0; q < rampageAttacks; q++)
+                 {
+-                    queueCommand(attackerData.id, (-410474913), hateList[rand(0, hateList.length - 1)], "", COMMAND_PRIORITY_IMMEDIATE);
++                    if (hateList != null && hateList.length > 0)
++                    {
++                        queueCommand(attackerData.id, (-410474913), hateList[rand(0, hateList.length - 1)], "", COMMAND_PRIORITY_IMMEDIATE);
++                    }
+                 }
+             }
+         }
+@@ -3717,6 +3781,30 @@ public class combat_base extends script.base_script
+         {
+             return getWeaponData(getCurrentWeapon(self));
+         }
++        if (isPrecuAuthoritativeAttack(self, actionData))
++        {
++            weapon_data precuWeaponData = weapons.getNewWeaponData(objWeapon);
++            if (precuWeaponData == null)
++            {
++                CustomerServiceLog(
++                    "combat_errors: ",
++                    "getOverloadedWeaponData PRE-CU weaponData: null for objWeapon: " +
++                        objWeapon + " getName(objWeapon): " + getName(objWeapon));
++                precuWeaponData = getWeaponData(getCurrentWeapon(self));
++            }
++            if (precuWeaponData != null)
++            {
++                recordPrecuLiveDiagnostic(
++                    self,
++                    "preparation.elementalValue",
++                    precuWeaponData.elementalValue);
++                recordPrecuLiveDiagnostic(
++                    self, "preparation.ngeElementalMultiplierApplied", 0);
++                recordPrecuLiveDiagnostic(
++                    self, "preparation.ngeWeaponOverloadApplied", 0);
++            }
++            return precuWeaponData;
++        }
+         if (actionData.overloadWeapon > 0)
+         {
+             return weapons.fillWeaponData(objWeapon, actionData);
