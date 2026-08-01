@@ -1995,3 +1995,18 @@ equipped but suffer a 50-point miss-chance penalty. Weapon minimum/maximum
 damage, speed, and elemental damage remain unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuEquipmentCertification.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 266 makes the pinned Core3 Publish 14 weapon-speed catalog
+authoritative for every player and creature attack. The generated table has
+342 exact weapon templates plus 13 PRE-CU family fallbacks for retained
+expansion weapons. New and loaded NGE-speed objects migrate without replacing
+plausible crafted variation; a combat-facing fallback also covers default or
+lazy objects that miss the persistence callback. Primary attacks, restored
+specials, and retained expansion ATTACK/DELAY_ATTACK rows now share the Core3
+weapon-speed, skill-modifier, multiplier, haste, and one-second-floor cadence.
+The same deployment closes the remaining creature-harvest bypass by requiring
+Novice Scout across direct, radial, command, droid-target, and droid-auto
+harvest paths. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14AuthoritativeWeaponSpeeds.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>

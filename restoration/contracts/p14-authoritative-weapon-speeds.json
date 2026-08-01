@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-authoritative-weapon-speeds",
+  "status": "ready",
+  "scope": "Make Publish 14 weapon attack speeds authoritative for player and creature cadence while preserving legitimate crafted variation and retaining expansion-only weapons through PRE-CU family fallbacks.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "weaponDataPinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "formulaPinnedCommit": "6856f315a80b5250635b2272695caec1d64204ed",
+    "formula": "max((1 - speedModifier / 100) * speedMultiplier * weaponAttackSpeed * (1 - positiveCombatHaste / 100), 1)",
+    "positiveExactRows": 342,
+    "familyFallbackRows": 13,
+    "tableSha256": "c6cc87b0353ee418d18805afddf090315ff5dad68c5894766082df4cffc7d6bb"
+  },
+  "sourceFiles": {
+    "weaponObject": "src/engine/server/library/serverGame/src/shared/object/WeaponObject.cpp",
+    "weaponHeader": "src/engine/server/library/serverGame/src/shared/object/WeaponObject.h",
+    "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponSpeeds": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
+  },
+  "migrationPolicy": {
+    "thresholdFactor": 0.5,
+    "policy": "Normalize a new or persisted weapon only when its current speed is nonpositive or less than half of its exact Publish 14 speed (or family fallback).",
+    "runtimeFallback": "The combat-facing getter returns the authoritative speed for any stale default or lazily loaded weapon that bypassed object-load normalization.",
+    "craftedVariation": "Values at or above the threshold remain untouched.",
+    "expansionOnlyWeapons": "Use the median PRE-CU cadence for the weapon family."
+  },
+  "queuePolicy": {
+    "primaryAttack": "live normalized weapon speed with neutral multiplier",
+    "restoredPublish14Special": "live normalized weapon speed times authenticated override multiplier",
+    "expansionAttack": "live normalized weapon speed times neutral multiplier",
+    "attackClassification": "combat_data hitType ATTACK (-1) or DELAY_ATTACK (6)",
+    "nonAttack": "retain declared command execute time",
+    "minimumSeconds": 1.0,
+    "nullWeaponSeconds": 4.0
+  },
+  "representativeSpeeds": {
+    "object/weapon/melee/unarmed/unarmed_default_player.iff": 2.0,
+    "object/weapon/ranged/pistol/pistol_cdef.iff": 3.5,
+    "object/weapon/ranged/carbine/carbine_cdef.iff": 3.5,
+    "object/weapon/ranged/rifle/rifle_cdef.iff": 3.5,
+    "object/weapon/melee/knife/knife_survival.iff": 3.25,
+    "object/weapon/melee/polearm/lance_staff_wood_s1.iff": 4.75,
+    "object/weapon/melee/axe/axe_heavy_duty.iff": 5.0
+  },
+  "liveBeforeEvidence": {
+    "date": "2026-08-01",
+    "character": "Eteb Eso",
+    "characterObject": 1433054682,
+    "observedSpeeds": {
+      "unarmed": 0.5,
+      "cdefPistol": 0.4,
+      "cdefCarbine": 0.600000024,
+      "cdefRifle": 0.800000012,
+      "survivalKnife": 1.0,
+      "woodenStaff": 1.0,
+      "heavyDutyAxe": 1.0
+    },
+    "diagnosis": "NGE-scaled persisted/template speeds collapse to the queue's one-second minimum and make player and creature combat execute at NGE cadence."
+  },
+  "buildEvidence": {
+    "date": "2026-08-01",
+    "result": "passed",
+    "deploymentSeconds": 528.1,
+    "container": "swg-precu",
+    "containerHealth": "healthy",
+    "clusterReady": true,
+    "architecture": "ELF 64-bit LSB shared object, x86-64",
+    "buildIdSha1": "4a0e99ed9a61ae21628b8eb50eefa5d22e234644",
+    "binaryInode": 12152613,
+    "binarySizeBytes": 22656008,
+    "liveProcessCount": 14,
+    "allProcessesMatchBinary": true,
+    "compiledWeaponSpeedIff": true,
+    "artifactGates": [
+      "source/work CommandQueue.cpp match",
+      "source/work WeaponObject.cpp and WeaponObject.h match",
+      "source/work precu_weapon_speeds.tab match",
+      "Scout direct and droid bytecode gates",
+      "WeaponObject normalization and fail-closed accessor symbols",
+      "x64 SwgGameServer binary"
+    ]
+  },
+  "liveAfterEvidence": {
+    "date": "2026-08-01",
+    "character": "Eteb Eso",
+    "characterObject": 1433054682,
+    "clientProcess": 4156,
+    "clientExecutable": "Galaxies Reborn PRECU.exe",
+    "worldEntryConfirmed": true,
+    "persistedNormalizedSpeeds": {
+      "cdefPistol": 3.5,
+      "cdefCarbine": 3.5,
+      "cdefRifle": 3.5,
+      "survivalKnife": 3.25,
+      "woodenStaff": 4.75,
+      "heavyDutyAxe": 5.0
+    },
+    "staleDefaultWeaponCoverage": "The persisted unarmed row remains 0.5 until rewritten, while the compiled combat-facing accessor returns the authoritative 2.0-second value immediately."
+  },
+  "requiredBeforeReady": []
+}

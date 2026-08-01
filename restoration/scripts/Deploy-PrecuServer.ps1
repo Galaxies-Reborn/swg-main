@@ -35,17 +35,34 @@ source_outdoorsman="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/p
 work_outdoorsman="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java"
 source_queue="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 work_queue="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
+source_weapon="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.cpp"
+work_weapon="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.cpp"
+source_weapon_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.h"
+work_weapon_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.h"
+source_speeds="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
+work_speeds="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
 binary="$SWG_WORK_DIR/build/bin/SwgGameServer"
+server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/libserverGame.a"
 
 cmp -s "$source_outdoorsman" "$work_outdoorsman"
 cmp -s "$source_queue" "$work_queue"
+cmp -s "$source_weapon" "$work_weapon"
+cmp -s "$source_weapon_header" "$work_weapon_header"
+cmp -s "$source_speeds" "$work_speeds"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
+javap -classpath "$class_root" -c script.systems.crafting.droid.modules.harvest_module | grep -Fq 'corpse.canPlayerHarvestCreature'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
+grep -Fq 'isWeaponCadenceAttack' "$work_queue"
+grep -Fq 'normalizePrecuAttackSpeed' "$work_weapon"
+grep -Fq 'getStoredAttackTime' "$work_weapon_header"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.iff"
+nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'
+nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 file -L "$binary" | grep -Fq 'ELF 64-bit'
 '@
 
-Write-Host "Verifying synchronized sources, Scout bytecode, combat cadence, and x64 architecture..."
+Write-Host "Verifying synchronized sources, Scout bytecode, authoritative weapon cadence, and x64 architecture..."
 Invoke-Docker -Arguments @("exec", $Container, "sh", "-lc", $artifactProbe)
 
 $restartAt = [DateTimeOffset]::UtcNow.ToString("o")

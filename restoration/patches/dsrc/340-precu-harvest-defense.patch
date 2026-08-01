@@ -1,0 +1,47 @@
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/harvest_module.java b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/harvest_module.java
+index d5d69658b..3fd631235 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/harvest_module.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/harvest_module.java
+@@ -79,7 +79,7 @@ public class harvest_module extends script.base_script
+         }
+         if (player == getMaster(self))
+         {
+-            if (true)
++            if (corpse.canPlayerHarvestCreature(player, false))
+             {
+                 int menu = mi.addRootMenu(menu_info_types.SERVER_HARVEST_CORPSE, SID_HARVEST_OPTIONS);
+                 mi.addSubMenu(menu, menu_info_types.ELEVATOR_UP, SID_TARGET_HARVEST);
+@@ -124,6 +124,11 @@ public class harvest_module extends script.base_script
+         obj_id droid = params.getObjId("droid");
+         obj_id player = params.getObjId("player");
+         obj_id target = params.getObjId("target");
++        if (!corpse.canPlayerHarvestCreature(player, true))
++        {
++            setOnHarvestRun(droid, false);
++            return SCRIPT_CONTINUE;
++        }
+         if (pet_lib.isLowOnPower(self))
+         {
+             sendSystemMessage(player, new string_id(STF, "not_enough_power"));
+@@ -201,6 +206,12 @@ public class harvest_module extends script.base_script
+     }
+     public int runHarvestRoutine(obj_id self, dictionary params) throws InterruptedException
+     {
++        obj_id master = getMaster(self);
++        if (!corpse.canPlayerHarvestCreature(master, false))
++        {
++            setOnHarvestRun(self, false);
++            return SCRIPT_CONTINUE;
++        }
+         if (!autoHarvestEnabled(self) || onHarvestRun(self) || ai_lib.isInCombat(self) || pet_lib.isLowOnPower(self))
+         {
+             return SCRIPT_CONTINUE;
+@@ -413,7 +424,7 @@ public class harvest_module extends script.base_script
+     }
+     public boolean harvestCreature(obj_id droid, obj_id player, obj_id target, int interest) throws InterruptedException
+     {
+-        if (!isIdValid(player) || !isIdValid(target))
++        if (!corpse.canPlayerHarvestCreature(player, true) || !isIdValid(target))
+         {
+             setOnHarvestRun(droid, false);
+             return false;

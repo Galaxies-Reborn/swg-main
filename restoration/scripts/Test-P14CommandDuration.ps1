@@ -13,6 +13,18 @@ $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json"
 $contract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14CommandDuration)) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 
+if ($null -ne $contract.runtimeSupersession)
+{
+    if ([string]$contract.runtimeSupersession.contract -cne "p14-authoritative-weapon-speeds.json")
+    {
+        throw "Unexpected command-duration runtime supersession contract: $($contract.runtimeSupersession.contract)"
+    }
+
+    & (Join-Path $PSScriptRoot "Test-P14AuthoritativeWeaponSpeeds.ps1") -SourceRoot $source
+    Write-Host "Legacy opt-in command-duration checks are superseded by the global authoritative weapon-speed contract."
+    return
+}
+
 $paths = @{}
 foreach ($property in $contract.sourceFiles.psobject.Properties)
 {
