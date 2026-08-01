@@ -2112,6 +2112,24 @@ and combat haste with a one-second minimum. Validate:
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
 
+Milestone 276 makes the pinned Publish 14.1 Core3 damage envelope authoritative
+after the primary and secondary hit-resolution closure. Authenticated PRE-CU
+attacks now apply the weapon's authored damage skill, player melee/ranged and
+general damage modifiers, Publish-era mitigation abilities, state penalties,
+susceptibility, posture, weapon toughness, Jedi toughness, PvP reduction, and
+command multiplier in Core3 order. The explicitly requested uncertified-weapon
+policy remains intact: damage, speed, and element values are retained while the
+penalty remains accuracy-based.
+
+The same boundary prevents authenticated PRE-CU attacks from entering retained
+NGE expertise-era pre-hit or post-hit paths, including devastation, direct
+damage redirection, prescience, elemental-vulnerability variables, beast
+scaling, expertise and kill-meter damage, niche modifiers, life siphon, and
+expertise action gain. Missing weapon profiles fail to an ordinary PRE-CU hit
+instead of falling through to the NGE hit tables. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3DamageAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
 Milestone 273 closes the attack-cadence retarget escape hatch exposed by
 expanded live telemetry. The ordinary Core3 two-second AI interval was present,
 but cancelling a queued command or changing targets reset the queue timer and

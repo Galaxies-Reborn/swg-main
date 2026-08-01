@@ -157,6 +157,8 @@ function Get-FamilyDefaults
     }
     $accuracySkill = ""
     $speedSkill = ""
+    $damageSkill = ""
+    $toughnessSkill = ""
     switch ($Family)
     {
         "rifle" { $accuracySkill = "rifle_accuracy"; $speedSkill = "rifle_speed" }
@@ -165,16 +167,27 @@ function Get-FamilyDefaults
         "heavy" { $accuracySkill = "heavyweapon_accuracy"; $speedSkill = "heavyweapon_speed" }
         "onehandmelee" { $accuracySkill = "onehandmelee_accuracy"; $speedSkill = "onehandmelee_speed" }
         "twohandmelee" { $accuracySkill = "twohandmelee_accuracy"; $speedSkill = "twohandmelee_speed" }
-        "unarmed" { $accuracySkill = "unarmed_accuracy"; $speedSkill = "unarmed_speed" }
+        "unarmed" { $accuracySkill = "unarmed_accuracy"; $speedSkill = "unarmed_speed"; $damageSkill = "unarmed_damage"; $toughnessSkill = "unarmed_toughness" }
         "polearm" { $accuracySkill = "polearm_accuracy"; $speedSkill = "polearm_speed" }
         "thrown" { $accuracySkill = "thrown_accuracy"; $speedSkill = "thrown_speed" }
         "onehandlightsaber" { $accuracySkill = "onehandlightsaber_accuracy"; $speedSkill = "onehandlightsaber_speed" }
         "twohandlightsaber" { $accuracySkill = "twohandlightsaber_accuracy"; $speedSkill = "twohandlightsaber_speed" }
         "polearmlightsaber" { $accuracySkill = "polearmlightsaber_accuracy"; $speedSkill = "polearmlightsaber_speed" }
     }
+    switch ($Family)
+    {
+        "onehandmelee" { $toughnessSkill = "onehandmelee_toughness" }
+        "twohandmelee" { $toughnessSkill = "twohandmelee_toughness" }
+        "polearm" { $toughnessSkill = "polearm_toughness" }
+        "onehandlightsaber" { $toughnessSkill = "lightsaber_toughness" }
+        "twohandlightsaber" { $toughnessSkill = "lightsaber_toughness" }
+        "polearmlightsaber" { $toughnessSkill = "lightsaber_toughness" }
+    }
     return [pscustomobject]@{
         AccuracySkill = $accuracySkill
         SpeedSkill = $speedSkill
+        DamageSkill = $damageSkill
+        ToughnessSkill = $toughnessSkill
         CategoryAccuracySkill = $categoryAccuracySkill
         DefenseSkill = $defenseSkill
         SecondaryDefenseSkill = $secondarySkill
@@ -228,6 +241,8 @@ foreach ($file in Get-ChildItem -LiteralPath $weaponRoot -Recurse -File -Filter 
     $template = $templateMatch.Groups[1].Value
     $speedSkill = Get-FirstArrayString -Text $text -Name "speedModifiers" -Optional
     $accuracySkill = Get-FirstArrayString -Text $text -Name "creatureAccuracyModifiers" -Optional
+    $damageSkill = Get-FirstArrayString -Text $text -Name "damageModifiers" -Optional
+    $toughnessSkill = Get-FirstArrayString -Text $text -Name "defenderToughnessModifiers" -Optional
     $defenseSkills = @(Get-ArrayStrings -Text $text -Name "defenderDefenseModifiers")
     $defenseSkill = ""
     $defenseSkill2 = ""
@@ -260,6 +275,8 @@ foreach ($file in Get-ChildItem -LiteralPath $weaponRoot -Recurse -File -Filter 
         Family = $family
         AttackSpeed = [double]$speed
         SpeedSkill = $speedSkill
+        DamageSkill = $damageSkill
+        ToughnessSkill = $toughnessSkill
         PointBlankRange = Get-Scalar -Text $text -Name "pointBlankRange"
         PointBlankAccuracy = Get-Scalar -Text $text -Name "pointBlankAccuracy"
         IdealRange = Get-Scalar -Text $text -Name "idealRange"
@@ -320,6 +337,8 @@ foreach ($entry in $fallbackSpeeds.GetEnumerator())
         Family = $family
         AttackSpeed = [double]$entry.Value
         SpeedSkill = $defaults.SpeedSkill
+        DamageSkill = $defaults.DamageSkill
+        ToughnessSkill = $defaults.ToughnessSkill
         PointBlankRange = Get-Median @($familyRows.PointBlankRange)
         PointBlankAccuracy = Get-Median @($familyRows.PointBlankAccuracy)
         IdealRange = Get-Median @($familyRows.IdealRange)
@@ -345,8 +364,8 @@ foreach ($fallback in $fallbackRows)
 }
 
 $lines = [System.Collections.Generic.List[string]]::new()
-$lines.Add("templateName`tattackSpeed`tspeedSkill`tpointBlankRange`tpointBlankAccuracy`tidealRange`tidealAccuracy`tmaxRange`tmaxRangeAccuracy`taccuracySkill`tcategoryAccuracySkill`tdefenseSkill`tdefenseSkill2`tweaponFamily`tpostureMultiplier`tsecondaryDefenseSkill`tsecondaryDefenseResult`twoundsRatio`tarmorPiercing")
-$lines.Add("s`tf`ts`tf`tf`tf`tf`tf`tf`ts`ts`ts`ts`ts`tf`ts`ts`ti`ti")
+$lines.Add("templateName`tattackSpeed`tspeedSkill`tdamageSkill`ttoughnessSkill`tpointBlankRange`tpointBlankAccuracy`tidealRange`tidealAccuracy`tmaxRange`tmaxRangeAccuracy`taccuracySkill`tcategoryAccuracySkill`tdefenseSkill`tdefenseSkill2`tweaponFamily`tpostureMultiplier`tsecondaryDefenseSkill`tsecondaryDefenseResult`twoundsRatio`tarmorPiercing")
+$lines.Add("s`tf`ts`ts`ts`tf`tf`tf`tf`tf`tf`ts`ts`ts`ts`ts`tf`ts`ts`ti`ti")
 foreach ($row in @($fallbackRows) + @($orderedRows))
 {
     $woundsRatio = [int]$woundsFallback[$row.Family]
@@ -358,6 +377,8 @@ foreach ($row in @($fallbackRows) + @($orderedRows))
         $row.Template,
         (Format-Number $row.AttackSpeed),
         $row.SpeedSkill,
+        $row.DamageSkill,
+        $row.ToughnessSkill,
         (Format-Number $row.PointBlankRange),
         (Format-Number $row.PointBlankAccuracy),
         (Format-Number $row.IdealRange),

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-core3-damage-authority",
+  "status": "ready-for-live-verification",
+  "scope": "Make the pinned Publish 14.1 Core3 damage envelope authoritative for every authenticated PRE-CU combat action and generated PRE-CU creature profile, while retaining expansion content and excluding NGE expertise-era damage behavior.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "functions": [
+      "CombatManager::calculateDamage",
+      "CombatManager::calculateDamageRange",
+      "CombatManager::applyDamageModifiers",
+      "CombatManager::getDefenderToughnessModifier"
+    ]
+  },
+  "sourceFiles": {
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "generator": "restoration/scripts/Export-P14Core3WeaponCombatProfiles.ps1"
+  },
+  "catalog": {
+    "exactProfileCount": 342,
+    "familyProfileCount": 13,
+    "totalProfileCount": 355,
+    "sha256": "a0a3dfe105f57d034d7063580a9969f16adf7e9ee99200fa20e4d2ee78fc5892",
+    "newColumns": [
+      "damageSkill",
+      "toughnessSkill"
+    ]
+  },
+  "core3DamageOrder": [
+    "base weapon or fixed command range",
+    "player defender damage-mitigation range compression for ordinary weapon damage",
+    "weapon damage skill and private melee/ranged/general additive bonuses",
+    "private damage multiplier and divisor",
+    "intimidate and stun damage reductions",
+    "defender private damage susceptibility",
+    "player attacker and melee multipliers",
+    "knocked-down defender multiplier",
+    "matching weapon toughness then Jedi toughness",
+    "player-versus-player reduction",
+    "one-point Core3 damage floor",
+    "command damage multiplier"
+  ],
+  "intentionalPrecuPolicy": {
+    "uncertifiedWeaponDamageClamp": false,
+    "reason": "PRE-CU Reborn explicitly retains weapon min/max, speed, and element values for uncertified equipment and applies the heavy penalty through accuracy instead of a damage clamp."
+  },
+  "retiredForAuthenticatedPrecuAttacks": [
+    "NGE attacker and defender combat buff procs",
+    "next-critical-hit and Commando devastation",
+    "direct-damage target redirection",
+    "NGE damage immunity and prescience",
+    "elemental vulnerability script variables",
+    "beast mastery damage scaling",
+    "expertise damage and DOT modifiers",
+    "kill-meter damage and updates",
+    "special-niche damage modifiers",
+    "life siphon",
+    "expertise action gain and flat action damage"
+  ],
+  "expected": {
+    "authenticatedPrimaryMissingProfile": "HIT without NGE hit-table fallback",
+    "authenticatedSecondaryMissingProfile": "HIT without NGE hit-table fallback",
+    "damagePipelineDiagnostic": "PRECU_CORE3",
+    "ngeModifierDiagnostics": 0,
+    "laterExpansionContentRetained": true
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/349-p14-core3-damage-authority.patch",
+    "overlayPatchBytes": 190533,
+    "overlayPatchSha256": "c8ce6dffeafac778bc18a16daf3850162531aa0b5d03fbc3072d56dfc543dd5a",
+    "result": "passed",
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedCombatBaseSha256": "ed59666edd1a4c09ad11df706e434eb799ab6cb779ad8f50d4a23c2704a16dd8",
+    "materializedWeaponProfilesSha256": "a0a3dfe105f57d034d7063580a9969f16adf7e9ee99200fa20e4d2ee78fc5892",
+    "compiledCombatBaseSha256": "d5c5c2439a930b2cb364d16d37c64a78e831e60851a99899384ca6f9d04d0aa7",
+    "compiledWeaponProfilesSha256": "fecdf5e3a2240d85fbe2b5971877c372fbb14ee4329dd183ec38e4ab68ec2d9f",
+    "architecture": "x86-64",
+    "buildIdSha1": "351490615204e50e0e67cded55e423149d0956ef",
+    "serverBinarySha256": "9cf8920ca3512c246d4649bc7ee23f38243340d0f0b6957253b50b4bf88a319b",
+    "container": "swg-precu",
+    "containerHealthy": true,
+    "clusterReady": true
+  },
+  "requiredBeforeReady": [
+    "clean materialization and x64 build pass",
+    "deployed server is healthy and player-ready",
+    "live combat cadence and damage sample uses PRECU_CORE3 diagnostics"
+  ]
+}

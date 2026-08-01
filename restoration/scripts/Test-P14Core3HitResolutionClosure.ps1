@@ -81,8 +81,8 @@ $combat = Get-Content -LiteralPath $paths.combatBase -Raw
 Assert-Contract ($combat.Contains('public int getPrecuWeaponProfileRow(weapon_data weaponData)') -and
     $combat.Contains('public int getPrecuWeaponFamilyProfileRow(int weaponType)') -and
     $combat.Contains('return getPrecuWeaponFamilyProfileRow(weaponData.weaponType);')) "p14.hit-closure.runtime.exact-then-family"
-Assert-Contract ($combat.Contains('boolean profiledCreature =') -and
-    $combat.Contains('hasObjVar(attackerData.id, "precu.combatProfile")') -and
+Assert-Contract ($combat.Contains('public boolean isPrecuAuthoritativeAttack(') -and
+    $combat.Contains('hasObjVar(attacker, "precu.combatProfile")') -and
     -not $combat.Contains('accuracyBonus <= 0')) "p14.hit-closure.runtime.profiled-zero-bonus"
 Assert-Contract ($combat.Contains('String defenseSkill2 = dataTableGetString(PRECU_WEAPON_PROFILES, weaponRow, "defenseSkill2")') -and
     $combat.Contains('getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion)') -and
