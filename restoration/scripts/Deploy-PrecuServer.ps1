@@ -92,6 +92,8 @@ source_skills="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/sk
 work_skills="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 work_conversation="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
+source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
+work_script="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -131,6 +133,19 @@ for conversation_file in \
 do
     cmp -s "$source_conversation/$conversation_file.java" "$work_conversation/$conversation_file.java"
 done
+for profession_gate_file in \
+    systems/missions/base/mission_terminal.java \
+    systems/missions/base/mission_player.java \
+    systems/missions/dynamic/mission_bounty_droid_terminal.java \
+    systems/missions/dynamic/mission_bounty_informant.java \
+    library/slicing.java item/container/locked_slicable.java \
+    theme_park/dungeon/keypad_handler.java \
+    theme_park/dungeon/geonosian_madbio_bunker/office_keypad.java \
+    theme_park/dungeon/corvette/computer.java
+do
+    cmp -s "$source_script/$profession_gate_file" "$work_script/$profession_gate_file"
+    ! grep -Fq 'class_' "$work_script/$profession_gate_file"
+done
 # localOptions.cfg is a runtime-rendered configuration, not a copied build
 # artifact. Authenticate the immutable template and the required rendered
 # values independently instead of demanding impossible byte equality.
@@ -166,6 +181,14 @@ javap -classpath "$class_root" -v script.conversation.som_kenobi_epo_qetora | gr
 javap -classpath "$class_root" -v script.conversation.imperial_empire_day_kaythree | grep -Fq 'crafting_architect_novice'
 ! javap -classpath "$class_root" -v script.conversation.fan_faire_pgc_c3po | grep -Fq 'class_chronicles_novice'
 ! javap -classpath "$class_root" -v script.conversation.fan_faire_pgc_c3po | grep -Fq 'grantSkill'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'combat_bountyhunter_novice'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_terminal | grep -Fq 'combat_smuggler_slicing_01'
+javap -classpath "$class_root" -v script.item.container.locked_slicable | grep -Fq 'combat_smuggler_novice'
+javap -classpath "$class_root" -v script.theme_park.dungeon.corvette.computer | grep -Fq 'combat_smuggler_slicing_04'
+javap -classpath "$class_root" -v script.theme_park.dungeon.corvette.computer | grep -Fq 'combat_smuggler_master'
+! javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'class_bountyhunter'
+! javap -classpath "$class_root" -v script.systems.missions.base.mission_terminal | grep -Fq 'class_smuggler'
+! javap -classpath "$class_root" -v script.theme_park.dungeon.corvette.computer | grep -Fq 'class_smuggler'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
 grep -Fq 'isWeaponCadenceAttack' "$work_queue"
 grep -Fq 'if (!owner.isPlayerControlled())' "$work_queue"

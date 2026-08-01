@@ -2204,3 +2204,12 @@ the NGE Chronicles profession grant is explicitly retired. No combat or system
 package is broadened by this content adapter. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuConversationProfessionGates.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 281 restores PRE-CU admission for retained mission and slicing
+content after NGE class retirement. Novice Bounty Hunter owns bounty mission
+terminals and informants. Novice Smuggler owns container slicing, Slicing I
+owns terminals and dungeon keypads, and the Corvette computer derives its
+seven-point proficiency from Slicing I through IV plus Smuggler Master. NGE
+combat and expertise packages remain untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuMissionSlicingProfessionGates.ps1 -SourceRoot <materialized-staging-directory>

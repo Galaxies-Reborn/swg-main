@@ -1354,3 +1354,10 @@ Publish-era profession boxes. Kashyyyk, Mustafar, space bounty-hunter, holiday,
 crafting, and entertainer content remains available without restoring NGE
 progression authority. The NGE Chronicles profession offer is retired instead
 of granting a forbidden class skill.
+
+`353-p14-precu-mission-slicing-profession-gates.patch` restores exact PRE-CU
+profession admission for retained bounty missions and slicing content. Novice
+Bounty Hunter owns mission terminals and informants, Novice Smuggler owns locked
+containers, Slicing I owns terminals and keypads, and the Corvette computer
+weights the four slicing boxes plus Smuggler Master to the retained seven-point
+maximum.
