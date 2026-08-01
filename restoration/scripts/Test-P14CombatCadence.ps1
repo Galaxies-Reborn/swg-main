@@ -62,6 +62,11 @@ Assert-Contract ($timing.Contains("speedMultiplier * weaponAttackSpeed") -and
 Assert-Contract ($timing.Contains("if (!owner.isPlayerControlled())") -and
     $timing.IndexOf("return 2.0f;") -lt $timing.IndexOf("int speedModifier")) `
     "p14.cadence.core3-ai-two-second-interval"
+Assert-Contract ($queue.Contains('LOG("PreCuCombatCadence"') -and
+    $queue.Contains("s_currentTime") -and
+    $queue.Contains("m_commandTimes[TimerClass_Execute]") -and
+    $queue.Contains("weapon->getAttackTime()")) `
+    "p14.cadence.live-execute-telemetry"
 Assert-Contract ($execute.Contains("command.isPrimaryCommand()") -and
     $execute.Contains("weapon->getAttackTime()") -and
     $execute.Contains("getPrecuWeaponSpeedSkill(*weapon)")) `

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-scout-harvest-native-admission",
+  "status": "ready-for-live-verification",
+  "scope": "Require Novice Scout at both the native command-admission boundary and every retained Java harvesting path, while removing the stale species-wide harvesting grant.",
+  "liveBeforeEvidence": {
+    "date": "2026-08-01",
+    "character": "Eteb Eso",
+    "characterObject": 1433054682,
+    "skills": [
+      "combat_brawler_novice",
+      "species_and_language_only"
+    ],
+    "noviceScoutOwned": false,
+    "harvestedResourcesObserved": [
+      "meat_insect_tatooine",
+      "hide_scaley_tatooine"
+    ],
+    "diagnosis": "The harvestCorpse command had no characterAbility requirement and all ten playable species granted creature_harvesting=25, permitting a native/stat-based path around the Java checks."
+  },
+  "expected": {
+    "requiredSkill": "outdoors_scout_novice",
+    "nativeCommandAbility": "harvestCorpse",
+    "noviceScoutHarvestingModifier": 15,
+    "speciesHarvestingModifier": 0,
+    "directCommandGate": true,
+    "radialGate": true,
+    "extractionGate": true,
+    "droidGate": true
+  },
+  "sourceFiles": {
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "corpseLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/corpse.java",
+    "corpseRadial": "dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java",
+    "outdoorsman": "dsrc/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java",
+    "droidHarvester": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/harvest_module.java"
+  },
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/343-p14-scout-harvest-native-admission.patch",
+    "date": "2026-08-01",
+    "dataTablesCompiled": true,
+    "javaBytecodeGates": "passed",
+    "sourceAndBuildVolumeMatch": true,
+    "compiledSkillsIff": true,
+    "architecture": "x86-64",
+    "skillsTabSha256": "ec4a1aba555fc527d8bf60030ade2bfcdbac684627aabc0351bf13eaa29eb095",
+    "commandTableSha256": "572b3331b03bb06f8b82abb00ec3292a68799802618dd3c837c96aefde820c8f",
+    "serverBinarySha256": "4b1a0ddec79ab8984733e4417480664e00fd5a6b3a3e2236190da3b21190b7bc",
+    "buildIdSha1": "4a5f52e7c8a6c9fc29ad0bf0e4bc9b081aacc78b",
+    "container": "swg-precu",
+    "containerHealthy": true,
+    "clusterReady": true,
+    "liveProcessMatchesBinary": true
+  },
+  "requiredBeforeReady": [
+    "live non-Scout harvest attempt is rejected"
+  ]
+}

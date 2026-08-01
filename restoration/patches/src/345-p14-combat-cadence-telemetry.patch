@@ -1,0 +1,27 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+index eb9070ab6ef415a7ab85d48aeb2c84cd2aae129e..821fbe9f0bac0796dea2cd738dab404084d25f91 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+@@ -503,6 +503,22 @@ void CommandQueue::executeCommandQueue()
+ 
+ void CommandQueue::doExecute(const CommandQueueEntry &entry )
+ {
++	CreatureObject * const creatureOwner = getServerOwner().asCreatureObject();
++	if (creatureOwner != nullptr && entry.m_command != nullptr &&
++		(entry.m_command->isPrimaryCommand() || isWeaponCadenceAttack(*entry.m_command)))
++	{
++		WeaponObject const * const weapon = creatureOwner->getCurrentWeapon();
++		LOG("PreCuCombatCadence", ("execute time=%.3f owner=%s playerControlled=%d command=%s target=%s interval=%.3f weaponSpeed=%.3f queueSize=%u",
++			s_currentTime,
++			creatureOwner->getNetworkId().getValueString().c_str(),
++			creatureOwner->isPlayerControlled() ? 1 : 0,
++			entry.m_command->m_commandName.c_str(),
++			entry.m_targetId.getValueString().c_str(),
++			m_commandTimes[TimerClass_Execute],
++			weapon != nullptr ? weapon->getAttackTime() : 0.0f,
++			static_cast<unsigned int>(m_queue.size())));
++	}
++
+ 	// execute command here
+ 	m_status            = Command::CEC_Success;
+ 	m_statusDetail      = 0;

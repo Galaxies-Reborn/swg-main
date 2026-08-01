@@ -2049,3 +2049,26 @@ rebuilt game process, a healthy player-ready cluster, and a clean rerun of the
 complete expansion-world contract. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeGroupPickupRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 270 closes the remaining NGE instant-travel surfaces while retaining
+ordinary paid tickets, Publish-era new-player travel support, and authored
+expansion-world routes. Native instant-ticket requests fail before script
+dispatch; pickup commands are disabled; stationary, one-use, teleport-to-group,
+TCG, and veteran-deed terminals are inert; and all retained Java warp helpers
+fail closed. The x64 deployment proves the native source, compiled Java
+callbacks, synchronized command table, mapped binary, and healthy cluster.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeInstantTravelRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 271 closes the native creature-harvest escape hatch and makes combat
+cadence directly observable. All playable species lose the stale
+`creature_harvesting=25` grant, `harvestCorpse` now requires the ability issued
+by Novice Scout, and the existing direct, radial, extraction, and droid gates
+remain mandatory. The native queue logs actual player and creature attack
+execution timestamps together with its enforced Core3/PRE-CU interval and
+effective weapon speed, allowing server cadence to be separated from client
+animation presentation without guesswork. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>

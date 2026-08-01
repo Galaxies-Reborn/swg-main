@@ -3,7 +3,9 @@ param(
     [string]$Container = "swg-precu",
 
     [ValidateRange(30, 900)]
-    [int]$ReadyTimeoutSeconds = 240
+    [int]$ReadyTimeoutSeconds = 240,
+
+    [switch]$SkipBuild
 )
 
 Set-StrictMode -Version Latest
@@ -26,8 +28,15 @@ if ($LASTEXITCODE -ne 0)
     throw "Docker container '$Container' was not found."
 }
 
-Write-Host "Synchronizing the read-only source mount and building the writable server volume..."
-Invoke-Docker -Arguments @("exec", $Container, "/usr/local/bin/swg-entrypoint", "build")
+if (-not $SkipBuild)
+{
+    Write-Host "Synchronizing the read-only source mount and building the writable server volume..."
+    Invoke-Docker -Arguments @("exec", $Container, "/usr/local/bin/swg-entrypoint", "build")
+}
+else
+{
+    Write-Host "Reusing the existing build volume; all source/build and binary probes remain mandatory..."
+}
 
 $artifactProbe = @'
 set -eu
@@ -59,6 +68,8 @@ source_player_travel="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script
 work_player_travel="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/player_travel.java"
 source_command_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 work_command_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+source_skills="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+work_skills="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
 binary="$SWG_WORK_DIR/build/bin/SwgGameServer"
 server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/libserverGame.a"
@@ -77,6 +88,7 @@ cmp -s "$source_speeds" "$work_speeds"
 cmp -s "$source_travel" "$work_travel"
 cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
+cmp -s "$source_skills" "$work_skills"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'String outdoors_scout_novice'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'Method canPlayerHarvestCreature'
@@ -86,6 +98,7 @@ javap -classpath "$class_root" -v script.player.player_travel | grep -Fq 'Ignore
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
 grep -Fq 'isWeaponCadenceAttack' "$work_queue"
 grep -Fq 'if (!owner.isPlayerControlled())' "$work_queue"
+grep -Fq 'PreCuCombatCadence' "$work_queue"
 grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
@@ -96,7 +109,11 @@ grep -Fq 'return 0;' "$work_group"
 grep -Fq 'reuseableWp.groupPickupWp' "$work_player"
 grep -Fq 'normalizePrecuAttackSpeed' "$work_weapon"
 grep -Fq 'getStoredAttackTime' "$work_weapon_header"
+awk -F '	' '$1 ~ /^harvestCorpse$/ { found=1; if ($9 !~ /^harvestCorpse$/) exit 2 } END { if (!found) exit 3 }' "$work_command_table"
+awk -F '	' '$1 ~ /^species_(bothan|human|moncal|rodian|trandoshan|twilek|wookiee|zabrak|ithorian|sullustan)$/ { found++; if ($23 ~ /creature_harvesting/) exit 2 } END { if (found != 10) exit 3 }' "$work_skills"
+awk -F '	' '$1 ~ /^outdoors_scout_novice$/ { found=1; if ($22 !~ /harvestCorpse/ || $23 !~ /creature_harvesting=15/) exit 2 } END { if (!found) exit 3 }' "$work_skills"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/skill/skills.iff"
 nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'
 nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::processExpertiseRequest'

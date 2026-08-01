@@ -1,0 +1,28 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+index c0051eb..83c0358 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -5242,6 +5242,12 @@ static void commandFuncPurchaseTicket(const Command& /*command*/, const NetworkI
+ 	const Unicode::String travelPoint2 = Unicode::narrowToWide(underscoreToSpace(nextStringParm(parameters, pos)));
+ 	const bool roundTrip = nextBoolParm(parameters, pos);
+ 	const bool instantTravel = nextBoolParm(parameters, pos);
++	if (instantTravel)
++	{
++		LOG("PreCuRestore", ("Ignored retired NGE instant-travel ticket request from %s",
++			actor.getValueString().c_str()));
++		return;
++	}
+ 
+ 	ScriptParams scriptParameters;
+ 	scriptParameters.addParam(actor);
+@@ -5251,9 +5257,7 @@ static void commandFuncPurchaseTicket(const Command& /*command*/, const NetworkI
+ 	scriptParameters.addParam(travelPoint2);
+ 	scriptParameters.addParam(roundTrip);
+ 
+-	Scripting::TrigId id = instantTravel ? Scripting::TRIG_PURCHASE_TICKET_INSTANT_TRAVEL : Scripting::TRIG_PURCHASE_TICKET;
+-
+-	if (serverObject->getScriptObject()->trigAllScripts(id, scriptParameters) != SCRIPT_CONTINUE)
++	if (serverObject->getScriptObject()->trigAllScripts(Scripting::TRIG_PURCHASE_TICKET, scriptParameters) != SCRIPT_CONTINUE)
+ 		DEBUG_REPORT_LOG(true, ("commandFuncPurchaseTicket: did not return SCRIPT_CONTINUE\n"));
+ }
+ 
