@@ -2010,3 +2010,16 @@ harvest paths. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14AuthoritativeWeaponSpeeds.ps1 -SourceRoot <materialized-staging-directory>
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 267 closes the native admission path left behind after retiring the
+Java NGE expertise surface. The server now ignores `ExpertiseRequestMessage`
+without unpacking or dispatching it, returns zero from the retained expertise
+point accessor, and rejects `class_`, `expertise`, `expertise_`, and
+`internal_expertise_` skills for player-controlled objects at the authoritative
+grant boundary. NPC skill behavior and persisted-expertise cleanup remain
+available. The x64 build gate compares both native sources to the compiled
+volume, proves the retained fail-closed symbol in `libserverGame.a`, matches the
+live process to the newly linked binary, and requires a healthy player-ready
+cluster. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgeSkillAdmissionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
