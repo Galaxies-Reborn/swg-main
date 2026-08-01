@@ -1,0 +1,451 @@
+diff --git a/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java b/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
+index ea68666..2f149a9 100644
+--- a/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
++++ b/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java
+@@ -239,6 +239,11 @@ public class ai_corpse extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
++        if (!corpse.canPlayerHarvestCreature(player, true))
++        {
++            LOG("PreCuScoutHarvest", "Rejected corpse callback without Novice Scout for player " + player);
++            return SCRIPT_OVERRIDE;
++        }
+         String args = params.getString("args");
+         corpse.harvestCreatureCorpse(player, self, args);
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 18d8651..4d59ef9 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -368,8 +368,16 @@ public class combat_base extends script.base_script
+         {
+             actionData = modifyActionDataByExpertise(self, actionData);
+         }
+-        stealth.clearPreviousInvis(self);
+-        stealth.testInvisCombatAction(self, target, actionData);
++        if (!precuAuthoritativeAction)
++        {
++            stealth.clearPreviousInvis(self);
++            stealth.testInvisCombatAction(self, target, actionData);
++        }
++        else
++        {
++            recordPrecuLiveDiagnostic(
++                self, "admission.ngeStealthMutationApplied", 0);
++        }
+         if (!isDelayedAttack)
+         {
+             obj_id[] defenders = getCombatDefenders(self, combatTarget, weaponData, actionData, isSpecialAttack);
+@@ -398,11 +406,15 @@ public class combat_base extends script.base_script
+                     }
+                     atkRslt.endPosture = (combat.isMeleeWeapon(weaponData.id) || combat.isLightsaberWeapon(weaponData.id)) ? POSTURE_UPRIGHT : getPosture(self);
+                     String anim = actionData.animDefault;
+-                    stealth.testInvisCombatAction(self, target, actionData);
++                    if (!precuAuthoritativeAction)
++                    {
++                        stealth.testInvisCombatAction(self, target, actionData);
++                    }
+                     doCombatResults(anim, atkRslt, dfndRslt);
+                     return true;
+                 }
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+             weapon_data junkData = new weapon_data();
+@@ -411,7 +423,8 @@ public class combat_base extends script.base_script
+             {
+                 String msg = "ERROR::combatStandardAction:" + actionData.actionName + ") call to getCombatData returned false";
+                 CustomerServiceLog("combat_errors", msg);
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+         }
+@@ -437,7 +450,8 @@ public class combat_base extends script.base_script
+                     combat.sendCombatSpamMessage(self, new string_id("cbt_spam", "pool_drain_fail"));
+                 }
+                 combat.combatLog(self, self, "combatStandardAction", "Aborting Attack - Insufficient ability points for action");
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+             int killMeterCost = precuAuthoritativeAction ? 0 :
+@@ -449,7 +463,8 @@ public class combat_base extends script.base_script
+                     if (!combat.canDrainKillMeter(attackerData.id, killMeterCost))
+                     {
+                         showFlyTextPrivate(self, self, new string_id("combat_effects", "need_more_kills"), 1.5f, colors.FIREBRICK);
+-                        stealth.reinstateInvisFromCombat(self);
++                        reinstateNgeInvisFromCombat(
++                            self, precuAuthoritativeAction);
+                         return false;
+                     }
+                     combat.drainKillMeter(attackerData.id, killMeterCost);
+@@ -464,12 +479,14 @@ public class combat_base extends script.base_script
+             if (!doHealingPreCheck(actionData, attackerData, defenderData, verbose))
+             {
+                 combat.combatLog(self, combatTarget, "combatStandardAction", "Attack Failed - Healing precheck failed");
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+             if (!combat.canDrainCombatActionAttributes(self, actionCost, actionData.precuHamCostModel > 0))
+             {
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+             if (actionData.performanceSpamStrId.isValid() && !isTangibleAttacking)
+@@ -485,7 +502,7 @@ public class combat_base extends script.base_script
+             {
+                 success = healing.performRevivePlayer(attackerData, defenderData, actionData, actionData.addedDamage > 0);
+             }
+-            if (success)
++            if (success && !precuAuthoritativeAction)
+             {
+                 stealth.testInvisNonCombatAction(self, target, actionData);
+             }
+@@ -495,7 +512,8 @@ public class combat_base extends script.base_script
+                 if (!combat.drainCombatActionAttributes(self, actionCost, actionData.precuHamCostModel > 0))
+                 {
+                     combat.combatLog(self, combatTarget, "combatStandardAction", "ERROR:Insufficient action not caught in canDrainCombatActionAttributes()");
+-                    stealth.reinstateInvisFromCombat(self);
++                    reinstateNgeInvisFromCombat(
++                        self, precuAuthoritativeAction);
+                     return false;
+                 }
+                 String anim = actionData.animDefault;
+@@ -523,7 +541,8 @@ public class combat_base extends script.base_script
+             if (!doCombatPreCheck(actionData, attackerData, weaponData, defenderData, verbose))
+             {
+                 combat.combatLog(self, combatTarget, "combatStandardAction", "Attack Failed - Combat precheck failed");
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+             boolean isSingleTargetAttack = actionData.hitType == -1 && actionData.attackType == combat.SINGLE_TARGET;
+@@ -531,7 +550,8 @@ public class combat_base extends script.base_script
+             {
+                 showFlyTextPrivate(self, self, new string_id("combat_effects", "action_too_tired"), 1.5f, colors.GOLDENROD);
+                 combat.combatLog(self, combatTarget, "combatStandardAction", "ERROR:Insufficient action not caught in canDrainCombatActionAttributes()");
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+             if (actionData.performanceSpamStrId.isValid())
+@@ -550,7 +570,8 @@ public class combat_base extends script.base_script
+                 String msg = " Attack Failed - No hit data returned";
+                 CustomerServiceLog("combat_errors", "ERROR::combatStandardAction:" + actionData.actionName + " " + msg);
+                 combat.combatLog(self, combatTarget, "combatStandardAction", msg);
+-                stealth.reinstateInvisFromCombat(self);
++                reinstateNgeInvisFromCombat(
++                    self, precuAuthoritativeAction);
+                 return false;
+             }
+         }
+@@ -771,7 +792,9 @@ public class combat_base extends script.base_script
+             combat.combatLog(self, curTarget, "getCorrectCombatTarget", "Not a valid PvP target - returning null target");
+             return null;
+         }
+-        if (isOffensive && stealth.hasInvisibleBuff(newTarget))
++        if (isOffensive &&
++            !isPrecuAuthoritativeAttack(self, actionData) &&
++            stealth.hasInvisibleBuff(newTarget))
+         {
+             int range = getPassiveRevealRange(newTarget, self);
+             if (range >= 0)
+@@ -855,17 +878,34 @@ public class combat_base extends script.base_script
+                 adjustMax = 6.0f;
+             }
+         }
+-        float rangeMod = getSkillStatisticModifier(attacker, "expertise_range_bonus_" + weaponData.weaponType);
+-        weaponData.maxRange += rangeMod;
+-        float actionMaxRange = actionData.maxRange;
+-        if (actionMaxRange > 0)
++        if (!precuAuthoritativeAction)
+         {
+-            weaponData.maxRange = actionMaxRange;
++            float rangeMod = getSkillStatisticModifier(attacker, "expertise_range_bonus_" + weaponData.weaponType);
++            weaponData.maxRange += rangeMod;
++            float actionMaxRange = actionData.maxRange;
++            if (actionMaxRange > 0)
++            {
++                weaponData.maxRange = actionMaxRange;
++            }
++            rangeMod = getSkillStatisticModifier(attacker, "expertise_range_line_" + actionData.specialLine);
++            if (rangeMod != 0)
++            {
++                weaponData.maxRange += rangeMod;
++            }
+         }
+-        rangeMod = getSkillStatisticModifier(attacker, "expertise_range_line_" + actionData.specialLine);
+-        if (rangeMod != 0)
++        if (precuAuthoritativeAction &&
++            combat.isRangedWeapon(weaponData.weaponType) &&
++            getPosture(attacker) == POSTURE_PRONE &&
++            dist <= 7.0f && actionData.ignore_distance == 0)
+         {
+-            weaponData.maxRange += rangeMod;
++            if (verbose)
++            {
++                showFlyTextPrivate(attacker, attacker, new string_id("combat_effects", "range_too_close"), 1.5f, colors.MEDIUMTURQUOISE);
++                combat.sendCombatSpamMessage(attacker, new string_id("cbt_spam", "out_of_range_close"), COMBAT_RESULT_OUT_OF_RANGE);
++            }
++            recordPrecuLiveDiagnostic(
++                attacker, "admission.proneRangedTooClose", 1);
++            return false;
+         }
+         if (dist > (weaponData.maxRange + adjustMax) && actionData.ignore_distance == 0)
+         {
+@@ -1565,9 +1605,18 @@ public class combat_base extends script.base_script
+             defenderResults[i] = new defender_results();
+             defenderResults[i].id = defenderData[i].id;
+             defenderResults[i].endPosture = getPosture(defenderData[i].id);
+-            if (validTargetType != combat.VALID_TARGET_FRIEND && defenderData[i].id != attackerData.id && hitData[i].success)
++            if (validTargetType != combat.VALID_TARGET_FRIEND &&
++                defenderData[i].id != attackerData.id &&
++                (precuAuthoritativeAttack || hitData[i].success))
+             {
+                 startCombat(defenderData[i].id, attackerData.id);
++                if (precuAuthoritativeAttack)
++                {
++                    recordPrecuLiveDiagnostic(
++                        attackerData.id,
++                        "admission.defenderCombatStarted",
++                        1);
++                }
+                 if (oldDefender != defenderData[i].id)
+                 {
+                     startCombat(oldDefender, attackerData.id);
+@@ -1600,7 +1649,8 @@ public class combat_base extends script.base_script
+             if (hitData[i].success)
+             {
+                 defenderResults[i].result = hitData[i].precuBlock ? COMBAT_RESULT_BLOCK : COMBAT_RESULT_HIT;
+-                if (beast_lib.isBeast(attackerData.id))
++                if (!precuAuthoritativeAttack &&
++                    beast_lib.isBeast(attackerData.id))
+                 {
+                     addHate(defenderData[i].id, getMaster(attackerData.id), 0);
+                 }
+@@ -1786,34 +1836,37 @@ public class combat_base extends script.base_script
+                 {
+                     defenderResults[i].result = COMBAT_RESULT_LIGHTSABER_BLOCK;
+                 }
+-                if (!actionData.specialLine.equals("no_proc"))
+-                {
+-                    proc.executeProcEffects(attackerData.id, defenderData[i].id, actionData);
+-                }
+-                else 
+-                {
+-                    hitData[i].proc = true;
+-                }
+-                if (isLightSaber && buff.hasBuff(defenderData[i].id, "fs_saber_reflect") && !strAttack.equals("fs_saber_reflect"))
++                if (!precuAuthoritativeAttack)
+                 {
+-                    boolean reflectQueued =
+-                        queueCommand(
+-                            defenderData[i].id,
+-                            (1345072218),
++                    if (!actionData.specialLine.equals("no_proc"))
++                    {
++                        proc.executeProcEffects(attackerData.id, defenderData[i].id, actionData);
++                    }
++                    else
++                    {
++                        hitData[i].proc = true;
++                    }
++                    if (isLightSaber && buff.hasBuff(defenderData[i].id, "fs_saber_reflect") && !strAttack.equals("fs_saber_reflect"))
++                    {
++                        boolean reflectQueued =
++                            queueCommand(
++                                defenderData[i].id,
++                                (1345072218),
++                                attackerData.id,
++                                "",
++                                COMMAND_PRIORITY_DEFAULT);
++                        recordPrecuLiveDiagnostic(
+                             attackerData.id,
+-                            "",
+-                            COMMAND_PRIORITY_DEFAULT);
+-                    recordPrecuLiveDiagnostic(
+-                        attackerData.id,
+-                        "secondary.reflectQueued",
+-                        reflectQueued ? 1 : 0);
+-                }
+-                int addDefenderDamageToAction = getSkillStatisticModifier(defenderData[i].id, "expertise_damage_add_to_action");
+-                if (addDefenderDamageToAction > 0)
+-                {
+-                    float halfOfMod = addDefenderDamageToAction / 2.0f;
+-                    int actionToAdd = Math.round((halfOfMod / 100.0f) * getMaxAction(defenderData[i].id));
+-                    combat.gainCombatActionAttribute(defenderData[i].id, actionToAdd);
++                            "secondary.reflectQueued",
++                            reflectQueued ? 1 : 0);
++                    }
++                    int addDefenderDamageToAction = getSkillStatisticModifier(defenderData[i].id, "expertise_damage_add_to_action");
++                    if (addDefenderDamageToAction > 0)
++                    {
++                        float halfOfMod = addDefenderDamageToAction / 2.0f;
++                        int actionToAdd = Math.round((halfOfMod / 100.0f) * getMaxAction(defenderData[i].id));
++                        combat.gainCombatActionAttribute(defenderData[i].id, actionToAdd);
++                    }
+                 }
+             }
+             else if (hitData[i].precuCounter)
+@@ -1840,7 +1893,22 @@ public class combat_base extends script.base_script
+             }
+             if (defenderResults[i].result != COMBAT_RESULT_TETHERED)
+             {
+-                combat.addHateProcess(attackerData.id, defenderData[i].id, hitData[i], actionData);
++                if (precuAuthoritativeAttack)
++                {
++                    addPrecuCore3HateProcess(
++                        attackerData.id,
++                        defenderData[i].id,
++                        hitData[i],
++                        actionData);
++                }
++                else
++                {
++                    combat.addHateProcess(
++                        attackerData.id,
++                        defenderData[i].id,
++                        hitData[i],
++                        actionData);
++                }
+                 applyPrecuConcealThreat(
+                     attackerData.id,
+                     defenderData[i].id,
+@@ -1869,13 +1937,13 @@ public class combat_base extends script.base_script
+             }
+             results[i] = defenderResults[i].result;
+         }
+-        if (criticalHit && utils.hasScriptVar(attackerData.id, "critRemoveBuffNames") && actionData.commandType != combat.LEFT_CLICK_DEFAULT)
++        if (!precuAuthoritativeAttack && criticalHit && utils.hasScriptVar(attackerData.id, "critRemoveBuffNames") && actionData.commandType != combat.LEFT_CLICK_DEFAULT)
+         {
+             utils.removeScriptVar(attackerData.id, "nextCritHit");
+             Vector buffNames = utils.getResizeableStringArrayScriptVar(attackerData.id, "critRemoveBuffNames");
+             buff.removeBuffs(attackerData.id, buffNames);
+         }
+-        if (seriesStrikethrough)
++        if (!precuAuthoritativeAttack && seriesStrikethrough)
+         {
+             int stproc = getEnhancedSkillStatisticModifierUncapped(attackerData.id, "expertise_onstrikethrough_proc_sp_resonance");
+             if (stproc > 0)
+@@ -1883,7 +1951,7 @@ public class combat_base extends script.base_script
+                 buff.partyBuff(attackerData.id, "sp_critbuff_resonance");
+             }
+         }
+-        if (criticalHit)
++        if (!precuAuthoritativeAttack && criticalHit)
+         {
+             int critproc = getEnhancedSkillStatisticModifierUncapped(attackerData.id, "expertise_oncrit_proc_sp_savagery");
+             if (critproc > 0)
+@@ -2698,6 +2766,54 @@ public class combat_base extends script.base_script
+                 PRECU_COMBAT_OVERRIDES) >= 0 ||
+                 hasObjVar(attacker, "precu.combatProfile"));
+     }
++    public void reinstateNgeInvisFromCombat(
++        obj_id attacker, boolean precuAuthoritativeAction)
++        throws InterruptedException
++    {
++        if (!precuAuthoritativeAction)
++        {
++            stealth.reinstateInvisFromCombat(attacker);
++        }
++    }
++    public void addPrecuCore3HateProcess(
++        obj_id attacker,
++        obj_id defender,
++        hit_result hitData,
++        combat_data actionData) throws InterruptedException
++    {
++        if (!isIdValid(attacker) || !isIdValid(defender) ||
++            defender == attacker || hitData == null || actionData == null)
++        {
++            return;
++        }
++
++        float hate = hitData.success ?
++            hitData.damage * actionData.hateDamageModifier : 1.0f;
++        if (hate > 0.0f)
++        {
++            addHate(defender, attacker, hate);
++        }
++        if (isPlayer(attacker))
++        {
++            addHate(attacker, defender, 0.0f);
++            obj_id[] hateList = getHateList(attacker);
++            if (hateList != null)
++            {
++                for (obj_id hateTarget : hateList)
++                {
++                    if (!isPlayer(hateTarget) && isTangible(hateTarget) &&
++                        getHateTarget(hateTarget) == attacker)
++                    {
++                        resetHateTimer(hateTarget);
++                    }
++                }
++            }
++        }
++        recordPrecuLiveDiagnostic(
++            attacker, "lifecycle.core3HateAdded", hate);
++        recordPrecuLiveDiagnostic(
++            attacker, "lifecycle.ngeHateModifiersApplied", 0);
++    }
+     public int getPrecuPrimaryAttackResult(attacker_data attackerData, defender_data defenderData, weapon_data weaponData, combat_data actionData) throws InterruptedException
+     {
+         float hitChance = getPrecuPrimaryHitChance(attackerData, defenderData, weaponData, actionData);
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java
+index 65a335c..7773f08 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java
+@@ -93,14 +93,6 @@ public class combat_player extends script.systems.combat.combat_base
+             queueCommand(self, (-1465754503), null, "", COMMAND_PRIORITY_FRONT);
+             return SCRIPT_CONTINUE;
+         }
+-        if ((intCombatResult == COMBAT_RESULT_EVADE || intCombatResult == COMBAT_RESULT_MISS) && buff.isInStance(self))
+-        {
+-            int riposte = (int)getSkillStatisticModifier(self, "expertise_stance_riposte");
+-            if (riposte > 0 && riposte > rand(0, 99))
+-            {
+-                queueCommand(self, (1127093938), objAttacker, "", COMMAND_PRIORITY_DEFAULT);
+-            }
+-        }
+         return SCRIPT_CONTINUE;
+     }
+     public int OnAboutToReceiveItem(obj_id self, obj_id objContainer, obj_id objTransferer, obj_id objItem) throws InterruptedException
+@@ -132,15 +124,6 @@ public class combat_player extends script.systems.combat.combat_base
+     {
+         if (isWeapon(objItem))
+         {
+-            int weaponType = getWeaponType(objItem);
+-            if (weaponType != WEAPON_TYPE_LIGHT_RIFLE)
+-            {
+-                int onslaughtBuff = buff.getBuffOnTargetFromGroup(self, "bh_relentless_onslaught");
+-                if (onslaughtBuff != 0)
+-                {
+-                    buff.removeBuff(self, onslaughtBuff);
+-                }
+-            }
+             if (!combat.hasCertification(self, objItem))
+             {
+                 string_id strSpam = new string_id("combat_effects", "no_proficiency");
+@@ -151,10 +134,6 @@ public class combat_player extends script.systems.combat.combat_base
+     }
+     public int OnDeath(obj_id self, obj_id killer, obj_id corpseId) throws InterruptedException
+     {
+-        if (hasSkill(self, "expertise_of_last_words_1"))
+-        {
+-            buff.applyBuff(self, "exclude_self_exclusive_proxy_of_last_words");
+-        }
+         return SCRIPT_CONTINUE;
+     }
+     public int target(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException

@@ -2142,6 +2142,21 @@ Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3ActionPreparationAuthority.ps1 -SourceRoot <materialized-staging-directory>
 
+Milestone 278 closes the remaining combat-admission and execution lifecycle
+around the pinned Core3 envelope. Authenticated PRE-CU attacks bypass retained
+NGE stealth mutation, expertise death/equipment/defense hooks, hate transfer,
+beast hate, and post-result procs. Core3's seven-meter prone ranged rejection,
+miss-triggered defender combat state, and base hit/miss hate are authoritative.
+
+Creature harvesting now revalidates owned `outdoors_scout_novice` both when the
+native queue executes and immediately inside the corpse callback, closing an
+already-queued or forwarded-command escape. Cadence remains Core3-owned and its
+live record now includes command classification plus every effective player
+speed modifier; combat commands that claim queue admission without matching an
+authenticated attack class are logged explicitly. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CombatAdmissionLifecycleAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
 Milestone 273 closes the attack-cadence retarget escape hatch exposed by
 expanded live telemetry. The ordinary Core3 two-second AI interval was present,
 but cancelling a queued command or changing targets reset the queue timer and

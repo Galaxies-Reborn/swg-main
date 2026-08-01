@@ -1341,3 +1341,9 @@ PRE-CU commands from being replaced or modified by retained NGE buff,
 expertise, kill-meter, cybernetic range, overload, elemental-doubling, and
 killing-spree systems. Command range follows the pinned Core3 fallback and
 authored delays and cone/area values remain authoritative.
+
+`351-p14-core3-combat-admission-lifecycle-authority.patch` keeps authenticated
+PRE-CU attacks out of retained NGE stealth, expertise lifecycle, hate-transfer,
+beast-hate, and post-result proc paths. It restores Core3 prone-ranged range,
+miss combat-state, and base-hate behavior, removes three player expertise
+callbacks, and revalidates Novice Scout at the final corpse script callback.

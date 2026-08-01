@@ -29,8 +29,18 @@ foreach ($path in @($combatPath, $combatDataPath, $overridesPath))
 }
 
 $combat = Get-Content -LiteralPath $combatPath -Raw
-$sourceHash = (Get-FileHash -LiteralPath $combatPath -Algorithm SHA256).Hash.ToLowerInvariant()
-Assert-Contract ($sourceHash -ceq [string]$contract.buildEvidence.materializedCombatBaseSha256) "p14.action-preparation.source.authenticated-hash"
+$overlayPath = Join-Path (Split-Path -Parent $restorationRoot) `
+    ([string]$contract.buildEvidence.overlayPatch)
+Assert-Contract (Test-Path -LiteralPath $overlayPath -PathType Leaf) `
+    "p14.action-preparation.overlay.exists"
+if (Test-Path -LiteralPath $overlayPath -PathType Leaf)
+{
+    $overlay = Get-Item -LiteralPath $overlayPath
+    $overlayHash = (Get-FileHash -LiteralPath $overlayPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Assert-Contract ($overlay.Length -eq [long]$contract.buildEvidence.overlayPatchBytes -and
+        $overlayHash -ceq [string]$contract.buildEvidence.overlayPatchSha256) `
+        "p14.action-preparation.overlay.authenticated"
+}
 
 $overrideCall = $combat.IndexOf('actionData = attackOverrideByBuff(self, actionData);', [StringComparison]::Ordinal)
 $authorityBeforeOverride = $combat.LastIndexOf('isPrecuAuthoritativeAttack(self, actionData);', $overrideCall, [StringComparison]::Ordinal)
@@ -48,6 +58,26 @@ Assert-Contract ($combat.Contains('!isPrecuAuthoritativeAttack(objOwner, actionD
 Assert-Contract ($combat.Contains('actionData.maxRange : Math.max(10.0f, weaponData.maxRange)') -and
     $combat.Contains('else if (actionData.overloadWeaponType == WEAPON_TYPE_THROWN)') -and
     $combat.Contains('"preparation.ngeRangeApplied", 0')) "p14.action-preparation.range.core3"
+
+$rangeStart = $combat.IndexOf('public boolean isInAttackRange(', [StringComparison]::Ordinal)
+$rangeEnd = $combat.IndexOf('public boolean doCombatPreCheck(', $rangeStart, [StringComparison]::Ordinal)
+$rangeMethod = if ($rangeStart -ge 0 -and $rangeEnd -gt $rangeStart) {
+    $combat.Substring($rangeStart, $rangeEnd - $rangeStart)
+} else { "" }
+$ngeRangeGuard = $rangeMethod.IndexOf('if (!precuAuthoritativeAction)', [StringComparison]::Ordinal)
+$ngeRangeBonus = $rangeMethod.IndexOf('"expertise_range_bonus_"', [StringComparison]::Ordinal)
+$ngeRangeLine = $rangeMethod.IndexOf('"expertise_range_line_"', [StringComparison]::Ordinal)
+$rangeGuardEnd = $rangeMethod.IndexOf('if (precuAuthoritativeAction &&', $ngeRangeGuard, [StringComparison]::Ordinal)
+if ($rangeGuardEnd -lt 0)
+{
+    $rangeGuardEnd = $rangeMethod.IndexOf('if (dist > (weaponData.maxRange', $ngeRangeGuard, [StringComparison]::Ordinal)
+}
+Assert-Contract ($ngeRangeGuard -ge 0 -and
+    $ngeRangeBonus -gt $ngeRangeGuard -and
+    $ngeRangeLine -gt $ngeRangeBonus -and
+    $rangeGuardEnd -gt $ngeRangeLine -and
+    ([regex]::Matches($rangeMethod, '"expertise_range_(?:bonus|line)_"').Count -eq 2)) `
+    "p14.action-preparation.range.nge-modifiers-scoped"
 
 Assert-Contract ($combat.Contains('if (!precuAuthoritativeAction)') -and
     $combat.Contains('"expertise_cone_length_single_"') -and

@@ -18,3 +18,7 @@ CentralServer actually started.
 `PreCuCombatCadence` category to `logs/precuCombatCadence.log`. This makes live
 player and creature attack timestamps inspectable without enabling the broad
 legacy log streams or changing combat behavior.
+
+`003-p14-scout-harvest-log-target.patch` routes native and Java
+`PreCuScoutHarvest` rejection evidence to a dedicated runtime log, leaving the
+normal server log categories unchanged.

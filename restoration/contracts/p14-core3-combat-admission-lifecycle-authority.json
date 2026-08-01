@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-core3-combat-admission-lifecycle-authority",
+  "status": "ready-for-live-verification",
+  "scope": "Close the remaining NGE combat-admission and lifecycle paths for authenticated PRE-CU attacks, revalidate Novice Scout at final native and Java corpse-command execution, and expose every effective Core3 cadence input for live diagnosis.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "commandQueueSource": "MMOCoreORB/src/server/zone/objects/creature/CommandQueue.cpp",
+    "combatManagerSource": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "rules": [
+      "AI receives a two-second interval after a normal combat command",
+      "player interval is (1 - speed modifier / 100) times weapon speed with a one-second floor",
+      "ranged attacks are rejected at seven meters or less while prone",
+      "an authenticated attack starts defender combat even when it misses",
+      "base hate is damage times command hate modifier on hit and one point on miss"
+    ]
+  },
+  "liveBeforeEvidence": {
+    "date": "2026-08-01",
+    "character": "Eteb Eso",
+    "characterObject": 1433054682,
+    "ownedCombatSkills": [
+      "combat_brawler_novice"
+    ],
+    "noviceScoutOwned": false,
+    "persistedSpeedOrExpertiseOverrides": false,
+    "reportedBehavior": [
+      "creature corpse harvesting succeeded without Novice Scout",
+      "player and creature attacks appeared substantially faster than Publish 14 cadence"
+    ],
+    "diagnosis": "The character record is clean. Harvesting required an execution-time recheck because an already admitted or forwarded command could still reach its callback. Player cadence needs classified execution telemetry because prior runtime samples contained AI events but no player attacks."
+  },
+  "sourceFiles": {
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatPlayer": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java",
+    "aiCorpse": "dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java",
+    "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
+    "commandQueueHeader": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.h",
+    "localOptions": "exe/linux/localOptions.cfg"
+  },
+  "expected": {
+    "precuNgeStealthMutation": false,
+    "precuNgeExpertiseLifecycleProcs": false,
+    "precuCore3ProneRangedMinimumMeters": 7.0,
+    "precuDefenderStartsCombatOnMiss": true,
+    "precuCore3BaseHate": true,
+    "noviceScoutRevalidatedAtEnqueue": true,
+    "noviceScoutRevalidatedAtNativeExecution": true,
+    "noviceScoutRevalidatedAtJavaCallback": true,
+    "aiAttackIntervalSeconds": 2.0,
+    "playerMinimumAttackIntervalSeconds": 1.0,
+    "unclassifiedPlayerCombatCommandsLogged": true,
+    "effectiveSpeedInputsLogged": true
+  },
+  "buildEvidence": {
+    "overlayPatches": [
+      {
+        "component": "dsrc",
+        "path": "restoration/patches/dsrc/351-p14-core3-combat-admission-lifecycle-authority.patch",
+        "bytes": 22626,
+        "sha256": "14799e36e75d0e7965069ed4b3a672718240abc616bb6af82a17430518a6f38e"
+      },
+      {
+        "component": "src",
+        "path": "restoration/patches/src/349-p14-core3-cadence-and-harvest-execution-authority.patch",
+        "bytes": 4360,
+        "sha256": "4cde94394f9f7bc88b16b940f0c7cd06b0c0cb121dcf4b947c05e1283fb0fb71"
+      },
+      {
+        "component": "exe",
+        "path": "restoration/patches/exe/003-p14-scout-harvest-log-target.patch",
+        "bytes": 427,
+        "sha256": "0f6e96b896872c855d735c9c51d065cc8104edf3c1802aa65a138a69c1fb75af"
+      }
+    ],
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "sourceSha256": {
+      "CommandQueue.cpp": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba",
+      "combat_base.java": "77056f741a0c7db01df656e5dab4a4a3e284b1894cf94b249ff4a23568e8ab50",
+      "combat_player.java": "36c82422c3ea523aa71187bd31086bb9f21f2bb954d0d4f8e1a583923d9b70ed",
+      "ai_corpse.java": "010ecb395a3f43fd0dfa5e6f2a3aa7add5893a9589a6227efe79b8c4df53c335"
+    },
+    "compiledClassSha256": {
+      "combat_base.class": "bdfab1ef7c12b4cddcac6e66b0f6521c082abbcc4d3991d74412130d6ecd5032",
+      "combat_player.class": "af3e206478b9ccccc9da5c377c1881e97c3949989e266a67b068f6ab67da1848",
+      "ai_corpse.class": "5df2c5cc6b5b7634db44c870aa08e99270fef634520e8032cf6bad09db0894c4"
+    },
+    "cppCompile": "passed",
+    "javaCompile": "passed",
+    "serverGameArchiveSha256": "384508c110838f5111687b90f3625040fe913c27effe7de25af58f550e194691",
+    "architecture": "x86-64",
+    "buildIdSha1": "f8beb5508bcd1efc30e18cfa6ae13bb5e7266010",
+    "serverBinarySha256": "43f8561460d6480570a2946219739c141c3d17b181e5d9482b10146a0cf29c8a",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-01T16:54:53.353975818Z",
+    "containerHealthy": true,
+    "clusterReady": true,
+    "sourceAndBuildVolumeMatch": true,
+    "liveProcessMatchesBinary": true,
+    "result": "passed"
+  },
+  "requiredBeforeReady": [
+    "clean overlay materialization passes",
+    "x64 server build passes",
+    "deployed server is healthy and player-ready",
+    "live non-Scout harvest attempt is rejected at enqueue or execution",
+    "live player attack intervals meet the preceding assigned Core3 interval",
+    "zero same-owner AI attack pairs below 1.95 seconds after restart"
+  ]
+}

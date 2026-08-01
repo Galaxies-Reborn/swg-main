@@ -114,3 +114,10 @@ positive combat haste, and a one-second floor. Primary cooldown is zero because
 the full interval is now counted once in execute time. Player-controlled queues
 remain unlimited, while non-player combat queues regain a two-action admission
 ceiling so AI cannot stack attacks faster than its weapon cadence.
+
+`349-p14-core3-cadence-and-harvest-execution-authority.patch` revalidates
+Novice Scout when `harvestCorpse` actually executes, before Java dispatch. It
+also records attack classification, weapon-family and private speed modifiers,
+combat haste, and any unclassified player combat-queue command so live cadence
+can be proven against the pinned Core3 formula rather than inferred from client
+animation.

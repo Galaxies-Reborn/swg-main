@@ -52,6 +52,10 @@ source_creature_profiles="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/da
 work_creature_profiles="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.tab"
 source_combat_base="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
 work_combat_base="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+source_combat_player="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java"
+work_combat_player="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java"
+source_ai_corpse="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java"
+work_ai_corpse="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java"
 source_combat_overrides="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab"
 work_combat_overrides="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab"
 source_weapon_profiles="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab"
@@ -96,6 +100,8 @@ cmp -s "$source_create" "$work_create"
 cmp -s "$source_loot" "$work_loot"
 cmp -s "$source_creature_profiles" "$work_creature_profiles"
 cmp -s "$source_combat_base" "$work_combat_base"
+cmp -s "$source_combat_player" "$work_combat_player"
+cmp -s "$source_ai_corpse" "$work_ai_corpse"
 cmp -s "$source_combat_overrides" "$work_combat_overrides"
 cmp -s "$source_weapon_profiles" "$work_weapon_profiles"
 cmp -s "$source_queue" "$work_queue"
@@ -112,6 +118,7 @@ cmp -s "$source_travel" "$work_travel"
 cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
+cmp -s "$source_local_options" "$work_local_options"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'String outdoors_scout_novice'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'Method canPlayerHarvestCreature'
@@ -123,6 +130,13 @@ javap -classpath "$class_root" -c script.systems.crafting.droid.modules.harvest_
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'getPrecuWeaponProfileRow'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'defenseSkill2'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'precu.combatProfile'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'reinstateNgeInvisFromCombat'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'addPrecuCore3HateProcess'
+javap -classpath "$class_root" -v script.corpse.ai_corpse | grep -Fq 'Rejected corpse callback without Novice Scout'
+javap -classpath "$class_root" -c script.corpse.ai_corpse | grep -Fq 'corpse.canPlayerHarvestCreature'
+! javap -classpath "$class_root" -v script.systems.combat.combat_player | grep -Fq 'expertise_stance_riposte'
+! javap -classpath "$class_root" -v script.systems.combat.combat_player | grep -Fq 'bh_relentless_onslaught'
+! javap -classpath "$class_root" -v script.systems.combat.combat_player | grep -Fq 'expertise_of_last_words_1'
 javap -classpath "$class_root" -c script.library.travel | grep -Fq 'rejected retired NGE group-pickup travel'
 javap -classpath "$class_root" -v script.player.player_travel | grep -Fq 'Ignored retired NGE group-pickup travel request'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
@@ -132,12 +146,16 @@ grep -Fq 'PreCuCombatCadence' "$work_queue"
 grep -Fq 'canHarvestPrecuCreatureResources' "$work_queue"
 grep -Fq 'outdoors_scout_novice' "$work_queue"
 grep -Fq 'PreCuScoutHarvest' "$work_queue"
+grep -Fq 'rejected phase=execute' "$work_queue"
+grep -Fq 'primary=%d classified=%d speedSkill=%s familySpeed=%d' "$work_queue"
+grep -Fq 'unclassified time=' "$work_queue"
 grep -Fq 'm_lastWeaponCadenceAttackTime' "$work_queue_header"
 grep -Fq 'm_lastWeaponCadenceInterval' "$work_queue_header"
 grep -Fq 'm_lastWeaponCadenceAttackTime = s_currentTime' "$work_queue"
 grep -Fq 'm_nextEventTime = earliestAttackTime' "$work_queue"
 grep -Fq 'gate time=' "$work_queue"
 grep -Fq 'logs/precuCombatCadence.log{c-*:c+PreCuCombatCadence}' "$work_local_options"
+grep -Fq 'logs/precuScoutHarvest.log{c-*:c+PreCuScoutHarvest}' "$work_local_options"
 grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
