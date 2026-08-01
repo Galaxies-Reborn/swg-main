@@ -1997,13 +1997,13 @@ damage, speed, and elemental damage remain unchanged. Validate:
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuEquipmentCertification.ps1 -SourceRoot <materialized-staging-directory>
 
 Milestone 266 makes the pinned Core3 Publish 14 weapon-speed catalog
-authoritative for every player and creature attack. The generated table has
+authoritative for player attacks and retained weapon presentation. The generated table has
 342 exact weapon templates plus 13 PRE-CU family fallbacks for retained
 expansion weapons. New and loaded NGE-speed objects migrate without replacing
 plausible crafted variation; a combat-facing fallback also covers default or
 lazy objects that miss the persistence callback. Primary attacks, restored
 specials, and retained expansion ATTACK/DELAY_ATTACK rows now share the Core3
-weapon-speed, skill-modifier, multiplier, haste, and one-second-floor cadence.
+weapon-speed, skill-modifier, multiplier, haste, and one-second-floor player cadence.
 The same deployment closes the remaining creature-harvest bypass by requiring
 Novice Scout across direct, radial, command, droid-target, and droid-auto
 harvest paths. Validate:
@@ -2023,3 +2023,15 @@ live process to the newly linked binary, and requires a healthy player-ready
 cluster. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgeSkillAdmissionRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 268 closes the remaining creature-speed discrepancy found by tracing
+the pinned Core3 queue itself. Core3 applies the player weapon-speed formula and
+one-second floor, but gives AI agents an explicit two-second next-action
+interval. The native PRE-CU resolver now returns that two-second interval for
+creature attacks before retained NGE creature speed modifiers can collapse them
+to one second; player formula behavior and non-attack command durations remain
+unchanged. The same deployment now proves the compiled `corpse.class` checks
+`outdoors_scout_novice` and calls the shared admission gate before extraction.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready

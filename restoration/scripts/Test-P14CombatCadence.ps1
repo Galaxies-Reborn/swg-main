@@ -59,6 +59,9 @@ Assert-Contract ($timing.Contains("speedMultiplier * weaponAttackSpeed") -and
     $timing.Contains('getEnhancedModValue("combat_haste")') -and
     $timing.Contains("executeTime > 1.0f ? executeTime : 1.0f")) `
     "p14.cadence.precu-formula-and-floor"
+Assert-Contract ($timing.Contains("if (!owner.isPlayerControlled())") -and
+    $timing.IndexOf("return 2.0f;") -lt $timing.IndexOf("int speedModifier")) `
+    "p14.cadence.core3-ai-two-second-interval"
 Assert-Contract ($execute.Contains("command.isPrimaryCommand()") -and
     $execute.Contains("weapon->getAttackTime()") -and
     $execute.Contains("getPrecuWeaponSpeedSkill(*weapon)")) `

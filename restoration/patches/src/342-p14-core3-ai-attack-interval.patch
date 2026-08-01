@@ -1,0 +1,17 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+index 351e6b8..eb9070a 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+@@ -117,6 +117,12 @@ namespace CommandQueueNamespace
+ 	float calculatePrecuAttackTime(CreatureObject & owner, WeaponObject const & weapon,
+ 		float weaponAttackSpeed, float speedMultiplier, std::string const & speedSkill)
+ 	{
++		// Core3 applies a fixed two-second command-queue interval to AI agents.
++		// Do this before inherited creature skill mods can collapse their attacks
++		// to the one-second player floor.
++		if (!owner.isPlayerControlled())
++			return 2.0f;
++
+ 		int speedModifier = speedSkill.empty() ? 0 : owner.getEnhancedModValue(speedSkill);
+ 		speedModifier += owner.getEnhancedModValue("private_speed_bonus");
+ 		if (weapon.getAttackType() == ServerWeaponObjectTemplate::AT_melee)

@@ -79,6 +79,9 @@ Assert-Contract ($commandQueue.Contains('cs_combatDataTable = "datatables/combat
     -not $commandQueue.Contains('cs_precuWeaponProfilesTable')) "p14.weapon-speed.global-attack-routing"
 Assert-Contract ($commandQueue.Contains('(1.0f - static_cast<float>(speedModifier) / 100.0f) *') -and
     $commandQueue.Contains('return executeTime > 1.0f ? executeTime : 1.0f;')) "p14.weapon-speed.core3-formula-and-floor"
+Assert-Contract ($commandQueue.Contains('if (!owner.isPlayerControlled())') -and
+    $commandQueue.Contains('return 2.0f;') -and
+    [string]$contract.queuePolicy.aiAttack -match 'two-second Core3') "p14.weapon-speed.core3-ai-two-second-interval"
 
 if ($failures.Count -gt 0)
 {

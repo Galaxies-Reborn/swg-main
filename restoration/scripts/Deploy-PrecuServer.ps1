@@ -33,6 +33,8 @@ $artifactProbe = @'
 set -eu
 source_outdoorsman="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java"
 work_outdoorsman="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java"
+source_corpse="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/corpse.java"
+work_corpse="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/corpse.java"
 source_queue="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 work_queue="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 source_client="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
@@ -50,6 +52,7 @@ binary="$SWG_WORK_DIR/build/bin/SwgGameServer"
 server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/libserverGame.a"
 
 cmp -s "$source_outdoorsman" "$work_outdoorsman"
+cmp -s "$source_corpse" "$work_corpse"
 cmp -s "$source_queue" "$work_queue"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
@@ -57,9 +60,12 @@ cmp -s "$source_weapon" "$work_weapon"
 cmp -s "$source_weapon_header" "$work_weapon_header"
 cmp -s "$source_speeds" "$work_speeds"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
+javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'String outdoors_scout_novice'
+javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'Method canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.systems.crafting.droid.modules.harvest_module | grep -Fq 'corpse.canPlayerHarvestCreature'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
 grep -Fq 'isWeaponCadenceAttack' "$work_queue"
+grep -Fq 'if (!owner.isPlayerControlled())' "$work_queue"
 grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
