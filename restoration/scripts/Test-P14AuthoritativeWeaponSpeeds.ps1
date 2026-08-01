@@ -63,6 +63,8 @@ $generator = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Export-P14Weapon
 
 Assert-Contract ($generator.Contains('6ea64f60ef33b89121c2a8d188b93f4bc6f158e8') -and
     $generator.Contains('Expected 342 positive, unique Core3 weapon speeds')) "p14.weapon-speed.generator-pinned"
+Assert-Contract ($generator.Contains('(($lines -join "`n") + "`n")') -and
+    -not $generator.Contains('WriteAllLines($output, $lines')) "p14.weapon-speed.generator-canonical-lf"
 Assert-Contract ($weaponObject.Contains('cs_precuWeaponSpeedsTable = "datatables/combat/precu_weapon_speeds.iff"') -and
     $weaponObject.Contains('normalizePrecuAttackSpeed') -and
     $weaponObject.Contains('currentSpeed < authoritativeSpeed * 0.5f') -and

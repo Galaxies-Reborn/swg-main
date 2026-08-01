@@ -35,14 +35,18 @@ function Get-FunctionSlice
 
 $queuePath = Join-Path $source `
     "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
+$queueHeaderPath = Join-Path $source `
+    "src/engine/server/library/serverGame/src/shared/command/CommandQueue.h"
 $combatBasePath = Join-Path $source `
     "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
 $localOptionsPath = Join-Path $source "exe/linux/localOptions.cfg"
 Assert-Contract (Test-Path -LiteralPath $queuePath -PathType Leaf) "p14.cadence.command-queue-source"
+Assert-Contract (Test-Path -LiteralPath $queueHeaderPath -PathType Leaf) "p14.cadence.command-queue-header"
 Assert-Contract (Test-Path -LiteralPath $combatBasePath -PathType Leaf) "p14.cadence.combat-base-source"
 Assert-Contract (Test-Path -LiteralPath $localOptionsPath -PathType Leaf) "p14.cadence.log-target-source"
 
 $queue = Get-Content -LiteralPath $queuePath -Raw
+$queueHeader = Get-Content -LiteralPath $queueHeaderPath -Raw
 $combatBase = Get-Content -LiteralPath $combatBasePath -Raw
 $localOptions = Get-Content -LiteralPath $localOptionsPath -Raw
 $timing = Get-FunctionSlice -Text $queue -Start "float calculatePrecuAttackTime(" -Next "float getCommandExecuteTime("
@@ -89,6 +93,15 @@ Assert-Contract ($enqueue.Contains("command.m_addToCombatQueue && isFull()") -an
     "p14.cadence.npc-admission-enforced"
 Assert-Contract (-not $combatBase.Contains("setCommandTimerValue(self, TIMER_COOLDOWN, 0.0f)")) `
     "p14.cadence.ai-script-cannot-clear-timer"
+Assert-Contract ($queueHeader.Contains("m_lastWeaponCadenceAttackTime") -and
+    $queueHeader.Contains("m_lastWeaponCadenceInterval") -and
+    $queue.Contains("m_lastWeaponCadenceAttackTime = s_currentTime") -and
+    $queue.Contains("m_lastWeaponCadenceInterval = m_commandTimes[TimerClass_Execute]") -and
+    $queue.Contains("m_state.get() == State_Waiting") -and
+    $queue.Contains("double const earliestAttackTime") -and
+    $queue.Contains("m_nextEventTime = earliestAttackTime") -and
+    $queue.Contains("gate time=")) `
+    "p14.cadence.retarget-clear-preserves-last-interval"
 
 if ($failures.Count -gt 0)
 {

@@ -9,7 +9,9 @@ $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
 $root = (Resolve-Path -LiteralPath $SourceRoot).Path
 $queuePath = Join-Path $root "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
+$queueHeaderPath = Join-Path $root "src/engine/server/library/serverGame/src/shared/command/CommandQueue.h"
 $queue = Get-Content -LiteralPath $queuePath -Raw
+$queueHeader = Get-Content -LiteralPath $queueHeaderPath -Raw
 
 $start = $queue.IndexOf("float calculatePrecuAttackTime(", [StringComparison]::Ordinal)
 $end = $queue.IndexOf("float getCommandExecuteTime(", $start, [StringComparison]::Ordinal)
@@ -44,6 +46,22 @@ foreach ($required in @(
     if (-not $execute.Contains($required)) { throw "Attack timing routing is incomplete: $required" }
 }
 
+foreach ($required in @(
+    "m_lastWeaponCadenceAttackTime = s_currentTime",
+    "m_lastWeaponCadenceInterval = m_commandTimes[TimerClass_Execute]",
+    "m_state.get() == State_Waiting",
+    "double const earliestAttackTime",
+    "m_nextEventTime = earliestAttackTime",
+    "gate time="
+))
+{
+    if (-not $queue.Contains($required)) { throw "Global attack cadence guard is incomplete: $required" }
+}
+foreach ($required in @("m_lastWeaponCadenceAttackTime", "m_lastWeaponCadenceInterval"))
+{
+    if (-not $queueHeader.Contains($required)) { throw "Global cadence state is missing: $required" }
+}
+
 if ($Expectation -eq "Ready")
 {
     $contractPath = Join-Path $restorationRoot "contracts/p14-core3-ai-attack-interval.json"
@@ -57,17 +75,35 @@ if ($Expectation -eq "Ready")
         throw "Core3 AI attack-interval evidence is not ready."
     }
     $sourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $queuePath).Hash.ToLowerInvariant()
+    $headerHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $queueHeaderPath).Hash.ToLowerInvariant()
     if ($sourceHash -ne $contract.buildEvidence.sourceSha256."CommandQueue.cpp")
     {
         throw "CommandQueue source evidence mismatch."
     }
-    $patchPath = Join-Path $restorationRoot "patches/src/342-p14-core3-ai-attack-interval.patch"
-    $patch = Get-Item -LiteralPath $patchPath
-    $patchHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $patchPath).Hash.ToLowerInvariant()
-    if ($patch.Length -ne $contract.buildEvidence.overlayPatchBytes -or
-        $patchHash -ne $contract.buildEvidence.overlayPatchSha256)
+    if ($headerHash -ne $contract.buildEvidence.sourceSha256."CommandQueue.h")
     {
-        throw "Core3 AI interval patch evidence mismatch."
+        throw "CommandQueue header evidence mismatch."
+    }
+    foreach ($patchEvidence in @(
+        [pscustomobject]@{
+            Path = $contract.buildEvidence.overlayPatch
+            Bytes = $contract.buildEvidence.overlayPatchBytes
+            Sha256 = $contract.buildEvidence.overlayPatchSha256
+        },
+        [pscustomobject]@{
+            Path = $contract.buildEvidence.retargetGuardPatch.path
+            Bytes = $contract.buildEvidence.retargetGuardPatch.bytes
+            Sha256 = $contract.buildEvidence.retargetGuardPatch.sha256
+        }
+    ))
+    {
+        $patchPath = Join-Path (Split-Path -Parent $restorationRoot) $patchEvidence.Path
+        $patch = Get-Item -LiteralPath $patchPath
+        $patchHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $patchPath).Hash.ToLowerInvariant()
+        if ($patch.Length -ne $patchEvidence.Bytes -or $patchHash -ne $patchEvidence.Sha256)
+        {
+            throw "Core3 AI interval patch evidence mismatch: $($patchEvidence.Path)"
+        }
     }
 }
 

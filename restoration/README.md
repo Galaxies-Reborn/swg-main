@@ -2090,3 +2090,20 @@ healthy live process mapped to the rebuilt server. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CreatureCombatProfiles.ps1 -SourceRoot <materialized-staging-directory>
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 273 closes the attack-cadence retarget escape hatch exposed by
+expanded live telemetry. The ordinary Core3 two-second AI interval was present,
+but cancelling a queued command or changing targets reset the queue timer and
+could admit a second attack after only 0.746 seconds. The native queue now
+retains each owner's last completed cadence-attack timestamp and interval
+outside the queue entries, then reapplies that deadline before any subsequent
+primary or restored combat command. Queue clearing, peace, and retargeting no
+longer erase the authoritative delay; player attacks retain their computed
+weapon interval and AI attacks retain Core3's two-second interval. Validate:
+
+The same milestone makes the generated weapon-speed table byte-reproducible by
+emitting canonical LF endings, so clean materialization and the deployed source
+share one authenticated catalog hash on Windows and Linux.
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build

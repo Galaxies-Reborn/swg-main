@@ -1,0 +1,72 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+index 821fbe9..86b5818 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+@@ -201,6 +201,8 @@ CommandQueue::CommandQueue(ServerObject & owner) :
+ 	m_commandTimes        ( TimerClass_MAX ),
+ 	m_combatCount         ( 0 ),
+ 	m_eventStartTime      ( 0.0 ),
++	m_lastWeaponCadenceAttackTime( 0.0 ),
++	m_lastWeaponCadenceInterval( 0.0f ),
+ 	m_logCommandEnqueue   (false)
+ {
+ }
+@@ -436,6 +438,28 @@ void CommandQueue::executeCommandQueue()
+ 			break;
+ 		}
+ 
++		CreatureObject * const creatureOwner = getServerOwner().asCreatureObject();
++		bool const weaponCadenceAttack = creatureOwner != nullptr && entry.m_command != nullptr &&
++			(entry.m_command->isPrimaryCommand() || isWeaponCadenceAttack(*entry.m_command));
++		if (m_state.get() == State_Waiting && weaponCadenceAttack &&
++			m_lastWeaponCadenceAttackTime > 0.0 && m_lastWeaponCadenceInterval > 0.0f)
++		{
++			double const earliestAttackTime = m_lastWeaponCadenceAttackTime +
++				static_cast<double>(m_lastWeaponCadenceInterval);
++			if (earliestAttackTime > s_currentTime)
++			{
++				m_nextEventTime = earliestAttackTime;
++				LOG("PreCuCombatCadence", ("gate time=%.3f owner=%s command=%s target=%s remaining=%.3f lastInterval=%.3f",
++					s_currentTime,
++					creatureOwner->getNetworkId().getValueString().c_str(),
++					entry.m_command->m_commandName.c_str(),
++					entry.m_targetId.getValueString().c_str(),
++					earliestAttackTime - s_currentTime,
++					m_lastWeaponCadenceInterval));
++				break;
++			}
++		}
++
+ 		switchState();
+ 
+ 		switch ( m_state.get() )
+@@ -508,6 +532,8 @@ void CommandQueue::doExecute(const CommandQueueEntry &entry )
+ 		(entry.m_command->isPrimaryCommand() || isWeaponCadenceAttack(*entry.m_command)))
+ 	{
+ 		WeaponObject const * const weapon = creatureOwner->getCurrentWeapon();
++		m_lastWeaponCadenceAttackTime = s_currentTime;
++		m_lastWeaponCadenceInterval = m_commandTimes[TimerClass_Execute];
+ 		LOG("PreCuCombatCadence", ("execute time=%.3f owner=%s playerControlled=%d command=%s target=%s interval=%.3f weaponSpeed=%.3f queueSize=%u",
+ 			s_currentTime,
+ 			creatureOwner->getNetworkId().getValueString().c_str(),
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.h b/engine/server/library/serverGame/src/shared/command/CommandQueue.h
+index 03c861e..3765a96 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.h
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.h
+@@ -389,6 +389,16 @@ private:
+ 	 */
+ 	AUTO(double)          m_eventStartTime;
+ 
++	/**
++	 * @brief server-only time and interval of the last weapon-cadence attack.
++	 *
++	 * These values survive queue clearing and target changes for the lifetime of
++	 * the owner, preventing a cancelled post-attack timer from bypassing the
++	 * authoritative PRE-CU cadence gate.
++	 */
++	double                m_lastWeaponCadenceAttackTime;
++	float                 m_lastWeaponCadenceInterval;
++
+ 	/**
+ 	 * @brief a stack of command pointers that are used during
+ 	 * command execution.

@@ -93,7 +93,10 @@ if (-not (Test-Path -LiteralPath $outputParent -PathType Container))
 {
     New-Item -ItemType Directory -Path $outputParent | Out-Null
 }
-[IO.File]::WriteAllLines($output, $lines, [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText(
+    $output,
+    (($lines -join "`n") + "`n"),
+    [Text.UTF8Encoding]::new($false))
 
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $output).Hash.ToLowerInvariant()
 Write-Host "PRE-CU weapon speed table exported."
