@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-persisted-nge-skill-retirement",
+  "status": "ready",
+  "scope": "Retire persisted NGE class and expertise progression authority when an authoritative player creature loads, while retaining expansion quests, conversations, zones, and their independent state.",
+  "diagnosis": {
+    "date": "2026-08-01",
+    "liveCharacter": "Icai Darkwave",
+    "characterObject": 39008597,
+    "persistedRetiredSkills": [
+      "class_chronicles_novice",
+      "class_forcesensitive_phase1_novice",
+      "expertise"
+    ],
+    "cause": "The PRE-CU grant and expertise request guards prevented new NGE progression, but existing property-list skills survived database reload and continued to provide NGE authority."
+  },
+  "retainedContent": [
+    "NGE and expansion quests",
+    "NGE and expansion conversations",
+    "Mustafar, Kashyyyk, Tansarii, and other expansion zones",
+    "quest and object-variable state independent of the retired skill list"
+  ],
+  "sourceFiles": {
+    "creatureObject": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp",
+    "creatureObjectHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h"
+  },
+  "expected": {
+    "retiredPrefixes": [
+      "class_",
+      "expertise_",
+      "internal_expertise_"
+    ],
+    "retiredExactNames": [
+      "expertise"
+    ],
+    "authoritativePlayersOnly": true,
+    "databaseLoadCleanup": true,
+    "idempotent": true,
+    "rebuildsSkillDerivedStateFromCleanSet": true,
+    "newRetiredSkillGrantsRejected": true,
+    "newExpertiseRequestsRejected": true
+  },
+  "liveEvidence": {
+    "date": "2026-08-01",
+    "character": "Icai Darkwave",
+    "characterObject": 39008597,
+    "clientProcessId": 12892,
+    "clientInWorld": true,
+    "oracleAfterReload": {
+      "retiredClassOrExpertiseRows": 0,
+      "noviceScoutRows": 0
+    },
+    "remainingOfflineRows": [
+      {
+        "characterObject": 44003778,
+        "skill": "class_chronicles_novice",
+        "disposition": "retired automatically on that character's next authoritative database load"
+      }
+    ],
+    "result": "passed"
+  },
+  "buildEvidence": {
+    "overlayPatches": [
+      {
+        "component": "src",
+        "path": "restoration/patches/src/350-p14-persisted-nge-skill-retirement.patch",
+        "bytes": 2598,
+        "sha256": "498d84419567bbc56e7fc2c330fbcd257cb07ef2616363ff7e7646799acf7b50"
+      }
+    ],
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "sourceSha256": {
+      "CreatureObject.cpp": "9fb43237249c80e5a588fe1e0595829cbf17d1b80b3e1e37034b217246db9ca2",
+      "CreatureObject.h": "0a5ee64156cc7ccd7cc1a3d1b3c7b7ab0f7c4e964d90e84c4f43f3743ed919af"
+    },
+    "cppCompile": "passed",
+    "serverGameArchiveSha256": "0c41270f0b821efcd19e0fd08ed00811c7f8edfeba2397df4d2d57d3430a6f79",
+    "architecture": "x86-64",
+    "buildIdSha1": "2d5816401a6d9330702a039bbd91a4e80d047c57",
+    "serverBinarySha256": "2bccde8ae18dc4a66908ce978c53203c03e76d6f3f7bfd2e106a690249b580d3",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-01T18:41:43.989642891Z",
+    "containerHealthy": true,
+    "clusterReady": true,
+    "sourceAndBuildVolumeMatch": true,
+    "liveProcessMatchesBinary": true,
+    "result": "passed"
+  },
+  "requiredBeforeReady": [
+    "clean overlay materialization passes",
+    "contract test passes against the clean materialization",
+    "x64 server build passes",
+    "deployed server is healthy and player-ready",
+    "Icai reload removes class_chronicles_novice, class_forcesensitive_phase1_novice, and expertise from persisted property list"
+  ]
+}

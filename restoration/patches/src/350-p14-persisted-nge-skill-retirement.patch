@@ -1,0 +1,60 @@
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.h b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+index e120917..a5d0b14 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.h
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.h
+@@ -827,6 +827,7 @@ private:
+ 	void getExpertisesForPlayer(SkillList & expertiseList) const;
+ 	int getExpertiseRankForPlayer(std::string const & expertiseName);
+ 	int getRemainingExpertisePoints() const;
++	void clearRetiredNgeProgressionSkills();
+ 
+ 	mutable CommandQueue * m_commandQueue;
+ 	Archive::AutoDeltaVariable<bool>                 m_isStatic;
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+index 00f10e8..c9ee64c 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+@@ -7656,13 +7656,43 @@ void CreatureObject::onClientReady(Client *c)
+ void CreatureObject::onClientAboutToLoad()
+ {
+ 	if (isAuthoritative())
++	{
++		clearRetiredNgeProgressionSkills();
+ 		setInvulnerabilityTimer(ConfigServerGame::getCreatureLoadInvulnerableTimeWithoutClient());
++	}
+ 
+ 	TangibleObject::onClientAboutToLoad();
+ }
+ 
+ // ----------------------------------------------------------------------
+ 
++void CreatureObject::clearRetiredNgeProgressionSkills()
++{
++	if (!isAuthoritative() || !isPlayerControlled())
++		return;
++
++	std::vector<SkillObject const *> skillsToRetire;
++	for (SkillList::const_iterator iter = m_skills.begin(); iter != m_skills.end(); ++iter)
++	{
++		SkillObject const * const skill = *iter;
++		if (skill && CreatureObjectNamespace::isRetiredNgeProgressionSkillName(skill->getSkillName()))
++			skillsToRetire.push_back(skill);
++	}
++
++	for (std::vector<SkillObject const *>::const_iterator iter = skillsToRetire.begin(); iter != skillsToRetire.end(); ++iter)
++		m_skills.erase(*iter);
++
++	if (!skillsToRetire.empty())
++	{
++		// onLoadedFromDatabase calls this before setupSkillData(), which then
++		// rebuilds commands, modifiers, schematics, and level from this clean set.
++		LOG("PreCuRestore", ("Retired %u persisted NGE progression skill(s) while loading player %s",
++			static_cast<unsigned int>(skillsToRetire.size()), getNetworkId().getValueString().c_str()));
++	}
++}
++
++// ----------------------------------------------------------------------
++
+ void CreatureObject::onLoadingScreenComplete()
+ {
+ 	TangibleObject::onLoadingScreenComplete();

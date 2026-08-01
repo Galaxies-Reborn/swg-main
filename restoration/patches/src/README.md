@@ -121,3 +121,10 @@ also records attack classification, weapon-family and private speed modifiers,
 combat haste, and any unclassified player combat-queue command so live cadence
 can be proven against the pinned Core3 formula rather than inferred from client
 animation.
+
+`350-p14-persisted-nge-skill-retirement.patch` removes retained NGE
+`class_*`, `expertise`, `expertise_*`, and `internal_expertise_*` skills from
+authoritative player persistence during database load. The removal happens
+before `setupSkillData()` reconstructs commands, modifiers, schematics, and
+level, so relogging cannot reactivate NGE progression authority. Quest,
+conversation, zone, and independent quest/object-variable state remain intact.

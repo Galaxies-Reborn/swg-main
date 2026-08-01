@@ -2186,3 +2186,12 @@ participate for profiled creatures. Vehicles and non-creature destructible
 objects retain their existing object-specific mitigation. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CreatureCombatProfiles.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 279 retires NGE progression skills that predate the PRE-CU grant
+guards. Every authoritative player database load removes persisted `class_*`,
+`expertise`, `expertise_*`, and `internal_expertise_*` entries before the
+server reconstructs skill-derived commands, modifiers, schematics, and level.
+The pass is idempotent and deliberately does not delete expansion quests,
+conversations, zones, or their independent state. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PersistedNgeSkillRetirement.ps1 -SourceRoot <materialized-staging-directory>

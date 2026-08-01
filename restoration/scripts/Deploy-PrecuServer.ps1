@@ -70,6 +70,8 @@ source_client="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/c
 work_client="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 source_creature="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
 work_creature="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
+source_creature_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.h"
+work_creature_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.h"
 source_group="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp"
 work_group="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp"
 source_player="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
@@ -109,6 +111,7 @@ cmp -s "$source_queue_header" "$work_queue_header"
 cmp -s "$source_commands" "$work_commands"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
+cmp -s "$source_creature_header" "$work_creature_header"
 cmp -s "$source_group" "$work_group"
 cmp -s "$source_player" "$work_player"
 cmp -s "$source_weapon" "$work_weapon"
@@ -160,6 +163,9 @@ grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
 grep -Fq 'Rejected retired NGE expertise request' "$work_creature"
+grep -Fq 'clearRetiredNgeProgressionSkills' "$work_creature"
+grep -Fq 'm_skills.erase(*iter)' "$work_creature"
+grep -Fq 'clearRetiredNgeProgressionSkills' "$work_creature_header"
 grep -Fq 'Ignored retired NGE createGroupPickup command' "$work_commands"
 grep -Fq 'Ignored retired NGE useGroupPickup command' "$work_commands"
 grep -Fq 'return 0;' "$work_group"
@@ -178,6 +184,7 @@ test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/mob/precu_
 nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'
 nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::processExpertiseRequest'
+nm -C "$server_game_archive" | grep -Fq 'CreatureObject::clearRetiredNgeProgressionSkills()'
 nm -C "$server_game_archive" | grep -Fq 'GroupObject::getSecondsLeftOnGroupPickup() const'
 file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
 '@
