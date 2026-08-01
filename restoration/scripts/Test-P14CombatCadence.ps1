@@ -37,11 +37,14 @@ $queuePath = Join-Path $source `
     "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 $combatBasePath = Join-Path $source `
     "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+$localOptionsPath = Join-Path $source "exe/linux/localOptions.cfg"
 Assert-Contract (Test-Path -LiteralPath $queuePath -PathType Leaf) "p14.cadence.command-queue-source"
 Assert-Contract (Test-Path -LiteralPath $combatBasePath -PathType Leaf) "p14.cadence.combat-base-source"
+Assert-Contract (Test-Path -LiteralPath $localOptionsPath -PathType Leaf) "p14.cadence.log-target-source"
 
 $queue = Get-Content -LiteralPath $queuePath -Raw
 $combatBase = Get-Content -LiteralPath $combatBasePath -Raw
+$localOptions = Get-Content -LiteralPath $localOptionsPath -Raw
 $timing = Get-FunctionSlice -Text $queue -Start "float calculatePrecuAttackTime(" -Next "float getCommandExecuteTime("
 $execute = Get-FunctionSlice -Text $queue -Start "float getCommandExecuteTime(" -Next "using namespace CommandQueueNamespace;"
 $isFull = Get-FunctionSlice -Text $queue -Start "bool CommandQueue::isFull() const" -Next "void CommandQueue::enqueue("
@@ -67,6 +70,9 @@ Assert-Contract ($queue.Contains('LOG("PreCuCombatCadence"') -and
     $queue.Contains("m_commandTimes[TimerClass_Execute]") -and
     $queue.Contains("weapon->getAttackTime()")) `
     "p14.cadence.live-execute-telemetry"
+Assert-Contract ($localOptions.Contains(
+    "logTarget=file:logs/precuCombatCadence.log{c-*:c+PreCuCombatCadence}")) `
+    "p14.cadence.filtered-runtime-log-target"
 Assert-Contract ($execute.Contains("command.isPrimaryCommand()") -and
     $execute.Contains("weapon->getAttackTime()") -and
     $execute.Contains("getPrecuWeaponSpeedSkill(*weapon)")) `

@@ -13,3 +13,8 @@ The overlay also enables all six `space_ord_mantell` shards already present in
 the x64 source corpus. The NPE station transport library probes those scene
 IDs at runtime and load-balances station Gamma traffic only across shards that
 CentralServer actually started.
+
+`002-p14-combat-cadence-log-target.patch` routes only the native
+`PreCuCombatCadence` category to `logs/precuCombatCadence.log`. This makes live
+player and creature attack timestamps inspectable without enabling the broad
+legacy log streams or changing combat behavior.

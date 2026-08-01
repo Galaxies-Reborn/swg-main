@@ -2068,7 +2068,9 @@ by Novice Scout, and the existing direct, radial, extraction, and droid gates
 remain mandatory. The native queue logs actual player and creature attack
 execution timestamps together with its enforced Core3/PRE-CU interval and
 effective weapon speed, allowing server cadence to be separated from client
-animation presentation without guesswork. Validate:
+animation presentation without guesswork. The dedicated runtime routes only
+that telemetry category to `logs/precuCombatCadence.log`; unrelated log streams
+remain unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
