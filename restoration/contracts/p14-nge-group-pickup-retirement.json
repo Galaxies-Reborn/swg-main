@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-nge-group-pickup-retirement",
+  "status": "ready",
+  "scope": "Retire the post-Publish-14 group-pickup command, teleport, persisted state, reconnect message, and reusable waypoint surfaces without changing ticket, starport, expansion-world, or instance travel.",
+  "semanticReference": {
+    "core3Repository": "https://github.com/swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Boundary": "The pinned Publish 14.1 Core3 tree has no createGroupPickup/useGroupPickup command, group-pickup timer, or no-ticket group teleport implementation.",
+    "expansionBoundary": "Mustafar and Kashyyyk retain ordinary ticket/starport travel; Tansarii and other later scenes retain their authored instance/transport semantics."
+  },
+  "expected": {
+    "groupPickupCommandsDisabled": true,
+    "nativeHooksFailClosed": true,
+    "persistedTimerAlwaysInactive": true,
+    "persistedLocationAlwaysEmpty": true,
+    "reconnectWaypointCreation": false,
+    "staleWaypointRemovedOnLoad": true,
+    "scriptTeleportBypass": false,
+    "ordinaryTicketTravelAffected": false,
+    "expansionWorldTravelAffected": false
+  },
+  "buildEvidence": {
+    "overlayPatches": {
+      "src": { "path": "patches/src/343-p14-nge-group-pickup-retirement.patch", "bytes": 29534, "sha256": "c8d1552654b62bbae3143731ae83af8fca059058ec3a0f843951d4c89c1c0269" },
+      "dsrc": { "path": "patches/dsrc/341-p14-nge-group-pickup-retirement.patch", "bytes": 7540, "sha256": "372075c1f6a3e4628d9141296e5af2e2c447fba03789b1d4a38ccc4110626b45" }
+    },
+    "sourceSha256": {
+      "CommandCppFuncs.cpp": "73af61483d22c7c0f3412c480d86f6fcde2b1e7af4f4bd142d0b99a33a05df02",
+      "CreatureObject.cpp": "848c121a22ed0407e8a1cd8d16a170c67ad5fb6d39f896bb18f1f08d115b595a",
+      "GroupObject.cpp": "a5949ea41b6c0589c51c4a1b02490a88962f7283304a24cb5ccd1b10a117bc33",
+      "PlayerObject.cpp": "98d1955de33919a05094c1d8358526dfa0f2158a52b96d08855e22c574a91514",
+      "travel.java": "d77d7b6c7f17059aac5351b3ea63a2661e4fdf3a0e1aeb22dc1073fc7d32facc",
+      "player_travel.java": "c027f1c7bbc653f29225488de3caccc799a289ab1f1de851e030926db6376549",
+      "command_table.tab": "4e1f236ef3e77419ff665c2d4519daa22cf7ec36e2a9f0e8d04c1a7bec595efe"
+    },
+    "cppCompile": "passed",
+    "javaCompile": "passed",
+    "architecture": "x86-64",
+    "buildIdSha1": "321d1e97daef00c3e5e3ceb9344a81cefa3b259b",
+    "serverBinarySha256": "fccf6c1a26471cc3233d52bb6f7bff15aca2b3d063e654021e98fad2efe2dab9",
+    "serverGameArchiveSha256": "a2d48764815a9a8b90397c815f35381f2beb42b1d8e9c38d9413a76bfd4bcaa9",
+    "compiledTravelClassSha256": "602a1e0a833f583da0e5e9659bc01fec654a14d6b93492b562ff30106c29f393",
+    "compiledPlayerTravelClassSha256": "4885500a20c51861c94b2a999a3cfbd52d9541f1c69024bf9b213085d4253ba1",
+    "compiledCommandTableSha256": "1b69a6bfc3bf52f16335887558d317b86b56f05649b3da0933303456a267586c"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-01T08:55:19.017123493Z",
+    "serverProcessId": 362,
+    "clientProcessId": 4156,
+    "sourceAndBuildVolumeMatch": true,
+    "liveBinaryMatchesBuild": true,
+    "javaBytecodeGate": "passed",
+    "expansionWorldTravelRegression": "passed",
+    "clusterReady": true,
+    "serverHealthy": true,
+    "fatalSevereExceptionCount": 0
+  },
+  "requiredBeforeReady": []
+}

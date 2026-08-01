@@ -1,0 +1,640 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+index fce4d69..c0051eb 100644
+--- a/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp
+@@ -81,12 +81,10 @@
+ #include "sharedGame/Command.h"
+ #include "sharedGame/CommandTable.h"
+ #include "sharedGame/CustomizationManager.h"
+-#include "sharedGame/GroupPickupPoint.h"
+ #include "sharedGame/GuildRankDataTable.h"
+ #include "sharedGame/PlayerFormationManager.h"
+ #include "sharedGame/GameLanguageManager.h"
+ #include "sharedGame/GameObjectTypes.h"
+-#include "sharedGame/TravelPoint.h"
+ #include "sharedUtility/Location.h"
+ #include "sharedGame/MatchMakingCharacterPreferenceId.h"
+ #include "sharedGame/MatchMakingCharacterProfileId.h"
+@@ -475,8 +473,6 @@ namespace CommandCppFuncsNamespace
+ 			NetworkId const & POBShipId,
+ 			GroupObject::GroupMemberParamVector & membersInsidePOB,
+ 			GroupObject::GroupMemberParamVector & membersOutsidePOB);
+-
+-		TravelPoint const * getNearestTravelPoint(std::string const & planetName, Vector const & location, std::vector<int> const & cityBanList, uint32 faction, bool starPortAndShuttleportOnly);
+ 	}
+ 
+ 	void triggerSpaceEjectPlayerFromShip(CreatureObject * creatureObject);
+@@ -585,50 +581,6 @@ void CommandCppFuncsNamespace::triggerSpaceEjectPlayerFromShip(CreatureObject *
+ 	}
+ }
+ 
+-// ----------------------------------------------------------------------
+-
+-TravelPoint const * CommandCppFuncsNamespace::GroupHelpers::getNearestTravelPoint(std::string const & planetName, Vector const & location, std::vector<int> const & cityBanList, uint32 faction, bool starPortAndShuttleportOnly)
+-{
+-	TravelPoint const * nearestTravelPoint = nullptr;
+-	PlanetObject const * const planetObject = ServerUniverse::getInstance().getPlanetByName(planetName);
+-	if (planetObject)
+-	{
+-		int const numberOfTravelPoints = planetObject->getNumberOfTravelPoints();
+-		for (int i = 0; i < numberOfTravelPoints; ++i)
+-		{
+-			TravelPoint const * tp = planetObject->getTravelPoint(i);
+-			if (!tp)
+-				continue;
+-
+-			if (starPortAndShuttleportOnly && ((tp->getType() & TravelPoint::TPT_PC_CampShuttleBeacon) || (tp->getType() & TravelPoint::TPT_NPC_StaticBaseBeacon)))
+-				continue;
+-
+-			// need to check factional alignment in order to use the gcw static base travel point
+-			std::string const & tpName = tp->getName();
+-			if (tpName.find("gcwstaticbase") != std::string::npos)
+-			{
+-				if ((tpName.find("rebel") != std::string::npos) && !PvpData::isRebelFactionId(faction))
+-					continue;
+-				else if ((tpName.find("imperial") != std::string::npos) && !PvpData::isImperialFactionId(faction))
+-					continue;
+-			}
+-
+-			// if the travel point is inside a player city, make sure player is not banned in that city
+-			if (!cityBanList.empty())
+-			{
+-				int const cityAtTp = CityInterface::getCityAtLocation(planetName, static_cast<int>(tp->getPosition_w().x), static_cast<int>(tp->getPosition_w().z), 0);
+-				if ((cityAtTp > 0) && (std::find(cityBanList.begin(), cityBanList.end(), cityAtTp) != cityBanList.end()))
+-					continue;
+-			}
+-
+-			if (!nearestTravelPoint || (location.magnitudeBetweenSquared(tp->getPosition_w()) < location.magnitudeBetweenSquared(nearestTravelPoint->getPosition_w())))
+-				nearestTravelPoint = tp;
+-		}
+-	}
+-
+-	return nearestTravelPoint;
+-}
+-
+ // ======================================================================
+ 
+ using namespace CommandCppFuncsNamespace;
+@@ -4475,361 +4427,20 @@ static void commandFuncGroupMakeMasterLooter(Command const &, NetworkId const &a
+ 
+ static void commandFuncCreateGroupPickup(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &)
+ {
+-	CreatureObject * const actorObj = dynamic_cast<CreatureObject*>(ServerWorld::findObjectByNetworkId(actor));
+-	if (!actorObj)
+-		return;
+-
+-	PlayerObject * const playerObj = PlayerCreatureController::getPlayerObject(actorObj);
+-	if (!playerObj)
+-		return;
+-
+-	Client * const clientObj = actorObj->getClient();
+-	if (!clientObj)
+-		return;
+-
+-	GroupObject * const groupObj = actorObj->getGroup();
+-	if (!groupObj || ((groupObj->getGroupLeaderId() != actor) && (playerObj->getSkillTemplate().find("officer_") != 0)))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "create_group_pickup_not_group_leader"));
+-		return;
+-	}
+-
+-	Vector const currentWorldLocation = actorObj->findPosition_w();
+-	std::string const currentScene = ServerWorld::getSceneId();
+-	if (!GroupPickupPoint::isGroupPickupAllowedAtLocation(currentScene, static_cast<int>(currentWorldLocation.x), static_cast<int>(currentWorldLocation.z)))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "create_group_pickup_unsupported_location"));
+-		return;
+-	}
+-
+-	if (groupObj->getSecondsLeftOnGroupPickup())
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "create_group_pickup_existing"));
+-		return;
+-	}
+-
+-	// see if there are any connected player group members within 20m to assist/approve creating the group pickup point
+-	std::map<NetworkId, LfgCharacterData> const & connectedCharacterLfgData = ServerUniverse::getConnectedCharacterLfgData();
+-	GroupObject::GroupMemberVector const & groupMembers = groupObj->getGroupMembers();
+-	bool anyConnectedGroupMemberInRange = false;
+-
+-	GroupObject::GroupMemberVector::const_iterator iterGroupMember;
+-	for (iterGroupMember = groupMembers.begin(); iterGroupMember != groupMembers.end(); ++iterGroupMember)
+-	{
+-		if ((iterGroupMember->first != actor) && groupObj->isMemberPC(iterGroupMember->first) && (connectedCharacterLfgData.count(iterGroupMember->first) > 0))
+-		{
+-			CreatureObject const * memberObj = dynamic_cast<CreatureObject*>(ServerWorld::findObjectByNetworkId(iterGroupMember->first));
+-			if (memberObj)
+-			{
+-				Vector const memberWorldLocation = memberObj->findPosition_w();
+-				if (static_cast<int>(currentWorldLocation.magnitudeBetweenSquared(memberWorldLocation)) <= ConfigServerGame::getGroupPickupPointApprovalRangeSquared())
+-				{
+-					anyConnectedGroupMemberInRange = true;
+-					break;
+-				}
+-			}
+-		}
+-	}
+-
+-	// if there are no connected group members within 20m, bail
+-	if (!anyConnectedGroupMemberInRange)
+-	{
+-		ProsePackage prosePackage;
+-		prosePackage.stringId = StringId("group", "create_group_pickup_no_assistant");
+-		prosePackage.digitInteger = static_cast<int>(sqrt(static_cast<float>(ConfigServerGame::getGroupPickupPointApprovalRangeSquared())));
+-
+-		Chat::sendSystemMessage(*actorObj, prosePackage);
+-		return;
+-	}
+-
+-	// tell other group members that the group leader has created the group pickup point;
+-	// we need to contact all other group members, even if they are not currently connected,
+-	// so that we can create the group pickup point waypoint for them when they reconnect
+-	std::string const actorName = Unicode::wideToNarrow(actorObj->getAssignedObjectName());
+-	for (iterGroupMember = groupMembers.begin(); iterGroupMember != groupMembers.end(); ++iterGroupMember)
+-	{
+-		if ((iterGroupMember->first != actor) && groupObj->isMemberPC(iterGroupMember->first))
+-		{
+-			char buffer[1024];
+-			snprintf(buffer, sizeof(buffer) - 1, "%s|%d|%d|%d|%s", currentScene.c_str(), static_cast<int>(currentWorldLocation.x), static_cast<int>(currentWorldLocation.y), static_cast<int>(currentWorldLocation.z), actorName.c_str());
+-			buffer[sizeof(buffer) - 1] = '\0';
+-
+-			MessageToQueue::getInstance().sendMessageToC(iterGroupMember->first,
+-				"C++GroupPickupPointCreated",
+-				buffer,
+-				0,
+-				false);
+-		}
+-	}
+-
+-	// create the group pickup point
+-	time_t const timeNow = ::time(nullptr);
+-	groupObj->setGroupPickupTimer(timeNow, timeNow + static_cast<time_t>(ConfigServerGame::getGroupPickupPointTimeLimitSeconds()));
+-	groupObj->setGroupPickupLocation(currentScene, currentWorldLocation);
+-
+-	// tell group leader that the group pickup point has been created
+-	StringId::LocUnicodeString response;
+-	if (StringId("group", "create_group_pickup_success_leader").localize(response))
+-	{
+-		ConsoleMgr::broadcastString(FormattedString<2048>().sprintf(Unicode::wideToNarrow(response).c_str(), CalendarTime::convertSecondsToMS(static_cast<unsigned int>(ConfigServerGame::getGroupPickupPointTimeLimitSeconds())).c_str()),
+-			clientObj);
+-	}
+-
+-	// create/update the group leader's group pickup point waypoint
+-	Location const location(currentWorldLocation, NetworkId::cms_invalid, Location::getCrcBySceneName(currentScene));
+-	playerObj->createOrUpdateReusableWaypoint(location, "groupPickupWp", Unicode::narrowToWide("Group Pickup Point"), Waypoint::White);
++	// Group pickup was introduced after Publish 14.1. Keep the registered hook
++	// for packet/table compatibility, but never admit the later-era shortcut.
++	LOG("PreCuRestore", ("Ignored retired NGE createGroupPickup command from %s",
++		actor.getValueString().c_str()));
+ }
+ 
+ // ----------------------------------------------------------------------
+ 
+-static void commandFuncUseGroupPickup(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &params)
++static void commandFuncUseGroupPickup(Command const &, NetworkId const &actor, NetworkId const &, Unicode::String const &)
+ {
+-	CreatureObject * const actorObj = dynamic_cast<CreatureObject*>(ServerWorld::findObjectByNetworkId(actor));
+-	if (!actorObj)
+-		return;
+-
+-	PlayerObject const * const playerObj = PlayerCreatureController::getPlayerObject(actorObj);
+-	if (!playerObj)
+-		return;
+-
+-	Client const * const clientObj = actorObj->getClient();
+-	if (!clientObj)
+-		return;
+-
+-	GameScriptObject * const gameScriptObject = actorObj->getScriptObject();
+-	if (!gameScriptObject)
+-		return;
+-
+-	bool starPortAndShuttleportOnly = false;
+-	static Unicode::String const noCampParam = Unicode::narrowToWide("nocamp");
+-	if (Unicode::caseInsensitiveCompare(params, noCampParam))
+-		starPortAndShuttleportOnly = true;
+-
+-	GroupObject * const groupObj = actorObj->getGroup();
+-	if (!groupObj || (groupObj->getSecondsLeftOnGroupPickup() == 0))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_none_active"));
+-		return;
+-	}
+-
+-	Vector const currentWorldLocation = actorObj->findPosition_w();
+-	std::string const currentScene = ServerWorld::getSceneId();
+-	if (!GroupPickupPoint::isGroupPickupAllowedAtLocation(currentScene, static_cast<int>(currentWorldLocation.x), static_cast<int>(currentWorldLocation.z)))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_unsupported_location"));
+-		return;
+-	}
+-
+-	if (actorObj->getState(States::Combat))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_in_combat"));
+-		return;
+-	}
+-
+-	if (actorObj->isIncapacitated() || actorObj->isDead())
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_dead_or_incap"));
+-		return;
+-	}
+-
+-	if (actorObj->getMountedCreature())
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_on_mount"));
+-		return;
+-	}
+-
+-	// trigger script to make sure script is ok with the player traveling to the group pickup point
+-	ScriptParams sp1;
+-	if (gameScriptObject->trigAllScripts(Scripting::TRIG_ABOUT_TO_TRAVEL_TO_GROUP_PICKUP_POINT, sp1) != SCRIPT_CONTINUE)
+-		return;
+-
+-	// if group pickup point is in mustafar or any of the kashyyyk zones,
+-	// check to make sure player has the required feature bits to go there
+-	std::pair<std::string, Vector> const & groupPickupLocation = groupObj->getGroupPickupLocation();
+-	uint32 const gameFeatureBits = clientObj->getGameFeatures();
+-
+-	if (groupPickupLocation.first.find("kashyyyk") == 0)
+-	{
+-		if (!((gameFeatureBits & ClientGameFeature::Episode3PreorderDownload) || (gameFeatureBits & ClientGameFeature::Episode3ExpansionRetail)))
+-		{
+-			sendProseMessage(*actorObj, 0, StringId("travel", "kashyyyk_unauthorized"));
+-			return;
+-		}
+-	}
+-	else if (groupPickupLocation.first == "mustafar")
+-	{
+-		if (!((gameFeatureBits & ClientGameFeature::TrialsOfObiwanPreorder) || (gameFeatureBits & ClientGameFeature::TrialsOfObiwanRetail)))
+-		{
+-			sendProseMessage(*actorObj, 0, StringId("travel", "mustafar_unauthorized"));
+-			return;
+-		}
+-	}
+-
+-	// determine cost, and make sure player has enough credits
+-	int totalCost;
+-	if (!GroupPickupPoint::getGroupPickupTravelCost(currentScene, groupPickupLocation.first, totalCost) || (totalCost <= 0))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_internal_error_cannot_determine_cost"));
+-		return;
+-	}
+-
+-	int const bankBalance = actorObj->getBankBalance();
+-	int const cashBalance = actorObj->getCashBalance();
+-
+-	if ((bankBalance + cashBalance) < totalCost)
+-	{
+-		ProsePackage prosePackage;
+-		prosePackage.stringId = StringId("group", "use_group_pickup_not_enough_credits");
+-		prosePackage.digitInteger = totalCost;
+-
+-		Chat::sendSystemMessage(*actorObj, prosePackage);
+-		return;
+-	}
+-
+-	// find the travel point (starport, shuttleport, camp with shuttle beacon)
+-	// nearest to the group pickup point
+-
+-	// get the list of cities the player is currently banned from
+-	std::vector<int> cityBanList;
+-	DynamicVariableList const & objvars = actorObj->getObjVars();
+-	if (objvars.hasItem("city.banlist") && (objvars.getType("city.banlist") == DynamicVariable::INT_ARRAY))
+-		IGNORE_RETURN(objvars.getItem("city.banlist", cityBanList));
+-
+-	std::string sceneIdOfNearestTravelPoint = groupPickupLocation.first;
+-	TravelPoint const * nearestTravelPoint = GroupHelpers::getNearestTravelPoint(groupPickupLocation.first, groupPickupLocation.second, cityBanList, actorObj->getPvpFaction(), starPortAndShuttleportOnly);
+-
+-	// if no nearest travel point found, and the pickup point is inside one
+-	// of the kashyyyk zones that do not have a starport, use kashyyyk_main
+-	// as the pickup point planet and find the nearest travel point there,
+-	// and that should return at least the kachirho starport
+-	// *****OR*****
+-	// if nearest travel point is found inside any kashyyyk zone other than kashyyyk_main
+-	// and the player is not already in that respective zone, don't allow them to travel
+-	// there as entrance to those zones requires going through kashyyyk_main first, so
+-	// find the nearest travel point in kashyyyk_main and use that as the travel point
+-	bool findNearestTravelPointOnKashyyykMain = false;
+-	if (!nearestTravelPoint && (groupPickupLocation.first.find("kashyyyk") == 0) && (groupPickupLocation.first != "kashyyyk_main"))
+-	{
+-		// if already on the kashyyyk zone where the group pickup point is, player is
+-		// already closest to the group pickup point than any travel point on kashyyyk_main
+-		if (currentScene == groupPickupLocation.first)
+-		{
+-			sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_closest_to_group_pickup_point"));
+-			return;
+-		}
+-
+-		findNearestTravelPointOnKashyyykMain = true;
+-	}
+-	else if (nearestTravelPoint && (groupPickupLocation.first.find("kashyyyk") == 0) && (groupPickupLocation.first != "kashyyyk_main") && (currentScene != groupPickupLocation.first))
+-	{
+-		findNearestTravelPointOnKashyyykMain = true;
+-	}
+-
+-	if (findNearestTravelPointOnKashyyykMain)
+-	{
+-		sceneIdOfNearestTravelPoint = "kashyyyk_main";
+-
+-		if (groupPickupLocation.first == "kashyyyk_hunting")
+-		{
+-			// we want to find the travel point on kashyyyk_main nearest to the entrance to kashyyyk_hunting which is at (190.0f, 20.0f, -430.0f)
+-			nearestTravelPoint = GroupHelpers::getNearestTravelPoint(sceneIdOfNearestTravelPoint, Vector(190.0f, 20.0f, -430.0f), cityBanList, actorObj->getPvpFaction(), starPortAndShuttleportOnly);
+-		}
+-		else if (groupPickupLocation.first == "kashyyyk_dead_forest")
+-		{
+-			// we want to find the travel point on kashyyyk_main nearest to the entrance to kashyyyk_dead_forest which is at (-745.0f, 18.0f, 256.0f)
+-			nearestTravelPoint = GroupHelpers::getNearestTravelPoint(sceneIdOfNearestTravelPoint, Vector(-745.0f, 18.0f, 256.0f), cityBanList, actorObj->getPvpFaction(), starPortAndShuttleportOnly);
+-		}
+-		else
+-		{
+-			// (-672.0f, 19.0f, -157.0f) is the kachirho starport
+-			nearestTravelPoint = GroupHelpers::getNearestTravelPoint(sceneIdOfNearestTravelPoint, Vector(-672.0f, 19.0f, -157.0f), cityBanList, actorObj->getPvpFaction(), starPortAndShuttleportOnly);
+-		}
+-	}
+-
+-	if (!nearestTravelPoint)
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_internal_error_cannot_find_travelpoint"));
+-		return;
+-	}
+-
+-	// if nearest travel point and current planet is the same, and the nearest travel point to the
+-	// group pickup point is farther away than the current location to the group pickup point, then
+-	// fail, as there is no need to travel as the player is currently closer to the group pickup point
+-	if ((sceneIdOfNearestTravelPoint == currentScene) && (sceneIdOfNearestTravelPoint == groupPickupLocation.first) && (groupPickupLocation.second.magnitudeBetweenSquared(nearestTravelPoint->getPosition_w()) > groupPickupLocation.second.magnitudeBetweenSquared(currentWorldLocation)))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_closest_to_group_pickup_point"));
+-		return;
+-	}
+-
+-	// if the nearest travel point is a shuttleport in a player city, the city gets a share of the travel cost
+-	int cityShareOfCost = 0;
+-	int systemShareOfCost = totalCost;
+-	int const cityIdAtNearestTravelPoint = CityInterface::getCityAtLocation(sceneIdOfNearestTravelPoint, static_cast<int>(nearestTravelPoint->getPosition_w().x), static_cast<int>(nearestTravelPoint->getPosition_w().z), 0);
+-	NetworkId cityHallAtNearestTravelPoint;
+-	std::string cityNameAtNearestTravelPoint;
+-	if (cityIdAtNearestTravelPoint > 0)
+-	{
+-		CityInfo const & ci = CityInterface::getCityInfo(cityIdAtNearestTravelPoint);
+-		cityHallAtNearestTravelPoint = ci.getCityHallId();
+-		if (cityHallAtNearestTravelPoint.isValid())
+-		{
+-			cityNameAtNearestTravelPoint = ci.getCityName();
+-			cityShareOfCost = (totalCost * ConfigServerGame::getGroupPickupTravelPlayerCityPercent()) / 100;
+-			systemShareOfCost = totalCost - cityShareOfCost;
+-		}
+-	}
+-
+-	// if player doesn't have enough money in bank, transfer from cash into back to make up the difference
+-	if (bankBalance < totalCost)
+-	{
+-		if (!actorObj->depositCashToBank(totalCost - bankBalance))
+-		{
+-			sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_internal_error_cannot_move_cash_to_bank"));
+-			return;
+-		}
+-	}
+-
+-	// transfer the total travel cost from the player
+-	if (!actorObj->transferBankCreditsTo("GroupPickupPointTravel", totalCost))
+-	{
+-		sendProseMessage(*actorObj, 0, StringId("group", "use_group_pickup_internal_error_cannot_transfer_payment_from_bank"));
+-		return;
+-	}
+-
+-	// tell player his credits have been deducted
+-	ProsePackage prosePackage;
+-	prosePackage.stringId = StringId("group", "use_group_pickup_credits_deducted");
+-	prosePackage.digitInteger = totalCost;
+-
+-	Chat::sendSystemMessage(*actorObj, prosePackage);
+-
+-	// if the city gets a share of the travel cost, send message to the city hall to transfer the city's share
+-	if (cityHallAtNearestTravelPoint.isValid() && (cityShareOfCost > 0))
+-	{
+-		char buffer[64];
+-		snprintf(buffer, sizeof(buffer) - 1, "%d", cityShareOfCost);
+-		buffer[sizeof(buffer) - 1] = '\0';
+-
+-		MessageToQueue::getInstance().sendMessageToC(cityHallAtNearestTravelPoint,
+-			"C++CityShareGroupPickupPointTravelCost",
+-			buffer,
+-			0,
+-			false);
+-	}
+-
+-	// log the transaction
+-	if (cityHallAtNearestTravelPoint.isValid())
+-		LOG("CustomerService", ("GroupPickupPointTravel:%s in group %s traveled from %s to %s for a cost of %d (%d to system, %d to %s)", playerObj->getAccountDescription().c_str(), groupObj->getNetworkId().getValueString().c_str(), currentScene.c_str(), groupPickupLocation.first.c_str(), totalCost, systemShareOfCost, cityShareOfCost, cityNameAtNearestTravelPoint.c_str()));
+-	else
+-		LOG("CustomerService", ("GroupPickupPointTravel:%s in group %s traveled from %s to %s for a cost of %d", playerObj->getAccountDescription().c_str(), groupObj->getNetworkId().getValueString().c_str(), currentScene.c_str(), groupPickupLocation.first.c_str(), totalCost));
+-
+-	// trigger script to teleport player to the destination travel location;
+-	// script has various "cleanup/setup" it needs to be when the player travels
+-	ScriptParams sp2;
+-	sp2.addParam(sceneIdOfNearestTravelPoint.c_str());
+-	sp2.addParam(nearestTravelPoint->getName().c_str());
+-
+-	IGNORE_RETURN(gameScriptObject->trigAllScripts(Scripting::TRIG_TRAVEL_TO_GROUP_PICKUP_POINT, sp2));
++	// Travel remains ticket/starport based. This retained hook must not provide
++	// a no-ticket teleport path into ordinary or expansion worlds.
++	LOG("PreCuRestore", ("Ignored retired NGE useGroupPickup command from %s",
++		actor.getValueString().c_str()));
+ }
+ 
+ // ----------------------------------------------------------------------
+diff --git a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+index cb7e54e..00f10e8 100644
+--- a/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp
+@@ -5642,36 +5642,6 @@ void CreatureObject::setGroup(GroupObject *group, bool disbandingCurrentGroup)
+ 				ServerUniverse::setConnectedCharacterGroupData(getNetworkId(), m_group.get());
+ 		}
+ 
+-		// if joining a group, and the group currently
+-		// has an active group pickup point, handle it
+-		if (group && (oldGroupId != group->getNetworkId()))
+-		{
+-			unsigned int const secondsLeftOnGroupPickup = group->getSecondsLeftOnGroupPickup();
+-			if (secondsLeftOnGroupPickup)
+-			{
+-				std::pair<std::string, Vector> const & groupPickupLocation = group->getGroupPickupLocation();
+-				if (!groupPickupLocation.first.empty())
+-				{
+-					// tell group member that there's an active group pickup point
+-					if (getClient())
+-					{
+-						StringId::LocUnicodeString response;
+-						if (StringId("group", "create_group_pickup_success_new_group_member").localize(response))
+-						{
+-							ConsoleMgr::broadcastString(FormattedString<2048>().sprintf(Unicode::wideToNarrow(response).c_str(), CalendarTime::convertSecondsToMS(secondsLeftOnGroupPickup).c_str()),
+-								getClient());
+-						}
+-					}
+-
+-					// create/update the group member's group pickup point waypoint
+-					if (playerObject)
+-					{
+-						Location const location(groupPickupLocation.second, NetworkId::cms_invalid, Location::getCrcBySceneName(groupPickupLocation.first));
+-						playerObject->createOrUpdateReusableWaypoint(location, "groupPickupWp", Unicode::narrowToWide("Group Pickup Point"), Waypoint::White);
+-					}
+-				}
+-			}
+-		}
+ 	}
+ 	else
+ 	{
+@@ -10536,39 +10506,8 @@ void CreatureObject::handleCMessageTo(MessageToPayload const &message)
+ 	}
+ 	else if (message.getMethod() == "C++GroupPickupPointCreated")
+ 	{
+-		if (!message.getPackedDataVector().empty())
+-		{
+-			std::string const params(message.getPackedDataVector().begin(), message.getPackedDataVector().end());
+-
+-			Unicode::String const delimiters(Unicode::narrowToWide("|"));
+-			Unicode::UnicodeStringVector tokens;
+-			if ((Unicode::tokenize(Unicode::narrowToWide(params), tokens, &delimiters, nullptr)) && (tokens.size() == 5))
+-			{
+-				// tell group member that the group pickup point has been created
+-				if (getClient())
+-				{
+-					StringId::LocUnicodeString response;
+-					if (StringId("group", "create_group_pickup_success_others").localize(response))
+-					{
+-						ConsoleMgr::broadcastString(FormattedString<2048>().sprintf(Unicode::wideToNarrow(response).c_str(), Unicode::wideToNarrow(tokens[4]).c_str(), CalendarTime::convertSecondsToMS(static_cast<unsigned int>(ConfigServerGame::getGroupPickupPointTimeLimitSeconds())).c_str()),
+-							getClient());
+-					}
+-				}
+-
+-				// create/update the group member's group pickup point waypoint
+-				PlayerObject * const playerObject = PlayerCreatureController::getPlayerObject(this);
+-				if (playerObject)
+-				{
+-					std::string const planetName = Unicode::wideToNarrow(tokens[0]);
+-					int const x = atoi(Unicode::wideToNarrow(tokens[1]).c_str());
+-					int const y = atoi(Unicode::wideToNarrow(tokens[2]).c_str());
+-					int const z = atoi(Unicode::wideToNarrow(tokens[3]).c_str());
+-
+-					Location const location(Vector(static_cast<real>(x), static_cast<real>(y), static_cast<real>(z)), NetworkId::cms_invalid, Location::getCrcBySceneName(planetName));
+-					playerObject->createOrUpdateReusableWaypoint(location, "groupPickupWp", Unicode::narrowToWide("Group Pickup Point"), Waypoint::White);
+-				}
+-			}
+-		}
++		LOG("PreCuRestore", ("Ignored retired NGE group-pickup waypoint message for %s",
++			getNetworkId().getValueString().c_str()));
+ 	}
+ 	else if (message.getMethod() == "C++OccupyUnlockedSlotRsp")
+ 	{
+diff --git a/engine/server/library/serverGame/src/shared/object/GroupObject.cpp b/engine/server/library/serverGame/src/shared/object/GroupObject.cpp
+index cfc0795..93ee461 100644
+--- a/engine/server/library/serverGame/src/shared/object/GroupObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/GroupObject.cpp
+@@ -1405,14 +1405,8 @@ void GroupObject::setLootRule(int const rule)
+ 
+ unsigned int GroupObject::getSecondsLeftOnGroupPickup() const
+ {
+-	std::pair<int32, int32> const & groupPickupTimer = m_groupPickupTimer.get();
+-	if ((groupPickupTimer.first > 0) && (groupPickupTimer.second > 0))
+-	{
+-		time_t const timeNow = ::time(nullptr);
+-		if (groupPickupTimer.second > timeNow)
+-			return (groupPickupTimer.second - (int)timeNow);
+-	}
+-
++	// Persisted group-pickup fields are retained for database compatibility,
++	// but Publish 14.1 has no active group-pickup travel state.
+ 	return 0;
+ }
+ 
+@@ -1420,6 +1414,9 @@ unsigned int GroupObject::getSecondsLeftOnGroupPickup() const
+ 
+ void GroupObject::setGroupPickupTimer(time_t startTime, time_t endTime)
+ {
++	UNREF(startTime);
++	UNREF(endTime);
++
+ 	if (!isAuthoritative())
+ 	{
+ 		Controller *controller = getController();
+@@ -1428,7 +1425,7 @@ void GroupObject::setGroupPickupTimer(time_t startTime, time_t endTime)
+ 			controller->appendMessage(
+ 				CM_setGroupPickupTimer,
+ 				0.0f,
+-				new MessageQueueGenericValueType<std::pair<int32, int32> >(std::make_pair(static_cast<int32>(startTime), static_cast<int32>(endTime))),
++				new MessageQueueGenericValueType<std::pair<int32, int32> >(std::make_pair(0, 0)),
+ 				GameControllerMessageFlags::SEND |
+ 				GameControllerMessageFlags::RELIABLE |
+ 				GameControllerMessageFlags::DEST_AUTH_SERVER);
+@@ -1436,7 +1433,7 @@ void GroupObject::setGroupPickupTimer(time_t startTime, time_t endTime)
+ 	}
+ 	else
+ 	{
+-		m_groupPickupTimer.set(std::make_pair(static_cast<int32>(startTime), static_cast<int32>(endTime)));
++		m_groupPickupTimer.set(std::make_pair(0, 0));
+ 	}
+ }
+ 
+@@ -1444,6 +1441,9 @@ void GroupObject::setGroupPickupTimer(time_t startTime, time_t endTime)
+ 
+ void GroupObject::setGroupPickupLocation(std::string const & planetName, Vector const & location)
+ {
++	UNREF(planetName);
++	UNREF(location);
++
+ 	if (!isAuthoritative())
+ 	{
+ 		Controller *controller = getController();
+@@ -1452,7 +1452,7 @@ void GroupObject::setGroupPickupLocation(std::string const & planetName, Vector
+ 			controller->appendMessage(
+ 				CM_setGroupPickupLocation,
+ 				0.0f,
+-				new MessageQueueGenericValueType<std::pair<std::string, Vector> >(std::make_pair(planetName, location)),
++				new MessageQueueGenericValueType<std::pair<std::string, Vector> >(std::make_pair(std::string(), Vector())),
+ 				GameControllerMessageFlags::SEND |
+ 				GameControllerMessageFlags::RELIABLE |
+ 				GameControllerMessageFlags::DEST_AUTH_SERVER);
+@@ -1460,7 +1460,7 @@ void GroupObject::setGroupPickupLocation(std::string const & planetName, Vector
+ 	}
+ 	else
+ 	{
+-		m_groupPickupLocation.set(std::make_pair(planetName, location));
++		m_groupPickupLocation.set(std::make_pair(std::string(), Vector()));
+ 	}
+ }
+ 
+@@ -1482,4 +1482,4 @@ void GroupObject::reenterGroupChatRoom(CreatureObject const &who) const
+ 	Chat::enterRoom(firstName, groupChatRoomPath, false, false);
+ }
+ 
+-// ======================================================================
+\ No newline at end of file
++// ======================================================================
+diff --git a/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp b/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp
+index 8a8aa3a..7153f47 100644
+--- a/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp
++++ b/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp
+@@ -4410,6 +4410,20 @@ void PlayerObject::onLoadedFromDatabase()
+ {
+ 	IntangibleObject::onLoadedFromDatabase();
+ 
++	// Remove the reusable waypoint left by the retired post-P14 group-pickup
++	// travel system. The misspelled key is the persisted live-game key.
++	std::string const retiredGroupPickupWaypointObjvar("reuseableWp.groupPickupWp");
++	DynamicVariableList const & objvars = getObjVars();
++	if (objvars.hasItem(retiredGroupPickupWaypointObjvar) &&
++		(objvars.getType(retiredGroupPickupWaypointObjvar) == DynamicVariable::NETWORK_ID))
++	{
++		NetworkId waypointId;
++		if (objvars.getItem(retiredGroupPickupWaypointObjvar, waypointId) && waypointId.isValid())
++			destroyWaypoint(waypointId);
++	}
++	if (objvars.hasItem(retiredGroupPickupWaypointObjvar))
++		removeObjVarItem(retiredGroupPickupWaypointObjvar);
++
+ 	// clear any deprecated quests
+ 	{
+ 		static std::vector<uint32> deprecatedQuests;

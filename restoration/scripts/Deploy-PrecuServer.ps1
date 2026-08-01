@@ -37,16 +37,28 @@ source_corpse="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/librar
 work_corpse="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/corpse.java"
 source_queue="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 work_queue="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
+source_commands="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp"
+work_commands="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp"
 source_client="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 work_client="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 source_creature="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
 work_creature="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
+source_group="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp"
+work_group="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp"
+source_player="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
+work_player="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
 source_weapon="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.cpp"
 work_weapon="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.cpp"
 source_weapon_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.h"
 work_weapon_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.h"
 source_speeds="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
 work_speeds="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
+source_travel="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/travel.java"
+work_travel="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/travel.java"
+source_player_travel="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/player_travel.java"
+work_player_travel="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/player_travel.java"
+source_command_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+work_command_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
 binary="$SWG_WORK_DIR/build/bin/SwgGameServer"
 server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/libserverGame.a"
@@ -54,15 +66,23 @@ server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/li
 cmp -s "$source_outdoorsman" "$work_outdoorsman"
 cmp -s "$source_corpse" "$work_corpse"
 cmp -s "$source_queue" "$work_queue"
+cmp -s "$source_commands" "$work_commands"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
+cmp -s "$source_group" "$work_group"
+cmp -s "$source_player" "$work_player"
 cmp -s "$source_weapon" "$work_weapon"
 cmp -s "$source_weapon_header" "$work_weapon_header"
 cmp -s "$source_speeds" "$work_speeds"
+cmp -s "$source_travel" "$work_travel"
+cmp -s "$source_player_travel" "$work_player_travel"
+cmp -s "$source_command_table" "$work_command_table"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'String outdoors_scout_novice'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'Method canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.systems.crafting.droid.modules.harvest_module | grep -Fq 'corpse.canPlayerHarvestCreature'
+javap -classpath "$class_root" -c script.library.travel | grep -Fq 'rejected retired NGE group-pickup travel'
+javap -classpath "$class_root" -v script.player.player_travel | grep -Fq 'Ignored retired NGE group-pickup travel request'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
 grep -Fq 'isWeaponCadenceAttack' "$work_queue"
 grep -Fq 'if (!owner.isPlayerControlled())' "$work_queue"
@@ -70,12 +90,17 @@ grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
 grep -Fq 'Rejected retired NGE expertise request' "$work_creature"
+grep -Fq 'Ignored retired NGE createGroupPickup command' "$work_commands"
+grep -Fq 'Ignored retired NGE useGroupPickup command' "$work_commands"
+grep -Fq 'return 0;' "$work_group"
+grep -Fq 'reuseableWp.groupPickupWp' "$work_player"
 grep -Fq 'normalizePrecuAttackSpeed' "$work_weapon"
 grep -Fq 'getStoredAttackTime' "$work_weapon_header"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.iff"
 nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'
 nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::processExpertiseRequest'
+nm -C "$server_game_archive" | grep -Fq 'GroupObject::getSecondsLeftOnGroupPickup() const'
 file -L "$binary" | grep -Fq 'ELF 64-bit'
 '@
 

@@ -2035,3 +2035,17 @@ unchanged. The same deployment now proves the compiled `corpse.class` checks
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
+
+Milestone 269 retires the post-Publish-14 group-pickup travel system without
+removing later expansion content. The hidden compatibility command rows are
+disabled, their native hooks fail closed, persisted group timers and locations
+normalize to inactive values, reconnect messages cannot create pickup
+waypoints, and login removes any stale reusable pickup waypoint. The Java
+travel boundary rejects only the group-pickup flag; normal tickets, starports,
+Mustafar, Kashyyyk, Tansarii instance routing, and other expansion-world travel
+retain their existing authored paths. The x64 deployment proves both Java
+callbacks in bytecode, the inert native state in `libserverGame.a`, a mapped
+rebuilt game process, a healthy player-ready cluster, and a clean rerun of the
+complete expansion-world contract. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NgeGroupPickupRetirement.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
