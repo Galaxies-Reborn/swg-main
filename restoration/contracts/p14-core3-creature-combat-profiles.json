@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-core3-creature-combat-profiles",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Replace the NGE level-DPS/HP/armor creature factory with explicit Publish 14.1 Core3 creature damage, HAM, accuracy, XP, and difficulty profiles while retaining post-Publish-14 zones and content through PRE-CU-derived level fallbacks.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "mobileRoot": "MMOCoreORB/bin/scripts/mobile",
+    "aiImplementation": "MMOCoreORB/src/server/zone/objects/creature/ai/AiAgentImplementation.cpp",
+    "exactProfiles": 3622,
+    "currentNameAliases": 83,
+    "levelFallbacks": 500,
+    "tableRows": 4205,
+    "tableSha256": "d87b18c423cb767f7782c276af6ab178910943700c283455b7abfc986253201f"
+  },
+  "sourceFiles": {
+    "createLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/create.java",
+    "corpseLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/corpse.java",
+    "lootLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/loot.java",
+    "profileTable": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.tab",
+    "creatureTable": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab",
+    "overlay": "patches/dsrc/346-p14-core3-creature-combat-profiles.patch",
+    "generator": "scripts/Export-P14CreatureCombatProfiles.ps1"
+  },
+  "runtimePolicy": {
+    "exactCreature": "Use the pinned Core3 template profile by creature key.",
+    "renamedCreature": "Use a deterministic exact alias based on normalized tokens plus a minimal reviewed alias set.",
+    "expansionCreature": "Use the PRE-CU profile derived from safe Core3 profiles at the retained expansion creature level; no NGE stat_balance DPS, HP, Action, Mind, XP, or armor value participates.",
+    "explicitLevelOverride": "Use the bounded PRE-CU level fallback for the requested level, matching Core3's level-scaling intent without returning to NGE stat_balance.",
+    "ham": "Randomize Health, Action, and Mind independently between Core3 baseHAM and baseHAMmax; secondary attributes are one tenth of their primary pool.",
+    "accuracy": "Convert Core3 chanceHit to the server skill-mod percentage representation.",
+    "cadence": "AI attack execution remains independently gated by the Core3 two-second command-queue interval.",
+    "creatureArmor": "Retire NGE level-table general protection. Existing per-damage-type creature-table protections remain until the separate Core3 armor-rating/resistance remap is completed."
+  },
+  "harvestClosure": {
+    "skill": "outdoors_scout_novice",
+    "ordinaryCreatureResourceLoot": "retired",
+    "finalExtractionGate": "The resource extraction primitive rejects a player inventory owner without Novice Scout.",
+    "retainedRoutes": [
+      "Scout command and radial harvesting",
+      "Scout-owned droid harvesting",
+      "non-corpse resource systems such as fishing, shellfish, and lair eggs"
+    ]
+  },
+  "representativeProfiles": {
+    "kreetle": { "level": 3, "chanceHit": 0.23, "damageMin": 35, "damageMax": 45, "baseHAM": 90, "baseHAMmax": 110 },
+    "rill": { "level": 6, "chanceHit": 0.25, "damageMin": 50, "damageMax": 55, "baseHAM": 180, "baseHAMmax": 220 },
+    "womp_rat": { "level": 10, "chanceHit": 0.28, "damageMin": 90, "damageMax": 110, "baseHAM": 810, "baseHAMmax": 990 },
+    "lesser_desert_womprat": { "sourceKey": "lesser_desert_womp_rat", "level": 5, "damageMin": 45, "damageMax": 50 }
+  },
+  "diagnosis": {
+    "aiCadenceEvidence": "Live PreCuCombatCadence telemetry proved a minimum consecutive same-owner interval of 2.265 seconds with zero intervals below 1.95 seconds.",
+    "remainingLethalityCause": "SWGSource create.initializeCreature still multiplied NGE stat_balance damagePerSecond by weapon speed and assigned NGE level-table HAM and armor.",
+    "clientReverseEngineering": "Not required for server-authoritative attack timing or creature damage. Revisit only if server cadence is correct and client animation presentation remains misleading."
+  },
+  "buildEvidence": {
+    "result": "passed",
+    "verifiedOn": "2026-08-01",
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "serverBuildIdSha1": "4a5f52e7c8a6c9fc29ad0bf0e4bc9b081aacc78b",
+    "architecture": "ELF 64-bit x86-64",
+    "deployment": "synchronized, compiled, healthy, player-ready, and live process mapped to the newly built SwgGameServer",
+    "staticContracts": [
+      "Test-P14Core3CreatureCombatProfiles.ps1 passed",
+      "Test-P14ScoutHarvesting.ps1 passed"
+    ],
+    "overlayBytes": 303050,
+    "overlaySha256": "eb178cfcace1ea2ca2579bb4ec3f252ad86ced474a30bef8fda16072b5ecc63e"
+  },
+  "liveEvidence": {
+    "result": "pending",
+    "required": [
+      "newly spawned starter creature reports its Core3 profile values",
+      "player attack telemetry confirms the authoritative player weapon interval",
+      "non-Scout character cannot obtain creature resources from a corpse",
+      "Novice Scout character can harvest the same creature family"
+    ]
+  },
+  "requiredBeforeReady": [
+    "clean materialization and Java/datatable build",
+    "healthy x64 deployment",
+    "live non-Scout/Scout harvest acceptance",
+    "live starter-creature damage and player-cadence acceptance"
+  ]
+}

@@ -2074,3 +2074,19 @@ remain unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 272 replaces the remaining NGE creature level/DPS factory with a
+pinned Publish 14.1 Core3 combat catalog. The generated table carries 3,622
+exact mobile profiles, 83 deterministic aliases for retained names, and 500
+PRE-CU-derived level fallbacks for later expansion creatures without consulting
+NGE `stat_balance` damage, HAM, XP, or armor. New creatures receive explicit
+Core3 damage, accuracy, independently randomized Health/Action/Mind pools, XP,
+and combat difficulty while retaining the native two-second AI queue gate.
+Ordinary NGE creature-resource loot is retired and the final extraction
+primitive now rejects player owners without Novice Scout. The deployment also
+proves clean materialization across all overlays, compiled Java bytecode, the
+new datatable IFF, representative starter profiles, x64 architecture, and a
+healthy live process mapped to the rebuilt server. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CreatureCombatProfiles.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>

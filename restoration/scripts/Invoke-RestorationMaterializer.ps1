@@ -268,6 +268,11 @@ Invoke-GitChecked -Repository $stageParent -Arguments @(
     $stage
 ) | Out-Null
 Invoke-GitChecked -Repository $stage -Arguments @(
+    "config",
+    "core.autocrlf",
+    "false"
+) | Out-Null
+Invoke-GitChecked -Repository $stage -Arguments @(
     "checkout",
     "--detach",
     [string]$manifest.target.baselineSuperprojectCommit
@@ -290,6 +295,11 @@ foreach ($pin in @($manifest.gitlinks))
         $componentStage
     ) | Out-Null
     Invoke-GitChecked -Repository $componentStage -Arguments @(
+        "config",
+        "core.autocrlf",
+        "false"
+    ) | Out-Null
+    Invoke-GitChecked -Repository $componentStage -Arguments @(
         "checkout",
         "--detach",
         [string]$pin.commit
@@ -299,6 +309,67 @@ foreach ($pin in @($manifest.gitlinks))
         "remove",
         "origin"
     ) | Out-Null
+}
+
+$normalizedPatchTargets = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($patchRecord in $patches)
+{
+    $componentStage = Join-Path $stage ([string]$patchRecord.Component)
+    foreach ($patchLine in [System.IO.File]::ReadLines($patchRecord.File.FullName))
+    {
+        if (-not $patchLine.StartsWith("+++ b/", [System.StringComparison]::Ordinal))
+        {
+            continue
+        }
+
+        $relativeTarget = $patchLine.Substring(6).Replace('/', [System.IO.Path]::DirectorySeparatorChar)
+        $targetPath = Join-Path $componentStage $relativeTarget
+        if (-not $normalizedPatchTargets.Add($targetPath) -or
+            -not (Test-Path -LiteralPath $targetPath -PathType Leaf))
+        {
+            continue
+        }
+
+        $targetBytes = [System.IO.File]::ReadAllBytes($targetPath)
+        if ([System.Array]::IndexOf($targetBytes, [byte]0) -ge 0)
+        {
+            continue
+        }
+
+        $hasCrlf = $false
+        for ($byteIndex = 0; $byteIndex -lt ($targetBytes.Length - 1); $byteIndex++)
+        {
+            if ($targetBytes[$byteIndex] -eq 13 -and $targetBytes[$byteIndex + 1] -eq 10)
+            {
+                $hasCrlf = $true
+                break
+            }
+        }
+        if (-not $hasCrlf)
+        {
+            continue
+        }
+
+        $normalizedBytes = [System.IO.MemoryStream]::new($targetBytes.Length)
+        try
+        {
+            for ($byteIndex = 0; $byteIndex -lt $targetBytes.Length; $byteIndex++)
+            {
+                if ($targetBytes[$byteIndex] -eq 13 -and
+                    ($byteIndex + 1) -lt $targetBytes.Length -and
+                    $targetBytes[$byteIndex + 1] -eq 10)
+                {
+                    continue
+                }
+                $normalizedBytes.WriteByte($targetBytes[$byteIndex])
+            }
+            [System.IO.File]::WriteAllBytes($targetPath, $normalizedBytes.ToArray())
+        }
+        finally
+        {
+            $normalizedBytes.Dispose()
+        }
+    }
 }
 
 foreach ($patchRecord in $patches)
