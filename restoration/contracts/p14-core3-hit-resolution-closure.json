@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-core3-hit-resolution-closure",
+  "status": "ready-for-live-verification",
+  "scope": "Use pinned Core3 primary and secondary hit resolution for every authenticated PRE-CU action and every generated PRE-CU creature profile, with exact weapon data followed by deterministic family defaults instead of NGE combat-table fallbacks.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "combatManager": "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+    "weaponCatalog": "MMOCoreORB/bin/scripts/object/weapon"
+  },
+  "sourceFiles": {
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "weaponProfiles": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab",
+    "generator": "restoration/scripts/Export-P14Core3WeaponCombatProfiles.ps1"
+  },
+  "catalog": {
+    "exactProfileCount": 342,
+    "familyProfileCount": 13,
+    "totalProfileCount": 355,
+    "sha256": "40f720b4c4f404de5ff75fc9f12171bf942baf205bb5b56e0fc91979537eac15"
+  },
+  "authenticatedBasicActions": [
+    "creatureMeleeAttack",
+    "creatureRangedAttack",
+    "meleeHit",
+    "rangedShot",
+    "saberHit"
+  ],
+  "expected": {
+    "zeroAccuracyBonusIsValid": true,
+    "profiledCreaturesUseCore3": true,
+    "weaponLookup": "exact template, then weapon-family profile",
+    "secondaryDefenseSkill2": true,
+    "meleeAndRangedPostureTables": true,
+    "missingHeldWeaponUsesCurrentWeaponIncludingServerDefaultUnarmed": true,
+    "profiledCreatureDefaultTargetPool": "RANDOM"
+  },
+  "remainingBoundary": "The retained NGE-derived downstream damage plumbing remains separately governed; this contract owns primary accuracy, secondary defense, weapon wounds ratio, armor piercing, and profiled-creature target-pool selection.",
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/348-p14-core3-hit-resolution-closure.patch",
+    "overlayPatchBytes": 98162,
+    "overlayPatchSha256": "22d427a7f098ff493a5c7de0f1bd766370891b1cf52994842d71c97c14aeb09e",
+    "result": "passed",
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "buildIdSha1": "351490615204e50e0e67cded55e423149d0956ef",
+    "serverBinarySha256": "9cf8920ca3512c246d4649bc7ee23f38243340d0f0b6957253b50b4bf88a319b",
+    "compiledWeaponProfilesSha256": "28542fd48affdf79c2eadee28f15bc5f783cd0529b008098cdf35d90e3314352",
+    "compiledCombatBaseSha256": "49f8806feb181444021ba9c4c04032f186b2e763a64fcae1efcc40fce40300e7",
+    "container": "swg-precu",
+    "containerHealthy": true,
+    "clusterReady": true
+  },
+  "requiredBeforeReady": [
+    "live player combat sample confirms assigned weapon interval",
+    "live combat confirms no inherited NGE hit-resolution fallback for profiled creatures"
+  ]
+}

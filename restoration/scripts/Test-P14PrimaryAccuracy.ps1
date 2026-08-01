@@ -180,7 +180,7 @@ Assert-Contract -Condition (
     [string]$profile.weaponFamily -ceq "rifle" -and
     [double]$profile.postureMultiplier -eq 2.5) -Name "p14.primary-accuracy.cdef-profile.modifiers"
 Assert-Contract -Condition (
-    $noviceRows.Count -eq 1 -and [string]$noviceRows[0].SKILL_MODS -match 'ranged_accuracy=10' -and
+    $noviceRows.Count -eq 1 -and [string]$noviceRows[0].SKILL_MODS -match 'rifle_accuracy=10' -and
     $rifleOneRows.Count -eq 1 -and [string]$rifleOneRows[0].SKILL_MODS -match 'rifle_accuracy=10') -Name "p14.primary-accuracy.fixture.skill-modifiers"
 
 $combatBase = Get-Content -LiteralPath $paths.combatBase -Raw
@@ -195,15 +195,19 @@ $liveFixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 
 Assert-Contract -Condition (
     $primaryChance.Contains('dataTableSearchColumnForString(actionData.actionName, "actionName", PRECU_COMBAT_OVERRIDES)') -and
-    $primaryChance.Contains('dataTableSearchColumnForString(weaponTemplate, "templateName", PRECU_WEAPON_PROFILES)')) -Name "p14.primary-accuracy.runtime.exact-opt-in-and-profile"
+    $primaryChance.Contains('boolean profiledCreature =') -and
+    $primaryChance.Contains('hasObjVar(attackerData.id, "precu.combatProfile")') -and
+    $primaryChance.Contains('int weaponRow = getPrecuWeaponProfileRow(weaponData);')) -Name "p14.primary-accuracy.runtime.authenticated-action-or-profile"
 Assert-Contract -Condition (
-    ([regex]::Matches($primaryChance, 'return -1\.0f;').Count -ge 3) -and
-    $primaryChance.Contains('if (accuracyBonus <= 0 || !isIdValid(weaponData.id))')) -Name "p14.primary-accuracy.runtime.fail-closed"
+    $primaryChance.Contains('if (actionRow < 0 && !profiledCreature)') -and
+    $primaryChance.Contains('if (!isIdValid(weaponData.id))') -and
+    -not $primaryChance.Contains('accuracyBonus <= 0')) -Name "p14.primary-accuracy.runtime.zero-bonus-is-valid"
 Assert-Contract -Condition (
     $primaryChance.Contains('getPrecuAttackerAccuracyTotal(attackerData, defenderData, weaponRow, accuracyBonus)') -and
     $attackerAccuracy.Contains('accuracySkillValue = -15;') -and
     $attackerAccuracy.Contains('getEnhancedSkillStatisticModifierUncapped(attackerData.id, categoryAccuracySkill)') -and
-    $attackerAccuracy.Contains('getEnhancedSkillStatisticModifierUncapped(attackerData.id, "private_ranged_accuracy_bonus")')) -Name "p14.primary-accuracy.runtime.attacker-modifier-stack"
+    $attackerAccuracy.Contains('"private_ranged_accuracy_bonus"') -and
+    $attackerAccuracy.Contains('"private_melee_accuracy_bonus"')) -Name "p14.primary-accuracy.runtime.attacker-modifier-stack"
 Assert-Contract -Condition (
     $primaryChance.Contains('int defenseSkillValue = getLevel(defenderData.id);') -and
     $primaryChance.Contains('if (defenseSkillValue > 125)') -and

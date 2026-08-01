@@ -2089,6 +2089,27 @@ new datatable IFF, representative starter profiles, x64 architecture, and a
 healthy live process mapped to the rebuilt server. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3CreatureCombatProfiles.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 275 closes two remaining server-authority bypasses reported in live
+play. Creature harvesting now has a direct native owned-skill check at the
+front of `CommandQueue::enqueue`, before priority or immediate dispatch, in
+addition to the command ability and Java extraction checks. A character
+without `outdoors_scout_novice` cannot reach any creature-resource path.
+
+Primary and secondary hit resolution now use the pinned Core3 weapon catalog
+for all authenticated PRE-CU attacks and generated PRE-CU creatures. The
+catalog contains 342 exact templates and 13 deterministic family defaults;
+zero accuracy bonuses are valid, missing held weapons resolve to default
+unarmed, melee and ranged posture tables remain distinct, and profiled creature
+basic attacks use the PRE-CU random HAM pool. This removes the old sparse-
+profile escape into NGE hit resolution. Cadence remains server-owned: Core3 AI
+uses a two-second queue interval, while players use weapon speed, speed skill,
+and combat haste with a one-second minimum. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3HitResolutionClosure.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CombatCadence.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14Core3AiAttackInterval.ps1 -SourceRoot <materialized-staging-directory> -Expectation Build
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ScoutHarvesting.ps1 -SourceRoot <materialized-staging-directory>
 
 Milestone 273 closes the attack-cadence retarget escape hatch exposed by

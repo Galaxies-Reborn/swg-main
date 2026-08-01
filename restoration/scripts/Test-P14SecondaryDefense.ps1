@@ -136,13 +136,13 @@ Assert-Contract -Condition (
     $combatBase.Contains("int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult")) -Name "p14.secondary-defense.integration.complete-nge-fallback"
 Assert-Contract -Condition (
     $secondary.Contains('getHeldWeapon(defenderData.id)') -and
-    -not $secondary.Contains('getCurrentWeapon(defenderData.id)') -and
-    $secondary.Contains('dataTableSearchColumnForString(getTemplateName(defenderWeapon), "templateName", PRECU_WEAPON_PROFILES)') -and
-    ([regex]::Matches($secondary, 'return PRECU_SECONDARY_RESULT_FALLBACK;').Count -ge 4)) -Name "p14.secondary-defense.runtime.exact-defender-profile"
+    $secondary.Contains('getCurrentWeapon(defenderData.id)') -and
+    $secondary.Contains('getPrecuWeaponProfileRow(defenderWeapon)') -and
+    -not $secondary.Contains('FALLBACK_NO_WEAPON')) -Name "p14.secondary-defense.runtime.exact-or-family-defender-profile"
 Assert-Contract -Condition (
-    $secondary.IndexOf('if (jedi.isLightsaber(defenderWeapon))', [StringComparison]::Ordinal) -ge 0 -and
-    $secondary.IndexOf('if (jedi.isLightsaber(defenderWeapon))', [StringComparison]::Ordinal) -lt
-        $secondary.IndexOf('dataTableSearchColumnForString(getTemplateName(defenderWeapon)', [StringComparison]::Ordinal)) -Name "p14.secondary-defense.ricochet.standardized-before-profile-fallback"
+    $secondary.IndexOf('jedi.isLightsaber(defenderWeapon) ||', [StringComparison]::Ordinal) -ge 0 -and
+    $secondary.IndexOf('jedi.isLightsaber(defenderWeapon) ||', [StringComparison]::Ordinal) -lt
+        $secondary.IndexOf('getPrecuWeaponProfileRow(defenderWeapon)', [StringComparison]::Ordinal)) -Name "p14.secondary-defense.ricochet.standardized-before-profile-fallback"
 Assert-Contract -Condition (
     $secondary.Contains('!ai_lib.isTurret(attackerData.id)') -and
     $secondary.Contains('combat.isRangedWeapon(weaponData.weaponType) || combat.isHeavyWeapon(weaponData.weaponType)') -and
@@ -162,7 +162,8 @@ Assert-Contract -Condition (
     $secondary.Contains('if (evadeSkill > 125)')) -Name "p14.secondary-defense.runtime.skill-stack-and-cap"
 Assert-Contract -Condition (
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_center_of_being")') -and
-    $secondary.Contains('getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion)')) -Name "p14.secondary-defense.runtime.center-and-posture"
+    $secondary.Contains('getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion)') -and
+    $secondary.Contains('getPrecuMeleeDefenseLocomotionModifier(defenderData.locomotion)')) -Name "p14.secondary-defense.runtime.center-and-posture"
 Assert-Contract -Condition (
     $secondary.Contains('int attackRoll = rand(1, 500);') -and
     $secondary.Contains('int defendRoll = rand(1, 200);') -and

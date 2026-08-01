@@ -50,6 +50,12 @@ source_loot="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/
 work_loot="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/loot.java"
 source_creature_profiles="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.tab"
 work_creature_profiles="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.tab"
+source_combat_base="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+work_combat_base="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+source_combat_overrides="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab"
+work_combat_overrides="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab"
+source_weapon_profiles="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab"
+work_weapon_profiles="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.tab"
 source_queue="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 work_queue="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 source_queue_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.h"
@@ -89,6 +95,9 @@ cmp -s "$source_corpse" "$work_corpse"
 cmp -s "$source_create" "$work_create"
 cmp -s "$source_loot" "$work_loot"
 cmp -s "$source_creature_profiles" "$work_creature_profiles"
+cmp -s "$source_combat_base" "$work_combat_base"
+cmp -s "$source_combat_overrides" "$work_combat_overrides"
+cmp -s "$source_weapon_profiles" "$work_weapon_profiles"
 cmp -s "$source_queue" "$work_queue"
 cmp -s "$source_queue_header" "$work_queue_header"
 cmp -s "$source_commands" "$work_commands"
@@ -111,12 +120,18 @@ javap -classpath "$class_root" -v script.library.create | grep -Fq 'datatables/m
 javap -classpath "$class_root" -v script.library.create | grep -Fq 'precu.combatProfile'
 javap -classpath "$class_root" -v script.library.loot | grep -Fq 'Rejected NGE creature-resource loot injection'
 javap -classpath "$class_root" -c script.systems.crafting.droid.modules.harvest_module | grep -Fq 'corpse.canPlayerHarvestCreature'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'getPrecuWeaponProfileRow'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'defenseSkill2'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'precu.combatProfile'
 javap -classpath "$class_root" -c script.library.travel | grep -Fq 'rejected retired NGE group-pickup travel'
 javap -classpath "$class_root" -v script.player.player_travel | grep -Fq 'Ignored retired NGE group-pickup travel request'
 grep -Fq 'calculatePrecuAttackTime' "$work_queue"
 grep -Fq 'isWeaponCadenceAttack' "$work_queue"
 grep -Fq 'if (!owner.isPlayerControlled())' "$work_queue"
 grep -Fq 'PreCuCombatCadence' "$work_queue"
+grep -Fq 'canHarvestPrecuCreatureResources' "$work_queue"
+grep -Fq 'outdoors_scout_novice' "$work_queue"
+grep -Fq 'PreCuScoutHarvest' "$work_queue"
 grep -Fq 'm_lastWeaponCadenceAttackTime' "$work_queue_header"
 grep -Fq 'm_lastWeaponCadenceInterval' "$work_queue_header"
 grep -Fq 'm_lastWeaponCadenceAttackTime = s_currentTime' "$work_queue"
@@ -139,6 +154,7 @@ awk -F '	' '$1 ~ /^outdoors_scout_novice$/ { found=1; if ($22 !~ /harvestCorpse/
 awk -F '	' '$1 ~ /^kreetle$/ { found=1; if ($3 != 3 || $5 != 35 || $6 != 45 || $8 != 90 || $9 != 110) exit 2 } END { if (!found) exit 3 }' "$work_creature_profiles"
 awk -F '	' '$1 ~ /^lesser_desert_womprat$/ { found=1; if ($2 !~ /^lesser_desert_womp_rat$/ || $3 != 5 || $5 != 45 || $6 != 50) exit 2 } END { if (!found) exit 3 }' "$work_creature_profiles"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/skill/skills.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.iff"
 nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'

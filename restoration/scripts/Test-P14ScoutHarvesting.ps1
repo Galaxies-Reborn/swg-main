@@ -32,9 +32,11 @@ $skillsPath = Join-Path $source `
     "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $commandTablePath = Join-Path $source `
     "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+$commandQueuePath = Join-Path $source `
+    "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp"
 
 foreach ($path in @($corpsePath, $aiCorpsePath, $outdoorsmanPath, $droidHarvesterPath,
-    $skillsPath, $commandTablePath))
+    $skillsPath, $commandTablePath, $commandQueuePath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
         "p14.scout-harvest.source.$([IO.Path]::GetFileName($path))"
@@ -44,6 +46,7 @@ $corpse = Get-Content -LiteralPath $corpsePath -Raw
 $aiCorpse = Get-Content -LiteralPath $aiCorpsePath -Raw
 $outdoorsman = Get-Content -LiteralPath $outdoorsmanPath -Raw
 $droidHarvester = Get-Content -LiteralPath $droidHarvesterPath -Raw
+$commandQueue = Get-Content -LiteralPath $commandQueuePath -Raw
 
 function Get-TabRows
 {
@@ -85,6 +88,20 @@ Assert-Contract ($droidHarvester.Contains("corpse.canPlayerHarvestCreature(playe
     ([regex]::Matches($droidHarvester, [regex]::Escape("!corpse.canPlayerHarvestCreature(player, true)")).Count -eq 2) -and
     $droidHarvester.Contains("!corpse.canPlayerHarvestCreature(master, false)")) `
     "p14.scout-harvest.droid-paths-gated"
+Assert-Contract ($commandQueue.Contains('#include "sharedSkillSystem/SkillManager.h"') -and
+    $commandQueue.Contains('#include "sharedSkillSystem/SkillObject.h"') -and
+    $commandQueue.Contains('cs_precuNoviceScoutSkill = "outdoors_scout_novice"') -and
+    $commandQueue.Contains('bool canHarvestPrecuCreatureResources(CreatureObject const & creature)') -and
+    $commandQueue.Contains('creature.hasSkill(*noviceScout)')) `
+    "p14.scout-harvest.native-owned-skill-helper"
+$enqueueStart = $commandQueue.IndexOf("void CommandQueue::enqueue(", [StringComparison]::Ordinal)
+$admission = $commandQueue.IndexOf('command.m_commandName == "harvestCorpse"', $enqueueStart, [StringComparison]::Ordinal)
+$normalDispatch = $commandQueue.IndexOf("DEBUG_REPORT_LOG( cs_debug", $enqueueStart, [StringComparison]::Ordinal)
+Assert-Contract ($enqueueStart -ge 0 -and $admission -gt $enqueueStart -and
+    $normalDispatch -gt $admission -and
+    $commandQueue.Contains('!canHarvestPrecuCreatureResources(*creatureOwner)') -and
+    $commandQueue.Contains('LOG("PreCuScoutHarvest"')) `
+    "p14.scout-harvest.native-gate-precedes-queue-dispatch"
 Assert-Contract ($commands.ContainsKey("harvestCorpse") -and
     $commands["harvestCorpse"]["characterAbility"] -eq "harvestCorpse") `
     "p14.scout-harvest.native-command-requires-scout-ability"
