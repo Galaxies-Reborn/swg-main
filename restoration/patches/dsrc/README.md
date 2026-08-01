@@ -1329,3 +1329,9 @@ gates and attributes from weapons and armor. Legacy CL1 weapons are treated as
 starter-certified, while other uncertified weapons remain equippable and take
 a 50-point miss-chance penalty without changing weapon damage, speed, or
 elemental damage.
+
+`338-precu-scout-harvest-and-cadence.patch` requires the exact Publish 14
+`outdoors_scout_novice` skill at every player creature-harvest boundary: radial
+menu construction, menu selection, command dispatch, and final extraction. It
+also removes the retained AI script override that zeroed the native command
+cooldown, leaving combat cadence under one authoritative native timer.

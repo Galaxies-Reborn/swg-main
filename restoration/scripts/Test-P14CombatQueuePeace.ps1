@@ -64,13 +64,13 @@ $clear = Get-FunctionSlice -Text $queueText `
     -Start "void CommandQueue::clearPendingCombatCommands()" `
     -Next "void CommandQueue::persistCooldown("
 
-Assert-Contract (-not $queueText.Contains("cs_maxQueuedCombatCommands")) `
-    "p14.combat-queue-peace.no-count-ceiling"
-Assert-Contract ($isFull.Contains("return false;") -and
-    -not $isFull.Contains("getCooldownTimeLeft")) `
-    "p14.combat-queue-peace.cooldown-does-not-replace"
-Assert-Contract (-not $enqueue.Contains("command.m_addToCombatQueue && isFull()")) `
-    "p14.combat-queue-peace.enqueue-never-replaces"
+Assert-Contract ($queueText.Contains("cs_maxQueuedCombatCommands = 2")) `
+    "p14.combat-queue-peace.npc-count-ceiling"
+Assert-Contract ($isFull.Contains("creatureOwner->isPlayerControlled()") -and
+    $isFull.Contains("return false;")) `
+    "p14.combat-queue-peace.player-queue-unlimited"
+Assert-Contract ($enqueue.Contains("command.m_addToCombatQueue && isFull()")) `
+    "p14.combat-queue-peace.npc-admission-bounded"
 Assert-Contract ($clear.Contains("cancelCurrentCommand();") -and
     $clear.Contains("handleEntryRemoved(*removed);") -and
     -not $clear.Contains("m_state.get() != State_Execute")) `

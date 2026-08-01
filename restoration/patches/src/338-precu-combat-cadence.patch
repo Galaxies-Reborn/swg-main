@@ -1,0 +1,181 @@
+diff --git a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+--- a/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
++++ b/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp
+@@ -47,6 +47,12 @@ namespace CommandQueueNamespace
+ 	const bool         cs_debug                   = false;
+ #endif
+ 
++	/**
++	 * NPCs retain the original bounded admission queue.  Player-controlled
++	 * creatures are exempt so Publish 14 clients can queue attacks freely.
++	 */
++	const uint32       cs_maxQueuedCombatCommands = 2;
++
+ 	/**
+ 	 * @brief the number of seconds in a real-time day.
+ 	 *
+@@ -70,19 +76,61 @@ namespace CommandQueueNamespace
+ 	char const * const cs_precuCombatOverridesTable = "datatables/combat/precu_combat_overrides.iff";
+ 	char const * const cs_precuWeaponProfilesTable = "datatables/combat/precu_weapon_profiles.iff";
+ 
++	char const * getPrecuWeaponSpeedSkill(WeaponObject const & weapon)
++	{
++		switch (weapon.getWeaponType())
++		{
++			case ServerWeaponObjectTemplate::WT_rifle:             return "rifle_speed";
++			case ServerWeaponObjectTemplate::WT_lightRifle:        return "carbine_speed";
++			case ServerWeaponObjectTemplate::WT_pistol:            return "pistol_speed";
++			case ServerWeaponObjectTemplate::WT_heavyWeapon:       return "heavyweapon_speed";
++			case ServerWeaponObjectTemplate::WT_1handMelee:        return "onehandmelee_speed";
++			case ServerWeaponObjectTemplate::WT_2handMelee:        return "twohandmelee_speed";
++			case ServerWeaponObjectTemplate::WT_unarmed:           return "unarmed_speed";
++			case ServerWeaponObjectTemplate::WT_polearm:           return "polearm_speed";
++			case ServerWeaponObjectTemplate::WT_thrown:            return "thrown_speed";
++			case ServerWeaponObjectTemplate::WT_1handLightsaber:   return "onehandlightsaber_speed";
++			case ServerWeaponObjectTemplate::WT_2handLightsaber:   return "twohandlightsaber_speed";
++			case ServerWeaponObjectTemplate::WT_polearmLightsaber: return "polearmlightsaber_speed";
++			default:                                               return "";
++		}
++	}
++
++	float calculatePrecuAttackTime(CreatureObject & owner, WeaponObject const & weapon,
++		float weaponAttackSpeed, float speedMultiplier, std::string const & speedSkill)
++	{
++		int speedModifier = speedSkill.empty() ? 0 : owner.getEnhancedModValue(speedSkill);
++		speedModifier += owner.getEnhancedModValue("private_speed_bonus");
++		if (weapon.getAttackType() == ServerWeaponObjectTemplate::AT_melee)
++		{
++			speedModifier += owner.getEnhancedModValue("private_melee_speed_bonus");
++			speedModifier += owner.getEnhancedModValue("melee_speed");
++		}
++		else if (weapon.getAttackType() == ServerWeaponObjectTemplate::AT_ranged)
++		{
++			speedModifier += owner.getEnhancedModValue("private_ranged_speed_bonus");
++			speedModifier += owner.getEnhancedModValue("ranged_speed");
++		}
++
++		float executeTime = (1.0f - static_cast<float>(speedModifier) / 100.0f) *
++			speedMultiplier * weaponAttackSpeed;
++		float const haste = static_cast<float>(owner.getEnhancedModValue("combat_haste")) / 100.0f;
++		if (haste > 0.0f)
++			executeTime *= 1.0f - haste;
++
++		return executeTime > 1.0f ? executeTime : 1.0f;
++	}
++
+ 	float getCommandExecuteTime(CreatureObject & owner, Command const & command)
+ 	{
+-		bool const isCreatureDefaultAttack =
+-			!owner.isPlayerControlled() &&
+-			(command.m_commandName == "creatureMeleeAttack" ||
+-			 command.m_commandName == "creatureRangedAttack");
+-		if (isCreatureDefaultAttack)
++		WeaponObject * const weapon = owner.getCurrentWeapon();
++		if (command.isPrimaryCommand())
+ 		{
+-			WeaponObject * const creatureWeapon = owner.getCurrentWeapon();
+-			if (creatureWeapon == nullptr)
++			if (weapon == nullptr)
+ 				return 4.0f;
+-			float const attackTime = creatureWeapon->getAttackTime();
+-			return attackTime > 2.0f ? attackTime : 2.0f;
++
++			return calculatePrecuAttackTime(owner, *weapon, weapon->getAttackTime(), 1.0f,
++				getPrecuWeaponSpeedSkill(*weapon));
+ 		}
+ 
+ 		DataTable * const commandTable = DataTableManager::getTable(cs_precuCombatOverridesTable, true);
+@@ -98,7 +146,6 @@ namespace CommandQueueNamespace
+ 		if (speedMultiplier <= 0.0f)
+ 			return command.m_execTime;
+ 
+-		WeaponObject * const weapon = owner.getCurrentWeapon();
+ 		if (weapon == nullptr)
+ 			return 4.0f;
+ 
+@@ -120,25 +167,7 @@ namespace CommandQueueNamespace
+ 		std::string const speedSkill = weaponTable->getStringValue("speedSkill", weaponRow);
+ 		DataTableManager::close(cs_precuWeaponProfilesTable);
+ 
+-		int speedModifier = speedSkill.empty() ? 0 : owner.getEnhancedModValue(speedSkill);
+-		speedModifier += owner.getEnhancedModValue("private_speed_bonus");
+-		if (weapon->getAttackType() == ServerWeaponObjectTemplate::AT_melee)
+-		{
+-			speedModifier += owner.getEnhancedModValue("private_melee_speed_bonus");
+-			speedModifier += owner.getEnhancedModValue("melee_speed");
+-		}
+-		else if (weapon->getAttackType() == ServerWeaponObjectTemplate::AT_ranged)
+-		{
+-			speedModifier += owner.getEnhancedModValue("private_ranged_speed_bonus");
+-			speedModifier += owner.getEnhancedModValue("ranged_speed");
+-		}
+-
+-		float executeTime = (1.0f - static_cast<float>(speedModifier) / 100.0f) * speedMultiplier * weaponAttackSpeed;
+-		float const haste = static_cast<float>(owner.getEnhancedModValue("combat_haste")) / 100.0f;
+-		if (haste > 0.0f)
+-			executeTime -= executeTime * haste;
+-
+-		return executeTime > 1.0f ? executeTime : 1.0f;
++		return calculatePrecuAttackTime(owner, *weapon, weaponAttackSpeed, speedMultiplier, speedSkill);
+ 	}
+ 	
+ }
+@@ -171,8 +200,26 @@ PropertyId CommandQueue::getClassPropertyId()
+ 
+ bool CommandQueue::isFull() const
+ {
+-	// Publish 14 combat queues are intentionally player-sized.  Cooldowns
+-	// govern execution order; they must not replace already queued attacks.
++	CreatureObject const * const creatureOwner = getServerOwner().asCreatureObject();
++	if (creatureOwner != nullptr && creatureOwner->isPlayerControlled())
++		return false;
++
++	if (m_combatCount.get() == 0)
++		return false;
++
++	if (m_combatCount.get() >= cs_maxQueuedCombatCommands)
++		return true;
++
++	if (m_state.get() == State_Waiting && !m_queue.empty())
++	{
++		CommandQueueEntry const & entry = *(m_queue.begin());
++		if (getCooldownTimeLeft(entry.m_command->m_coolGroup) > 0.f ||
++			getCooldownTimeLeft(entry.m_command->m_coolGroup2) > 0.f)
++		{
++			return true;
++		}
++	}
++
+ 	return false;
+ }
+ 
+@@ -224,6 +271,12 @@ void CommandQueue::enqueue(Command const &command, NetworkId const &targetId, Un
+ 	}
+ 	else
+ 	{
++		if (command.m_addToCombatQueue && isFull())
++		{
++			notifyClientOfCommandRemoval(sequenceId, 0.0f, Command::CEC_Cancelled, 0);
++			return;
++		}
++
+ 		// create the command queue entry object
+ 		const CommandQueueEntry entry( command, targetId, params, sequenceId, clearable, priority, false );
+ 	   			
+@@ -1461,15 +1514,7 @@ ServerObject const & CommandQueue::getServerOwner() const
+ float CommandQueue::getCooldownTime(Command const &command)
+ {
+ 	if(command.isPrimaryCommand())
+-	{
+-		CreatureObject * const creature = getServerOwner().asCreatureObject();
+-		if(creature)
+-		{
+-			WeaponObject *weapon = creature->getCurrentWeapon();
+-			if(weapon)
+-				return weapon->getAttackTime();
+-		}
+-	}
++		return 0.0f;
+ 	return command.m_coolTime;
+ }
+ 

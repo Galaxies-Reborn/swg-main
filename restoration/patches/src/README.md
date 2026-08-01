@@ -106,3 +106,11 @@ interaction while authority transfer requests retain their normal retry path.
 authoritative weapon attack time (with the Pre-CU one-second floor) instead of
 the retained NGE command-table execute time. Player commands continue through
 their existing explicit Pre-CU override/profile timing path.
+
+`338-precu-combat-cadence.patch` unifies player and creature primary attacks
+with the Publish 14 weapon-speed calculation already used by restored specials:
+weapon attack time, weapon-family speed mods, melee/ranged speed bonuses,
+positive combat haste, and a one-second floor. Primary cooldown is zero because
+the full interval is now counted once in execute time. Player-controlled queues
+remain unlimited, while non-player combat queues regain a two-action admission
+ceiling so AI cannot stack attacks faster than its weapon cadence.
