@@ -41,6 +41,17 @@ Create and validate the isolated implementation:
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PhaseA.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PrecuRootRuntimeParity.ps1 -SourceRoot <materialized-staging-directory>
 
+Deploy a materialized source mount to the existing PRE-CU Docker container with
+a fail-closed sync/build/restart sequence:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Deploy-PrecuServer.ps1
+
+The deployment command forces the read-only source mount into Docker's writable
+build volume before compiling. It verifies the synchronized Scout-harvest and
+combat-cadence sources, compiled Scout bytecode, ELF x86-64 server binary,
+healthy cluster readiness, and the binary mapped by a live game process. A
+plain container restart intentionally does not rebuild changed host sources.
+
 Validate the Publish 14.1 creation/login invariant:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14CharacterCreation.ps1 -SourceRoot <materialized-staging-directory>
