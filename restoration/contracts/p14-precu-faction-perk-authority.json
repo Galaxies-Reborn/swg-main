@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-faction-perk-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14 faction-point recruiter categories, rank-scaled standing capacity, transactional reward delivery, and hireling lifecycle while retiring the reachable NGE global credit-priced GCW catalog, class/level gates, dynamic population pricing, recruiter vendor surface, and camp field requisition surface.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterScreenplay.lua",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterConvoHandler.lua",
+      "MMOCoreORB/src/server/zone/managers/faction/FactionManager.cpp"
+    ],
+    "findings": [
+      "Publish 14 recruiters expose faction-specific furniture, weapon/armor, installation, uniform, hireling, and schematic categories; purchases consume faction standing rather than credits and leave the 200-point membership reserve.",
+      "Aligned standing capacity scales with the authored rank cost at twenty times the current rank cost, with a 1000-point floor; unaligned or opposing standing remains capped at 1000.",
+      "Installations, uniforms, and hirelings require declared status, Imperial uniforms remain faction-specific, and hirelings are delivered as NPC control devices."
+    ]
+  },
+  "expected": {
+    "purchaseCurrency": "faction standing",
+    "membershipStandingReserve": 200,
+    "alignedStandingCap": "max(1000, authored current-rank cost * 20)",
+    "unalignedStandingCap": 1000,
+    "categories": [
+      "furniture",
+      "weapons_armor",
+      "installation",
+      "uniform",
+      "hireling",
+      "schematic"
+    ],
+    "factionSpecificTables": true,
+    "ngeGlobalRewardTableReachable": false,
+    "ngeEquipmentTableReachable": false,
+    "creditPaymentReachable": false,
+    "classCombatLevelOrSkillGateReachable": false,
+    "expertiseDiscountReachable": false,
+    "dynamicPopulationPriceReachable": false,
+    "speciesPrejudicePreserved": true,
+    "purchaseRevalidatedAtSelection": true,
+    "failedStandingDeductionRollsBackReward": true,
+    "recruiterVendorSurface": false,
+    "campFieldRequisitionSurface": false,
+    "missionTerminalPathChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/faction_perk.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/camping/camp_controlpanel.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/364-p14-precu-faction-perk-authority.patch",
+    "overlayPatchBytes": 60746,
+    "overlayPatchSha256": "639d0ff3612cbe3e635bf90e9886811c7b54709f931c7b8bd6b3a2a48dd85d34",
+    "sourceSha256": {
+      "script.library.factions": "49759b662ebee3e8fdf74260c8287271e4980b54800b418922e7b1b7f32218a8",
+      "script.library.faction_perk": "64bcdcba0afb1a266268d528ee87bda5e87b28c7a9176018c6e887f7b2a30ec6",
+      "script.npc.faction_recruiter": "29f1b8efca5f414adbbea91b5a43eb870da25f32b3ff5aeedaba2b7ff6355e9f",
+      "script.systems.camping.camp_controlpanel": "7d42a60bcbec360f5451f63a2f4c1ec5b7ca5889d736443e4bb79c5d72b1c165"
+    },
+    "staticContract": "passed against the clean materialization",
+    "isolatedX64JavaCompile": "passed (5713 sources, Java 11 x64, Java 8 source target)",
+    "compiledClassSha256": {
+      "script.library.factions": "418abe8b7049920bb9446af0e180ca610ed64927f016c3cadb8ccab547fd4f7d",
+      "script.library.faction_perk": "b6f467a2b96dcb310bdd7d979affba3f04239a01e25e92f64b60540cbe1fb94e",
+      "script.npc.faction_recruiter": "096fa5976e14f3b3a6f4267f788add42fcaed3c83aeb1d855a02b037145000cc",
+      "script.systems.camping.camp_controlpanel": "e57b346120f16301852c138578c9c72b8d0d301549c0f990292daf8736ddc053"
+    },
+    "cleanMaterialization": "passed (395 patches, 1118 acceptance files)",
+    "cleanMaterializationPatches": 395,
+    "cleanMaterializationAcceptanceFiles": 1118,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "fullX64Build": "passed (Release native build, station chat, 5713 Java sources, MIF/TAB/TPF content, templates, and database loads)",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "87b97434130651d10055455c021b9b6d8e4a9ced7e6ce64a09277ee084f5a1be",
+    "serverBinaryBuildId": "75cc4d713e9d8e60b045eba4526348bacc2c9bab",
+    "deploymentProbe": "passed source/work comparisons, faction Java bytecode probes, native symbol probes, x64 check, health/readiness check, and live mapped-binary verification"
+  },
+  "runtimeEvidence": {
+    "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
+    "containerStartedAt": "2026-08-02T14:08:29.952206784Z",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-perk294-final-b",
+    "missionTerminalContinuity": "The user verified the live mission terminal immediately before this milestone; mission sources are excluded from the overlay and authenticated as untouched by the contract."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "reachable recruiter purchase currency, global NGE reward catalog, NGE purchase admission/price modifiers, rank-scaled standing caps, purchase rollback, recruiter vendor precedence, camp field requisition, and faction hireling control-device release",
+    "retainedContent": "faction membership and declaration, authored faction-specific perk tables, species prejudice, rank titles and promotion, bases, later-zone NPCs and quests, and mission terminals",
+    "notClaimedComplete": "faction perk row/content balancing beyond the retained weapon table, battlefield and invasion scoring, space rewards, and remaining GCW metrics are separate audit milestones"
+  },
+  "requiredBeforeReady": []
+}

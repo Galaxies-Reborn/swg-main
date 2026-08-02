@@ -1,0 +1,1248 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/factions.java b/sku.0/sys.server/compiled/game/script/library/factions.java
+index fe8d2f6..0b53bfe 100644
+--- a/sku.0/sys.server/compiled/game/script/library/factions.java
++++ b/sku.0/sys.server/compiled/game/script/library/factions.java
+@@ -391,7 +391,30 @@ public class factions extends script.base_script
+     }
+     public static float getFactionMax(obj_id target, String factionName) throws InterruptedException
+     {
+-        return FACTION_RATING_MAX;
++        if (!isIdValid(target) || factionName == null || factionName.equals(""))
++        {
++            return FACTION_RATING_MAX;
++        }
++        String normalizedFaction = toLower(factionName);
++        if (!normalizedFaction.equals("rebel") && !normalizedFaction.equals("imperial"))
++        {
++            return FACTION_RATING_MAX;
++        }
++        String alignedFaction = getFactionNameByHashCode(pvpGetAlignedFaction(target));
++        if (alignedFaction == null || !toLower(alignedFaction).equals(normalizedFaction))
++        {
++            return NON_ALIGNED_FACTION_MAX;
++        }
++        int rank = pvpGetCurrentGcwRank(target);
++        if (rank < 0)
++        {
++            rank = 0;
++        }
++        else if (rank > MAXIMUM_RANK)
++        {
++            rank = MAXIMUM_RANK;
++        }
++        return Math.max(NON_ALIGNED_FACTION_MAX, getRankCost(rank) * 20.0f);
+     }
+     public static void validateFactionStanding(obj_id player, String factionName) throws InterruptedException
+     {
+@@ -1334,8 +1357,9 @@ public class factions extends script.base_script
+         {
+             return false;
+         }
+-        obj_id hireling = callable.getCallable(player, callable.CALLABLE_TYPE_COMBAT_OTHER);
+-        if (hasObjVar(hireling, VAR_FACTION_HIRELING))
++        obj_id hireling = callable.getCallable(player, callable.CALLABLE_TYPE_COMBAT_PET);
++        obj_id controlDevice = isIdValid(hireling) ? callable.getCallableCD(hireling) : obj_id.NULL_ID;
++        if (hasObjVar(hireling, VAR_FACTION_HIRELING) || hasObjVar(controlDevice, VAR_FACTION_HIRELING))
+         {
+             pet_lib.releasePet(hireling);
+             prose_package pp = prose.getPackage(SID_HIRELING_RELEASED, player, hireling);
+diff --git a/sku.0/sys.server/compiled/game/script/library/faction_perk.java b/sku.0/sys.server/compiled/game/script/library/faction_perk.java
+index 3320ce1..90337e4 100644
+--- a/sku.0/sys.server/compiled/game/script/library/faction_perk.java
++++ b/sku.0/sys.server/compiled/game/script/library/faction_perk.java
+@@ -10,8 +10,14 @@ public class faction_perk extends script.base_script
+     public faction_perk()
+     {
+     }
+-    public static final String TBL_PREJUDICE = "datatables/faction/prejudice.iff";
+-    public static final String TBL_PERK_INVENTORY_BASE = "datatables/npc/faction_recruiter/perk_inventory/";
++    public static final String TBL_PREJUDICE = "datatables/faction/prejudice.iff";
++    public static final String TBL_PERK_INVENTORY_BASE = "datatables/npc/faction_recruiter/perk_inventory/";
++    public static final String PRECU_CATEGORY_FURNITURE = "furniture";
++    public static final String PRECU_CATEGORY_WEAPONS_ARMOR = "weapons_armor";
++    public static final String PRECU_CATEGORY_INSTALLATIONS = "installation";
++    public static final String PRECU_CATEGORY_UNIFORMS = "uniform";
++    public static final String PRECU_CATEGORY_HIRELINGS = "hireling";
++    public static final String PRECU_CATEGORY_SCHEMATICS = "schematic";
+     public static final String VAR_COVERT_DETECTOR = "covert_detector";
+     public static final String VAR_COVERT_DETECTOR_FACTION = VAR_COVERT_DETECTOR + ".faction";
+     public static final String VAR_COVERT_DETECTOR_RANGE = VAR_COVERT_DETECTOR + ".range";
+@@ -98,13 +104,7 @@ public class faction_perk extends script.base_script
+         {
+             mod = 1.05f;
+         }
+-        float expertiseFactionCostBonus = getSkillStatisticModifier(player, "expertise_faction_cost_bonus");
+-        if (expertiseFactionCostBonus > 3)
+-        {
+-            expertiseFactionCostBonus = 3;
+-        }
+-        mod = mod - (expertiseFactionCostBonus / 100);
+-        if (mod > 0)
++        if (mod > 0)
+         {
+             float cost = base_cost * mod;
+             return (int)cost;
+@@ -244,309 +244,282 @@ public class faction_perk extends script.base_script
+             }
+         }
+     }
+-    public static boolean displayAvailableFactionItemRanks(obj_id player, obj_id npc, int playerGcwRank, String playerGcwFaction) throws InterruptedException
+-    {
+-        if (playerGcwRank > 0)
+-        {
+-            String perksDatatable = "datatables/npc/faction_recruiter/perk_inventory/gcw_rewards.iff";
+-            int[] itemsPerRankList = 
+-            {
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0,
+-                0
+-            };
+-            int num_items = dataTableGetNumRows(perksDatatable);
+-            for (int i = 0; i < num_items; i++)
+-            {
+-                dictionary row = dataTableGetRow(perksDatatable, i);
+-                if (row != null && !row.isEmpty())
+-                {
+-                    int[] requiredRank = dataTableGetIntColumn(perksDatatable, "requiredGcwRank");
+-                    String[] requiredFaction = dataTableGetStringColumn(perksDatatable, "requiredFaction");
+-                    int row_requiredRank = row.getInt("requiredGcwRank");
+-                    String row_requiredFaction = row.getString("requiredFaction");
+-                    if (playerGcwRank >= row_requiredRank && (row_requiredFaction.equals(playerGcwFaction) || row_requiredFaction.equals("Either")))
+-                    {
+-                        String row_template = row.getString("template");
+-                        String row_name = row.getString("name");
+-                        int row_cost = row.getInt("cost");
+-                        boolean addItem = true;
+-                        String row_requiredClasses = row.getString("requiredClasses");
+-                        int row_requiredLevel = row.getInt("requiredLevel");
+-                        String row_requiredSkill = row.getString("requiredSkill");
+-                        if (row_template.startsWith("object/draft_schematic"))
+-                        {
+-                            if (row_name == null || row_name.length() == 0)
+-                            {
+-                                string_id nameId = getProductNameFromSchematic(row_template);
+-                                if (nameId != null)
+-                                {
+-                                    row_name = "@" + nameId;
+-                                }
+-                            }
+-                            if (hasSchematic(player, row_template))
+-                            {
+-                                addItem = false;
+-                            }
+-                        }
+-                        if (row_name == null || row_name.length() == 0)
+-                        {
+-                            string_id nameId = getNameFromTemplate(row_template);
+-                            if (nameId != null)
+-                            {
+-                                row_name = "@" + nameId;
+-                            }
+-                        }
+-                        if (row_requiredClasses != null && row_requiredClasses.length() > 0)
+-                        {
+-                            addItem = utils.testItemClassRequirements(player, row_requiredClasses, true);
+-                        }
+-                        if (row_requiredLevel > 1)
+-                        {
+-                            if (getLevel(player) < row_requiredLevel)
+-                            {
+-                                addItem = false;
+-                            }
+-                        }
+-                        if (row_requiredSkill != null && row_requiredSkill.length() > 0)
+-                        {
+-                            addItem = hasSkill(player, row_requiredSkill);
+-                        }
+-                        if (row_template.startsWith("static:"))
+-                        {
+-                            java.util.StringTokenizer st = new java.util.StringTokenizer(row_template, ":");
+-                            if (st.countTokens() == 2)
+-                            {
+-                                st.nextToken();
+-                                String itemName = st.nextToken();
+-                                if (static_item.isUniqueStaticItem(itemName))
+-                                {
+-                                    if (!static_item.canCreateUniqueStaticItem(player, itemName))
+-                                    {
+-                                        addItem = false;
+-                                    }
+-                                }
+-                            }
+-                        }
+-                        if (addItem)
+-                        {
+-                            itemsPerRankList[row_requiredRank] = itemsPerRankList[row_requiredRank] + 1;
+-                        }
+-                    }
+-                }
+-            }
+-            String scriptvar_path = "recruiter.item_rank." + player;
+-            Vector rankList = new Vector();
+-            rankList.setSize(0);
+-            for (int i = playerGcwRank; i > 0; i--)
+-            {
+-                String text = "@gcw_rank:" + toLower(playerGcwFaction) + "_rank" + i;
+-                if (itemsPerRankList[i] > 0)
+-                {
+-                    rankList = utils.addElement(rankList, text);
+-                }
+-                else 
+-                {
+-                    string_id contrastText_sid = new string_id("faction_recruiter", "rank_list_empty");
+-                    prose_package pp = prose.getPackage(contrastText_sid);
+-                    prose.setTO(pp, text);
+-                    rankList = utils.addElement(rankList, "\0" + packOutOfBandProsePackage(null, pp));
+-                }
+-            }
+-            if (rankList != null && rankList.size() > 0)
+-            {
+-                String prompt = getString(new string_id("faction_recruiter", "select_item_rank"));
+-                int pid = sui.listbox(npc, player, prompt, sui.OK_CANCEL, "@faction_recruiter:faction_purchase_rank", rankList, "msgFactionItemRankSelected");
+-                if (pid > -1)
+-                {
+-                    utils.setScriptVar(npc, scriptvar_path + ".pid", pid);
+-                    return true;
+-                }
+-            }
+-        }
+-        return false;
+-    }
+-    public static boolean displayItemPurchaseSUI(obj_id player, int rank, String faction, obj_id objNPC) throws InterruptedException
+-    {
+-        return displayItemPurchaseSUI(player, rank, faction, 1.0f, objNPC);
+-    }
+-    public static boolean displayItemPurchaseSUI(obj_id player, int rank, String faction) throws InterruptedException
+-    {
+-        return displayItemPurchaseSUI(player, rank, faction, 1.0f);
+-    }
+-    public static boolean displayItemPurchaseSUI(obj_id player, int rank, String faction, float systemMultiplier) throws InterruptedException
+-    {
+-        return displayItemPurchaseSUI(player, rank, faction, systemMultiplier, null);
+-    }
+-    public static boolean displayItemPurchaseSUI(obj_id player, int rank, String faction, float systemMultiplier, obj_id objRecruiter) throws InterruptedException
+-    {
+-        obj_id self = getSelf();
+-        if (player == null || player == obj_id.NULL_ID)
+-        {
+-            return false;
+-        }
+-        String scriptvar_path = "recruiter.item_purchase." + player;
+-        if (utils.hasScriptVar(self, scriptvar_path + ".pid"))
+-        {
+-            int oldpid = utils.getIntScriptVar(self, scriptvar_path + ".pid");
+-            sui.closeSUI(player, oldpid);
+-            utils.removeScriptVar(self, scriptvar_path + ".pid");
+-            utils.removeBatchScriptVar(self, scriptvar_path + ".template");
+-            utils.removeBatchScriptVar(self, scriptvar_path + ".item_names");
+-            utils.removeScriptVar(self, scriptvar_path + ".rank");
+-            utils.removeScriptVar(self, scriptvar_path + ".faction");
+-        }
+-        int playerGcwRank = pvpGetCurrentGcwRank(player);
+-        int playerFactionId = pvpGetAlignedFaction(player);
+-        String playerGcwFaction = factions.getFactionNameByHashCode(playerFactionId);
+-        if (playerGcwRank < rank || !playerGcwFaction.equals(faction))
+-        {
+-            return false;
+-        }
+-        String perksDatatable = "datatables/npc/faction_recruiter/perk_inventory/gcw_rewards.iff";
+-        Vector items = new Vector();
+-        items.setSize(0);
+-        Vector templates = new Vector();
+-        templates.setSize(0);
+-        int num_items = dataTableGetNumRows(perksDatatable);
+-        for (int i = 0; i < num_items; i++)
+-        {
+-            dictionary row = dataTableGetRow(perksDatatable, i);
+-            if (row != null && !row.isEmpty())
+-            {
+-                int[] requiredRank = dataTableGetIntColumn(perksDatatable, "requiredGcwRank");
+-                String[] requiredFaction = dataTableGetStringColumn(perksDatatable, "requiredFaction");
+-                int row_requiredRank = row.getInt("requiredGcwRank");
+-                String row_requiredFaction = row.getString("requiredFaction");
+-                if (row_requiredRank == rank && (row_requiredFaction.equals(faction) || row_requiredFaction.equals("Either")))
+-                {
+-                    String row_template = row.getString("template");
+-                    String row_name = row.getString("name");
+-                    int row_cost = row.getInt("cost");
+-                    boolean addItem = true;
+-                    String row_requiredClasses = row.getString("requiredClasses");
+-                    int row_requiredLevel = row.getInt("requiredLevel");
+-                    String row_requiredSkill = row.getString("requiredSkill");
+-                    if (row_template.startsWith("object/draft_schematic"))
+-                    {
+-                        if (row_name == null || row_name.length() == 0)
+-                        {
+-                            string_id nameId = getProductNameFromSchematic(row_template);
+-                            if (nameId != null)
+-                            {
+-                                row_name = "@" + nameId;
+-                            }
+-                        }
+-                        if (hasSchematic(player, row_template))
+-                        {
+-                            addItem = false;
+-                        }
+-                    }
+-                    if (row_name == null || row_name.length() == 0)
+-                    {
+-                        string_id nameId = getNameFromTemplate(row_template);
+-                        if (nameId != null)
+-                        {
+-                            row_name = "@" + nameId;
+-                        }
+-                    }
+-                    if (row_requiredClasses != null && row_requiredClasses.length() > 0)
+-                    {
+-                        addItem = utils.testItemClassRequirements(player, row_requiredClasses, true);
+-                    }
+-                    if (row_requiredLevel > 1)
+-                    {
+-                        if (getLevel(player) < row_requiredLevel)
+-                        {
+-                            addItem = false;
+-                        }
+-                    }
+-                    if (row_requiredSkill != null && row_requiredSkill.length() > 0)
+-                    {
+-                        addItem = hasSkill(player, row_requiredSkill);
+-                    }
+-                    if (row_template.startsWith("static:"))
+-                    {
+-                        java.util.StringTokenizer st = new java.util.StringTokenizer(row_template, ":");
+-                        if (st.countTokens() == 2)
+-                        {
+-                            st.nextToken();
+-                            String itemName = st.nextToken();
+-                            if (static_item.isUniqueStaticItem(itemName))
+-                            {
+-                                if (!static_item.canCreateUniqueStaticItem(player, itemName))
+-                                {
+-                                    addItem = false;
+-                                }
+-                            }
+-                        }
+-                    }
+-                    if (addItem)
+-                    {
+-                        int cost = faction_perk.prejudicePerkCost(player, faction.toLowerCase(), row_cost);
+-                        if (cost > 0)
+-                        {
+-                            if (isIdValid(objRecruiter))
+-                            {
+-                                float fltCost = cost;
+-                                fltCost = faction_perk.getModifiedGCWCost(fltCost, objRecruiter, faction);
+-                                cost = (int)(fltCost);
+-                            }
+-                            cost *= systemMultiplier;
+-                            items = utils.addElement(items, row_name + " (Cost: " + cost + ")");
+-                            templates = utils.addElement(templates, row_template);
+-                        }
+-                    }
+-                }
+-            }
+-        }
+-        String rankTitle = "@gcw_rank:" + toLower(playerGcwFaction) + "_rank" + rank;
+-        if (items == null || items.size() < 1)
+-        {
+-            faction_perk.displayAvailableFactionItemRanks(player, self, playerGcwRank, playerGcwFaction);
+-            prose_package pp = prose.getPackage(faction_perk.SID_NO_ITEMS_AVAILABLE, rankTitle);
+-            sendSystemMessageProse(player, pp);
+-            return false;
+-        }
+-        float totalMultiplier = 1.0f;
+-        if (!factions.isFactionWinning(faction))
+-        {
+-            totalMultiplier *= faction_perk.FACTION_LOSING_COST_MODIFIER;
+-        }
+-        if (systemMultiplier != 1.0f)
+-        {
+-            totalMultiplier *= systemMultiplier;
+-        }
+-        String prompt = getString(new string_id("faction_recruiter", "select_item_purchase"));
+-        if (totalMultiplier != 1.0f)
+-        {
+-            int delta = (int)((totalMultiplier - 1.0f) * 100);
+-            prompt += "\n\nCost modifier at this time: " + delta + "%";
+-        }
+-        String myHandler = "msgFactionItemPurchaseSelected";
+-        int pid = sui.listbox(self, player, prompt, sui.OK_CANCEL_REFRESH, rankTitle, items, myHandler, false, false);
+-        if (pid > -1)
+-        {
+-            sui.listboxUseOtherButton(pid, "Back");
+-            sui.showSUIPage(pid);
+-            utils.setScriptVar(self, scriptvar_path + ".pid", pid);
+-            utils.setBatchScriptVar(self, scriptvar_path + ".template", templates);
+-            utils.setBatchScriptVar(self, scriptvar_path + ".item_names", items);
+-            utils.setScriptVar(self, scriptvar_path + ".rank", rank);
+-            utils.setScriptVar(self, scriptvar_path + ".faction", faction);
+-            return true;
+-        }
+-        return false;
++    public static boolean displayAvailableFactionItemRanks(obj_id player, obj_id npc, int playerGcwRank, String playerGcwFaction) throws InterruptedException
++    {
++        if (!isValidPrecuFactionPurchase(player, playerGcwFaction) || !isIdValid(npc))
++        {
++            return false;
++        }
++        String scriptvar_path = "recruiter.item_rank." + player;
++        if (utils.hasScriptVar(npc, scriptvar_path + ".pid"))
++        {
++            sui.closeSUI(player, utils.getIntScriptVar(npc, scriptvar_path + ".pid"));
++        }
++        utils.removeScriptVar(npc, scriptvar_path + ".pid");
++        utils.removeBatchScriptVar(npc, scriptvar_path + ".categories");
++        Vector categoryKeys = new Vector();
++        categoryKeys.setSize(0);
++        Vector categoryNames = new Vector();
++        categoryNames.setSize(0);
++        String[] candidates = 
++        {
++            PRECU_CATEGORY_FURNITURE,
++            PRECU_CATEGORY_WEAPONS_ARMOR,
++            PRECU_CATEGORY_SCHEMATICS,
++            PRECU_CATEGORY_INSTALLATIONS,
++            PRECU_CATEGORY_UNIFORMS,
++            PRECU_CATEGORY_HIRELINGS
++        };
++        boolean declared = factions.isDeclared(player);
++        for (String category : candidates)
++        {
++            if ((category.equals(PRECU_CATEGORY_INSTALLATIONS) || category.equals(PRECU_CATEGORY_UNIFORMS) || category.equals(PRECU_CATEGORY_HIRELINGS)) && !declared)
++            {
++                continue;
++            }
++            if (category.equals(PRECU_CATEGORY_UNIFORMS) && !toLower(playerGcwFaction).equals("imperial"))
++            {
++                continue;
++            }
++            if (hasAvailablePrecuFactionItems(player, playerGcwFaction, category))
++            {
++                categoryKeys = utils.addElement(categoryKeys, category);
++                categoryNames = utils.addElement(categoryNames, getPrecuCategoryTitle(category));
++            }
++        }
++        if (categoryKeys == null || categoryKeys.size() == 0)
++        {
++            sendSystemMessage(player, SID_NO_ITEMS_AVAILABLE);
++            return false;
++        }
++        String[] storedCategories = new String[categoryKeys.size()];
++        categoryKeys.toArray(storedCategories);
++        int pid = sui.listbox(npc, player, "@faction_recruiter:select_item_purchase", sui.OK_CANCEL, "@faction_recruiter:faction_purchase", categoryNames, "msgFactionItemRankSelected");
++        if (pid < 0)
++        {
++            return false;
++        }
++        utils.setScriptVar(npc, scriptvar_path + ".pid", pid);
++        utils.setBatchScriptVar(npc, scriptvar_path + ".categories", storedCategories);
++        return true;
++    }
++
++    public static boolean isValidPrecuFactionPurchase(obj_id player, String faction) throws InterruptedException
++    {
++        if (!isIdValid(player) || faction == null || faction.equals("") || pvpGetType(player) == PVPTYPE_NEUTRAL)
++        {
++            return false;
++        }
++        String alignedFaction = factions.getFactionNameByHashCode(pvpGetAlignedFaction(player));
++        return alignedFaction != null && toLower(alignedFaction).equals(toLower(faction)) && (toLower(faction).equals("rebel") || toLower(faction).equals("imperial"));
++    }
++
++    public static String[] getPrecuCategoryTables(String faction, String category) throws InterruptedException
++    {
++        String base = TBL_PERK_INVENTORY_BASE + toLower(faction) + "/";
++        if (category.equals(PRECU_CATEGORY_FURNITURE))
++        {
++            return new String[] { base + "furniture.iff" };
++        }
++        if (category.equals(PRECU_CATEGORY_WEAPONS_ARMOR))
++        {
++            return new String[] { base + "weapon.iff" };
++        }
++        if (category.equals(PRECU_CATEGORY_INSTALLATIONS))
++        {
++            return new String[] { base + "installation.iff" };
++        }
++        if (category.equals(PRECU_CATEGORY_UNIFORMS))
++        {
++            return new String[] { base + "uniform.iff" };
++        }
++        if (category.equals(PRECU_CATEGORY_HIRELINGS))
++        {
++            return new String[] { base + "hireling.iff" };
++        }
++        if (category.equals(PRECU_CATEGORY_SCHEMATICS))
++        {
++            return new String[] { base + "schematic.iff" };
++        }
++        return new String[0];
++    }
++
++    public static String getPrecuCategoryTitle(String category) throws InterruptedException
++    {
++        if (category.equals(PRECU_CATEGORY_FURNITURE))
++        {
++            return "@faction_recruiter:option_purchase_furniture";
++        }
++        if (category.equals(PRECU_CATEGORY_WEAPONS_ARMOR))
++        {
++            return "@faction_recruiter:option_purchase_weapons_armor";
++        }
++        if (category.equals(PRECU_CATEGORY_INSTALLATIONS))
++        {
++            return "@faction_recruiter:option_purchase_installation";
++        }
++        if (category.equals(PRECU_CATEGORY_UNIFORMS))
++        {
++            return "@faction_recruiter:option_purchase_uniforms";
++        }
++        if (category.equals(PRECU_CATEGORY_HIRELINGS))
++        {
++            return "@faction_recruiter:option_hirelings";
++        }
++        return "@faction_recruiter:option_purchase_schematics";
++    }
++
++    public static boolean hasAvailablePrecuFactionItems(obj_id player, String faction, String category) throws InterruptedException
++    {
++        String[] tables = getPrecuCategoryTables(faction, category);
++        for (String table : tables)
++        {
++            int count = dataTableGetNumRows(table);
++            for (int rowIndex = 0; rowIndex < count; rowIndex++)
++            {
++                dictionary row = dataTableGetRow(table, rowIndex);
++                if (isAvailablePrecuFactionItem(player, row))
++                {
++                    return true;
++                }
++            }
++        }
++        return false;
++    }
++
++    public static boolean isAvailablePrecuFactionItem(obj_id player, dictionary row) throws InterruptedException
++    {
++        if (row == null || row.isEmpty())
++        {
++            return false;
++        }
++        String template = row.getString("template");
++        if (template == null || template.equals("") || row.getInt("cost") < 1)
++        {
++            return false;
++        }
++        if (row.getInt("declared") == 1 && !factions.isDeclared(player))
++        {
++            return false;
++        }
++        return !template.startsWith("object/draft_schematic") || !hasSchematic(player, template);
++    }
++
++    public static String getPrecuFactionItemName(dictionary row) throws InterruptedException
++    {
++        String name = row.getString("name");
++        String template = row.getString("template");
++        if ((name == null || name.equals("")) && template.startsWith("object/draft_schematic"))
++        {
++            string_id nameId = getProductNameFromSchematic(template);
++            if (nameId != null)
++            {
++                name = "@" + nameId;
++            }
++        }
++        if (name == null || name.equals(""))
++        {
++            string_id nameId = getNameFromTemplate(template);
++            if (nameId != null)
++            {
++                name = "@" + nameId;
++            }
++        }
++        return (name == null || name.equals("")) ? template : name;
++    }
++
++    public static boolean displayItemPurchaseSUI(obj_id player, int ignoredRank, String faction, obj_id objNPC) throws InterruptedException
++    {
++        return displayAvailableFactionItemRanks(player, isIdValid(objNPC) ? objNPC : getSelf(), pvpGetCurrentGcwRank(player), faction);
++    }
++    public static boolean displayItemPurchaseSUI(obj_id player, int ignoredRank, String faction) throws InterruptedException
++    {
++        return displayAvailableFactionItemRanks(player, getSelf(), pvpGetCurrentGcwRank(player), faction);
++    }
++    public static boolean displayItemPurchaseSUI(obj_id player, int ignoredRank, String faction, float ignoredMultiplier) throws InterruptedException
++    {
++        return displayAvailableFactionItemRanks(player, getSelf(), pvpGetCurrentGcwRank(player), faction);
++    }
++    public static boolean displayItemPurchaseSUI(obj_id player, int ignoredRank, String faction, float ignoredMultiplier, obj_id objNPC) throws InterruptedException
++    {
++        return displayAvailableFactionItemRanks(player, isIdValid(objNPC) ? objNPC : getSelf(), pvpGetCurrentGcwRank(player), faction);
++    }
++    public static boolean displayItemPurchaseSUI(obj_id player, String category, String faction, obj_id objRecruiter) throws InterruptedException
++    {
++        obj_id self = isIdValid(objRecruiter) ? objRecruiter : getSelf();
++        if (!isValidPrecuFactionPurchase(player, faction))
++        {
++            return false;
++        }
++        String[] tables = getPrecuCategoryTables(faction, category);
++        if (tables.length == 0)
++        {
++            return false;
++        }
++        String scriptvar_path = "recruiter.item_purchase." + player;
++        if (utils.hasScriptVar(self, scriptvar_path + ".pid"))
++        {
++            sui.closeSUI(player, utils.getIntScriptVar(self, scriptvar_path + ".pid"));
++        }
++        utils.removeScriptVar(self, scriptvar_path + ".pid");
++        utils.removeBatchScriptVar(self, scriptvar_path + ".template");
++        utils.removeBatchScriptVar(self, scriptvar_path + ".table");
++        utils.removeBatchScriptVar(self, scriptvar_path + ".item_names");
++        utils.removeScriptVar(self, scriptvar_path + ".category");
++        utils.removeScriptVar(self, scriptvar_path + ".faction");
++        Vector items = new Vector();
++        items.setSize(0);
++        Vector templates = new Vector();
++        templates.setSize(0);
++        Vector itemTables = new Vector();
++        itemTables.setSize(0);
++        for (String table : tables)
++        {
++            int num_items = dataTableGetNumRows(table);
++            for (int i = 0; i < num_items; i++)
++            {
++                dictionary row = dataTableGetRow(table, i);
++                if (isAvailablePrecuFactionItem(player, row))
++                {
++                    String row_template = row.getString("template");
++                    String row_name = getPrecuFactionItemName(row);
++                    int cost = prejudicePerkCost(player, toLower(faction), row.getInt("cost"));
++                    if (cost < 1)
++                    {
++                        cost = row.getInt("cost");
++                    }
++                    items = utils.addElement(items, row_name + " (Faction Points: " + cost + ")");
++                    templates = utils.addElement(templates, row_template);
++                    itemTables = utils.addElement(itemTables, table);
++                }
++            }
++        }
++        if (items == null || items.size() < 1)
++        {
++            sendSystemMessage(player, faction_perk.SID_NO_ITEMS_AVAILABLE);
++            faction_perk.displayAvailableFactionItemRanks(player, self, pvpGetCurrentGcwRank(player), faction);
++            return false;
++        }
++        String[] storedTemplates = new String[templates.size()];
++        templates.toArray(storedTemplates);
++        String[] storedTables = new String[itemTables.size()];
++        itemTables.toArray(storedTables);
++        String[] storedNames = new String[items.size()];
++        items.toArray(storedNames);
++        int pid = sui.listbox(self, player, "@faction_recruiter:select_item_purchase", sui.OK_CANCEL_REFRESH, getPrecuCategoryTitle(category), items, "msgFactionItemPurchaseSelected", false, false);
++        if (pid > -1)
++        {
++            sui.listboxUseOtherButton(pid, "Back");
++            sui.showSUIPage(pid);
++            utils.setScriptVar(self, scriptvar_path + ".pid", pid);
++            utils.setBatchScriptVar(self, scriptvar_path + ".template", storedTemplates);
++            utils.setBatchScriptVar(self, scriptvar_path + ".table", storedTables);
++            utils.setBatchScriptVar(self, scriptvar_path + ".item_names", storedNames);
++            utils.setScriptVar(self, scriptvar_path + ".category", category);
++            utils.setScriptVar(self, scriptvar_path + ".faction", faction);
++            return true;
++        }
++        return false;
+     }
+     public static float getModifiedGCWCost(float fltCost, obj_id objNPC, String strFaction) throws InterruptedException
+     {
+@@ -579,8 +552,8 @@ public class faction_perk extends script.base_script
+     {
+         factionItemPurchased(params, 1.0f);
+     }
+-    public static void factionItemPurchased(dictionary params, float systemMultiplier) throws InterruptedException
+-    {
++    public static void factionItemPurchased(dictionary params, float systemMultiplier) throws InterruptedException
++    {
+         obj_id self = getSelf();
+         if (params == null || params.isEmpty())
+         {
+@@ -596,42 +569,36 @@ public class faction_perk extends script.base_script
+         {
+             return;
+         }
+-        int oldPid = utils.getIntScriptVar(self, scriptvar_path + ".pid");
+-        String[] available_items = utils.getStringBatchScriptVar(self, scriptvar_path + ".template");
+-        String[] item_names = utils.getStringBatchScriptVar(self, scriptvar_path + ".item_names");
+-        int rank = utils.getIntScriptVar(self, scriptvar_path + ".rank");
+-        String faction = utils.getStringScriptVar(self, scriptvar_path + ".faction");
+-        utils.removeScriptVar(self, scriptvar_path + ".pid");
+-        utils.removeBatchScriptVar(self, scriptvar_path + ".template");
+-        utils.removeBatchScriptVar(self, scriptvar_path + ".item_names");
+-        utils.removeScriptVar(self, scriptvar_path + ".rank");
+-        utils.removeScriptVar(self, scriptvar_path + ".faction");
+-        if (available_items == null || available_items.length == 0)
+-        {
+-            LOG("LOG_CHANNEL", "faction_recruiter::msgFactionItemPurchaseSelected -- the item template list is null.");
+-            return;
+-        }
+-        if (faction == null || faction.equals(""))
+-        {
+-            int faction_id = pvpGetAlignedFaction(self);
+-            faction = toLower(factions.getFactionNameByHashCode(faction_id));
+-        }
+-        int playerGcwRank = pvpGetCurrentGcwRank(player);
+-        int playerFactionId = pvpGetAlignedFaction(player);
+-        String playerGcwFaction = factions.getFactionNameByHashCode(playerFactionId);
+-        if (playerGcwRank < rank || !playerGcwFaction.equals(faction))
+-        {
+-            return;
+-        }
++        int oldPid = utils.getIntScriptVar(self, scriptvar_path + ".pid");
++        String[] available_items = utils.getStringBatchScriptVar(self, scriptvar_path + ".template");
++        String[] available_tables = utils.getStringBatchScriptVar(self, scriptvar_path + ".table");
++        String[] item_names = utils.getStringBatchScriptVar(self, scriptvar_path + ".item_names");
++        String category = utils.getStringScriptVar(self, scriptvar_path + ".category");
++        String faction = utils.getStringScriptVar(self, scriptvar_path + ".faction");
++        utils.removeScriptVar(self, scriptvar_path + ".pid");
++        utils.removeBatchScriptVar(self, scriptvar_path + ".template");
++        utils.removeBatchScriptVar(self, scriptvar_path + ".table");
++        utils.removeBatchScriptVar(self, scriptvar_path + ".item_names");
++        utils.removeScriptVar(self, scriptvar_path + ".category");
++        utils.removeScriptVar(self, scriptvar_path + ".faction");
++        if (available_items == null || available_tables == null || item_names == null || available_items.length == 0 || available_items.length != available_tables.length || available_items.length != item_names.length)
++        {
++            LOG("LOG_CHANNEL", "faction_recruiter::msgFactionItemPurchaseSelected -- the item template list is null.");
++            return;
++        }
++        if (!isValidPrecuFactionPurchase(player, faction))
++        {
++            return;
++        }
+         int button = sui.getIntButtonPressed(params);
+         if (button == sui.BP_CANCEL)
+         {
+             return;
+         }
+-        if (button == sui.BP_REVERT)
+-        {
+-            faction_perk.displayAvailableFactionItemRanks(player, self, playerGcwRank, playerGcwFaction);
+-            return;
++        if (button == sui.BP_REVERT)
++        {
++            faction_perk.displayAvailableFactionItemRanks(player, self, pvpGetCurrentGcwRank(player), faction);
++            return;
+         }
+         int row_selected = sui.getListboxSelectedRow(params);
+         if (row_selected < 0)
+@@ -642,163 +609,164 @@ public class faction_perk extends script.base_script
+         {
+             return;
+         }
+-        String item_template = available_items[row_selected];
+-        if (item_template == null)
++        String item_template = available_items[row_selected];
++        String perksDatatable = available_tables[row_selected];
++        if (item_template == null)
+         {
+             LOG("LOG_CHANNEL", "faction_recruiter::msgFactionItemPurchaseSelected -- the item template selected by " + self + " is null.");
+             return;
+         }
+-        String perksDatatable = "datatables/npc/faction_recruiter/perk_inventory/gcw_rewards.iff";
+-        int idx = dataTableSearchColumnForString(item_template, "template", perksDatatable);
++        if (!isPrecuCategoryTable(perksDatatable, faction, category))
++        {
++            return;
++        }
++        int idx = dataTableSearchColumnForString(item_template, "template", perksDatatable);
+         if (idx == -1)
+         {
+             LOG("LOG_CHANNEL", "faction_recruiter::msgFactionItemPurchaseSelected -- cannot find " + item_template + " in the perk inventory datatable.");
+             return;
+         }
+-        dictionary row = dataTableGetRow(perksDatatable, idx);
+-        String name = row.getString("name");
+-        int base_cost = row.getInt("cost");
+-        int declared = row.getInt("declared");
+-        String templateName = toLower(item_template);
+-        obj_id inv = getObjectInSlot(player, "inventory");
+-        if (inv == null || inv == obj_id.NULL_ID)
+-        {
+-            LOG("LOG_CHANNEL", "faction_recruiter::msgFactionTrainingAmountSelected --  " + self + "'s inventory object is null.");
+-            return;
+-        }
+-        int cost = faction_perk.prejudicePerkCost(player, faction, base_cost);
+-        if (cost < 0)
+-        {
+-            cost = base_cost;
+-        }
+-        float fltCost = cost;
+-        fltCost = faction_perk.getModifiedGCWCost(fltCost, self, faction);
+-        cost = (int)(fltCost);
+-        cost *= systemMultiplier;
+-        if (!money.hasFunds(player, money.MT_TOTAL, cost))
+-        {
+-            String itemPurchased = item_names[row_selected];
+-            prose_package pp = prose.getPackage(faction_perk.SID_NOT_ENOUGH_CREDITS, name);
+-            sendSystemMessageProse(player, pp);
+-        }
+-        else 
+-        {
+-            if (item_template.startsWith("object/draft_schematic"))
+-            {
+-                if (hasSchematic(player, item_template))
+-                {
+-                    faction_perk.displayItemPurchaseSUI(player, rank, playerGcwFaction, self);
+-                    sendSystemMessage(player, faction_perk.SID_SCHEMATIC_DUPLICATE);
+-                    return;
+-                }
+-                utils.moneyOutMetric(player, "GCW_REWARDS", cost);
+-                money.requestPayment(player, self, cost, "pass_fail", null, true);
+-                CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + " is attempting to purchase schematic: " + item_template);
+-                CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + "'s purchase cost: " + cost);
+-                int uses = row.getInt("uses");
+-                if (uses > 0)
+-                {
+-                    if (!temp_schematic.grant(player, item_template, uses))
+-                    {
+-                        LOG("LOG_CHANNEL", "faction_recruiter::msgFactionTrainingAmountSelected --  unable to create " + item_template + " for " + self);
+-                        CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + "'s purchase of " + item_template + " has failed!");
+-                        return;
+-                    }
+-                }
+-                else 
+-                {
+-                    if (!grantSchematic(player, item_template))
+-                    {
+-                        LOG("LOG_CHANNEL", "faction_recruiter::msgFactionTrainingAmountSelected --  unable to create " + item_template + " for " + self);
+-                        CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + "'s purchase of " + item_template + " has failed!");
+-                        return;
+-                    }
+-                }
+-                CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + " has purchased schematic: " + item_template);
+-                logBalance("perkPurchase;" + getGameTime() + ";" + faction + ";schematic;" + item_template + ";" + cost);
+-                sendSystemMessage(player, faction_perk.SID_SCHEMATIC_PURCHASED);
+-                LOG("LOG_CHANNEL", "faction_recruiter::msgFactionItemPurchaseSelected -- " + item_template + " order purchased for " + self);
+-            }
+-            else if (templateName.startsWith("stealth:"))
+-            {
+-                java.util.StringTokenizer st = new java.util.StringTokenizer(templateName, ":");
+-                if (st.countTokens() == 4)
+-                {
+-                    String waste = st.nextToken();
+-                    String object = st.nextToken();
+-                    int level = utils.stringToInt(st.nextToken());
+-                    int count = utils.stringToInt(st.nextToken());
+-                    int free = getVolumeFree(inv);
+-                    if (free < count)
+-                    {
+-                        prose_package pp = prose.getPackage(new string_id("spam", "no_room_inventory"), count);
+-                        sendSystemMessageProse(player, pp);
+-                        return;
+-                    }
+-                    stealth.createRangerLoot(level, object, inv, count);
+-                    utils.moneyOutMetric(player, "GCW_REWARDS", cost);
+-                    money.requestPayment(player, self, cost, "pass_fail", null, true);
+-                }
+-            }
+-            else 
+-            {
+-                int free_space = getVolumeFree(inv);
+-                if (free_space < 1)
+-                {
+-                    sendSystemMessage(player, faction_perk.SID_INVENTORY_FULL);
+-                    return;
+-                }
+-                utils.moneyOutMetric(player, "GCW_REWARDS", cost);
+-                money.requestPayment(player, self, cost, "pass_fail", null, true);
+-                CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + " is attempting to purchase item: " + item_template);
+-                CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + "'s purchase cost: " + cost);
+-                obj_id item = null;
+-                if (templateName.startsWith("static:"))
+-                {
+-                    java.util.StringTokenizer st = new java.util.StringTokenizer(item_template, ":");
+-                    if (st.countTokens() == 2)
+-                    {
+-                        st.nextToken();
+-                        String itemName = st.nextToken();
+-                        if (static_item.isUniqueStaticItem(itemName))
+-                        {
+-                            if (static_item.canCreateUniqueStaticItem(player, itemName))
+-                            {
+-                                item = static_item.createNewItemFunction(itemName, inv);
+-                            }
+-                        }
+-                        else 
+-                        {
+-                            item = static_item.createNewItemFunction(itemName, inv);
+-                        }
+-                    }
+-                }
+-                else 
+-                {
+-                    item = weapons.createPossibleWeapon(item_template, inv, 0.8f);
+-                }
+-                if (!isIdValid(item))
+-                {
+-                    LOG("LOG_CHANNEL", "faction_recruiter::msgFactionTrainingAmountSelected --  unable to create " + item_template + " for " + self);
+-                    CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + "'s purchase of " + item_template + " has failed!");
+-                    return;
+-                }
+-                CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + " has purchased (" + item + ")" + getName(item));
+-                logBalance("perkPurchase;" + getGameTime() + ";" + faction + ";item;" + item_template + ";" + cost);
+-                setObjVar(item, faction_perk.VAR_FACTION, faction);
+-                if (declared == 1)
+-                {
+-                    setObjVar(item, faction_perk.VAR_DECLARED, 1);
+-                }
+-                attachScript(item, faction_perk.SCRIPT_FACTION_ITEM);
+-                prose_package pp = prose.getPackage(faction_perk.SID_ITEM_PURCHASED, player, item);
+-                sendSystemMessageProse(player, pp);
+-                LOG("LOG_CHANNEL", "faction_recruiter::msgFactionItemPurchaseSelected -- " + item + " purchased for " + self);
+-            }
+-        }
+-        faction_perk.displayItemPurchaseSUI(player, rank, playerGcwFaction, self);
+-        return;
+-    }
++        dictionary row = dataTableGetRow(perksDatatable, idx);
++        if (!isAvailablePrecuFactionItem(player, row))
++        {
++            return;
++        }
++        String name = row.getString("name");
++        int base_cost = row.getInt("cost");
++        int declared = row.getInt("declared");
++        int cost = faction_perk.prejudicePerkCost(player, faction, base_cost);
++        if (cost < 0)
++        {
++            cost = base_cost;
++        }
++        float standing = factions.getFactionStanding(player, faction);
++        if (standing < cost + factions.FACTION_RATING_DECLARABLE_MIN)
++        {
++            prose_package pp = prose.getPackage(faction_perk.SID_NOT_ENOUGH_STANDING_SPEND);
++            prose.setDI(pp, (int)factions.FACTION_RATING_DECLARABLE_MIN);
++            prose.setTO(pp, faction);
++            sendSystemMessageProse(player, pp);
++            return;
++        }
++        boolean granted = false;
++        boolean temporarySchematic = false;
++        obj_id grantedObject = obj_id.NULL_ID;
++        if (category.equals(PRECU_CATEGORY_SCHEMATICS))
++        {
++            if (hasSchematic(player, item_template))
++            {
++                sendSystemMessage(player, faction_perk.SID_SCHEMATIC_DUPLICATE);
++                return;
++            }
++            int uses = row.getInt("uses");
++            temporarySchematic = uses > 0;
++            granted = temporarySchematic ? temp_schematic.grant(player, item_template, uses) : grantSchematic(player, item_template);
++        }
++        else if (category.equals(PRECU_CATEGORY_HIRELINGS))
++        {
++            obj_id datapad = utils.getPlayerDatapad(player);
++            if (!isIdValid(datapad) || getVolumeFree(datapad) < 1)
++            {
++                sendSystemMessage(player, faction_perk.SID_DATAPAD_FULL);
++                return;
++            }
++            if (pet_lib.hasMaxStoredPetsOfType(player, pet_lib.PET_TYPE_NPC))
++            {
++                sendSystemMessage(player, faction_perk.SID_TOO_MANY_HIRELINGS);
++                return;
++            }
++            grantedObject = createObject(pet_lib.PET_CTRL_DEVICE_TEMPLATE, datapad, "");
++            if (isIdValid(grantedObject))
++            {
++                setObjVar(grantedObject, "pet.creatureName", item_template);
++                setObjVar(grantedObject, "ai.pet.type", pet_lib.PET_TYPE_NPC);
++                setObjVar(grantedObject, faction_perk.VAR_FACTION, faction);
++                setObjVar(grantedObject, faction_perk.VAR_FACTION_HIRELING, 1);
++                setName(grantedObject, new string_id("mob/creature_names", item_template));
++                attachScript(grantedObject, "ai.pet_control_device");
++                granted = true;
++            }
++        }
++        else
++        {
++            obj_id inv = getObjectInSlot(player, "inventory");
++            if (!isIdValid(inv) || getVolumeFree(inv) < 1)
++            {
++                sendSystemMessage(player, faction_perk.SID_INVENTORY_FULL);
++                return;
++            }
++            grantedObject = weapons.createPossibleWeapon(item_template, inv, 0.8f);
++            if (isIdValid(grantedObject))
++            {
++                setObjVar(grantedObject, faction_perk.VAR_FACTION, faction);
++                if (declared == 1)
++                {
++                    setObjVar(grantedObject, faction_perk.VAR_DECLARED, 1);
++                }
++                attachScript(grantedObject, faction_perk.SCRIPT_FACTION_ITEM);
++                granted = true;
++            }
++        }
++        if (!granted)
++        {
++            CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + " failed to create PRE-CU faction perk " + item_template);
++            return;
++        }
++        if (!factions.addUnmodifiedFactionStanding(player, faction, -cost, false))
++        {
++            if (category.equals(PRECU_CATEGORY_SCHEMATICS))
++            {
++                if (temporarySchematic)
++                {
++                    temp_schematic.revoke(player, item_template);
++                }
++                else
++                {
++                    revokeSchematic(player, item_template);
++                }
++            }
++            else if (isIdValid(grantedObject))
++            {
++                destroyObject(grantedObject);
++            }
++            return;
++        }
++        CustomerServiceLog("faction_perk", "(" + player + ")" + getName(player) + " purchased PRE-CU faction perk " + item_template + " for " + cost + " faction points");
++        logBalance("precuFactionPerkPurchase;" + getGameTime() + ";" + faction + ";" + category + ";" + item_template + ";" + cost);
++        if (category.equals(PRECU_CATEGORY_SCHEMATICS))
++        {
++            sendSystemMessage(player, faction_perk.SID_SCHEMATIC_PURCHASED);
++        }
++        else if (category.equals(PRECU_CATEGORY_HIRELINGS))
++        {
++            prose_package pp = prose.getPackage(faction_perk.SID_ACQUIRE_HIRELING);
++            prose.setTT(pp, new string_id("mob/creature_names", item_template));
++            sendSystemMessageProse(player, pp);
++        }
++        else
++        {
++            prose_package pp = prose.getPackage(faction_perk.SID_ITEM_PURCHASED, player, grantedObject);
++            sendSystemMessageProse(player, pp);
++        }
++        faction_perk.displayItemPurchaseSUI(player, category, faction, self);
++    }
++
++    public static boolean isPrecuCategoryTable(String table, String faction, String category) throws InterruptedException
++    {
++        if (table == null || faction == null || category == null)
++        {
++            return false;
++        }
++        String[] expectedTables = getPrecuCategoryTables(faction, category);
++        for (String expected : expectedTables)
++        {
++            if (expected.equals(table))
++            {
++                return true;
++            }
++        }
++        return false;
++    }
+     public static void applyFactionCostObjvarFromSchematic(obj_id craftedObject, obj_id manfSchematic) throws InterruptedException
+     {
+         if (!isIdValid(craftedObject) || !isIdValid(manfSchematic))
+diff --git a/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java b/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java
+index a6c1905..506d96f 100644
+--- a/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java
++++ b/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java
+@@ -152,30 +152,22 @@ public class faction_recruiter extends script.base_script
+             }
+             else 
+             {
+-                if (!hasScript(self, "systems.gcw.gcw_data_updater"))
+-                {
+-                    attachScript(self, "systems.gcw.gcw_data_updater");
+-                }
+-                String strScript = "conversation.faction_recruiter_" + toLower(faction);
++                if (!hasScript(self, "systems.gcw.gcw_data_updater"))
++                {
++                    attachScript(self, "systems.gcw.gcw_data_updater");
++                }
++                if (hasScript(self, "npc.vendor.vendor"))
++                {
++                    detachScript(self, "npc.vendor.vendor");
++                }
++                removeObjVar(self, "item.vendor.vendor_table");
++                String strScript = "conversation.faction_recruiter_" + toLower(faction);
+                 if (!hasScript(self, strScript))
+                 {
+                     attachScript(self, strScript);
+                 }
+                 pvpSetAlignedFaction(self, faction_id);
+                 pvpMakeDeclared(self);
+-                if (isInvulnerable(self))
+-                {
+-                    if (faction_id == getFactionId(factions.FACTION_REBEL))
+-                    {
+-                        setObjVar(self, "item.vendor.vendor_table", "gcw_rebel_recruiter_vendor");
+-                        attachScript(self, "npc.vendor.vendor");
+-                    }
+-                    else if (faction_id == getFactionId(factions.FACTION_IMPERIAL))
+-                    {
+-                        setObjVar(self, "item.vendor.vendor_table", "gcw_imperial_recruiter_vendor");
+-                        attachScript(self, "npc.vendor.vendor");
+-                    }
+-                }
+             }
+         }
+         requestPreloadCompleteTrigger(self);
+@@ -183,10 +175,15 @@ public class faction_recruiter extends script.base_script
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        if (!hasScript(self, "systems.gcw.gcw_data_updater"))
+-        {
+-            attachScript(self, "systems.gcw.gcw_data_updater");
+-        }
++        if (!hasScript(self, "systems.gcw.gcw_data_updater"))
++        {
++            attachScript(self, "systems.gcw.gcw_data_updater");
++        }
++        if (hasScript(self, "npc.vendor.vendor"))
++        {
++            detachScript(self, "npc.vendor.vendor");
++        }
++        removeObjVar(self, "item.vendor.vendor_table");
+         if (hasScript(self, "conversation.faction_recruiter_general"))
+         {
+             detachScript(self, "conversation.faction_recruiter_general");
+@@ -531,20 +528,25 @@ public class faction_recruiter extends script.base_script
+         int btn = sui.getIntButtonPressed(params);
+         int idx = sui.getListboxSelectedRow(params);
+         String scriptvar_path = "recruiter.item_rank." + player;
+-        String oldPidVar = scriptvar_path + ".pid";
+-        String ranksVar = scriptvar_path + ".ranks";
+-        if (utils.hasScriptVar(self, oldPidVar))
+-        {
+-            utils.removeScriptVar(self, oldPidVar);
+-        }
++        String oldPidVar = scriptvar_path + ".pid";
++        String categoriesVar = scriptvar_path + ".categories";
++        String[] categories = utils.getStringBatchScriptVar(self, categoriesVar);
++        if (utils.hasScriptVar(self, oldPidVar))
++        {
++            utils.removeScriptVar(self, oldPidVar);
++        }
++        utils.removeBatchScriptVar(self, categoriesVar);
+         if (btn == sui.BP_CANCEL)
+         {
+             return SCRIPT_CONTINUE;
+         }
+-        int rankSelected = pvpGetCurrentGcwRank(player) - idx;
+-        int playerFactionId = pvpGetAlignedFaction(player);
+-        String playerGcwFaction = factions.getFactionNameByHashCode(playerFactionId);
+-        faction_perk.displayItemPurchaseSUI(player, rankSelected, playerGcwFaction, self);
++        if (categories == null || idx < 0 || idx >= categories.length)
++        {
++            return SCRIPT_CONTINUE;
++        }
++        int playerFactionId = pvpGetAlignedFaction(player);
++        String playerGcwFaction = factions.getFactionNameByHashCode(playerFactionId);
++        faction_perk.displayItemPurchaseSUI(player, categories[idx], playerGcwFaction, self);
+         return SCRIPT_CONTINUE;
+     }
+     public int OnGiveItem(obj_id self, obj_id item, obj_id player) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/systems/camping/camp_controlpanel.java b/sku.0/sys.server/compiled/game/script/systems/camping/camp_controlpanel.java
+index 8b043fb..1cafed0 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/camping/camp_controlpanel.java
++++ b/sku.0/sys.server/compiled/game/script/systems/camping/camp_controlpanel.java
+@@ -10,7 +10,6 @@ public class camp_controlpanel extends script.base_script
+     public camp_controlpanel()
+     {
+     }
+-    public static final float FIELD_COST_MULTIPLER = 1.15f;
+     public static final string_id SID_MNU_DISBAND = new string_id("camp", "mnu_disband");
+     public static final string_id SID_MNU_STATUS = new string_id("camp", "mnu_status");
+     public static final string_id SID_MNU_WAYPOINT = new string_id("camp", "mnu_waypoint");
+@@ -18,12 +17,6 @@ public class camp_controlpanel extends script.base_script
+     public static final string_id SID_NO_GROUP = new string_id("camp", "waypoint_no_group");
+     public static final string_id SID_CAMP_UP = new string_id("camp", "waypoint_camp_up");
+     public static final string_id SID_WAYPOINT_SENT = new string_id("camp", "waypoint_sent");
+-    public static final string_id SID_SELECT_SUB_MENU = new string_id("camp", "select_sub_menu");
+-    public static final string_id SID_MNU_REQUISITION = new string_id("camp", "mnu_requisition");
+-    public static final string_id SID_MNU_REQUISITION_WPN = new string_id("camp", "mnu_requisition_wpn");
+-    public static final string_id SID_MNU_REQUISITION_INSTALLATION = new string_id("camp", "mnu_requisition_installation");
+-    public static final string_id SID_SUI_FIELD_REQ_TITLE = new string_id("camp", "sui_field_req_title");
+-    public static final string_id SID_SUI_FIELD_REQ_PROMPT = new string_id("camp", "sui_field_req_prompt");
+     public static final string_id SID_SUI_CAMP_STATUS_TITLE = new string_id("camp", "sui_camp_status_title");
+     public static final string_id SID_SUI_CAMP_STATUS_PROMPT = new string_id("camp", "sui_camp_status_prompt");
+     public static final string_id SID_SUI_CAMP_STATUS_OWNER = new string_id("camp", "sui_camp_status_owner");
+@@ -64,20 +57,6 @@ public class camp_controlpanel extends script.base_script
+                 mi.addRootMenu(menu_info_types.SERVER_CAMP_DISBAND, SID_MNU_DISBAND);
+             }
+             mi.addRootMenu(menu_info_types.SERVER_MENU1, SID_MNU_STATUS);
+-            int mFac = pvpGetAlignedFaction(master);
+-            if (mFac != 0)
+-            {
+-                int pFac = pvpGetAlignedFaction(player);
+-                if (pFac == mFac && factions.isDeclared(player))
+-                {
+-                    int mnuReq = mi.addRootMenu(menu_info_types.SERVER_MENU3, SID_MNU_REQUISITION);
+-                    if (mnuReq > -1)
+-                    {
+-                        mi.addSubMenu(mnuReq, menu_info_types.SERVER_MENU4, SID_MNU_REQUISITION_WPN);
+-                        mi.addSubMenu(mnuReq, menu_info_types.SERVER_MENU5, SID_MNU_REQUISITION_INSTALLATION);
+-                    }
+-                }
+-            }
+         }
+         return SCRIPT_CONTINUE;
+     }
+@@ -113,36 +92,8 @@ public class camp_controlpanel extends script.base_script
+         else if (item == menu_info_types.SERVER_CAMP_ASSUME_OWNERSHIP)
+         {
+         }
+-        else 
+-        {
+-            int mFac = pvpGetAlignedFaction(master);
+-            if (mFac != 0)
+-            {
+-                int pFac = pvpGetAlignedFaction(player);
+-                if (pFac == mFac && factions.isDeclared(player))
+-                {
+-                    if (item == menu_info_types.SERVER_MENU3)
+-                    {
+-                        sendSystemMessage(player, SID_SELECT_SUB_MENU);
+-                    }
+-                    else if (item == menu_info_types.SERVER_MENU4)
+-                    {
+-                        faction_perk.displayItemPurchaseSUI(player, pvpGetCurrentGcwRank(player), factions.getFaction(player), FIELD_COST_MULTIPLER);
+-                    }
+-                    else if (item == menu_info_types.SERVER_MENU5)
+-                    {
+-                        faction_perk.displayItemPurchaseSUI(player, pvpGetCurrentGcwRank(player), factions.getFaction(player), FIELD_COST_MULTIPLER);
+-                    }
+-                }
+-            }
+-        }
+-        return SCRIPT_CONTINUE;
+-    }
+-    public int msgFactionItemPurchaseSelected(obj_id self, dictionary params) throws InterruptedException
+-    {
+-        faction_perk.factionItemPurchased(params, FIELD_COST_MULTIPLER);
+-        return SCRIPT_CONTINUE;
+-    }
++        return SCRIPT_CONTINUE;
++    }
+     public void showStatus(obj_id self, obj_id player) throws InterruptedException
+     {
+         obj_id master = getObjIdObjVar(self, "master");

@@ -2379,3 +2379,19 @@ perk catalog is deliberately outside this bounded milestone and is the next
 faction audit. Mission terminal code and rewards remain unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionRankAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 294 restores Publish 14 faction-perk purchase authority. Rebel and
+Imperial recruiters expose their retained faction-specific furniture,
+weapon/armor, installation, uniform, hireling, and schematic tables. Purchases
+consume faction standing, preserve the 200-point membership reserve, re-read
+and revalidate the selected row, and revoke or destroy a created reward if the
+standing deduction fails. Species prejudice remains active without the NGE
+expertise discount or dynamic GCW population multiplier.
+
+Aligned Rebel/Imperial standing capacity now follows the current authored rank
+cost multiplied by twenty with a 1000-point floor; unaligned or opposing
+standing remains capped at 1000. NGE global credit/class/combat-level catalog
+admission, recruiter vendor precedence, and camp field requisition are inert.
+Mission terminal code and rewards remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionPerkAuthority.ps1 -SourceRoot <materialized-staging-directory>

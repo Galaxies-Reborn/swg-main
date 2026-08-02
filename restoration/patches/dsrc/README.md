@@ -1381,3 +1381,11 @@ callback so clean Java builds cannot depend on a deleted NGE level constant.
 the persistent shared PRE-CU faction-rank field. Recruiter promotion now keeps
 the 200-point membership reserve, uses the authored rank-table cost, refunds a
 failed native rank write, and resets rank when a player joins or resigns.
+
+`364-p14-precu-faction-perk-authority.patch` restores the faction-specific
+Publish 14 recruiter categories and faction-point purchase transaction. It
+keeps the 200-point membership reserve, rank-scaled standing caps, declared
+item gates, species prejudice, schematics, and NPC hireling control devices.
+The reachable NGE global credit catalog, class/combat-level gates, expertise
+and population price modifiers, recruiter vendor surface, and camp field
+requisition surface no longer take precedence.

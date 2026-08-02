@@ -22,6 +22,20 @@ function Invoke-Docker
     }
 }
 
+function Invoke-DockerScript
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$Script
+    )
+
+    $Script | & docker exec -i $ContainerName sh -s
+    if ($LASTEXITCODE -ne 0)
+    {
+        throw "docker exec -i $ContainerName sh -s failed with exit code $LASTEXITCODE."
+    }
+}
+
 & docker inspect $Container *> $null
 if ($LASTEXITCODE -ne 0)
 {
@@ -108,6 +122,12 @@ source_xp_library="$source_script/library/xp.java"
 work_xp_library="$work_script/library/xp.java"
 source_factions_library="$source_script/library/factions.java"
 work_factions_library="$work_script/library/factions.java"
+source_faction_perk_library="$source_script/library/faction_perk.java"
+work_faction_perk_library="$work_script/library/faction_perk.java"
+source_faction_recruiter="$source_script/npc/faction_recruiter/faction_recruiter.java"
+work_faction_recruiter="$work_script/npc/faction_recruiter/faction_recruiter.java"
+source_camp_controlpanel="$source_script/systems/camping/camp_controlpanel.java"
+work_camp_controlpanel="$work_script/systems/camping/camp_controlpanel.java"
 source_pclib_library="$source_script/library/pclib.java"
 work_pclib_library="$work_script/library/pclib.java"
 source_group_library="$source_script/library/group.java"
@@ -163,6 +183,9 @@ cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_xp_library" "$work_xp_library"
 cmp -s "$source_factions_library" "$work_factions_library"
+cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
+cmp -s "$source_faction_recruiter" "$work_faction_recruiter"
+cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
@@ -288,6 +311,16 @@ javap -classpath "$class_root" -c -p script.library.factions | grep -Fq 'awardPr
 javap -classpath "$class_root" -c script.base_class | grep -Fq 'pvpSetPrecuFactionRank'
 javap -classpath "$class_root" -c script.library.factions | grep -Fq 'pvpSetPrecuFactionRank'
 javap -classpath "$class_root" -constants script.library.factions | grep -Fq 'FACTION_RATING_DECLARABLE_MIN = 200.0f'
+javap -classpath "$class_root" -constants script.library.factions | grep -Fq 'NON_ALIGNED_FACTION_MAX = 1000.0f'
+javap -classpath "$class_root" -v script.library.factions | grep -Fq 'getRankCost'
+javap -classpath "$class_root" -constants script.library.faction_perk | grep -Fq 'PRECU_CATEGORY_WEAPONS_ARMOR'
+javap -classpath "$class_root" -v script.library.faction_perk | grep -Fq 'precuFactionPerkPurchase'
+javap -classpath "$class_root" -v script.library.faction_perk | grep -Fq 'datatables/npc/faction_recruiter/perk_inventory/'
+! javap -classpath "$class_root" -v script.library.faction_perk | grep -Fq 'gcw_rewards.iff'
+! javap -classpath "$class_root" -v script.library.faction_perk | grep -Fq 'money.requestPayment'
+javap -classpath "$class_root" -v script.npc.faction_recruiter.faction_recruiter | grep -Fq 'npc.vendor.vendor'
+javap -classpath "$class_root" -v script.npc.faction_recruiter.faction_recruiter | grep -Fq 'displayItemPurchaseSUI'
+! javap -classpath "$class_root" -v script.systems.camping.camp_controlpanel | grep -Fq 'faction_perk'
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuFactionKillRecipient'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'grantModifiedGcwPoints'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'GCW_POINT_TYPE_GROUND_PVE'
@@ -420,7 +453,7 @@ file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
 '@
 
 Write-Host "Verifying synchronized sources, Scout bytecode, native NGE retirement, authoritative weapon cadence, and x64 architecture..."
-Invoke-Docker -Arguments @("exec", $Container, "sh", "-lc", $artifactProbe)
+Invoke-DockerScript -ContainerName $Container -Script $artifactProbe
 
 $restartAt = [DateTimeOffset]::UtcNow.ToString("o")
 Write-Host "Restarting '$Container' only after artifact verification..."
