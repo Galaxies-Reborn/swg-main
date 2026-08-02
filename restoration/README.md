@@ -2442,3 +2442,20 @@ Combat mission terminals and their group-credit rules also remain unchanged.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuQueuedBattlefieldRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 298 retires the fixed Corellia, Talus, and Naboo four-terminal
+static-base control loop added after Publish 14. Its controller initializer,
+bunker controller/spawner, faction-only travel and cloning points, capture
+terminals, and insurgency collection node remain as scenery/content rows but
+no longer attach gameplay scripts or retain activation object variables.
+Persisted controllers, dynamic terminals/spawns, map entries, waypoints, and
+player capture state clean themselves and detach fail-closed.
+
+Player-placed faction headquarters and their objective/destruction lifecycle
+remain authenticated and unchanged, as do PRE-CU faction standing/rank/perks,
+open-world battlefields, mission terminals and rewards, normal starports and
+cloning facilities, and the dormant fixed-base spawn tables. The cleanup in
+shared municipal/collection scripts is restricted to exact fixed-base object
+templates. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFixedStaticBaseRetirement.ps1 -SourceRoot <materialized-staging-directory>
