@@ -100,6 +100,10 @@ source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 work_script="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 source_missions="$source_script/library/missions.java"
 work_missions="$work_script/library/missions.java"
+source_xp_library="$source_script/library/xp.java"
+work_xp_library="$work_script/library/xp.java"
+source_group_library="$source_script/library/group.java"
+work_group_library="$work_script/library/group.java"
 source_skill_library="$source_script/library/skill.java"
 work_skill_library="$work_script/library/skill.java"
 source_mission_base="$source_script/systems/missions/base/mission_base.java"
@@ -142,6 +146,8 @@ cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_missions" "$work_missions"
+cmp -s "$source_xp_library" "$work_xp_library"
+cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
@@ -244,6 +250,18 @@ javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuGroup
 ! javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getGroupObjectLevel'
 javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getPrecuCombatSkillScore'
 ! javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getLevel'
+javap -classpath "$class_root" -constants script.library.xp | grep -Fq 'PRECU_GROUP_XP_MULTIPLIER = 1.2f'
+javap -classpath "$class_root" -constants script.library.xp | grep -Fq 'PRECU_COMBAT_XP_DIFFICULTY_CAP = 25'
+javap -classpath "$class_root" -constants script.library.xp | grep -Fq 'PRECU_COMBAT_XP_PER_DIFFICULTY = 300'
+javap -classpath "$class_root" -v script.library.xp | grep -Fq 'combat.intCombatXP'
+javap -classpath "$class_root" -v script.library.xp | grep -Fq 'capPrecuCombatXp'
+javap -classpath "$class_root" -v script.library.xp | grep -Fq 'private_jedi_difficulty'
+! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'player_level.iff'
+! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'free_trial_level_cap'
+! javap -classpath "$class_root" -v script.library.missions | grep -Fq 'prose_mission_xp_amount'
+! javap -classpath "$class_root" -v script.library.group | grep -Fq 'grantMissionXp'
+! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'grantMissionXp'
+! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'distributeMissionXpToGroup'
 javap -classpath "$class_root" -v script.quest.task.ground.spawn | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.quest.util.dynamic_mob_opponent | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.quest.utility.dynamic_spawn_off_quest_item | grep -Fq 'getPrecuEncounterDifficulty'

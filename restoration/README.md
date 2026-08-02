@@ -2308,3 +2308,22 @@ datapad, control-device creation, and successful deed-consumption checks remain
 authoritative. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuDroidDeedCallAdmission.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 290 restores Publish 14.1 combat XP authority. Ground kills now seed
+XP from each defeated creature's authored `combat.intCombatXP`, with a
+creature-level table fallback only for legacy objects that lack that value.
+The attacker no longer supplies an NGE combat level or level-difference decay.
+Each weapon XP share is capped from its authenticated
+`private_<weapon>_combat_difficulty` skill modifier at 300 XP per difficulty
+tier (maximum tier 25), then receives the fixed Publish 14.1 grouped-combat
+multiplier of 1.2 without a group-size divisor.
+
+Destroy mission completion keeps the verified ten-mission board and full
+credit payout for every eligible nearby member, but no longer synthesizes a
+limited daily XP award from the NGE player-level table. Combat XP comes from
+the mission creatures. Persisted daily-XP counters are cleaned on login,
+ground collection level XP fails closed while its other authored rewards stay
+available, and free-trial/NPE combat-level checks can no longer suppress the
+PRE-CU XP fly text. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCombatXpAuthority.ps1 -SourceRoot <materialized-staging-directory>

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-combat-xp-authority",
+  "status": "ready",
+  "scope": "Replace NGE player-level combat XP, group XP, mission XP, free-trial XP, tutorial-level XP, and collection-level XP authority with the pinned Publish 14.1 creature and weapon-skill model.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/bin/scripts/managers/player_manager.lua",
+      "MMOCoreORB/src/server/zone/objects/mission/MissionObjectiveImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 combat XP begins with the defeated AiAgent authored baseXp, not the attacking player's combat level.",
+      "XP is apportioned by weapon damage and capped per weapon XP type at min(25, private_<weapon>_combat_difficulty / 100 + 1) multiplied by 300.",
+      "A grouped combatant receives the configured fixed 1.2 XP multiplier; the reward is not divided by group size.",
+      "Normal terminal mission completion awards credits; weapon and combat_general XP come from defeated mission creatures rather than an NGE daily mission-level award."
+    ]
+  },
+  "expected": {
+    "creatureXpAuthority": "combat.intCombatXP authored from the PRE-CU creature combat profile, with creature-level stat_balance fallback only when the authored value is absent",
+    "playerLevelReadsOnClosedSurface": 0,
+    "aiLevelDifferenceScaling": false,
+    "aggressionXpSurcharge": false,
+    "weaponXpDifficultyCap": 25,
+    "xpPerDifficulty": 300,
+    "groupXpMultiplier": 1.2,
+    "groupSizeXpDivisor": false,
+    "dailyMissionXp": false,
+    "missionCreditPathPreserved": true,
+    "missionBoardPopulationPreserved": true,
+    "freeTrialCombatLevelCap": false,
+    "npeTutorialCombatLevelCap": false,
+    "groundCollectionProfessionLevelXp": false,
+    "spaceCollectionXpUnchanged": true
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/missions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/group.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/360-p14-precu-combat-xp-authority.patch",
+    "overlayPatchBytes": 25748,
+    "overlayPatchSha256": "2d5eb579d68075836c7f062047ffd40b0308bc2acef88eb7b00178e5278efd9c",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (4 Java sources, Java 8 target)",
+    "isolatedClassSha256": {
+      "script.library.xp": "c2f917c30d3ffe4dbc195c83ed075d2b66a41542cf320654c5fd67bf101268f4",
+      "script.library.missions": "a6fb92fec18e5f5039e1821bcfdd3c33441b3fa41823df302e461b0ccd714dc7",
+      "script.library.group": "19b22f235fcb906ca16608da02fef6c68c493f7436d90de32050d2ffd9e2d82c",
+      "script.systems.missions.base.mission_base": "51b4b68503d840757bf0a876087f8ffe84b2749cab6a176e503630f89659b8e4"
+    },
+    "sourceSha256": {
+      "script.library.xp": "45dc6a21c5d8cac4238d0e0066c91db9a0d8397996eba892457c7c6341e6e8d5",
+      "script.library.missions": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d",
+      "script.library.group": "2613971b109c5d551407992fb8764fade87815f0f443536149664686b88eda16",
+      "script.systems.missions.base.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03"
+    },
+    "fullJavaCompile": "passed (Ant compile_java compiled the 4 changed sources in the x64 server build volume)",
+    "compiledClassSha256": {
+      "script.library.xp": "cfba4128d4a6abf397da73d8d93f6616e5bee2edb0fd1c74431d5ae2b1cb94ee",
+      "script.library.missions": "52004bae659e91c7a7d52b8c3c6ee324f39611b01b24b5a29d23c00021a98372",
+      "script.library.group": "51554faf15b40d883ad834ee4dc40b135520e246f35f13e51b8a550cdc3e4e42",
+      "script.systems.missions.base.mission_base": "5745405b377914a98040e5baa5f62136fae45c8e109c42b50bc7942f4a11b985"
+    },
+    "materializedBuild": "passed",
+    "cleanMaterializationPatches": 390,
+    "cleanMaterializationAcceptanceFiles": 1105,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
+    "serverBinaryBuildId": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-xp290-final-b",
+    "startedAtUtc": "2026-08-02T08:09:10.496762388Z",
+    "state": "running healthy",
+    "clusterReadyCount": 1,
+    "coreProcesses": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "SwgGameServer": 14
+    },
+    "fatalExceptionSevereCount": 0,
+    "missionTerminalContinuity": "static mission-board/full-credit contract passed; user confirmed populated combat mission terminals immediately before this Java-only XP deployment"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "active ground combat XP seed, weapon-skill kill cap, group XP multiplier, daily mission XP, ground collection level XP, and XP fly-text level gates",
+    "notClaimedComplete": "loot rarity, treasure-map bands, GCW and faction reward ratios, clone pricing, metrics, beast/familiar progression, and conversation-specific level gates remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}
