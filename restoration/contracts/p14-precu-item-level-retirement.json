@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-item-level-retirement",
+  "status": "ready",
+  "scope": "Remove the remaining NGE combat-level authority from retained item transfer, use, effect, attribute, medicine, and resource-sampling paths while preserving PRE-CU skill ownership and HAM rules.",
+  "eraEvidence": {
+    "userRule": "PRE-CU has no player combat-level stat; retained content must not require one.",
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "surveyReference": "SurveySessionImplementation.cpp and ResourceSpawner.cpp derive sampling Action cost from current Quickness as 124 - Quickness / 12.5 and never consult player combat level."
+  },
+  "expected": {
+    "staticItems": {
+      "combatLevelTransferGate": false,
+      "combatLevelUseGate": false,
+      "combatLevelWornEffectGate": false,
+      "combatLevelAttributePresentation": false,
+      "postEraLevelUpOrbUse": false,
+      "persistedLevelUpOrbMadeMovable": true,
+      "requiredSkillGatePreserved": true,
+      "cooldownsAndEffectAdmissionPreserved": true
+    },
+    "medicine": {
+      "lootedStimCombatLevelGate": false,
+      "craftedStimCombatLevelGate": false,
+      "combatLevelAttributePresentation": false,
+      "feignDeathAdmissionPreserved": true,
+      "craftedStimCooldownPreserved": true,
+      "forceMelonStaleLevelObjVarRemoved": true
+    },
+    "sampling": {
+      "playerCombatLevelReads": 0,
+      "actionCostFormula": "max(0, 124 - currentQuickness / 12.5)",
+      "actionDrainPreserved": true,
+      "samplingLoopPreserved": true
+    }
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/item/buff_beast_click_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/buff_click_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/full_heal_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/levelup_orb/levelup_orb.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/skillmod_click_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/static_item_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/356-p14-precu-item-level-retirement.patch",
+    "overlayPatchBytes": 40030,
+    "overlayPatchSha256": "3817b32ae7ad21e2216c6979fea5090bcc13bb10d27ccd3889fdb59735da1369",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (Java 8 target)",
+    "materializedBuild": "passed",
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
+    "serverBinaryBuildIdSha1": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
+    "compiledClassSha256": {
+      "script.item.buff_beast_click_item": "ea83a6e8909a65f68b634fdac1b4df1e6ecfc8fd3c75a7b15c457173c471ef5e",
+      "script.item.buff_click_item": "3fbca2076a6af9bb985cca04284e24faca3606f5de93099beafce4097c34a4ac",
+      "script.item.full_heal_item": "f8a1da83deb310f54933c537610325a1dae5fdd0e0b4c6e6a6b882f67679776a",
+      "script.item.levelup_orb.levelup_orb": "3f184e45adfcb91622fc278063e886522bed75336b4ae2fac0b78cacec5f3fa4",
+      "script.item.medicine.stimpack": "e37bab56ad2f3bc162863370605092e894c31e5ce5588918ae4edeecd19b8cd0",
+      "script.item.medicine.stimpack_crafted": "ddd381335ae1280cb2c9a68917dc0d6d578228dd2ee9e06f353e9f28c4f90675",
+      "script.item.plant.force_melon": "6240790e5c880d7ad7dfaacf16fdfaf7edbe5e2d64ac37ec33bd4246afe55460",
+      "script.item.skillmod_click_item": "e2ffc02ab073f02d29605e11ac7c997af04a0bc51793ee405fa608b3b30f8978",
+      "script.item.static_item_base": "100735d0a5433500af8a098928d87b6b0184f14dc4515f14a41040cb39b267d0",
+      "script.item.survey_tool.survey_tool_script": "b2a698d95c4ad36656623dbabdb37573a06cd93f489a94202711a92854ed23a4",
+      "script.library.static_item": "89628d1a14d2ced86b7ca32d08688c7319674cbe63ce4501659583b6807bbce8"
+    },
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-01",
+    "deployedAtUtc": "2026-08-02T04:48:00.628694585Z",
+    "container": "swg-precu",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "liveProcessMappedBuiltBinary": true,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling",
+    "notClaimedComplete": "quest, encounter, AI, pet, and retained expansion difficulty adapters remain under the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

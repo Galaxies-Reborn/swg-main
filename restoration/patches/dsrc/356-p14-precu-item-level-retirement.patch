@@ -1,0 +1,716 @@
+diff --git a/sku.0/sys.server/compiled/game/script/item/buff_beast_click_item.java b/sku.0/sys.server/compiled/game/script/item/buff_beast_click_item.java
+index cc69fa0..f35f614 100644
+--- a/sku.0/sys.server/compiled/game/script/item/buff_beast_click_item.java
++++ b/sku.0/sys.server/compiled/game/script/item/buff_beast_click_item.java
+@@ -19,7 +19,6 @@ public class buff_beast_click_item extends script.base_script
+     public static final string_id BUFF_REMOVED = new string_id("base_player", "buff_removed");
+     public static final string_id SID_BEAST_DEAD = new string_id("base_player", "beast_buff_beast_dead");
+     public static final string_id SID_BUFF_NOT_OWNER = new string_id("base_player", "beast_buff_not_owner");
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("base_player", "beast_buff_level_too_low");
+     public static final string_id CANT_APPLY_BUFF = new string_id("base_player", "beast_buff_cant_apply_buff");
+     public static final string_id SID_NO_ACTIVE_BEAST = new string_id("base_player", "beast_buff_no_active_beast");
+     public static final String OWNER_OID = "owner";
+@@ -124,57 +123,48 @@ public class buff_beast_click_item extends script.base_script
+             String clientEffect = itemData.getString("client_effect");
+             String clientAnimation = itemData.getString("client_animation");
+             int reuseTime = itemData.getInt("reuse_time");
+-            int requiredLevel = itemData.getInt("required_level_for_effect");
+             String varName = "clickItem." + coolDownGroup;
+             int buffTime = getIntObjVar(player, varName);
+-            int beastLevel = getLevel(activeBeast);
+             if (buff.hasBuff(activeBeast, buffName))
+             {
+                 buff.removeBuff(activeBeast, buffName);
+                 sendSystemMessage(player, BUFF_REMOVED);
+                 return SCRIPT_CONTINUE;
+             }
+-            if (static_item.validateLevelRequired(activeBeast, requiredLevel))
++            if (getGameTime() > buffTime || getGameTime() < buffTime && isGod(player))
+             {
+-                if (getGameTime() > buffTime || getGameTime() < buffTime && isGod(player))
++                if (buff.canApplyBuff(activeBeast, buffName))
+                 {
+-                    if (buff.canApplyBuff(activeBeast, buffName))
++                    if (getGameTime() < buffTime && isGod(player))
+                     {
+-                        if (getGameTime() < buffTime && isGod(player))
+-                        {
+-                            sendSystemMessage(player, "The Buff was applied because you were in god mode.", null);
+-                        }
+-                        CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player) + " on their beast: " + activeBeast + " of beast level: " + beastLevel);
+-                        sendSystemMessage(player, BUFF_APPLIED);
+-                        utils.setScriptVar(activeBeast, beast_lib.getBeastBuffItemVar(buffName), self);
+-                        buff.applyBuff(activeBeast, player, buffName);
+-                        setObjVar(player, varName, (getGameTime() + (reuseTime)));
+-                        sendCooldownGroupTimingOnly(player, getStringCrc(coolDownGroup.toLowerCase()), reuseTime);
+-                        doAnimationAction(activeBeast, clientAnimation);
+-                        playClientEffectObj(activeBeast, clientEffect, player, "");
+-                        if (getCount(self) > 0)
+-                        {
+-                            CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player) + " on their beast: " + activeBeast + ". Object is being decremented by ONE.");
+-                            static_item.decrementStaticItem(self);
+-                        }
++                        sendSystemMessage(player, "The Buff was applied because you were in god mode.", null);
+                     }
+-                    else 
++                    CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player) + " on their beast: " + activeBeast);
++                    sendSystemMessage(player, BUFF_APPLIED);
++                    utils.setScriptVar(activeBeast, beast_lib.getBeastBuffItemVar(buffName), self);
++                    buff.applyBuff(activeBeast, player, buffName);
++                    setObjVar(player, varName, (getGameTime() + (reuseTime)));
++                    sendCooldownGroupTimingOnly(player, getStringCrc(coolDownGroup.toLowerCase()), reuseTime);
++                    doAnimationAction(activeBeast, clientAnimation);
++                    playClientEffectObj(activeBeast, clientEffect, player, "");
++                    if (getCount(self) > 0)
+                     {
+-                        sendSystemMessage(player, CANT_APPLY_BUFF);
+-                        return SCRIPT_CONTINUE;
++                        CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player) + " on their beast: " + activeBeast + ". Object is being decremented by ONE.");
++                        static_item.decrementStaticItem(self);
+                     }
+                 }
+                 else 
+                 {
+-                    int timeDiff = buffTime - getGameTime();
+-                    prose_package pp = prose.getPackage(SID_NOT_YET, timeDiff);
+-                    sendSystemMessageProse(player, pp);
++                    sendSystemMessage(player, CANT_APPLY_BUFF);
+                     return SCRIPT_CONTINUE;
+                 }
+             }
+             else 
+             {
+-                sendSystemMessage(player, SID_ITEM_LEVEL_TOO_LOW);
++                int timeDiff = buffTime - getGameTime();
++                prose_package pp = prose.getPackage(SID_NOT_YET, timeDiff);
++                sendSystemMessageProse(player, pp);
++                return SCRIPT_CONTINUE;
+             }
+         }
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/item/buff_click_item.java b/sku.0/sys.server/compiled/game/script/item/buff_click_item.java
+index fa784c9..c9860a9 100644
+--- a/sku.0/sys.server/compiled/game/script/item/buff_click_item.java
++++ b/sku.0/sys.server/compiled/game/script/item/buff_click_item.java
+@@ -16,7 +16,6 @@ public class buff_click_item extends script.base_script
+     public static final string_id SID_NOT_LINKED_TO_HOLDER = new string_id("base_player", "not_linked_to_holder");
+     public static final string_id CANT_APPLY_BUFF = new string_id("base_player", "cant_apply_buff");
+     public static final string_id BUFF_APPLIED = new string_id("base_player", "buff_applied");
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("base_player", "level_too_low");
+     public static final string_id SID_ITEM_NOT_IN_INVENTORY = new string_id("base_player", "not_in_your_inventory");
+     public static final string_id SID_MUST_BIO_LINK_FROM_INVENTORY = new string_id("base_player", "must_biolink_to_use_from_inventory");
+     public static final string_id SID_BIOLINK_OTHER_PLAYER = new string_id("base_player", "wrong_player_per_biolink");
+@@ -106,50 +105,41 @@ public class buff_click_item extends script.base_script
+             String clientEffect = itemData.getString("client_effect");
+             String clientAnimation = itemData.getString("client_animation");
+             int reuseTime = itemData.getInt("reuse_time");
+-            int requiredLevel = itemData.getInt("required_level_for_effect");
+             String varName = "clickItem." + coolDownGroup;
+             int buffTime = getIntObjVar(player, varName);
+-            int playerLevel = getLevel(player);
+-            if (static_item.validateLevelRequired(player, requiredLevel))
++            if (getGameTime() > buffTime || getGameTime() < buffTime && isGod(player))
+             {
+-                if (getGameTime() > buffTime || getGameTime() < buffTime && isGod(player))
++                if (buff.canApplyBuff(player, buffName))
+                 {
+-                    if (buff.canApplyBuff(player, buffName))
++                    if (getGameTime() < buffTime && isGod(player))
+                     {
+-                        if (getGameTime() < buffTime && isGod(player))
+-                        {
+-                            sendSystemMessage(player, "The Buff was applied because you were in god mode.", null);
+-                        }
+-                        CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player) + " of player level: " + playerLevel);
+-                        buff.applyBuff(player, player, buffName);
+-                        setObjVar(player, varName, (getGameTime() + (reuseTime)));
+-                        sendCooldownGroupTimingOnly(player, getStringCrc(coolDownGroup.toLowerCase()), reuseTime);
+-                        sendSystemMessage(player, BUFF_APPLIED);
+-                        doAnimationAction(player, clientAnimation);
+-                        playClientEffectObj(player, clientEffect, player, "");
+-                        if (getCount(self) > 0)
+-                        {
+-                            CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player) + ". Object is being decremented by ONE.");
+-                            static_item.decrementStaticItem(self);
+-                        }
++                        sendSystemMessage(player, "The Buff was applied because you were in god mode.", null);
+                     }
+-                    else 
++                    CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player));
++                    buff.applyBuff(player, player, buffName);
++                    setObjVar(player, varName, (getGameTime() + (reuseTime)));
++                    sendCooldownGroupTimingOnly(player, getStringCrc(coolDownGroup.toLowerCase()), reuseTime);
++                    sendSystemMessage(player, BUFF_APPLIED);
++                    doAnimationAction(player, clientAnimation);
++                    playClientEffectObj(player, clientEffect, player, "");
++                    if (getCount(self) > 0)
+                     {
+-                        sendSystemMessage(player, CANT_APPLY_BUFF);
+-                        return SCRIPT_CONTINUE;
++                        CustomerServiceLog("buff", "buff_click_item object self: " + self + " Static Item Name: " + itemName + " providing buff: " + buffName + " being used by player: " + player + " Name: " + getName(player) + ". Object is being decremented by ONE.");
++                        static_item.decrementStaticItem(self);
+                     }
+                 }
+                 else 
+                 {
+-                    int timeDiff = buffTime - getGameTime();
+-                    prose_package pp = prose.getPackage(SID_NOT_YET, timeDiff);
+-                    sendSystemMessageProse(player, pp);
++                    sendSystemMessage(player, CANT_APPLY_BUFF);
+                     return SCRIPT_CONTINUE;
+                 }
+             }
+             else 
+             {
+-                sendSystemMessage(player, SID_ITEM_LEVEL_TOO_LOW);
++                int timeDiff = buffTime - getGameTime();
++                prose_package pp = prose.getPackage(SID_NOT_YET, timeDiff);
++                sendSystemMessageProse(player, pp);
++                return SCRIPT_CONTINUE;
+             }
+         }
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/item/full_heal_item.java b/sku.0/sys.server/compiled/game/script/item/full_heal_item.java
+index a53966f..41de01d 100644
+--- a/sku.0/sys.server/compiled/game/script/item/full_heal_item.java
++++ b/sku.0/sys.server/compiled/game/script/item/full_heal_item.java
+@@ -13,7 +13,6 @@ public class full_heal_item extends script.base_script
+     public static final string_id SID_NOT_LINKED_TO_HOLDER = new string_id("base_player", "not_linked_to_holder");
+     public static final string_id CANT_APPLY_BUFF = new string_id("base_player", "cant_apply_buff");
+     public static final string_id BUFF_APPLIED = new string_id("base_player", "buff_applied");
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("base_player", "level_too_low");
+     public static final string_id SID_ITEM_NOT_IN_INVENTORY = new string_id("base_player", "not_in_your_inventory");
+     public static final string_id SID_NOT_WHILE_IN_COMBAT = new string_id("base_player", "not_while_in_combat");
+     public static final string_id SID_NO_NEED_TO_HEAL = new string_id("base_player", "no_need_to_heal");
+@@ -97,48 +96,39 @@ public class full_heal_item extends script.base_script
+             String clientEffect = itemData.getString("client_effect");
+             String clientAnimation = itemData.getString("client_animation");
+             int reuseTime = itemData.getInt("reuse_time");
+-            int requiredLevel = itemData.getInt("required_level_for_effect");
+             String varName = "clickItem." + coolDownGroup;
+             int healTime = getIntObjVar(player, varName);
+-            int playerLevel = getLevel(player);
+-            if (static_item.validateLevelRequired(player, requiredLevel))
++            if (getGameTime() > healTime)
+             {
+-                if (getGameTime() > healTime)
++                int max_hp = getMaxAttrib(player, HEALTH);
++                int hp = getAttrib(player, HEALTH);
++                int to_heal = max_hp - hp;
++                if (to_heal <= 0)
+                 {
+-                    int max_hp = getMaxAttrib(player, HEALTH);
+-                    int hp = getAttrib(player, HEALTH);
+-                    int to_heal = max_hp - hp;
+-                    if (to_heal <= 0)
+-                    {
+-                        sendSystemMessage(player, SID_NO_NEED_TO_HEAL);
+-                        return SCRIPT_CONTINUE;
+-                    }
+-                    int delta = healing.healDamage(self, player, HEALTH, to_heal);
+-                    setObjVar(player, varName, (getGameTime() + (reuseTime)));
+-                    sendCooldownGroupTimingOnly(player, getStringCrc(coolDownGroup.toLowerCase()), reuseTime);
+-                    prose_package pp = new prose_package();
+-                    pp = prose.setStringId(pp, new string_id("healing", "heal_fly"));
+-                    pp = prose.setDI(pp, to_heal);
+-                    pp = prose.setTO(pp, ATTRIBUTES[HEALTH]);
+-                    showFlyTextPrivateProseWithFlags(player, player, pp, 2.0f, colors.SEAGREEN, FLY_TEXT_FLAG_IS_HEAL);
+-                    doAnimationAction(player, clientAnimation);
+-                    playClientEffectObj(player, clientEffect, player, "");
+-                    if (getCount(self) > 0)
+-                    {
+-                        static_item.decrementStaticItem(self);
+-                    }
++                    sendSystemMessage(player, SID_NO_NEED_TO_HEAL);
++                    return SCRIPT_CONTINUE;
+                 }
+-                else 
++                int delta = healing.healDamage(self, player, HEALTH, to_heal);
++                setObjVar(player, varName, (getGameTime() + (reuseTime)));
++                sendCooldownGroupTimingOnly(player, getStringCrc(coolDownGroup.toLowerCase()), reuseTime);
++                prose_package pp = new prose_package();
++                pp = prose.setStringId(pp, new string_id("healing", "heal_fly"));
++                pp = prose.setDI(pp, to_heal);
++                pp = prose.setTO(pp, ATTRIBUTES[HEALTH]);
++                showFlyTextPrivateProseWithFlags(player, player, pp, 2.0f, colors.SEAGREEN, FLY_TEXT_FLAG_IS_HEAL);
++                doAnimationAction(player, clientAnimation);
++                playClientEffectObj(player, clientEffect, player, "");
++                if (getCount(self) > 0)
+                 {
+-                    int timeDiff = healTime - getGameTime();
+-                    prose_package pp = prose.getPackage(SID_NOT_YET, timeDiff);
+-                    sendSystemMessageProse(player, pp);
+-                    return SCRIPT_CONTINUE;
++                    static_item.decrementStaticItem(self);
+                 }
+             }
+             else 
+             {
+-                sendSystemMessage(player, SID_ITEM_LEVEL_TOO_LOW);
++                int timeDiff = healTime - getGameTime();
++                prose_package pp = prose.getPackage(SID_NOT_YET, timeDiff);
++                sendSystemMessageProse(player, pp);
++                return SCRIPT_CONTINUE;
+             }
+         }
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/item/levelup_orb/levelup_orb.java b/sku.0/sys.server/compiled/game/script/item/levelup_orb/levelup_orb.java
+index 2543e9b..ab91619 100644
+--- a/sku.0/sys.server/compiled/game/script/item/levelup_orb/levelup_orb.java
++++ b/sku.0/sys.server/compiled/game/script/item/levelup_orb/levelup_orb.java
+@@ -1,7 +1,5 @@
+ package script.item.levelup_orb;
+ 
+-import script.library.utils;
+-import script.library.xp;
+ import script.*;
+ 
+ public class levelup_orb extends script.base_script
+@@ -11,76 +9,20 @@ public class levelup_orb extends script.base_script
+     }
+     public int OnInitialize(obj_id self) throws InterruptedException
+     {
+-        if (!hasScript(self, "item.special.nomove"))
++        // Persisted post-era orbs remain loadable, but they must neither grant
++        // combat levels nor remain permanently stuck in a PRE-CU inventory.
++        if (hasScript(self, "item.special.nomove"))
+         {
+-            attachScript(self, "item.special.nomove");
++            detachScript(self, "item.special.nomove");
+         }
+         return SCRIPT_CONTINUE;
+     }
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+     {
+-        if (canManipulate(player, self, true, true, 15, true))
+-        {
+-            if (utils.isNestedWithinAPlayer(self))
+-            {
+-                menu_info_data mid = mi.getMenuItemByType(menu_info_types.ITEM_USE);
+-                if (mid != null)
+-                {
+-                    mid.setServerNotify(true);
+-                }
+-                else 
+-                {
+-                    mi.addRootMenu(menu_info_types.ITEM_USE, new string_id("ui_radial", "item_use"));
+-                }
+-            }
+-        }
+         return SCRIPT_CONTINUE;
+     }
+     public int OnObjectMenuSelect(obj_id self, obj_id player, int item) throws InterruptedException
+     {
+-        if (utils.getContainingPlayer(self) != player)
+-        {
+-            return SCRIPT_CONTINUE;
+-        }
+-        if (item == menu_info_types.ITEM_USE)
+-        {
+-            if (canManipulate(player, self, true, true, 15, true))
+-            {
+-                int combatLevel = getLevel(player);
+-                if (combatLevel == 1)
+-                {
+-                    sendSystemMessage(player, new string_id("event_perk", "levelup_orb_badclass"));
+-                    return SCRIPT_CONTINUE;
+-                }
+-                else if (combatLevel == 90)
+-                {
+-                    sendSystemMessage(player, new string_id("event_perk", "levelup_orb_toohigh"));
+-                    return SCRIPT_CONTINUE;
+-                }
+-                else 
+-                {
+-                    raiseLevel(player);
+-                    destroyObject(self);
+-                }
+-            }
+-        }
+-        return SCRIPT_CONTINUE;
+-    }
+-    public void raiseLevel(obj_id player) throws InterruptedException
+-    {
+-        int currentLevel = getLevel(player);
+-        int xpNeeded = dataTableGetInt("datatables/player/player_level.iff", currentLevel, "xp_required");
+-        int prevNeeded = dataTableGetInt("datatables/player/player_level.iff", currentLevel - 1, "xp_required");
+-        xpNeeded -= prevNeeded;
+-        if (getConfigSetting("GameServer", "xpMultiplier") != null)
+-        {
+-            int xpBonusValue = utils.stringToInt(getConfigSetting("GameServer", "xpMultiplier"));
+-            if (xpBonusValue > 1)
+-            {
+-                xpNeeded = xpNeeded / xpBonusValue;
+-                xpNeeded += 1;
+-            }
+-        }
+-        xp.grant(player, "combat_general", xpNeeded);
++        return SCRIPT_OVERRIDE;
+     }
+ }
+diff --git a/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java b/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java
+index f2e3dc4..0f2ec0a 100644
+--- a/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java
++++ b/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java
+@@ -10,7 +10,6 @@ public class stimpack extends script.base_script
+     public stimpack()
+     {
+     }
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("healing", "item_level_too_low");
+     public int OnGetAttributes(obj_id self, obj_id player, String[] names, String[] attribs) throws InterruptedException
+     {
+         int idx = utils.getValidAttributeIndex(names);
+@@ -29,17 +28,6 @@ public class stimpack extends script.base_script
+                 return SCRIPT_CONTINUE;
+             }
+         }
+-        if (hasObjVar(self, "healing.combat_level_required"))
+-        {
+-            names[idx] = "healing_combat_level_required";
+-            int value = getIntObjVar(self, "healing.combat_level_required");
+-            attribs[idx] = Integer.toString(value);
+-            idx++;
+-            if (idx >= names.length)
+-            {
+-                return SCRIPT_CONTINUE;
+-            }
+-        }
+         names[idx] = "count";
+         int value = getCount(self);
+         attribs[idx] = Integer.toString(value);
+@@ -69,24 +57,14 @@ public class stimpack extends script.base_script
+         }
+         if (item == menu_info_types.ITEM_USE)
+         {
+-            int level = getLevel(player);
+-            int requiredLevel = getIntObjVar(self, "healing.combat_level_required");
+-            if (level < requiredLevel)
++            if (hasObjVar(self, "healing.pool"))
+             {
+-                sendSystemMessage(player, SID_ITEM_LEVEL_TOO_LOW);
+-                return SCRIPT_OVERRIDE;
++                int attrib = getIntObjVar(self, "healing.pool");
++                boolean worked = healing.useHealDamageItem(player, self, attrib);
+             }
+             else 
+             {
+-                if (hasObjVar(self, "healing.pool"))
+-                {
+-                    int attrib = getIntObjVar(self, "healing.pool");
+-                    boolean worked = healing.useHealDamageItem(player, self, attrib);
+-                }
+-                else 
+-                {
+-                    boolean worked = healing.useHealDamageItem(player, self);
+-                }
++                boolean worked = healing.useHealDamageItem(player, self);
+             }
+         }
+         return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java b/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java
+index 6570756..1a0189a 100644
+--- a/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java
++++ b/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java
+@@ -10,7 +10,6 @@ public class stimpack_crafted extends script.base_script
+     public stimpack_crafted()
+     {
+     }
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("healing", "item_level_too_low");
+     public static final string_id SID_STIMPACK_TOO_SOON = new string_id("healing", "channel_heal_stimpack_too_soon");
+     public int OnGetAttributes(obj_id self, obj_id player, String[] names, String[] attribs) throws InterruptedException
+     {
+@@ -30,17 +29,6 @@ public class stimpack_crafted extends script.base_script
+                 return SCRIPT_CONTINUE;
+             }
+         }
+-        if (hasObjVar(self, "healing.combat_level_required"))
+-        {
+-            names[idx] = "healing_combat_level_required";
+-            int value = getIntObjVar(self, "healing.combat_level_required");
+-            attribs[idx] = Integer.toString(value);
+-            idx++;
+-            if (idx >= names.length)
+-            {
+-                return SCRIPT_CONTINUE;
+-            }
+-        }
+         names[idx] = "count";
+         int value = getCount(self);
+         attribs[idx] = Integer.toString(value);
+@@ -75,17 +63,7 @@ public class stimpack_crafted extends script.base_script
+         }
+         if (item == menu_info_types.ITEM_USE)
+         {
+-            int level = getLevel(player);
+-            int requiredLevel = getIntObjVar(self, "healing.combat_level_required");
+-            if (level < requiredLevel)
+-            {
+-                sendSystemMessage(player, SID_ITEM_LEVEL_TOO_LOW);
+-                return SCRIPT_OVERRIDE;
+-            }
+-            else 
+-            {
+-                boolean worked = healing.useChannelHealItem(player, self);
+-            }
++            boolean worked = healing.useChannelHealItem(player, self);
+         }
+         return SCRIPT_CONTINUE;
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java b/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java
+index d4ec3e3..ef39b50 100644
+--- a/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java
++++ b/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java
+@@ -21,9 +21,9 @@ public class force_melon extends script.base_script
+         {
+             setObjVar(self, "healing.power", 1000);
+         }
+-        if (!hasObjVar(self, "healing.combat_level_required"))
++        if (hasObjVar(self, "healing.combat_level_required"))
+         {
+-            setObjVar(self, "healing.combat_level_required", 50);
++            removeObjVar(self, "healing.combat_level_required");
+         }
+         return SCRIPT_CONTINUE;
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/item/skillmod_click_item.java b/sku.0/sys.server/compiled/game/script/item/skillmod_click_item.java
+index 93f0658..9e08b2e 100644
+--- a/sku.0/sys.server/compiled/game/script/item/skillmod_click_item.java
++++ b/sku.0/sys.server/compiled/game/script/item/skillmod_click_item.java
+@@ -14,7 +14,6 @@ public class skillmod_click_item extends script.base_script
+     public static final string_id SID_NOT_YET = new string_id("base_player", "not_yet");
+     public static final string_id SID_NOT_LINKED = new string_id("base_player", "not_linked");
+     public static final string_id SID_NOT_LINKED_TO_HOLDER = new string_id("base_player", "not_linked_to_holder");
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("base_player", "level_too_low");
+     public static final string_id SID_ITEM_NOT_IN_INVENTORY = new string_id("base_player", "not_in_your_inventory");
+     public static final string_id SID_MUST_BIO_LINK_FROM_INVENTORY = new string_id("base_player", "must_biolink_to_use_from_inventory");
+     public static final string_id SID_BIOLINK_OTHER_PLAYER = new string_id("base_player", "wrong_player_per_biolink");
+@@ -105,7 +104,6 @@ public class skillmod_click_item extends script.base_script
+                 return SCRIPT_CONTINUE;
+             }
+             String skillMod = itemData.getString("skill_mods");
+-            int requiredLevel = itemData.getInt("required_level_for_effect");
+             String requiredSkill = itemData.getString("required_skill");
+             String clientEffect = itemData.getString("client_effect");
+             String clientAnimation = itemData.getString("client_animation");
+@@ -141,11 +139,6 @@ public class skillmod_click_item extends script.base_script
+             {
+                 hideSkillMod = getBooleanObjVar(self, "hide_skill_mod");
+             }
+-            if (!static_item.validateLevelRequired(player, requiredLevel))
+-            {
+-                sendSystemMessage(player, SID_ITEM_LEVEL_TOO_LOW);
+-                return SCRIPT_CONTINUE;
+-            }
+             if (requiredSkill != null && !requiredSkill.equals("") &&
+                 !utils.meetsProfessionRequirement(player, requiredSkill))
+             {
+diff --git a/sku.0/sys.server/compiled/game/script/item/static_item_base.java b/sku.0/sys.server/compiled/game/script/item/static_item_base.java
+index d642e17..1b302ae 100644
+--- a/sku.0/sys.server/compiled/game/script/item/static_item_base.java
++++ b/sku.0/sys.server/compiled/game/script/item/static_item_base.java
+@@ -10,7 +10,6 @@ public class static_item_base extends script.base_script
+     public static_item_base()
+     {
+     }
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("base_player", "level_too_low");
+     public static final string_id SID_ITEM_NOT_ENOUGH_SKILL = new string_id("base_player", "not_correct_skill");
+     public static final string_id SID_ITEM_MUST_NOT_BE_EQUIP = new string_id("base_player", "not_while_equipped");
+     public static final string_id SID_ITEM_NO_UNIQUE_TRANSFER = new string_id("base_player", "unique_no_transfer");
+@@ -52,15 +51,8 @@ public class static_item_base extends script.base_script
+                     transferer = getContainedBy(destContainer);
+                 }
+             }
+-            int requiredLevel = itemData.getInt("required_level");
+             String requiredSkill = itemData.getString("required_skill");
+             int itemType = itemData.getInt("type");
+-            boolean precuEquipment = itemType == 1 || itemType == 2;
+-            if (!precuEquipment && !static_item.validateLevelRequired(transferer, requiredLevel))
+-            {
+-                sendSystemMessage(transferer, SID_ITEM_LEVEL_TOO_LOW);
+-                canTransfer = false;
+-            }
+             if (itemType != 1 && requiredSkill != null && !requiredSkill.equals("") &&
+                 !utils.meetsProfessionRequirement(transferer, requiredSkill))
+             {
+@@ -216,12 +208,6 @@ public class static_item_base extends script.base_script
+                 return SCRIPT_CONTINUE;
+             }
+         }
+-        int requiredLevelForEffect = typeData.getInt("required_level_for_effect");
+-        if (requiredLevelForEffect != 0)
+-        {
+-            names[free] = utils.packStringId(new string_id("proc/proc", "effect_level"));
+-            attribs[free++] = Integer.toString(requiredLevelForEffect);
+-        }
+         String buffName = typeData.getString("buff_name");
+         if (buffName != null && !buffName.equals("") && buffIdentity == 0)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java b/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java
+index 53ed673..996894e 100644
+--- a/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java
++++ b/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java
+@@ -16,7 +16,8 @@ public class survey_tool_script extends script.base_script
+     public static final int MIN_SURVEY_TOOL_DELAY = 10;
+     public static final int SURVEY_MIND_COST = 0;
+     public static final int SAMPLE_MIND_COST = 0;
+-    public static final int SAMPLE_ACTION_COST = 105;
++    public static final int PRECU_SAMPLE_ACTION_BASE_COST = 124;
++    public static final float PRECU_SAMPLE_QUICKNESS_DIVISOR = 12.5f;
+     public static final int MIN_SURVEY_MISSION_DISTANCE = 1024;
+     public static final string_id SID_TOOL_OPTIONS = new string_id("sui", "tool_options");
+     public static final string_id SID_TOOL_RANGE = new string_id("sui", "survey_range");
+@@ -668,8 +669,8 @@ public class survey_tool_script extends script.base_script
+             resource.cleanupTool(player, self);
+             return SCRIPT_CONTINUE;
+         }
+-        int action = getAttrib(player, ACTION);
+-        int actioncost = SAMPLE_ACTION_COST * (getLevel(player) / 2);
++        int actioncost = Math.max(0, PRECU_SAMPLE_ACTION_BASE_COST -
++            (int)(getAttrib(player, QUICKNESS) / PRECU_SAMPLE_QUICKNESS_DIVISOR));
+         if (!drainAttributes(player, actioncost, 0))
+         {
+             sendSystemMessage(player, SID_SAMPLE_MIND);
+diff --git a/sku.0/sys.server/compiled/game/script/library/static_item.java b/sku.0/sys.server/compiled/game/script/library/static_item.java
+index e87cdad..67c2256 100644
+--- a/sku.0/sys.server/compiled/game/script/library/static_item.java
++++ b/sku.0/sys.server/compiled/game/script/library/static_item.java
+@@ -21,7 +21,6 @@ public class static_item extends script.base_script
+     public static final string_id SID_NOT_LINKED_TO_HOLDER = new string_id("base_player", "not_linked_to_holder");
+     public static final string_id ALREADY_HAVE_SIMILAR_BUFF = new string_id("base_player", "already_have_similar_buff");
+     public static final string_id BUFF_APPLIED = new string_id("base_player", "buff_applied");
+-    public static final string_id SID_ITEM_LEVEL_TOO_LOW = new string_id("base_player", "level_too_low_for_effect");
+     public static final string_id SID_UNIQUE_NO_CREATE = new string_id("base_player", "unique_failed_create");
+     public static final string_id SID_ITEM_NOT_ENOUGH_SKILL = new string_id("base_player", "not_correct_skill");
+     public static final String STATIC_ITEM_NAME = "static_item_n";
+@@ -467,46 +466,16 @@ public class static_item extends script.base_script
+     }
+     public static boolean validateLevelRequired(obj_id player, int requiredLevel) throws InterruptedException
+     {
+-        return getLevel(player) >= requiredLevel;
++        // Retained post-era items may still carry a compatibility column, but
++        // Publish 14.1 players have no combat level with which to satisfy it.
++        return true;
+     }
+     public static boolean validateLevelRequired(obj_id player, obj_id item) throws InterruptedException
+     {
+-        int got = getGameObjectType(item);
+-        if (isGameObjectTypeOf(got, GOT_weapon) || isGameObjectTypeOf(got, GOT_armor))
+-        {
+-            return true;
+-        }
+-        int playerLevel = getLevel(player);
+-        dictionary itemData = getMasterItemDictionary(item);
+-        if (itemData != null)
+-        {
+-            int requiredLevel = itemData.getInt("required_level");
+-            if (requiredLevel > 0)
+-            {
+-                if (playerLevel < requiredLevel)
+-                {
+-                    return false;
+-                }
+-            }
+-        }
+         return true;
+     }
+     public static boolean validateLevelRequiredForWornEffect(obj_id player, obj_id item) throws InterruptedException
+     {
+-        int playerLevel = getLevel(player);
+-        String itemName = getStaticItemName(item);
+-        dictionary itemData = getStaticObjectTypeDictionary(itemName);
+-        if (itemData != null)
+-        {
+-            int requiredLevel = itemData.getInt("required_level_for_effect");
+-            if (requiredLevel > 0)
+-            {
+-                if (playerLevel < requiredLevel)
+-                {
+-                    return false;
+-                }
+-            }
+-        }
+         return true;
+     }
+     public static void decrementStaticItem(obj_id item) throws InterruptedException
+@@ -806,10 +775,8 @@ public class static_item extends script.base_script
+                     if (itemData != null) {
+                         String buffName = itemData.getString("buff_name");
+                         if (buffName != null && !buffName.equals("")) {
+-                            if (validateLevelRequiredForWornEffect(player, (equipSlot))) {
+-                                applyWornBuffs(equipSlot, getContainedBy(equipSlot));
+-                                checkForAddSetBonus(equipSlot, getContainedBy(equipSlot));
+-                            }
++                            applyWornBuffs(equipSlot, getContainedBy(equipSlot));
++                            checkForAddSetBonus(equipSlot, getContainedBy(equipSlot));
+                         }
+                     }
+                 }
+@@ -850,23 +817,15 @@ public class static_item extends script.base_script
+             LOG("create", "Worn Buff Name is bad");
+             return;
+         }
+-        if (static_item.validateLevelRequired(player, itemData.getInt("required_level_for_effect")))
++        if (buff.canApplyBuff(player, buffName))
+         {
+-            if (buff.canApplyBuff(player, buffName))
+-            {
+-                buff.applyBuff(player, player, buffName);
+-                playClientEffectObj(player, itemData.getString("client_effect"), player, "");
+-            }
+-            else 
+-            {
+-                utils.setScriptVar(self, "buffNotApplied", true);
+-                sendSystemMessage(player, ALREADY_HAVE_SIMILAR_BUFF);
+-            }
++            buff.applyBuff(player, player, buffName);
++            playClientEffectObj(player, itemData.getString("client_effect"), player, "");
+         }
+         else 
+         {
+             utils.setScriptVar(self, "buffNotApplied", true);
+-            sendSystemMessage(player, SID_ITEM_LEVEL_TOO_LOW);
++            sendSystemMessage(player, ALREADY_HAVE_SIMILAR_BUFF);
+         }
+     }
+     public static void removeWornBuffs(obj_id self, obj_id player) throws InterruptedException
+@@ -1214,14 +1173,6 @@ public class static_item extends script.base_script
+         String at = "@obj_attr_n:";
+         int free = 0;
+         dictionary itemData = static_item.getMergedItemDictionary(item_name);
+-        int requiredLevelToEquip = itemData.getInt("required_level");
+-        if (requiredLevelToEquip != 0)
+-        {
+-            names[free] = utils.packStringId(new string_id("proc/proc", "required_combat_level"));
+-            attribs[free++] = "" + requiredLevelToEquip;
+-            names[free] = utils.packStringId(new string_id("proc/proc", "tooltip.required_combat_level"));
+-            attribs[free++] = "" + requiredLevelToEquip;
+-        }
+         String requiredSkillToEquip = itemData.getString("required_skill");
+         if (requiredSkillToEquip != null && !requiredSkillToEquip.equals(""))
+         {
+@@ -1260,14 +1211,6 @@ public class static_item extends script.base_script
+             }
+             free++;
+         }
+-        int requiredLevelForEffect = itemData.getInt("required_level_for_effect");
+-        if (requiredLevelForEffect != 0)
+-        {
+-            names[free] = utils.packStringId(new string_id("proc/proc", "effect_level"));
+-            attribs[free++] = "" + requiredLevelForEffect;
+-            names[free] = utils.packStringId(new string_id("proc/proc", "tooltip.effect_level"));
+-            attribs[free++] = "" + requiredLevelForEffect;
+-        }
+         String buffName = itemData.getString("buff_name");
+         if (buffName != null && !buffName.equals(""))
+         {
+@@ -1989,10 +1932,6 @@ public class static_item extends script.base_script
+         dictionary itemData = static_item.getMasterItemDictionary(item);
+         String requiredSkill = itemData.getString("required_skill");
+         boolean canEquip = true;
+-        if (!static_item.validateLevelRequired(player, itemData.getInt("required_level")))
+-        {
+-            canEquip = false;
+-        }
+         if (requiredSkill != null && !requiredSkill.equals("") &&
+             !utils.meetsProfessionRequirement(player, requiredSkill))
+         {

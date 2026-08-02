@@ -2253,3 +2253,20 @@ combat score, and every eligible nearby member receives the full displayed
 reward without a split, NGE level reduction, or daily cash penalty. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuMissionBoardGroupRewards.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 286 removes the remaining NGE player combat-level authority from
+retained item use. Static-item transfers, click buffs, full-heal items,
+skill-mod items, worn effects, faction comlinks, looted stimpacks, crafted
+stimpacks, and force melons no longer read, display, or enforce a combat level.
+The post-era level-up orb is inert, no longer offers Use, and detaches its
+no-move script so a persisted copy cannot mutate progression or remain stuck.
+Authored PRE-CU skill and profession ownership, biolinking, cooldowns, effect
+admission, charge consumption, and medicine behavior remain intact.
+
+Resource sampling also stops multiplying its Action drain by player level. It
+now follows the pinned Core3 Publish 14.1 Quickness rule: `max(0, 124 -
+Quickness / 12.5)`. Creature difficulty remains available to creatures; this
+milestone removes only the obsolete player-level authority from items and
+sampling. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuItemLevelRetirement.ps1 -SourceRoot <materialized-staging-directory>

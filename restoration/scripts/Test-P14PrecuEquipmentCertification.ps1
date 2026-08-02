@@ -129,10 +129,11 @@ $staticTransfer = Get-FunctionSlice -Text $staticBase `
 $staticAttributes = Get-FunctionSlice -Text $staticBase `
     -Start "public int OnGetAttributes(" `
     -Next "public int handlerVersionUpdate("
-Assert-Contract ($staticTransfer.Contains("boolean precuEquipment = itemType == 1 || itemType == 2") -and
+Assert-Contract (-not $staticTransfer.Contains("requiredLevel") -and
+    -not $staticTransfer.Contains("validateLevelRequired") -and
     $staticTransfer.Contains("itemType != 1") -and
-    $staticTransfer.Contains("!precuEquipment && !static_item.validateLevelRequired")) `
-    "p14.precu-equipment.static-weapon-armor-level-bypass"
+    $staticTransfer.Contains("utils.meetsProfessionRequirement")) `
+    "p14.precu-equipment.static-item-level-retired-skill-preserved"
 Assert-Contract (-not $staticAttributes.Contains("required_combat_level")) `
     "p14.precu-equipment.static-equipment-level-attribute-retired"
 
@@ -146,8 +147,8 @@ $staticWeaponAttributes = Get-FunctionSlice -Text $staticItem `
 $staticArmorAttributes = Get-FunctionSlice -Text $staticItem `
     -Start "public static void getStaticArmorObjectAttributes(" `
     -Next "public static void getStaticItemObjectAttributes("
-Assert-Contract ($objectValidation.Contains("GOT_weapon") -and
-    $objectValidation.Contains("GOT_armor") -and
+Assert-Contract (-not $objectValidation.Contains("getLevel(") -and
+    -not $objectValidation.Contains("getMasterItemDictionary(") -and
     $objectValidation.Contains("return true;")) `
     "p14.precu-equipment.worn-equipment-never-level-invalidated"
 Assert-Contract (-not $staticWeaponAttributes.Contains("healing_combat_level_required") -and

@@ -104,6 +104,7 @@ source_mission_base="$source_script/systems/missions/base/mission_base.java"
 work_mission_base="$work_script/systems/missions/base/mission_base.java"
 source_mission_dynamic="$source_script/systems/missions/base/mission_dynamic_base.java"
 work_mission_dynamic="$work_script/systems/missions/base/mission_dynamic_base.java"
+precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -140,6 +141,9 @@ cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
+for precu_item_level_path in $precu_item_level_paths; do
+    cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
+done
 for conversation_file in \
     dath_bh_wanted_list_01 ep3_kachirho_missing_son ep3_myyydril_pers \
     ep3_myyydril_weaponsmith ep3_rodian_junk_dealer ep3_wke_junk_dealer \
@@ -224,6 +228,18 @@ javap -classpath "$class_root" -constants script.systems.missions.base.mission_b
 javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'fullRewardEach='
 javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'insufficient-mission-placeholders'
 javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'getPrecuMissionGroupCombatScore'
+javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_ACTION_BASE_COST = 124'
+javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_QUICKNESS_DIVISOR = 12.5f'
+! javap -classpath "$class_root" -v script.item.buff_click_item | grep -Fq 'required_level_for_effect'
+! javap -classpath "$class_root" -v script.item.full_heal_item | grep -Fq 'required_level_for_effect'
+! javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq 'player_level.iff'
+! javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq 'combat_general'
+javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq 'item.special.nomove'
+javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq 'detachScript'
+! javap -classpath "$class_root" -v script.item.medicine.stimpack | grep -Fq 'combat_level_required'
+! javap -classpath "$class_root" -v script.item.medicine.stimpack_crafted | grep -Fq 'combat_level_required'
+javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'healing.combat_level_required'
+javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'removeObjVar'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_armorsmith_droid | grep -Fq 'crafting_armorsmith_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_jetpack_droid | grep -Fq 'crafting_artisan_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.mustafar_trials.valley_battleground.mining_droid | grep -Fq 'crafting_droidengineer_novice'
