@@ -141,6 +141,8 @@ cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
+cmp -s "$source_script/library/pet_lib.java" "$work_script/library/pet_lib.java"
+cmp -s "$source_script/ai/pet_control_device.java" "$work_script/ai/pet_control_device.java"
 for precu_item_level_path in $precu_item_level_paths; do
     cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
 done
@@ -240,6 +242,16 @@ javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq
 ! javap -classpath "$class_root" -v script.item.medicine.stimpack_crafted | grep -Fq 'combat_level_required'
 javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'healing.combat_level_required'
 javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'removeObjVar'
+javap -classpath "$class_root" -constants script.library.pet_lib | grep -Fq 'MAX_NONCH_PET_LEVEL = 10'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'canCallCreaturePet'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'outdoors_creaturehandler_novice'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'tame_level'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'tame_aggro'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'control_exceeded'
+! javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'MAX_PET_LEVELS_ABOVE_CALLER'
+! javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'tame_level_bonus'
+javap -classpath "$class_root" -v script.ai.pet_control_device | grep -Fq 'canCallCreaturePet'
+! javap -classpath "$class_root" -v script.ai.pet_control_device | grep -Fq 'cant_call_level'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_armorsmith_droid | grep -Fq 'crafting_armorsmith_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_jetpack_droid | grep -Fq 'crafting_artisan_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.mustafar_trials.valley_battleground.mining_droid | grep -Fq 'crafting_droidengineer_novice'

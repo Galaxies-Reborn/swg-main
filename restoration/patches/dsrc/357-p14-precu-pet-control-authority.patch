@@ -1,0 +1,103 @@
+diff --git a/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java b/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java
+index 8c33693..7da9ff3 100644
+--- a/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java
++++ b/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java
+@@ -330,9 +330,13 @@ public class pet_control_device extends script.base_script
+                 return SCRIPT_CONTINUE;
+             }
+             int petLevel = getLevelFromPetControlDevice(self);
+-            if (getLevel(player) < petLevel - pet_lib.MAX_PET_LEVELS_ABOVE_CALLER && !pet_lib.isMountPcd(self))
++            int controlPetType = petType;
++            if (pet_lib.isMountPcd(self))
++            {
++                controlPetType = pet_lib.getPetType(petObjVar);
++            }
++            if (!isGod(player) && !pet_lib.canCallCreaturePet(player, controlPetType, petLevel))
+             {
+-                sendSystemMessage(player, pet_lib.SID_SYS_CANT_CALL_LEVEL);
+                 return SCRIPT_CONTINUE;
+             }
+             if (!isSameFaction(self))
+diff --git a/sku.0/sys.server/compiled/game/script/library/pet_lib.java b/sku.0/sys.server/compiled/game/script/library/pet_lib.java
+index 84b34ef..4c61782 100644
+--- a/sku.0/sys.server/compiled/game/script/library/pet_lib.java
++++ b/sku.0/sys.server/compiled/game/script/library/pet_lib.java
+@@ -51,7 +51,6 @@ public class pet_lib extends script.base_script
+     public static final int MAX_NONCH_PET_LEVEL = 10;
+     public static final int MAX_REGEN_STAT = 4000;
+     public static final int MAX_PET_LEVELS = 70;
+-    public static final int MAX_PET_LEVELS_ABOVE_CALLER = 5;
+     public static final int MAX_PET_MOUNT_DISTANCE = 4;
+     public static final int MAX_PET_MOUNT_OFFER_DISTANCE = 32;
+     public static final int MAX_VITALITY_LOSS = 100;
+@@ -107,7 +106,6 @@ public class pet_lib extends script.base_script
+     public static final string_id SID_SYS_PATROL_REMOVED = new string_id("pet/pet_menu", "patrol_removed");
+     public static final string_id SID_SYS_CANT_CALL = new string_id("pet/pet_menu", "cant_call");
+     public static final string_id SID_SYS_CANT_CALL_YET = new string_id("pet/pet_menu", "prose_cant_call_yet");
+-    public static final string_id SID_SYS_CANT_CALL_LEVEL = new string_id("pet/pet_menu", "cant_call_level");
+     public static final string_id SID_SYS_CANT_GENERATE_YET = new string_id("pet/pet_menu", "prose_cant_generate_yet");
+     public static final string_id SID_SYS_CALL_DELAY_FINISH_VEHICLE = new string_id("pet/pet_menu", "call_delay_finish_vehicle");
+     public static final string_id SID_SYS_CALL_DELAY_FINISH_PET = new string_id("pet/pet_menu", "call_delay_finish_pet");
+@@ -3804,6 +3802,36 @@ public class pet_lib extends script.base_script
+         obj_id pet = callable.getCallable(master, callable.CALLABLE_TYPE_COMBAT_PET);
+         return getLevel(pet);
+     }
++    public static boolean canCallCreaturePet(obj_id player, int petType, int petLevel) throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !isPlayer(player))
++        {
++            return false;
++        }
++        if (petType != PET_TYPE_NON_AGGRO && petType != PET_TYPE_AGGRO)
++        {
++            return true;
++        }
++        boolean creatureHandler = hasSkill(player, "outdoors_creaturehandler_novice");
++        int maximumControlLevel = creatureHandler ? getMaxTameLevel(player) : MAX_NONCH_PET_LEVEL;
++        if (petLevel > maximumControlLevel)
++        {
++            sendSystemMessage(player, new string_id("pet/pet_menu", "control_exceeded"));
++            return false;
++        }
++        if (petType == PET_TYPE_AGGRO &&
++            (!creatureHandler || getSkillStatMod(player, "tame_aggro") <= 0))
++        {
++            sendSystemMessage(player, new string_id("pet/pet_menu", "lack_skill"));
++            return false;
++        }
++        if (getCurrentPetLevels(player) + petLevel > maximumControlLevel)
++        {
++            sendSystemMessage(player, new string_id("pet/pet_menu", "control_exceeded"));
++            return false;
++        }
++        return true;
++    }
+     public static boolean canControlPetsOfLevel(obj_id player, int petType, int petLevel, String creatureName) throws InterruptedException
+     {
+         if (!hasSkill(player, "outdoors_creaturehandler_novice"))
+@@ -3852,22 +3880,11 @@ public class pet_lib extends script.base_script
+     }
+     public static int getMaxTameLevel(obj_id player) throws InterruptedException
+     {
+-        int baseTameLevel = getSkillStatMod(player, "tame_level");
+-        int bonusTameLevel = getEnhancedSkillStatisticModifier(player, "tame_level_bonus");
+-        int playerLevel = getLevel(player);
+-        if (baseTameLevel + bonusTameLevel > playerLevel)
++        if (!isIdValid(player) || !exists(player) || !isPlayer(player))
+         {
+-            if (baseTameLevel > playerLevel)
+-            {
+-                return baseTameLevel;
+-            }
+-            bonusTameLevel = playerLevel - baseTameLevel;
+-            if (bonusTameLevel < 0)
+-            {
+-                bonusTameLevel = 0;
+-            }
++            return 0;
+         }
+-        return (baseTameLevel + bonusTameLevel);
++        return Math.max(0, getSkillStatMod(player, "tame_level"));
+     }
+     public static int getModifiedAttribDamage(obj_id target, int attrib) throws InterruptedException
+     {

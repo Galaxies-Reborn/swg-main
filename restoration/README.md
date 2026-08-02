@@ -2270,3 +2270,16 @@ milestone removes only the obsolete player-level authority from items and
 sampling. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuItemLevelRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 287 removes the remaining NGE owner-combat-level authority from the
+active creature-pet tame and call lifecycle. Creature Handler control now comes
+only from the authenticated `tame_level` skill modifier (12 at novice and 70 at
+master), with active creature levels counted against that allowance. A
+non-handler retains the Publish 14.1 allowance for one docile level-10-or-lower
+creature; aggressive pets require Creature Handler and positive `tame_aggro`.
+Trained mounts resolve their underlying creature type before the same control
+check, while droid, faction, and familiar call admission remains independent.
+Location, death, capacity, faction, call-delay, and privileged-player checks are
+preserved. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPetControlAuthority.ps1 -SourceRoot <materialized-staging-directory>
