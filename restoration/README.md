@@ -2425,3 +2425,20 @@ confirmed mission terminal population and full group-reward paths are also
 authenticated as untouched. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCityInvasionRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 297 retires the four queued, warped, level-gated battlefields added
+in Game Update 10: Massassi Isle, Jungle Warfare, Bunker Assault, and Data
+Runner. Their four controller objects and sixteen capture terminals retain
+their scenery rows and object variables, but no longer attach the later
+`systems.gcw.pvp_battlefield` or `systems.gcw.battlefield_terminal` scripts.
+Persisted controllers evacuate active participants, clear queue and cluster
+state, unregister their region mappings, and detach. Persisted player scripts,
+queued state, battlefield-only buffs, cloning overrides, level gates, and
+region pushback behavior are also removed fail-closed.
+
+The older open-world `systems.battlefield` implementation, its battlefield
+data, and its faction-standing reward path remain authenticated and untouched.
+Combat mission terminals and their group-credit rules also remain unchanged.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuQueuedBattlefieldRetirement.ps1 -SourceRoot <materialized-staging-directory>

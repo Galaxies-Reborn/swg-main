@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-queued-battlefield-retirement",
+  "status": "ready",
+  "scope": "Retire the post-NGE Game Update 10 four-map queued/warped/level-gated battlefield system while preserving the PRE-CU open-world battlefield implementation, faction standing, mission terminals, and later-zone scenery assets.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/bin/scripts/screenplays/battlefields/battlefield_spawner.lua",
+    "laterRelease": "Star Wars Galaxies Game Update 10 (2009)",
+    "findings": [
+      "The pinned Publish 14 reference creates open-world battlefield markers and no-build/no-spawn active areas on eight original planets; it has no four-map cross-server queue, invitation, warp, level-75 admission, or token-reward controller.",
+      "The later pvp_battlefields table names four queued maps, and systems.gcw.player_pvp enforces level 75, 4v4-to-16v16 queue/invitation flow, warp admission, scoreboards, and battlefield tokens.",
+      "The retained systems.battlefield implementation is a distinct open-world region game using battlefield.tab, faction selection, battlefield structures, and PRE-CU faction-standing rewards."
+    ]
+  },
+  "expected": {
+    "queuedBattlefieldEnabled": false,
+    "crossServerQueueReachable": false,
+    "battlefieldWarpReachable": false,
+    "level75AdmissionGateReachable": false,
+    "queuedBattlefieldTokenRewardReachable": false,
+    "controllerBuildoutScriptsAttached": false,
+    "captureTerminalBuildoutScriptsAttached": false,
+    "persistedControllersCleanAndDetach": true,
+    "persistedPlayerScriptsCleanAndDetach": true,
+    "battlefieldCloneOverrideReachable": false,
+    "battlefieldRegionPushbackReachable": false,
+    "laterZoneSceneryRowsPreserved": true,
+    "precuOpenWorldBattlefieldSourceChanged": false,
+    "precuFactionStandingRewardsPreserved": true,
+    "missionTerminalSourceChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/battlefield_terminal.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_battlefield.java",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_1.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_8.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_3_1.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_5_5.tab"
+  ],
+  "retainedSources": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/battlefield.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/battlefield_region.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/player_battlefield.java",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/battlefield/battlefield.tab",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/367-p14-precu-queued-battlefield-retirement.patch",
+      "bytes": 39704,
+      "sha256": "49bb11af85a30bd885c5958f80607b0c96dc6f1f16dec44af2b5e1c7338799cc"
+    },
+    "sourceSha256": {
+      "script.library.gcw": "daf179a365fe04ffde55ecf352acc04796598247be2dc8ccc37205ef2a60bd9f",
+      "script.player.base.base_player": "724e1e222f848aed6265387560d45c2f45a65fdc9dc599e4b1c0c5e8cda46f06",
+      "script.player.live_conversions": "c72594000f22d6a64fa071ec48ebb2ff6535814eb9699e46dea350fa19b6de24",
+      "script.systems.gcw.battlefield_terminal": "ebf1a8b81c923e07492aa22867446945658a800c4dbc7f778de6122973a18615",
+      "script.systems.gcw.player_pvp": "f7cbe4a58383e78bc8021beabb5d5eb850d7c3b74e39fd169e3d69aa9e5b1a7f",
+      "script.systems.gcw.pvp_battlefield": "706602177b0f0b6daea1678a1525514176b718493dff2325773ea0489b31b059",
+      "buildout.endor_1_1": "02c1e2e021e2ea66bdfdfc48cb5582c18c18613b8cb1ba07e21960c50170e533",
+      "buildout.endor_1_8": "79149a2bae6089c27d25b06db23adafe5355e3480bf7c135d7ad6084c3af5447",
+      "buildout.yavin4_3_1": "4ff21823909e56520a42789d3f7f8a66d3c19733f10ba6858abea1a71bab1ef3",
+      "buildout.yavin4_5_5": "0fac3989b75bd8f2e0d9e6ee1123b3ade960277891538699d2421bfd8820757a",
+      "retained.library.battlefield": "f9d0001c33060f85467115a1a90f423b31398bb33942776dfcf44b7c02b862ec",
+      "retained.systems.battlefield.region": "3548f8f1073a9b4ef9b0a47230246daf22896107c38ad83f52b853ba3c061927",
+      "retained.systems.battlefield.player": "39729ee9bd2b9e5e0b62833974896a5f41119ef9b8631418284e8094b92c07a3",
+      "retained.table.battlefield": "f31dd89602cc6d0a5c6c977dd67736f1bb3f643982ba82f62aeebaa9c017c4f5",
+      "retained.factions": "49759b662ebee3e8fdf74260c8287271e4980b54800b418922e7b1b7f32218a8",
+      "retained.mission_terminal": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "retained.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03"
+    },
+    "isolatedJavaCompile": "passed with javac -source 8 -target 8 against the deployed Milestone 296 x64 class set",
+    "isolatedClassSha256": {
+      "script.library.gcw": "864a15301344fd4dd41d12fe8631464ce69ae547d225caa4f2b17671cfec6ca0",
+      "script.player.base.base_player": "4d4eff5d567d6ab45bc54722400afb2aee73039dc2484beb456e52f9f91a2395",
+      "script.player.live_conversions": "56a5c4cc6bd7df3f13ddb237f1d9b9405c07eb84733085a85a0110f61259ab5a",
+      "script.systems.gcw.battlefield_terminal": "2be371ee0f426a7fe17b8222fae9efef707fdff3fe866c8443eb1803dd556cd5",
+      "script.systems.gcw.player_pvp": "1ae5b4b306673e70a32bd3af0ce4948527ed0868099b56ae498ca7dcd981d582",
+      "script.systems.gcw.pvp_battlefield": "daba7de71e9af37aef3bc1ab5306e19c4e20ae62b0f53c93dab1b01521942754"
+    },
+    "cleanMaterialization": "passed (399 patches, 1128 acceptance files)",
+    "cleanMaterializationPatches": 399,
+    "cleanMaterializationAcceptanceFiles": 1128,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "compiledClassSha256": {
+      "script.library.gcw.deployedFullBuild": "ef17dc993233aecfadd360df0c5898a97855685a42a797a00a388496c97721fa",
+      "script.player.base.base_player.deployedFullBuild": "4aa522e353b1aab95f25f9991f6e36e1f6da2edcedc69e969874e4e70ecb2732",
+      "script.player.live_conversions.deployedFullBuild": "05d4ae140ab131b48a7f02ccf105586f2ac9dd16f61a4ff9ddf209cb4c943b41",
+      "script.systems.gcw.battlefield_terminal.deployedFullBuild": "29cebce16f6901c97dd7e35bef29f74af25095a62287de71481aa58eda3afa1a",
+      "script.systems.gcw.player_pvp.deployedFullBuild": "f75730307dce0201bdd1669114805bc0c4f6f6cac7b035d683b724dd31ab41c2",
+      "script.systems.gcw.pvp_battlefield.deployedFullBuild": "f49a19da8fb0509074e1f13456e204cd5fea1c1b79fe47328f7f5473e2d69a75"
+    },
+    "compiledBuildoutSha256": {
+      "endor_1_1.iff": "e7cda2866b66c447301c336ae75e742bc55f3e1cbc95dab8df17ed472bd05468",
+      "endor_1_8.iff": "f94aab9769d19e434106881ee4e28b7c54a84718751370b16b36ff63fa3bf8e2",
+      "yavin4_3_1.iff": "48cef7711b46f66beac6e4150429af7847611ac461aa32032f7b785003589a7d",
+      "yavin4_5_5.iff": "5f4e78e02226a7e340d4d920bf0c97b16dbbdaca6723dd18d87c83987e2eebad"
+    },
+    "fullX64Build": "passed (Release native build, 5747 compiled Java class files, buildout/content compilation, and restart-time database/config refresh)",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed source/work comparisons, queued-battlefield cleanup and guarded-entrypoint bytecode, detached controller/terminal buildout rows, retained PRE-CU battlefield/mission/faction regressions, rendered runtime configuration, x64 architecture, health/readiness, and live mapped-binary verification"
+  },
+  "runtimeEvidence": {
+    "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
+    "containerStartedAt": "2026-08-02T20:11:54.566307958Z",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-gcw297-final-a",
+    "requiredProcessCounts": "LoginServer=1, TaskManager=1, ConnectionServer=1, SwgDatabaseServer=1, SwgGameServer=14",
+    "queuedBattlefieldControllerStartupLines": 0,
+    "fatalStartupLines": 0,
+    "exceptionStartupLines": 0,
+    "missionErrorLines": 0,
+    "missionTerminalContinuity": "The user physically reached a combat mission terminal after Milestone 296 and confirmed that it works; its source and reward hashes remain protected and unchanged in this overlay."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all known controller buildouts, capture-terminal buildouts, persisted-controller cleanup, cross-server queue/status, player-script attachment, level-75 admission, warp, battlefield cloning, pushback-region, scoreboard, and token-reward reachability for the Game Update 10 four-map system",
+    "retainedContent": "PRE-CU open-world battlefield code/data and faction-standing rewards, ordinary open-world PvP, faction rank/perks, mission terminals and rewards, static faction bases, later-zone scenery, and authored quests",
+    "notClaimedComplete": "static faction-base timing/rewards and wider regional planet-control presentation remain separate audits"
+  },
+  "requiredBeforeReady": []
+}

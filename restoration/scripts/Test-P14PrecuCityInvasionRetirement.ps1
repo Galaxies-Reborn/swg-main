@@ -50,7 +50,8 @@ $paths = [ordered]@{
     "buildout.naboo_5_6" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
     "retained.mission_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java"
     "retained.mission_base" = "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
-    "retained.player_pvp" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java"
+    "retained.battlefield_library" = "dsrc/sku.0/sys.server/compiled/game/script/library/battlefield.java"
+    "retained.battlefield_player" = "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/player_battlefield.java"
     "retained.factions" = "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java"
     "retained.gcw_city_kit" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit.java"
     "retained.gcw_city_bestine" = "dsrc/sku.0/sys.server/compiled/game/datatables/gcw/gcw_city_bestine.tab"
@@ -162,7 +163,8 @@ Assert-Contract (-not $player.Contains("gcw.invasionRunning.bestine") -and
 
 $missionTerminal = [string]$texts["retained.mission_terminal"]
 $missionBase = [string]$texts["retained.mission_base"]
-$battlefield = [string]$texts["retained.player_pvp"]
+$battlefieldLibrary = [string]$texts["retained.battlefield_library"]
+$battlefieldPlayer = [string]$texts["retained.battlefield_player"]
 $factions = [string]$texts["retained.factions"]
 Assert-Contract ($missionTerminal.Contains("menu_info_types.MISSION_TERMINAL_LIST") -and
     $missionTerminal.Contains("public int OnObjectMenuRequest") -and
@@ -170,10 +172,11 @@ Assert-Contract ($missionTerminal.Contains("menu_info_types.MISSION_TERMINAL_LIS
     $missionBase.Contains("fullRewardEach=") -and
     $missionBase.Contains("split=false dailyCashPenalty=false")) `
     "p14.city-invasion.live-confirmed-mission-board-and-rewards-retained"
-Assert-Contract ($battlefield.Contains("battlefield") -and
-    $battlefield.Contains("item_battlefield_rebel_token_") -and
-    $battlefield.Contains("item_battlefield_imperial_token_")) `
-    "p14.city-invasion.older-battlefield-gameplay-and-tokens-retained"
+Assert-Contract ($battlefieldLibrary.Contains('SCRIPT_BATTLEFIELD_REGION = "systems.battlefield.battlefield_region"') -and
+    $battlefieldPlayer.Contains("factions.addFactionStanding(self, faction, standing)") -and
+    -not $battlefieldPlayer.Contains("item_battlefield_rebel_token_") -and
+    -not $battlefieldPlayer.Contains("item_battlefield_imperial_token_")) `
+    "p14.city-invasion.precu-open-world-battlefield-standing-retained"
 Assert-Contract ($factions.Contains("awardPrecuNpcCombatFaction") -and
     $factions.Contains("pvpSetPrecuFactionRank")) `
     "p14.city-invasion.precu-faction-standing-and-rank-retained"

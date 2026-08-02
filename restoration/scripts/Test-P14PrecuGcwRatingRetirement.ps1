@@ -57,7 +57,7 @@ $paths = [ordered]@{
     "ScriptMethodsPvp.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
     "script.systems.missions.base.mission_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
     "script.library.groundquests" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java"
-    "script.systems.gcw.player_pvp" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java"
+    "script.systems.battlefield.player_battlefield" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/player_battlefield.java"
     "script.library.space_combat" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/space_combat.java"
     "script.systems.gcw.space.battle_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/space/battle_spawner.java"
 }
@@ -81,7 +81,7 @@ $playerHeader = [string]$texts["PlayerObject.h"]
 $scriptPvp = [string]$texts["ScriptMethodsPvp.cpp"]
 $mission = [string]$texts["script.systems.missions.base.mission_base"]
 $groundquests = [string]$texts["script.library.groundquests"]
-$battlefield = [string]$texts["script.systems.gcw.player_pvp"]
+$battlefield = [string]$texts["script.systems.battlefield.player_battlefield"]
 $spaceCombat = [string]$texts["script.library.space_combat"]
 $spaceBattle = [string]$texts["script.systems.gcw.space.battle_spawner"]
 
@@ -170,9 +170,10 @@ Assert-Contract ($groundquests.Contains("money.bankTo(money.ACCT_NEW_PLAYER_QUES
     $groundquests.Contains("factions.setFactionStanding(player, factionName, currentFactionStanding + factionAmount)") -and
     $groundquests.Contains("static_item.createNewItemFunction(grantGcwRebReward, playerInv)")) `
     "p14.gcw-rating.groundquest-independent-rewards-retained"
-Assert-Contract ($battlefield.Contains('static_item.createNewItemFunction("item_battlefield_rebel_token_" + battlefieldName') -and
-    $battlefield.Contains('static_item.createNewItemFunction("item_battlefield_imperial_token_" + battlefieldName')) `
-    "p14.gcw-rating.battlefield-token-rewards-retained"
+Assert-Contract ($battlefield.Contains("factions.addFactionStanding(self, faction, standing)") -and
+    -not $battlefield.Contains("item_battlefield_rebel_token_") -and
+    -not $battlefield.Contains("item_battlefield_imperial_token_")) `
+    "p14.gcw-rating.precu-open-world-battlefield-standing-retained"
 Assert-Contract ($spaceCombat.Contains("public static void doFactionPointGrant") -and
     $spaceCombat.Contains("factions.addFactionStanding(objPlayer, factions.FACTION_IMPERIAL, intImperialFactionPoints)") -and
     $spaceCombat.Contains("factions.addFactionStanding(objPlayer, factions.FACTION_REBEL, intRebelFactionPoints)")) `

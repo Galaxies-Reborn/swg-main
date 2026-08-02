@@ -136,12 +136,28 @@ source_gcw_city="$source_script/systems/gcw/gcw_city.java"
 work_gcw_city="$work_script/systems/gcw/gcw_city.java"
 source_planet_base="$source_script/planet/planet_base.java"
 work_planet_base="$work_script/planet/planet_base.java"
+source_live_conversions="$source_script/player/live_conversions.java"
+work_live_conversions="$work_script/player/live_conversions.java"
+source_battlefield_controller="$source_script/systems/gcw/pvp_battlefield.java"
+work_battlefield_controller="$work_script/systems/gcw/pvp_battlefield.java"
+source_battlefield_terminal="$source_script/systems/gcw/battlefield_terminal.java"
+work_battlefield_terminal="$work_script/systems/gcw/battlefield_terminal.java"
+source_battlefield_player="$source_script/systems/gcw/player_pvp.java"
+work_battlefield_player="$work_script/systems/gcw/player_pvp.java"
 source_city_buildout_bestine="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab"
 work_city_buildout_bestine="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab"
 source_city_buildout_dearic="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab"
 work_city_buildout_dearic="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab"
 source_city_buildout_keren="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
 work_city_buildout_keren="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
+source_battlefield_buildout_endor_1_1="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_1.tab"
+work_battlefield_buildout_endor_1_1="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_1.tab"
+source_battlefield_buildout_endor_1_8="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_8.tab"
+work_battlefield_buildout_endor_1_8="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_8.tab"
+source_battlefield_buildout_yavin4_3_1="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_3_1.tab"
+work_battlefield_buildout_yavin4_3_1="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_3_1.tab"
+source_battlefield_buildout_yavin4_5_5="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_5_5.tab"
+work_battlefield_buildout_yavin4_5_5="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_5_5.tab"
 source_faction_recruiter="$source_script/npc/faction_recruiter/faction_recruiter.java"
 work_faction_recruiter="$work_script/npc/faction_recruiter/faction_recruiter.java"
 source_camp_controlpanel="$source_script/systems/camping/camp_controlpanel.java"
@@ -206,9 +222,17 @@ cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
 cmp -s "$source_gcw_library" "$work_gcw_library"
 cmp -s "$source_gcw_city" "$work_gcw_city"
 cmp -s "$source_planet_base" "$work_planet_base"
+cmp -s "$source_live_conversions" "$work_live_conversions"
+cmp -s "$source_battlefield_controller" "$work_battlefield_controller"
+cmp -s "$source_battlefield_terminal" "$work_battlefield_terminal"
+cmp -s "$source_battlefield_player" "$work_battlefield_player"
 cmp -s "$source_city_buildout_bestine" "$work_city_buildout_bestine"
 cmp -s "$source_city_buildout_dearic" "$work_city_buildout_dearic"
 cmp -s "$source_city_buildout_keren" "$work_city_buildout_keren"
+cmp -s "$source_battlefield_buildout_endor_1_1" "$work_battlefield_buildout_endor_1_1"
+cmp -s "$source_battlefield_buildout_endor_1_8" "$work_battlefield_buildout_endor_1_8"
+cmp -s "$source_battlefield_buildout_yavin4_3_1" "$work_battlefield_buildout_yavin4_3_1"
+cmp -s "$source_battlefield_buildout_yavin4_5_5" "$work_battlefield_buildout_yavin4_5_5"
 cmp -s "$source_faction_recruiter" "$work_faction_recruiter"
 cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
@@ -353,9 +377,21 @@ printf '%s' "$gcw_city_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -c -p script.systems.gcw.gcw_city | grep -Fq 'retirePostNgeCityInvasion'
 javap -classpath "$class_root" -c -p script.planet.planet_base | grep -Fq 'retirePostNgeCityInvasionState'
 ! javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'gcw.invasionRunning.bestine'
+gcw_battlefield_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeQueuedBattlefieldRetired/,/assignScanInterests/p')"
+printf '%s' "$gcw_battlefield_retired_bytecode" | grep -Fq 'iconst_1'
+javap -classpath "$class_root" -c -p script.systems.gcw.pvp_battlefield | grep -Fq 'retirePostNgeQueuedBattlefield'
+javap -classpath "$class_root" -c -p script.systems.gcw.battlefield_terminal | grep -Fq 'retirePostNgeQueuedBattlefieldTerminal'
+javap -classpath "$class_root" -c -p script.systems.gcw.player_pvp | grep -Fq 'retirePostNgeQueuedBattlefieldPlayer'
+javap -classpath "$class_root" -c -p script.player.base.base_player | grep -Fq 'retirePostNgeQueuedBattlefieldPlayerState'
+javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'systems.gcw.player_pvp'
+javap -classpath "$class_root" -v script.systems.battlefield.player_battlefield | grep -Fq 'addFactionStanding'
 awk -F '\t' '$13 ~ /gcw_city_bestine[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_bestine"
 awk -F '\t' '$13 ~ /gcw_city_dearic[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_dearic"
 awk -F '\t' '$13 ~ /gcw_city_keren[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_keren"
+awk -F '\t' '$13 ~ /(battlefieldName|terminalName)/ { found++; if ($12 != "") exit 2 } END { if (found != 5) exit 3 }' "$work_battlefield_buildout_endor_1_1"
+awk -F '\t' '$13 ~ /(battlefieldName|terminalName)/ { found++; if ($12 != "") exit 2 } END { if (found != 2) exit 3 }' "$work_battlefield_buildout_endor_1_8"
+awk -F '\t' '$13 ~ /(battlefieldName|terminalName)/ { found++; if ($12 != "") exit 2 } END { if (found != 7) exit 3 }' "$work_battlefield_buildout_yavin4_3_1"
+awk -F '\t' '$13 ~ /(battlefieldName|terminalName)/ { found++; if ($12 != "") exit 2 } END { if (found != 6) exit 3 }' "$work_battlefield_buildout_yavin4_5_5"
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuFactionKillRecipient'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'grantModifiedGcwPoints'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'GCW_POINT_TYPE_GROUND_PVE'
