@@ -2410,3 +2410,18 @@ and physical rewards, battlefield tokens, space-kill faction standing, and
 space-battle tokens. Mission terminal source is unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuGcwRatingRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 296 retires the later recurring Bestine, Dearic, and Keren GCW city
+invasions without deleting their reusable assets. The three buildout sequencer
+objects remain, as do their data tables and construction-kit content, but the
+`systems.gcw.gcw_city` controller is no longer attached. A persisted controller
+from an older database cleans its spawned children and stale city state, then
+detaches itself. Planet scheduling, forced GM starts, and the invasion-only
+cloning restriction are inert.
+
+This boundary does not retire PRE-CU faction standing/rank, recruiter perks,
+static faction bases, or older battlefield gameplay and tokens. The live-
+confirmed mission terminal population and full group-reward paths are also
+authenticated as untouched. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCityInvasionRetirement.ps1 -SourceRoot <materialized-staging-directory>

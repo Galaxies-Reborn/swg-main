@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-city-invasion-retirement",
+  "status": "ready",
+  "scope": "Retire the post-NGE recurring Bestine, Dearic, and Keren GCW city-invasion scheduler and runtime authority while preserving Publish 14 faction standing/rank, static faction bases, battlefields, mission terminals, and reusable city-event assets.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/bin/scripts/screenplays/battlefields/battlefield_spawner.lua",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterScreenplay.lua",
+      "MMOCoreORB/bin/scripts/object/tangible/gcw/gcw_city_spawner.lua"
+    ],
+    "findings": [
+      "The pinned Publish 14 reference retains battlefield locations, faction recruiters, and GCW object assets.",
+      "The pinned reference has a reusable gcw_city_spawner object template but no active Bestine/Dearic/Keren construction-and-assault controller or recurring planet scheduler equivalent to systems.gcw.gcw_city.",
+      "The live-source city-invasion creature rows use later level-60/90/110 NGE profession classes and therefore cannot govern PRE-CU ground GCW gameplay."
+    ]
+  },
+  "expected": {
+    "recurringCityInvasionEnabled": false,
+    "buildoutCityControllerAttached": false,
+    "persistedCityControllerCleansAndDetaches": true,
+    "planetInvasionSchedulerReachable": false,
+    "forcedGmInvasionStartReachable": false,
+    "invasionCloneRestrictionReachable": false,
+    "stalePlanetInvasionStateScrubbed": true,
+    "sequencerObjectsPreserved": true,
+    "cityEventDataTablesPreserved": true,
+    "cityEventKitAssetsPreserved": true,
+    "battlefieldGameplayPreserved": true,
+    "factionStandingAndRankPreserved": true,
+    "missionTerminalSourceChanged": false,
+    "missionBoardRewardsChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/planet/planet_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
+  ],
+  "retainedSources": [
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit.java",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/gcw/gcw_city_bestine.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/gcw/gcw_city_dearic.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/gcw/gcw_city_keren.tab"
+  ],
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/366-p14-precu-city-invasion-retirement.patch",
+      "bytes": 16269,
+      "sha256": "7802ea45994bc3336277ad1057630bcbcdef3a4dfb57a0c425cd421ad73895e1"
+    },
+    "sourceSha256": {
+      "script.library.gcw": "7cccf650edcd04243debf761b8f0266449e8483b1ffd107184895e9a4ae34ab5",
+      "script.systems.gcw.gcw_city": "e5579a64121da9204ec29763c7d68c4f4f52f55b3c3415856932c35ec9b4d953",
+      "script.planet.planet_base": "f71d320c8e30cd2e27fe9918e4beba2ba86ad6e89651b77b547591a2be788883",
+      "script.player.base.base_player": "ef94f88e069efb09638b7bc97277274185f6df1820a573059150b4b83a97fda4",
+      "buildout.tatooine_4_3": "b9d958480b58ca1a1bf9895b69ae0d9062c3d98d1b3335714cf935669def160b",
+      "buildout.talus_5_3": "c10b986491630c5d990db18e8c3f8109da23034cf8f2304c2f995085b1dcdc14",
+      "buildout.naboo_5_6": "2314913b7cfd032f76cd93be6aea0865d7f689cebdfd0f8476a6236b949da785",
+      "retained.mission_terminal": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "retained.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "retained.player_pvp": "07b18d6b1bfc173ee7af54ad63963b3ad4c0b274b1a09ed662bea35ef13b2323",
+      "retained.factions": "49759b662ebee3e8fdf74260c8287271e4980b54800b418922e7b1b7f32218a8",
+      "retained.gcw_city_kit": "b52b3cdb52b3aa5ac404787ce5062b2e6d73799d3cacd2f5690270717caf1718",
+      "retained.gcw_city_bestine": "4f537c2828f5c5845603495c9aa260d78893bb717fa71301b48b74994d23bff0",
+      "retained.gcw_city_dearic": "86d0007860c2b96d5c166ccfeb8bdc0d0cb33bf6ec078505be2a373c0f7b5a32",
+      "retained.gcw_city_keren": "b9ac394516e4b4a06287aa373a591d73f08b9d24d10c14f7946afc0ebeae1542"
+    },
+    "staticContract": "passed against the clean 398-overlay materialization together with mission-board/group-reward, faction/cloning, faction-rank, faction-perk, GCW-rating, combat-XP, and ground-loot/Scout-forage regression contracts",
+    "isolatedJavaCompile": "passed with javac -source 8 -target 8 against the verified Milestone 295 x64 class set",
+    "compiledClassSha256": {
+      "script.library.gcw.isolated": "4a5c511cf12f4b695f9609efe32dac91e553d1bd7b5334ac2ffc0d8752906f10",
+      "script.systems.gcw.gcw_city.isolated": "6fcae9042d49e65b4f0341523667ad1644262a386bc6df55f57cf4fbd4ecf54e",
+      "script.planet.planet_base.isolated": "3b82e35a6a7fce63b33114611366bcf751a4317883752054c04f00c260ae6011",
+      "script.player.base.base_player.isolated": "85b5cd5ab1cac3ea632bcb04d6371dcf218b4819df690c2d3becc5837628fd59",
+      "script.library.gcw.deployedFullBuild": "8eced0518f626e1d6a396d6ed7fc5a7b1c06af999da8a06f003ad092cf120237",
+      "script.systems.gcw.gcw_city.deployedFullBuild": "6ba6fb6734fe03825d1298bdba43d7d1b56d377f16b8ef628cf5f6e762703034",
+      "script.planet.planet_base.deployedFullBuild": "4ea0ee277a37374bd892f999671190b9939728fa60ccf419de45073171a87d72",
+      "script.player.base.base_player.deployedFullBuild": "2f612d712bbface428249fc99c448a776ade15682704d267307692dd01c8cd12"
+    },
+    "cleanMaterialization": "passed (398 patches, 1125 acceptance files)",
+    "cleanMaterializationPatches": 398,
+    "cleanMaterializationAcceptanceFiles": 1125,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "compiledBuildoutSha256": {
+      "tatooine_4_3.iff": "c076ad3515396d38c425202dd44035d5d94e3c0c1aaeea7005333e0258d63d93",
+      "talus_5_3.iff": "b8547f0edb9346660aee39c1a1432e73e36306b635dbd36468b1a7b27ac08b51",
+      "naboo_5_6.iff": "9a867550b3ace26eb793bc1850d7c55217b48ee99e41c46f7d00c6589e8ddf2c"
+    },
+    "fullX64Build": "passed (Release native build, 5747 compiled Java class files, buildout/content compilation, and restart-time database/config refresh)",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed source/work comparisons, city-controller bytecode, detached buildout rows, PRE-CU mission/faction regressions, rendered runtime configuration, x64 architecture, health/readiness, and live mapped-binary verification"
+  },
+  "runtimeEvidence": {
+    "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
+    "containerStartedAt": "2026-08-02T17:55:22.57991206Z",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-gcw296-final-b",
+    "cityInvasionStartupLines": 0,
+    "fatalStartupLines": 0,
+    "missionTerminalContinuity": "After the Milestone 296 deployment, the user physically reached a combat mission terminal and confirmed that it works; the protected source and reward hashes also remained unchanged and passed the clean-materialization regressions."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all known buildout, scheduler, persisted-controller, forced-start, planet-state, and cloning-restriction entrypoints for the later recurring Bestine/Dearic/Keren city-invasion system",
+    "retainedContent": "mission terminals and rewards, faction standing/rank and recruiter perks, static faction bases, older battlefield gameplay and tokens, GCW city kit/data assets, later zones, and authored quests",
+    "notClaimedComplete": "the retained battlefield admission/balance implementation, static faction-base behavior, and wider regional planet-control presentation remain separate audits"
+  },
+  "requiredBeforeReady": []
+}

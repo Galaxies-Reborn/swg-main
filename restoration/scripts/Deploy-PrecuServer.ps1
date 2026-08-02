@@ -29,7 +29,11 @@ function Invoke-DockerScript
         [Parameter(Mandatory = $true)][string]$Script
     )
 
-    $Script | & docker exec -i $ContainerName sh -s
+    # PowerShell may retain CRLF in a here-string. Normalize before piping to
+    # the Linux shell so a trailing carriage return cannot become part of a
+    # variable value or command argument.
+    $normalizedScript = $Script.Replace("`r`n", "`n")
+    $normalizedScript | & docker exec -i $ContainerName sh -c "tr -d '\r' | sh -s"
     if ($LASTEXITCODE -ne 0)
     {
         throw "docker exec -i $ContainerName sh -s failed with exit code $LASTEXITCODE."
@@ -128,6 +132,16 @@ source_faction_perk_library="$source_script/library/faction_perk.java"
 work_faction_perk_library="$work_script/library/faction_perk.java"
 source_gcw_library="$source_script/library/gcw.java"
 work_gcw_library="$work_script/library/gcw.java"
+source_gcw_city="$source_script/systems/gcw/gcw_city.java"
+work_gcw_city="$work_script/systems/gcw/gcw_city.java"
+source_planet_base="$source_script/planet/planet_base.java"
+work_planet_base="$work_script/planet/planet_base.java"
+source_city_buildout_bestine="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab"
+work_city_buildout_bestine="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab"
+source_city_buildout_dearic="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab"
+work_city_buildout_dearic="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab"
+source_city_buildout_keren="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
+work_city_buildout_keren="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
 source_faction_recruiter="$source_script/npc/faction_recruiter/faction_recruiter.java"
 work_faction_recruiter="$work_script/npc/faction_recruiter/faction_recruiter.java"
 source_camp_controlpanel="$source_script/systems/camping/camp_controlpanel.java"
@@ -190,6 +204,11 @@ cmp -s "$source_xp_library" "$work_xp_library"
 cmp -s "$source_factions_library" "$work_factions_library"
 cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
 cmp -s "$source_gcw_library" "$work_gcw_library"
+cmp -s "$source_gcw_city" "$work_gcw_city"
+cmp -s "$source_planet_base" "$work_planet_base"
+cmp -s "$source_city_buildout_bestine" "$work_city_buildout_bestine"
+cmp -s "$source_city_buildout_dearic" "$work_city_buildout_dearic"
+cmp -s "$source_city_buildout_keren" "$work_city_buildout_keren"
 cmp -s "$source_faction_recruiter" "$work_faction_recruiter"
 cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
@@ -246,13 +265,10 @@ do
     ! grep -Fq 'class_' "$work_script/$crafting_gate_file"
 done
 # localOptions.cfg is a runtime-rendered configuration, not a copied build
-# artifact. Authenticate the immutable template and the required rendered
-# values independently instead of demanding impossible byte equality.
+# artifact. Authenticate the immutable template before restart; the rendered
+# values are verified after the container's run path regenerates them.
 grep -Fq 'clusterName=CLUSTERNAME' "$source_local_options"
 grep -Fq 'transferServerAddress=HOSTIP' "$source_local_options"
-grep -Fq 'clusterName=swg' "$work_local_options"
-grep -Eq '^transferServerAddress=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' "$work_local_options"
-grep -Fq '### BEGIN Docker runtime overrides' "$work_local_options"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'String outdoors_scout_novice'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'Method canPlayerHarvestCreature'
@@ -332,6 +348,14 @@ printf '%s' "$gcw_grant_bytecode" | grep -Fq '0: return'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'pvpModifyCurrentGcwPoints'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'gcwInvasionCreditForGCW'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'grantGcwPointsToRegion'
+gcw_city_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeCityInvasionRetired/,/assignScanInterests/p')"
+printf '%s' "$gcw_city_retired_bytecode" | grep -Fq 'iconst_1'
+javap -classpath "$class_root" -c -p script.systems.gcw.gcw_city | grep -Fq 'retirePostNgeCityInvasion'
+javap -classpath "$class_root" -c -p script.planet.planet_base | grep -Fq 'retirePostNgeCityInvasionState'
+! javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'gcw.invasionRunning.bestine'
+awk -F '\t' '$13 ~ /gcw_city_bestine[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_bestine"
+awk -F '\t' '$13 ~ /gcw_city_dearic[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_dearic"
+awk -F '\t' '$13 ~ /gcw_city_keren[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_keren"
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuFactionKillRecipient'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'grantModifiedGcwPoints'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'GCW_POINT_TYPE_GROUND_PVE'
@@ -499,6 +523,16 @@ if (-not $clusterReady)
 {
     throw "'$Container' did not report a healthy, player-ready cluster within $ReadyTimeoutSeconds seconds."
 }
+
+$runtimeConfigProbe = @'
+set -eu
+cfg="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
+grep -Fq 'clusterName=swg' "$cfg"
+grep -Eq '^transferServerAddress=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' "$cfg"
+grep -Fq '### BEGIN Docker runtime overrides' "$cfg"
+'@
+Write-Host "Verifying the restarted server rendered its runtime configuration..."
+Invoke-DockerScript -ContainerName $Container -Script $runtimeConfigProbe
 
 Write-Host "Verifying a live game process mapped the newly built server binary..."
 $gamePids = @(& docker exec $Container pgrep -f "bin/SwgGameServer")
