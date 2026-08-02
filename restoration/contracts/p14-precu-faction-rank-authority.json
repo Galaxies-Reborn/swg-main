@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-faction-rank-authority",
+  "status": "ready",
+  "scope": "Restore the persisted and client-shared Publish 14 faction rank, promotion reserve, purchase transaction, and join/resign reset semantics instead of deriving faction rank from the NGE weekly GCW rating.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/faction/FactionManager.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterConvoHandler.lua",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterScreenplay.lua"
+    ],
+    "findings": [
+      "Publish 14 faction rank is an independently persisted creature value; it is not calculated from NGE weekly GCW rating, lifetime points, PvP kills, profession, or player combat level.",
+      "Promotion advances one rank only after the player can pay that rank's authored faction-point cost while retaining the 200-point membership minimum.",
+      "Joining and fully resigning reset faction rank to recruit rank zero. A failed rank write must not consume faction standing."
+    ]
+  },
+  "expected": {
+    "rankStorage": "CreatureObject shared persisted m_rank",
+    "minimumRank": 0,
+    "maximumRank": 15,
+    "rankReadUsesNgeGcwRating": false,
+    "nativeRankSetter": true,
+    "promotionCostSource": "datatables/faction/rank.iff COST",
+    "promotionStandingReserve": 200,
+    "promotionDeduction": "exact authored faction-point cost without bonus multipliers",
+    "failedRankWriteRefunded": true,
+    "joinRank": 0,
+    "resignRank": 0,
+    "clientSharedRankUpdated": true,
+    "ngeCreditPricedPerkCatalogChanged": false,
+    "missionTerminalPathChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
+    "src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
+  ],
+  "buildEvidence": {
+    "overlayPatches": {
+      "dsrc": {
+        "path": "restoration/patches/dsrc/363-p14-precu-faction-rank-authority.patch",
+        "bytes": 4522,
+        "sha256": "5837020c29173041de3fe6cc4cd3f8504c3f843548b8fa61b627bfb064511a0a"
+      },
+      "src": {
+        "path": "restoration/patches/src/354-p14-precu-faction-rank-authority.patch",
+        "bytes": 3515,
+        "sha256": "f42e94928eba440377a0515ace445d91b9065c6eec183d56b87202c39e4421df"
+      }
+    },
+    "sourceSha256": {
+      "script.base_class": "8da4ac2e73ca9aacb8f17c4e2ee6c9b0ef9f9782f13bcbdb9a79a6d19eff9189",
+      "script.library.factions": "c334d95f03dce91cdbec064c6669a0ef9486e6b10187528f992a8bf90c3fa9d4",
+      "CreatureObject.h": "420f65c99d245af4523233ab28537e32b13eae384e8910ab17393cee618193de",
+      "ScriptMethodsPvp.cpp": "f0cb1bbe1c6af37017a18e125a31944ba3ba61843a358f84f4960ef60b465946"
+    },
+    "staticContract": "passed",
+    "javaCompile": "passed with javac -source 8 -target 8 and again in the full x64 build",
+    "compiledClassSha256": {
+      "script.base_class": "d1d45da1be236bb209fb92c990a32a06bf954099b7bd47e90f07aa1c6fdd544b",
+      "script.library.factions": "5823551e98a8c3a8f0eb22d32410be2cc670abad977fd6652c9b14cdccb22f30"
+    },
+    "nativeBuild": "passed",
+    "cleanMaterializationPatches": 394,
+    "cleanMaterializationAcceptanceFiles": 1115,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "87b97434130651d10055455c021b9b6d8e4a9ced7e6ce64a09277ee084f5a1be",
+    "serverBinaryBuildId": "75cc4d713e9d8e60b045eba4526348bacc2c9bab",
+    "deploymentProbe": "passed source/work comparisons, Java bytecode probes, native symbol probe, x64 check, and live mapped-binary inode/size check",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen live SwgGameServer scene processes",
+    "containerStartedAt": "2026-08-02T11:26:39.159497121Z",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-rank293-a",
+    "missionTerminalContinuity": "The user verified the live combat mission terminal immediately before this milestone; mission source is outside this change set."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "native PRE-CU rank storage/read/write, rank range, promotion reserve and exact deduction, failed-write refund, and join/resign rank reset",
+    "retainedContent": "faction membership, covert/overt state, authored rank table and titles, faction recruiters, bases, hirelings, retained quests and zones",
+    "notClaimedComplete": "the NGE global credit-priced GCW reward catalog, faction-point perk categories, rank-based standing caps, battlefield/invasion scoring, space rewards, and remaining GCW metrics are separate audit milestones"
+  },
+  "requiredBeforeReady": []
+}

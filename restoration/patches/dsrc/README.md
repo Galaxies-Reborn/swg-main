@@ -1376,3 +1376,8 @@ player-level/rank/class/Luck multipliers, and cloning-sickness pricing no
 longer take precedence. PRE-CU clone wounds and item decay remain intact, and
 the residual free-trial/tutorial level and Luck gates are removed from the XP
 callback so clean Java builds cannot depend on a deleted NGE level constant.
+
+`363-p14-precu-faction-rank-authority.patch` adds the validated Java bridge to
+the persistent shared PRE-CU faction-rank field. Recruiter promotion now keeps
+the 200-point membership reserve, uses the authored rank-table cost, refunds a
+failed native rank write, and resets rank when a player joins or resigns.

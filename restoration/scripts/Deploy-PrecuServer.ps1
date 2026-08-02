@@ -70,6 +70,8 @@ source_tangible_conversation="$SWG_SOURCE_DIR/src/engine/server/library/serverGa
 work_tangible_conversation="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp"
 source_player_controller="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
 work_player_controller="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
+source_script_methods_pvp="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
+work_script_methods_pvp="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
 source_client="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 work_client="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 source_creature="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
@@ -98,6 +100,8 @@ source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/
 work_conversation="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 work_script="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script"
+source_base_class="$source_script/base_class.java"
+work_base_class="$work_script/base_class.java"
 source_missions="$source_script/library/missions.java"
 work_missions="$work_script/library/missions.java"
 source_xp_library="$source_script/library/xp.java"
@@ -143,6 +147,7 @@ cmp -s "$source_queue_header" "$work_queue_header"
 cmp -s "$source_commands" "$work_commands"
 cmp -s "$source_tangible_conversation" "$work_tangible_conversation"
 cmp -s "$source_player_controller" "$work_player_controller"
+cmp -s "$source_script_methods_pvp" "$work_script_methods_pvp"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
 cmp -s "$source_creature_header" "$work_creature_header"
@@ -166,6 +171,7 @@ cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
 cmp -s "$source_player_utility" "$work_player_utility"
 cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
+cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_script/library/pet_lib.java" "$work_script/library/pet_lib.java"
 cmp -s "$source_script/ai/pet_control_device.java" "$work_script/ai/pet_control_device.java"
 cmp -s "$source_script/npc/pet_deed/droid_deed.java" "$work_script/npc/pet_deed/droid_deed.java"
@@ -279,6 +285,9 @@ javap -classpath "$class_root" -v script.library.xp | grep -Fq 'private_jedi_dif
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'distributeMissionXpToGroup'
 javap -classpath "$class_root" -c -p script.library.factions | grep -Fq 'awardPrecuNpcCombatFaction'
 ! javap -classpath "$class_root" -v script.library.factions | grep -Fq 'incrementGCWStanding'
+javap -classpath "$class_root" -c script.base_class | grep -Fq 'pvpSetPrecuFactionRank'
+javap -classpath "$class_root" -c script.library.factions | grep -Fq 'pvpSetPrecuFactionRank'
+javap -classpath "$class_root" -constants script.library.factions | grep -Fq 'FACTION_RATING_DECLARABLE_MIN = 200.0f'
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuFactionKillRecipient'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'grantModifiedGcwPoints'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'GCW_POINT_TYPE_GROUND_PVE'
@@ -406,6 +415,7 @@ nm -C "$server_game_archive" | grep -Fq 'TangibleObject::startNpcConversation'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::endNpcConversation()'
 strings "$server_game_archive" | grep -Fq 'recover stale-session player=%s previousNpc=%s requestedNpc=%s'
 strings "$server_game_archive" | grep -Fq 'request actor=%s target=%s sequence=%u clientItems=%u'
+strings "$binary" | grep -Fq '_pvpSetPrecuFactionRank'
 file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
 '@
 

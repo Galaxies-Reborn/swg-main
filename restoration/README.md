@@ -2364,3 +2364,18 @@ gates and the NGE Luck XP bonus are absent. Mission terminal generation and
 mission payouts are unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionCloningAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 293 restores the server's dormant Publish 14 faction-rank field as
+the authoritative persisted and client-shared rank. The Java rank query no
+longer derives rank from NGE weekly GCW rating; a validated native setter now
+updates `CreatureObject::m_rank`, whose existing shared package replicates it
+to the client.
+
+Recruit promotion uses the authored `faction/rank` cost, requires the player
+to retain the 200-point membership minimum, deducts the exact faction-point
+cost without bonus multipliers, and refunds that cost if the rank write fails.
+Joining or fully resigning resets rank to zero. The NGE credit-priced global
+perk catalog is deliberately outside this bounded milestone and is the next
+faction audit. Mission terminal code and rewards remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionRankAuthority.ps1 -SourceRoot <materialized-staging-directory>

@@ -140,3 +140,9 @@ observable in release builds.
 cross-server route, empty response, and script-complete response boundaries for
 NPC and terminal object menus. The category is diagnostic only: it does not
 change menu admission, menu contents, authority routing, or response timing.
+
+`354-p14-precu-faction-rank-authority.patch` reactivates the persisted/shared
+`CreatureObject::m_rank` value and routes the script rank getter and a new
+validated setter through it. NGE weekly GCW rating no longer supplies gameplay
+faction rank, while the existing shared package continues to replicate the
+PRE-CU rank byte to clients.

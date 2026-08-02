@@ -1,0 +1,87 @@
+diff --git a/sku.0/sys.server/compiled/game/script/base_class.java b/sku.0/sys.server/compiled/game/script/base_class.java
+index c32f0ef..ddbc4e6 100644
+--- a/sku.0/sys.server/compiled/game/script/base_class.java
++++ b/sku.0/sys.server/compiled/game/script/base_class.java
+@@ -20920,6 +20920,19 @@ public class base_class
+ 		return _pvpGetCurrentGcwRank(getLongWithNull(target));
+ 	}
+ 
++	/**
++	 * Set the persistent Publish 14 faction rank shared by the server and client.
++	 *
++	 * @param target     the player character
++	 * @param rank       the Publish 14 faction rank, from 0 through 15
++	 * @return true when the authoritative creature rank was updated
++	 */
++	private static native boolean _pvpSetPrecuFactionRank(long target, int rank);
++	public static boolean pvpSetPrecuFactionRank(obj_id target, int rank)
++	{
++		return _pvpSetPrecuFactionRank(getLongWithNull(target), rank);
++	}
++
+ 	/**
+ 	 * Get the maximum GCW imperial rank for the specified player character
+ 	 *
+diff --git a/sku.0/sys.server/compiled/game/script/library/factions.java b/sku.0/sys.server/compiled/game/script/library/factions.java
+index fa196e0..fe8d2f6 100644
+--- a/sku.0/sys.server/compiled/game/script/library/factions.java
++++ b/sku.0/sys.server/compiled/game/script/library/factions.java
+@@ -602,6 +602,7 @@ public class factions extends script.base_script
+             space_skill.retire(player, space_skill.IMPERIAL);
+         }
+         CustomerServiceLog("player_faction", "|PLAYER:" + player + " |PLAYER NAME:" + getName(player) + " |PLAYER LEFT FACTION: " + resign_faction + " |OLD RANK WAS: " + pvpGetCurrentGcwRank(player));
++        setRank(player, 0);
+         pvpMakeNeutral(player);
+         pvpSetAlignedFaction(player, 0);
+         String factionNormalized = toLower(resign_faction);
+@@ -1321,7 +1322,11 @@ public class factions extends script.base_script
+     }
+     public static boolean setRank(obj_id player, int rank) throws InterruptedException
+     {
+-        return false;
++        if (!isIdValid(player) || !isPlayer(player) || rank < 0 || rank > MAXIMUM_RANK)
++        {
++            return false;
++        }
++        return pvpSetPrecuFactionRank(player, rank);
+     }
+     public static boolean releaseFactionHirelings(obj_id player) throws InterruptedException
+     {
+@@ -1633,6 +1638,7 @@ public class factions extends script.base_script
+         }
+         buff.removeAllAuraBuffs(player);
+         pvpSetAlignedFaction(player, faction_id);
++        setRank(player, 0);
+         pvpMakeCovert(player);
+         LOG("LOG_CHANNEL", "faction_recruiter::joinFaction -- " + player + " has joined faction " + faction_id);
+         return true;
+@@ -1681,7 +1687,7 @@ public class factions extends script.base_script
+         }
+         int cost = factions.getRankCost(current_rank + 1);
+         int faction_standing = (int)factions.getFactionStanding(objPlayer, intFaction);
+-        return faction_standing >= cost;
++        return cost >= 0 && faction_standing >= cost + (int)FACTION_RATING_DECLARABLE_MIN;
+     }
+     public static void applyPromotion(obj_id objPlayer, int intFaction) throws InterruptedException
+     {
+@@ -1689,11 +1695,16 @@ public class factions extends script.base_script
+         {
+             int current_rank = pvpGetCurrentGcwRank(objPlayer);
+             int cost = factions.getRankCost(current_rank + 1);
+-            int faction_standing = (int)factions.getFactionStanding(objPlayer, intFaction);
+-            if (factions.addFactionStanding(objPlayer, intFaction, -cost))
++            if (factions.addUnmodifiedFactionStanding(objPlayer, getFactionNameByHashCode(intFaction), -cost))
+             {
+-                CustomerServiceLog("player_faction", "PLAYER-FACTION ALTERED|TIME:" + getGameTime() + "|PLAYER:" + objPlayer + "|PLAYER NAME:" + getName(objPlayer) + "|ZONE:" + getCurrentSceneName() + "|Player has purchased rank for " + cost);
+-                factions.setRank(objPlayer, current_rank + 1);
++                if (factions.setRank(objPlayer, current_rank + 1))
++                {
++                    CustomerServiceLog("player_faction", "PLAYER-FACTION ALTERED|TIME:" + getGameTime() + "|PLAYER:" + objPlayer + "|PLAYER NAME:" + getName(objPlayer) + "|ZONE:" + getCurrentSceneName() + "|Player has purchased rank for " + cost);
++                }
++                else
++                {
++                    factions.addUnmodifiedFactionStanding(objPlayer, getFactionNameByHashCode(intFaction), cost, false);
++                }
+             }
+         }
+     }
