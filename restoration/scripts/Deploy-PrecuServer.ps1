@@ -68,6 +68,8 @@ source_commands="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared
 work_commands="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp"
 source_tangible_conversation="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp"
 work_tangible_conversation="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp"
+source_player_controller="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
+work_player_controller="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
 source_client="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 work_client="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 source_creature="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
@@ -116,6 +118,7 @@ cmp -s "$source_queue" "$work_queue"
 cmp -s "$source_queue_header" "$work_queue_header"
 cmp -s "$source_commands" "$work_commands"
 cmp -s "$source_tangible_conversation" "$work_tangible_conversation"
+cmp -s "$source_player_controller" "$work_player_controller"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
 cmp -s "$source_creature_header" "$work_creature_header"
@@ -232,10 +235,14 @@ grep -Fq 'gate time=' "$work_queue"
 grep -Fq 'logs/precuCombatCadence.log{c-*:c+PreCuCombatCadence}' "$work_local_options"
 grep -Fq 'logs/precuScoutHarvest.log{c-*:c+PreCuScoutHarvest}' "$work_local_options"
 grep -Fq 'logs/precuNpcConversation.log{c-*:c+PreCuConversation}' "$work_local_options"
+grep -Fq 'logs/precuObjectMenu.log{c-*:c+PreCuObjectMenu}' "$work_local_options"
 grep -Fq 'command-start actor=%s target=%s starter=%d result=%d' "$work_commands"
 grep -Fq 'recover stale-session player=%s previousNpc=%s requestedNpc=%s' "$work_tangible_conversation"
 grep -Fq 'ignored cleanup-veto player=%s npc=%s' "$work_tangible_conversation"
 grep -Fq 'session-ended player=%s npc=%s' "$work_tangible_conversation"
+grep -Fq 'request actor=%s target=%s sequence=%u clientItems=%u' "$work_player_controller"
+grep -Fq 'reason=target-not-authoritative' "$work_player_controller"
+grep -Fq 'reason=script-complete' "$work_player_controller"
 grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
@@ -266,6 +273,7 @@ nm -C "$server_game_archive" | grep -Fq 'GroupObject::getSecondsLeftOnGroupPicku
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::startNpcConversation'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::endNpcConversation()'
 strings "$server_game_archive" | grep -Fq 'recover stale-session player=%s previousNpc=%s requestedNpc=%s'
+strings "$server_game_archive" | grep -Fq 'request actor=%s target=%s sequence=%u clientItems=%u'
 file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
 '@
 

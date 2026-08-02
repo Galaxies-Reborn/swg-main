@@ -27,3 +27,8 @@ normal server log categories unchanged.
 `PreCuConversation` lifecycle and rejection records to
 `logs/precuNpcConversation.log`, so a missing UI response can be distinguished
 from distance, target, parameter, script-trigger, or stale-session failure.
+
+`005-p14-object-menu-log-target.patch` routes only the native
+`PreCuObjectMenu` request/response records to `logs/precuObjectMenu.log`. This
+keeps NPC, Bazaar, and other terminal interaction diagnostics separate from the
+broad legacy server logs.

@@ -2232,3 +2232,11 @@ message. A dedicated release-build log records accepted, rejected, recovered,
 started, and ended requests. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NpcConversationLifecycleRecovery.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 284 makes the native object-menu transport observable without
+changing behavior. Every authoritative NPC or terminal request records its
+actor, target, sequence, and client item count; every empty, authority-routed,
+or script-complete outcome records a corresponding response reason. A dedicated
+log target keeps the evidence isolated from legacy server noise. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ObjectMenuTelemetry.ps1 -SourceRoot <materialized-staging-directory>

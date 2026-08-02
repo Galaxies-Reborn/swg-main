@@ -135,3 +135,8 @@ the requested NPC. End triggers still run, but their `SCRIPT_OVERRIDE` result
 can no longer skip proxy removal, object deletion, and the client's stop
 message. Dedicated result and rejection telemetry makes every live request
 observable in release builds.
+
+`352-p14-object-menu-telemetry.patch` records the authoritative request,
+cross-server route, empty response, and script-complete response boundaries for
+NPC and terminal object menus. The category is diagnostic only: it does not
+change menu admission, menu contents, authority routing, or response timing.
