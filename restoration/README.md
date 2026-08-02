@@ -2395,3 +2395,18 @@ admission, recruiter vendor precedence, and camp field requisition are inert.
 Mission terminal code and rewards remain unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionPerkAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 295 retires the post-NGE GCW rating progression layer. Shared and
+direct award entrypoints can no longer mutate current/lifetime GCW points,
+rating-input PvP kills, weekly rating, maximum rating, or the weekly
+conversion/decay timer. Persisted remnants of those fields are cleared when a
+player loads, while Publish 14 faction standing and the independently
+persisted creature faction rank remain authoritative.
+
+The shared script choke point also stops rating-derived system messages,
+invasion credit, and regional score propagation. Independent rewards remain
+intact: mission credits and faction standing, ground-quest credits/standing
+and physical rewards, battlefield tokens, space-kill faction standing, and
+space-battle tokens. Mission terminal source is unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuGcwRatingRetirement.ps1 -SourceRoot <materialized-staging-directory>

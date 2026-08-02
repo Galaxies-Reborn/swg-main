@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-gcw-rating-retirement",
+  "status": "ready",
+  "scope": "Retire the post-NGE current/lifetime GCW point, PvP-kill rating-input, weekly rating conversion, decay, invasion-credit, and regional-score progression layer while preserving Publish 14 faction standing/rank and independent mission, quest, battlefield, and space rewards.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/faction/FactionManager.cpp",
+      "MMOCoreORB/src/server/zone/managers/creature/CreatureManagerImplementation.cpp",
+      "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterScreenplay.lua",
+      "MMOCoreORB/bin/scripts/screenplays/space/conversations/rebel/havoc_squadron/viopaConvoHandler.lua"
+    ],
+    "findings": [
+      "Publish 14 uses faction standing and the independently persisted creature faction rank; the pinned Publish 14 reference does not contain the later current/lifetime GCW point or weekly rating/decay progression system.",
+      "The retained ground mission path awards credits and faction standing independently of its later GCW-rating side effect.",
+      "The retained space kill path already awards authored Rebel/Imperial faction standing, and the space battle path awards physical faction tokens independently of later GCW-rating points."
+    ]
+  },
+  "expected": {
+    "precuFactionStandingAuthority": true,
+    "precuCreatureFactionRankAuthority": true,
+    "currentGcwPointMutationReachable": false,
+    "lifetimeGcwPointMutationReachable": false,
+    "gcwRatingMutationReachable": false,
+    "gcwRatingWeeklySchedulerReachable": false,
+    "gcwRatingDecayReachable": false,
+    "gcwRatingPvpKillInputReachable": false,
+    "gcwInvasionCreditFromRatingPointsReachable": false,
+    "gcwRegionalScoreFromRatingPointsReachable": false,
+    "persistedLaterGcwStateScrubbedOnLoad": true,
+    "missionCreditsPreserved": true,
+    "missionFactionStandingPreserved": true,
+    "groundQuestIndependentRewardsPreserved": true,
+    "battlefieldTokensPreserved": true,
+    "spaceFactionStandingPreserved": true,
+    "spaceBattleTokensPreserved": true,
+    "missionTerminalSourceChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java",
+    "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp",
+    "src/engine/server/library/serverGame/src/shared/object/PlayerObject.h"
+  ],
+  "retainedRewardSources": [
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/space_combat.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/space/battle_spawner.java"
+  ],
+  "buildEvidence": {
+    "overlayPatches": {
+      "dsrc": {
+        "path": "restoration/patches/dsrc/365-p14-precu-gcw-rating-retirement.patch",
+        "bytes": 2106,
+        "sha256": "98adb7d5df3d73f11d4c3e6b948c803e26145f908e899589fc0adb67e5a71bcf"
+      },
+      "src": {
+        "path": "restoration/patches/src/355-p14-precu-gcw-rating-retirement.patch",
+        "bytes": 7640,
+        "sha256": "8b2ebb594a518e17c6e0c26d74bf1e7f1a7528cc2971a28fb46747af9129ac8a"
+      }
+    },
+    "sourceSha256": {
+      "script.library.gcw": "6bb73733027e7ada5b234a35cc58d78ff69a2fbef60da153404a5954e5db5228",
+      "PlayerObject.cpp": "6d30ed23e3fc9bc19f4d2d29f2deb6c0f29e70f11403cec797f15d5a3740b77c",
+      "PlayerObject.h": "0d239c657befb1f6253ac8cbb39a210542e97924ab500af20a2fa762514523a3",
+      "ScriptMethodsPvp.cpp": "f0cb1bbe1c6af37017a18e125a31944ba3ba61843a358f84f4960ef60b465946",
+      "script.systems.missions.base.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "script.library.groundquests": "9d383b70c97659be0c3f6ee02f2be23dbd60d1e7560f4cd063ebd29bac8ff4ff",
+      "script.systems.gcw.player_pvp": "07b18d6b1bfc173ee7af54ad63963b3ad4c0b274b1a09ed662bea35ef13b2323",
+      "script.library.space_combat": "e6b87bf5ef698b193173c8400a392f3632b83abe8676a5053610b772395349c4",
+      "script.systems.gcw.space.battle_spawner": "d741fdf033f08d40d25302a1f26638c931e1478634005f3198a267a0ba2f99dc"
+    },
+    "staticContract": "passed against the clean 397-overlay materialization together with mission, faction/cloning, rank, perk, combat-XP, and Scout-forage regression contracts",
+    "isolatedJavaCompile": "passed with javac -source 8 -target 8 against the verified Milestone 294 x64 class set",
+    "compiledClassSha256": {
+      "script.library.gcw.isolated": "20ddc2d34429546881619cebc0df853d7f0b522d43881b2b0559544dbe9956fb",
+      "script.library.gcw.deployedFullBuild": "7008496c88c2621a2aa4fd226e8a0bb78cf81b7fcb7c541ee51d931324f47846"
+    },
+    "isolatedNativeBuild": "passed x64 Release compile and relink in swg-precu-work-gcw295",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "cleanMaterialization": "passed (397 patches, 1122 acceptance files)",
+    "cleanMaterializationPatches": 397,
+    "cleanMaterializationAcceptanceFiles": 1122,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "fullX64Build": "passed (Release native build, 5713 Java scripts, content/templates, and database loads)",
+    "deploymentProbe": "passed source/work comparisons, immediate-return GCW bytecode, PRE-CU rank bridge, native retirement symbol, 64-bit architecture, health/readiness, and live mapped-binary verification"
+  },
+  "runtimeEvidence": {
+    "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
+    "containerStartedAt": "2026-08-02T15:28:26.971409618Z",
+    "cleanSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-gcw295-final-b",
+    "missionTerminalContinuity": "The user verified the live combat mission terminal before this milestone; mission source is excluded from both overlays and authenticated as retained."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all script and native mutation entrypoints for later current/lifetime GCW points, rating inputs, weekly conversion/decay scheduling, rating-derived invasion credit, and rating-derived regional score; persisted later-era values are zeroed on player load",
+    "retainedContent": "PRE-CU faction standing and creature rank, faction recruiters and perks, mission credits and standing, ground-quest independent item/token rewards, battlefield tokens, space standing and battle tokens, faction bases, later zones, and authored quest content",
+    "notClaimedComplete": "battlefield admission/balance, invasion event content, regional planet-state presentation, and the wider ground GCW gameplay surface remain separate audits"
+  },
+  "requiredBeforeReady": []
+}

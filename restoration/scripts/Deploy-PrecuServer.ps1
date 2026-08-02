@@ -96,6 +96,8 @@ source_group="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/ob
 work_group="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp"
 source_player="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
 work_player="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
+source_player_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.h"
+work_player_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.h"
 source_weapon="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.cpp"
 work_weapon="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.cpp"
 source_weapon_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.h"
@@ -124,6 +126,8 @@ source_factions_library="$source_script/library/factions.java"
 work_factions_library="$work_script/library/factions.java"
 source_faction_perk_library="$source_script/library/faction_perk.java"
 work_faction_perk_library="$work_script/library/faction_perk.java"
+source_gcw_library="$source_script/library/gcw.java"
+work_gcw_library="$work_script/library/gcw.java"
 source_faction_recruiter="$source_script/npc/faction_recruiter/faction_recruiter.java"
 work_faction_recruiter="$work_script/npc/faction_recruiter/faction_recruiter.java"
 source_camp_controlpanel="$source_script/systems/camping/camp_controlpanel.java"
@@ -173,6 +177,7 @@ cmp -s "$source_creature" "$work_creature"
 cmp -s "$source_creature_header" "$work_creature_header"
 cmp -s "$source_group" "$work_group"
 cmp -s "$source_player" "$work_player"
+cmp -s "$source_player_header" "$work_player_header"
 cmp -s "$source_weapon" "$work_weapon"
 cmp -s "$source_weapon_header" "$work_weapon_header"
 cmp -s "$source_speeds" "$work_speeds"
@@ -184,6 +189,7 @@ cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_xp_library" "$work_xp_library"
 cmp -s "$source_factions_library" "$work_factions_library"
 cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
+cmp -s "$source_gcw_library" "$work_gcw_library"
 cmp -s "$source_faction_recruiter" "$work_faction_recruiter"
 cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
@@ -321,6 +327,11 @@ javap -classpath "$class_root" -v script.library.faction_perk | grep -Fq 'datata
 javap -classpath "$class_root" -v script.npc.faction_recruiter.faction_recruiter | grep -Fq 'npc.vendor.vendor'
 javap -classpath "$class_root" -v script.npc.faction_recruiter.faction_recruiter | grep -Fq 'displayItemPurchaseSUI'
 ! javap -classpath "$class_root" -v script.systems.camping.camp_controlpanel | grep -Fq 'faction_perk'
+gcw_grant_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/public static void _grantGcwPoints/,/public static void doGcwPointCsLogging/p')"
+printf '%s' "$gcw_grant_bytecode" | grep -Fq '0: return'
+! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'pvpModifyCurrentGcwPoints'
+! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'gcwInvasionCreditForGCW'
+! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'grantGcwPointsToRegion'
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuFactionKillRecipient'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'grantModifiedGcwPoints'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'GCW_POINT_TYPE_GROUND_PVE'
@@ -446,6 +457,7 @@ nm -C "$server_game_archive" | grep -Fq 'CreatureObject::clearRetiredNgeProgress
 nm -C "$server_game_archive" | grep -Fq 'GroupObject::getSecondsLeftOnGroupPickup() const'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::startNpcConversation'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::endNpcConversation()'
+nm -C "$server_game_archive" | grep -Fq 'PlayerObject::retirePostNgeGcwRatingState()'
 strings "$server_game_archive" | grep -Fq 'recover stale-session player=%s previousNpc=%s requestedNpc=%s'
 strings "$server_game_archive" | grep -Fq 'request actor=%s target=%s sequence=%u clientItems=%u'
 strings "$binary" | grep -Fq '_pvpSetPrecuFactionRank'
