@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-encounter-difficulty-authority",
+  "status": "ready",
+  "scope": "Replace NGE player combat-level reads in shared group difficulty, mission bounty generation, and retained dynamic encounter spawning with one hidden PRE-CU combat-skill rating authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/group/GroupObjectImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 derives player combat difficulty from learned weapon skill modifiers rather than an NGE profession level.",
+      "Publish 14.1 group difficulty is the strongest member plus one fifth of each additional member's difficulty.",
+      "The project mission rule maps learned PRE-CU combat-box point costs to a hidden retained-content scale, with elite combat boxes weighted above Brawler and Marksman boxes.",
+      "Retained expansion content may consume the hidden adapter for authored creature scaling, but the adapter is not a player stat and never reads getLevel(player)."
+    ]
+  },
+  "expected": {
+    "visiblePlayerCombatLevel": false,
+    "playerLevelReadsOnClosedSurface": 0,
+    "perPlayerCombatSkillScore": {
+      "baseFamilies": ["combat_brawler_*", "combat_marksman_*"],
+      "basePointWeight": 1,
+      "advancedPointWeight": 3,
+      "additionalFamilies": ["outdoors_creaturehandler_*", "outdoors_squadleader_*", "force_discipline_*"],
+      "compatibilityPrerequisitesExcluded": true,
+      "cap": 90,
+      "minimumEncounterDifficulty": 1
+    },
+    "groupDifficulty": "strongest loaded player score plus one fifth of every additional loaded player score, rounded to the nearest integer",
+    "missionRatingDelegatesToSharedAuthority": true,
+    "missionDailyCashPenalty": false,
+    "missionLevelDifferencePenalty": false,
+    "retainedConsumers": [
+      "ambient player/group spawning",
+      "ground quest auto-level spawns",
+      "dynamic wave opponents",
+      "quest-item and outbreak ambushes",
+      "treasure-map ambushes",
+      "Meatlump shuttle and investigator ambushes",
+      "bounty mission generation"
+    ]
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/missions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/quest/task/ground/spawn.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/quest/util/dynamic_mob_opponent.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/quest/utility/dynamic_spawn_off_quest_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/theme_park/outbreak/dynamic_spawn_off_quest_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/treasure_map/base/treasure_map.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/theme_park/meatlump/quest_shuttle_comlink.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/ai/ai.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/358-p14-precu-encounter-difficulty-authority.patch",
+    "overlayPatchBytes": 23935,
+    "overlayPatchSha256": "ee7287f67370e45003294e6c97b966fe72eeac1b6d4c543816af09ff1f4f130d",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (11 Java sources, Java 8 target)",
+    "isolatedClassSha256": {
+      "script.library.skill": "9efd37ec071eb8cb80001784f9a579990cfd2fce95ece8ee4678e676cc16ba2d",
+      "script.library.missions": "fe339aa3bdadaaceed19882d36811813d4ad9a96100c5b00a00feb9966880c6b",
+      "script.quest.task.ground.spawn": "76c3a04b78a572dd4f0309b3e9f5e9ca04912a50c4d6a2740fd3177c8a9c31fb",
+      "script.quest.util.dynamic_mob_opponent": "2e27be9f1343ebdf40969b4311cdbfaf2e3ef7b9442d0a281e6f4c477a3ce8a6",
+      "script.quest.utility.dynamic_spawn_off_quest_item": "324f5ad6a463640156df52346c0f4e7545a8827eed23286f78fdd4ccdc4b45f9",
+      "script.theme_park.outbreak.dynamic_spawn_off_quest_item": "8a20d658441b4819dd6793f89fa89cd089a3393a560a88b6b9f5224cc9df7804",
+      "script.systems.spawning.spawn_base": "eb7bf72f5e7854e0dc282720bc51c1772066d8672c0ced970765f4341cdf3635",
+      "script.systems.treasure_map.base.treasure_map": "dfabc8f740d1ff8ebbf62c471303ec6e95eb3e0bab1aa7932a7b4165025bbb28",
+      "script.theme_park.meatlump.quest_shuttle_comlink": "cdc210f6e98a3e8a0cba2959b74518689ae772a5e98cb7191d43d2e874e9ff73",
+      "script.ai.ai": "3aa30951f33033a6f68a2255ced32395e6e8af49ed2554253c3eed4fb399c586",
+      "script.systems.missions.base.mission_player": "112e05482e40fe73876d35806f4c577bd88f6e6e630aa6cbf27713240ea86961"
+    },
+    "sourceSha256": {
+      "script.library.skill": "80d1db507b82937e9472fc1ee2ac7d56c8b2552f5592800efaeef9b5d6854f0b",
+      "script.library.missions": "8018948b0e1ab1698f29ebbdc7ce99fd2e8379c3f9f92fe95d0ff7080696a353",
+      "script.quest.task.ground.spawn": "52c51f56e3767542e8716d6fc04c2637bf8fa10e53f3c0835c913fa97889e0cb",
+      "script.quest.util.dynamic_mob_opponent": "bb45ec87833b959f896c4d8813a3618a692a36fc48910a8cffdd11535de979dc",
+      "script.quest.utility.dynamic_spawn_off_quest_item": "70e140056dbbcc55d719ea3a84524edf0b6ecd6df4538c458a48382ad0ddad55",
+      "script.theme_park.outbreak.dynamic_spawn_off_quest_item": "a0713093d106087653f102d6aaf18396c23dadff1fca985fed59ba8facbff39d",
+      "script.systems.spawning.spawn_base": "17b9d2161ac193d21ebc310003bc00104512630a46658506ae9e7084ea1ce07a",
+      "script.systems.treasure_map.base.treasure_map": "acc222ee653c87f1667f63dda30cbdfa63ab97ca8009a675a2380845833b121c",
+      "script.theme_park.meatlump.quest_shuttle_comlink": "803dabbd7c40bf0fe9cc3a589514e84a40b6f12f669634fd6e07a774a38adfbb",
+      "script.ai.ai": "0c950aa286e5bbc80b19c1210969673d7b74d6b6883840d88bf282099c7df809",
+      "script.systems.missions.base.mission_player": "9bbc93b3b1f3e2b30ad6c792c4002022c5b61a940a29eea66cf0db25efad39f6"
+    },
+    "compiledClassSha256": {
+      "script.library.skill": "2c107c403fed7e6a621302852fe17a2b91ed1954488ff393918dcb193511de25",
+      "script.library.missions": "d743881cfc910da80f67d9c40c853cabfbb5266f92a8a5144d060a04b852ad66",
+      "script.quest.task.ground.spawn": "fd548bfdffb1590ec1607604b82a5abeb08c7076af61e34350949b4bbfcdc990",
+      "script.quest.util.dynamic_mob_opponent": "82b0eb7b3819c9e3ba6d9d5f2ae59c62fd41c2268cfc287f6cce6c86f565f89e",
+      "script.quest.utility.dynamic_spawn_off_quest_item": "eaeab200a4893fc61313f5488219b9ff4b169cfff6708bdcf073856bef1991a5",
+      "script.theme_park.outbreak.dynamic_spawn_off_quest_item": "4c48fb796aacb69b784df8a50f82660cf2dadc9dadd7f521e16d025adfbf791a",
+      "script.systems.spawning.spawn_base": "5e592c381b6e4f8720cf58affbcce248ca718dc0add1910ca1e259d55872021a",
+      "script.systems.treasure_map.base.treasure_map": "b9b2c3bbe61eb797070981a4d4a4b43cab672026b3016bda9b93b5c66217daaf",
+      "script.theme_park.meatlump.quest_shuttle_comlink": "614c2020279f08d9d06af5fd1c5213eed0bac72d9ff38725bd189b384bfdbb43",
+      "script.ai.ai": "f7c52c303f9e63147e24632be7f36e8e81b113b2adb20083527d5dfb964bf1b3",
+      "script.systems.missions.base.mission_player": "7de21012d4e12b6b3dc03181ff71038e3e299dc18ca70d7f967fd6ce442413a8"
+    },
+    "fullJavaCompile": "passed",
+    "materializedBuild": "passed",
+    "cleanMaterializationPatches": 389,
+    "cleanMaterializationAcceptanceFiles": 1102,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
+    "serverBinaryBuildIdSha1": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-02",
+    "deployedAtUtc": "2026-08-02T07:12:53.965965663Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-mission289-final-a",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "gameProcesses": 14,
+    "liveProcessMappedBuiltBinary": true,
+    "postRestartFatalSevereJavaExceptionHits": 0,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "shared combat-skill and group-difficulty authority plus generic retained dynamic encounter, treasure-map, Meatlump, and bounty mission consumers",
+    "notClaimedComplete": "beast/familiar systems, GCW and faction level gates, loot and XP scaling, respec/transition code, conversation-specific level gates, and other later player-level adapters remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

@@ -100,11 +100,14 @@ source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 work_script="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 source_missions="$source_script/library/missions.java"
 work_missions="$work_script/library/missions.java"
+source_skill_library="$source_script/library/skill.java"
+work_skill_library="$work_script/library/skill.java"
 source_mission_base="$source_script/systems/missions/base/mission_base.java"
 work_mission_base="$work_script/systems/missions/base/mission_base.java"
 source_mission_dynamic="$source_script/systems/missions/base/mission_dynamic_base.java"
 work_mission_dynamic="$work_script/systems/missions/base/mission_dynamic_base.java"
 precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
+precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -139,12 +142,17 @@ cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_missions" "$work_missions"
+cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
 cmp -s "$source_script/library/pet_lib.java" "$work_script/library/pet_lib.java"
 cmp -s "$source_script/ai/pet_control_device.java" "$work_script/ai/pet_control_device.java"
+cmp -s "$source_script/npc/pet_deed/droid_deed.java" "$work_script/npc/pet_deed/droid_deed.java"
 for precu_item_level_path in $precu_item_level_paths; do
     cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
+done
+for precu_encounter_difficulty_path in $precu_encounter_difficulty_paths; do
+    cmp -s "$source_script/$precu_encounter_difficulty_path" "$work_script/$precu_encounter_difficulty_path"
 done
 for conversation_file in \
     dath_bh_wanted_list_01 ep3_kachirho_missing_son ep3_myyydril_pers \
@@ -230,6 +238,21 @@ javap -classpath "$class_root" -constants script.systems.missions.base.mission_b
 javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'fullRewardEach='
 javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'insufficient-mission-placeholders'
 javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'getPrecuMissionGroupCombatScore'
+javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuCombatSkillScore'
+javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuGroupCombatDifficulty'
+! javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getGroupObjectLevel'
+javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getPrecuCombatSkillScore'
+! javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getLevel'
+javap -classpath "$class_root" -v script.quest.task.ground.spawn | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.quest.util.dynamic_mob_opponent | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.quest.utility.dynamic_spawn_off_quest_item | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.systems.spawning.spawn_base | grep -Fq 'getGroupLevel'
+javap -classpath "$class_root" -v script.systems.treasure_map.base.treasure_map | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.theme_park.meatlump.quest_shuttle_comlink | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.theme_park.outbreak.dynamic_spawn_off_quest_item | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.ai.ai | grep -Fq 'getPrecuEncounterDifficulty'
+! javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'getLevel'
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_ACTION_BASE_COST = 124'
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_QUICKNESS_DIVISOR = 12.5f'
 ! javap -classpath "$class_root" -v script.item.buff_click_item | grep -Fq 'required_level_for_effect'
@@ -252,6 +275,10 @@ javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'control_exc
 ! javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'tame_level_bonus'
 javap -classpath "$class_root" -v script.ai.pet_control_device | grep -Fq 'canCallCreaturePet'
 ! javap -classpath "$class_root" -v script.ai.pet_control_device | grep -Fq 'cant_call_level'
+javap -classpath "$class_root" -v script.npc.pet_deed.droid_deed | grep -Fq 'createCraftedCreatureDevice'
+! javap -classpath "$class_root" -v script.npc.pet_deed.droid_deed | grep -Fq 'MAX_PET_LEVELS_ABOVE_CALLER'
+! javap -classpath "$class_root" -v script.npc.pet_deed.droid_deed | grep -Fq 'SID_SYS_CANT_CALL_LEVEL'
+! javap -classpath "$class_root" -v script.npc.pet_deed.droid_deed | grep -Fq 'getLevel'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_armorsmith_droid | grep -Fq 'crafting_armorsmith_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_jetpack_droid | grep -Fq 'crafting_artisan_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.mustafar_trials.valley_battleground.mining_droid | grep -Fq 'crafting_droidengineer_novice'

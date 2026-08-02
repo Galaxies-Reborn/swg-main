@@ -35,6 +35,7 @@ foreach ($evidence in @($contract.buildEvidence.overlayPatches))
 }
 
 $missionsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/missions.java"
+$skillLibraryPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java"
 $missionBasePath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
 $missionDynamicPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java"
 $missionPlayerPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java"
@@ -43,6 +44,7 @@ $configPath = Join-Path $source "src/engine/server/library/serverGame/src/shared
 $skillPath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 
 $missions = Get-Content -LiteralPath $missionsPath -Raw
+$skillLibrary = Get-Content -LiteralPath $skillLibraryPath -Raw
 $missionBase = Get-Content -LiteralPath $missionBasePath -Raw
 $missionDynamic = Get-Content -LiteralPath $missionDynamicPath -Raw
 $missionPlayer = Get-Content -LiteralPath $missionPlayerPath -Raw
@@ -63,10 +65,11 @@ Assert-Contract ($missionBase.Contains("public static final int MAX_MISSIONS = 1
     $config -match 'KEY_INT\s*\(numberOfMissionsWantedInMissionBag,\s*10\)') "p14.precu-mission.ten-mission-limits"
 Assert-Contract ($group.Contains("const uint32_t cs_maximumNumberInGroup = 24;")) "p14.precu-mission.party-cap-24"
 
-Assert-Contract ($missions.Contains("PRECU_ADVANCED_COMBAT_SKILL_WEIGHT = 3") -and
-    $missions.Contains("PRECU_MISSION_COMBAT_SCORE_MAX = 90") -and
-    $missions.Contains("points *= PRECU_ADVANCED_COMBAT_SKILL_WEIGHT") -and
-    $missions.Contains('skillName.indexOf("_prereq") >= 0')) "p14.precu-mission.combat-skill-weighting"
+Assert-Contract ($skillLibrary.Contains("PRECU_ADVANCED_COMBAT_SKILL_WEIGHT = 3") -and
+    $skillLibrary.Contains("PRECU_COMBAT_SKILL_SCORE_MAX = 90") -and
+    $skillLibrary.Contains("points *= PRECU_ADVANCED_COMBAT_SKILL_WEIGHT") -and
+    $skillLibrary.Contains('skillName.indexOf("_prereq") >= 0') -and
+    $missions.Contains("return skill.getPrecuCombatSkillScore(player)")) "p14.precu-mission.combat-skill-weighting"
 Assert-Contract ($missions.Contains("PRECU_MISSION_MEMBER_REWARD_BONUS = 0.10f") -and
     $missions.Contains("(averageScore / 100.0f)") -and
     $missions.Contains("setMissionReward(missionData, scaledReward)")) "p14.precu-mission.group-credit-scaling"

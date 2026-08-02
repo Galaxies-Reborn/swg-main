@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-droid-deed-call-admission",
+  "status": "ready",
+  "scope": "Close the clean-build and gameplay regression left by the creature-pet authority change: crafted droid deeds must not depend on NGE player combat level or removed creature-pet level-difference constants.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/intangible/PetControlDeviceImplementation.cpp",
+    "findings": [
+      "Publish 14.1 droid call admission is independent of player combat level.",
+      "The default active-pet limit admits one droid and rejects an additional active droid.",
+      "Creature Handler tame_level and tame_aggro checks apply only to creature pets, not crafted droids."
+    ]
+  },
+  "diagnosis": {
+    "cleanBuildFailure": "droid_deed.java referenced pet_lib.MAX_PET_LEVELS_ABOVE_CALLER and pet_lib.SID_SYS_CANT_CALL_LEVEL after the creature-pet authority correctly removed both NGE constants",
+    "maskedBy": "the previous incremental build compiled only the two directly changed creature-pet sources",
+    "correctivePolicy": "remove the obsolete droid deed player-level comparison; do not restore the NGE constants"
+  },
+  "expected": {
+    "playerCombatLevelReads": 0,
+    "removedPetLevelDifferenceReferences": 0,
+    "storedDroidCapacityCheckPreserved": true,
+    "activeDroidCapacityCheckPreserved": true,
+    "manipulationRevalidationPreserved": true,
+    "craftedControlDeviceCreationPreserved": true,
+    "deedDestroyedOnlyAfterSuccessfulCreation": true
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/npc/pet_deed/droid_deed.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/pet_lib.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/359-p14-precu-droid-deed-call-admission.patch",
+    "overlayPatchBytes": 1033,
+    "overlayPatchSha256": "bbf2cddf097f43fdcc226148959841fb857ae7f4034fd4bf8540b9bd8fbaae24",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (Java 8 target)",
+    "isolatedClassSha256": "e112e3d892b728789110d23418ef7c692793eb7d2e7494cc3086f2725691c121",
+    "sourceSha256": "4a9be085ecb6ad1f1a1ddfa839ee25d27d96f9d1e55b1153bcdd58bd19b718ca",
+    "fullJavaCompile": "passed after compiling the complete dirty-source closure",
+    "compiledClassSha256": "29689989c271affe00ba2a42b3a1163716fdae46402e682aa3d6f3c464445242",
+    "materializedBuild": "passed",
+    "cleanMaterializationPatches": 389,
+    "cleanMaterializationAcceptanceFiles": 1102,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
+    "serverBinaryBuildIdSha1": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-02",
+    "deployedAtUtc": "2026-08-02T07:12:53.965965663Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-mission289-final-a",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "liveProcessMappedBuiltBinary": true,
+    "postRestartFatalSevereJavaExceptionHits": 0,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "crafted droid deed conversion admission and its clean Java build closure",
+    "notClaimedComplete": "later beast/familiar systems and unrelated droid module behavior remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

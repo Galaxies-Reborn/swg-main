@@ -2283,3 +2283,28 @@ Location, death, capacity, faction, call-delay, and privileged-player checks are
 preserved. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPetControlAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 288 establishes one hidden PRE-CU combat-skill rating for retained
+encounter content without restoring combat level as a player stat. Learned
+Brawler and Marksman boxes contribute their authored point cost; elite combat,
+Creature Handler, Squad Leader, and Force-discipline boxes contribute triple,
+with a per-player adapter cap of 90. Missions delegate to that shared authority.
+
+Solo retained encounters use at least difficulty one. Group difficulty follows
+the pinned Publish 14.1 shape: the strongest loaded player plus one fifth of
+every additional loaded player, rounded. Ambient spawns, ground-quest auto
+leveling, dynamic waves and ambushes, treasure maps, Meatlump encounters, and
+bounty generation no longer read NGE player level. The latent mission
+level-difference and daily cash divisors are inert. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuEncounterDifficultyAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 289 closes a clean-build regression exposed by Milestone 288. The
+crafted droid deed still referenced two NGE pet-level constants that Milestone
+287 correctly removed, so a complete Java compile failed even though the prior
+incremental build passed. The deed no longer compares droid level with player
+combat level. Publish 14.1 storage, active-droid capacity, manipulation,
+datapad, control-device creation, and successful deed-consumption checks remain
+authoritative. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuDroidDeedCallAdmission.ps1 -SourceRoot <materialized-staging-directory>

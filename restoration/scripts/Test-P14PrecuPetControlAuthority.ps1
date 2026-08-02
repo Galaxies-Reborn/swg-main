@@ -38,11 +38,13 @@ function Get-FunctionSlice([string]$Text, [string]$Start, [string]$Next)
 
 $petLibraryPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/pet_lib.java"
 $pcdPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java"
+$droidDeedPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/npc/pet_deed/droid_deed.java"
 $skillsPath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $patchPath = Join-Path (Split-Path -Parent $restorationRoot) ([string]$contract.buildEvidence.overlayPatch)
 
 Assert-Contract (Test-Path -LiteralPath $petLibraryPath -PathType Leaf) "p14.pet-control.source.pet-library"
 Assert-Contract (Test-Path -LiteralPath $pcdPath -PathType Leaf) "p14.pet-control.source.pcd"
+Assert-Contract (Test-Path -LiteralPath $droidDeedPath -PathType Leaf) "p14.pet-control.source.droid-deed"
 Assert-Contract (Test-Path -LiteralPath $skillsPath -PathType Leaf) "p14.pet-control.source.skills"
 Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.pet-control.overlay.exists"
 
@@ -54,6 +56,7 @@ Assert-Contract ($patchBytes -eq [long]$contract.buildEvidence.overlayPatchBytes
 
 $petLibrary = Get-Content -LiteralPath $petLibraryPath -Raw
 $pcd = Get-Content -LiteralPath $pcdPath -Raw
+$droidDeed = Get-Content -LiteralPath $droidDeedPath -Raw
 $controlHelper = Get-FunctionSlice $petLibrary `
     "public static boolean canCallCreaturePet(" `
     "public static boolean canControlPetsOfLevel("
@@ -101,7 +104,9 @@ Assert-Contract ($callAdmission.Contains("pet_lib.isInValidUnpackLocation") -and
 Assert-Contract (-not $petLibrary.Contains("MAX_PET_LEVELS_ABOVE_CALLER") -and
     -not $petLibrary.Contains("SID_SYS_CANT_CALL_LEVEL") -and
     -not $petLibrary.Contains("tame_level_bonus") -and
-    -not [regex]::IsMatch($petLibrary + "`n" + $pcd, 'getLevel\s*\((player|master)\)')) `
+    -not $droidDeed.Contains("MAX_PET_LEVELS_ABOVE_CALLER") -and
+    -not $droidDeed.Contains("SID_SYS_CANT_CALL_LEVEL") -and
+    -not [regex]::IsMatch($petLibrary + "`n" + $pcd + "`n" + $droidDeed, 'getLevel\s*\((player|master)\)')) `
     "p14.pet-control.nge-owner-level-surface-zero"
 
 $creatureHandlerRows = @(Get-Content -LiteralPath $skillsPath | Where-Object {
