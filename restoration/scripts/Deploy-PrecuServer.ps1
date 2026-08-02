@@ -98,6 +98,12 @@ source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/
 work_conversation="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 work_script="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script"
+source_missions="$source_script/library/missions.java"
+work_missions="$work_script/library/missions.java"
+source_mission_base="$source_script/systems/missions/base/mission_base.java"
+work_mission_base="$work_script/systems/missions/base/mission_base.java"
+source_mission_dynamic="$source_script/systems/missions/base/mission_dynamic_base.java"
+work_mission_dynamic="$work_script/systems/missions/base/mission_dynamic_base.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -131,6 +137,9 @@ cmp -s "$source_travel" "$work_travel"
 cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
+cmp -s "$source_missions" "$work_missions"
+cmp -s "$source_mission_base" "$work_mission_base"
+cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
 for conversation_file in \
     dath_bh_wanted_list_01 ep3_kachirho_missing_son ep3_myyydril_pers \
     ep3_myyydril_weaponsmith ep3_rodian_junk_dealer ep3_wke_junk_dealer \
@@ -209,6 +218,12 @@ javap -classpath "$class_root" -v script.theme_park.dungeon.corvette.computer | 
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'class_bountyhunter'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_terminal | grep -Fq 'class_smuggler'
 ! javap -classpath "$class_root" -v script.theme_park.dungeon.corvette.computer | grep -Fq 'class_smuggler'
+javap -classpath "$class_root" -v script.library.missions | grep -Fq 'PRECU_ADVANCED_COMBAT_SKILL_WEIGHT'
+javap -classpath "$class_root" -v script.library.missions | grep -Fq 'precuMission.creditMultiplier'
+javap -classpath "$class_root" -constants script.systems.missions.base.mission_base | grep -Fq 'MAX_MISSIONS = 10'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'fullRewardEach='
+javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'insufficient-mission-placeholders'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'getPrecuMissionGroupCombatScore'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_armorsmith_droid | grep -Fq 'crafting_armorsmith_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.death_watch_bunker.craft_jetpack_droid | grep -Fq 'crafting_artisan_master'
 javap -classpath "$class_root" -v script.theme_park.dungeon.mustafar_trials.valley_battleground.mining_droid | grep -Fq 'crafting_droidengineer_novice'
@@ -253,6 +268,7 @@ grep -Fq 'clearRetiredNgeProgressionSkills' "$work_creature_header"
 grep -Fq 'Ignored retired NGE createGroupPickup command' "$work_commands"
 grep -Fq 'Ignored retired NGE useGroupPickup command' "$work_commands"
 grep -Fq 'return 0;' "$work_group"
+grep -Fq 'const uint32_t cs_maximumNumberInGroup = 24;' "$work_group"
 grep -Fq 'reuseableWp.groupPickupWp' "$work_player"
 grep -Fq 'normalizePrecuAttackSpeed' "$work_weapon"
 grep -Fq 'getStoredAttackTime' "$work_weapon_header"

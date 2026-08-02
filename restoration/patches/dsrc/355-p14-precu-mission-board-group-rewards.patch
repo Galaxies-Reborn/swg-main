@@ -1,0 +1,360 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/missions.java b/sku.0/sys.server/compiled/game/script/library/missions.java
+index e1c1a28904041d32c38b0b4bf5d4a3221bb25afb..85786a96e8b8ddc38c552411178b585a8e17973b 100755
+--- a/sku.0/sys.server/compiled/game/script/library/missions.java
++++ b/sku.0/sys.server/compiled/game/script/library/missions.java
+@@ -30,9 +30,121 @@ public class missions extends script.base_script
+     public static final int DAILY_MISSION_XP_LOW = 9;
+     public static final int DAILY_MISSION_XP_MEDIUM = 14;
+     public static final int DAILY_MISSION_XP_HIGH = 19;
+-    public static final String DAILY_MISSION_OBJVAR = "missions.daily";
+-    public static final String DAILY_MISSION_CLOCK_OBJVAR = "missions.dailyClock";
+-    public static final string_id DAILY_REWARD_XP = new string_id("base_player", "prose_mission_xp_amount");
++    public static final String DAILY_MISSION_OBJVAR = "missions.daily";
++    public static final String DAILY_MISSION_CLOCK_OBJVAR = "missions.dailyClock";
++    public static final String PRECU_SKILL_TABLE = "datatables/skill/skills.iff";
++    public static final int PRECU_MISSION_COMBAT_SCORE_MAX = 90;
++    public static final int PRECU_ADVANCED_COMBAT_SKILL_WEIGHT = 3;
++    public static final float PRECU_MISSION_MEMBER_REWARD_BONUS = 0.10f;
++    public static final String PRECU_MISSION_GROUP_SIZE = "precuMission.groupSize";
++    public static final String PRECU_MISSION_GROUP_COMBAT_SCORE = "precuMission.groupCombatScore";
++    public static final String PRECU_MISSION_GROUP_AVERAGE_SCORE = "precuMission.groupAverageCombatScore";
++    public static final String PRECU_MISSION_CREDIT_MULTIPLIER = "precuMission.creditMultiplier";
++    public static final String PRECU_MISSION_BASE_REWARD = "precuMission.baseReward";
++    public static final string_id DAILY_REWARD_XP = new string_id("base_player", "prose_mission_xp_amount");
++    public static boolean isPrecuCombatSkillBox(String skillName) throws InterruptedException
++    {
++        if (skillName == null || skillName.length() == 0 || skillName.indexOf("_prereq") >= 0)
++        {
++            return false;
++        }
++        return skillName.startsWith("combat_") || skillName.startsWith("outdoors_creaturehandler_") || skillName.startsWith("outdoors_squadleader_") || skillName.startsWith("force_discipline_");
++    }
++    public static boolean isPrecuBaseCombatSkillBox(String skillName) throws InterruptedException
++    {
++        return skillName != null && (skillName.startsWith("combat_brawler_") || skillName.startsWith("combat_marksman_"));
++    }
++    public static int getPrecuCombatSkillScore(obj_id player) throws InterruptedException
++    {
++        if (!isIdValid(player) || !exists(player) || !player.isLoaded() || !isPlayer(player))
++        {
++            return 0;
++        }
++        String[] learnedSkills = getSkillListingForPlayer(player);
++        if (learnedSkills == null || learnedSkills.length == 0)
++        {
++            return 0;
++        }
++        int score = 0;
++        for (String learnedSkill : learnedSkills)
++        {
++            if (!isPrecuCombatSkillBox(learnedSkill))
++            {
++                continue;
++            }
++            int points = dataTableGetInt(PRECU_SKILL_TABLE, learnedSkill, "POINTS_REQUIRED");
++            if (points <= 0)
++            {
++                continue;
++            }
++            if (!isPrecuBaseCombatSkillBox(learnedSkill))
++            {
++                points *= PRECU_ADVANCED_COMBAT_SKILL_WEIGHT;
++            }
++            score += points;
++        }
++        return Math.min(score, PRECU_MISSION_COMBAT_SCORE_MAX);
++    }
++    public static dictionary getPrecuMissionGroupRating(obj_id player) throws InterruptedException
++    {
++        dictionary rating = new dictionary();
++        obj_id groupId = getGroupObject(player);
++        obj_id[] members = null;
++        if (isIdValid(groupId))
++        {
++            members = getGroupMemberIds(groupId);
++        }
++        if (members == null || members.length == 0)
++        {
++            members = new obj_id[] { player };
++        }
++        int memberCount = 0;
++        int totalScore = 0;
++        for (obj_id member : members)
++        {
++            if (!isIdValid(member) || !exists(member) || !member.isLoaded() || !isPlayer(member))
++            {
++                continue;
++            }
++            memberCount++;
++            totalScore += getPrecuCombatSkillScore(member);
++        }
++        if (memberCount < 1)
++        {
++            memberCount = 1;
++            totalScore = getPrecuCombatSkillScore(player);
++        }
++        int averageScore = Math.round(totalScore / (float)memberCount);
++        averageScore = Math.max(1, Math.min(averageScore, PRECU_MISSION_COMBAT_SCORE_MAX));
++        float multiplier = 1.0f + ((memberCount - 1) * PRECU_MISSION_MEMBER_REWARD_BONUS) + (averageScore / 100.0f);
++        rating.put(PRECU_MISSION_GROUP_SIZE, memberCount);
++        rating.put(PRECU_MISSION_GROUP_COMBAT_SCORE, totalScore);
++        rating.put(PRECU_MISSION_GROUP_AVERAGE_SCORE, averageScore);
++        rating.put(PRECU_MISSION_CREDIT_MULTIPLIER, multiplier);
++        return rating;
++    }
++    public static int getPrecuMissionGroupCombatScore(obj_id player) throws InterruptedException
++    {
++        return getPrecuMissionGroupRating(player).getInt(PRECU_MISSION_GROUP_AVERAGE_SCORE);
++    }
++    public static void applyPrecuMissionGroupReward(obj_id missionData, obj_id player) throws InterruptedException
++    {
++        if (!isIdValid(missionData))
++        {
++            return;
++        }
++        dictionary rating = getPrecuMissionGroupRating(player);
++        int baseReward = getMissionReward(missionData);
++        float multiplier = rating.getFloat(PRECU_MISSION_CREDIT_MULTIPLIER);
++        int scaledReward = Math.max(baseReward, Math.round(baseReward * multiplier));
++        setObjVar(missionData, PRECU_MISSION_BASE_REWARD, baseReward);
++        setObjVar(missionData, PRECU_MISSION_GROUP_SIZE, rating.getInt(PRECU_MISSION_GROUP_SIZE));
++        setObjVar(missionData, PRECU_MISSION_GROUP_COMBAT_SCORE, rating.getInt(PRECU_MISSION_GROUP_COMBAT_SCORE));
++        setObjVar(missionData, PRECU_MISSION_GROUP_AVERAGE_SCORE, rating.getInt(PRECU_MISSION_GROUP_AVERAGE_SCORE));
++        setObjVar(missionData, PRECU_MISSION_CREDIT_MULTIPLIER, multiplier);
++        setMissionReward(missionData, scaledReward);
++        LOG("PreCuMission", "reward mission=" + missionData + " base=" + baseReward + " members=" + rating.getInt(PRECU_MISSION_GROUP_SIZE) + " averageCombatScore=" + rating.getInt(PRECU_MISSION_GROUP_AVERAGE_SCORE) + " multiplier=" + multiplier + " scaled=" + scaledReward);
++    }
+     public static int getDailyMissionXpLimit() throws InterruptedException
+     {
+         String config = getConfigSetting("Custom", "dailyMissionXpLimit");
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java
+index 89c6e199988d8b3657c33f2270acfceac24883b3..542f4e1c5af8ef2ce9c08adf283e57a3d91f13df 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java
+@@ -15,7 +15,7 @@ public class mission_base extends script.base_script
+     public static final String MISSION_INCOMPLETE_PERSISTENT_MESSAGE = "incomplete";
+     public static final String MISSION_TIMED_OUT_PERSISTENT_MESSAGE = "timed_out";
+     public static final String GENERIC_MISSION_MESSAGE_STRING_FILE = "mission/mission_generic";
+-    public static final int MAX_MISSIONS = 2;
++    public static final int MAX_MISSIONS = 10;
+     public static final String BOUNTY_MISSION_LISTENERS = "mission.objBountyListeners";
+     public static final int BOUNTY_DIFFICULTY_BASIC = 1;
+     public static final int BOUNTY_DIFFICULTY_ADVANCED = 2;
+@@ -76,17 +76,11 @@ public class mission_base extends script.base_script
+         obj_id objMissionData = getMissionData(objMission);
+         int intPlayerDifficulty = getIntObjVar(objMissionData, "intPlayerDifficulty");
+         obj_id objGroup = getGroupObject(objPlayer);
+-        string_id strMessage = new string_id();
+-        boolean boolGroup = false;
+-        if (isIdValid(objGroup))
+-        {
+-            boolGroup = true;
+-            strMessage = new string_id(GENERIC_MISSION_MESSAGE_STRING_FILE, "group_success");
+-        }
+-        else 
+-        {
+-            strMessage = new string_id(GENERIC_MISSION_MESSAGE_STRING_FILE, "success");
+-        }
++        boolean boolGroup = false;
++        if (isIdValid(objGroup))
++        {
++            boolGroup = true;
++        }
+         dictionary dctParams = new dictionary();
+         int intBond = getMissionBondAmount(objMissionData);
+         if (intBond > 0)
+@@ -114,12 +108,7 @@ public class mission_base extends script.base_script
+         {
+             intReward = intReward / 2;
+         }
+-        int originalGroupSize = 0;
+-        if (hasObjVar(objMissionData, "originalGroupSize"))
+-        {
+-            originalGroupSize = getIntObjVar(objMissionData, "originalGroupSize");
+-        }
+-        String strMissionType = getMissionType(objMissionData);
++        String strMissionType = getMissionType(objMissionData);
+         if (strMissionType.equals("bounty"))
+         {
+             missions.increaseBountyJediKillTracking(objPlayer, missions.WINS);
+@@ -149,50 +138,36 @@ public class mission_base extends script.base_script
+                 transferBankCreditsFromNamedAccount(money.ACCT_MISSION_DYNAMIC, objHq, hqReward, "noHandler", "noHandler", new dictionary());
+             }
+         }
+-        if (!boolGroup)
+-        {
+-            intReward = group.getSafeDifference(objPlayer, intReward);
+-            if (originalGroupSize > 0 && !strMissionType.equals("destroy"))
+-            {
+-                intReward = intReward / originalGroupSize;
+-            }
+-            float divisor = missions.alterMissionPayoutDivisorDaily(objPlayer);
+-            intReward = intReward / (int)divisor;
+-            if (missions.canEarnDailyMissionXp(objPlayer) && missions.isDestroyMission(objMissionData))
+-            {
+-                xp.grantMissionXp(objPlayer, intPlayerDifficulty);
+-            }
+-            transferBankCreditsFromNamedAccount(money.ACCT_MISSION_DYNAMIC, objPlayer, intReward, "testSuccess", "testFail", dctParams);
+-            utils.moneyInMetric(objPlayer, money.ACCT_MISSION_DYNAMIC, intReward);
+-            prose_package successProse = prose.getPackage(new string_id("mission/mission_generic", "success_w_amount"), intReward);
+-            sendSystemMessageProse(objPlayer, successProse);
+-            missions.incrementDaily(objPlayer);
+-        }
+-        else 
+-        {
+-            int currentGroupSize = getPCGroupSize(objGroup);
+-            if (originalGroupSize < 0)
+-            {
+-                originalGroupSize = 0;
+-            }
+-            int missionDivisor = originalGroupSize;
+-            strMessage = new string_id(GENERIC_MISSION_MESSAGE_STRING_FILE, "group_success");
+-            if (!strMissionType.equals("destroy"))
+-            {
+-                if (currentGroupSize > originalGroupSize)
+-                {
+-                    missionDivisor = currentGroupSize;
+-                    strMessage = new string_id(GENERIC_MISSION_MESSAGE_STRING_FILE, "group_expanded");
+-                }
+-            }
+-            else 
+-            {
+-                missionDivisor = 1;
+-                dctParams.put("intPlayerDifficulty", intPlayerDifficulty);
+-                group.distributeMissionXpToGroup(objPlayer, group.SPLIT_RANGE, objMissionData);
+-            }
+-            group.systemPayoutToGroupInternal(money.ACCT_MISSION_DYNAMIC, objPlayer, intReward, null, strMessage, "test", missionDivisor, dctParams, objMissionData);
+-        }
++        if (missions.isDestroyMission(objMissionData))
++        {
++            if (boolGroup)
++            {
++                group.distributeMissionXpToGroup(objPlayer, group.SPLIT_RANGE, objMissionData);
++            }
++            else if (missions.canEarnDailyMissionXp(objPlayer))
++            {
++                xp.grantMissionXp(objPlayer, intPlayerDifficulty);
++            }
++        }
++        Vector recipients = null;
++        if (boolGroup)
++        {
++            recipients = group.getPCMembersInRange(objPlayer, group.SPLIT_RANGE);
++        }
++        if (recipients == null || recipients.size() == 0)
++        {
++            recipients = new Vector();
++            recipients.add(objPlayer);
++        }
++        for (Object recipientObject : recipients)
++        {
++            obj_id recipient = (obj_id)recipientObject;
++            transferBankCreditsFromNamedAccount(money.ACCT_MISSION_DYNAMIC, recipient, intReward, "testSuccess", "testFail", dctParams);
++            utils.moneyInMetric(recipient, money.ACCT_MISSION_DYNAMIC, intReward);
++            prose_package successProse = prose.getPackage(new string_id("mission/mission_generic", "success_w_amount"), intReward);
++            sendSystemMessageProse(recipient, successProse);
++        }
++        LOG("PreCuMission", "payout mission=" + objMissionData + " holder=" + objPlayer + " recipients=" + recipients.size() + " fullRewardEach=" + intReward + " split=false dailyCashPenalty=false");
+         String strTitleString = MISSION_SUCCESS_PERSISTENT_MESSAGE;
+         int intStringId = getIntObjVar(objMissionData, "intStringId");
+         String strMessageString = "m" + intStringId + "d";
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java
+index b80e66ffff123013731ae80d8f4553719ba7f309..47bc0e7ffb858747491c74dfd1a252b3e27cd77e 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java
+@@ -446,10 +446,10 @@ public class mission_dynamic_base extends script.systems.missions.base.mission_b
+         location locEndLocation = new location();
+         setObjVar(objMissionData, "strPickupNPC", strPickupNPC);
+         setObjVar(objMissionData, "strDropoffNPC", strDropoffNPC);
+-        region[] rgnCities = getRegionsWithMunicipalAtPoint(locMissionStart, regions.MUNI_TRUE);
+-        if (rgnCities == null)
+-        {
+-            rgnCities = getRegionsAtPoint(locStartLocation);
++        region[] rgnCities = getRegionsWithMunicipalAtPoint(locMissionStart, regions.MUNI_TRUE);
++        if (rgnCities == null)
++        {
++            rgnCities = getRegionsAtPoint(locMissionStart);
+             if (rgnCities == null)
+             {
+                 return null;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
+index 553e85934a5c4c882ce0a9e22c62b390ed935f46..4fb4d1a255134b03634a9ca99df781e983bd41da 100755
+--- a/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
++++ b/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java
+@@ -53,10 +53,12 @@ public class mission_player extends script.systems.missions.base.mission_player_
+     }
+     public int OnPlayerRequestMissionBoard(obj_id self, obj_id objPlayer, obj_id objMissionTerminal, obj_id[] objMissionData) throws InterruptedException
+     {
+-        if (objMissionData.length < 10)
++        if (objMissionData == null || objMissionData.length < 2)
+         {
++            LOG("PreCuMission", "board rejected player=" + self + " terminal=" + objMissionTerminal + " reason=insufficient-mission-placeholders count=" + (objMissionData == null ? 0 : objMissionData.length));
+             return SCRIPT_CONTINUE;
+         }
++        int intPairedMissionDataCount = objMissionData.length - (objMissionData.length % 2);
+         location locTest = getMissionLocation(self);
+         if (!areMissionsAllowed(locTest))
+         {
+@@ -130,8 +132,8 @@ public class mission_player extends script.systems.missions.base.mission_player_
+             objHq = topMost;
+         }
+         obj_id objMission;
+-        int intLevel = 0;
+-        intLevel = skill.getGroupLevel(self);
++        int intLevel = missions.getPrecuMissionGroupCombatScore(self);
++        LOG("PreCuMission", "board player=" + self + " terminal=" + objMissionTerminal + " placeholders=" + objMissionData.length + " paired=" + intPairedMissionDataCount + " combatScore=" + intLevel);
+         if (hasObjVar(objMissionTerminal, "intBounty"))
+         {
+             debugServerConsoleMsg(self, "making bounty mission");
+@@ -191,7 +193,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+         }
+         else if (hasObjVar(objMissionTerminal, "intScout"))
+         {
+-            for (int intI = 0; intI < objMissionData.length; intI = intI + 2)
++            for (int intI = 0; intI < intPairedMissionDataCount; intI = intI + 2)
+             {
+                 cleanMissionObject(objMissionData[intI]);
+                 cleanMissionObject(objMissionData[intI + 1]);
+@@ -225,7 +227,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+         }
+         else if (hasObjVar(objMissionTerminal, "intEntertainer"))
+         {
+-            for (int intI = 0; intI < objMissionData.length; intI = intI + 2)
++            for (int intI = 0; intI < intPairedMissionDataCount; intI = intI + 2)
+             {
+                 cleanMissionObject(objMissionData[intI]);
+                 cleanMissionObject(objMissionData[intI + 1]);
+@@ -259,7 +261,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+         }
+         else if (hasObjVar(objMissionTerminal, "intArtisan"))
+         {
+-            for (int intI = 0; intI < objMissionData.length; intI = intI + 2)
++            for (int intI = 0; intI < intPairedMissionDataCount; intI = intI + 2)
+             {
+                 cleanMissionObject(objMissionData[intI]);
+                 cleanMissionObject(objMissionData[intI + 1]);
+@@ -293,7 +295,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+         }
+         else 
+         {
+-            for (int intI = 0; intI < objMissionData.length; intI = intI + 2)
++            for (int intI = 0; intI < intPairedMissionDataCount; intI = intI + 2)
+             {
+                 cleanMissionObject(objMissionData[intI]);
+                 cleanMissionObject(objMissionData[intI + 1]);
+@@ -304,6 +306,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+                 }
+                 else 
+                 {
++                    missions.applyPrecuMissionGroupReward(objTest, self);
+                     setMissionStatus(objMissionData[intI], 1);
+                     if (isIdValid(objHq))
+                     {
+@@ -322,6 +325,7 @@ public class mission_player extends script.systems.missions.base.mission_player_
+                 }
+                 else 
+                 {
++                    missions.applyPrecuMissionGroupReward(objTest, self);
+                     setMissionStatus(objMissionData[intI + 1], 1);
+                     if (isIdValid(objHq))
+                     {

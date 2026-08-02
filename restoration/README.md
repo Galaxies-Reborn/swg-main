@@ -2240,3 +2240,16 @@ or script-complete outcome records a corresponding response reason. A dedicated
 log target keeps the evidence isolated from legacy server noise. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14ObjectMenuTelemetry.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 285 restores combat mission-board population and PRE-CU group mission
+economics. The board accepts a partially filled asynchronous mission bag instead
+of silently requiring all ten placeholders, uses learned combat skill boxes in
+place of retired NGE combat level, and corrects the delivery-region fallback.
+Players may hold ten missions and groups may contain twenty-four members. Base
+Brawler and Marksman boxes contribute their actual point cost; elite combat,
+Creature Handler, Squad Leader, and Force-discipline boxes contribute triple
+their point cost. Mission credits scale with party size and average hidden
+combat score, and every eligible nearby member receives the full displayed
+reward without a split, NGE level reduction, or daily cash penalty. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuMissionBoardGroupRewards.ps1 -SourceRoot <materialized-staging-directory>

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-mission-board-group-rewards",
+  "status": "ready",
+  "scope": "Restore combat mission board population and establish PRE-CU mission, group-size, combat-skill rating, and full-credit payout rules.",
+  "diagnosis": {
+    "date": "2026-08-01",
+    "blankBoardCauses": [
+      "OnPlayerRequestMissionBoard silently returned unless all ten asynchronous mission placeholders already existed",
+      "destroy mission selection used the retired NGE player/group level and could fall below the location minimum",
+      "deliver mission fallback queried regions around a newly constructed empty location instead of the terminal location"
+    ],
+    "rewardRegressions": [
+      "solo credits were reduced by NGE combat-level safety and daily completion divisors",
+      "group credits were divided across nearby members",
+      "group destroy payouts also accumulated the daily cash penalty"
+    ]
+  },
+  "expected": {
+    "missionPlaceholdersRequested": 10,
+    "minimumPairedPlaceholdersAccepted": 2,
+    "maximumHeldMissions": 10,
+    "maximumPartyMembers": 24,
+    "combatRating": {
+      "baseSkillFamilies": [
+        "combat_brawler_*",
+        "combat_marksman_*"
+      ],
+      "baseSkillPointWeight": 1,
+      "advancedCombatSkillPointWeight": 3,
+      "additionalCombatFamilies": [
+        "outdoors_creaturehandler_*",
+        "outdoors_squadleader_*",
+        "force_discipline_*"
+      ],
+      "compatibilityPrerequisitesExcluded": true,
+      "perPlayerCap": 90,
+      "partyDifficulty": "rounded average of loaded player combat ratings, clamped to 1..90"
+    },
+    "creditReward": {
+      "formula": "baseReward * (1 + ((partySize - 1) * 0.10) + (averageCombatRating / 100))",
+      "snapshotStoredOnMission": true,
+      "fullDisplayedRewardPerEligibleNearbyPlayer": true,
+      "splitDivisor": false,
+      "dailyCashPenalty": false,
+      "ngeLevelPenalty": false
+    }
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/missions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java",
+    "src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp",
+    "src/engine/server/library/serverGame/src/shared/core/ConfigServerGame.cpp"
+  ],
+  "buildEvidence": {
+    "overlayPatches": [
+      {
+        "component": "dsrc",
+        "path": "restoration/patches/dsrc/355-p14-precu-mission-board-group-rewards.patch",
+        "bytes": 19439,
+        "sha256": "7e850691e8602207c63b71bd2075ac6ccf6eb0f472278c2f3efc6c7c2298526d"
+      },
+      {
+        "component": "src",
+        "path": "restoration/patches/src/353-p14-precu-group-cap.patch",
+        "bytes": 775,
+        "sha256": "b064fa8057dfab6af50ca3c14bf53d8300c65e3d1574f2c7ef7186dcb70a973f"
+      }
+    ],
+    "isolatedJavaCompile": "passed",
+    "staticContract": "passed",
+    "materializedBuild": "passed",
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
+    "serverBinaryBuildIdSha1": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-01",
+    "container": "swg-precu",
+    "containerHealth": "healthy",
+    "clientExecutable": "Galaxies Reborn PRECU.exe",
+    "clientProcessId": 28444,
+    "character": "Eteb Eso",
+    "userVerification": "mission terms work now - i ran to it",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}
