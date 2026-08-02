@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-ground-loot-scout-forage-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14.1 authored creature loot and Scout foraging while preventing global NGE reward systems from taking precedence over ordinary ground kills.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/loot/LootManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/managers/minigames/ForageManagerImplementation.cpp",
+      "MMOCoreORB/bin/scripts/loot/groups/forage/forage_food.lua",
+      "MMOCoreORB/bin/scripts/loot/groups/forage/forage_bait.lua",
+      "MMOCoreORB/bin/scripts/loot/groups/forage/forage_rare.lua"
+    ],
+    "findings": [
+      "Normal creature loot is selected from the defeated creature's authored loot groups; it is not supplemented by player-level RLS chests, Beast Master enzymes, Chronicles fragments, or scheduled TCG cards.",
+      "Scout forage is a single delayed task, costs Quickness-adjusted Action, fails if the player moves more than two meters or enters combat, and exhausts a ten-meter area after three attempts for thirty minutes.",
+      "Scout forage chance is min(100, 15 + foraging * 0.8), tested against a random roll from zero through eighty.",
+      "Successful forage awards authored food on rolls 0-159, bait on 160-199, and a treasure map on 200, with independent bonus-item chances at Scout Camps III and Scout Master."
+    ]
+  },
+  "expected": {
+    "authoredCreatureLootPreserved": true,
+    "cashLootPreserved": true,
+    "collectionLootPreserved": true,
+    "creatureResourceMarkerPreserved": true,
+    "explicitGoldenTicketEventPreserved": true,
+    "globalNgeRlsChestInjection": false,
+    "globalBeastMasterEnzymeInjection": false,
+    "globalChroniclesFragmentInjection": false,
+    "globalScheduledTcgCardInjection": false,
+    "persistedNgeRewardItemsRemainUsable": true,
+    "scoutForageSkill": "outdoors_scout_camp_01",
+    "scoutForageModifier": "foraging",
+    "baseActionCost": 50,
+    "quicknessAdjustment": "cost -= ((Quickness - 300) / 1200) * cost",
+    "delaySeconds": 8.5,
+    "movementToleranceMeters": 2,
+    "combatCancels": true,
+    "areaSizeMeters": 10,
+    "areaUses": 3,
+    "areaExpirySeconds": 1800,
+    "areaHistoryLimit": 120,
+    "successChanceBase": 15,
+    "successChancePerForagingPoint": 0.8,
+    "successRollMaximum": 80,
+    "foodRollRange": "0-159",
+    "baitRollRange": "160-199",
+    "treasureMapRoll": 200,
+    "authoredFoodEntries": 14,
+    "authoredBaitEntries": 4,
+    "campThreeBonusRoll": "1 in 6",
+    "scoutMasterBonusRoll": "1 in 6",
+    "treasureMapDifficultyAuthority": "skill.getPrecuEncounterDifficulty",
+    "medicalForageMutualExclusionPreserved": true
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/loot.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/ai/ai.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/361-p14-precu-ground-loot-scout-forage-authority.patch",
+    "overlayPatchBytes": 25856,
+    "overlayPatchSha256": "428be85d5cfaa0c584900afeb05c82f7994261d47a9071024abdf40cae23399c",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (3 Java sources, Java 8 target)",
+    "isolatedClassSha256": {
+      "script.library.loot": "2f2b01906675e4f00c8e716d37cfda02966a459e2eaf47725a93e6d0e54305da",
+      "script.player.player_utility": "853db8743a8a48a3b3ea683914983ecbb261f8133dc57a7c07e335b4da9150c2",
+      "script.ai.ai": "9252cbb41e1d514b46ba2874c1ebc0edca73618c02d64d6526b30d85a80df9e7"
+    },
+    "sourceSha256": {
+      "script.library.loot": "37e3a20f4d199c20889aebe380c19babb282e934b8e29fcf61ed5f3d36b01b37",
+      "script.player.player_utility": "d2fb781a530aa80275dd90f51b666b45359e9e5568300a9894298b99c6232a15",
+      "script.ai.ai": "bc20464e5d5f78022166f43f5b173cf7508aee79abc093e38ae4fa48003d052f"
+    },
+    "fullJavaCompile": "passed (Ant compile_java compiled the 3 changed sources in the x64 server build volume)",
+    "compiledClassSha256": {
+      "script.library.loot": "f3753772038da4452b4c65c2c7065e90172999e06ab2575d6142adeb5deecac0",
+      "script.player.player_utility": "41abffd75b017a96bfb176011f3bd25c765090cc1ee9477accc27cb23ff95a3c",
+      "script.ai.ai": "4bb71d360825e970390e7f6fd30cdbe37441f8a0cf48f5c510517d70d4c840de"
+    },
+    "materializedBuild": "passed",
+    "cleanMaterializationPatches": 391,
+    "cleanMaterializationAcceptanceFiles": 1108,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "x86-64",
+    "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
+    "serverBinaryBuildId": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-xp291-final-b",
+    "startedAtUtc": "2026-08-02T08:57:41.558104528Z",
+    "state": "running healthy",
+    "clusterReadyCount": 1,
+    "coreProcesses": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "SwgGameServer": 15
+    },
+    "fatalExceptionSevereCount": 0,
+    "missionTerminalContinuity": "user confirmed populated mission terminals before this milestone; mission-board and combat-XP continuity contracts passed against the materialized source before deployment"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "ordinary ground-corpse loot injection and the Scout forage command/reward loop",
+    "retainedContent": "authored creature loot, cash, collections, quest-created rewards, persisted later-era reward items, and the explicitly configured golden-ticket event",
+    "notClaimedComplete": "GCW and faction reward ratios, cloning price, metrics, beast/familiar progression outside ordinary corpse loot, and conversation-specific level gates remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

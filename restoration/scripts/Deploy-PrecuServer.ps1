@@ -110,6 +110,10 @@ source_mission_base="$source_script/systems/missions/base/mission_base.java"
 work_mission_base="$work_script/systems/missions/base/mission_base.java"
 source_mission_dynamic="$source_script/systems/missions/base/mission_dynamic_base.java"
 work_mission_dynamic="$work_script/systems/missions/base/mission_dynamic_base.java"
+source_player_utility="$source_script/player/player_utility.java"
+work_player_utility="$work_script/player/player_utility.java"
+source_ai="$source_script/ai/ai.java"
+work_ai="$work_script/ai/ai.java"
 precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
@@ -151,6 +155,8 @@ cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
+cmp -s "$source_player_utility" "$work_player_utility"
+cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_script/library/pet_lib.java" "$work_script/library/pet_lib.java"
 cmp -s "$source_script/ai/pet_control_device.java" "$work_script/ai/pet_control_device.java"
 cmp -s "$source_script/npc/pet_deed/droid_deed.java" "$work_script/npc/pet_deed/droid_deed.java"
@@ -262,6 +268,24 @@ javap -classpath "$class_root" -v script.library.xp | grep -Fq 'private_jedi_dif
 ! javap -classpath "$class_root" -v script.library.group | grep -Fq 'grantMissionXp'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'grantMissionXp'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'distributeMissionXpToGroup'
+javap -classpath "$class_root" -constants script.player.player_utility | grep -Fq 'PRECU_SCOUT_FORAGE_DELAY = 8.5f'
+javap -classpath "$class_root" -constants script.player.player_utility | grep -Fq 'PRECU_SCOUT_FORAGE_BASE_ACTION = 50'
+javap -classpath "$class_root" -constants script.player.player_utility | grep -Fq 'PRECU_SCOUT_FORAGE_AREA_USES = 3'
+javap -classpath "$class_root" -v script.player.player_utility | grep -Fq 'outdoors_scout_camp_01'
+javap -classpath "$class_root" -v script.player.player_utility | grep -Fq 'getPrecuScoutForageActionCost'
+javap -classpath "$class_root" -v script.player.player_utility | grep -Fq 'reservePrecuScoutForageArea'
+javap -classpath "$class_root" -v script.player.player_utility | grep -Fq 'item_treasure_map_1_10'
+! javap -classpath "$class_root" -v script.player.player_utility | grep -Fq 'script/library/loot.playerForaging'
+loot_add_bytecode="$(javap -classpath "$class_root" -c script.library.loot | sed -n '/public static boolean addLoot/,/public static boolean addGoldenTicket/p')"
+printf '%s' "$loot_add_bytecode" | grep -Fq 'setupLootItems'
+printf '%s' "$loot_add_bytecode" | grep -Fq 'addCollectionLoot'
+! printf '%s' "$loot_add_bytecode" | grep -Fq 'addRareLoot'
+! printf '%s' "$loot_add_bytecode" | grep -Fq 'addBeastEnzymes'
+javap -classpath "$class_root" -v script.library.loot | grep -Fq 'Rejected retired NGE Beast Master forage loot pipeline'
+javap -classpath "$class_root" -v script.library.loot | grep -Fq 'getPrecuEncounterDifficulty'
+! javap -classpath "$class_root" -v script.ai.ai | grep -Fq 'addChronicleLoot'
+! javap -classpath "$class_root" -v script.ai.ai | grep -Fq 'scheduled_drop'
+javap -classpath "$class_root" -v script.ai.ai | grep -Fq 'goldenTicket'
 javap -classpath "$class_root" -v script.quest.task.ground.spawn | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.quest.util.dynamic_mob_opponent | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.quest.utility.dynamic_spawn_off_quest_item | grep -Fq 'getPrecuEncounterDifficulty'

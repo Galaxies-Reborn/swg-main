@@ -2327,3 +2327,21 @@ available, and free-trial/NPE combat-level checks can no longer suppress the
 PRE-CU XP fly text. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCombatXpAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 291 restores Publish 14.1 ordinary ground loot and Scout foraging
+authority. Creature corpses keep their authored loot tables, cash, collection
+rewards, and Scout resource marker, while global NGE RLS chests, Beast Master
+enzymes, Chronicles fragments, and scheduled TCG cards no longer inject
+themselves into every kill. Explicit quest-created rewards, persisted later-era
+items, and the configured golden-ticket event remain available as retained
+content.
+
+The Scout `/forage` command now requires Exploration I, starts one shared
+foraging task, drains Quickness-adjusted Action, waits 8.5 seconds, and fails
+after movement or combat. Ten-meter areas allow three attempts before a
+thirty-minute exhaustion period. The authenticated `foraging` modifier drives
+success; rewards use the Publish 14.1 food, bait, and rare treasure-map bands,
+including Camps III and Scout Master bonus-item rolls. Medical foraging remains
+mutually exclusive and otherwise unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuGroundLootScoutForageAuthority.ps1 -SourceRoot <materialized-staging-directory>
