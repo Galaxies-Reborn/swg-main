@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-faction-cloning-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14.1 ground faction-standing and cloning authority, remove NGE GCW kill-score and cloning-sickness precedence, and close the remaining level-gated XP callback.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/faction/FactionManager.cpp",
+      "MMOCoreORB/src/server/zone/managers/creature/CreatureManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp"
+    ],
+    "findings": [
+      "A faction NPC kill awards one highest-damage player standing from the defeated creature's authored level multiplied by its faction combat factor; enemies gain that amount while the defeated faction and eligible allies lose twice that amount.",
+      "An opposing non-duel player kill grants the killer 30 points with their own faction, removes 45 with the opposing faction, and removes 45 from the victim's own faction without player-level, rank, profession, overt-status, Luck, or daily-kill scaling.",
+      "Cloning applies 100 wounds to Health, Action, Mind, and battle fatigue when the chosen facility is not predesignated, plus one-percent insured or five-percent uninsured item decay. Publish 14.1 has no cloning-sickness buff or level-priced cure layer."
+    ]
+  },
+  "expected": {
+    "npcFactionRecipient": "highest-damage eligible player in the winning solo/group kill credit",
+    "npcStandingGain": "authored creature level multiplied by faction combatFactor",
+    "npcStandingLoss": "twice the gain for the defeated faction and eligible allies",
+    "pvpKillerOwnFactionGain": 30,
+    "pvpKillerEnemyFactionLoss": 45,
+    "pvpVictimOwnFactionLoss": 45,
+    "duelFactionStanding": 0,
+    "playerCombatLevelReads": 0,
+    "ngeGcwKillScore": false,
+    "ngeRankAndProfessionMultipliers": false,
+    "ngeLuckAndInspirationMultipliers": false,
+    "cloningSicknessApplied": false,
+    "cloningSicknessCureCost": 0,
+    "legacyCloningSicknessRemovedOnLogin": true,
+    "precuCloneWoundsAndDecayPreserved": true,
+    "freeTrialOrTutorialCombatLevelXpGate": false,
+    "xpLuckMultiplier": false,
+    "missionTerminalPathChanged": false
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/362-p14-precu-faction-cloning-authority.patch",
+    "overlayPatchBytes": 19426,
+    "overlayPatchSha256": "12934926838217fe90577e34374502674b4fa5604891d7114db585bc13996e39",
+    "staticContract": "passed",
+    "isolatedJavaCompile": "passed (4 Java sources, Java 8 target)",
+    "isolatedClassSha256": {
+      "script.library.factions": "cb709688b1c711ef174f5895c7453bafd88934fd4f25dc69be48b820082c9f26",
+      "script.library.xp": "0b3fbab12626c1e9ce8e632c90ee99dc061d23bfab0ff679f0747e51b84040da",
+      "script.library.pclib": "23afb79685693af4c47dd792fd04aa217279d15891e886dff846bbb54162e30f",
+      "script.player.base.base_player": "ed81b905b8debd26a52899a1900165021b83b41c79b7800cae46d04370fea775"
+    },
+    "sourceSha256": {
+      "script.library.factions": "66b9a8b73a82457341ccebc679fb04d8769a44af4da9763576ca68c3bbe94fe7",
+      "script.library.xp": "fcdc50faa041fe7eb5fe34e161088cd1faefdea691bf97b402ee3da68b8327db",
+      "script.library.pclib": "c397905f11e28a8fdbccfbc3e49f91ea53cb91b6b9f89290933cec8b9b8d68c7",
+      "script.player.base.base_player": "4abfc9e3feb4a56c29e06893f25e76359af1552e836dfd5674fe0a5543ac1b17"
+    },
+    "fullJavaCompile": "passed (5713-source clean x64 Release build, followed by the final one-source x64 Release rebuild for the exact authored-level correction)",
+    "compiledClassSha256": {
+      "script.library.factions": "15eddadcc79ffeec9e5ffd37136a19d4dc152a6b73321ac4cb7407743f55e512",
+      "script.library.xp": "5ad0c2ff95ac997759cbf2f242b84a00678b392c04ddca1b295b633184a3e6c5",
+      "script.library.pclib": "552ea2bcabf34008fd04e3817e5d0d303f883bda0e5c7a3a2571411f4bb22bc3",
+      "script.player.base.base_player": "064d76cf4fa14e67a8b2a39652eb512e7eb9f30f60ffb08ca43bc36b7742d26f"
+    },
+    "materializedBuild": "passed",
+    "cleanMaterializationPatches": 392,
+    "cleanMaterializationAcceptanceFiles": 1111,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "architecture": "ELF 64-bit x86-64 Release",
+    "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
+    "serverBinaryBuildId": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "passed",
+    "container": "swg-precu",
+    "serverBits": 64,
+    "liveSourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-faction292-final-b",
+    "deployedAt": "2026-08-02T10:40:14.677927246Z",
+    "health": "running/healthy/player-ready",
+    "requiredProcessCounts": "LoginServer=1, TaskManager=1, ConnectionServer=1, SwgDatabaseServer=1, SwgGameServer=14",
+    "missionTerminalContinuity": "User confirmed the live combat mission terminal is populated and usable immediately before this milestone; its source path is unchanged."
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "ordinary ground NPC faction standing, opposing non-duel player faction standing, kill-triggered NGE GCW score, cloning-sickness cost/application, persisted sickness cleanup, and the residual level/Luck-gated XP callback",
+    "retainedContent": "Publish 14.1 faction membership, covert/overt state, faction perks and bases, authored later-zone NPCs and quests, bounty missions, clone selection, clone wounds, battle fatigue, insurance, and item decay",
+    "notClaimedComplete": "faction perk purchase gates, battlefield/invasion scoring, space faction rewards, bounty-system details, metrics, and remaining conversation-specific level gates remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

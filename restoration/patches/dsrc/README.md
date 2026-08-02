@@ -1367,3 +1367,12 @@ class checks in retained Death Watch Bunker, Mustafar, and armorsmith quest
 content with exact PRE-CU crafting boxes. Mandalorian armor, jetpack, tailor,
 droid-engineer, and mining-droid interactions remain available without
 restoring NGE profession progression.
+
+`362-p14-precu-faction-cloning-authority.patch` restores Publish 14.1 ground
+faction-standing rewards to one highest-damage player using the defeated
+creature's authored level and faction combat factor. Opposing non-duel player
+kills use fixed historical standing changes, while NGE GCW kill score,
+player-level/rank/class/Luck multipliers, and cloning-sickness pricing no
+longer take precedence. PRE-CU clone wounds and item decay remain intact, and
+the residual free-trial/tutorial level and Luck gates are removed from the XP
+callback so clean Java builds cannot depend on a deleted NGE level constant.

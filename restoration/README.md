@@ -2345,3 +2345,22 @@ including Camps III and Scout Master bonus-item rolls. Medical foraging remains
 mutually exclusive and otherwise unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuGroundLootScoutForageAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 292 restores Publish 14.1 ground faction-standing and cloning
+authority. An ordinary faction NPC kill now awards standing once to the
+highest-damage eligible player in the winning solo/group credit. The defeated
+creature's authored level and faction combat factor determine the gain;
+enemies gain that amount while the defeated faction and eligible allies lose
+twice the amount. Opposing non-duel player kills use the fixed historical
+`+30 / -45 / -45` standing changes. Player combat level, GCW rank, NGE class,
+overt-status, Luck, inspiration, daily-kill, and kill-score multipliers no
+longer override those rules.
+
+The NGE cloning-sickness price and cure layer is inert, persisted sickness is
+removed on login, and the existing PRE-CU clone wounds, battle fatigue,
+insurance, and item decay remain authoritative. This milestone also closes a
+clean-build regression in the XP callback: tutorial/free-trial combat-level
+gates and the NGE Luck XP bonus are absent. Mission terminal generation and
+mission payouts are unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFactionCloningAuthority.ps1 -SourceRoot <materialized-staging-directory>

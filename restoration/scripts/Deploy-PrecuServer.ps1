@@ -102,6 +102,10 @@ source_missions="$source_script/library/missions.java"
 work_missions="$work_script/library/missions.java"
 source_xp_library="$source_script/library/xp.java"
 work_xp_library="$work_script/library/xp.java"
+source_factions_library="$source_script/library/factions.java"
+work_factions_library="$work_script/library/factions.java"
+source_pclib_library="$source_script/library/pclib.java"
+work_pclib_library="$work_script/library/pclib.java"
 source_group_library="$source_script/library/group.java"
 work_group_library="$work_script/library/group.java"
 source_skill_library="$source_script/library/skill.java"
@@ -114,6 +118,8 @@ source_player_utility="$source_script/player/player_utility.java"
 work_player_utility="$work_script/player/player_utility.java"
 source_ai="$source_script/ai/ai.java"
 work_ai="$work_script/ai/ai.java"
+source_base_player="$source_script/player/base/base_player.java"
+work_base_player="$work_script/player/base/base_player.java"
 precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
@@ -151,12 +157,15 @@ cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_xp_library" "$work_xp_library"
+cmp -s "$source_factions_library" "$work_factions_library"
+cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
 cmp -s "$source_player_utility" "$work_player_utility"
 cmp -s "$source_ai" "$work_ai"
+cmp -s "$source_base_player" "$work_base_player"
 cmp -s "$source_script/library/pet_lib.java" "$work_script/library/pet_lib.java"
 cmp -s "$source_script/ai/pet_control_device.java" "$work_script/ai/pet_control_device.java"
 cmp -s "$source_script/npc/pet_deed/droid_deed.java" "$work_script/npc/pet_deed/droid_deed.java"
@@ -268,6 +277,16 @@ javap -classpath "$class_root" -v script.library.xp | grep -Fq 'private_jedi_dif
 ! javap -classpath "$class_root" -v script.library.group | grep -Fq 'grantMissionXp'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'grantMissionXp'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'distributeMissionXpToGroup'
+javap -classpath "$class_root" -c -p script.library.factions | grep -Fq 'awardPrecuNpcCombatFaction'
+! javap -classpath "$class_root" -v script.library.factions | grep -Fq 'incrementGCWStanding'
+javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuFactionKillRecipient'
+! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'grantModifiedGcwPoints'
+! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'GCW_POINT_TYPE_GROUND_PVE'
+! javap -classpath "$class_root" -v script.library.pclib | grep -Fq 'releaseGcwPointCredit'
+! javap -classpath "$class_root" -v script.library.pclib | grep -Fq 'ACCT_CLONING'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'cloning_sickness'
+! javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'TRIAL_LEVEL_CAP'
+javap -classpath "$class_root" -c script.player.base.base_player | grep -Fq 'grantUnmodifiedExperienceOnSelf'
 javap -classpath "$class_root" -constants script.player.player_utility | grep -Fq 'PRECU_SCOUT_FORAGE_DELAY = 8.5f'
 javap -classpath "$class_root" -constants script.player.player_utility | grep -Fq 'PRECU_SCOUT_FORAGE_BASE_ACTION = 50'
 javap -classpath "$class_root" -constants script.player.player_utility | grep -Fq 'PRECU_SCOUT_FORAGE_AREA_USES = 3'
