@@ -2459,3 +2459,19 @@ shared municipal/collection scripts is restricted to exact fixed-base object
 templates. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuFixedStaticBaseRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 299 restores Publish 14 skill-box authority to retained player-placed
+faction headquarters. Objective admission now requires Smuggler Slicing I,
+Bounty Hunter Investigation II, Commando Heavy Support Weapons II, novice
+Bio-Engineer, and novice Squad Leader instead of later NGE class phases.
+Smuggler Slicing II-IV again accelerates failed-terminal repairs, while the
+Bio-Engineer DNA Harvesting I-IV and Master boxes expand each DNA sample from
+three to eight nucleotides. Successful bounty-hunter, bio-engineer, and
+commando objectives again award their authored 1,000 profession XP.
+
+The objective order, faction/overt admission, vulnerability schedule, defense
+and shutdown lifecycle, player-HQ templates, retired fixed static bases, older
+open-world battlefields, faction standing/rank/perks, and live-confirmed mission
+terminal/reward paths remain unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPlayerHqProfessionAuthority.ps1 -SourceRoot <materialized-staging-directory>

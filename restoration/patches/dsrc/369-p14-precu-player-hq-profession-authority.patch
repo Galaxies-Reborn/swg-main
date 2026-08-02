@@ -1,0 +1,132 @@
+diff --git a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_override.java b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_override.java
+--- a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_override.java
++++ b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_override.java
+@@ -107,7 +107,7 @@ public class objective_terminal_override extends script.faction_perk.hq.objecti
+         }
+         if (item == menu_info_types.ITEM_USE)
+         {
+-            if (!hasSkill(player, "class_medic_phase1_novice"))
++            if (!hasSkill(player, "outdoors_bio_engineer_novice"))
+             {
+                 sendSystemMessage(player, ONLY_A_BIO_ENGINEER);
+                 return SCRIPT_CONTINUE;
+@@ -215,7 +215,27 @@ public class objective_terminal_override extends script.faction_perk.hq.objecti
+             {
+                 chain = "";
+             }
+-            int chainlength = 8;
++            int chainlength = 3;
++            if (hasSkill(player, "outdoors_bio_engineer_master"))
++            {
++                chainlength = 8;
++            }
++            else if (hasSkill(player, "outdoors_bio_engineer_dna_harvesting_04"))
++            {
++                chainlength = 7;
++            }
++            else if (hasSkill(player, "outdoors_bio_engineer_dna_harvesting_03"))
++            {
++                chainlength = 6;
++            }
++            else if (hasSkill(player, "outdoors_bio_engineer_dna_harvesting_02"))
++            {
++                chainlength = 5;
++            }
++            else if (hasSkill(player, "outdoors_bio_engineer_dna_harvesting_01"))
++            {
++                chainlength = 4;
++            }
+             for (int i = 0; i < chainlength; i++)
+             {
+                 chain += NUCLEOTIDES[rand(0, NUCLEOTIDES.length - 1)];
+@@ -314,6 +334,7 @@ public class objective_terminal_override extends script.faction_perk.hq.objecti
+             String playerName = getName(player);
+             CustomerServiceLog("faction_hq", playerName + "(" + player + "), " + "disabled Override Terminal at " + getGameTime() + ".");
+             sendSystemMessage(player, SEQUENCING_COMPLETE_OVERRIDE);
++            xp.grant(player, xp.BIO_ENGINEER_DNA_HARVESTING, 1000);
+             hq.disableObjective(self);
+             return SCRIPT_CONTINUE;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_power_regulator.java b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_power_regulator.java
+--- a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_power_regulator.java
++++ b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_power_regulator.java
+@@ -81,7 +81,7 @@ public class objective_power_regulator extends script.faction_perk.hq.objective
+         }
+         if (item == menu_info_types.ITEM_USE)
+         {
+-            if (!hasSkill(player, "class_commando_phase1_novice"))
++            if (!hasSkill(player, "combat_commando_heavyweapon_speed_02"))
+             {
+                 sendSystemMessage(player, new string_id(STF, "commando_only"));
+                 return SCRIPT_CONTINUE;
+@@ -202,6 +202,7 @@ public class objective_power_regulator extends script.faction_perk.hq.objective
+         {
+             CustomerServiceLog("faction_hq", getName(player) + "(" + player + "), " + "overloaded Power Regulator Terminal at " + getGameTime() + ".");
+             sendSystemMessage(player, new string_id(STF, "alignment_complete"));
++            xp.grant(player, xp.COMBAT_RANGEDSPECIALIZE_HEAVY, 1000);
+             hq.disableObjective(self);
+             return SCRIPT_CONTINUE;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_security.java b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_security.java
+--- a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_security.java
++++ b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_security.java
+@@ -83,7 +83,7 @@ public class objective_terminal_security extends script.faction_perk.hq.objecti
+         }
+         if (item == menu_info_types.ITEM_USE)
+         {
+-            if (!hasSkill(player, "class_smuggler_phase1_novice"))
++            if (!hasSkill(player, "combat_smuggler_slicing_01"))
+             {
+                 sendSystemMessage(player, ONLY_A_SMUGGLER);
+                 return SCRIPT_CONTINUE;
+@@ -172,15 +172,15 @@ public class objective_terminal_security extends script.faction_perk.hq.objecti
+         }
+         int cnt = params.getInt("cnt");
+         int max = 1;
+-        if (hasSkill(player, "class_smuggler_phase4_novice"))
++        if (hasSkill(player, "combat_smuggler_slicing_04"))
+         {
+             max = 4;
+         }
+-        else if (hasSkill(player, "class_smuggler_phase3_novice"))
++        else if (hasSkill(player, "combat_smuggler_slicing_03"))
+         {
+             max = 3;
+         }
+-        else if (hasSkill(player, "class_smuggler_phase2_novice"))
++        else if (hasSkill(player, "combat_smuggler_slicing_02"))
+         {
+             max = 2;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_uplink.java b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_uplink.java
+--- a/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_uplink.java
++++ b/sku.0/sys.server/compiled/game/script/faction_perk/hq/objective_terminal_uplink.java
+@@ -105,7 +105,7 @@ public class objective_terminal_uplink extends script.faction_perk.hq.objective
+         }
+         if (item == menu_info_types.ITEM_USE)
+         {
+-            if (!hasSkill(player, "class_bountyhunter_phase2_novice"))
++            if (!hasSkill(player, "combat_bountyhunter_investigation_02"))
+             {
+                 sendSystemMessage(player, ONLY_A_BOUNTY_HUNTER);
+                 return SCRIPT_CONTINUE;
+@@ -382,6 +382,7 @@ public class objective_terminal_uplink extends script.faction_perk.hq.objective
+             sendSystemMessage(player, JAMMING_COMPLETE_YOU);
+             String playerName = getName(player);
+             CustomerServiceLog("faction_hq", playerName + "(" + player + "), " + "jammed Uplink Terminal at " + getGameTime() + ".");
++            xp.grant(player, xp.BOUNTYHUNTER, 1000);
+             hq.disableObjective(self);
+             return SCRIPT_CONTINUE;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/faction_perk/hq/terminal.java b/sku.0/sys.server/compiled/game/script/faction_perk/hq/terminal.java
+--- a/sku.0/sys.server/compiled/game/script/faction_perk/hq/terminal.java
++++ b/sku.0/sys.server/compiled/game/script/faction_perk/hq/terminal.java
+@@ -190,7 +190,7 @@ public class terminal extends script.structure.base.base_structure_terminal
+                         sendSystemMessageProse(player, ppDisableOther);
+                         return SCRIPT_CONTINUE;
+                     }
+-                    if (!hasSkill(player, "class_officer_phase1_novice"))
++                    if (!hasSkill(player, "outdoors_squadleader_novice"))
+                     {
+                         sendSystemMessage(player, new string_id(STRING_FILE_LOC, "terminal_response03"));
+                         return SCRIPT_CONTINUE;

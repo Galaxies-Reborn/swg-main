@@ -158,6 +158,16 @@ source_static_control_terminal="$source_script/systems/gcw/static_base/control_t
 work_static_control_terminal="$work_script/systems/gcw/static_base/control_terminal.java"
 source_static_control_terminal_player="$source_script/systems/gcw/static_base/control_terminal_player.java"
 work_static_control_terminal_player="$work_script/systems/gcw/static_base/control_terminal_player.java"
+source_hq_objective_override="$source_script/faction_perk/hq/objective_terminal_override.java"
+work_hq_objective_override="$work_script/faction_perk/hq/objective_terminal_override.java"
+source_hq_objective_power="$source_script/faction_perk/hq/objective_power_regulator.java"
+work_hq_objective_power="$work_script/faction_perk/hq/objective_power_regulator.java"
+source_hq_objective_security="$source_script/faction_perk/hq/objective_terminal_security.java"
+work_hq_objective_security="$work_script/faction_perk/hq/objective_terminal_security.java"
+source_hq_objective_uplink="$source_script/faction_perk/hq/objective_terminal_uplink.java"
+work_hq_objective_uplink="$work_script/faction_perk/hq/objective_terminal_uplink.java"
+source_hq_terminal="$source_script/faction_perk/hq/terminal.java"
+work_hq_terminal="$work_script/faction_perk/hq/terminal.java"
 source_municipal_starport="$source_script/structure/municipal/starport.java"
 work_municipal_starport="$work_script/structure/municipal/starport.java"
 source_municipal_cloner="$source_script/structure/municipal/cloning_facility.java"
@@ -259,6 +269,14 @@ cmp -s "$source_static_base_spawner" "$work_static_base_spawner"
 cmp -s "$source_static_spawned_object" "$work_static_spawned_object"
 cmp -s "$source_static_control_terminal" "$work_static_control_terminal"
 cmp -s "$source_static_control_terminal_player" "$work_static_control_terminal_player"
+cmp -s "$source_hq_objective_override" "$work_hq_objective_override"
+cmp -s "$source_hq_objective_power" "$work_hq_objective_power"
+cmp -s "$source_hq_objective_security" "$work_hq_objective_security"
+cmp -s "$source_hq_objective_uplink" "$work_hq_objective_uplink"
+cmp -s "$source_hq_terminal" "$work_hq_terminal"
+! grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase[0-9]+_novice' \
+    "$work_hq_objective_override" "$work_hq_objective_power" "$work_hq_objective_security" \
+    "$work_hq_objective_uplink" "$work_hq_terminal"
 cmp -s "$source_municipal_starport" "$work_municipal_starport"
 cmp -s "$source_municipal_cloner" "$work_municipal_cloner"
 cmp -s "$source_collection_consume_click" "$work_collection_consume_click"
@@ -439,6 +457,22 @@ javap -classpath "$class_root" -v script.systems.collections.consume_click | gre
 javap -classpath "$class_root" -v script.library.hq | grep -Fq 'faction_perk.hq.terminal_cloning_override'
 javap -classpath "$class_root" -v script.faction_perk.hq.loader | grep -Fq 'handleDelayedRefundChecker'
 javap -classpath "$class_root" -v script.faction_perk.hq.terminal | grep -Fq 'OnObjectMenuRequest'
+javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_override | grep -Fq 'outdoors_bio_engineer_novice'
+javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_override | grep -Fq 'outdoors_bio_engineer_dna_harvesting_04'
+javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_override | grep -Fq 'outdoors_bio_engineer_master'
+javap -classpath "$class_root" -c script.faction_perk.hq.objective_terminal_override | grep -Fq 'sipush        1000'
+javap -classpath "$class_root" -v script.faction_perk.hq.objective_power_regulator | grep -Fq 'combat_commando_heavyweapon_speed_02'
+javap -classpath "$class_root" -c script.faction_perk.hq.objective_power_regulator | grep -Fq 'sipush        1000'
+javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_security | grep -Fq 'combat_smuggler_slicing_01'
+javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_security | grep -Fq 'combat_smuggler_slicing_04'
+javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_uplink | grep -Fq 'combat_bountyhunter_investigation_02'
+javap -classpath "$class_root" -c script.faction_perk.hq.objective_terminal_uplink | grep -Fq 'sipush        1000'
+javap -classpath "$class_root" -v script.faction_perk.hq.terminal | grep -Fq 'outdoors_squadleader_novice'
+! javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_override | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
+! javap -classpath "$class_root" -v script.faction_perk.hq.objective_power_regulator | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
+! javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_security | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
+! javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_uplink | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
+! javap -classpath "$class_root" -v script.faction_perk.hq.terminal | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
 awk -F '\t' '$13 ~ /gcw_city_bestine[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_bestine"
 awk -F '\t' '$13 ~ /gcw_city_dearic[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_dearic"
 awk -F '\t' '$13 ~ /gcw_city_keren[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_keren"
