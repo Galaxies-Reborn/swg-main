@@ -1,0 +1,1114 @@
+diff --git a/sku.0/sys.server/compiled/game/script/ai/imperial_presence/harass.java b/sku.0/sys.server/compiled/game/script/ai/imperial_presence/harass.java
+--- a/sku.0/sys.server/compiled/game/script/ai/imperial_presence/harass.java
++++ b/sku.0/sys.server/compiled/game/script/ai/imperial_presence/harass.java
+@@ -549,7 +549,7 @@ public class harass extends script.base_script
+                 }
+                 for (Object member : members) {
+                     obj_id thisMember = ((obj_id) member);
+-                    if (hasSkill(thisMember, "class_smuggler_phase1_novice") && thisMember != (target)) {
++                    if (hasSkill(thisMember, "combat_smuggler_novice") && thisMember != (target)) {
+                         if (ai_lib.checkForSmuggler(thisMember)) {
+                             chat.publicChat(self, target, new string_id(STF, "clean_target_" + getFactionName(self)));
+                             if (getGender(self) == GENDER_MALE) {
+diff --git a/sku.0/sys.server/compiled/game/script/ai/pet_master.java b/sku.0/sys.server/compiled/game/script/ai/pet_master.java
+--- a/sku.0/sys.server/compiled/game/script/ai/pet_master.java
++++ b/sku.0/sys.server/compiled/game/script/ai/pet_master.java
+@@ -244,7 +244,7 @@ public class pet_master extends script.base_script
+             sendSystemMessage(self, new string_id(STF_FILE, "no_bomb_module"));
+             return SCRIPT_CONTINUE;
+         }
+-        if (!hasSkill(self, "class_smuggler_phase1_novice") && !hasSkill(self, "class_bountyhunter_phase1_novice"))
++        if (!hasSkill(self, "combat_smuggler_novice") && !hasSkill(self, "combat_bountyhunter_novice"))
+         {
+             sendSystemMessage(self, new string_id(STF_FILE, "insufficient_skill_detonate"));
+             return SCRIPT_CONTINUE;
+diff --git a/sku.0/sys.server/compiled/game/script/ai/smuggler_spawn_enemy.java b/sku.0/sys.server/compiled/game/script/ai/smuggler_spawn_enemy.java
+--- a/sku.0/sys.server/compiled/game/script/ai/smuggler_spawn_enemy.java
++++ b/sku.0/sys.server/compiled/game/script/ai/smuggler_spawn_enemy.java
+@@ -181,7 +181,7 @@ public class smuggler_spawn_enemy extends script.base_script
+         }
+         if (volumeName.equals(VOL_PATROL_WATCH))
+         {
+-            if (utils.getPlayerProfession(breacher) == utils.SMUGGLER)
++            if (utils.isProfession(breacher, utils.SMUGGLER))
+             {
+                 if (groundquests.isDoingSmugglerMission(breacher))
+                 {
+diff --git a/sku.0/sys.server/compiled/game/script/city/imperial_crackdown/imperial_trouble.java b/sku.0/sys.server/compiled/game/script/city/imperial_crackdown/imperial_trouble.java
+--- a/sku.0/sys.server/compiled/game/script/city/imperial_crackdown/imperial_trouble.java
++++ b/sku.0/sys.server/compiled/game/script/city/imperial_crackdown/imperial_trouble.java
+@@ -266,19 +266,19 @@ public class imperial_trouble extends script.base_script
+     public int getSmugglerPercentage(obj_id thisMember) throws InterruptedException
+     {
+         int chance = 90;
+-        if (hasSkill(thisMember, "class_smuggler_phase1_novice"))
++        if (hasSkill(thisMember, "combat_smuggler_underworld_01"))
+         {
+             chance = 80;
+         }
+-        if (hasSkill(thisMember, "class_smuggler_phase2_novice"))
++        if (hasSkill(thisMember, "combat_smuggler_underworld_02"))
+         {
+             chance = 60;
+         }
+-        if (hasSkill(thisMember, "class_smuggler_phase3_novice"))
++        if (hasSkill(thisMember, "combat_smuggler_underworld_03"))
+         {
+             chance = 40;
+         }
+-        if (hasSkill(thisMember, "class_smuggler_phase4_novice"))
++        if (hasSkill(thisMember, "combat_smuggler_underworld_04"))
+         {
+             chance = 20;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_1.java b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_1.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_1.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_1.java
+@@ -15,7 +15,7 @@ public class generic_broker_1 extends script.base_script
+     }
+     public boolean generic_broker_1_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_2.java b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_2.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_2.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_2.java
+@@ -15,7 +15,7 @@ public class generic_broker_2 extends script.base_script
+     }
+     public boolean generic_broker_2_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_3.java b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_3.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_3.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_3.java
+@@ -15,7 +15,7 @@ public class generic_broker_3 extends script.base_script
+     }
+     public boolean generic_broker_3_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_4.java b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_4.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_4.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_4.java
+@@ -15,7 +15,7 @@ public class generic_broker_4 extends script.base_script
+     }
+     public boolean generic_broker_4_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_5.java b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_5.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/generic_broker_5.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/generic_broker_5.java
+@@ -15,7 +15,7 @@ public class generic_broker_5 extends script.base_script
+     }
+     public boolean generic_broker_5_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_1.java b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_1.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_1.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_1.java
+@@ -15,7 +15,7 @@ public class illicit_broker_1 extends script.base_script
+     }
+     public boolean illicit_broker_1_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_2.java b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_2.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_2.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_2.java
+@@ -15,7 +15,7 @@ public class illicit_broker_2 extends script.base_script
+     }
+     public boolean illicit_broker_2_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_3.java b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_3.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_3.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_3.java
+@@ -15,7 +15,7 @@ public class illicit_broker_3 extends script.base_script
+     }
+     public boolean illicit_broker_3_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_4.java b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_4.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_4.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_4.java
+@@ -15,7 +15,7 @@ public class illicit_broker_4 extends script.base_script
+     }
+     public boolean illicit_broker_4_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_5.java b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_5.java
+--- a/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_5.java
++++ b/sku.0/sys.server/compiled/game/script/conversation/illicit_broker_5.java
+@@ -15,7 +15,7 @@ public class illicit_broker_5 extends script.base_script
+     }
+     public boolean illicit_broker_5_condition_isNonSmuggler(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (utils.getPlayerProfession(player) != utils.SMUGGLER)
++        if (!utils.isProfession(player, utils.SMUGGLER))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/gm/cmd.java b/sku.0/sys.server/compiled/game/script/gm/cmd.java
+--- a/sku.0/sys.server/compiled/game/script/gm/cmd.java
++++ b/sku.0/sys.server/compiled/game/script/gm/cmd.java
+@@ -1996,7 +1996,7 @@ public class cmd extends script.base_script
+                 sendSystemMessageTestingOnly(self, "	limUseSchematic <weapon_id> <numUses> <optional: skillRequired> -- Creates a limited use draft schematic.");
+                 return SCRIPT_CONTINUE;
+             }
+-            String requiredSkill = "class_munitions_phase4_master";
++            String requiredSkill = "crafting_weaponsmith_master";
+             if (st.hasMoreTokens())
+             {
+                 requiredSkill = st.nextToken();
+diff --git a/sku.0/sys.server/compiled/game/script/item/comestible/droid_med.java b/sku.0/sys.server/compiled/game/script/item/comestible/droid_med.java
+--- a/sku.0/sys.server/compiled/game/script/item/comestible/droid_med.java
++++ b/sku.0/sys.server/compiled/game/script/item/comestible/droid_med.java
+@@ -215,7 +215,7 @@ public class droid_med extends script.base_script
+     }
+     public boolean isDroidEngineer(obj_id player) throws InterruptedException
+     {
+-        if (hasSkill(player, "class_engineering_phase1_novice"))
++        if (hasSkill(player, "crafting_droidengineer_novice"))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_tool.java b/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_tool.java
+--- a/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_tool.java
++++ b/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_tool.java
+@@ -52,9 +52,9 @@ public class reverse_engineering_tool extends script.base_script
+     };
+     public static final String[] SKILL_LIST = 
+     {
+-        "class_domestics_phase1_novice",
+-        "class_munitions_phase1_novice",
+-        "class_engineering_phase1_novice"
++        "crafting_tailor_novice",
++        "crafting_armorsmith_novice",
++        "crafting_weaponsmith_novice"
+     };
+     public static final String[] POWERUP_STATIC_NAMES = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/library/ai_lib.java b/sku.0/sys.server/compiled/game/script/library/ai_lib.java
+--- a/sku.0/sys.server/compiled/game/script/library/ai_lib.java
++++ b/sku.0/sys.server/compiled/game/script/library/ai_lib.java
+@@ -1400,32 +1400,32 @@ public class ai_lib extends script.base_script
+     }
+     public static boolean checkForSmuggler(obj_id player) throws InterruptedException
+     {
+-        if (!hasSkill(player, "class_smuggler_phase1_novice"))
++        if (!hasSkill(player, "combat_smuggler_novice"))
+         {
+             return false;
+         }
+         int evadeScan = 0;
+-        if (hasSkill(player, "class_smuggler_phase1_novice"))
++        if (hasSkill(player, "combat_smuggler_novice"))
+         {
+             evadeScan += 15;
+         }
+-        if (hasSkill(player, "class_smuggler_phase2_03"))
++        if (hasSkill(player, "combat_smuggler_underworld_01"))
+         {
+             evadeScan += 15;
+         }
+-        if (hasSkill(player, "class_smuggler_phase2_novice"))
++        if (hasSkill(player, "combat_smuggler_underworld_02"))
+         {
+             evadeScan += 15;
+         }
+-        if (hasSkill(player, "class_smuggler_phase3_novice"))
++        if (hasSkill(player, "combat_smuggler_underworld_03"))
+         {
+             evadeScan += 15;
+         }
+-        if (hasSkill(player, "class_smuggler_phase4_novice"))
++        if (hasSkill(player, "combat_smuggler_underworld_04"))
+         {
+             evadeScan += 15;
+         }
+-        if (hasSkill(player, "class_smuggler_phase4_master"))
++        if (hasSkill(player, "combat_smuggler_master"))
+         {
+             evadeScan += 20;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/library/armor.java b/sku.0/sys.server/compiled/game/script/library/armor.java
+--- a/sku.0/sys.server/compiled/game/script/library/armor.java
++++ b/sku.0/sys.server/compiled/game/script/library/armor.java
+@@ -1677,11 +1677,11 @@ public class armor extends script.base_script
+         setObjVar(newSchem, "loot_schematic.uses", 1);
+         if (getGameObjectType(armor) == GOT_cybernetic_forearm)
+         {
+-            setObjVar(newSchem, "loot_schematic.skill_req", "class_engineering_phase1_master");
++            setObjVar(newSchem, "loot_schematic.skill_req", "crafting_droidengineer_master");
+         }
+         else 
+         {
+-            setObjVar(newSchem, "loot_schematic.skill_req", "class_munitions_phase1_master");
++            setObjVar(newSchem, "loot_schematic.skill_req", "crafting_armorsmith_master");
+         }
+         obj_id bioLink = getBioLink(armor);
+         if (isIdValid(bioLink))
+diff --git a/sku.0/sys.server/compiled/game/script/library/factions.java b/sku.0/sys.server/compiled/game/script/library/factions.java
+--- a/sku.0/sys.server/compiled/game/script/library/factions.java
++++ b/sku.0/sys.server/compiled/game/script/library/factions.java
+@@ -791,13 +791,13 @@ public class factions extends script.base_script
+         }
+         if (value != 0.0f)
+         {
+-            if ((utils.getPlayerProfession(target) == utils.SMUGGLER) && (factionName.equals("underworld")))
++            if (utils.isProfession(target, utils.SMUGGLER) && factionName.equals("underworld"))
+             {
+                 smuggler.checkSmugglerTitleGrants(target, value);
+                 smuggler.checkRewardQuestGrants(target, value);
+                 messageTo(target, "applySmugglingBonuses", null, 1.0f, false);
+             }
+-            if ((utils.getPlayerProfession(target) == utils.BOUNTY_HUNTER) && (factionName.equals("underworld")))
++            if (utils.isProfession(target, utils.BOUNTY_HUNTER) && factionName.equals("underworld"))
+             {
+                 smuggler.checkBountyTitleGrants(target, value);
+             }
+@@ -1734,11 +1734,11 @@ public class factions extends script.base_script
+     }
+     public static boolean isSmuggler(obj_id player) throws InterruptedException
+     {
+-        if (hasSkill(player, "class_smuggler_phase3_novice"))
++        if (hasSkill(player, "combat_smuggler_underworld_03"))
+         {
+             return true;
+         }
+-        else if (hasSkill(player, "class_smuggler_phase4_novice"))
++        else if (hasSkill(player, "combat_smuggler_underworld_04"))
+         {
+             return true;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/library/pvp.java b/sku.0/sys.server/compiled/game/script/library/pvp.java
+--- a/sku.0/sys.server/compiled/game/script/library/pvp.java
++++ b/sku.0/sys.server/compiled/game/script/library/pvp.java
+@@ -705,7 +705,7 @@ public class pvp extends script.base_script
+     }
+     public static boolean isBountyHunter(obj_id player) throws InterruptedException
+     {
+-        return hasSkill(player, "class_bountyhunter_phase2_novice");
++        return hasSkill(player, "combat_bountyhunter_novice");
+     }
+     public static boolean isPadawan(obj_id player) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -66,6 +66,9 @@ public class skill extends script.base_script
+     public static final int SKILL_POINT_CAP = 250;
+     public static final int PRECU_COMBAT_SKILL_SCORE_MAX = 90;
+     public static final int PRECU_ADVANCED_COMBAT_SKILL_WEIGHT = 3;
++    public static final int PRECU_PHASE_TWO_COMBAT_SCORE = 25;
++    public static final int PRECU_PHASE_THREE_COMBAT_SCORE = 50;
++    public static final int PRECU_PHASE_FOUR_COMBAT_SCORE = 75;
+     public static final String SKILL_N = "skl_n";
+     public static final String CONVOFILE = "skill_teacher";
+     public static final string_id PROSE_SKILL_LEARNED = new string_id(CONVOFILE, "prose_skill_learned");
+@@ -1025,65 +1028,18 @@ public class skill extends script.base_script
+     }
+     public static int getProfessionPhase(obj_id player) throws InterruptedException
+     {
+-        String[] phaseFourSkills = 
+-        {
+-            "class_forcesensitive_phase4_novice",
+-            "class_bountyhunter_phase4_novice",
+-            "class_smuggler_phase4_novice",
+-            "class_commando_phase4_novice",
+-            "class_officer_phase4_novice",
+-            "class_spy_phase4_novice",
+-            "class_medic_phase4_novice",
+-            "class_entertainer_phase4_novice",
+-            "class_domestics_phase4_novice",
+-            "class_structures_phase4_novice",
+-            "class_munitions_phase4_novice",
+-            "class_engineering_phase4_novice"
+-        };
+-        String[] phaseThreeSkills = 
+-        {
+-            "class_forcesensitive_phase3_novice",
+-            "class_bountyhunter_phase3_novice",
+-            "class_smuggler_phase3_novice",
+-            "class_commando_phase3_novice",
+-            "class_officer_phase3_novice",
+-            "class_spy_phase3_novice",
+-            "class_medic_phase3_novice",
+-            "class_entertainer_phase3_novice",
+-            "class_domestics_phase3_novice",
+-            "class_structures_phase3_novice",
+-            "class_munitions_phase3_novice",
+-            "class_engineering_phase3_novice"
+-        };
+-        String[] phaseTwoSkills = 
+-        {
+-            "class_forcesensitive_phase2_novice",
+-            "class_bountyhunter_phase2_novice",
+-            "class_smuggler_phase2_novice",
+-            "class_commando_phase2_novice",
+-            "class_officer_phase2_novice",
+-            "class_spy_phase2_novice",
+-            "class_medic_phase2_novice",
+-            "class_entertainer_phase2_novice",
+-            "class_domestics_phase2_novice",
+-            "class_structures_phase2_novice",
+-            "class_munitions_phase2_novice",
+-            "class_engineering_phase2_novice"
+-        };
+-        for (String phaseFourSkill : phaseFourSkills) {
+-            if (hasSkill(player, phaseFourSkill)) {
+-                return PHASE_FOUR;
+-            }
++        int combatScore = getPrecuCombatSkillScore(player);
++        if (combatScore >= PRECU_PHASE_FOUR_COMBAT_SCORE)
++        {
++            return PHASE_FOUR;
+         }
+-        for (String phaseThreeSkill : phaseThreeSkills) {
+-            if (hasSkill(player, phaseThreeSkill)) {
+-                return PHASE_THREE;
+-            }
++        if (combatScore >= PRECU_PHASE_THREE_COMBAT_SCORE)
++        {
++            return PHASE_THREE;
+         }
+-        for (String phaseTwoSkill : phaseTwoSkills) {
+-            if (hasSkill(player, phaseTwoSkill)) {
+-                return PHASE_TWO;
+-            }
++        if (combatScore >= PRECU_PHASE_TWO_COMBAT_SCORE)
++        {
++            return PHASE_TWO;
+         }
+         return PHASE_ONE;
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/library/space_combat.java b/sku.0/sys.server/compiled/game/script/library/space_combat.java
+--- a/sku.0/sys.server/compiled/game/script/library/space_combat.java
++++ b/sku.0/sys.server/compiled/game/script/library/space_combat.java
+@@ -984,7 +984,7 @@ public class space_combat extends script.base_script
+         {
+             return;
+         }
+-        if (isIdValid(objPilot) && (utils.getPlayerProfession(objPilot) == utils.SMUGGLER))
++        if (isIdValid(objPilot) && utils.isProfession(objPilot, utils.SMUGGLER))
+         {
+             smuggler.spaceContrabandDropCheck(objPilot);
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/library/utils.java b/sku.0/sys.server/compiled/game/script/library/utils.java
+--- a/sku.0/sys.server/compiled/game/script/library/utils.java
++++ b/sku.0/sys.server/compiled/game/script/library/utils.java
+@@ -6032,11 +6032,8 @@ public class utils extends script.base_script
+     }
+     public static boolean canSpeakWookiee(obj_id player, obj_id npc) throws InterruptedException
+     {
+-        if (hasSkill(player, "class_smuggler_phase1_novice"))
+-        {
+-            return false;
+-        }
+-        return !hasSkill(player, "social_language_wookiee_comprehend");
++        return !hasSkill(player, "social_language_wookiee_comprehend") &&
++            !hasSkill(player, "combat_smuggler_underworld_01");
+     }
+     public static void emoteWookieeConfusion(obj_id player, obj_id npc) throws InterruptedException
+     {
+@@ -6298,34 +6295,33 @@ public class utils extends script.base_script
+     }
+     public static int getPlayerProfession(obj_id player) throws InterruptedException
+     {
+-        String[] noviceSkillList = 
++        if (isProfession(player, FORCE_SENSITIVE))
+         {
+-            "class_forcesensitive_phase1_novice",
+-            "class_bountyhunter_phase1_novice",
+-            "class_smuggler_phase1_novice",
+-            "class_commando_phase1_novice",
+-            "class_officer_phase1_novice",
+-            "class_spy_phase1_novice",
+-            "class_medic_phase1_novice",
+-            "class_entertainer_phase1_novice"
+-        };
+-        int[] professionList = 
+-        {
+-            FORCE_SENSITIVE,
+-            BOUNTY_HUNTER,
+-            SMUGGLER,
+-            COMMANDO,
+-            OFFICER,
+-            SPY,
+-            MEDIC,
+-            ENTERTAINER
+-        };
+-        for (int i = 0; i < noviceSkillList.length; i++)
++            return FORCE_SENSITIVE;
++        }
++        if (isProfession(player, BOUNTY_HUNTER))
+         {
+-            if (hasSkill(player, noviceSkillList[i]))
+-            {
+-                return professionList[i];
+-            }
++            return BOUNTY_HUNTER;
++        }
++        if (isProfession(player, SMUGGLER))
++        {
++            return SMUGGLER;
++        }
++        if (isProfession(player, COMMANDO))
++        {
++            return COMMANDO;
++        }
++        if (isProfession(player, OFFICER))
++        {
++            return OFFICER;
++        }
++        if (isProfession(player, MEDIC))
++        {
++            return MEDIC;
++        }
++        if (isProfession(player, ENTERTAINER))
++        {
++            return ENTERTAINER;
+         }
+         return TRADER;
+     }
+diff --git a/sku.0/sys.server/compiled/game/script/library/vehicle.java b/sku.0/sys.server/compiled/game/script/library/vehicle.java
+--- a/sku.0/sys.server/compiled/game/script/library/vehicle.java
++++ b/sku.0/sys.server/compiled/game/script/library/vehicle.java
+@@ -1009,7 +1009,7 @@ public class vehicle extends script.base_script
+         setName(newSchem, "Advanced " + name);
+         setObjVar(newSchem, "loot_schematic.schematic", schemName);
+         setObjVar(newSchem, "loot_schematic.uses", 1);
+-        setObjVar(newSchem, "loot_schematic.skill_req", "class_engineering_phase1_master");
++        setObjVar(newSchem, "loot_schematic.skill_req", "crafting_droidengineer_master");
+         setBioLink(newSchem, player);
+         attachScript(newSchem, "item.loot_schematic.loot_schematic");
+         CustomerServiceLog("new_vehicle_conversion", "vehiclePCD(" + vehiclePCD + ") about to be destroyed on player " + getFirstName(player) + "(" + player + ") because it was converted into schematic " + schemName + "(" + newSchem + ")");
+diff --git a/sku.0/sys.server/compiled/game/script/library/weapons.java b/sku.0/sys.server/compiled/game/script/library/weapons.java
+--- a/sku.0/sys.server/compiled/game/script/library/weapons.java
++++ b/sku.0/sys.server/compiled/game/script/library/weapons.java
+@@ -697,7 +697,7 @@ public class weapons extends script.base_script
+     }
+     public static obj_id createLimitedUseSchematic(String name, int VIA_what, int numUses, obj_id container, String schematicNameKey) throws InterruptedException
+     {
+-        return createLimitedUseSchematic(name, VIA_what, numUses, container, schematicNameKey, "class_munitions_phase4_master");
++        return createLimitedUseSchematic(name, VIA_what, numUses, container, schematicNameKey, "crafting_weaponsmith_master");
+     }
+     public static obj_id createLimitedUseSchematic(String name, int VIA_what, int numUses, obj_id container, String schematicNameKey, String skillRequired) throws InterruptedException
+     {
+@@ -2293,7 +2293,7 @@ public class weapons extends script.base_script
+         setName(newSchem, utils.packStringId(getNameFromTemplate(template)));
+         setObjVar(newSchem, "loot_schematic.schematic", "object/draft_schematic/weapon/appearance/" + schemName + ".iff");
+         setObjVar(newSchem, "loot_schematic.uses", 1);
+-        setObjVar(newSchem, "loot_schematic.skill_req", "class_munitions_phase1_master");
++        setObjVar(newSchem, "loot_schematic.skill_req", "crafting_weaponsmith_master");
+         obj_id bioLink = getBioLink(weapon);
+         if (isIdValid(bioLink))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/library/xp.java b/sku.0/sys.server/compiled/game/script/library/xp.java
+--- a/sku.0/sys.server/compiled/game/script/library/xp.java
++++ b/sku.0/sys.server/compiled/game/script/library/xp.java
+@@ -382,7 +382,7 @@ public class xp extends script.base_script
+     }
+     public static void grantSquadLeaderXp(obj_id player, int amt) throws InterruptedException
+     {
+-        if (!isIdValid(player) || !player.isLoaded() || amt < 1 || !hasSkill(player, "class_officer_phase1_novice"))
++        if (!isIdValid(player) || !player.isLoaded() || amt < 1 || !hasSkill(player, "outdoors_squadleader_novice"))
+         {
+             return;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java b/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java
+--- a/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java
++++ b/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/faction_recruiter.java
+@@ -394,11 +394,11 @@ public class faction_recruiter extends script.base_script
+             responses = utils.addElement(responses, SID_NOTHING);
+             break;
+         }
+-        if (hasSkill(player, "class_smuggler_phase3_novice"))
++        if (hasSkill(player, "combat_smuggler_underworld_03"))
+         {
+             responses = utils.addElement(responses, SID_SELL_SECRETS);
+         }
+-        if (hasSkill(player, "class_smuggler_phase4_novice"))
++        if (hasSkill(player, "combat_smuggler_underworld_04"))
+         {
+             responses = utils.addElement(responses, SID_BUY_FACTION);
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -6447,7 +6447,7 @@ public class base_player extends script.base_script
+     }
+     public int sysGroup(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+-        if (hasSkill(self, "class_officer_phase1_master"))
++        if (hasSkill(self, "outdoors_squadleader_novice"))
+         {
+             squad_leader.sendSquadLeaderCommand(self, params);
+         }
+@@ -6455,7 +6455,7 @@ public class base_player extends script.base_script
+     }
+     public int groupWaypoint(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
+-        if (hasSkill(self, "class_officer_phase1_master"))
++        if (hasSkill(self, "outdoors_squadleader_novice"))
+         {
+             if (params.equals("a") || params.equals("c"))
+             {
+diff --git a/sku.0/sys.server/compiled/game/script/player/cmd/register.java b/sku.0/sys.server/compiled/game/script/player/cmd/register.java
+--- a/sku.0/sys.server/compiled/game/script/player/cmd/register.java
++++ b/sku.0/sys.server/compiled/game/script/player/cmd/register.java
+@@ -57,7 +57,7 @@ public class register extends script.base_script
+             }
+             if (hasObjVar(topMost, "healing.canhealshock"))
+             {
+-                if (hasSkill(self, "class_entertainer_phase1_novice"))
++                if (hasSkill(self, "social_dancer_novice") || hasSkill(self, "social_musician_novice"))
+                 {
+                     updateTarget = topMost;
+                 }
+diff --git a/sku.0/sys.server/compiled/game/script/player/player_utility.java b/sku.0/sys.server/compiled/game/script/player/player_utility.java
+--- a/sku.0/sys.server/compiled/game/script/player/player_utility.java
++++ b/sku.0/sys.server/compiled/game/script/player/player_utility.java
+@@ -135,14 +135,14 @@ public class player_utility extends script.base_script
+     {
+         if (utils.checkConfigFlag("GameServer", "jediTestResources"))
+         {
+-            if (hasSkill(self, "class_bountyhunter_phase4_novice"))
++            if (hasSkill(self, "combat_bountyhunter_master"))
+             {
+                 createNewBHResources(self);
+             }
+         }
+         if (utils.checkConfigFlag("GameServer", "jediTestBuffs"))
+         {
+-            if (hasSkill(self, "class_bountyhunter_phase4_novice"))
++            if (hasSkill(self, "combat_bountyhunter_master"))
+             {
+                 createBuffs(self);
+             }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_mine.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_mine.java
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_mine.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_mine.java
+@@ -344,7 +344,7 @@ public class combat_mine extends script.base_script
+     }
+     public boolean isCommando(obj_id subject) throws InterruptedException
+     {
+-        return (hasSkill(subject, "class_commando_phase1_novice") || hasSkill(subject, "class_munitions_phase3_master"));
++        return (hasSkill(subject, "combat_commando_novice") || hasSkill(subject, "crafting_weaponsmith_munitions_04"));
+     }
+     public boolean isSmuggler(obj_id subject) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/component/crafting_component_domestic.java b/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/component/crafting_component_domestic.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/component/crafting_component_domestic.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/component/crafting_component_domestic.java
+@@ -11,7 +11,7 @@ public class crafting_component_domestic extends script.systems.crafting.chemist
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_domestics_phase1_novice"
++        "crafting_artisan_domestic_04"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/crafted_items/crafting_stimpack_chemistry.java b/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/crafted_items/crafting_stimpack_chemistry.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/crafted_items/crafting_stimpack_chemistry.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/chemistry/crafted_items/crafting_stimpack_chemistry.java
+@@ -11,7 +11,7 @@ public class crafting_stimpack_chemistry extends script.systems.crafting.chemist
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_domestics_phase1_novice"
++        "crafting_artisan_domestic_04"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/dance_prop/prop.java b/sku.0/sys.server/compiled/game/script/systems/crafting/dance_prop/prop.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/dance_prop/prop.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/dance_prop/prop.java
+@@ -13,7 +13,7 @@ public class prop extends script.systems.crafting.dance_prop.base_prop
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_entertainer_phase1_novice"
++        "social_dancer_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/droid_bomb.java b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/droid_bomb.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/droid_bomb.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/droid_bomb.java
+@@ -27,7 +27,7 @@ public class droid_bomb extends script.base_script
+         }
+         if (player == getMaster(self))
+         {
+-            if (hasSkill(player, "class_smuggler_phase1_novice") || hasSkill(player, "class_bountyhunter_phase1_novice"))
++            if (hasSkill(player, "combat_smuggler_novice") || hasSkill(player, "combat_bountyhunter_novice"))
+             {
+                 int mnu = mi.addRootMenu(menu_info_types.SERVER_MENU5, new string_id(STF_FILE, "detonate_droid"));
+             }
+@@ -59,7 +59,7 @@ public class droid_bomb extends script.base_script
+         }
+         if (item == menu_info_types.SERVER_MENU5)
+         {
+-            if (hasSkill(player, "class_smuggler_phase1_novice") || hasSkill(player, "class_bountyhunter_phase1_novice"))
++            if (hasSkill(player, "combat_smuggler_novice") || hasSkill(player, "combat_bountyhunter_novice"))
+             {
+                 queueCommand(player, (603112878), self, "", COMMAND_PRIORITY_DEFAULT);
+             }
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/interplanetary_survey.java b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/interplanetary_survey.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/interplanetary_survey.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/interplanetary_survey.java
+@@ -47,7 +47,7 @@ public class interplanetary_survey extends script.base_script
+     };
+     public int OnObjectMenuRequest(obj_id self, obj_id player, menu_info mi) throws InterruptedException
+     {
+-        if (hasSkill(player, "class_trader"))
++        if (hasSkill(player, "crafting_artisan_novice"))
+         {
+             menu_info_data mid = mi.getMenuItemByType(menu_info_types.ITEM_USE);
+             if (mid == null)
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/playback.java b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/playback.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/playback.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/playback.java
+@@ -87,7 +87,7 @@ public class playback extends script.base_script
+         {
+             return SCRIPT_CONTINUE;
+         }
+-        if (hasSkill(player, "class_entertainer_phase1_novice"))
++        if (hasSkill(player, "social_entertainer_novice"))
+         {
+             int modules = getIntObjVar(self, MODULE_OBJVAR + ".modules");
+             if (modules < 1)
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/instrument/specific_item/instrument_item.java b/sku.0/sys.server/compiled/game/script/systems/crafting/instrument/specific_item/instrument_item.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/instrument/specific_item/instrument_item.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/instrument/specific_item/instrument_item.java
+@@ -13,7 +13,7 @@ public class instrument_item extends script.systems.crafting.instrument.crafting
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_entertainer_phase1_novice"
++        "social_entertainer_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/item/specific_item/crafting_collection_all.java b/sku.0/sys.server/compiled/game/script/systems/crafting/item/specific_item/crafting_collection_all.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/item/specific_item/crafting_collection_all.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/item/specific_item/crafting_collection_all.java
+@@ -11,7 +11,7 @@ public class crafting_collection_all extends script.systems.crafting.item.crafti
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_trader"
++        "crafting_artisan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen1.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen1.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen1.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen1.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_one_handed_gen1 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen2.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen2.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen2.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen2.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_one_handed_gen2 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen3.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen3.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen3.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen3.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_one_handed_gen3 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_one_handed_gen4 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4_restuss.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4_restuss.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4_restuss.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen4_restuss.java
+@@ -11,7 +11,7 @@ public class crafting_melee_lightsaber_one_handed_gen4_restuss extends script.sy
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen5.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen5.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen5.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_gen5.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_one_handed_gen5 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_pvp_bf.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_pvp_bf.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_pvp_bf.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_one_handed_pvp_bf.java
+@@ -11,7 +11,7 @@ public class crafting_melee_lightsaber_one_handed_pvp_bf extends script.systems.
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_polearm extends script.systems.crafting.w
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen1.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen1.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen1.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen1.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_polearm_gen1 extends script.systems.craft
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen2.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen2.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen2.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen2.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_polearm_gen2 extends script.systems.craft
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen3.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen3.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen3.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen3.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_polearm_gen3 extends script.systems.craft
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_polearm_gen4 extends script.systems.craft
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4_heroic.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4_heroic.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4_heroic.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen4_heroic.java
+@@ -11,7 +11,7 @@ public class crafting_melee_lightsaber_polearm_gen4_heroic extends script.system
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen5.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen5.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen5.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_gen5.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_polearm_gen5 extends script.systems.craft
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_pvp_bf.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_pvp_bf.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_pvp_bf.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_polearm_pvp_bf.java
+@@ -11,7 +11,7 @@ public class crafting_melee_lightsaber_polearm_pvp_bf extends script.systems.cra
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_training.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_training.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_training.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_training.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_training extends script.systems.crafting.
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_two_handed extends script.systems.craftin
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen1.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen1.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen1.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen1.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_two_handed_gen1 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen2.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen2.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen2.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen2.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_two_handed_gen2 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen3.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen3.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen3.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen3.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_two_handed_gen3 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_two_handed_gen4 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4_must.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4_must.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4_must.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen4_must.java
+@@ -11,7 +11,7 @@ public class crafting_melee_lightsaber_two_handed_gen4_must extends script.syste
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen5.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen5.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen5.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_gen5.java
+@@ -13,7 +13,7 @@ public class crafting_melee_lightsaber_two_handed_gen5 extends script.systems.cr
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_pvp_bf.java b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_pvp_bf.java
+--- a/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_pvp_bf.java
++++ b/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/lightsaber/crafting_melee_lightsaber_two_handed_pvp_bf.java
+@@ -11,7 +11,7 @@ public class crafting_melee_lightsaber_two_handed_pvp_bf extends script.systems.
+     public static final String VERSION = "v0.00.00";
+     public static final String[] REQUIRED_SKILLS = 
+     {
+-        "class_forcesensitive_phase1_novice"
++        "jedi_padawan_novice"
+     };
+     public static final String[] ASSEMBLY_SKILL_MODS = 
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/terminal/terminal_crafting_display.java b/sku.0/sys.server/compiled/game/script/terminal/terminal_crafting_display.java
+--- a/sku.0/sys.server/compiled/game/script/terminal/terminal_crafting_display.java
++++ b/sku.0/sys.server/compiled/game/script/terminal/terminal_crafting_display.java
+@@ -69,24 +69,24 @@ public class terminal_crafting_display extends script.base_script
+     }
+     public void grantBuff(obj_id player) throws InterruptedException
+     {
+-        if (hasSkill(player, "class_domestics_phase1_novice"))
++        if (hasSkill(player, "crafting_chef_novice") || hasSkill(player, "crafting_tailor_novice"))
+         {
+             buff.applyBuff(player, "crafting_display_domestic_buff");
+         }
+-        else if (hasSkill(player, "class_engineering_phase1_novice"))
++        else if (hasSkill(player, "crafting_droidengineer_novice"))
+         {
+             buff.applyBuff(player, "crafting_display_engineering_buff");
+         }
+-        else if (hasSkill(player, "class_munitions_phase1_novice"))
++        else if (hasSkill(player, "crafting_armorsmith_novice") || hasSkill(player, "crafting_weaponsmith_novice"))
+         {
+             buff.applyBuff(player, "crafting_display_munitions_buff");
+         }
+-        else if (hasSkill(player, "class_structures_phase1_novice"))
++        else if (hasSkill(player, "crafting_architect_novice") || hasSkill(player, "crafting_shipwright_novice"))
+         {
+             buff.applyBuff(player, "crafting_display_structure_buff");
+             buff.applyBuff(player, "crafting_display_shipwright_buff");
+         }
+-        else if (hasSkill(player, "class_forcesensitive_phase1_novice"))
++        else if (hasSkill(player, "force_sensitive_crafting_mastery_novice"))
+         {
+             buff.applyBuff(player, "crafting_display_jedi_buff");
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/diant_zuy/mainframe.java b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/diant_zuy/mainframe.java
+--- a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/diant_zuy/mainframe.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/diant_zuy/mainframe.java
+@@ -117,15 +117,15 @@ public class mainframe extends script.base_script
+         int educationBonus = 0;
+         int total = 0;
+         int roll = rand(1, 5);
+-        if (hasSkill(player, "class_medic_phase1_master") || hasSkill(player, "class_munitions_phase1_master") || hasSkill(player, "class_engineering_phase2_novice") || hasSkill(player, "class_bountyhunter_phase2_novice") || hasSkill(player, "class_smuggler_phase1_novice"))
++        if (hasSkill(player, "science_medic_master") || hasSkill(player, "crafting_weaponsmith_novice") || hasSkill(player, "crafting_armorsmith_novice") || hasSkill(player, "crafting_droidengineer_techniques_01") || hasSkill(player, "combat_bountyhunter_investigation_01") || hasSkill(player, "combat_smuggler_underworld_01"))
+         {
+             educationBonus++;
+         }
+-        if (hasSkill(player, "class_medic_phase2_novice") || hasSkill(player, "class_munitions_phase2_master") || hasSkill(player, "class_engineering_phase3_novice") || hasSkill(player, "class_bountyhunter_phase3_novice") || hasSkill(player, "class_smuggler_phase2_novice"))
++        if (hasSkill(player, "science_doctor_novice") || hasSkill(player, "crafting_weaponsmith_techniques_02") || hasSkill(player, "crafting_armorsmith_complexity_02") || hasSkill(player, "crafting_droidengineer_techniques_02") || hasSkill(player, "combat_bountyhunter_investigation_02") || hasSkill(player, "combat_smuggler_underworld_02"))
+         {
+             educationBonus++;
+         }
+-        if (hasSkill(player, "class_medic_phase3_novice") || hasSkill(player, "class_munitions_phase2_master") || hasSkill(player, "class_engineering_phase4_novice") || hasSkill(player, "class_bountyhunter_phase4_novice") || hasSkill(player, "class_smuggler_phase3_novice"))
++        if (hasSkill(player, "science_doctor_master") || hasSkill(player, "crafting_weaponsmith_master") || hasSkill(player, "crafting_armorsmith_master") || hasSkill(player, "crafting_droidengineer_master") || hasSkill(player, "combat_bountyhunter_investigation_04") || hasSkill(player, "combat_smuggler_underworld_03"))
+         {
+             educationBonus++;
+         }
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/mustafar_trials/valley_battleground/demolition_generator.java b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/mustafar_trials/valley_battleground/demolition_generator.java
+--- a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/mustafar_trials/valley_battleground/demolition_generator.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/mustafar_trials/valley_battleground/demolition_generator.java
+@@ -105,11 +105,11 @@ public class demolition_generator extends script.base_script
+         int level = 0;
+         String[] commandoLevel = 
+         {
+-            "class_commando_phase1_novice",
+-            "class_commando_phase2_novice",
+-            "class_commando_phase3_novice",
+-            "class_commando_phase4_novice",
+-            "class_commando_phase4_master"
++            "combat_commando_novice",
++            "combat_commando_support_01",
++            "combat_commando_support_02",
++            "combat_commando_support_03",
++            "combat_commando_support_04"
+         };
+         for (String s : commandoLevel) {
+             if (hasSkill(player, s)) {
+diff --git a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/trando_slave_camp/broken_shock_lance.java b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/trando_slave_camp/broken_shock_lance.java
+--- a/sku.0/sys.server/compiled/game/script/theme_park/dungeon/trando_slave_camp/broken_shock_lance.java
++++ b/sku.0/sys.server/compiled/game/script/theme_park/dungeon/trando_slave_camp/broken_shock_lance.java
+@@ -12,7 +12,7 @@ public class broken_shock_lance extends script.base_script
+     public broken_shock_lance()
+     {
+     }
+-    public static final String weapon_smith = "class_munitions_phase1_master";
++    public static final String weapon_smith = "crafting_weaponsmith_master";
+     public static final String STF = "ep3/sidequests";
+     public static final string_id reverse_engineer = new string_id(STF, "re_broken_shock_lance");
+     public static final String plans_name = "shock_lance";
+

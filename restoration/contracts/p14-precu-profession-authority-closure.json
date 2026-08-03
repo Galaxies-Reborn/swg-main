@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "feature": "precu-profession-authority-closure",
+  "status": "ready",
+  "scope": "Replace remaining executable NGE class/phase profession authority with Publish 14.1 skill-box ownership, native Jedi state, and the existing hidden PRE-CU combat-skill score while preserving stale-data cleanup and expansion content.",
+  "eraEvidence": {
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "professionBoundary": "Publish 14.1 characters own multiple independently learned profession trees; exact novice, branch, and master skill boxes are authoritative rather than a singular NGE class template.",
+    "groupBoundary": "Pinned Core3 group and player-manager implementations use outdoors_squadleader_novice for Squad Leader authority and XP.",
+    "wookieeBoundary": "combat_smuggler_underworld_01 grants universal language comprehension in the authenticated Publish 14.1 skills table.",
+    "jediBoundary": "jedi_padawan_novice is the authenticated common PRE-CU lightsaber-crafting root; style recipe grants remain governed by the Jedi skill tree.",
+    "expansionBoundary": "Retained NGE quests, zones, schematics, terminals, droids, and dungeon interactions remain available but consult PRE-CU skill ownership."
+  },
+  "expected": {
+    "changedSourceFiles": 68,
+    "productionExecutableNgeProfessionReferences": 0,
+    "retainedCompatibilityReferenceFiles": 3,
+    "retainedCompatibilityReferences": 28,
+    "retainedCompatibilityBreakdown": {
+      "sku.0/sys.server/compiled/game/script/player/live_conversions.java": 11,
+      "sku.0/sys.server/compiled/game/script/library/badge.java": 14,
+      "sku.0/sys.server/compiled/game/script/library/respec.java": 3
+    },
+    "precuPhaseCombatScoreThresholds": [25, 50, 75],
+    "lightsaberSchematicFiles": 24,
+    "multiProfessionBooleanCallSites": 14,
+    "externalSingularCompatibilityConsumers": 4,
+    "missionTerminalSourceChanged": false
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/370-p14-precu-profession-authority-closure.patch",
+      "bytes": 66969,
+      "sha256": "f789a1269f7a2b85401204bb4bb18996b7cd8d4fcb4a97f107371bdfa38c34d9"
+    },
+    "sourceSetSha256": "4d626c4950dbe4afa4a18e5ffea076da0b1554e69d9d9b1ef4c386d1e5a64700",
+    "sourceContentSha256": "773570357362c55ecc738ebaca79cf12a1f2bd4c2c720ed1202bd71e49248f45",
+    "missionSourceSha256": {
+      "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "sku.0/sys.server/compiled/game/script/library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    },
+    "cleanMaterialization": {
+      "patches": 402,
+      "acceptanceFiles": 1137,
+      "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b"
+    },
+    "javaCompile": {
+      "result": "passed",
+      "sourceFiles": 5713,
+      "classFiles": 5747,
+      "compilerRuntime": "OpenJDK 11"
+    },
+    "nativeBuild": {
+      "result": "passed",
+      "architecture": "ELF 64-bit x86-64",
+      "coreBinaries": 6,
+      "swgGameServerSha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+      "swgGameServerBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+      "productionBuildTime": "18 minutes 23 seconds"
+    },
+    "classEvidence": {
+      "library/utils.class": "2d099ad3856b461edd28fb1e81a0456403b62d0802eda76560cfc892fde06f17",
+      "library/skill.class": "e529c8ed18ad4ac027516cc7d668c5a31e3790c5a6e1df49dcc6256afd39c318",
+      "library/ai_lib.class": "1f958db281d642798303f193f986ea5be651b752111210ef73262315ec467d6f",
+      "player/cmd/register.class": "aa52e17edd9dad5cac31a521fcd4e09a7dddf453fd5de78424f9a9921565cb78",
+      "terminal/terminal_crafting_display.class": "d870f2009c54bd200739ffb13538b9e28716aa16793a456ca4300da23a831461",
+      "item/tool/reverse_engineering_tool.class": "6536df2a7794d1313158dffcf4a2591d1040cfb4f12fd6ccf30e21a0d95edb0d",
+      "theme_park/dungeon/mustafar_trials/valley_battleground/demolition_generator.class": "cb303816d429465211c8b3c47e50524b11e3af98d026bec06ecbfbcf4430ff15"
+    },
+    "bytecodeProbes": [
+      "hidden PRE-CU combat-score thresholds 25/50/75",
+      "PRE-CU Smuggler underworld and master authority",
+      "PRE-CU Squad Leader, dancer, and musician authority",
+      "PRE-CU shipwright, weaponsmith, Commando, and Padawan authority",
+      "no direct NGE class constants in the singular profession adapter"
+    ]
+  },
+  "runtimeEvidence": {
+    "missionTerminal": {
+      "liveBaseline": "user-confirmed-working-before-milestone",
+      "sourceContinuity": "all three authenticated mission source hashes remained unchanged through deployment"
+    },
+    "deployment": {
+      "container": "swg-precu",
+      "startedAtUtc": "2026-08-03T01:21:19.245369891Z",
+      "serverHealth": "healthy",
+      "clusterReadyForPlayers": true,
+      "mappedNewlyBuiltBinary": true,
+      "processCounts": {
+        "LoginServer": 1,
+        "TaskManager": 1,
+        "ConnectionServer": 1,
+        "SwgDatabaseServer": 1,
+        "SwgGameServer": 14
+      }
+    },
+    "postStartLogAudit": {
+      "lines": 344,
+      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
+    }
+  },
+  "requiredBeforeReady": []
+}

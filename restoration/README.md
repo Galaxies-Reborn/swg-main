@@ -2475,3 +2475,23 @@ open-world battlefields, faction standing/rank/perks, and live-confirmed mission
 terminal/reward paths remain unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPlayerHqProfessionAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 300 closes the remaining executable NGE profession-authority layer.
+Smuggler scans, brokers, underworld rewards, faction recruiters, droid modules,
+Bounty Hunter checks, Squad Leader group commands and XP, entertainer
+registration, crafting displays, reverse engineering, limited-use schematics,
+retained dungeon interactions, and expansion crafting scripts now consult exact
+Publish 14.1 novice, branch, or master skill boxes. Multi-profession Boolean
+checks no longer collapse a character to one NGE class; the small singular
+compatibility adapter used by retained vendor/banner arrays now resolves from
+PRE-CU ownership in its historical priority order.
+
+The one retained expansion quest phase check derives from the existing hidden
+PRE-CU combat-skill score at 25/50/75, never player combat level. NGE
+lightsaber schematics use the common Padawan crafting root while their recipe
+grants remain controlled by the Jedi tree. Only stale live-conversion cleanup,
+badge migration names, and the already-retired respec library retain NGE class
+strings. The live-confirmed mission-terminal generation and ten-mission/full-
+group-reward sources are hash-pinned and unchanged. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuProfessionAuthorityClosure.ps1 -SourceRoot <materialized-staging-directory>

@@ -473,6 +473,21 @@ javap -classpath "$class_root" -v script.faction_perk.hq.terminal | grep -Fq 'ou
 ! javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_security | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
 ! javap -classpath "$class_root" -v script.faction_perk.hq.objective_terminal_uplink | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
 ! javap -classpath "$class_root" -v script.faction_perk.hq.terminal | grep -Eq 'class_(medic|commando|smuggler|bountyhunter|officer)_phase'
+javap -classpath "$class_root" -constants script.library.skill | grep -Fq 'PRECU_PHASE_TWO_COMBAT_SCORE = 25'
+javap -classpath "$class_root" -constants script.library.skill | grep -Fq 'PRECU_PHASE_THREE_COMBAT_SCORE = 50'
+javap -classpath "$class_root" -constants script.library.skill | grep -Fq 'PRECU_PHASE_FOUR_COMBAT_SCORE = 75'
+javap -classpath "$class_root" -c script.library.skill | sed -n '/getProfessionPhase/,/validateExpertise/p' | grep -Fq 'getPrecuCombatSkillScore'
+javap -classpath "$class_root" -v script.library.utils | grep -Fq 'combat_smuggler_underworld_01'
+! javap -classpath "$class_root" -v script.library.utils | grep -Eq 'class_(bountyhunter|commando|domestics|engineering|entertainer|forcesensitive|medic|munitions|officer|smuggler|spy|structures|trader)'
+javap -classpath "$class_root" -v script.library.ai_lib | grep -Fq 'combat_smuggler_master'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'outdoors_squadleader_novice'
+javap -classpath "$class_root" -v script.library.xp | grep -Fq 'outdoors_squadleader_novice'
+javap -classpath "$class_root" -v script.player.cmd.register | grep -Fq 'social_dancer_novice'
+javap -classpath "$class_root" -v script.player.cmd.register | grep -Fq 'social_musician_novice'
+javap -classpath "$class_root" -v script.terminal.terminal_crafting_display | grep -Fq 'crafting_shipwright_novice'
+javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'crafting_weaponsmith_novice'
+javap -classpath "$class_root" -v script.theme_park.dungeon.mustafar_trials.valley_battleground.demolition_generator | grep -Fq 'combat_commando_support_04'
+javap -classpath "$class_root" -v script.systems.crafting.weapon.lightsaber.crafting_melee_lightsaber_training | grep -Fq 'jedi_padawan_novice'
 awk -F '\t' '$13 ~ /gcw_city_bestine[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_bestine"
 awk -F '\t' '$13 ~ /gcw_city_dearic[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_dearic"
 awk -F '\t' '$13 ~ /gcw_city_keren[.]iff/ { found++; if ($12 != "systems.dungeon_sequencer.sequence_controller") exit 2 } END { if (found != 1) exit 3 }' "$work_city_buildout_keren"
