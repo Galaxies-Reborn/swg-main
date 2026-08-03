@@ -2528,3 +2528,16 @@ visible combat level, NGE class template, expertise tree, or item-level gate.
 Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedContentLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 303 closes the generic player-equipment level boundary. Weapon
+initialize, conversion, and transfer no longer add player combat level to
+generic minimum/maximum damage modifiers or apply NGE expertise range bonuses.
+Every retained caller restores the authored weapon maximum range, and stale
+generic damage modifiers from older builds are removed from the character.
+
+The generic retained-item `levelRequired` check and attribute row are inert
+because Publish 14.1 characters have no player combat level. Existing class,
+skill, and ability checks remain active, and expansion trap/device metadata is
+preserved for compatibility and later PRE-CU profession mapping. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPlayerEquipmentLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>

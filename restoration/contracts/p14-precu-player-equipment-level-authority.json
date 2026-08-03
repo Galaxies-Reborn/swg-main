@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-player-equipment-level-authority",
+  "status": "ready",
+  "scope": "Remove the remaining NGE player combat-level and expertise authority from weapon equip state and the generic retained-item admission helper while preserving authored weapon damage/range, PRE-CU certification penalties, skill/class/ability requirements, and retained expansion metadata.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/CombatQueueCommand.h",
+      "MMOCoreORB/bin/scripts/commands/servercombat/skills.tab"
+    ],
+    "findings": [
+      "Publish 14.1 combat begins with the authored weapon minimum and maximum damage; it does not add player level to a generic minDamage or maxDamage skill statistic.",
+      "Publish 14.1 command range derives from the equipped weapon range and command data; the authenticated skill table has no NGE expertise_range_bonus skill modifiers.",
+      "Publish 14.1 characters have no visible player combat level for retained-item admission or attribute presentation.",
+      "Retained class, skill, and ability checks remain separate admission authorities and are intentionally preserved."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 3,
+    "playerWeaponLevelReads": 0,
+    "levelScaledDamageSkillModGrants": 0,
+    "staleGenericDamageSkillModsRetired": true,
+    "staleDamageCleanupLifecycle": [
+      "OnInitialize",
+      "weaponConversion",
+      "OnTransferred"
+    ],
+    "weaponRangeExpertiseReads": 0,
+    "authoredWeaponMaxRangeRestored": true,
+    "genericItemLevelAdmission": false,
+    "genericItemLevelAttributePresentation": false,
+    "itemClassSkillAndAbilityAdmissionPreserved": true,
+    "genericLevelHelperCallSitesPreserved": 16,
+    "retainedScoutMetadataFiles": 11,
+    "retainedCompatibilityMetadataPreserved": true,
+    "visiblePlayerCombatLevel": false,
+    "missionTerminalSourceChanged": false
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/373-p14-precu-player-equipment-level-authority.patch",
+      "bytes": 9589,
+      "sha256": "19dbdf31b87354c27a6cdcda07bcf01594ce8fa44159eced90e5b02324ab1c97"
+    },
+    "sourceSha256": {
+      "script.library.utils": "1016e12e96ac8eff7e8b4bf5581fe619f9bc85153292ba41dfbc9de54ff54235",
+      "script.library.weapons": "dc5dc3e739ec53be2d7571bb00f2f0d8c1a1e914dfed099fce14b51313ccf3f6",
+      "script.systems.combat.combat_weapon": "68d0496345bb3c897e36adc125e92151f3eb74a7a9bacfe27180c2e1dc9077c7"
+    },
+    "compiledClassSha256": {
+      "script.library.utils": "5ab53a34f0efd9432ab692d49d9487e8ffdc2033a425e26a0fa7d6a18b226360",
+      "script.library.weapons": "efd25b3c978b604c5b640cf8e1c12347b785ff2ce28f284802ad9110ed7f5793",
+      "script.systems.combat.combat_weapon": "ae7d6271d79edbaa21f3e09f1e7ffbc53ca067c526bc5fe5a52f566045498d77"
+    },
+    "staticContract": "passed",
+    "fullJavaCompile": "passed (5713 Java sources, 5747 compiled classes, OpenJDK 11)",
+    "cleanMaterializationPatches": 405,
+    "cleanMaterializationAcceptanceFiles": 1146,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedBuild": "passed",
+    "architecture": "ELF 64-bit x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "missionTerminalUserVerification": "working in-world immediately before this milestone",
+    "missionSourceSha256": {
+      "mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-03",
+    "deployedAtUtc": "2026-08-03T07:15:26.71045126Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-equipment303-final-b",
+    "sourceMountReadOnly": true,
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "SwgGameServer": 14
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "representativeSourceWorkParity": true,
+    "bytecodeProbes": [
+      "testItemLevelRequirements compiles to unconditional true",
+      "weapons exposes restorePrecuWeaponRange and retained callers delegate to it",
+      "combat_weapon invokes retireNgeWeaponDamageSkillMods across initialize, conversion, and transfer"
+    ],
+    "postStartLogAudit": {
+      "lines": 344,
+      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
+    },
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "generic weapon equip-time player-level damage injection, NGE expertise range mutation, stale generic min/max damage modifiers, and generic retained-item combat-level admission/presentation",
+    "notClaimedComplete": "retained Spy-class device mapping, device effect scaling, dynamic mission difficulty, beast/familiar progression, transition compatibility, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

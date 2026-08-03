@@ -208,6 +208,12 @@ source_group_library="$source_script/library/group.java"
 work_group_library="$work_script/library/group.java"
 source_skill_library="$source_script/library/skill.java"
 work_skill_library="$work_script/library/skill.java"
+source_utils_library="$source_script/library/utils.java"
+work_utils_library="$work_script/library/utils.java"
+source_weapons_library="$source_script/library/weapons.java"
+work_weapons_library="$work_script/library/weapons.java"
+source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
+work_combat_weapon="$work_script/systems/combat/combat_weapon.java"
 source_mission_base="$source_script/systems/missions/base/mission_base.java"
 work_mission_base="$work_script/systems/missions/base/mission_base.java"
 source_mission_dynamic="$source_script/systems/missions/base/mission_dynamic_base.java"
@@ -300,6 +306,9 @@ cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
+cmp -s "$source_utils_library" "$work_utils_library"
+cmp -s "$source_weapons_library" "$work_weapons_library"
+cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
 diff -qr "$source_theme_park" "$work_theme_park" >/dev/null
 ! grep -R -E '(^|[^[:alnum:]_.])((combat|utils)\.)?getLevel[[:space:]]*\([[:space:]]*(player|whoTriggeredMe)[[:space:]]*\)' "$work_conversation" "$work_theme_park"
@@ -410,6 +419,13 @@ javap -classpath "$class_root" -v script.conversation.imperial_defensive_supply_
 javap -classpath "$class_root" -v script.conversation.som_pei_yi | grep -Fq 'getPrecuEntertainerContentDifficulty'
 javap -classpath "$class_root" -v script.theme_park.outbreak.camp_defense | grep -Fq 'getPrecuEncounterDifficulty'
 ! javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getGroupObjectLevel'
+javap -classpath "$class_root" -c -p script.library.utils | grep -Fq 'testItemLevelRequirements'
+javap -classpath "$class_root" -c -p script.library.weapons | grep -Fq 'restorePrecuWeaponRange'
+javap -classpath "$class_root" -c -p script.systems.combat.combat_weapon | grep -Fq 'retireNgeWeaponDamageSkillMods'
+! grep -Fq 'expertise_range_bonus' "$work_weapons_library"
+! grep -Fq 'PLAYER_ATTACKER_DAMAGE_LEVEL_MULTIPLIER' "$work_combat_weapon"
+! grep -Fq 'PLAYER_COMBAT_BASE_DAMAGE' "$work_combat_weapon"
+! grep -Fq 'setDamageSkillMods' "$work_combat_weapon"
 javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getPrecuCombatSkillScore'
 ! javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getLevel'
 javap -classpath "$class_root" -constants script.library.xp | grep -Fq 'PRECU_GROUP_XP_MULTIPLIER = 1.2f'

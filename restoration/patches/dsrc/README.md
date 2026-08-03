@@ -1406,3 +1406,11 @@ learned crafting boxes, while the retained Pei Yi Entertainer gate uses learned
 social boxes, so noncombat progression remains usable without raising creature
 combat difficulty. Authored thresholds, conversations, quests, and creature
 levels remain intact.
+
+`373-p14-precu-player-equipment-level-authority.patch` removes the remaining
+NGE player-level and expertise mutations from the weapon equip lifecycle.
+Weapons retain their authored minimum damage, maximum damage, and maximum
+range; stale generic NGE damage skill modifiers are cleared during initialize,
+conversion, and transfer. The generic retained-item `levelRequired` helper is
+now inert because Publish 14.1 characters have no player combat level, while
+class, skill, and ability requirements plus compatibility metadata remain.
