@@ -2541,3 +2541,17 @@ skill, and ability checks remain active, and expansion trap/device metadata is
 preserved for compatibility and later PRE-CU profession mapping. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPlayerEquipmentLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 304 moves retained expansion scout-device admission and effect
+scaling onto PRE-CU authority. Within the retained item boundary, later Spy
+class ID 5 now means Ranger (`outdoors_ranger_novice`); global profession
+identity remains unchanged so Ranger is never exposed as an NGE Spy. Trap
+arming and disarming use the Publish 14.1 `trapping` modifier, device
+concealment uses `camouflage`, and neither path adds player combat level or the
+later `ranger_trap` modifier. The 11 retained class/level metadata templates and
+the HEP ability metadata remain intact as compatibility data. Mission sources
+are hash-pinned to the user-verified working terminal build.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedDeviceAuthority.ps1 -SourceRoot <materialized-staging-directory>

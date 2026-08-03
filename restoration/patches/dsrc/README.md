@@ -1414,3 +1414,9 @@ range; stale generic NGE damage skill modifiers are cleared during initialize,
 conversion, and transfer. The generic retained-item `levelRequired` helper is
 now inert because Publish 14.1 characters have no player combat level, while
 class, skill, and ability requirements plus compatibility metadata remain.
+`374-p14-precu-retained-device-authority.patch` keeps retained expansion scout
+devices while translating their later Spy class slot to the PRE-CU Ranger
+profession only for item admission and presentation. It also replaces player
+level plus `ranger_trap` scaling with the Publish 14.1 `trapping` modifier and
+uses `camouflage` alone for device concealment. The global Spy identity and all
+retained template metadata remain unchanged.

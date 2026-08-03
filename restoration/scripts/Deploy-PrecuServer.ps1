@@ -210,6 +210,8 @@ source_skill_library="$source_script/library/skill.java"
 work_skill_library="$work_script/library/skill.java"
 source_utils_library="$source_script/library/utils.java"
 work_utils_library="$work_script/library/utils.java"
+source_stealth_library="$source_script/library/stealth.java"
+work_stealth_library="$work_script/library/stealth.java"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -307,6 +309,7 @@ cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_utils_library" "$work_utils_library"
+cmp -s "$source_stealth_library" "$work_stealth_library"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -420,6 +423,11 @@ javap -classpath "$class_root" -v script.conversation.som_pei_yi | grep -Fq 'get
 javap -classpath "$class_root" -v script.theme_park.outbreak.camp_defense | grep -Fq 'getPrecuEncounterDifficulty'
 ! javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getGroupObjectLevel'
 javap -classpath "$class_root" -c -p script.library.utils | grep -Fq 'testItemLevelRequirements'
+javap -classpath "$class_root" -v script.library.utils | grep -Fq 'isPrecuRetainedItemClass'
+javap -classpath "$class_root" -v script.library.utils | grep -Fq 'outdoors_ranger_novice'
+javap -classpath "$class_root" -constants script.library.stealth | grep -Fq 'PRECU_TRAPPING_SKILL_MOD = "trapping"'
+javap -classpath "$class_root" -constants script.library.stealth | grep -Fq 'PRECU_CAMOUFLAGE_SKILL_MOD = "camouflage"'
+! javap -classpath "$class_root" -v script.library.stealth | grep -Fq 'ranger_trap'
 javap -classpath "$class_root" -c -p script.library.weapons | grep -Fq 'restorePrecuWeaponRange'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_weapon | grep -Fq 'retireNgeWeaponDamageSkillMods'
 ! grep -Fq 'expertise_range_bonus' "$work_weapons_library"

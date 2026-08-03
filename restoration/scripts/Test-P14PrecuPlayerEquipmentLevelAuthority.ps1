@@ -89,7 +89,7 @@ Assert-Contract ($levelSlice.Contains("return true;") -and
 Assert-Contract (-not $attributeSlice.Contains("levelRequired") -and
     -not $attributeSlice.Contains('names[firstFree] = "levelrequired"')) `
     "p14.player-equipment.generic-level-presentation.retired"
-Assert-Contract ($classSlice.Contains("requiredClasses") -and $classSlice.Contains("isProfession(") -and
+Assert-Contract ($classSlice.Contains("requiredClasses") -and $classSlice.Contains("isPrecuRetainedItemClass(") -and
     $abilitySlice.Contains("hasCommand(") -and $utilsText.Contains("testItemSkillRequirements(") -and
     $utilsText.Contains("hasSkill(player, skillRequired)")) `
     "p14.player-equipment.nonlevel-admission.preserved"

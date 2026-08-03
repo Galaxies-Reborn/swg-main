@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-retained-device-authority",
+  "status": "ready",
+  "scope": "Translate retained expansion scout-device class admission and trap/conceal scaling onto Publish 14.1 professions and skill modifiers without making the retired NGE Spy profession, player combat level, or ranger_trap modifier authoritative elsewhere.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/events/ThrowTrapTask.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ConcealCommand.h",
+      "MMOCoreORB/src/server/zone/objects/tangible/components/droid/DroidTrapModuleDataComponent.cpp"
+    ],
+    "publish141SkillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "findings": [
+      "Publish 14.1 Scout grants the trapping modifier from novice through the tools branch and master; Ranger requires Master Scout and adds tracking, conceal, camouflage, and a trapping support branch.",
+      "The authenticated Publish 14.1 implementation resolves trap use with the trapping modifier and Ranger concealment with camouflage; it does not use player combat level or the later ranger_trap modifier.",
+      "Retained expansion scout-device templates encode the later Spy profession as class ID 5. Ranger is the closest Publish 14.1 advanced profession for this item-only tracking, camouflage, and trapping role.",
+      "The item-only translation must not make Rangers identify as NGE Spies in quests, conversations, profession displays, or other gameplay systems."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 2,
+    "retainedClassMetadataFiles": 11,
+    "retainedLevelMetadataFiles": 11,
+    "spyClassItemAdmission": "outdoors_ranger_novice",
+    "spyClassItemPresentation": "@skl_n:outdoors_ranger_novice",
+    "otherRetainedClassAdmissionsDelegateToPrecuProfessionMappings": true,
+    "globalSpyProfessionIdentity": false,
+    "trapSkillModifier": "trapping",
+    "concealSkillModifier": "camouflage",
+    "trapPlayerLevelAuthority": false,
+    "concealPlayerLevelAuthority": false,
+    "retiredRangerTrapModifierReads": 0,
+    "disarmChanceBounds": {
+      "minimumPercent": 10,
+      "maximumPercent": 95
+    },
+    "retainedCompatibilityMetadataPreserved": true,
+    "missionTerminalSourceChanged": false
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/374-p14-precu-retained-device-authority.patch",
+      "bytes": 6560,
+      "sha256": "e2eac93a2fe1e8cabfc446df63b3f625d2a16fc7ee63d28f1d7d2f1745657d79"
+    },
+    "sourceSha256": {
+      "script.library.utils": "0a23e1836a5982e2fafe916cef1333fa04108c91e9cf731f171e5ddae3a991c2",
+      "script.library.stealth": "e424a032527bdca4556e13737af385622fb9eeb0356b53813dcb9787c5782b9d",
+      "datatables.skill.skills": "6ee0686eec7e1d25db2ef1bc645eed98145c23d7fa125705b3188957103a5c6d"
+    },
+    "compiledClassSha256": {
+      "script.library.utils": "f6dc1e6df4a8ea9abb749e822b8d46abdda58cbfa6a087ecf6f00e4ad7f9ad80",
+      "script.library.stealth": "3c5aeb62d6aa21118a61faced60c77de851ab922c578bea2a0ac2c200d145085"
+    },
+    "staticContract": "passed",
+    "fullJavaCompile": "passed (5713 Java sources, 5747 compiled classes, OpenJDK 11)",
+    "cleanMaterializationPatches": 406,
+    "cleanMaterializationAcceptanceFiles": 1149,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedBuild": "passed",
+    "architecture": "ELF 64-bit x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "missionTerminalUserVerification": "working in-world immediately before this milestone; the user physically ran to the terminal",
+    "missionSourceSha256": {
+      "mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-03",
+    "validatedBuildStartedAtUtc": "2026-08-03T08:39:34.90046453Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-device304-final-b",
+    "sourceMountReadOnly": true,
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "SwgGameServer": 14
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "representativeSourceWorkParity": true,
+    "bytecodeProbes": [
+      "utils exposes the item-local isPrecuRetainedItemClass adapter and Ranger skill root",
+      "stealth exposes trapping and camouflage PRE-CU modifier constants",
+      "compiled stealth has no ranger_trap constant"
+    ],
+    "postStartLogAudit": {
+      "lines": 344,
+      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
+    },
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "retained scout-device Spy-class admission/presentation plus trap arming, trap disarming, and device-conceal skill authority",
+    "notClaimedComplete": "retained invisibility commands and upkeep, mobile stealth detection, theft, hologram combat difficulty, dynamic mission difficulty, beast/familiar progression, transition compatibility, and other later mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}
