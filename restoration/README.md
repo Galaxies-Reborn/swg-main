@@ -2582,3 +2582,14 @@ user-verified working terminal build.
 Validate a materialized tree with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCraftingLuckAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 307 removes the live NGE player combat-level check from retained
+Restuss invasion admission. The authored advanced-area threshold remains 75,
+but it is now evaluated through the hidden PRE-CU combat skill-box score.
+Faction allegiance, covert status, entry messages, retry handling, and warping
+remain unchanged. Queued battlefields stay retired, and the user-verified
+mission-terminal sources remain hash-pinned and unchanged.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRestussAdmissionAuthority.ps1 -SourceRoot <materialized-staging-directory>

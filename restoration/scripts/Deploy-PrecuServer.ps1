@@ -383,6 +383,10 @@ javap -classpath "$class_root" -v script.library.luck | grep -Fq 'force_luck'
 ! javap -classpath "$class_root" -v script.library.luck | grep -Fq 'getLevel'
 javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'getPrecuCraftingLuckRoll'
 ! javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'isLucky'
+# Retained Restuss content keeps its authored advanced-area threshold, but
+# player admission is governed by the hidden PRE-CU combat skill-box score.
+javap -classpath "$class_root" -c script.player.base.base_player | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -c script.player.base.base_player | grep -Fq 'bipush        75'
 # localOptions.cfg is a runtime-rendered configuration, not a copied build
 # artifact. Authenticate the immutable template before restart; the rendered
 # values are verified after the container's run path regenerates them.
