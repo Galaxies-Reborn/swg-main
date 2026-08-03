@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-buff-progression-retirement",
+  "status": "ready",
+  "scope": "Retire live NGE Build-a-Buff and general/TCG XP-buff progression authority without removing later-content data compatibility or the restored Publish 14.1 entertainer Mind/Focus/Willpower session.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/player/sessions/EntertainingSessionImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/buffs/PerformanceBuffImplementation.cpp",
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 entertainer attribute buffs are accumulated through dance/music watch and listen sessions and apply Mind, Focus, and Willpower pools.",
+      "Pinned Publish 14.1 Core3 contains no native Buff Builder, buildabuff_inspiration handler, general percentage-of-level XP buff, or TCG XP grant path.",
+      "Publish 14.1 awards explicit profession XP types from combat, crafting, and performance activity rather than scaling them from an NGE 1-90 player level.",
+      "Later buff rows and effect mappings remain compatibility data so retained expansion assets can load while their post-NGE progression handlers fail closed."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 9,
+    "centralRetirementFlag": true,
+    "retiredBuffs": [
+      "buildabuff_inspiration",
+      "general_inspiration"
+    ],
+    "retiredScriptVarTrees": [
+      "performance.buildabuff",
+      "buff.xpBonus",
+      "buff.xpBonusGeneral",
+      "buff.general_inspiration"
+    ],
+    "retiredBuilderScripts": [
+      "systems.buff_builder.buff_builder_response",
+      "systems.buff_builder.buff_builder_cancel"
+    ],
+    "guardedResponseCallbacks": 6,
+    "guardedCancelEntrypoints": 3,
+    "inspireCommandFailsClosedBeforeBuilderStart": true,
+    "loginCleanup": true,
+    "generalXpModifier": 1.0,
+    "craftingInspirationXpBonus": 0,
+    "gcwPointModifier": "identity",
+    "directPlayerLevelReadsInRetiredHandlers": 0,
+    "precuEntertainerAttributeSessionPreserved": true,
+    "compatibilityBuffRowsPreserved": true,
+    "compatibilityEffectMappingsPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
+      "bytes": 18702,
+      "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
+    },
+    "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
+    "sourceContentSha256": "0b8711fb781b26ae7fd4d8804105259873f7070a3f6772b15dccb851dc5e6283",
+    "sourceSha256": {
+      "library/buff.java": "1cc4b630a8d0b7d025ef0f07cc277df6e1c38ec425155aad73c7553a854a722a",
+      "library/gcw.java": "97949d5d9484f5c7d373424913425b29f804c77b67537533e52cf71bfe28986b",
+      "library/xp.java": "92ecf581e7a35511fdd21006ca03e57b236da21feec507434e78027157111dee",
+      "player/base/base_player.java": "473819116dca7a302ed9aca34cf4f15f984c572424b6a655cf9b104c351be14a",
+      "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
+      "systems/buff/buff_handler.java": "289960701e80b939926f689a2deb63c80acac4895706d8155987b53a2dc40ae2",
+      "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
+      "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
+      "systems/crafting/crafting_base.java": "34a7dbf3dcf4ee0d83a9c94ff364a343323ee371f36c8e5a4bd8156f1a0dbe25"
+    },
+    "compiledClassSha256": {
+      "script.library.buff": "4bc00f332a230c8e3d65ad71af698521f12434e8ec24d789c843eda66b32c922",
+      "script.library.gcw": "ce6198578433e3f9909b60fe95da27483f146640d9cd8a57705eda94897db16e",
+      "script.library.xp": "42652073fafbd2c9f3ce69333575380900cf89317fd4c43be745f42d90e915f8",
+      "script.player.base.base_player": "04226e6dee84a56ca1429b11ec8d2bb0a3ceba7b1cda7841b2923ddb582843ee",
+      "script.player.skill.performcommands": "5dc70349b8a928421c9f3b8ec46d0dd709f08754b830ea52b48861783d694c40",
+      "script.systems.buff.buff_handler": "76c938b8ec7942954138d2f3be6b1ee63488ee085825c42c88d176c08a5ee1af",
+      "script.systems.buff_builder.buff_builder_cancel": "23f8a8d9104312ee086af63b50bcd9d463c9e05a311bf11786a4792a77d7b0db",
+      "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
+      "script.systems.crafting.crafting_base": "d1ff857f6c92049d873a2fbd6bc933d7b1fe0066dd095ef371c9862d470ec03b"
+    },
+    "staticContract": "passed with authenticated overlay, target set, source set/content, fail-closed dominance, compatibility-data, PRE-CU entertainer-session, and mission-continuity checks",
+    "fullJavaCompile": "passed (5713 Java sources, 5747 compiled classes, OpenJDK 11)",
+    "cleanMaterializationPatches": 410,
+    "cleanMaterializationAcceptanceFiles": 1161,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedBuild": "passed (full clean source synchronization, native x64 build, Java/content compile, and restart in 67 minutes 32 seconds)",
+    "architecture": "ELF 64-bit x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed all nine source/work comparisons, central retirement flag and cleanup bytecode, command/callback/handler/XP/crafting/GCW bytecode, cumulative PRE-CU probes, x64 architecture, health/readiness, and live mapped-binary verification",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "precuAttributeBuffSession": "Mind/Focus/Willpower accumulation and stop-watch/stop-listen activation remain in library/performance.java and its live fixture.",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-03",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-buff308-final-a",
+    "sourceMountReadOnly": true,
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "SwgGameServer": 14
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "representativeSourceWorkParity": true,
+    "bytecodeProbes": [
+      "library.buff retirement predicate returns true and exposes centralized stale-state cleanup",
+      "performcommands, builder response/cancel, login, buff handlers, XP, crafting, and GCW classes call the centralized retirement authority",
+      "all nine changed source/work pairs match byte-for-byte"
+    ],
+    "postStartLogAudit": {
+      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
+    },
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks and general/TCG XP, crafting-XP, and GCW buff multipliers",
+    "notClaimedComplete": "ordinary non-progression effects in composite retained buffs, retained GCW commlink behavior, beasts and familiars, transition compatibility, stealth and theft systems beyond their generic lucky proc, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

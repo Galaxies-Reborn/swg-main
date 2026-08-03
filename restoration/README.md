@@ -2593,3 +2593,24 @@ mission-terminal sources remain hash-pinned and unchanged.
 Validate a materialized tree with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRestussAdmissionAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 308 retires the post-NGE buff-progression layer without removing
+later expansion data. `/inspire` now fails closed before the native Buff
+Builder starts; every validation, completion, cancellation, login, and stale
+script callback removes persisted builder state. The completion path cannot
+transfer credits, install `buildabuff_inspiration`, or grant TCG collection
+drops while this PRE-CU authority is active.
+
+General and TCG XP bonus/grant handlers also fail closed before their NGE
+player-level and collection branches. The central XP modifier is identity,
+crafting inspiration contributes zero XP, and the GCW helper returns its
+unmodified point value. Existing buff rows and effect mappings stay present
+for retained-content loading, and ordinary non-progression components of
+composite items remain untouched. The restored Publish 14.1 entertainer
+Mind/Focus/Willpower watch/listen session remains the live entertainer buff
+authority. Mission sources remain hash-pinned to the user-verified working
+terminal build.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeBuffProgressionRetirement.ps1 -SourceRoot <materialized-staging-directory>
