@@ -2568,3 +2568,17 @@ sources remain hash-pinned and unchanged.
 Validate a materialized tree with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedSystemLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 306 restores Publish 14.1 crafting Luck authority. Assembly and
+experimentation add a bounded random roll from the PRE-CU `luck` and
+`force_luck` skill modifiers to their normal result-band rolls. They no longer
+use the NGE level-capped primary-stat proc, `luck_modified`, or a lucky proc
+that manufactures a critical success. The retained generic `luck.isLucky`
+overloads remain as an ABI boundary but fail closed, retiring their six later
+healing, junk-fencing, channel-heal, and theft proc consumers without changing
+those systems' ordinary behavior. Mission sources remain hash-pinned to the
+user-verified working terminal build.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCraftingLuckAuthority.ps1 -SourceRoot <materialized-staging-directory>

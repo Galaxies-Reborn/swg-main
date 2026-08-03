@@ -212,6 +212,10 @@ source_utils_library="$source_script/library/utils.java"
 work_utils_library="$work_script/library/utils.java"
 source_stealth_library="$source_script/library/stealth.java"
 work_stealth_library="$work_script/library/stealth.java"
+source_luck_library="$source_script/library/luck.java"
+work_luck_library="$work_script/library/luck.java"
+source_crafting_library="$source_script/library/craftinglib.java"
+work_crafting_library="$work_script/library/craftinglib.java"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -311,6 +315,8 @@ cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_utils_library" "$work_utils_library"
 cmp -s "$source_stealth_library" "$work_stealth_library"
+cmp -s "$source_luck_library" "$work_luck_library"
+cmp -s "$source_crafting_library" "$work_crafting_library"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -369,6 +375,14 @@ do
     cmp -s "$source_script/$crafting_gate_file" "$work_script/$crafting_gate_file"
     ! grep -Fq 'class_' "$work_script/$crafting_gate_file"
 done
+# Publish 14.1 crafting Luck is a skill-modifier roll, not the later generic
+# player-level-capped primary-stat proc or its forced critical-success path.
+javap -classpath "$class_root" -v script.library.luck | grep -Fq 'getPrecuCraftingLuckRoll'
+javap -classpath "$class_root" -v script.library.luck | grep -Fq 'force_luck'
+! javap -classpath "$class_root" -v script.library.luck | grep -Fq 'luck_modified'
+! javap -classpath "$class_root" -v script.library.luck | grep -Fq 'getLevel'
+javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'getPrecuCraftingLuckRoll'
+! javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'isLucky'
 # localOptions.cfg is a runtime-rendered configuration, not a copied build
 # artifact. Authenticate the immutable template before restart; the rendered
 # values are verified after the container's run path regenerates them.

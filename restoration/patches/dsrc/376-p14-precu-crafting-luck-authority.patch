@@ -1,0 +1,85 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/craftinglib.java b/sku.0/sys.server/compiled/game/script/library/craftinglib.java
+--- a/sku.0/sys.server/compiled/game/script/library/craftinglib.java
++++ b/sku.0/sys.server/compiled/game/script/library/craftinglib.java
+@@ -337,3 +337,4 @@ public class craftinglib extends script.base_script
+         }
+         float modifiedDieRoll = dieRoll + totalSkillMod + dieRollMod;
++        modifiedDieRoll += luck.getPrecuCraftingLuckRoll(player);
+         debugServerConsoleMsg(null, "@@@@ calcSkillDesignAssemblyCheck: Total Roll = " + modifiedDieRoll);
+@@ -400,10 +401,6 @@ public class craftinglib extends script.base_script
+             CustomerServiceLog("crit_fail", "== ASSEMBLY_BEGIN == " + getName(player) + " (" + player + ") is starting to assemble an item -- Base Roll: " + dieRoll + ", Mod Roll: " + modifiedDieRoll);
+         }
+-        if (luck.isLucky(player, 0.01f))
+-        {
+-            successState = STATE_CRITICAL_SUCCESS;
+-        }
+-        else if (dieRoll >= criticalSuccess)
++        if (dieRoll >= criticalSuccess)
+         {
+             successState = STATE_CRITICAL_SUCCESS;
+         }
+@@ -1211,3 +1208,4 @@ public class craftinglib extends script.base_script
+                 float successThreshold = 5.0f * ((10.0f + experimentPoints[i]) * (1 - successAdjust)) * deltaMod;
+                 float modifiedSkillRoll = dieRoll + numericRangeModifiedTargetNumberModifier;
++                modifiedSkillRoll += luck.getPrecuCraftingLuckRoll(player);
+                 debugServerConsoleMsg(null, "\texpPts = " + experimentPoints[i] + ", success threshold = " + successThreshold + ", mod roll = " + modifiedSkillRoll);
+@@ -1245,11 +1243,6 @@ public class craftinglib extends script.base_script
+                 float successPointScale = 0;
+-                if (luck.isLucky(player, 0.005f))
+-                {
+-                    successState = STATE_CRITICAL_SUCCESS;
+-                    successPointScale = 1.20f;
+-                }
+-                else if (dieRoll >= criticalSuccess)
++                if (dieRoll >= criticalSuccess)
+                 {
+                     successState = STATE_CRITICAL_SUCCESS;
+                     successPointScale = 1.15f;
+                 }
+diff --git a/sku.0/sys.server/compiled/game/script/library/luck.java b/sku.0/sys.server/compiled/game/script/library/luck.java
+--- a/sku.0/sys.server/compiled/game/script/library/luck.java
++++ b/sku.0/sys.server/compiled/game/script/library/luck.java
+@@ -20,29 +20,22 @@ public class luck extends script.base_script
+     public static boolean isLucky(obj_id player, float mod, boolean showFlyText) throws InterruptedException
+     {
+-        if (!isPlayer(player))
++        // Retained NGE consumers use this generic level-capped primary-stat
++        // proc. Publish 14 Luck is system-specific, so fail this ABI closed.
++        return false;
++    }
++    public static int getPrecuCraftingLuckRoll(obj_id player) throws InterruptedException
++    {
++        if (!isPlayer(player))
+         {
+-            return false;
++            return 0;
+         }
+-        int level = getLevel(player);
+-        int cap = level * 5;
+-        float chance = rand(1, (cap * 1000));
+-        chance /= 1000.0f;
+-        float luck = getSkillStatisticModifier(player, "luck");
+-        float luckBonus = getEnhancedSkillStatisticModifierUncapped(player, "luck_modified");
+-        luck += luckBonus;
+-        if (luck > cap)
++        int luckSkill = Math.max(0, getSkillStatisticModifier(player, "luck"));
++        int forceLuckSkill = Math.max(0, getSkillStatisticModifier(player, "force_luck"));
++        int totalLuck = luckSkill + forceLuckSkill;
++        if (totalLuck <= 0)
+         {
+-            luck = cap;
+-        }
+-        luck *= mod;
+-        if (chance < luck)
+-        {
+-            if (showFlyText)
+-            {
+-                showLuckyFlyText(player);
+-            }
+-            return true;
++            return 0;
+         }
+-        return false;
++        return rand(0, totalLuck);
+     }
+     public static void showLuckyFlyText(obj_id player) throws InterruptedException
