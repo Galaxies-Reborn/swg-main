@@ -122,6 +122,8 @@ source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/
 work_conversation="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
 work_script="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script"
+source_theme_park="$source_script/theme_park"
+work_theme_park="$work_script/theme_park"
 source_base_class="$source_script/base_class.java"
 work_base_class="$work_script/base_class.java"
 source_missions="$source_script/library/missions.java"
@@ -298,6 +300,9 @@ cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
+diff -qr "$source_conversation" "$work_conversation" >/dev/null
+diff -qr "$source_theme_park" "$work_theme_park" >/dev/null
+! grep -R -E '(^|[^[:alnum:]_.])((combat|utils)\.)?getLevel[[:space:]]*\([[:space:]]*(player|whoTriggeredMe)[[:space:]]*\)' "$work_conversation" "$work_theme_park"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
 cmp -s "$source_player_utility" "$work_player_utility"
@@ -397,6 +402,13 @@ javap -classpath "$class_root" -v script.systems.missions.base.mission_player | 
 javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuCombatSkillScore'
 javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuGroupCombatDifficulty'
+javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuProfessionSkillScore'
+javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuCraftingContentDifficulty'
+javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuEntertainerContentDifficulty'
+javap -classpath "$class_root" -v script.conversation.corellia_coronet_vani_korr | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.conversation.imperial_defensive_supply_terminal | grep -Fq 'getPrecuCraftingContentDifficulty'
+javap -classpath "$class_root" -v script.conversation.som_pei_yi | grep -Fq 'getPrecuEntertainerContentDifficulty'
+javap -classpath "$class_root" -v script.theme_park.outbreak.camp_defense | grep -Fq 'getPrecuEncounterDifficulty'
 ! javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getGroupObjectLevel'
 javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getPrecuCombatSkillScore'
 ! javap -classpath "$class_root" -v script.library.missions | grep -Fq 'getLevel'

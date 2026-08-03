@@ -1397,3 +1397,12 @@ math uses `private_<weapon>_combat_difficulty / 100 + 1`, capped at 25, with
 the historical Jedi lightsaber addition; authored NPC levels remain intact.
 This internal value is kept separate from the retained-content skill-box
 difficulty adapter and does not restore an NGE visible combat level.
+
+`372-p14-precu-retained-content-level-authority.patch` closes direct NGE
+player-level reads across the retained conversation and theme-park packages.
+Combat encounters, dynamic spawns, and general quest bands consume the hidden
+PRE-CU combat-skill difficulty adapter. Four Trader supply-terminal gates use
+learned crafting boxes, while the retained Pei Yi Entertainer gate uses learned
+social boxes, so noncombat progression remains usable without raising creature
+combat difficulty. Authored thresholds, conversations, quests, and creature
+levels remain intact.

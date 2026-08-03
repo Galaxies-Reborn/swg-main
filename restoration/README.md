@@ -2512,3 +2512,19 @@ to keep retained expansion encounters accessible; it is not displayed, used
 for item certification, or treated as an NGE profession level. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuWeaponCombatLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 302 removes the remaining direct NGE player-level reads from the
+retained conversation and theme-park packages. Sixty-seven combat encounters,
+dynamic spawns, and general quest-band checks now consume the hidden PRE-CU
+combat-skill difficulty adapter. The four factional Trader supply terminals
+instead score learned crafting skill boxes, and Pei Yi scores learned
+Entertainer, Dancer, Musician, and Image Designer boxes. This keeps noncombat
+professions eligible for their retained content without allowing crafting or
+performance progression to inflate creature combat difficulty.
+
+All 72 replaced reads preserve their authored thresholds and surrounding
+quest/conversation behavior. The bridge remains hidden and does not restore a
+visible combat level, NGE class template, expertise tree, or item-level gate.
+Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedContentLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>
