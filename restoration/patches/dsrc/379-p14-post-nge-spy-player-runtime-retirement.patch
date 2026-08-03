@@ -1,0 +1,301 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/skill.java b/sku.0/sys.server/compiled/game/script/library/skill.java
+index 0814b0d..9a0e664 100644
+--- a/sku.0/sys.server/compiled/game/script/library/skill.java
++++ b/sku.0/sys.server/compiled/game/script/library/skill.java
+@@ -74,8 +74,18 @@ public class skill extends script.base_script
+     public static final string_id PROSE_SKILL_LEARNED = new string_id(CONVOFILE, "prose_skill_learned");
+     public static final string_id PROSE_TRAIN_FAILED = new string_id(CONVOFILE, "prose_train_failed");
+     public static final string_id SID_EXPERTISE_WRONG_PROFESSION = new string_id("spam", "expertise_wrong_profession");
++    public static boolean isRetiredPostNgeSpySkill(String skillName) throws InterruptedException
++    {
++        return skillName != null &&
++            (skillName.startsWith("class_spy_") ||
++                skillName.startsWith("expertise_sp_"));
++    }
+     public static boolean grant(obj_id target, String skillName) throws InterruptedException
+     {
++        if (isPlayer(target) && isRetiredPostNgeSpySkill(skillName))
++        {
++            return false;
++        }
+         if (grantSkillToPlayer(target, skillName))
+         {
+             dictionary d = new dictionary();
+@@ -91,6 +101,10 @@ public class skill extends script.base_script
+         {
+             return false;
+         }
++        if (isRetiredPostNgeSpySkill(skillName))
++        {
++            return false;
++        }
+         string_id sid_skillName = new string_id("skl_n", skillName);
+         String dtSpeciesReq = dataTableGetString("datatables/skill/skills.iff", skillName, "SPECIES_REQUIRED");
+         if (dtSpeciesReq != null && !dtSpeciesReq.equals(""))
+@@ -215,6 +229,10 @@ public class skill extends script.base_script
+         {
+             return false;
+         }
++        if (isRetiredPostNgeSpySkill(skillName))
++        {
++            return false;
++        }
+         int pointsRequired = getSkillPointCost(skillName);
+         if (pointsRequired < 0 || getAvailableSkillPoints(player) < pointsRequired)
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/skills/stealth/player_stealth.java b/sku.0/sys.server/compiled/game/script/systems/skills/stealth/player_stealth.java
+index e2cb515..c6a1366 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/skills/stealth/player_stealth.java
++++ b/sku.0/sys.server/compiled/game/script/systems/skills/stealth/player_stealth.java
+@@ -9,8 +9,87 @@ public class player_stealth extends script.systems.combat.combat_base
+     {
+     }
+     public static final java.text.NumberFormat floatFormat = new java.text.DecimalFormat("#####");
++    public static boolean isRetiredPostNgeSpyBuffName(String buffName) throws InterruptedException
++    {
++        return buffName != null &&
++            (buffName.startsWith("invis_sp_") ||
++                buffName.startsWith("sp_") ||
++                buffName.equals("no_break_invis"));
++    }
++    public static void retirePostNgeSpyPlayerState(obj_id self) throws InterruptedException
++    {
++        if (!isIdValid(self) || !isPlayer(self))
++        {
++            return;
++        }
++        boolean changed = false;
++        for (int pass = 0; pass < 8; ++pass)
++        {
++            boolean removedBuff = false;
++            int[] activeBuffs = buff.getAllBuffs(self);
++            if (activeBuffs == null || activeBuffs.length == 0)
++            {
++                break;
++            }
++            for (int activeBuff : activeBuffs)
++            {
++                String buffName = buff.getBuffNameFromCrc(activeBuff);
++                if (isRetiredPostNgeSpyBuffName(buffName))
++                {
++                    buff.removeBuff(self, activeBuff);
++                    removedBuff = true;
++                    changed = true;
++                }
++            }
++            if (!removedBuff)
++            {
++                break;
++            }
++        }
++        utils.removeScriptVar(self, "sp_smoke_bomb");
++        utils.removeScriptVar(self, "sp_without_a_trace");
++        String[] playerSkills = getSkillListingForPlayer(self);
++        int attempts = playerSkills == null ? 0 : playerSkills.length;
++        while (playerSkills != null && playerSkills.length > 0 && attempts-- > 0)
++        {
++            boolean retiredSkillFound = false;
++            for (String playerSkill : playerSkills)
++            {
++                if (skill.isRetiredPostNgeSpySkill(playerSkill))
++                {
++                    revokeSkillSilent(self, playerSkill);
++                    retiredSkillFound = true;
++                    changed = true;
++                }
++            }
++            if (!retiredSkillFound)
++            {
++                break;
++            }
++            playerSkills = getSkillListingForPlayer(self);
++        }
++        if (changed)
++        {
++            recomputeCommandSeries(self);
++        }
++    }
++    public int OnAttach(obj_id self) throws InterruptedException
++    {
++        retirePostNgeSpyPlayerState(self);
++        return SCRIPT_CONTINUE;
++    }
++    public int OnInitialize(obj_id self) throws InterruptedException
++    {
++        retirePostNgeSpyPlayerState(self);
++        return SCRIPT_CONTINUE;
++    }
+     public int smokeBombTimerExpired(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (isPlayer(self))
++        {
++            retirePostNgeSpyPlayerState(self);
++            return SCRIPT_CONTINUE;
++        }
+         if (utils.hasScriptVar(self, "sp_smoke_bomb"))
+         {
+             utils.removeScriptVar(self, "sp_smoke_bomb");
+@@ -19,6 +98,11 @@ public class player_stealth extends script.systems.combat.combat_base
+     }
+     public int withoutTraceTimerExpired(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (isPlayer(self))
++        {
++            retirePostNgeSpyPlayerState(self);
++            return SCRIPT_CONTINUE;
++        }
+         if (utils.hasScriptVar(self, "sp_without_a_trace"))
+         {
+             utils.removeScriptVar(self, "sp_without_a_trace");
+@@ -82,6 +166,11 @@ public class player_stealth extends script.systems.combat.combat_base
+         {
+             return SCRIPT_CONTINUE;
+         }
++        if (isPlayer(self) && isRetiredPostNgeSpyBuffName(invisBuff))
++        {
++            retirePostNgeSpyPlayerState(self);
++            return SCRIPT_CONTINUE;
++        }
+         int invis = getStringCrc(toLower(invisBuff));
+         switch (invis)
+         {
+@@ -115,18 +204,33 @@ public class player_stealth extends script.systems.combat.combat_base
+     }
+     public int handleStealCashSuccess(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (isPlayer(self))
++        {
++            retirePostNgeSpyPlayerState(self);
++            return SCRIPT_CONTINUE;
++        }
+         int amt = params.getInt(money.DICT_AMOUNT);
+         withdrawCashFromBank(self, amt, "handleStealCashFinal", "handleStealCashFail", params);
+         return SCRIPT_CONTINUE;
+     }
+     public int handleStealCashFail(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (isPlayer(self))
++        {
++            retirePostNgeSpyPlayerState(self);
++            return SCRIPT_CONTINUE;
++        }
+         int amt = params.getInt(money.DICT_AMOUNT);
+         CustomerServiceLog("stealing", "%TU failed to steal " + amt + " credits.", self);
+         return SCRIPT_CONTINUE;
+     }
+     public int handleStealCashFinal(obj_id self, dictionary params) throws InterruptedException
+     {
++        if (isPlayer(self))
++        {
++            retirePostNgeSpyPlayerState(self);
++            return SCRIPT_CONTINUE;
++        }
+         int amt = params.getInt(money.DICT_AMOUNT);
+         prose_package pp = prose.getPackage(new string_id("spam", "stole_cash"), amt);
+         sendSystemMessageProse(self, pp);
+diff --git a/sku.0/sys.server/compiled/game/script/player/base/base_player.java b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+index edace0f..77625ac 100644
+--- a/sku.0/sys.server/compiled/game/script/player/base/base_player.java
++++ b/sku.0/sys.server/compiled/game/script/player/base/base_player.java
+@@ -8236,6 +8236,12 @@ public class base_player extends script.base_script
+     }
+     public int OnSkillGranted(obj_id self, String skillName) throws InterruptedException
+     {
++        if (skill.isRetiredPostNgeSpySkill(skillName))
++        {
++            revokeSkillSilent(self, skillName);
++            script.systems.skills.stealth.player_stealth.retirePostNgeSpyPlayerState(self);
++            return SCRIPT_OVERRIDE;
++        }
+         if (!hasObjVar(self, "clickRespec.granting") && !hasObjVar(self, "npcRespec.inProgress"))
+         {
+             if (getLevel(self) <= 1)
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 28486b1..0002516 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -76,6 +76,19 @@ public class combat_base extends script.base_script
+         "combat.precuNextAttackDelayResult";
+     public static final String PRECU_NEXT_ATTACK_DELAY_REMAINING =
+         "combat.precuNextAttackDelayRemaining";
++    public static boolean isRetiredPostNgeSpyPlayerAction(obj_id self, String actionName) throws InterruptedException
++    {
++        if (!isPlayer(self) || actionName == null)
++        {
++            return false;
++        }
++        if (actionName.equals("sp_hide_device_1") ||
++            actionName.equals("sp_neutralize_device_1"))
++        {
++            return false;
++        }
++        return actionName.equals("steal") || actionName.startsWith("sp_");
++    }
+     public boolean combatStandardAction(String actionName, obj_id self, obj_id target, String params, String successHandler, String failHandler) throws InterruptedException
+     {
+         return combatStandardAction(actionName, self, target, getCurrentWeapon(self), params, null, false, false, 0);
+@@ -174,6 +187,10 @@ public class combat_base extends script.base_script
+     }
+     public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage) throws InterruptedException
+     {
++        if (isRetiredPostNgeSpyPlayerAction(self, actionName))
++        {
++            return false;
++        }
+         combat.revealPrecuFeignDeath(self, "combatCommand");
+         if (combat.isStunned(self))
+         {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 5e14821..23f39d3 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -7454,6 +7454,10 @@ public class combat_actions extends script.systems.combat.combat_base
+     }
+     public int steal(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
++        if (isRetiredPostNgeSpyPlayerAction(self, "steal"))
++        {
++            return SCRIPT_OVERRIDE;
++        }
+         if (!stealth.hasInvisibleBuff(self) && !buff.hasBuff(self, "sp_smoke_mirrors"))
+         {
+             return SCRIPT_OVERRIDE;
+@@ -7593,6 +7597,10 @@ public class combat_actions extends script.systems.combat.combat_base
+     }
+     public int sp_buff_stealth_1(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
++        if (isRetiredPostNgeSpyPlayerAction(self, "sp_buff_stealth_1"))
++        {
++            return SCRIPT_OVERRIDE;
++        }
+         String invis = stealth.getInvisBuff(self);
+         if (invis != null && invis.equals("invis_sp_buff_stealth_1"))
+         {
+@@ -7613,6 +7621,10 @@ public class combat_actions extends script.systems.combat.combat_base
+     }
+     public int sp_decoy(obj_id self, obj_id target, String params, float defaultTime) throws InterruptedException
+     {
++        if (isRetiredPostNgeSpyPlayerAction(self, "sp_decoy"))
++        {
++            return SCRIPT_OVERRIDE;
++        }
+         if (!stealth.canPerformSmokeGrenade(self))
+         {
+             return SCRIPT_OVERRIDE;
+diff --git a/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java b/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
+index 4b2c8d8..15ccf65 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
++++ b/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java
+@@ -2838,6 +2838,12 @@ public class buff_handler extends script.base_script
+     }
+     public void invisBuffAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster) throws InterruptedException
+     {
++        if (isPlayer(self) &&
++            script.systems.skills.stealth.player_stealth.isRetiredPostNgeSpyBuffName(effectName))
++        {
++            buff.removeBuff(self, buffName);
++            return;
++        }
+         int costumeBuff = buff.getBuffOnTargetFromGroup(self, "shapechange");
+         if (costumeBuff != 0)
+         {

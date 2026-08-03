@@ -236,6 +236,8 @@ source_performcommands="$source_script/player/skill/performcommands.java"
 work_performcommands="$work_script/player/skill/performcommands.java"
 source_buff_handler="$source_script/systems/buff/buff_handler.java"
 work_buff_handler="$work_script/systems/buff/buff_handler.java"
+source_player_stealth="$source_script/systems/skills/stealth/player_stealth.java"
+work_player_stealth="$work_script/systems/skills/stealth/player_stealth.java"
 source_buff_builder_cancel="$source_script/systems/buff_builder/buff_builder_cancel.java"
 work_buff_builder_cancel="$work_script/systems/buff_builder/buff_builder_cancel.java"
 source_buff_builder_response="$source_script/systems/buff_builder/buff_builder_response.java"
@@ -343,6 +345,7 @@ cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
 cmp -s "$source_performcommands" "$work_performcommands"
 cmp -s "$source_buff_handler" "$work_buff_handler"
+cmp -s "$source_player_stealth" "$work_player_stealth"
 cmp -s "$source_buff_builder_cancel" "$work_buff_builder_cancel"
 cmp -s "$source_buff_builder_response" "$work_buff_builder_response"
 cmp -s "$source_crafting_base" "$work_crafting_base"
@@ -415,6 +418,19 @@ javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'ret
 javap -classpath "$class_root" -v script.library.xp | grep -Fq 'isPostNgeBuffProgressionRetired'
 javap -classpath "$class_root" -v script.systems.crafting.crafting_base | grep -Fq 'isPostNgeBuffProgressionRetired'
 javap -classpath "$class_root" -v script.library.gcw | grep -Fq 'isPostNgeBuffProgressionRetired'
+# Publish 14.1 Ranger/Rifleman stealth remains authoritative. Retire the NGE
+# Spy player runtime while retaining the two expansion-device commands.
+spy_skill_retired_bytecode="$(javap -classpath "$class_root" -c script.library.skill | sed -n '/isRetiredPostNgeSpySkill/,/grant(/p')"
+printf '%s' "$spy_skill_retired_bytecode" | grep -Fq 'class_spy_'
+printf '%s' "$spy_skill_retired_bytecode" | grep -Fq 'expertise_sp_'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeSpyPlayerState'
+javap -classpath "$class_root" -v script.systems.skills.stealth.player_stealth | grep -Fq 'isRetiredPostNgeSpyBuffName'
+javap -classpath "$class_root" -v script.systems.skills.stealth.player_stealth | grep -Fq 'retirePostNgeSpyPlayerState'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeSpyPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sp_hide_device_1'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sp_neutralize_device_1'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeSpyPlayerAction'
+javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'isRetiredPostNgeSpyBuffName'
 # Retained Restuss content keeps its authored advanced-area threshold, but
 # player admission is governed by the hidden PRE-CU combat skill-box score.
 javap -classpath "$class_root" -c script.player.base.base_player | grep -Fq 'getPrecuEncounterDifficulty'

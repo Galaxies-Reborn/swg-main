@@ -87,7 +87,12 @@ Assert-Contract ((Get-TextSha256 $contentRecordText) -ceq [string]$contract.buil
 $changedText = $changedTextBuilder.ToString()
 
 $ngePattern = 'class_(?:bountyhunter|commando|domestics|engineering|entertainer|forcesensitive|medic|munitions|officer|smuggler|spy|structures|trader)'
-Assert-Contract (-not [regex]::IsMatch($changedText, $ngePattern)) `
+$executableAuthorityText = [regex]::Replace(
+    $changedText,
+    '(?s)public static boolean isRetiredPostNgeSpySkill\(.*?(?=public static boolean grant\()',
+    ''
+)
+Assert-Contract (-not [regex]::IsMatch($executableAuthorityText, $ngePattern)) `
     "p14.profession-closure.changed-executable-nge-authority.absent"
 
 $productionRoot = Join-Path $dsrc "sku.0/sys.server/compiled/game/script"

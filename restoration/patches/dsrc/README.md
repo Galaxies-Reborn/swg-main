@@ -1420,3 +1420,10 @@ profession only for item admission and presentation. It also replaces player
 level plus `ranger_trap` scaling with the Publish 14.1 `trapping` modifier and
 uses `camouflage` alone for device concealment. The global Spy identity and all
 retained template metadata remain unchanged.
+
+379-p14-post-nge-spy-player-runtime-retirement.patch closes stale player-side
+NGE Spy skill grants, stealth buffs, theft callbacks, and sp_* combat
+execution. The gate is player-only so retained later-content NPC behavior keeps
+loading, and it explicitly preserves Ranger conceal/mask scent/trapping,
+Rifleman Conceal Shot, HEP urban stealth, and the retained trap hide/disarm
+device commands.
