@@ -1436,3 +1436,12 @@ removed, Beast Control Device menus fail closed, and all bm_* standard combat
 actions plus the one direct recourse callback are rejected for players. The
 gate is player-only: Creature Handler tame/control/emboldenpets behavior,
 later-content NPC creatures, templates, and compatibility data remain intact.
+
+381-p14-post-nge-beast-master-creation-player-runtime-retirement.patch retires
+the remaining player-facing NGE Beast Master creation pipeline: incubator
+sessions, enzyme processing, egg/holopet and old-pet conversion, Beast
+consumables, and Beast DNA collection awards. Persisted links and process
+markers are cleaned without destroying station or machine contents, so stored
+items remain recoverable. Authentic Publish 14.1 Bio-Engineer DNA/creature
+crafting and Creature Handler pet control remain authoritative, while retained
+later-content templates, data, NPCs, quests, and zones continue to load.

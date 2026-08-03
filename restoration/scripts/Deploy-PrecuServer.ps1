@@ -253,6 +253,7 @@ work_crafting_base="$work_script/systems/crafting/crafting_base.java"
 precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
+post_nge_beast_creation_paths="ai/pet_control_device.java library/beast_lib.java library/incubator.java npc/pet_deed/pet_deed.java player/base/base_player.java player/player_utility.java systems/beast/base_incubator.java systems/beast/beast_dye.java systems/beast/beast_egg.java systems/beast/beast_food.java systems/beast/beast_steroid_injector.java systems/beast/decoration_item.java systems/beast/enzyme_crafting_base.java systems/beast/enzyme_crafting_centrifuge.java systems/beast/enzyme_crafting_combiner.java systems/beast/enzyme_crafting_processor.java systems/beast/enzyme_extractor.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -361,6 +362,9 @@ cmp -s "$source_crafting_base" "$work_crafting_base"
 cmp -s "$source_script/library/pet_lib.java" "$work_script/library/pet_lib.java"
 cmp -s "$source_script/ai/pet_control_device.java" "$work_script/ai/pet_control_device.java"
 cmp -s "$source_script/npc/pet_deed/droid_deed.java" "$work_script/npc/pet_deed/droid_deed.java"
+for post_nge_beast_creation_path in $post_nge_beast_creation_paths; do
+    cmp -s "$source_script/$post_nge_beast_creation_path" "$work_script/$post_nge_beast_creation_path"
+done
 for precu_item_level_path in $precu_item_level_paths; do
     cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
 done
@@ -450,6 +454,22 @@ javap -classpath "$class_root" -v script.player.player_beastmaster | grep -Fq 'h
 javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeBeastMasterPlayerState'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBeastMasterPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
+# Retire the remaining NGE Beast Master player creation and conversion
+# surfaces without deleting retained content or PRE-CU Bio-Engineer crafting.
+javap -classpath "$class_root" -constants script.library.incubator | grep -Fq 'POST_NGE_BEAST_MASTER_CREATION_PLAYER_RUNTIME_RETIRED = true'
+javap -classpath "$class_root" -v script.library.incubator | grep -Fq 'retirePostNgeBeastMasterCreationPlayerState'
+javap -classpath "$class_root" -v script.library.incubator | grep -Fq 'retirePostNgeIncubatorStationState'
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'createHolopetCubeFromEgg'
+javap -classpath "$class_root" -v script.systems.beast.base_incubator | grep -Fq 'OnIncubatorCommitted'
+javap -classpath "$class_root" -v script.systems.beast.base_incubator | grep -Fq 'isPostNgeBeastMasterCreationPlayerRuntimeRetired'
+javap -classpath "$class_root" -v script.systems.beast.enzyme_crafting_base | grep -Fq 'isPostNgeBeastMasterCreationPlayerRuntimeRetired'
+javap -classpath "$class_root" -v script.systems.beast.enzyme_crafting_base | grep -Fq 'terminateProcess'
+javap -classpath "$class_root" -v script.systems.beast.beast_egg | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
+javap -classpath "$class_root" -v script.systems.beast.enzyme_extractor | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
+javap -classpath "$class_root" -v script.ai.pet_control_device | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
+javap -classpath "$class_root" -v script.npc.pet_deed.pet_deed | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
+javap -classpath "$class_root" -v script.player.player_utility | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeBeastMasterCreationPlayerState'
 # Retained Restuss content keeps its authored advanced-area threshold, but
 # player admission is governed by the hidden PRE-CU combat skill-box score.
 javap -classpath "$class_root" -c script.player.base.base_player | grep -Fq 'getPrecuEncounterDifficulty'
