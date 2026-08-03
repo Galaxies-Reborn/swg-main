@@ -90,6 +90,9 @@ Assert-Contract ($xp.Contains("PRECU_GROUP_XP_MULTIPLIER = 1.20f") -and
 $difficulty = Get-FunctionSlice $xp `
     "public static int getPrecuCombatXpDifficulty(" `
     "public static int capPrecuCombatXp("
+$weaponDifficulty = Get-FunctionSlice $xp `
+    "public static int getPrecuWeaponCombatLevel(" `
+    "public static int getPrecuCombatLevel("
 $cap = Get-FunctionSlice $xp `
     "public static int capPrecuCombatXp(" `
     "public static String getWeaponXpType("
@@ -101,7 +104,9 @@ $groupIndex = $award.IndexOf("applyGroupXpModifier(player, amt)", $capIndex, [Sy
 Assert-Contract ($xp.Contains("PRECU_COMBAT_XP_DIFFICULTY_CAP = 25") -and
     $xp.Contains("PRECU_COMBAT_XP_PER_DIFFICULTY = 300") -and
     $difficulty.Contains('"private_" + weaponType + "_combat_difficulty"') -and
-    $difficulty.Contains('"private_jedi_difficulty"') -and
+    $difficulty.Contains("return getPrecuWeaponCombatLevel(player)") -and
+    $weaponDifficulty.Contains('"private_" + weaponTypeName + "_combat_difficulty"') -and
+    $weaponDifficulty.Contains('"private_jedi_difficulty"') -and
     $cap.Contains("getPrecuCombatXpDifficulty(player, xpType) * PRECU_COMBAT_XP_PER_DIFFICULTY") -and
     $capIndex -ge 0 -and $groupIndex -gt $capIndex) `
     "p14.combat-xp.weapon-skill-cap-before-group-bonus"

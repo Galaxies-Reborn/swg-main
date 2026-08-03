@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-weapon-combat-level-authority",
+  "status": "ready",
+  "scope": "Make the pinned Publish 14.1 equipped-weapon skill calculation authoritative wherever restored PRE-CU combat consumes a player level, without exposing or reintroducing an NGE combat-level progression system.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/TauntCommand.h"
+    ],
+    "findings": [
+      "Publish 14.1 calculates a player's internal combat level from private_<equipped weapon type>_combat_difficulty divided by 100 plus one, capped at 25.",
+      "A Jedi wielding a lightsaber adds private_jedi_difficulty before the cap; a missing weapon produces level zero.",
+      "Publish 14.1 state application subtracts five from that internal player level while creature targets retain their authored creature level.",
+      "The internal value is combat math only: it is not an NGE visible combat level, item requirement, profession template, or retained-content difficulty score."
+    ]
+  },
+  "expected": {
+    "visiblePlayerCombatLevel": false,
+    "equipmentCombatLevelRequirements": false,
+    "currentWeaponAuthority": true,
+    "weaponDifficultySkillMod": "private_<weaponType>_combat_difficulty",
+    "jediLightsaberAdditionalSkillMod": "private_jedi_difficulty",
+    "maximum": 25,
+    "missingWeaponLevel": 0,
+    "stateApplicationLevelOffset": -5,
+    "tauntPlayerLevelSource": "equipped-weapon PRE-CU combat level",
+    "npcLevelSource": "authored creature level",
+    "retainedContentDifficultyAuthority": "skill.getPrecuEncounterDifficulty remains separate"
+  },
+  "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+  ],
+  "buildEvidence": {
+    "overlayPatch": "restoration/patches/dsrc/371-p14-precu-weapon-combat-level-authority.patch",
+    "overlayPatchBytes": 6380,
+    "overlayPatchSha256": "70ff2817a0a2e5e3ffeacae716c3fcf6d5f0d597308eb2b54bd96bc77de3b478",
+    "sourceSha256": {
+      "script.library.xp": "1022ffaecdfa91e2d5d262dc2a633f4a6ad0c422a98bce4e0c44e1de85dea354",
+      "script.systems.combat.combat_base": "5d43c09b89546957f0d91753979767a5a59b54a07be9ad38381f7afa91df6aff",
+      "script.systems.combat.combat_actions": "ccd7fac15f5cd6695657244878f02b037a1a83d6a0807aa130a1f63bd6630845"
+    },
+    "compiledClassSha256": {
+      "script.library.xp": "3b7a8f3a1ab2d092a9d09465a034ce9e4fc8be84d4cc52a180397c061df64c61",
+      "script.systems.combat.combat_base": "f0cf32d0744d822de3ecb0376bc3720bada515773e7134750c991a9c35194ed3",
+      "script.systems.combat.combat_actions": "64cd0caa2d2329f780b58dc3f06cea07d0214f9e30ed4319b46c5fe435038009"
+    },
+    "staticContract": "passed",
+    "isolatedJavaCompile": "superseded by full clean Java compile",
+    "fullJavaCompile": "passed (5713 Java sources, 5747 class files, OpenJDK 11)",
+    "cleanMaterializationPatches": 403,
+    "cleanMaterializationAcceptanceFiles": 1140,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedBuild": "passed",
+    "architecture": "ELF 64-bit x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "deploymentProbe": "passed",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-03",
+    "deployedAtUtc": "2026-08-03T03:58:23.567143445Z",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-level301-final-a",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "liveProcessMappedBuiltBinary": true,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "SwgGameServer": 14,
+      "TransferServer": 1
+    },
+    "postRestartLogLines": 344,
+    "clusterReadyLogCount": 1,
+    "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0,
+    "missionTerminalSourceSha256": {
+      "mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    },
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "one shared equipped-weapon combat-level formula, its combat-XP overload, four restored state-application calculations, and the restored taunt level roll",
+    "notClaimedComplete": "retained expansion conversation and quest gates, GCW reward ratios, beast/familiar progression, loot rarity, stealth/trap scaling, transition compatibility, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

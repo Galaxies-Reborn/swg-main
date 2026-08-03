@@ -2495,3 +2495,20 @@ strings. The live-confirmed mission-terminal generation and ten-mission/full-
 group-reward sources are hash-pinned and unchanged. Validate:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuProfessionAuthorityClosure.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 301 restores one authenticated Publish 14.1 internal combat-level
+authority for player combat math. The equipped weapon selects
+`private_<weapon type>_combat_difficulty`; the value is divided by 100, raised
+by one, and capped at 25. Jedi wielding a lightsaber also contribute
+`private_jedi_difficulty`, and a missing weapon fails closed at zero. The
+existing combat-XP overload now delegates to the same current-weapon formula
+for empty and Jedi-general XP types instead of maintaining a divergent copy.
+
+The four restored state-application rolls now use that weapon-skill level
+before the historical minus-five adjustment. PRE-CU taunt uses the same
+player adapter while creature targets retain their authored creature level.
+This combat-only value remains separate from the 1–90 skill-box adapter used
+to keep retained expansion encounters accessible; it is not displayed, used
+for item certification, or treated as an NGE profession level. Validate:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuWeaponCombatLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>

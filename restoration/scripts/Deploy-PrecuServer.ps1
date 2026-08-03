@@ -70,6 +70,8 @@ source_creature_profiles="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/da
 work_creature_profiles="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.tab"
 source_combat_base="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
 work_combat_base="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+source_combat_actions="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+work_combat_actions="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
 source_combat_player="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java"
 work_combat_player="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java"
 source_ai_corpse="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java"
@@ -228,6 +230,7 @@ cmp -s "$source_create" "$work_create"
 cmp -s "$source_loot" "$work_loot"
 cmp -s "$source_creature_profiles" "$work_creature_profiles"
 cmp -s "$source_combat_base" "$work_combat_base"
+cmp -s "$source_combat_actions" "$work_combat_actions"
 cmp -s "$source_combat_player" "$work_combat_player"
 cmp -s "$source_ai_corpse" "$work_ai_corpse"
 cmp -s "$source_combat_overrides" "$work_combat_overrides"
@@ -403,6 +406,10 @@ javap -classpath "$class_root" -constants script.library.xp | grep -Fq 'PRECU_CO
 javap -classpath "$class_root" -v script.library.xp | grep -Fq 'combat.intCombatXP'
 javap -classpath "$class_root" -v script.library.xp | grep -Fq 'capPrecuCombatXp'
 javap -classpath "$class_root" -v script.library.xp | grep -Fq 'private_jedi_difficulty'
+javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuWeaponCombatLevel'
+javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuCombatLevel'
+javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuWeaponCombatLevel'
+javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | grep -Fq 'getPrecuCombatLevel'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'player_level.iff'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'free_trial_level_cap'
 ! javap -classpath "$class_root" -v script.library.missions | grep -Fq 'prose_mission_xp_amount'

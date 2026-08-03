@@ -1,0 +1,132 @@
+diff --git a/sku.0/sys.server/compiled/game/script/library/xp.java b/sku.0/sys.server/compiled/game/script/library/xp.java
+index fb8cfc4..b8a1041 100644
+--- a/sku.0/sys.server/compiled/game/script/library/xp.java
++++ b/sku.0/sys.server/compiled/game/script/library/xp.java
+@@ -479,19 +479,54 @@ public class xp extends script.base_script
+         }
+         return dataTableGetInt("datatables/mob/stat_balance.iff", level - 1, "XP");
+     }
++    public static int getPrecuWeaponCombatLevel(obj_id player) throws InterruptedException
++    {
++        if (!isIdValid(player) || !isPlayer(player))
++        {
++            return 0;
++        }
++        obj_id weapon = getCurrentWeapon(player);
++        if (!isIdValid(weapon))
++        {
++            return 0;
++        }
++        int weaponType = getWeaponType(weapon);
++        String weaponTypeName = combat.getWeaponStringType(weaponType);
++        if (weaponTypeName == null || weaponTypeName.length() == 0)
++        {
++            return 0;
++        }
++        int skillMod = getSkillStatisticModifier(player, "private_" + weaponTypeName + "_combat_difficulty");
++        if (isJedi(player) && combat.isLightsaberWeapon(weaponType))
++        {
++            skillMod += getSkillStatisticModifier(player, "private_jedi_difficulty");
++        }
++        return Math.min(PRECU_COMBAT_XP_DIFFICULTY_CAP, (skillMod / 100) + 1);
++    }
++    public static int getPrecuCombatLevel(obj_id creature) throws InterruptedException
++    {
++        if (!isIdValid(creature))
++        {
++            return 0;
++        }
++        if (isPlayer(creature))
++        {
++            return getPrecuWeaponCombatLevel(creature);
++        }
++        return Math.max(0, getLevel(creature));
++    }
+     public static int getPrecuCombatXpDifficulty(obj_id player, String xpType) throws InterruptedException
+     {
+         if (!isIdValid(player) || !isPlayer(player))
+         {
+-            return 1;
++            return 0;
+         }
+-        String weaponType;
+         if (xpType == null || xpType.equals("") || xpType.equals(JEDI_GENERAL))
+         {
+-            obj_id weapon = getCurrentWeapon(player);
+-            weaponType = isIdValid(weapon) ? combat.getWeaponStringType(getWeaponType(weapon)) : "unarmed";
++            return getPrecuWeaponCombatLevel(player);
+         }
+-        else if (xpType.contains("onehand"))
++        String weaponType;
++        if (xpType.contains("onehand"))
+         {
+             weaponType = "onehandmelee";
+         }
+@@ -524,11 +559,7 @@ public class xp extends script.base_script
+             weaponType = "heavyweapon";
+         }
+         int skillMod = getSkillStatisticModifier(player, "private_" + weaponType + "_combat_difficulty");
+-        if (xpType != null && xpType.equals(JEDI_GENERAL))
+-        {
+-            skillMod += getSkillStatisticModifier(player, "private_jedi_difficulty");
+-        }
+-        return Math.max(1, Math.min(PRECU_COMBAT_XP_DIFFICULTY_CAP, (skillMod / 100) + 1));
++        return Math.min(PRECU_COMBAT_XP_DIFFICULTY_CAP, (skillMod / 100) + 1);
+     }
+     public static int capPrecuCombatXp(obj_id player, String xpType, int amount) throws InterruptedException
+     {
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+index 463ce2e..68d21b1 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java
+@@ -15017,8 +15017,8 @@ public class combat_actions extends script.systems.combat.combat_base
+         }
+ 
+         int tauntMod = Math.max(0, getSkillStatisticModifier(self, "taunt"));
+-        int attackerLevel = Math.max(0, getLevel(self));
+-        int targetLevel = Math.max(0, getLevel(target));
++        int attackerLevel = Math.max(0, xp.getPrecuCombatLevel(self));
++        int targetLevel = Math.max(0, xp.getPrecuCombatLevel(target));
+         int levelCombine = Math.max(1, attackerLevel + targetLevel);
+         int upperBound = levelCombine + tauntMod;
+         int lowerBound = Math.max(0, levelCombine - tauntMod);
+diff --git a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+index 4d59ef9..28486b1 100644
+--- a/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
++++ b/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java
+@@ -2340,7 +2340,7 @@ public class combat_base extends script.base_script
+             return false;
+         }
+ 
+-        int playerLevel = isPlayer(defender) ? getLevel(defender) - 5 : 0;
++        int playerLevel = isPlayer(defender) ? xp.getPrecuWeaponCombatLevel(defender) - 5 : 0;
+         int defense = defenseMod == null || defenseMod.equals("") ? 0 :
+             getSkillStatisticModifier(defender, defenseMod);
+         int jediDefense =
+@@ -2548,7 +2548,7 @@ public class combat_base extends script.base_script
+                 attacker, new string_id("cbt_spam", "posture_change_fail"));
+             return recoveryPosture;
+         }
+-        int playerLevel = isPlayer(defender) ? getLevel(defender) - 5 : 0;
++        int playerLevel = isPlayer(defender) ? xp.getPrecuWeaponCombatLevel(defender) - 5 : 0;
+         int defense = defenseMod == null || defenseMod.equals("") ? 0 :
+             getSkillStatisticModifier(defender, defenseMod);
+         int roll = rand(0, 100);
+@@ -2627,7 +2627,7 @@ public class combat_base extends script.base_script
+             recordPrecuLiveDiagnostic(attacker, "postureDown.result", "RECOVERY");
+             return recoveryPosture;
+         }
+-        int playerLevel = isPlayer(defender) ? getLevel(defender) - 5 : 0;
++        int playerLevel = isPlayer(defender) ? xp.getPrecuWeaponCombatLevel(defender) - 5 : 0;
+         if (playerLevel < 0)
+         {
+             playerLevel = 0;
+@@ -2691,7 +2691,7 @@ public class combat_base extends script.base_script
+             recordPrecuLiveDiagnostic(attacker, "knockdown.result", "RECOVERY");
+             return currentPosture;
+         }
+-        int playerLevel = isPlayer(defender) ? getLevel(defender) - 5 : 0;
++        int playerLevel = isPlayer(defender) ? xp.getPrecuWeaponCombatLevel(defender) - 5 : 0;
+         if (playerLevel < 0)
+         {
+             playerLevel = 0;

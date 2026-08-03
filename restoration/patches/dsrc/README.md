@@ -1389,3 +1389,11 @@ item gates, species prejudice, schematics, and NPC hireling control devices.
 The reachable NGE global credit catalog, class/combat-level gates, expertise
 and population price modifiers, recruiter vendor surface, and camp field
 requisition surface no longer take precedence.
+
+`371-p14-precu-weapon-combat-level-authority.patch` consolidates the pinned
+Core3 equipped-weapon combat-level formula in the XP library and routes the
+restored state-application and taunt calculations through it. Player combat
+math uses `private_<weapon>_combat_difficulty / 100 + 1`, capped at 25, with
+the historical Jedi lightsaber addition; authored NPC levels remain intact.
+This internal value is kept separate from the retained-content skill-box
+difficulty adapter and does not restore an NGE visible combat level.
