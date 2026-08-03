@@ -2555,3 +2555,16 @@ are hash-pinned to the user-verified working terminal build.
 Validate a materialized tree with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedDeviceAuthority.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 305 removes direct NGE player-level authority from retained system
+libraries, static quest gates, expansion events, city scans, and tutorial
+compatibility. Combat and generic content use the hidden PRE-CU combat-skill
+box score; entertainer-only unlocks use the independent social skill-box score.
+Authored thresholds, quest flow, event flow, and creature levels remain intact.
+Space-to-ground combat XP now enters the PRE-CU style-specific XP adapter
+instead of the later generic combat pool. The user-verified mission-terminal
+sources remain hash-pinned and unchanged.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuRetainedSystemLevelAuthority.ps1 -SourceRoot <materialized-staging-directory>

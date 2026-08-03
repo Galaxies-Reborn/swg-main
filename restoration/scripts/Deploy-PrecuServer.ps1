@@ -228,6 +228,7 @@ source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
 precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
+precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -330,6 +331,9 @@ done
 for precu_encounter_difficulty_path in $precu_encounter_difficulty_paths; do
     cmp -s "$source_script/$precu_encounter_difficulty_path" "$work_script/$precu_encounter_difficulty_path"
 done
+for precu_retained_system_level_path in $precu_retained_system_level_paths; do
+    cmp -s "$source_script/$precu_retained_system_level_path" "$work_script/$precu_retained_system_level_path"
+done
 for conversation_file in \
     dath_bh_wanted_list_01 ep3_kachirho_missing_son ep3_myyydril_pers \
     ep3_myyydril_weaponsmith ep3_rodian_junk_dealer ep3_wke_junk_dealer \
@@ -422,6 +426,13 @@ javap -classpath "$class_root" -v script.conversation.imperial_defensive_supply_
 javap -classpath "$class_root" -v script.conversation.som_pei_yi | grep -Fq 'getPrecuEntertainerContentDifficulty'
 javap -classpath "$class_root" -v script.theme_park.outbreak.camp_defense | grep -Fq 'getPrecuEncounterDifficulty'
 ! javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getGroupObjectLevel'
+javap -classpath "$class_root" -v script.library.groundquests | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.npc.static_quest.quest_convo | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.library.collection | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.library.space_combat | grep -Fq 'getPrecuEncounterDifficulty'
+javap -classpath "$class_root" -v script.library.space_combat | grep -Fq 'grantCombatStyleXp'
+javap -classpath "$class_root" -v script.library.performance | grep -Fq 'getPrecuEntertainerContentDifficulty'
+javap -classpath "$class_root" -v script.event.halloween.song_book | grep -Fq 'getPrecuEntertainerContentDifficulty'
 javap -classpath "$class_root" -c -p script.library.utils | grep -Fq 'testItemLevelRequirements'
 javap -classpath "$class_root" -v script.library.utils | grep -Fq 'isPrecuRetainedItemClass'
 javap -classpath "$class_root" -v script.library.utils | grep -Fq 'outdoors_ranger_novice'
