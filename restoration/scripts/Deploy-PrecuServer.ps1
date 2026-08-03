@@ -238,6 +238,12 @@ source_buff_handler="$source_script/systems/buff/buff_handler.java"
 work_buff_handler="$work_script/systems/buff/buff_handler.java"
 source_player_stealth="$source_script/systems/skills/stealth/player_stealth.java"
 work_player_stealth="$work_script/systems/skills/stealth/player_stealth.java"
+source_beast_library="$source_script/library/beast_lib.java"
+work_beast_library="$work_script/library/beast_lib.java"
+source_beast_control_device="$source_script/ai/beast_control_device.java"
+work_beast_control_device="$work_script/ai/beast_control_device.java"
+source_player_beastmaster="$source_script/player/player_beastmaster.java"
+work_player_beastmaster="$work_script/player/player_beastmaster.java"
 source_buff_builder_cancel="$source_script/systems/buff_builder/buff_builder_cancel.java"
 work_buff_builder_cancel="$work_script/systems/buff_builder/buff_builder_cancel.java"
 source_buff_builder_response="$source_script/systems/buff_builder/buff_builder_response.java"
@@ -346,6 +352,9 @@ cmp -s "$source_buff_library" "$work_buff_library"
 cmp -s "$source_performcommands" "$work_performcommands"
 cmp -s "$source_buff_handler" "$work_buff_handler"
 cmp -s "$source_player_stealth" "$work_player_stealth"
+cmp -s "$source_beast_library" "$work_beast_library"
+cmp -s "$source_beast_control_device" "$work_beast_control_device"
+cmp -s "$source_player_beastmaster" "$work_player_beastmaster"
 cmp -s "$source_buff_builder_cancel" "$work_buff_builder_cancel"
 cmp -s "$source_buff_builder_response" "$work_buff_builder_response"
 cmp -s "$source_crafting_base" "$work_crafting_base"
@@ -431,6 +440,16 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sp_neutralize_device_1'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeSpyPlayerAction'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'isRetiredPostNgeSpyBuffName'
+# Publish 14.1 Creature Handler remains authoritative. Retain Beast Master
+# assets for later-content loading but retire their player combat runtime.
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'retirePostNgeBeastMasterPlayerState'
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'bm_player_buff'
+javap -classpath "$class_root" -v script.ai.beast_control_device | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
+javap -classpath "$class_root" -v script.player.player_beastmaster | grep -Fq 'handleRetirePostNgeBeastMasterPlayerState'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeBeastMasterPlayerState'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBeastMasterPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
 # Retained Restuss content keeps its authored advanced-area threshold, but
 # player admission is governed by the hidden PRE-CU combat skill-box score.
 javap -classpath "$class_root" -c script.player.base.base_player | grep -Fq 'getPrecuEncounterDifficulty'

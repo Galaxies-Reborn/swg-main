@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-beast-master-player-runtime-retirement",
+  "status": "ready",
+  "scope": "Retire the post-NGE Beast Master combat-pet runtime for players so Publish 14.1 Creature Handler tame, control, and pet combat remain authoritative while retained beast data and later-content NPCs continue to load.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": {
+      "MMOCoreORB/src/server/zone/objects/intangible/PetControlDeviceImplementation.cpp": "639b69615d016074360b207024df2907ed38a9860799e966631973accb9eea38",
+      "MMOCoreORB/src/server/zone/managers/creature/CreatureManagerImplementation.cpp": "6738b4237da82c45851b958e70b8c1c24c645a3a29955d115b49b2ee474752cd",
+      "MMOCoreORB/src/server/zone/objects/creature/events/TameCreatureTask.h": "1bdcbb82afa3b381387252137e52b641d5de794799fb3b43798c9715837d5d03"
+    },
+    "findings": [
+      "Pinned Publish 14.1 Core3 has no Beast Master, incubator, expertise_bm_, or bm_* player runtime in its server and script gameplay trees.",
+      "Publish 14.1 creature pets are tamed, persisted, called, and controlled through Creature Handler skill modifiers and the pet control device lifecycle.",
+      "The current NGE source retains Beast Master data and NPC-capable scripts for compatibility, but those assets must not establish player progression or combat authority.",
+      "The retirement boundary is player-only; later-content NPC creatures and retained object/data loading are not deleted."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 6,
+    "authoritativePlayersOnly": true,
+    "retiredActionPrefix": "bm_",
+    "beastMasterIdentityForPlayers": false,
+    "persistedActiveBeastStoredBeforeDetach": true,
+    "invalidControlDeviceFallbackClearsPlayerLink": true,
+    "beastControlDeviceMenusForPlayers": false,
+    "playerBeastMasterScriptDetached": true,
+    "playerBeastMasterBuffGroupRemoved": "bm_player_buff",
+    "attentionPenaltyBuffsRemoved": 5,
+    "beastMasterPetToolbarCleared": true,
+    "expertiseBmCompatibilityRows": 53,
+    "bmCommandCompatibilityRows": 124,
+    "bmCombatDataCompatibilityRows": 116,
+    "bmActionHandlers": 109,
+    "standardActionHandlersGated": 108,
+    "directCallbacksGuarded": [
+      "bm_paralytic_poison_recourse"
+    ],
+    "npcBeastBehaviorChanged": false,
+    "beastTemplatesOrDatatablesDeleted": false,
+    "precuCreatureHandlerFilesChanged": false,
+    "precuMechanicsPreserved": [
+      "tame",
+      "creature pet control device",
+      "tame_level",
+      "tame_aggro",
+      "keep_creature",
+      "emboldenpets"
+    ],
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "overlayPatch": {
+      "path": "restoration/patches/dsrc/380-p14-post-nge-beast-master-player-runtime-retirement.patch",
+      "bytes": 10791,
+      "sha256": "9551d05998f54a0b245d038824aee386c5881c5106541db1794fc01a30401e2c"
+    },
+    "sourceSetSha256": "98053d1c6d65270fabd09a19042c39b3eed8642dd5c03286e1566145fc4b72ca",
+    "sourceContentSha256": "10a74433c7b2a1f14ceb0b3bf449968bd8b54f1c0fdfac816c1e227224f4650c",
+    "sourceSha256": {
+      "ai/beast_control_device.java": "527fb77039e8429b38fde80d301a9950ce70f84ffc62d046bc315757d6267438",
+      "library/beast_lib.java": "fc22ecad2573dec48403554200bcf0b50d555f88a873828242925ef9ce5ec142",
+      "player/base/base_player.java": "efad0c506d724d2a46d997c2a7ba84edc4bc6f1a5b65ad770a87d16fa1ad6812",
+      "player/player_beastmaster.java": "fc0e84578848f28504882b93c76c6f8a1467e9d284bb57086948d50c9169f6bf",
+      "systems/combat/combat_actions.java": "af8984370688ef990f47c7c355169b629ab5f6b56fadc77afb881ef4df127392",
+      "systems/combat/combat_base.java": "1df619b7594e4d166c6380f4208d6388ef87ab75ca27467d0776412fe132bda8"
+    },
+    "staticContract": "passed",
+    "fullJavaCompile": "passed (BUILD SUCCESSFUL; 16 minutes 26 seconds)",
+    "cleanMaterializationPatches": 412,
+    "cleanMaterializationAcceptanceFiles": 1167,
+    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
+    "materializedBuild": "passed from E:/SWG/PRE-CU-Reborn/Artifacts/materialize-beast310-final-a",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "compiledClassSha256": {
+      "ai/beast_control_device.class": "e5b2865fdba70a8a73c2af7da77cd195f313d059fd3c2ff602bda75a063389ca",
+      "library/beast_lib.class": "d99bd15ba0ec51cdd1d8c6e28eacd88acd1ba7f404f743b280794ae41a16dcc1",
+      "player/base/base_player.class": "871fb6c8ce9604c8aca1ee2cf6a1a2ac0fd2190913ed0f1ecbe5b0b9ba869f87",
+      "player/player_beastmaster.class": "d12ea0e21859f11934f4f468a87b0ab248ad365cc33398299a360f4e38f1ca82",
+      "systems/combat/combat_actions.class": "78264cd3ceb460bcdba0483e38e22b386f996332474d7b159346bf4f5b8e8b2c",
+      "systems/combat/combat_base.class": "ed5d7d5dae977dfff073d4678b78b2dca77c359bd29d3a60522120cb0238ba5d"
+    },
+    "deploymentProbe": "passed synchronized-source, compiled-bytecode, x64 artifact, rendered runtime configuration, and live mapped-binary probes",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "precuCreatureHandlerSourceSha256": {
+      "library/pet_lib.java": "36b0b9e56646335d9055d01e54c52a68f34a34b8bc394ad620b5ba06aa70970f",
+      "ai/pet_control_device.java": "85f50193a00588f7b167de087fcf5f05d6e5eef443715d7a10c5de96aad75954",
+      "player/skill/taming.java": "e2c909b89183f9e0d63e2520209f471f0000a122873716969898554534043e6b",
+      "ai/pet_master.java": "09e385857c7d429bdc5a638d52afdfbf03e03c1f1e1238a5874cf1a4d7ba07be"
+    },
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-03",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-beast310-final-a -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "containerStartedAt": "2026-08-03T19:11:11.383214742Z",
+    "containerHealth": "running",
+    "clusterReadyForPlayers": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 366,
+    "liveBinaryInode": 12110795,
+    "coreProcessCount": 19,
+    "postStartLogAudit": "344 lines; zero fatal, severe, exception, mission error, or empty ConGenericMessage warnings; cluster ready for players",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "player Beast Master identity, active combat-beast lifecycle, Beast Control Device call/store menu authority, player Beast Master script attachment, bm_* standard combat execution, and the one direct bm_* recourse callback",
+    "notClaimedComplete": "incubator and enzyme crafting presentation, cosmetic familiar and holopet surfaces, retained later-content beast data, and other dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

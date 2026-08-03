@@ -1427,3 +1427,12 @@ execution. The gate is player-only so retained later-content NPC behavior keeps
 loading, and it explicitly preserves Ranger conceal/mask scent/trapping,
 Rifleman Conceal Shot, HEP urban stealth, and the retained trap hide/disarm
 device commands.
+
+380-p14-post-nge-beast-master-player-runtime-retirement.patch makes the pinned
+Publish 14.1 Creature Handler pet system authoritative over the retained NGE
+Beast Master runtime. Persisted active NGE beasts are safely stored, invalid
+links are cleared, player Beast Master scripts and presentation state are
+removed, Beast Control Device menus fail closed, and all bm_* standard combat
+actions plus the one direct recourse callback are rejected for players. The
+gate is player-only: Creature Handler tame/control/emboldenpets behavior,
+later-content NPC creatures, templates, and compatibility data remain intact.
