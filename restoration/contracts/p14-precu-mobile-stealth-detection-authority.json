@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-mobile-stealth-detection-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make production-reachable mobile conceal detection resolve players through the authenticated equipped-weapon PRE-CU combat level while preserving authored NPC creature levels, camouflage and detection modifiers, retained later content, and retired post-NGE Spy player gameplay.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -66,42 +66,47 @@
       "stealth": "fc63bd188ca47df40dafcc76cdd3075c6a6e5e8bac9f227bf0945a3a00dae00a"
     },
     "compiledClassSha256": {
-      "stealth": ""
+      "stealth": "315fa8e460be8556b9c0aa5182ad55e43c57ed1fd60a9d818e31b93befe93a34"
     },
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "",
-    "serverBinaryBuildId": "",
-    "sourceWorkParity": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and stealth.class was emitted 2026-08-04T15:23:37Z",
+    "fullServerBuild": "passed in 607 seconds from the pushed direct source with all server and data targets completed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte; host, read-only source mount, and writable work-volume SHA-256 are fc63bd188ca47df40dafcc76cdd3075c6a6e5e8bac9f227bf0945a3a00dae00a",
+    "bytecodeAudit": "both detection methods contain exactly two xp.getPrecuCombatLevel calls and zero script.base_class.getLevel calls",
+    "deploymentProbe": "passed mandatory source/work parity, cumulative PRE-CU data and bytecode gates, focused conceal-detection bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "compiledClassPresent": false,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": 0,
-    "liveBinaryInode": 0,
-    "liveBinarySize": 0,
-    "processCounts": {},
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T15:28:49.07334045Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassPresent": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 364,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "308 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "the production mobile conceal detector's four direct reads of the removed NGE player-level field",
     "preserved": "Publish 14.1 maskscent and conceal skills, current detection probability inputs, authored NPC creature levels, Force cloak compatibility, retained expansion NPCs and devices, and retired Spy player gameplay",
     "notClaimedComplete": "dormant post-NGE theft and hologram compatibility plus other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": [
-    "clean Docker Java and x64 server build",
-    "source/work parity and focused bytecode probes",
-    "healthy player-ready restart with live mapped-binary verification"
-  ]
+  "requiredBeforeReady": []
 }
