@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-retained-instance-simulator-difficulty-authority",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Preserve the retained Meatlump Hideout and TCG combat simulators while deriving their player-relative NPC scaling from learned PRE-CU combat skill boxes instead of the removed NGE player combat level.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU progression with retained expansion quests and utility items",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3References": {
+      "skillProgression": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+      "playerDifficulty": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp"
+    },
+    "findings": [
+      "Publish 14.1 character progression is learned skill-box based and has no NGE player combat level.",
+      "The authenticated retained-content bridge maps learned PRE-CU combat-box costs to a hidden 1-90 encounter scale.",
+      "The live Meatlump entrance controller consumes its owner-relative value to initialize every hostile NPC in the retained instance.",
+      "The live TCG target controllers consume their owner's value only as the default simulator level; explicit persisted and manually selected simulator levels remain authored utility behavior."
+    ]
+  },
+  "diagnosis": {
+    "historicalDirectPlayerLevelReads": 2,
+    "historicalMeatlumpAuthority": "getLevel(instance owner)",
+    "historicalTargetSimulatorAuthority": "getLevel(controller owner)",
+    "activeMeatlumpEntranceBuildoutRows": 1,
+    "retainedTargetControllerItems": 2
+  },
+  "expected": {
+    "changedSourceFiles": 2,
+    "directPlayerLevelReads": 0,
+    "difficultyAuthority": "skill.getPrecuEncounterDifficulty from learned PRE-CU combat skill boxes",
+    "minimumHiddenEncounterDifficulty": 1,
+    "maximumHiddenEncounterDifficulty": 90,
+    "meatlumpAuthoredFloor": 65,
+    "meatlumpOwnerAndControllerChecksPreserved": true,
+    "meatlumpHostileReinitializationPreserved": true,
+    "targetSimulatorDefaultFallback": 50,
+    "targetSimulatorPersistedOverridePreserved": true,
+    "targetSimulatorManualMinimum": 1,
+    "targetSimulatorManualMaximum": 100,
+    "targetNpcLevelReadPreserved": true,
+    "retainedQuestAndItemContentPreserved": true
+  },
+  "sourceFiles": {
+    "meatlumpEntrance": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/meatlump/hideout/mtp_instance_entrance_cell.java",
+    "targetSimulator": "dsrc/sku.0/sys.server/compiled/game/script/systems/tcg/target_creature.java",
+    "skillLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "meatlumpController": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/meatlump/hideout/mtp_instance_controller.java",
+    "targetDummyLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/target_dummy.java",
+    "targetControllerDeed": "dsrc/sku.0/sys.server/compiled/game/script/systems/tcg/target_creature_deed.java",
+    "targetCreatureDefinitions": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab",
+    "meatlumpBuildout": "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/dungeon1/mtp_hideout_instance.tab",
+    "meatlumpSpawns": "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/mtp_hideout_instance.tab",
+    "masterItems": "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "c4b322bfa80d0b813c05119d1cd397896bfcd525",
+    "lineEndingPolicy": "the two touched legacy CRLF blobs normalized to the repository's declared LF policy",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "meatlumpEntrance": "b71dbfa6fc51e4c68a877b1633a50666657b37ecfcca6c0da6c5a464025c6eb1",
+      "targetSimulator": "fe29001942c053e71da34fa7dbf87b1fdf0bf34c8fafc49328aecdd86114e7b2"
+    },
+    "fullJavaCompile": "pending",
+    "compiledClassSha256": {
+      "meatlumpEntrance": "pending",
+      "targetSimulator": "pending"
+    },
+    "bytecodeAudit": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "result": "pending"
+  },
+  "continuityEvidence": {
+    "skillLibrarySha256": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+    "meatlumpControllerSha256": "c7468f6634aee9b402162901c6e973812b1d7fc53310479d000b95241bd9699e",
+    "targetDummyLibrarySha256": "468ea2503b6c792d9f025d9270e0afd6bde43d9d336fe00a33ff42a357770e50",
+    "targetControllerDeedSha256": "a6dd2866f6af836bbf065cae98b011cb4ba42cefa11da9bdac11da860dc5c0fc",
+    "targetCreatureDefinitionsSha256": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
+    "meatlumpBuildoutSha256": "2355390f50d72bcab2c1a33c26bd559a5aeb75d14da15c3b847a9f39986af79f",
+    "meatlumpSpawnsSha256": "d674f5d744bae9eccacfda9368f039bc6159f3da8b137eb6f65acd1c328f206f",
+    "masterItemsSha256": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 0,
+    "compiledClassesPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "direct NGE player combat-level authority in the live retained Meatlump Hideout instance and TCG target simulator default-scaling paths",
+    "preserved": "the Meatlump quest/buildout, its authored level-65 floor and hostile initialization flow, both TCG controller items, target ownership and placement, persisted/manual simulator settings, NPC level state, defensive settings, and combat reporting",
+    "notClaimedComplete": "GCW ratios and region compatibility, familiar buffs, mobile stealth and theft, transition compatibility, and dormant later combat mechanics remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Commit and push the direct dsrc source.",
+    "Pass the full Docker x64 server build and bytecode probes.",
+    "Deploy and verify the healthy live cluster.",
+    "Record final direct-source, class, binary, and runtime evidence."
+  ]
+}
