@@ -1,47 +1,35 @@
 {
   "schemaVersion": 1,
-  "feature": "p14-post-nge-automatic-player-reward-retirement",
+  "feature": "p14-precu-login-skill-progression-authority",
   "status": "ready",
-  "scope": "Retire automatic post-Publish-14 login gifts and combat-level rewards while preserving retained expansion items, quests, conversations, and explicit veteran replacement purchases.",
+  "scope": "Make authored Publish 14.1 skill-box purchase and training authoritative by retiring the normal-login recursive prerequisite grant that bypassed skill points, prerequisite ownership, XP, credits, and trainers.",
   "eraEvidence": {
     "targetEra": "Publish 14.1 PRE-CU",
     "findings": [
-      "The inherited publish-gift table begins at Publish 27 and therefore cannot define a Publish 14.1 login entitlement.",
-      "The inherited level reward helper awards items at combat levels 20 and 70, but player combat level is not a PRE-CU progression or reward authority.",
-      "Retained later-expansion items and quests remain valid content; only their automatic post-NGE login and level grant paths are retired."
+      "Publish 14.1 progression acquires individual skill boxes through authored prerequisite, skill-point, XP, credit, and trainer gates.",
+      "The inherited normal-login repair recursively granted every missing prerequisite with raw grantSkill calls and a 100-pass ceiling, outside the purchase and trainer paths.",
+      "The authoritative skill purchase and trainer paths already enforce the retained skill table and do not require login to synthesize ownership."
     ]
   },
   "diagnosis": {
-    "publishGiftTableRows": 23,
-    "distinctPublishNumbers": 19,
-    "firstPublishNumber": 27,
-    "lastPublishNumber": 45,
-    "nonemptyGiftItems": 22,
-    "distinctGiftItems": 22,
-    "automaticCombatLevelRewardTiers": 2,
-    "automaticCombatLevelRewards": [
-      {
-        "combatLevel": 20,
-        "template": "object/tangible/deed/vehicle_deed/speederbike_flash_deed.iff"
-      },
-      {
-        "combatLevel": 70,
-        "template": "object/tangible/veteran_reward/mount_lava_flea.iff"
-      }
-    ],
-    "retainedPublishGiftItemScripts": 13,
-    "retainedPublishGiftCollectionScripts": 3
+    "historicalLoginRepairLoops": 1,
+    "historicalRawPrerequisiteGrantSites": 1,
+    "historicalRepairPassLimit": 100,
+    "skillTableRows": 2636,
+    "rowsWithPrerequisites": 1480,
+    "rowsWithXpCost": 1209,
+    "rowsWithMoneyCost": 972
   },
   "expected": {
-    "loginPublishGiftGrantReachable": false,
-    "combatLevelRewardGrantReachable": false,
-    "queuedLegacyRewardCallbacksCreateItems": false,
-    "staleLevelRewardStateCleanedOnInitialize": true,
-    "retainedExpansionGiftItemsAndScriptsPreserved": true,
-    "retainedExpansionQuestsPreserved": true,
-    "explicitVeteranReplacementPurchasePreserved": true,
-    "smugglerExpansionBootstrapPreserved": true,
-    "smugglerExpansionBootstrapUsesPrecuProfessionGate": true,
+    "loginRecursivelyGrantsPrerequisites": false,
+    "loginRawSkillGrantSites": 0,
+    "loginRepairRevokesOwnedSkills": false,
+    "skillPointGatePreserved": true,
+    "prerequisiteGatePreserved": true,
+    "xpGateAndDeductionPreserved": true,
+    "trainerCreditGatePreserved": true,
+    "skillTablePreserved": true,
+    "characterTransferSkillBoxesPreserved": true,
     "missionCoreChanged": false
   },
   "buildEvidence": {
@@ -63,8 +51,9 @@
     "result": "passed"
   },
   "continuityEvidence": {
-    "publishGiftDataSha256": "f73cfba1cbd8cdb21e84a608a88c34fd47ba8a72896fa11515a2d358b6150ff5",
-    "professionPredicateSourceSha256": "0a23e1836a5982e2fafe916cef1333fa04108c91e9cf731f171e5ddae3a991c2",
+    "skillLibrarySha256": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+    "skillTrainerSha256": "66a7c3a6a881b58faf774f2286a08ceec4142fae39cea44f5819d435ebdc84b4",
+    "skillDataSha256": "6ee0686eec7e1d25db2ef1bc645eed98145c23d7fa125705b3188957103a5c6d",
     "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
     "missionSourceSha256": {
       "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
@@ -82,7 +71,7 @@
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "sourceWorkParityFiles": 1,
-    "compiledBytecodeProbes": "passed: stale level.reward cleanup is present; grantLevelSpecificRewards, createLevelReward, and givePublishGift compile to immediate returns; OnInitialize invokes cleanup and retains Smuggler and mission initialization",
+    "compiledBytecodeProbes": "passed: OnLogin contains zero grantSkill or prerequisite-repair references while retaining the demo_combat cleanup",
     "liveProcessMappedBuiltBinary": true,
     "liveGameProcessPid": 368,
     "liveBinaryInode": 12110814,
@@ -99,8 +88,8 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "automatic Publish 27-45 login gifts, combat-level 20 and 70 item rewards, queued legacy helper calls, and stale level.reward markers",
-    "preserved": "existing items, retained publish-gift scripts and quests, explicit paid veteran replacement, PRE-CU-gated Smuggler quest bootstrap, later zones and conversations, and user-verified mission-terminal behavior",
+    "closedInThisMilestone": "the recursive normal-login prerequisite repair and its raw skill-grant site",
+    "preserved": "owned skills, explicit skill purchase, skill points, prerequisites, XP, trainer credits, surrender, character transfer, quests, zones, later content, and user-verified mission-terminal behavior",
     "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
   "requiredBeforeReady": []

@@ -2709,3 +2709,16 @@ quests/content, and user-verified mission terminal remain preserved. Validate
 the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPoliticianProgressionAuthority.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 319 restores the authored PRE-CU skill-training boundary at normal
+login. The inherited migration repair recursively granted every missing
+prerequisite for every held skill, with raw grants and a 100-pass ceiling. That
+path bypassed skill points, prerequisite ownership, XP, credits, and trainers.
+
+Login no longer creates or revokes skill-box ownership to repair a graph.
+Explicit purchase and trainers retain their skill-point, prerequisite, XP,
+credit, and deduction checks. Owned skills, surrender, character transfer,
+quests, later content, and the user-verified mission terminal remain preserved.
+Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuLoginSkillProgressionAuthority.ps1 -SourceRoot <direct-server-checkout>
