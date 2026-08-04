@@ -2680,3 +2680,18 @@ objects, quests, conversations, zones, and the user-verified mission-terminal
 sources remain unchanged. Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerProcRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 317 retires automatic post-Publish-14 player rewards without
+discarding retained expansion content. Login no longer grants the newest row
+from the Publish 27-45 gift table, and combat-level 20/70 callbacks cannot
+create Flash Speeder or Lava Flea rewards. Login also clears the obsolete
+`level.reward` marker tree, while the legacy public callbacks remain safe
+no-ops for queued or retained callers.
+
+Existing gift items, item behavior, collection quests, explicit paid veteran
+replacement, and the retained Smuggler quest bootstrap remain available. The
+Smuggler bootstrap continues to use the PRE-CU `combat_smuggler_novice` gate.
+The user-verified mission-terminal sources remain hash-pinned and unchanged.
+Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeAutomaticPlayerRewardRetirement.ps1 -SourceRoot <direct-server-checkout>
