@@ -51,6 +51,10 @@ Write-Host "Verifying the direct-source PRE-CU combat routing closure before bui
 & (Join-Path $PSScriptRoot "Test-P14PrecuCombatRoutingClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU zone transition level authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuZoneTransitionLevelAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -242,6 +246,10 @@ source_group_library="$source_script/library/group.java"
 work_group_library="$work_script/library/group.java"
 source_skill_library="$source_script/library/skill.java"
 work_skill_library="$work_script/library/skill.java"
+source_transition_library="$source_script/library/transition.java"
+work_transition_library="$work_script/library/transition.java"
+source_zone_transition_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/travel/zone_transition.tab"
+work_zone_transition_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/travel/zone_transition.tab"
 source_utils_library="$source_script/library/utils.java"
 work_utils_library="$work_script/library/utils.java"
 source_stealth_library="$source_script/library/stealth.java"
@@ -385,6 +393,8 @@ cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
+cmp -s "$source_transition_library" "$work_transition_library"
+cmp -s "$source_zone_transition_table" "$work_zone_transition_table"
 cmp -s "$source_utils_library" "$work_utils_library"
 cmp -s "$source_stealth_library" "$work_stealth_library"
 cmp -s "$source_luck_library" "$work_luck_library"
@@ -591,6 +601,9 @@ javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuGroup
 javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuProfessionSkillScore'
 javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuCraftingContentDifficulty'
 javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getPrecuEntertainerContentDifficulty'
+transition_bytecode="$(javap -classpath "$class_root" -c -p script.library.transition)"
+test "$(printf '%s\n' "$transition_bytecode" | grep -Fc 'script/library/skill.getPrecuEncounterDifficulty')" -eq 3
+! printf '%s\n' "$transition_bytecode" | grep -Fq 'getLevel'
 javap -classpath "$class_root" -v script.conversation.corellia_coronet_vani_korr | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.conversation.imperial_defensive_supply_terminal | grep -Fq 'getPrecuCraftingContentDifficulty'
 javap -classpath "$class_root" -v script.conversation.som_pei_yi | grep -Fq 'getPrecuEntertainerContentDifficulty'

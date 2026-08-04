@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-zone-transition-level-authority",
+  "status": "implemented-build-pending",
+  "scope": "Preserve retained Kashyyyk, NPE, Nova Orion, township, heroic, quest, item, and instance transition content while preventing the removed NGE player combat level from becoming authoritative in current or future zone admission rows.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 characters progress through learned skill boxes and a 250-point skill budget rather than an NGE profession template or visible combat level.",
+      "The retained expansion transition library supports authored quest, task, item, object-variable, script-variable, and compatibility level gates for later zones and instances.",
+      "The established retained-content adapter maps learned PRE-CU combat skill boxes to the hidden 1-90 compatibility scale without exposing an NGE player level.",
+      "Current transition data has no active level gate, so this correction preserves every present destination and admission result while closing latent NGE precedence for future retained rows."
+    ]
+  },
+  "expected": {
+    "changedDsrcFiles": 2,
+    "gameplaySourceFiles": 1,
+    "rawPlayerLevelReadsInPermission": 0,
+    "precuEncounterDifficultyReadsInPermission": 3,
+    "levelAdmissionBranches": 3,
+    "zoneTransitionRows": 52,
+    "activeLevelAdmissionRows": 0,
+    "directTransitionEntryPoints": 2,
+    "retainedFlagKinds": [
+      "object-or-script-variable",
+      "has-ground-quest",
+      "won-ground-or-space-quest",
+      "active-ground-task",
+      "item-template",
+      "item-objvar"
+    ],
+    "representativeRoutes": [
+      "kachirho_deadforest",
+      "kachirho_huntinggrounds",
+      "deadforest_myyydril",
+      "kachirho_rryatt",
+      "npe_space_station",
+      "aurillia_township",
+      "tusken_encounter",
+      "axkva_min",
+      "ig88",
+      "station_nova_orion",
+      "exar_kun"
+    ],
+    "authoredDestinationsAndFlagsPreserved": true,
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "transition": "dsrc/sku.0/sys.server/compiled/game/script/library/transition.java",
+    "zoneTable": "dsrc/sku.0/sys.server/compiled/game/datatables/travel/zone_transition.tab",
+    "skill": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "movementEntry": "dsrc/sku.0/sys.server/compiled/game/script/systems/movement/zone_transition.java",
+    "townshipEntry": "dsrc/sku.0/sys.server/compiled/game/script/library/township.java",
+    "nexusEntry": "dsrc/sku.0/sys.server/compiled/game/script/conversation/nexus_travel.java",
+    "nexusAwayEntry": "dsrc/sku.0/sys.server/compiled/game/script/conversation/nexus_travel_away.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "0744f8cd3fcbc12f9f6ea42d31ec2f9855a4706b",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "e1a7d353d02cecafd4004a1fdc8f387ca20a1ca3b9581a10f3ceb930dbefdbd3",
+      "transition": "0705afcf87c545abc10ab8de51bb2d13cfa3186b98498ce0bb85ee8cb7e32415",
+      "zoneTable": "2a5069bb455cd36a1e4d3f24a244b59fa1a518ece801da2e87cf1f13d27b913f",
+      "skill": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+      "movementEntry": "279a17a3d91d338ac5c20c3e2d6b0e86e1fda704f10fa54aa20f0da947281c5f",
+      "townshipEntry": "75fb3195109a95270aa366ce4c42dbaaae44934eb9a00ee4295a6c9f942fea81",
+      "nexusEntry": "c5163c43b364431583eaab614db475030c12a36d36f02c1d46cfeac65dbac25e",
+      "nexusAwayEntry": "000aa9a77dd0047e3bb2e539134dd92bfcf0e4fe50383ff0f36d7264d73a4db7"
+    },
+    "sourceTest": "passed; all three compatibility level branches call the hidden PRE-CU combat-skill adapter, all 52 current routes and their authored flag/destination data remain authenticated, and no current row uses a level gate",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all three raw NGE player-level reads in the shared retained zone-transition admission library",
+    "preserved": "all 52 current route rows, authored destinations, quest/task/item/object-variable/script-variable checks, temporary access cleanup, gate and no-gate entry points, retained expansion zones, instances, conversations, and content",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "pass the direct-source regression contract",
+    "commit and push the parent gitlink and acceptance checkpoint",
+    "pass a clean x64 Docker build and mandatory source/work and bytecode probes",
+    "restart the live container and record healthy player-ready evidence"
+  ]
+}
