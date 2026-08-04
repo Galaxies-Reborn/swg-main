@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-player-vendor-maintenance-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Restore Publish 14.1 player-vendor maintenance rates and Merchant skill ownership while removing the active NGE Trader/expertise authority from billing and status display.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -45,30 +45,43 @@
       "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
     },
     "compiledClassSha256": {
-      "vendor": "pending"
+      "vendor": "0a62903baf826651fc1361be7f057f0404a1f10ae19f18fe58170c8fc66320ce"
     },
-    "sourceTest": "pending",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "sourceTest": "passed; both active maintenance calculations use explicit Master Merchant and Merchant Sales II ownership, preserve the 15-credit base rate and flat 6-credit registration surcharge, and contain no generic Trader, hiring-modifier, or expertise authority",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and terminal/vendor.class was emitted at 2026-08-04T20:36:13Z",
+    "fullServerBuild": "passed in 734.3 seconds from pushed parent ed4cc8f and direct dsrc 4b7a96e59",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for terminal/vendor.java against the read-only direct-source mount",
+    "bytecodeAudit": "passed; terminal/vendor.class contains crafting_merchant_master and crafting_merchant_sales_02 constants at both billing/status call sites and contains no expertise_vendor_cost_decrease constant",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused player-vendor source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "pending",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "pending",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "liveProcessMappedBuiltBinary": false,
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T20:42:33.725051823Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 29911,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 363,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "generic later-Trader, NGE expertise, and multiplicative registration authority in both active player-vendor maintenance calculations",
