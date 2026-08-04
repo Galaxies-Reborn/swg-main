@@ -55,6 +55,10 @@ Write-Host "Verifying the direct-source PRE-CU zone transition level authority b
 & (Join-Path $PSScriptRoot "Test-P14PrecuZoneTransitionLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU dynamic mission difficulty authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuDynamicMissionDifficultyAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -266,6 +270,8 @@ source_mission_base="$source_script/systems/missions/base/mission_base.java"
 work_mission_base="$work_script/systems/missions/base/mission_base.java"
 source_mission_dynamic="$source_script/systems/missions/base/mission_dynamic_base.java"
 work_mission_dynamic="$work_script/systems/missions/base/mission_dynamic_base.java"
+source_mission_escort="$source_script/systems/missions/dynamic/mission_escort_npc.java"
+work_mission_escort="$work_script/systems/missions/dynamic/mission_escort_npc.java"
 source_player_utility="$source_script/player/player_utility.java"
 work_player_utility="$work_script/player/player_utility.java"
 source_ai="$source_script/ai/ai.java"
@@ -406,6 +412,8 @@ diff -qr "$source_theme_park" "$work_theme_park" >/dev/null
 ! grep -R -E '(^|[^[:alnum:]_.])((combat|utils)\.)?getLevel[[:space:]]*\([[:space:]]*(player|whoTriggeredMe)[[:space:]]*\)' "$work_conversation" "$work_theme_park"
 cmp -s "$source_mission_base" "$work_mission_base"
 cmp -s "$source_mission_dynamic" "$work_mission_dynamic"
+cmp -s "$source_mission_escort" "$work_mission_escort"
+! grep -R -E '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*player[[:space:]]*\)' "$work_script/systems/missions"
 cmp -s "$source_player_utility" "$work_player_utility"
 cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
@@ -810,6 +818,10 @@ javap -classpath "$class_root" -v script.theme_park.meatlump.quest_shuttle_comli
 javap -classpath "$class_root" -v script.theme_park.outbreak.dynamic_spawn_off_quest_item | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.ai.ai | grep -Fq 'getPrecuEncounterDifficulty'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'getLevel'
+mission_dynamic_bytecode="$(javap -classpath "$class_root" -c -p script.systems.missions.base.mission_dynamic_base)"
+test "$(printf '%s' "$mission_dynamic_bytecode" | grep -Fc 'Method script/library/skill.getPrecuEncounterDifficulty')" -eq 2
+! printf '%s' "$mission_dynamic_bytecode" | grep -Fq 'Method getLevel'
+! javap -classpath "$class_root" -c -p script.systems.missions.dynamic.mission_escort_npc | grep -Fq 'Method getLevel'
 javap -classpath "$class_root" -v script.ai.familiar | grep -Fq 'removePetBuff'
 ! javap -classpath "$class_root" -v script.ai.familiar | grep -Fq 'getLevel'
 ! grep -Fq 'buff.applyBuff' "$work_script/ai/familiar.java"
