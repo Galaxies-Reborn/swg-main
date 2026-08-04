@@ -79,6 +79,10 @@ Write-Host "Verifying the direct-source PRE-CU crafting expertise authority befo
 & (Join-Path $PSScriptRoot "Test-P14PrecuCraftingExpertiseAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU resource sampling cadence authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuResourceSamplingCadenceAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -300,6 +304,8 @@ source_crafting_base="$source_script/systems/crafting/crafting_base.java"
 work_crafting_base="$work_script/systems/crafting/crafting_base.java"
 source_cybernetic_crafting="$source_script/systems/crafting/armor/crafting_new_cybernetics_final.java"
 work_cybernetic_crafting="$work_script/systems/crafting/armor/crafting_new_cybernetics_final.java"
+source_survey_tool="$source_script/item/survey_tool/survey_tool_script.java"
+work_survey_tool="$work_script/item/survey_tool/survey_tool_script.java"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -483,6 +489,10 @@ cmp -s "$source_cybernetic_crafting" "$work_cybernetic_crafting"
 grep -Fq 'removeObjVar(structure, VAR_POWER_MOD_FACTORY)' "$work_player_structure_library"
 grep -Fq 'removeObjVar(structure, VAR_POWER_MOD_HARVESTER)' "$work_player_structure_library"
 grep -Fq 'float reductionAmount = 1.0f - 0.4f;' "$work_cybernetic_crafting"
+cmp -s "$source_survey_tool" "$work_survey_tool"
+grep -Fq 'public static final int SURVEY_TOOL_DELAY = 25;' "$work_survey_tool"
+! grep -Fq 'MIN_SURVEY_TOOL_DELAY' "$work_survey_tool"
+! grep -Fq 'expertise_resource_sampling_time_decrease' "$work_survey_tool"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -581,6 +591,9 @@ do
 done
 javap -classpath "$class_root" -v script.library.player_structure | grep -Fq 'player_structure.power.modifiers.factory'
 javap -classpath "$class_root" -v script.library.player_structure | grep -Fq 'player_structure.power.modifiers.harvester'
+javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'SURVEY_TOOL_DELAY = 25'
+! javap -classpath "$class_root" -v script.item.survey_tool.survey_tool_script | grep -Fq 'expertise_resource_sampling_time_decrease'
+! javap -classpath "$class_root" -v script.item.survey_tool.survey_tool_script | grep -Fq 'MIN_SURVEY_TOOL_DELAY'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'

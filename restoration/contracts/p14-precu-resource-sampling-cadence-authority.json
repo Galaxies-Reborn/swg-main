@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-resource-sampling-cadence-authority",
+  "status": "implemented-build-pending",
+  "scope": "Restore the Publish 14.1 fixed 25-second resource-sampling cadence while preserving the existing Quickness-derived Action cost, sampling loop, resource result calculation, effects, and retained content.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/player/sessions/survey/SurveySessionImplementation.cpp",
+    "findings": [
+      "The pinned Publish 14.1 implementation schedules each sample task at 25000 milliseconds.",
+      "Publish 14.1 uses current Quickness only for the sampling Action cost formula 124 - Quickness / 12.5.",
+      "The inherited survey tool retained an NGE expertise_resource_sampling_time_decrease modifier that could reduce the cadence from 25 seconds to a 10-second floor.",
+      "The existing getSurveyToolDelay ABI is retained so every current loop and watchdog caller receives the fixed Publish 14.1 cadence."
+    ]
+  },
+  "expected": {
+    "surveyToolDelaySeconds": 25,
+    "ngeMinimumDelaySecondsRetired": 10,
+    "samplingCadenceExpertiseReads": 0,
+    "delayHelperCallSites": 7,
+    "actionCostFormula": "max(0, 124 - currentQuickness / 12.5)",
+    "samplingLoopPreserved": true,
+    "resourceResultCalculationPreserved": true,
+    "samplingEffectsPreserved": true
+  },
+  "sourceFiles": {
+    "surveyTool": "dsrc/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "4c2da2e17ef5f10c48adf5d2ffe2d0ebdbd07621",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "surveyTool": "adc3cec743a187a3a49dbe4c58fd5227fd333dc6e4a4000e0fbd94ce3be12380"
+    },
+    "compiledClassSha256": {
+      "surveyTool": "pending"
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the active NGE expertise-derived resource-sampling cadence and its 10-second floor",
+    "preserved": "the 25-second Publish 14.1 sample schedule, Quickness-derived Action cost, sampling admission and cancellation, result quantity and quality, resource containers, effects, radioactive handling, concentrated-resource content, XP chance, and the existing helper ABI",
+    "notClaimedComplete": "reverse engineering, retained vendor maintenance, armor, healing, movement, performance, and other content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}
