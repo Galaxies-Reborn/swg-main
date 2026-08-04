@@ -257,6 +257,7 @@ work_crafting_base="$work_script/systems/crafting/crafting_base.java"
 precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/tcg/target_creature.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/hideout/mtp_instance_entrance_cell.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
+precu_cosmetic_familiar_paths="ai/familiar.java"
 post_nge_beast_creation_paths="ai/pet_control_device.java library/beast_lib.java library/incubator.java npc/pet_deed/pet_deed.java player/base/base_player.java player/player_utility.java systems/beast/base_incubator.java systems/beast/beast_dye.java systems/beast/beast_egg.java systems/beast/beast_food.java systems/beast/beast_steroid_injector.java systems/beast/decoration_item.java systems/beast/enzyme_crafting_base.java systems/beast/enzyme_crafting_centrifuge.java systems/beast/enzyme_crafting_combiner.java systems/beast/enzyme_crafting_processor.java systems/beast/enzyme_extractor.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
@@ -379,6 +380,9 @@ for precu_encounter_difficulty_path in $precu_encounter_difficulty_paths; do
 done
 for precu_retained_system_level_path in $precu_retained_system_level_paths; do
     cmp -s "$source_script/$precu_retained_system_level_path" "$work_script/$precu_retained_system_level_path"
+done
+for precu_cosmetic_familiar_path in $precu_cosmetic_familiar_paths; do
+    cmp -s "$source_script/$precu_cosmetic_familiar_path" "$work_script/$precu_cosmetic_familiar_path"
 done
 for conversation_file in \
     dath_bh_wanted_list_01 ep3_kachirho_missing_son ep3_myyydril_pers \
@@ -730,6 +734,10 @@ javap -classpath "$class_root" -v script.theme_park.meatlump.quest_shuttle_comli
 javap -classpath "$class_root" -v script.theme_park.outbreak.dynamic_spawn_off_quest_item | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.ai.ai | grep -Fq 'getPrecuEncounterDifficulty'
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'getLevel'
+javap -classpath "$class_root" -v script.ai.familiar | grep -Fq 'removePetBuff'
+! javap -classpath "$class_root" -v script.ai.familiar | grep -Fq 'getLevel'
+! grep -Fq 'buff.applyBuff' "$work_script/ai/familiar.java"
+grep -Fq 'buff.removeBuff(master, numbuff)' "$work_script/ai/familiar.java"
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_ACTION_BASE_COST = 124'
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_QUICKNESS_DIVISOR = 12.5f'
 ! javap -classpath "$class_root" -v script.item.buff_click_item | grep -Fq 'required_level_for_effect'
