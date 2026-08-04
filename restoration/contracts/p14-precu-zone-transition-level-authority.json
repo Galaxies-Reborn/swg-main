@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-zone-transition-level-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Preserve retained Kashyyyk, NPE, Nova Orion, township, heroic, quest, item, and instance transition content while preventing the removed NGE player combat level from becoming authoritative in current or future zone admission rows.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -71,22 +71,55 @@
       "nexusEntry": "c5163c43b364431583eaab614db475030c12a36d36f02c1d46cfeac65dbac25e",
       "nexusAwayEntry": "000aa9a77dd0047e3bb2e539134dd92bfcf0e4fe50383ff0f36d7264d73a4db7"
     },
+    "compiledClassSha256": {
+      "transition": "8436c8e7f1df30234723ae7147828c920e77643906bdf4ad97f25aac7d0686ea"
+    },
+    "compiledDataSha256": {
+      "zoneTable": "b45ead535a5cd3da7e5e3113581499fba3ccd6d890f5416995c4c70a8666a399"
+    },
     "sourceTest": "passed; all three compatibility level branches call the hidden PRE-CU combat-skill adapter, all 52 current routes and their authored flag/destination data remain authenticated, and no current row uses a level gate",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and transition.class was emitted 2026-08-04T17:09:50Z",
+    "fullServerBuild": "passed in 595.9 seconds from pushed parent 03ea7ee and direct dsrc 0744f8c with all x64 server and data targets completed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for transition.java and zone_transition.tab; source and work SHA-256 pairs are identical",
+    "bytecodeAudit": "transition.class contains exactly three skill.getPrecuEncounterDifficulty calls and zero getLevel references",
+    "deploymentProbe": "passed both direct-source preflight contracts, mandatory source/work parity, focused transition bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "result": "pending"
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-04T17:14:53.739540098Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassPresent": true,
+    "compiledClassSize": 7418,
+    "compiledDataPresent": true,
+    "compiledDataSize": 5567,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 363,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "all three raw NGE player-level reads in the shared retained zone-transition admission library",
     "preserved": "all 52 current route rows, authored destinations, quest/task/item/object-variable/script-variable checks, temporary access cleanup, gate and no-gate entry points, retained expansion zones, instances, conversations, and content",
     "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": [
-    "pass the direct-source regression contract",
-    "commit and push the parent gitlink and acceptance checkpoint",
-    "pass a clean x64 Docker build and mandatory source/work and bytecode probes",
-    "restart the live container and record healthy player-ready evidence"
-  ]
+  "requiredBeforeReady": []
 }
