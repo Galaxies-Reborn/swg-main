@@ -134,7 +134,7 @@ Assert-Contract ($skillText.Contains("PRECU_PHASE_TWO_COMBAT_SCORE = 25") -and
 
 $utilsText = Get-SourceText "sku.0/sys.server/compiled/game/script/library/utils.java"
 $professionSlice = Get-FunctionSlice $utilsText "public static int getPlayerProfession" "public static byte[] packObject"
-$professionOrder = @("FORCE_SENSITIVE", "BOUNTY_HUNTER", "SMUGGLER", "COMMANDO", "OFFICER", "MEDIC", "ENTERTAINER")
+$professionOrder = @("FORCE_SENSITIVE", "BOUNTY_HUNTER", "SMUGGLER", "COMMANDO", "OFFICER", "MEDIC", "ENTERTAINER", "TRADER")
 $professionCursor = -1
 $professionOrderValid = $true
 foreach ($profession in $professionOrder)
@@ -143,6 +143,7 @@ foreach ($profession in $professionOrder)
     if ($professionCursor -lt 0) { $professionOrderValid = $false; break }
 }
 Assert-Contract ($professionOrderValid -and $professionSlice.Contains("return TRADER;") -and
+    $professionSlice.Contains("return NO_PROFESSION;") -and
     -not [regex]::IsMatch($professionSlice, $ngePattern)) `
     "p14.profession-closure.singular-adapter.precu-ownership"
 Assert-Contract ($utilsText.Contains('hasSkill(player, "combat_smuggler_underworld_01")') -and
@@ -157,10 +158,7 @@ foreach ($file in Get-ChildItem -LiteralPath $productionRoot -Recurse -File -Fil
     if ((Get-Content -LiteralPath $file.FullName -Raw).Contains("getPlayerProfession(")) { $singularConsumerFiles += $relative }
 }
 Assert-Contract ($singularConsumerFiles.Count -eq [int]$contract.expected.externalSingularCompatibilityConsumers -and
-    ($singularConsumerFiles -contains "sku.0/sys.server/compiled/game/script/npc/vendor/vendor.java") -and
-    ($singularConsumerFiles -contains "sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/banner_buff_manager.java") -and
-    ($singularConsumerFiles -contains "sku.0/sys.server/compiled/game/script/theme_park/meatlump/mtp_vendor.java") -and
-    ($singularConsumerFiles -contains "sku.0/sys.server/compiled/game/script/theme_park/dungeon/nova_orion_station/nova_orion_vendor.java")) `
+    ($singularConsumerFiles -contains "sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/banner_buff_manager.java")) `
     "p14.profession-closure.singular-adapter.consumers-bounded"
 
 $multiProfessionTokens = @(

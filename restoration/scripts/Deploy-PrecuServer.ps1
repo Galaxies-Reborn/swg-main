@@ -71,6 +71,10 @@ Write-Host "Verifying the direct-source PRE-CU ground-quest XP authority before 
 & (Join-Path $PSScriptRoot "Test-P14PrecuGroundquestXpAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU retained-vendor profession authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuRetainedVendorProfessionAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -272,6 +276,12 @@ source_zone_transition_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/gam
 work_zone_transition_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/travel/zone_transition.tab"
 source_utils_library="$source_script/library/utils.java"
 work_utils_library="$work_script/library/utils.java"
+source_vendor="$source_script/npc/vendor/vendor.java"
+work_vendor="$work_script/npc/vendor/vendor.java"
+source_meatlump_vendor="$source_script/theme_park/meatlump/mtp_vendor.java"
+work_meatlump_vendor="$work_script/theme_park/meatlump/mtp_vendor.java"
+source_nova_orion_vendor="$source_script/theme_park/dungeon/nova_orion_station/nova_orion_vendor.java"
+work_nova_orion_vendor="$work_script/theme_park/dungeon/nova_orion_station/nova_orion_vendor.java"
 source_stealth_library="$source_script/library/stealth.java"
 work_stealth_library="$work_script/library/stealth.java"
 source_luck_library="$source_script/library/luck.java"
@@ -433,6 +443,18 @@ cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_transition_library" "$work_transition_library"
 cmp -s "$source_zone_transition_table" "$work_zone_transition_table"
 cmp -s "$source_utils_library" "$work_utils_library"
+cmp -s "$source_vendor" "$work_vendor"
+cmp -s "$source_meatlump_vendor" "$work_meatlump_vendor"
+cmp -s "$source_nova_orion_vendor" "$work_nova_orion_vendor"
+grep -Fq 'public static final int NO_PROFESSION = 0;' "$work_utils_library"
+grep -Fq 'if (isProfession(player, TRADER))' "$work_utils_library"
+grep -Fq 'return NO_PROFESSION;' "$work_utils_library"
+! grep -Fq 'getPlayerProfession(' "$work_vendor"
+grep -Fq 'getQualifiedPrecuProfessionInventories' "$work_vendor"
+grep -Fq 'handlePrecuProfessionInventorySelect' "$work_vendor"
+grep -Fq 'utils.isPrecuRetainedItemClass(player, profession)' "$work_vendor"
+! grep -Fq 'getPlayerProfession(' "$work_meatlump_vendor"
+! grep -Fq 'getPlayerProfession(' "$work_nova_orion_vendor"
 cmp -s "$source_stealth_library" "$work_stealth_library"
 cmp -s "$source_luck_library" "$work_luck_library"
 cmp -s "$source_crafting_library" "$work_crafting_library"
@@ -665,6 +687,16 @@ javap -classpath "$class_root" -v script.event.halloween.song_book | grep -Fq 'g
 javap -classpath "$class_root" -c -p script.library.utils | grep -Fq 'testItemLevelRequirements'
 javap -classpath "$class_root" -v script.library.utils | grep -Fq 'isPrecuRetainedItemClass'
 javap -classpath "$class_root" -v script.library.utils | grep -Fq 'outdoors_ranger_novice'
+javap -classpath "$class_root" -constants script.library.utils | grep -Fq 'NO_PROFESSION = 0'
+retained_vendor_bytecode="$(javap -classpath "$class_root" -c -p script.npc.vendor.vendor)"
+printf '%s' "$retained_vendor_bytecode" | grep -Fq 'getQualifiedPrecuProfessionInventories'
+printf '%s' "$retained_vendor_bytecode" | grep -Fq 'handlePrecuProfessionInventorySelect'
+printf '%s' "$retained_vendor_bytecode" | grep -Fq 'script/library/utils.isPrecuRetainedItemClass'
+printf '%s' "$retained_vendor_bytecode" | grep -Fq 'script/library/sui.listbox'
+! printf '%s' "$retained_vendor_bytecode" | grep -Fq 'getPlayerProfession'
+! javap -classpath "$class_root" -v script.theme_park.meatlump.mtp_vendor | grep -Fq 'getPlayerProfession'
+! javap -classpath "$class_root" -v script.theme_park.dungeon.nova_orion_station.nova_orion_vendor | grep -Fq 'getPlayerProfession'
+javap -classpath "$class_root" -v script.item.gcw_buff_banner.banner_buff_manager | grep -Fq 'getPlayerProfession'
 javap -classpath "$class_root" -constants script.library.stealth | grep -Fq 'PRECU_TRAPPING_SKILL_MOD = "trapping"'
 javap -classpath "$class_root" -constants script.library.stealth | grep -Fq 'PRECU_CAMOUFLAGE_SKILL_MOD = "camouflage"'
 ! javap -classpath "$class_root" -v script.library.stealth | grep -Fq 'ranger_trap'

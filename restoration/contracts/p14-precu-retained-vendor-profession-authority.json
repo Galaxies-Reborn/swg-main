@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-retained-vendor-profession-authority",
+  "status": "implemented-build-pending",
+  "scope": "Preserve retained expansion vendors while replacing their singular NGE class assumption with explicit Publish 14.1 multi-profession skill ownership, and prevent an unmapped PRE-CU character from being classified as a Trader.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "publish141Boundary": "Publish 14.1 characters may independently learn multiple profession trees; novice skill ownership, not one class template, is authoritative.",
+    "findings": [
+      "The retained helper previously returned Trader when none of its mapped PRE-CU profession predicates matched, so Marksman-, Brawler-, Scout-, and other unmapped characters were falsely classified as Traders.",
+      "The retained heroic vendor has separate class-indexed containers and copied its class-zero common rows into every existing class container, but previously opened only the first profession selected by a fixed priority order.",
+      "The existing item-local compatibility boundary maps retained Spy class ID 5 to outdoors_ranger_novice without making Ranger a global Spy identity.",
+      "Meatlump and Nova/Orion resource vendor tables contain only class-zero rows and therefore require no profession classification.",
+      "The retained GCW banner remains the sole bounded singular compatibility consumer; an unmapped PRE-CU owner now receives no false Trader buff because the explicit no-profession value falls through to null."
+    ]
+  },
+  "expected": {
+    "noProfessionValue": 0,
+    "explicitTraderOwnershipCheck": true,
+    "unownedTraderFallbacks": 0,
+    "externalSingularCompatibilityConsumers": 1,
+    "qualifiedVendorProfessionRange": [1, 9],
+    "qualifiedVendorRevalidationCalls": 2,
+    "heroicVendorClasses": [0, 1, 2, 3, 4, 5, 6, 7],
+    "allClassVendorTables": 4,
+    "factionContainerIds": [10, 11],
+    "multiProfessionSelector": true,
+    "rangerRetainedSpyItemMapping": true,
+    "commonRowsRemainReplicated": true
+  },
+  "sourceFiles": {
+    "utils": "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java",
+    "vendor": "dsrc/sku.0/sys.server/compiled/game/script/npc/vendor/vendor.java",
+    "meatlumpVendor": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/meatlump/mtp_vendor.java",
+    "novaOrionVendor": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/dungeon/nova_orion_station/nova_orion_vendor.java",
+    "banner": "dsrc/sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/banner_buff_manager.java",
+    "heroicVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/heroic_class_items_1.tab",
+    "meatlumpVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/mtp_meatlump_vendor.tab",
+    "corelliaTimesVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/mtp_corellia_times_vendor.tab",
+    "novaVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/nova_schematic_vendor.tab",
+    "orionVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/orion_schematic_vendor.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "2f7f9593af79d345abce4b520a49416bf5df4f31",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "utils": "80d5da8170ade1ab3ddbcc8b23234fb206b66840e60a72bfaaed32a4df103506",
+      "vendor": "35ad7821145d0851cada3f2f58afc81e4b4f40fed97c4030f54e860f255e16c0",
+      "meatlumpVendor": "d27cf4ab9d6a227e5432a440a42ce048eef38f7bbb058eeca3261f69e2a260e4",
+      "novaOrionVendor": "a32f6be739877b47430554c7b99a75c84945fa14b2434db2844a97e65b2b2eda",
+      "banner": "779f9fe6c29ad9b477b36640ebddce62bb26ea3969839554f5667a7db5f46145",
+      "heroicVendorTable": "aa01e7006d54a0ad451ac6ad01c03d05bd46a20fe665c644e3a63f0cdda3990e",
+      "meatlumpVendorTable": "94d2af4010080b1d9ab0e60092f3e35050e6bfae8bfc1b44e21f54d43f815cea",
+      "corelliaTimesVendorTable": "5f982894253cb09c5c06d5df1c92f509d26c65a35fbbcbcbf5651fa635d04d29",
+      "novaVendorTable": "3dd906c87d8547e080ab4f81ecaa04a7658fe18d613679bd03052edaa68a91a6",
+      "orionVendorTable": "60f784bae89a087f7ab7c82b4e7532bd3fe7c8e2e275962af7c05b07d46679b8"
+    },
+    "compiledClassSha256": {
+      "utils": "pending",
+      "vendor": "pending",
+      "meatlumpVendor": "pending",
+      "novaOrionVendor": "pending",
+      "banner": "pending"
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "false Trader identity for unmapped PRE-CU characters and singular class-container selection in retained vendors",
+    "preserved": "all retained vendor rows and costs, common-row replication, faction-specific inventories, item-local Ranger compatibility, purchase scripts, resource requirements, and the retained GCW banner system",
+    "notClaimedComplete": "the GCW banner still intentionally selects one bounded compatibility buff from its owner and remains a later-content adaptation candidate"
+  },
+  "requiredBeforeReady": []
+}
