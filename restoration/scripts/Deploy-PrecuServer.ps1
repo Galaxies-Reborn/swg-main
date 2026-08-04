@@ -75,6 +75,10 @@ Write-Host "Verifying the direct-source PRE-CU retained-vendor profession author
 & (Join-Path $PSScriptRoot "Test-P14PrecuRetainedVendorProfessionAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU crafting expertise authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuCraftingExpertiseAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -288,6 +292,14 @@ source_luck_library="$source_script/library/luck.java"
 work_luck_library="$work_script/library/luck.java"
 source_crafting_library="$source_script/library/craftinglib.java"
 work_crafting_library="$work_script/library/craftinglib.java"
+source_resource_library="$source_script/library/resource.java"
+work_resource_library="$work_script/library/resource.java"
+source_player_structure_library="$source_script/library/player_structure.java"
+work_player_structure_library="$work_script/library/player_structure.java"
+source_crafting_base="$source_script/systems/crafting/crafting_base.java"
+work_crafting_base="$work_script/systems/crafting/crafting_base.java"
+source_cybernetic_crafting="$source_script/systems/crafting/armor/crafting_new_cybernetics_final.java"
+work_cybernetic_crafting="$work_script/systems/crafting/armor/crafting_new_cybernetics_final.java"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -458,6 +470,19 @@ grep -Fq 'utils.isPrecuRetainedItemClass(player, profession)' "$work_vendor"
 cmp -s "$source_stealth_library" "$work_stealth_library"
 cmp -s "$source_luck_library" "$work_luck_library"
 cmp -s "$source_crafting_library" "$work_crafting_library"
+cmp -s "$source_resource_library" "$work_resource_library"
+cmp -s "$source_player_structure_library" "$work_player_structure_library"
+cmp -s "$source_crafting_base" "$work_crafting_base"
+cmp -s "$source_cybernetic_crafting" "$work_cybernetic_crafting"
+! grep -Fq '"expertise_resource_quality_increase"' "$work_crafting_library"
+! grep -Fq '"expertise_experimentation_increase_' "$work_crafting_library"
+! grep -Fq '"expertise_resource_sampling_increase"' "$work_resource_library"
+! grep -Fq '"expertise_complexity_decrease_' "$work_crafting_base"
+! grep -Fq '"expertise_' "$work_player_structure_library"
+! grep -Fq '"expertise_cybernetic_negative_effects_reduction"' "$work_cybernetic_crafting"
+grep -Fq 'removeObjVar(structure, VAR_POWER_MOD_FACTORY)' "$work_player_structure_library"
+grep -Fq 'removeObjVar(structure, VAR_POWER_MOD_HARVESTER)' "$work_player_structure_library"
+grep -Fq 'float reductionAmount = 1.0f - 0.4f;' "$work_cybernetic_crafting"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -545,6 +570,17 @@ javap -classpath "$class_root" -v script.library.luck | grep -Fq 'force_luck'
 ! javap -classpath "$class_root" -v script.library.luck | grep -Fq 'getLevel'
 javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'getPrecuCraftingLuckRoll'
 ! javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'isLucky'
+for crafting_expertise_class in \
+    script.library.craftinglib \
+    script.library.resource \
+    script.library.player_structure \
+    script.systems.crafting.crafting_base \
+    script.systems.crafting.armor.crafting_new_cybernetics_final
+do
+    ! javap -classpath "$class_root" -v "$crafting_expertise_class" | grep -Fq 'expertise_'
+done
+javap -classpath "$class_root" -v script.library.player_structure | grep -Fq 'player_structure.power.modifiers.factory'
+javap -classpath "$class_root" -v script.library.player_structure | grep -Fq 'player_structure.power.modifiers.harvester'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'

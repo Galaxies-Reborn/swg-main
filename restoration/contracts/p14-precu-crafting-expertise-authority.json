@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-crafting-expertise-authority",
+  "status": "implemented-build-pending",
+  "scope": "Remove executable NGE expertise modifiers from the active Publish 14.1 crafting, resource sampling, structure-management, and retained cybernetic-crafting paths while preserving authored PRE-CU skill, resource, structure, and experimentation behavior.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/crafting/labratories/SharedLabratory.cpp",
+      "MMOCoreORB/src/server/zone/managers/crafting/CraftingManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ResourceCommand.h"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 implementation has no expertise system or expertise-derived crafting modifiers.",
+      "The inherited active crafting path still allowed NGE expertise modifiers to raise resource-quality caps, alter experimentation rolls, and reduce crafted-item complexity.",
+      "Resource sampling and structure placement/load still allowed NGE expertise modifiers to increase sampling yield, extraction rate, hopper size, and reduce power or maintenance costs.",
+      "The retained cybernetic crafting path allowed an NGE expertise modifier to reduce its authored protection penalty.",
+      "Persisted factory and harvester power-expertise objvars are removed when the compatibility helper runs so stale later-era state cannot remain authoritative."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 5,
+    "historicalExecutableExpertiseReads": 11,
+    "remainingExecutableExpertiseReads": 0,
+    "resourceQualityExpertiseReads": 0,
+    "experimentationExpertiseReads": 0,
+    "complexityExpertiseReads": 0,
+    "samplingExpertiseReads": 0,
+    "structureExpertiseReads": 0,
+    "cyberneticExpertiseReads": 0,
+    "stalePowerExpertiseObjvarsRemoved": 2,
+    "precuCraftingLuckPreserved": true,
+    "forceExperimentationPreserved": true,
+    "cityAndFoodExperimentationPreserved": true,
+    "authoredResourceAndStructureValuesPreserved": true,
+    "retainedCyberneticBasePenalty": 0.6,
+    "retainedContentPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "craftinglib": "dsrc/sku.0/sys.server/compiled/game/script/library/craftinglib.java",
+    "resource": "dsrc/sku.0/sys.server/compiled/game/script/library/resource.java",
+    "playerStructure": "dsrc/sku.0/sys.server/compiled/game/script/library/player_structure.java",
+    "craftingBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java",
+    "cybernetic": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/armor/crafting_new_cybernetics_final.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "e31e31c723b6669ab11d596866b04910848e2609",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "75bb985903047d4e89d8165cbe5a1d26010df75c6462ca5b896dbddc2ee8db79",
+      "craftinglib": "cba3f9eaa647f7070786eba53b8b34f3252d62717d11979f79825b639e9f335d",
+      "resource": "9ec75527e170392638c9f6ddf09f4afcf6b97b8c9331a541aa82ad2dfa287c84",
+      "playerStructure": "3020ae7fa0916ad2c1d4b9826a2f8ca649320a65b7fdfa03764d385c0496e05a",
+      "craftingBase": "de35b9d30117847130799743e3998dda6065971fae28e04f01d24d4310f5e83b",
+      "cybernetic": "1962d6ce3481c9e913c4f703979440a3163347652817d31ebc086deb6f27ba8d"
+    },
+    "compiledClassSha256": {
+      "craftinglib": "pending",
+      "resource": "pending",
+      "playerStructure": "pending",
+      "craftingBase": "pending",
+      "cybernetic": "pending"
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all 11 active NGE expertise-modifier reads in the shared crafting, sampling, structure-management, and retained cybernetic-crafting calculation surface",
+    "preserved": "resource weighting, crafting inspiration, city and food adjustments, Force experimentation, Publish 14.1 Luck, ordinary crafting skill mods, authored deed extraction/hopper/power values, structure maintenance and factory-efficiency mods, TCG sampling content, and the retained cybernetic base penalty",
+    "notClaimedComplete": "other retained NGE buffs, TCG bonuses, and dormant or content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}
