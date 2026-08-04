@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-open-world-battlefield-artisan-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make the retained PRE-CU open-world battlefield constructor authorize the Novice Artisan skill box instead of the retired NGE Trader profession while preserving faction, constructor-proximity, active-battlefield, build-point, construction, repair, and reinforcement rules.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -63,38 +63,48 @@
       "playerBattlefield": "39729ee9bd2b9e5e0b62833974896a5f41119ef9b8631418284e8094b92c07a3",
       "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
     },
-    "compiledClassSha256": {},
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "compiledClassSha256": {
+      "battlefield": "c59672a1fbceea9d42a7641c6ba04240921b3aeced61b7747c37609de2afa528"
+    },
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and battlefield.class was emitted 2026-08-04T15:53:52Z",
+    "fullServerBuild": "passed in 583.7 seconds from the pushed direct source with all server and data targets completed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte; read-only source mount and writable work-volume SHA-256 are both 2813dc280350c5eab73324a8a178107b5ef7ac9d615feaa6eb0a2ced33a7fc31",
+    "bytecodeAudit": "canBuildBattlefieldStructure contains exactly one crafting_artisan_novice constant and one hasSkill call, with zero utils.isProfession calls and zero TRADER constants",
+    "deploymentProbe": "passed mandatory source/work parity, cumulative PRE-CU data and bytecode gates, focused open-world battlefield Artisan bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "pending",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "compiledClassPresent": false,
-    "liveProcessMappedBuiltBinary": false,
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T15:58:49.642060481Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassPresent": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 365,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "308 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "the live open-world battlefield construction gate's dependency on the retired NGE Trader profession identity",
     "preserved": "retained PRE-CU open-world battlefield participation, faction/proximity/active-state/build-point checks, construction, repairs, reinforcements, later-zone content, and the separate retirement of Game Update 10 queued battlefields",
     "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": [
-    "commit and push the direct dsrc source",
-    "run the clean x64 Java and server build from the read-only source mount",
-    "pass source/work parity and focused bytecode probes",
-    "restart swg-precu and verify health, readiness, logs, and live mapped binary",
-    "record immutable build and runtime evidence"
-  ]
+  "requiredBeforeReady": []
 }
