@@ -111,6 +111,10 @@ Write-Host "Verifying the direct-source PRE-CU DOT authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuDotAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU Smuggler content expertise authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuSmugglerContentExpertiseAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -342,6 +346,8 @@ source_healing_library="$source_script/library/healing.java"
 work_healing_library="$work_script/library/healing.java"
 source_dot_library="$source_script/library/dot.java"
 work_dot_library="$work_script/library/dot.java"
+source_smuggler_library="$source_script/library/smuggler.java"
+work_smuggler_library="$work_script/library/smuggler.java"
 source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
@@ -554,6 +560,13 @@ grep -Fq 'cost += 6;' "$work_player_vendor"
 cmp -s "$source_combat_library" "$work_combat_library"
 cmp -s "$source_healing_library" "$work_healing_library"
 cmp -s "$source_dot_library" "$work_dot_library"
+cmp -s "$source_smuggler_library" "$work_smuggler_library"
+! grep -Fq 'expertise_' "$work_smuggler_library"
+! grep -Fq 'sm_feeling_lucky' "$work_smuggler_library"
+! grep -Fq 'ACCT_RELIC_DEALER' "$work_smuggler_library"
+grep -Fq 'money.ACCT_JUNK_DEALER' "$work_smuggler_library"
+grep -Fq 'int chance = (12 - tier * 2);' "$work_smuggler_library"
+grep -Fq 'int chance = (12 - (dropTier * 2));' "$work_smuggler_library"
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -729,6 +742,14 @@ javap -classpath "$class_root" -v script.library.dot | grep -Fq '.precuAuthorita
 javap -classpath "$class_root" -v script.library.healing | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'applyPrecuDotEffect'
+# Retained junk and contraband content uses its authored base behavior without
+# the inherited NGE Smuggler expertise tree or Feeling Lucky proc.
+! javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'sm_feeling_lucky'
+! javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'ACCT_RELIC_DEALER'
+javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'ACCT_JUNK_DEALER'
+javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'spaceContrabandDropCheck'
+javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'contrabandDropCheck'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'

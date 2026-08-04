@@ -1,0 +1,173 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Ready")]
+    [string]$Expectation = "Source"
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+$restorationRoot = Split-Path -Parent $PSScriptRoot
+$manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw |
+    ConvertFrom-Json
+$contractPath = Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14PrecuSmugglerContentExpertiseAuthority)
+$contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
+$source = (Resolve-Path -LiteralPath $SourceRoot).Path
+$failures = [System.Collections.Generic.List[string]]::new()
+
+function Assert-Contract([bool]$Condition, [string]$Name)
+{
+    if ($Condition) { Write-Host "  [PASS] $Name" }
+    else { Write-Host "  [FAIL] $Name"; $failures.Add($Name) }
+}
+
+function Get-BracedBlock([string]$Text, [string]$Signature)
+{
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $open = $Text.IndexOf("{", $start, [StringComparison]::Ordinal)
+    if ($open -lt 0) { return "" }
+    $depth = 0
+    for ($index = $open; $index -lt $Text.Length; ++$index)
+    {
+        if ($Text[$index] -eq '{') { ++$depth }
+        elseif ($Text[$index] -eq '}')
+        {
+            --$depth
+            if ($depth -eq 0) { return $Text.Substring($start, $index - $start + 1) }
+        }
+    }
+    return ""
+}
+
+$smugglerPath = Join-Path $source ([string]$contract.sourceFiles.smuggler)
+$skillTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+$spaceCombatPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/space_combat.java"
+$utilsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java"
+$corpsePath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java"
+$combatActionsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+foreach ($path in @($smugglerPath, $skillTablePath, $spaceCombatPath, $utilsPath,
+    $corpsePath, $combatActionsPath))
+{
+    Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
+        "p14.precu-smuggler.source.$([IO.Path]::GetFileName($path)).exists"
+}
+
+$smuggler = Get-Content -LiteralPath $smugglerPath -Raw
+$smugglerHash = (Get-FileHash -LiteralPath $smugglerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+Assert-Contract ($smugglerHash -ceq [string]$contract.buildEvidence.sourceSha256.smuggler) `
+    "p14.precu-smuggler.source.smuggler.authenticated"
+Assert-Contract (-not $smuggler.Contains("expertise_") -and
+    -not $smuggler.Contains("sm_feeling_lucky") -and
+    -not $smuggler.Contains("sm_feeling_lucky_recourse")) `
+    "p14.precu-smuggler.nge-expertise-and-proc-absent"
+Assert-Contract (-not $smuggler.Contains("money.ACCT_RELIC_DEALER") -and
+    -not $smuggler.Contains('"smugglerMaster"')) `
+    "p14.precu-smuggler.nge-secondary-junk-payout-absent"
+
+$sellJunk = Get-BracedBlock $smuggler `
+    "public static void sellJunkItem(obj_id player, obj_id item, boolean fence, boolean reshowSui)"
+Assert-Contract ($sellJunk.Contains("getPrice(item)") -and
+    $sellJunk.Contains("money.ACCT_JUNK_DEALER") -and
+    $sellJunk.Contains('"handleSoldJunk"') -and
+    $sellJunk.Contains("FENCE_MULTIPLIER_LOW") -and
+    $sellJunk.Contains("FENCE_MULTIPLIER_HIGH")) `
+    "p14.precu-smuggler.junk-base-content-preserved"
+
+$spaceDrop = Get-BracedBlock $smuggler `
+    "public static void spaceContrabandDropCheck(obj_id player)"
+Assert-Contract ($spaceDrop.Contains('factions.getFactionStanding(player, "underworld")') -and
+    $spaceDrop.Contains("getSmuggleTier(underworldFaction)") -and
+    $spaceDrop.Contains("int chance = (12 - tier * 2);") -and
+    $spaceDrop.Contains("createRandomContrabandTier(player, tier)") -and
+    -not $spaceDrop.Contains("getSkillStatisticModifier")) `
+    "p14.precu-smuggler.space-contraband-base-chance-preserved"
+
+$corpseDrop = Get-BracedBlock $smuggler `
+    "public static void contrabandDropCheck(obj_id player, obj_id target, int tier, int corpseLevel)"
+Assert-Contract ($corpseDrop.Contains("int chance = (12 - (dropTier * 2));") -and
+    $corpseDrop.Contains("createRandomContrabandTier(player, dropTier)") -and
+    -not $corpseDrop.Contains("getSkillStatisticModifier")) `
+    "p14.precu-smuggler.compatibility-drop-base-chance-preserved"
+
+$skillRows = Get-Content -LiteralPath $skillTablePath
+$precuSmugglerRows = @($skillRows | Where-Object {
+    $name = ([regex]::Split($_, "`t"))[0]
+    ($name -ceq "combat_smuggler" -or $name.StartsWith("combat_smuggler_")) -and
+        -not $name.StartsWith("combat_smuggler_prereq")
+})
+$precuSmugglerText = $precuSmugglerRows -join "`n"
+Assert-Contract ($precuSmugglerRows.Count -eq [int]$contract.expected.canonicalPrecuSmugglerRows -and
+    -not $precuSmugglerText.Contains("expertise_") -and
+    $precuSmugglerText.Contains("slice_containers") -and
+    $precuSmugglerText.Contains("slice_terminals") -and
+    $precuSmugglerText.Contains("slice_weaponsbasic") -and
+    $precuSmugglerText.Contains("slice_weaponsadvanced") -and
+    $precuSmugglerText.Contains("slice_armor")) `
+    "p14.precu-smuggler.skill-family-authenticated"
+
+$spaceCombat = Get-Content -LiteralPath $spaceCombatPath -Raw
+$spaceLoot = Get-BracedBlock $spaceCombat `
+    "public static void createSpaceLoot(obj_id objAttacker, obj_id objDefender)"
+if ([string]::IsNullOrEmpty($spaceLoot))
+{
+    $spaceLoot = $spaceCombat
+}
+Assert-Contract ($spaceLoot.Contains("utils.isProfession(objPilot, utils.SMUGGLER)") -and
+    $spaceLoot.Contains("smuggler.spaceContrabandDropCheck(objPilot)")) `
+    "p14.precu-smuggler.retained-space-content-admission"
+
+$utils = Get-Content -LiteralPath $utilsPath -Raw
+$isProfession = Get-BracedBlock $utils `
+    "public static boolean isProfession(obj_id player, int profession)"
+Assert-Contract ($isProfession.Contains("case SMUGGLER:") -and
+    $isProfession.Contains('hasSkill(player, "combat_smuggler_novice")') -and
+    -not $isProfession.Contains("class_smuggler")) `
+    "p14.precu-smuggler.profession-admission-skill-box-owned"
+
+$corpse = Get-Content -LiteralPath $corpsePath -Raw
+Assert-Contract (-not $corpse.Contains("inspectCorpseForContraband") -and
+    -not $corpse.Contains("mnu_find_illicit_goods") -and
+    $corpse.Contains("menu_info_types.LOOT") -and $corpse.Contains("canHarvest(self, player)")) `
+    "p14.precu-smuggler.corpse-menu-retired-loot-preserved"
+
+$combatActions = Get-Content -LiteralPath $combatActionsPath -Raw
+$compatibilityHandler = Get-BracedBlock $combatActions `
+    "public int sm_inspect_cargo(obj_id self, obj_id target, String params, float defaultTime)"
+Assert-Contract ($compatibilityHandler.Contains("smuggler.inspectCorpseForContraband(player, target)") -and
+    $compatibilityHandler.Contains("return SCRIPT_CONTINUE")) `
+    "p14.precu-smuggler.ungranted-compatibility-handler-preserved"
+
+if ($Expectation -eq "Ready")
+{
+    $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+    Assert-Contract ([string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$contract.runtimeEvidence.result -ceq "passed") `
+        "p14.precu-smuggler.ready-evidence"
+    Assert-Contract ($dsrcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
+        "p14.precu-smuggler.direct-source-pin"
+    Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.smuggler -match '^[a-f0-9]{64}$' -and
+        [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
+        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
+        "p14.precu-smuggler.live-evidence"
+}
+else
+{
+    Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -contains
+        [string]$contract.status) "p14.precu-smuggler.source-status"
+}
+
+$contractText = Get-Content -LiteralPath $contractPath -Raw
+Assert-Contract (-not $contractText.Contains("/Artifacts/") -and
+    -not $contractText.Contains("/Staging/")) "p14.precu-smuggler.no-host-staging"
+if ($failures.Count -gt 0)
+{
+    throw "PRE-CU Smuggler content expertise authority failed: $($failures -join ', ')"
+}
+
+Write-Host "PRE-CU Smuggler content expertise authority contract passed."

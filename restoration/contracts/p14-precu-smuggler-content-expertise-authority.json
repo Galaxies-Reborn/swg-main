@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-smuggler-content-expertise-authority",
+  "status": "implemented-build-pending",
+  "scope": "Preserve retained junk-dealer and contraband content for Publish 14.1 Smugglers while preventing inherited NGE expertise bonuses, proc buffs, and secondary payouts from becoming gameplay authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/tangible/ContainerImplementation.cpp",
+    "findings": [
+      "The authenticated Publish 14.1 combat_smuggler family has 19 canonical rows and grants container, terminal, weapon, and armor slicing, pistol combat, feign death, spice crafting, and underworld language comprehension.",
+      "Publish 14.1 Smuggler rows contain no expertise_increase_smuggler_loot, expertise_junk_dealer_cut, Feeling Lucky proc, or summoned junk-dealer payout authority.",
+      "The corpse inspection command belongs to the later class_smuggler progression and is already retired from corpse menus and dispatch while its compatibility handler remains ungranted.",
+      "Retained later-content junk sales and space contraband drops can remain available, but their base prices, faction tiers, and authored chances must not be modified by an NGE expertise tree."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "canonicalPrecuSmugglerRows": 19,
+    "ngeSmugglerExpertiseReads": 0,
+    "ngeFeelingLuckyBuffReferences": 0,
+    "ngeSecondaryJunkPayouts": 0,
+    "junkDealerBasePayoutPreserved": true,
+    "underworldFactionTierPreserved": true,
+    "spaceContrabandBaseChancePreserved": true,
+    "corpseContrabandMenuRetired": true,
+    "compatibilityCommandHandlerRetained": true,
+    "precuSmugglerProfessionAdmissionPreserved": true,
+    "laterContentPreserved": true
+  },
+  "sourceFiles": {
+    "smuggler": "dsrc/sku.0/sys.server/compiled/game/script/library/smuggler.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "6a25d0ed60cd35fc1937703a5720249d27f3feb6",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "smuggler": "d6bb3a8acb16dec3043b9367ac8782905674ee04e3ff2b3688ca53030ec466ec"
+    },
+    "compiledClassSha256": {
+      "smuggler": ""
+    },
+    "sourceTest": "passed; pending parent checkpoint",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "NGE Smuggler expertise can no longer alter retained junk-dealer payouts or contraband drop chances and cannot proc the later Feeling Lucky buff.",
+    "preserved": "The exact Publish 14.1 Smuggler skill family, slicing ownership, base junk sale, underworld faction tiers, space contraband drops, and later content remain intact.",
+    "notClaimedComplete": "Other shared libraries and content-specific handlers remain subject to the broader PRE-CU precedence audit."
+  },
+  "requiredBeforeReady": [
+    "clean full Java compile",
+    "x64 server deployment",
+    "source/work parity and bytecode audit",
+    "live readiness verification"
+  ]
+}
