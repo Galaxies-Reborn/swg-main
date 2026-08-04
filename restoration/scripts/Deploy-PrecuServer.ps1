@@ -142,6 +142,8 @@ source_planet_base="$source_script/planet/planet_base.java"
 work_planet_base="$work_script/planet/planet_base.java"
 source_live_conversions="$source_script/player/live_conversions.java"
 work_live_conversions="$work_script/player/live_conversions.java"
+source_cureward="$source_script/cureward/cureward.java"
+work_cureward="$work_script/cureward/cureward.java"
 source_battlefield_controller="$source_script/systems/gcw/pvp_battlefield.java"
 work_battlefield_controller="$work_script/systems/gcw/pvp_battlefield.java"
 source_battlefield_terminal="$source_script/systems/gcw/battlefield_terminal.java"
@@ -298,6 +300,7 @@ cmp -s "$source_gcw_library" "$work_gcw_library"
 cmp -s "$source_gcw_city" "$work_gcw_city"
 cmp -s "$source_planet_base" "$work_planet_base"
 cmp -s "$source_live_conversions" "$work_live_conversions"
+cmp -s "$source_cureward" "$work_cureward"
 cmp -s "$source_battlefield_controller" "$work_battlefield_controller"
 cmp -s "$source_battlefield_terminal" "$work_battlefield_terminal"
 cmp -s "$source_battlefield_player" "$work_battlefield_player"
@@ -600,6 +603,21 @@ javap -classpath "$class_root" -c -p script.systems.gcw.battlefield_terminal | g
 javap -classpath "$class_root" -c -p script.systems.gcw.player_pvp | grep -Fq 'retirePostNgeQueuedBattlefieldPlayer'
 javap -classpath "$class_root" -c -p script.player.base.base_player | grep -Fq 'retirePostNgeQueuedBattlefieldPlayerState'
 javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'systems.gcw.player_pvp'
+javap -classpath "$class_root" -constants script.player.live_conversions | grep -Fq 'POST_NGE_PLAYER_MIGRATION_RUNTIME_RETIRED = true'
+javap -classpath "$class_root" -c script.player.live_conversions | grep -Fq 'cureward.cureward'
+javap -classpath "$class_root" -constants script.cureward.cureward | grep -Fq 'COMBAT_UPGRADE_REWARD_RUNTIME_RETIRED = true'
+! javap -classpath "$class_root" -v script.cureward.cureward | grep -Fq 'frn_loyalty_award_plaque_'
+javap -classpath "$class_root" -c script.library.skill | grep -Fq 'isRetiredNgeProgressionSkillName'
+cts_upload_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/OnUploadCharacter/,/OnDownloadCharacter/p')"
+printf '%s' "$cts_upload_bytecode" | grep -Fq 'using PRE-CU skill-box authority'
+! printf '%s' "$cts_upload_bytecode" | grep -Fq 'getSkillTemplate'
+! printf '%s' "$cts_upload_bytecode" | grep -Fq 'getWorkingSkill'
+! printf '%s' "$cts_upload_bytecode" | grep -Fq 'getCommandListingForPlayer'
+cts_download_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/OnDownloadCharacter/,/OnSkillModDone/p')"
+printf '%s' "$cts_download_bytecode" | grep -Fq 'isRetiredNgeProgressionSkillName'
+printf '%s' "$cts_download_bytecode" | grep -Fq 'reattachQuestScripts'
+! printf '%s' "$cts_download_bytecode" | grep -Fq 'setSkillTemplate'
+! printf '%s' "$cts_download_bytecode" | grep -Fq 'grantCommand'
 javap -classpath "$class_root" -v script.systems.battlefield.player_battlefield | grep -Fq 'addFactionStanding'
 gcw_static_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeFixedStaticBaseRetired/,/getPub30StaticBaseControllerId/p')"
 printf '%s' "$gcw_static_retired_bytecode" | grep -Fq 'iconst_1'

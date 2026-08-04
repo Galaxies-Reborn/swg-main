@@ -1,8 +1,9 @@
-# dsrc overlays
+# Archived dsrc overlay provenance
 
-Store ordered, component-relative Git patches here. Use numeric names such as
-001-phase-a-skill-training.patch. The materializer applies files by name to an
-isolated clone pinned by restoration/manifest.json.
+These ordered patches document the one-time import into the persistent
+`Galaxies-Reborn/dsrc` `pre-cu-reborn-x64` branch. They are archival evidence,
+not an active editing or build path. Future work changes and commits the real
+dsrc files directly.
 
 Phase A is registered as `001-phase-a-training-and-surrender.patch`. It owns
 the table-derived trainer/skill-point path, the authentic surrenderSkill
@@ -1445,3 +1446,10 @@ markers are cleaned without destroying station or machine contents, so stored
 items remain recoverable. Authentic Publish 14.1 Bio-Engineer DNA/creature
 crafting and Creature Handler pet control remain authoritative, while retained
 later-content templates, data, NPCs, quests, and zones continue to load.
+
+382-p14-post-nge-player-migration-authority-retirement.patch makes PRE-CU
+skill boxes and XP authoritative across login and character transfer. It
+retires automatic NGE live conversions, Combat Upgrade rewards, roadmap and
+combat-level restoration, stale respec state, retired class/expertise skill
+imports, and raw command injection. Expansion quests, collections, zones,
+items, credits, waypoints, space state, and mission behavior remain intact.

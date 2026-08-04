@@ -17,6 +17,10 @@ $superprojectRoot = Split-Path -Parent $restorationRoot
 Import-Module (Join-Path $PSScriptRoot "Restoration.Common.psm1") -Force
 
 $manifest = Get-RestorationManifest -RestorationRoot $restorationRoot
+if ([string]$manifest.sourceMode -ceq "direct-branch")
+{
+    throw "Restoration materialization is retired. Work directly from the locked PRE-CU component branches."
+}
 $source = Resolve-NormalizedPath -Path $SourceRoot
 $stage = Resolve-NormalizedPath -Path $StagingRoot
 

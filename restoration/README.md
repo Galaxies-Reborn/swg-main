@@ -1,17 +1,15 @@
-# Pre-CU restoration overlays
+# PRE-CU Reborn direct source
 
-This directory owns restoration changes without committing edits inside the
-dsrc, exe, or src gitlinks. The manifest locks the x64 server component commits. Scripts
-refuse a source checkout whose gitlinks or initialized component HEADs drift.
+The x64 server now works from one persistent set of component branches. The
+manifest locks the PRE-CU `dsrc`, `src`, and `exe` commits directly, and scripts
+refuse a checkout whose gitlinks or initialized component HEADs drift. Make
+future changes in those component branches, validate them in place, commit
+them, and then update the matching superproject gitlink.
 
-The materializer is plan-only unless Apply is supplied. StagingRoot is always
-mandatory, must be empty, and must be outside both this superproject and the
-initialized source checkout. It clones the complete locked superproject plus
-all five pinned gitlinks into that isolated directory, then applies ordered
-superproject, dsrc, exe, and src patches. The materialized tree therefore contains the top-level
-build and runtime files as well as the edited components. The materializer
-removes every staging `origin` after checkout so the transient tree cannot be
-used for publishing.
+Filesystem materialization and disposable staging trees are retired. The
+historical ordered patches remain read-only provenance for the one-time direct
+source import; they are not an active build or development path. The retired
+materializer exits immediately in direct-source mode.
 
 Run the current-state Phase-A contract:
 
@@ -31,18 +29,13 @@ Use Expectation Ready as the implementation gate. It requires:
 - reference-count-safe cleanup, including a missing-schematic guard
 - no unresolved actionable command grant on combat_marksman_rifle_01
 
-Preview materialization without writing:
+Validate and deploy the initialized direct checkout:
 
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-RestorationMaterializer.ps1 -SourceRoot <initialized-source-checkout> -StagingRoot <empty-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PhaseA.ps1 -SourceRoot <initialized-source-checkout> -Expectation Ready
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PrecuRootRuntimeParity.ps1 -SourceRoot <initialized-source-checkout>
 
-Create and validate the isolated implementation:
-
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Invoke-RestorationMaterializer.ps1 -SourceRoot <initialized-source-checkout> -StagingRoot <empty-staging-directory> -Apply
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PhaseA.ps1 -SourceRoot <materialized-staging-directory> -Expectation Ready
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-PrecuRootRuntimeParity.ps1 -SourceRoot <materialized-staging-directory>
-
-Deploy a materialized source mount to the existing PRE-CU Docker container with
-a fail-closed sync/build/restart sequence:
+Deploy the direct source mount to the existing PRE-CU Docker container with a
+fail-closed sync/build/restart sequence:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Deploy-PrecuServer.ps1
 
@@ -2614,3 +2607,18 @@ terminal build.
 Validate a materialized tree with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeBuffProgressionRetirement.ps1 -SourceRoot <materialized-staging-directory>
+
+Milestone 312 retires inherited NGE player-migration authority. Normal login
+now clears roadmap/template, visible combat-level, and stale respec state; the
+Combat Upgrade reward script self-retires without creating items. Character
+transfer no longer requires or restores an NGE template, working skill, combat
+level, or raw command list. PRE-CU skill boxes and XP remain transferable, and
+retired class/expertise skills are skipped without aborting an otherwise valid
+transfer. Expansion quests and quest-script reattachment, collections, zones,
+inventory, bank, datapad, appearance, hangar, credits, waypoints, and space
+state remain preserved. Mission sources stay hash-pinned to the user-verified
+working terminal build.
+
+Validate a materialized tree with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1 -SourceRoot <materialized-staging-directory>

@@ -15,6 +15,7 @@ $superprojectRoot = Split-Path -Parent $restorationRoot
 Import-Module (Join-Path $PSScriptRoot "Restoration.Common.psm1") -Force
 
 $manifest = Get-RestorationManifest -RestorationRoot $restorationRoot
+$directSourceMode = [string]$manifest.sourceMode -ceq "direct-branch"
 $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.phaseA)
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = Resolve-NormalizedPath -Path $SourceRoot
@@ -365,7 +366,12 @@ $playerObjectCpp = Get-Content -LiteralPath $playerObjectCppPath -Raw
 
 $materializationReady = $canonicalFingerprintReady
 $materializationDetail = "canonical contract and overlays retain three ordered placeholders"
-if ($Expectation -eq "Ready")
+if ($directSourceMode)
+{
+    $materializationReady = $true
+    $materializationDetail = "direct branch source authenticated by locked component gitlinks; materialization artifacts retired"
+}
+elseif ($Expectation -eq "Ready")
 {
     $materializationReady = $false
     try

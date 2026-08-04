@@ -40,6 +40,7 @@ $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $runtimeContractId = [string]$runtimeContract.runtimeContractId
 $snapshotSchemaVersion = [int]$runtimeContract.snapshotSchemaVersion
 $runnerSchemaVersion = [int]$runtimeContract.runnerSchemaVersion
+$sourceMode = [string]$runtimeContract.sourceMode
 $materializationFingerprint = [string]$runtimeContract.materializationFingerprint.value
 $requiredContainer = [string]$runtimeContract.containerName
 $stationId = [int]$runtimeContract.stationId
@@ -89,11 +90,11 @@ if (-not $OfflineSelfTest -and [string]::IsNullOrWhiteSpace($PlayerOid))
 {
     throw "PlayerOid is required unless -OfflineSelfTest is selected."
 }
-if (-not $OfflineSelfTest -and
+if (-not $OfflineSelfTest -and $sourceMode -cne "direct-branch" -and
     ($materializationFingerprint -notmatch '^[a-f0-9]{64}$' -or
      $materializationFingerprint -ceq "__PHASE_A_BUILD_FINGERPRINT__"))
 {
-    throw "The runtime contract contains an uninjected or invalid materialization fingerprint. Run from a materialized bundle."
+    throw "The runtime contract contains an uninjected or invalid materialization fingerprint."
 }
 
 if ($ContainerName -cne $requiredContainer)

@@ -66,8 +66,10 @@ Assert-NotContains $onInitialize 'attachScript(self, "player.player_jedi_convers
 
 Assert-Contains $basePlayer "public void respecNewEntertainerSkills(obj_id self)" "The historical entertainer conversion helper was removed instead of being isolated."
 Assert-Contains $basePlayer "public void respecNewCrafterSkills(obj_id self)" "The historical crafter conversion helper was removed instead of being isolated."
-Assert-Contains $basePlayer 'characterData.put("skillTemplate", skillTemplate);' "CTS skill-template serialization was removed."
-Assert-Contains $basePlayer 'characterData.put("workingSkill", workingSkill);' "CTS working-skill serialization was removed."
+Assert-NotContains $basePlayer 'characterData.put("skillTemplate"' "CTS still serializes the retired NGE skill template."
+Assert-NotContains $basePlayer 'characterData.put("workingSkill"' "CTS still serializes the retired NGE working skill."
+Assert-Contains $basePlayer 'characterData.put("skills", getSkillListingForPlayer(self));' "CTS no longer serializes authoritative PRE-CU skill-box ownership."
+Assert-Contains $basePlayer 'groundquests.reattachQuestScripts(self);' "CTS no longer reattaches retained expansion quest scripts."
 
 $actualSourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $basePlayerPath).Hash.ToLowerInvariant()
 if ($actualSourceHash -cne [string]$contract.buildEvidence.sourceSha256."base_player.java")
