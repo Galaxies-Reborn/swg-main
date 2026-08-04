@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before the inherited NGE result tables and preserve authored three-pool HAM costs without allowing NGE free-shot expertise to replace them.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -37,16 +37,16 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "ee9f121910a7f208a88ab2828a01fb3e925e136a",
+    "directSourceGitlink": "9b64370d93cdb66bace66032748aee3a43cbde65",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "ef36374d80713d8f27477c72af481f3688ca6eb22177cc60d4921935682955ea",
-      "combatBase": "2bef03deee2675f22726f8eafa6a072f29ecded383063d29aed906870285e1bc",
+      "combatBase": "49f90e3a9734f8cc087497c9c6ce2cd63c6cab3f129fffe83bd4e02745c2f720",
       "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf"
     },
     "compiledClassSha256": {
-      "combatLibrary": "f80271507ca8490d94f42003604a0f622b9d4a5b9b9a1f4dfe99baf342851c9e",
-      "combatBase": "5a5d465c37aa8cec217ed01a6a34ef8ee83bb21c6b9cead0b91873a599c882df"
+      "combatLibrary": "",
+      "combatBase": ""
     },
     "sourceTest": "passed; both action-cost overloads select PRE-CU HAM before expertise, single-target PRE-CU success costs bypass all five freeshot modifiers, area per-defender costs remain zero after their one-time pre-hit drain, PRE-CU/NGE result dispatch is mutually exclusive, and all 163 authenticated overrides have explicit target pools",
     "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, combat_base.class was emitted at 2026-08-04T22:39:34Z, and combat.class was emitted at 2026-08-04T22:39:52Z",
@@ -57,7 +57,7 @@
     "sourceWorkParity": "passed byte-for-byte for combat.java, combat_base.java, and precu_combat_overrides.tab against the read-only direct-source mount",
     "bytecodeAudit": "passed; combat.class contains precuHamCostModel and freeshot_case_miss in the compiled success-cost helper, while combat_base.class contains the compiled PRE-CU primary/secondary calls and the separately retained NGE defender helper",
     "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused combat isolation bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
@@ -66,12 +66,12 @@
     "dockerWorkVolume": "swg-precu-work-x64",
     "containerStartedAt": "2026-08-04T22:46:28.870974582Z",
     "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
+    "clusterReadyForPlayers": false,
     "compiledClassSizes": {
       "combatLibrary": 104566,
       "combatBase": 145606
     },
-    "liveProcessMappedBuiltBinary": true,
+    "liveProcessMappedBuiltBinary": false,
     "liveGameProcessPid": 364,
     "liveBinaryInode": 12110805,
     "liveBinarySize": 22601480,
@@ -85,12 +85,15 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
   "auditBoundary": {
     "closedInThisMilestone": "authenticated PRE-CU hit-result dispatch and single-target success-cost handling can no longer cross into inherited NGE expertise authority",
     "preserved": "Core3 primary and secondary defense, authored three-pool costs, one-time area cost draining, PRE-CU block/dodge/counter/ricochet, NGE compatibility helpers for retained later content, and all expansion quests/zones",
     "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "complete the cumulative clean Java and x64 server rebuild",
+    "refresh compiled and live deployment evidence"
+  ]
 }

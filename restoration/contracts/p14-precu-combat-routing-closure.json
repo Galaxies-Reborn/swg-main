@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-routing-closure",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Fail closed if any combat action granted by a retained PRE-CU profession family, or referenced by a current NPC combat table, can fall through to the post-NGE combat path instead of the authoritative PRE-CU combat override path.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -39,14 +39,14 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "d60a610c1d0f9b951d2589613b0e745ae09212c6",
+    "directSourceGitlink": "9b64370d93cdb66bace66032748aee3a43cbde65",
     "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "combatData": "44656473c5070db0f36acc29715311d0f29bbf10eb58f28faeb3cc709764f882",
       "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf",
-      "combatActions": "f08852b6f6ae56cf0bcda5068305a8390896f75a65decd552ed13b1a376fd159",
+      "combatActions": "b1e0345682f158fcd397d4cec2c55569f2997db6b6bf39e86ae14eee939b5278",
       "npcCombatTableSet": "5769a3344b57d53464306230e38394689090d4047df1c8e4912f8d8660a738e2"
     },
     "compiledDataSha256": {
@@ -56,7 +56,7 @@
       "npcCombatTableSet": "44fafc926294d8a39928dd35b363b3f1ddcfe40980add99271207bf349e0a384"
     },
     "compiledClassSha256": {
-      "combatActions": "ab54fd971e11902ad9aee3105cb2a165c68860c36779d6d5992073f47da84cc0"
+      "combatActions": ""
     },
     "sourceTest": "passed; all 157 retained profession combat actions are covered after the authenticated Center of Being direct-lifecycle exception, and all 108 NPC combat actions are covered",
     "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and combat_actions.class was emitted 2026-08-04T16:47:24Z",
@@ -66,7 +66,7 @@
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
     "sourceWorkParity": "passed byte-for-byte for skills.tab, combat_data.tab, precu_combat_overrides.tab, combat_actions.java, and all 14 npc_*.tab files",
     "deploymentProbe": "passed direct-source routing closure, mandatory source/work parity including the complete NPC combat table set, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
@@ -75,10 +75,10 @@
     "dockerWorkVolume": "swg-precu-work-x64",
     "containerStartedAt": "2026-08-04T16:51:52.784973903Z",
     "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
+    "clusterReadyForPlayers": false,
     "compiledDataPresent": true,
     "compiledNpcCombatTables": 14,
-    "liveProcessMappedBuiltBinary": true,
+    "liveProcessMappedBuiltBinary": false,
     "liveGameProcessPid": 365,
     "liveBinaryInode": 12110805,
     "liveBinarySize": 22601480,
@@ -92,12 +92,15 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
   "auditBoundary": {
     "closedInThisMilestone": "combat-path routing coverage for every action currently granted by the 51 retained PRE-CU profession families and every action currently referenced by the 14 NPC combat tables",
     "preserved": "the authenticated direct Center of Being lifecycle, restored PRE-CU combat math, all retained profession skills, NPC attack selections, later quests, conversations, zones, and content",
     "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "complete the cumulative clean Java and x64 server rebuild",
+    "refresh compiled and live deployment evidence"
+  ]
 }

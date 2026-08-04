@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-dot-authority",
+  "status": "implemented-build-pending",
+  "scope": "Keep authenticated Publish 14.1 combat and Combat Medic damage-over-time effects under classic potency, dissipation, and absorption authority without allowing inherited NGE expertise, vulnerability, armor, generic damage, or repeat pulse-resistance layers to modify them.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/damageovertime/DamageOverTimeList.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/damageovertime/DamageOverTime.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/DotPackCommand.h"
+    ],
+    "findings": [
+      "Publish 14.1 applies authored DOT strength after an application resistance check, reduces duration through the matching dissipation skill modifier, and reduces each pulse through the matching classic absorption modifier capped at 50 percent.",
+      "The pinned Publish 14.1 implementation has no NGE DOT-increase expertise, DOT vulnerability, all-DOT expertise absorption, armor-derived DOT mitigation, generic multiply/divide-damage modifiers, or second resistance roll on every pulse.",
+      "The inherited shared DOT library contained all of those later layers and was reachable from authenticated PRE-CU combat actions and restored Combat Medic poison/disease medicine.",
+      "Later quests, expansion zones, space content, and other compatibility callers continue to use the inherited DOT path; PRE-CU authority is persisted per DOT instance and survives its pulse schedule."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 4,
+    "classicAbsorptionFamilies": 6,
+    "precuCombatDotCallSites": 1,
+    "precuCombatMedicDotCallSites": 1,
+    "profiledCreatureDotCallbacks": 2,
+    "applicationResistancePreserved": true,
+    "durationDissipationPreserved": true,
+    "classicAbsorptionCapPercent": 50,
+    "precuAuthorityPersistedPerDot": true,
+    "ngeDotIncreaseBypassedForPrecu": true,
+    "ngeDotVulnerabilityBypassedForPrecu": true,
+    "ngeExpertiseAbsorptionBypassedForPrecu": true,
+    "ngeArmorMitigationBypassedForPrecu": true,
+    "ngeGenericDamageModifiersBypassedForPrecu": true,
+    "ngeRepeatPulseResistanceBypassedForPrecu": true,
+    "ngeCompatibilityPathPreserved": true,
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "dot": "dsrc/sku.0/sys.server/compiled/game/script/library/dot.java",
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "9b64370d93cdb66bace66032748aee3a43cbde65",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "dot": "c18d08586222fd1dd91d7910287e3c2c335612ce621c598361d979ed02fcfb2e",
+      "healing": "a861348aea77fb61fee6e9e83de35eeb9fe2aa73b90f40196e5d2557587087f2",
+      "combatBase": "49f90e3a9734f8cc087497c9c6ce2cd63c6cab3f129fffe83bd4e02745c2f720",
+      "combatActions": "b1e0345682f158fcd397d4cec2c55569f2997db6b6bf39e86ae14eee939b5278"
+    },
+    "compiledClassSha256": {
+      "dot": "",
+      "healing": "",
+      "combatBase": "",
+      "combatActions": ""
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "",
+    "serverBinaryBuildId": "",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassSizes": {},
+    "liveProcessMappedBuiltBinary": false,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "authenticated PRE-CU DOT creation and pulse processing can no longer cross into inherited NGE DOT expertise, vulnerability, armor, generic damage, or repeat pulse-resistance authority",
+    "preserved": "classic application resistance, duration dissipation, full classic absorption with a 50-percent cap, DOT lifecycle and messaging, authenticated combat and Combat Medic call sites, profiled original creature callbacks, and the compatibility path for retained later content",
+    "notClaimedComplete": "buff-table DOTs and non-authenticated content-specific DOT callers remain on the retained compatibility path and other production-reachable NGE authority remains subject to later audits"
+  },
+  "requiredBeforeReady": [
+    "commit and push the direct dsrc source",
+    "complete clean Java and x64 server builds in the Docker work volume",
+    "pass source/work parity and focused bytecode gates",
+    "restart the server and verify player readiness, mapped binary identity, and clean logs"
+  ]
+}

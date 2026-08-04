@@ -107,6 +107,10 @@ Write-Host "Verifying the direct-source PRE-CU combat expertise isolation before
 & (Join-Path $PSScriptRoot "Test-P14PrecuCombatExpertiseIsolation.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU DOT authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuDotAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -336,6 +340,8 @@ source_combat_library="$source_script/library/combat.java"
 work_combat_library="$work_script/library/combat.java"
 source_healing_library="$source_script/library/healing.java"
 work_healing_library="$work_script/library/healing.java"
+source_dot_library="$source_script/library/dot.java"
+work_dot_library="$work_script/library/dot.java"
 source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
@@ -547,6 +553,7 @@ grep -Fq 'cost += 6 * loops;' "$work_player_vendor"
 grep -Fq 'cost += 6;' "$work_player_vendor"
 cmp -s "$source_combat_library" "$work_combat_library"
 cmp -s "$source_healing_library" "$work_healing_library"
+cmp -s "$source_dot_library" "$work_dot_library"
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -715,6 +722,13 @@ javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'freeshot_
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuPrimaryAttackResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuSecondaryDefenseResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getDefenderResult'
+# Authenticated PRE-CU DOTs persist their era route through every pulse while
+# later-content compatibility callers retain the inherited DOT path.
+javap -classpath "$class_root" -v script.library.dot | grep -Fq 'applyPrecuDotEffect'
+javap -classpath "$class_root" -v script.library.dot | grep -Fq '.precuAuthoritative'
+javap -classpath "$class_root" -v script.library.healing | grep -Fq 'applyPrecuDotEffect'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'applyPrecuDotEffect'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'applyPrecuDotEffect'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
