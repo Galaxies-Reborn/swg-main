@@ -2695,3 +2695,17 @@ The user-verified mission-terminal sources remain hash-pinned and unchanged.
 Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeAutomaticPlayerRewardRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 318 restores authored PRE-CU Politician progression. The inherited
+bulk-grant helper previously awarded all 18 Politician boxes whenever a player
+initialized as a homeowner or mayor, declared a residence, or reached the
+dormant live-conversion path. That shared helper is now a link-compatible
+no-op, so residence and office cannot bypass the skill tree.
+
+Legitimately earned Politician boxes are not revoked. The complete novice,
+four-branch, and master rows, political XP, credit costs, prerequisites,
+generic purchase path, city novice checks, elections, administration, later
+quests/content, and user-verified mission terminal remain preserved. Validate
+the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuPoliticianProgressionAuthority.ps1 -SourceRoot <direct-server-checkout>
