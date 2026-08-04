@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-species-language-authority",
+  "status": "ready",
+  "scope": "Restore Publish 14.1 species-specific starting languages by retiring universal Shyriiwook comprehension grants while preserving Wookiee ownership, player teaching, and retained EP3 conversation grants.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3References": {
+      "human": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/bin/scripts/object/creature/player/human_male.lua",
+      "bothan": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/bin/scripts/object/creature/player/bothan_male.lua",
+      "wookiee": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/bin/scripts/object/creature/player/wookiee_male.lua"
+    },
+    "findings": [
+      "Core3 gives Human characters Basic speak and comprehension, not Shyriiwook comprehension.",
+      "Core3 gives Bothan characters Basic and Bothese speak and comprehension, not Shyriiwook comprehension.",
+      "Core3 gives Wookiee characters Basic comprehension plus Shyriiwook speak and comprehension.",
+      "The retained EP3 Chewbacca and Omwaan conversations already provide explicit later-content grants for Shyriiwook comprehension."
+    ]
+  },
+  "diagnosis": {
+    "historicalUniversalPlayerInitializeGrantSites": 1,
+    "historicalSpeciesAttachShyriiwookGrantSites": 10,
+    "historicalNonWookieeSpeciesGrantSites": 9,
+    "expectedSpeciesAttachShyriiwookGrantSites": 1,
+    "retainedEp3ExplicitGrantSites": 2
+  },
+  "expected": {
+    "universalPlayerInitializeGrantSites": 0,
+    "speciesDefaults": {
+      "SPECIES_BOTHAN": [
+        "species_bothan",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_bothan_speak",
+        "social_language_bothan_comprehend"
+      ],
+      "SPECIES_HUMAN": [
+        "species_human",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend"
+      ],
+      "SPECIES_MON_CALAMARI": [
+        "species_moncal",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_moncalamari_speak",
+        "social_language_moncalamari_comprehend"
+      ],
+      "SPECIES_RODIAN": [
+        "species_rodian",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_rodian_speak",
+        "social_language_rodian_comprehend"
+      ],
+      "SPECIES_TRANDOSHAN": [
+        "species_trandoshan",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_trandoshan_speak",
+        "social_language_trandoshan_comprehend"
+      ],
+      "SPECIES_TWILEK": [
+        "species_twilek",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_twilek_speak",
+        "social_language_twilek_comprehend",
+        "social_language_lekku_speak",
+        "social_language_lekku_comprehend"
+      ],
+      "SPECIES_WOOKIEE": [
+        "species_wookiee",
+        "social_language_basic_comprehend",
+        "social_language_wookiee_speak",
+        "social_language_wookiee_comprehend"
+      ],
+      "SPECIES_ZABRAK": [
+        "species_zabrak",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_zabrak_speak",
+        "social_language_zabrak_comprehend"
+      ],
+      "SPECIES_ITHORIAN": [
+        "species_ithorian",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_ithorian_speak",
+        "social_language_ithorian_comprehend"
+      ],
+      "SPECIES_SULLUSTAN": [
+        "species_sullustan",
+        "social_language_basic_speak",
+        "social_language_basic_comprehend",
+        "social_language_sullustan_speak",
+        "social_language_sullustan_comprehend"
+      ]
+    },
+    "playerTeachingPreserved": true,
+    "ep3LanguageGrantsPreserved": true,
+    "languageDataPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "27666a2482d81a708401d87f385aefd9eebbda2c",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "player/base/base_player.java": "54ce43971ab8e9b288a4322a39cc9d7e6aafb409c45fa538dfb35786c6057ae7",
+      "player/species_innate.java": "610b9e2fa10e9a477ebe1113abe329b6321137f13fbdd6812811dc98795676b4"
+    },
+    "compiledClassSha256": {
+      "player/base/base_player.class": "983379fdf875bdf1d7e58e420583886042ea1946bcb31c36bb4a639d2639a5a0",
+      "player/species_innate.class": "94b366b19f3df6c2695cb897d3887f585fa079ed5714ce6fa149737572a69ead"
+    },
+    "fullJavaCompile": "passed from the pushed direct-source revision; M320 classes emitted 2026-08-04T09:16:17Z",
+    "compiledBytecodeProbes": "passed: base_player.OnInitialize has zero Shyriiwook-comprehension references; species_innate.OnAttach has exactly one",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "sourceWorkParity": "passed for player/base/base_player.java and player/species_innate.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "skillLibrarySha256": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+    "playerTeachingSha256": "ee0f3395c7e7f061cfd41e3030f1613a75877904716766cdeccfca1a3c21d8e7",
+    "wookieeLanguageUtilitySha256": "0a23e1836a5982e2fafe916cef1333fa04108c91e9cf731f171e5ddae3a991c2",
+    "ep3ConversationSha256": {
+      "conversation/ep3_chewbacca.java": "4ea154a462d5aa7848f5ebe4737006bbef3a91f81be751044a70ba432a5ddd6e",
+      "conversation/ep3_omwaan.java": "bb0519461fe5c091d81d53b82a1f644924d9acdb75ab0186b8a41a6c388245ee"
+    },
+    "skillDataSha256": "6ee0686eec7e1d25db2ef1bc645eed98145c23d7fa125705b3188957103a5c6d",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerStartedAt": "2026-08-04T09:22:58.164664615Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 2,
+    "compiledBytecodeProbes": "passed: base_player.OnInitialize has zero Shyriiwook-comprehension references; species_innate.OnAttach has exactly one",
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 367,
+    "liveBinaryInode": 12110814,
+    "liveBinarySize": 22619240,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, ABI, or database-conversion matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "universal Shyriiwook comprehension grants in player initialization and non-Wookiee species attachment",
+    "preserved": "species identity, native languages, Wookiee Shyriiwook ownership, player teaching, explicit EP3 grants, conversations, quests, zones, later content, and mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

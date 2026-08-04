@@ -2722,3 +2722,18 @@ quests, later content, and the user-verified mission terminal remain preserved.
 Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuLoginSkillProgressionAuthority.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 320 restores Publish 14.1 species-language ownership. Player
+initialization no longer grants Shyriiwook comprehension to every character,
+and the species attachment script grants it only to Wookiees. Human, Bothan,
+Mon Calamari, Rodian, Trandoshan, Twi'lek, Wookiee, Zabrak, Ithorian, and
+Sullustan starting-language sets remain exact and independently authenticated.
+
+Player language teaching and explicit retained EP3 conversation grants remain
+available, preserving later conversations and quests without making their
+language reward universal at character creation. The x64 server is built
+directly from the pushed source revision in the `swg-precu-work-x64` Docker
+volume; the source checkout remains mounted read-only and no host staging or
+artifact tree is used. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuSpeciesLanguageAuthority.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
