@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-authored-armor-protection-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make authored mob, armor-piece, and pseudo-armor protection authoritative in the live armor recalculation cache, removing inherited NGE expertise, armor-set expertise, overridable protection, and entertainer build-a-buff resistance inputs without changing Publish 14.1 hit-location mitigation.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -44,31 +44,47 @@
       "combat": "a0f63c6cf39734451eaa6f3904e052d2e4d911c1b7631583d28c9a8741a0757f"
     },
     "compiledClassSha256": {
-      "armor": "pending",
-      "combat": "pending"
+      "armor": "63a8c6368f633db2b2bb05a70fb45d4e782c2544896081f5b161520532eb00d2",
+      "combat": "f678214b8adf5e084f4ad2a58bce9da5ee9fca0f9d54bd4dcc0feb8015ab68cb"
     },
-    "sourceTest": "pending",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "sourceTest": "passed; all 12 executable NGE expertise, armor-set expertise, overridable protection, and entertainer elemental-resistance reads are retired; authored mob base protection, weighted armor-piece protection, condition scaling, pseudo armor, armor-set tracking, and the Publish 14.1 PSG/hit-location path remain present across 14 production recalculation call sites",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and armor.class/combat.class were emitted at 2026-08-04T21:50:46Z",
+    "fullServerBuild": "passed in 726.8 seconds from pushed parent f630a31 and direct dsrc 10f92d37b",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for armor.java and combat.java against the read-only direct-source mount",
+    "bytecodeAudit": "passed; armor.class contains no expertise_ or elemental_resistance constants and retains getArmorSpecialProtections/getArmorDecayPercentage, while combat.class retains applyPrecuArmorProtection/getPrecuArmorObjectProtection",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused authored-armor source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "pending",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "pending",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "liveProcessMappedBuiltBinary": false,
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T21:57:10.594150817Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "armor": 40379,
+      "combat": 104543
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 364,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, or Oracle error matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "all executable NGE expertise, armor-set expertise, overridable protection, and entertainer elemental-resistance reads in the live shared armor recalculation library",
