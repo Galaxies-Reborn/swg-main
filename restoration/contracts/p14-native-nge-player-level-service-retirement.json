@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-native-nge-player-level-service-retirement",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Retire the remaining native NGE player-level and combat-level expertise-point startup authority while preserving inert linkage and persisted-expertise cleanup compatibility.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3References": {
+      "playerDifficulty": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "skillProgression": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp"
+    },
+    "findings": [
+      "Publish 14.1 player progression is authored by skill boxes, named XP pools, prerequisites, skill points, credits, commands, and skill mods rather than a 1-90 player-level service.",
+      "Publish 14.1 has no combat-level expertise-point pool.",
+      "Retained expertise metadata is still useful only for identifying and removing persisted later-era expertise skills."
+    ]
+  },
+  "diagnosis": {
+    "retainedDataTable": "datatables/player/player_level.iff",
+    "historicalServerLevelManagerIncludes": 1,
+    "historicalServerLevelManagerInstallCalls": 1,
+    "historicalExpertisePlayerLevelTablePaths": 1,
+    "historicalExpertisePointsLoaderMentions": 4,
+    "historicalExpertiseLevelPointMapMentions": 5,
+    "nativeLevelManagerExternalConsumersBefore": 1,
+    "nativeLevelManagerExternalConsumersAfter": 0
+  },
+  "expected": {
+    "serverInstallsLevelManager": false,
+    "expertiseLoadsPlayerLevelTable": false,
+    "expertiseRegistersPlayerLevelReload": false,
+    "expertisePointsForAnyLevel": 0,
+    "expertiseMetadataManagerInstalled": true,
+    "persistedExpertiseCleanupPreserved": true,
+    "expertiseAdmissionStillFailsClosed": true,
+    "levelManagerCompatibilityImplementationPreserved": true,
+    "playerLevelDataPreservedForRetainedContent": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "nativeSourceCommit": "15eb23499281934e3bf88ae5d8e5a65c95ae09f4",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "SetupServerGame.cpp": "fe0af88f7b49f7459ccac46bc3960a3049f67e64460df8e8a4329fdac3cff97c",
+      "ExpertiseManager.cpp": "dd6525f9c754c1fbc7a8976b92650d886434e29bc68fb2fb3714d14f90fbc56d",
+      "LevelManager.cpp": "f8da5d07a42ac82c738f694d4a04cd06fb045dc12f7c85f4538a40f8e029322b"
+    },
+    "cppCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending x86-64 verification",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "result": "pending"
+  },
+  "continuityEvidence": {
+    "playerLevelDataSha256": "7d72682a3a1d79fbde402a9423f9106c997c1a3d49b538bf66e016015b586aaa",
+    "creatureObjectSha256": "8f460c1f094c04492fcf78711030d728ce7bffa4f28d889a395c145fb7b65776",
+    "creatureObjectHeaderSha256": "b2c844ec8861be7925af89d1f4c8bfd90aa88856d82af973d8fa9d4ff654480e",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 0,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "native LevelManager startup plus combat-level expertise-point table loading, reload registration, and compatibility access",
+    "preserved": "PRE-CU skill-box progression, hidden weapon-family con difficulty, named XP, retained expertise cleanup metadata, retained expansion content and player-level data, conversations, zones, and mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "full x86-64 Docker build",
+    "live cluster restart and binary identity proof",
+    "post-start log audit"
+  ]
+}

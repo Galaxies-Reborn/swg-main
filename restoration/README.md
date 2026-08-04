@@ -2771,3 +2771,18 @@ from the pushed direct native source in `swg-precu-work-x64`; no host staging or
 artifact tree is used. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgeCommandSeriesRetirement.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 323 retires the remaining native NGE player-level service startup.
+The server no longer installs the orphaned `LevelManager`, and the retained
+expertise metadata manager no longer loads combat-level expertise points from
+`player_level.iff`. Its compatibility point accessor always returns zero.
+
+Expertise skill/tree metadata remains installed only so persisted later-era
+expertise rows can be identified and removed by the already fail-closed cleanup
+path. The level table itself remains in data for retained expansion content, but
+it no longer supplies native player level XP, level Health, command-series
+grants, or expertise points. The direct native commit is built only in the
+`swg-precu-work-x64` Docker volume; no host staging or artifact tree is used.
+Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgePlayerLevelServiceRetirement.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
