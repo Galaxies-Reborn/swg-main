@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-groundquest-xp-authority",
+  "status": "implemented-build-pending",
+  "scope": "Retain authored later-content ground quests and their level/tier reward table while removing the NGE player-level-derived quest XP cap; PRE-CU XP-type pools and their existing skill-specific limits remain authoritative.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/bin/scripts/managers/player_manager.lua",
+      "MMOCoreORB/src/server/zone/objects/player/PlayerObject.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 progression is skill-box and XP-pool based, not driven by an NGE player level table.",
+      "The retained quest_experience table is authored quest content keyed by quest level and reward tier and is preserved.",
+      "The removed helper converted hidden player difficulty back into player_level.iff xp_required rows and capped every quest reward to half of that NGE level delta.",
+      "All retained ground-quest XP routes already enter the PRE-CU combat, crafting, social, or explicit XP grant adapters.",
+      "The shared XP grant and native PlayerObject grantExperiencePoints path enforce the receiving XP pool's skill-derived experience limit."
+    ]
+  },
+  "expected": {
+    "authoredQuestExperienceTableReads": 1,
+    "ngePlayerLevelTableReads": 0,
+    "ngeQuestXpCapHelpers": 0,
+    "groundquestRewardCalculations": 2,
+    "rewardMetricCalculations": 1,
+    "combatXpRoutes": 1,
+    "craftingXpRoutes": 1,
+    "socialXpRoutes": 1,
+    "explicitOtherXpRoutes": 1,
+    "precuXpPoolCapPreserved": true,
+    "nativeXpLimitPreserved": true,
+    "questCreditsItemsFactionAndGcwRewardsPreserved": true,
+    "authoredQuestLevelAndTierPreserved": true
+  },
+  "sourceFiles": {
+    "groundquests": "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java",
+    "xp": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "playerObject": "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "25f30e24638bf540c79400c5bce342f09c1a6aef",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "groundquests": "17ea0ee5bbd198cf5769c00bc7834045333cce7b2435e87fa4daa6103d3fbc3f",
+      "xp": "92ecf581e7a35511fdd21006ca03e57b236da21feec507434e78027157111dee",
+      "basePlayer": "54ce43971ab8e9b288a4322a39cc9d7e6aafb409c45fa538dfb35786c6057ae7",
+      "playerObject": "6d30ed23e3fc9bc19f4d2d29f2deb6c0f29e70f11403cec797f15d5a3740b77c"
+    },
+    "compiledClassSha256": {
+      "groundquests": ""
+    },
+    "sourceTest": "passed; the retained quest table and all four explicit XP routes remain, player_level.iff and getQuestXpCap are absent, and Java/native XP-pool limits remain authoritative",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the active player_level.iff-derived XP cap applied to retained ground-quest rewards",
+    "preserved": "authored NGE-era quests and zones, quest level/tier reward lookup, explicit XP-type routing, XP-pool limits, credits, items, faction standing, independent retained GCW rewards, quest completion, and metrics",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "full clean Java/server build",
+    "compiled groundquests bytecode audit",
+    "healthy live deployment and mapped-binary verification"
+  ]
+}

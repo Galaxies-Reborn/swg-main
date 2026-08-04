@@ -67,6 +67,10 @@ Write-Host "Verifying the direct-source PRE-CU metrics level authority before bu
 & (Join-Path $PSScriptRoot "Test-P14PrecuMetricsLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU ground-quest XP authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuGroundquestXpAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -174,6 +178,8 @@ source_xp_library="$source_script/library/xp.java"
 work_xp_library="$work_script/library/xp.java"
 source_metrics_library="$source_script/library/metrics.java"
 work_metrics_library="$work_script/library/metrics.java"
+source_groundquests_library="$source_script/library/groundquests.java"
+work_groundquests_library="$work_script/library/groundquests.java"
 source_factions_library="$source_script/library/factions.java"
 work_factions_library="$work_script/library/factions.java"
 source_faction_perk_library="$source_script/library/faction_perk.java"
@@ -367,6 +373,14 @@ cmp -s "$source_metrics_library" "$work_metrics_library"
 ! grep -E -q '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*(member|killCredit|player)[[:space:]]*\)' "$work_metrics_library"
 test "$(grep -E -o 'skill\.getPrecuEncounterDifficulty[[:space:]]*\([[:space:]]*(member|killCredit|player)[[:space:]]*\)' "$work_metrics_library" | wc -l)" -eq 4
 test "$(grep -E -o '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*target[[:space:]]*\)' "$work_metrics_library" | wc -l)" -eq 1
+cmp -s "$source_groundquests_library" "$work_groundquests_library"
+grep -Fq 'datatables/quest/quest_experience.iff' "$work_groundquests_library"
+! grep -Fq 'datatables/player/player_level.iff' "$work_groundquests_library"
+! grep -Fq 'getQuestXpCap' "$work_groundquests_library"
+grep -Fq 'xp.grantCombatStyleXp(player, experienceType, experienceAmount)' "$work_groundquests_library"
+grep -Fq 'xp.grantCraftingQuestXp(player, experienceAmount)' "$work_groundquests_library"
+grep -Fq 'xp.grantSocialStyleXp(player, experienceType, experienceAmount)' "$work_groundquests_library"
+grep -Fq 'xp.grantUnmodifiedExperience(player, experienceType, experienceAmount, false)' "$work_groundquests_library"
 cmp -s "$source_factions_library" "$work_factions_library"
 cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
 cmp -s "$source_jedi_saber_component" "$work_jedi_saber_component"
@@ -634,7 +648,14 @@ javap -classpath "$class_root" -v script.conversation.imperial_defensive_supply_
 javap -classpath "$class_root" -v script.conversation.som_pei_yi | grep -Fq 'getPrecuEntertainerContentDifficulty'
 javap -classpath "$class_root" -v script.theme_park.outbreak.camp_defense | grep -Fq 'getPrecuEncounterDifficulty'
 ! javap -classpath "$class_root" -v script.library.skill | grep -Fq 'getGroupObjectLevel'
-javap -classpath "$class_root" -v script.library.groundquests | grep -Fq 'getPrecuEncounterDifficulty'
+groundquest_xp_bytecode="$(javap -classpath "$class_root" -v script.library.groundquests)"
+printf '%s' "$groundquest_xp_bytecode" | grep -Fq 'datatables/quest/quest_experience.iff'
+! printf '%s' "$groundquest_xp_bytecode" | grep -Fq 'datatables/player/player_level.iff'
+! printf '%s' "$groundquest_xp_bytecode" | grep -Fq 'getQuestXpCap'
+printf '%s' "$groundquest_xp_bytecode" | grep -Fq 'grantCombatStyleXp'
+printf '%s' "$groundquest_xp_bytecode" | grep -Fq 'grantCraftingQuestXp'
+printf '%s' "$groundquest_xp_bytecode" | grep -Fq 'grantSocialStyleXp'
+printf '%s' "$groundquest_xp_bytecode" | grep -Fq 'grantUnmodifiedExperience'
 javap -classpath "$class_root" -v script.npc.static_quest.quest_convo | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.library.collection | grep -Fq 'getPrecuEncounterDifficulty'
 javap -classpath "$class_root" -v script.library.space_combat | grep -Fq 'getPrecuEncounterDifficulty'

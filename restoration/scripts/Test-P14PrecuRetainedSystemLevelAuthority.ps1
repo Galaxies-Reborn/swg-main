@@ -126,9 +126,11 @@ $spaceText = [string]$texts["script.library.space_combat"]
 $performanceText = [string]$texts["script.library.performance"]
 $songBookText = [string]$texts["script.event.halloween.song_book"]
 $lovedayText = [string]$texts["script.event.ewok_festival.loveday_reward_crossbow"]
-Assert-Contract ($groundquestsText.Contains("getPrecuEncounterDifficulty(player)") -and
-    $groundquestsText.Contains('datatables/player/player_level.iff')) `
-    "p14.retained-system.quest-xp-cap.hidden-skill-index"
+Assert-Contract ($groundquestsText.Contains("QUEST_EXPERIENCE_TABLE") -and
+    $groundquestsText.Contains("getQuestExperienceReward") -and
+    -not $groundquestsText.Contains("getQuestXpCap") -and
+    -not $groundquestsText.Contains('datatables/player/player_level.iff')) `
+    "p14.retained-system.quest-content-without-nge-level-cap"
 Assert-Contract ($spaceText.Contains("getPrecuEncounterDifficulty(((obj_id) objPlayer))") -and
     $spaceText.Contains("xp.grantCombatStyleXp(((obj_id) objPlayer), xp.COMBAT_GENERAL, intGroundXp)") -and
     -not $spaceText.Contains('xp.grant(((obj_id) objPlayer), "combat_general", intGroundXp)')) `
