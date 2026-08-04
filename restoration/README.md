@@ -2737,3 +2737,21 @@ volume; the source checkout remains mounted read-only and no host staging or
 artifact tree is used. Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuSpeciesLanguageAuthority.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 321 restores native Publish 14.1 player combat-difficulty authority.
+The inherited server previously converted every named XP grant and skill-box
+change through the later `player_level` table, persisted player level XP, and
+added level-derived Health. Players now keep named skill XP and authored skill
+mods while their hidden combat/con difficulty follows the readied weapon
+family's `private_*_combat_difficulty` value, plus Jedi difficulty for
+lightsabers, using the Core3 1-25 calculation.
+
+Weapon changes, skill grants, surrender, login recalculation, and database
+load refresh that hidden value without creating level XP or Health. Scripted
+level forcing cannot override players; authored NPC levels remain intact. The
+separate 1-90 retained-content encounter score and user-verified mission
+terminal remain preserved. The x64 server is built from the pushed direct
+native source in the `swg-precu-work-x64` Docker volume with the source mount
+read-only and no host staging or artifact tree. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativePrecuPlayerDifficultyAuthority.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready

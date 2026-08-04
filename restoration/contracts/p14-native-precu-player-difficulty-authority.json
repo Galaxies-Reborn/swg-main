@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-native-precu-player-difficulty-authority",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Replace the inherited NGE XP/skill player-level pipeline with Publish 14.1 weapon-skill combat difficulty while preserving named skill XP, authored skill mods, NPC levels, and the separate retained-content encounter score.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3References": {
+      "playerDifficulty": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "skillProgression": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp"
+    },
+    "findings": [
+      "Core3 derives the hidden player combat/con difficulty from the readied weapon family's private combat-difficulty skill mod divided by 100 plus one, capped at 25.",
+      "Core3 adds private_jedi_difficulty only for a readied lightsaber family.",
+      "Publish 14.1 skill grants and surrender operate through skill points, prerequisites, named XP pools, credits, and authored skill mods; they do not create NGE player level XP or level-derived Health."
+    ]
+  },
+  "diagnosis": {
+    "retiredLevelTable": "datatables/player/player_level.iff",
+    "historicalNativeLevelManagerReferencesInCreatureObject": 10,
+    "expectedNativeLevelManagerReferencesInCreatureObject": 0,
+    "historicalPlayerLevelXpSources": [
+      "named experience grants",
+      "skill grants",
+      "skill surrender",
+      "database-load reconstruction",
+      "script-forced level",
+      "level recalculation"
+    ],
+    "historicalPlayerLevelHealthGrant": true
+  },
+  "expected": {
+    "playerDifficultyMinimum": 1,
+    "playerDifficultyMaximum": 25,
+    "playerDifficultyFormula": "clamp(private weapon-family combat difficulty / 100 + 1, 1, 25)",
+    "weaponDifficultyMods": {
+      "WT_rifle": "private_rifle_combat_difficulty",
+      "WT_lightRifle": "private_carbine_combat_difficulty",
+      "WT_pistol": "private_pistol_combat_difficulty",
+      "WT_heavyWeapon": "private_heavyweapon_combat_difficulty",
+      "WT_1handMelee": "private_onehandmelee_combat_difficulty",
+      "WT_2handMelee": "private_twohandmelee_combat_difficulty",
+      "WT_unarmed": "private_unarmed_combat_difficulty",
+      "WT_polearm": "private_polearm_combat_difficulty",
+      "WT_1handLightsaber": "private_onehandlightsaber_combat_difficulty",
+      "WT_2handLightsaber": "private_twohandlightsaber_combat_difficulty",
+      "WT_polearmLightsaber": "private_polearmlightsaber_combat_difficulty"
+    },
+    "lightsaberJediDifficultyMod": "private_jedi_difficulty",
+    "namedSkillXpPreserved": true,
+    "playerLevelXp": 0,
+    "playerLevelHealthGranted": 0,
+    "weaponChangeRefreshesDifficulty": true,
+    "skillGrantAndSurrenderRefreshDifficulty": true,
+    "databaseLoadRefreshesDifficultyWithoutLevelScripts": true,
+    "scriptForcedPlayerLevelRejected": true,
+    "npcAuthoredLevelsPreserved": true,
+    "retainedEncounterDifficultyPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "nativeSourceCommit": "9bee41a62e1093c98a1a96cb91aaf2668e14e46c",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "CreatureObject.cpp": "654755ae381a7f91f44d8bd0a6899a5d8c7acba211a5982b994c4b1a154ac8ba",
+      "CreatureObject.h": "b2c844ec8861be7925af89d1f4c8bfd90aa88856d82af973d8fa9d4ff654480e"
+    },
+    "cppCompile": "passed from pushed direct native source revision",
+    "fullServerBuild": "passed; Docker x86-64 Release build completed 2026-08-04T09:45:17Z",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "aabca874e92cc3fd17b1ba77e63caff7bf4ecdd2e5514b176b14f9556fe2d2e4",
+    "serverBinaryBuildId": "2831058ebbb8a4f0650fd83cee7f609947a67ac0",
+    "sourceWorkParity": "passed for CreatureObject.cpp and CreatureObject.h",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "basePlayerSha256": "54ce43971ab8e9b288a4322a39cc9d7e6aafb409c45fa538dfb35786c6057ae7",
+    "skillLibrarySha256": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+    "skillDataSha256": "6ee0686eec7e1d25db2ef1bc645eed98145c23d7fa125705b3188957103a5c6d",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending restart"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "native NGE player level XP, level-derived Health, level-table recalculation, and forced player-level authority",
+    "preserved": "named skill XP, skill points, prerequisites, trainers, skill surrender, authored PRE-CU skill mods, weapon-family con difficulty, NPC authored levels, retained-content encounter scoring, expansion quests, conversations, zones, and mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Restart the x64 cluster from the authenticated Docker work-volume binary.",
+    "Verify process-to-built-binary mapping, readiness, health, and clean post-start logs."
+  ]
+}
