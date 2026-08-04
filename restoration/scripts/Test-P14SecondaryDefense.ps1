@@ -121,19 +121,21 @@ $secondary = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuSe
 $resultCode = Get-BracedBlock -Text $combatBase -Signature "public int getPrecuSecondaryDefenseResultCode("
 $counter = Get-BracedBlock -Text $combatBase -Signature "public boolean doPrecuCounterAttack("
 $attackerAccuracy = Get-BracedBlock -Text $combatBase -Signature "public float getPrecuAttackerAccuracyTotal("
+$hitEngine = Get-BracedBlock -Text $combatBase -Signature "public hit_result[] runHitEngine(attacker_data attackerData, weapon_data weaponData, defender_data[] defenderData, attacker_results attackerResults, defender_results[] defenderResults, combat_data actionData, boolean isTangibleAttacking, boolean isAutoAiming, int overloadDamage)"
 
 Assert-Contract -Condition (
     $combatEngine.Contains("public boolean precuBlock = false;") -and
     $combatEngine.Contains("public boolean precuCounter = false;") -and
     $combatEngine.Contains("public boolean precuRicochet = false;")) -Name "p14.secondary-defense.hit-result.explicit-flags"
 Assert-Contract -Condition (
-    $combatBase.Contains("if (precuPrimaryResult == HIT_RESULT_HIT)") -and
-    $combatBase.Contains("precuSecondaryResult = getPrecuSecondaryDefenseResult(attackerData, defenderData[i], weaponData, actionData);")) -Name "p14.secondary-defense.integration.after-primary-hit-only"
+    $hitEngine.Contains("if (precuPrimaryResult == HIT_RESULT_HIT)") -and
+    $hitEngine.Contains("precuSecondaryResult = getPrecuSecondaryDefenseResult(")) -Name "p14.secondary-defense.integration.after-primary-hit-only"
 Assert-Contract -Condition (
-    $combatBase.Contains("if (precuSecondaryResult == PRECU_SECONDARY_RESULT_FALLBACK)") -and
-    $combatBase.Contains("precuPrimaryResult = PRECU_PRIMARY_RESULT_FALLBACK;") -and
-    $combatBase.Contains("int defResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getDefenderResult") -and
-    $combatBase.Contains("int atkResult = precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ? getAttackerResult")) -Name "p14.secondary-defense.integration.complete-nge-fallback"
+    $hitEngine.Contains("if (precuAuthoritativeAttack)") -and
+    $hitEngine.Contains("precuSecondaryResult = HIT_RESULT_HIT;") -and
+    $hitEngine.Contains("defResult = precuSecondaryResult;") -and
+    $hitEngine.Contains("atkResult = precuPrimaryResult;") -and
+    -not $hitEngine.Contains("precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ?")) -Name "p14.secondary-defense.integration.precu-fails-closed"
 Assert-Contract -Condition (
     $secondary.Contains('getHeldWeapon(defenderData.id)') -and
     $secondary.Contains('getCurrentWeapon(defenderData.id)') -and

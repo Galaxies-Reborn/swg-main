@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-combat-expertise-isolation",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before the inherited NGE result tables and preserve authored three-pool HAM costs without allowing NGE free-shot expertise to replace them.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 attack admission, primary accuracy, secondary defense, and HAM costs are skill-, weapon-, posture-, and command-authored rather than expertise-driven.",
+      "All retained profession and NPC combat actions are already authenticated by precu_combat_overrides.tab, and every row supplies an explicit target pool and PRE-CU HAM-cost model.",
+      "The previous dispatcher could select the inherited NGE hit tables through a fallback sentinel even after entering PRE-CU resolution; current complete family profiles made that unlikely, but the control-flow boundary was not fail-closed.",
+      "Single-target PRE-CU actions reached the inherited success-based free-shot helper after their authored HAM cost was calculated, allowing five NGE freeshot skill modifiers to replace the cost with zero.",
+      "Area costs remain drained once before the hit engine; their per-defender success-cost result must remain zero to prevent duplicate drains."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 2,
+    "authenticatedCombatOverrideRows": 163,
+    "authenticatedRowsWithExplicitTargetPool": 163,
+    "ngeFreeshotModifierReadsBypassedForPrecu": 5,
+    "precuAndNgeHitDispatchMutuallyExclusive": true,
+    "precuFallbackFailsClosedToHit": true,
+    "singleTargetPrecuCostUsesAuthoredHam": true,
+    "areaCostDrainedOnlyBeforeHitEngine": true,
+    "ngeCompatibilityHelpersPreserved": true,
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "ee9f121910a7f208a88ab2828a01fb3e925e136a",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "combatLibrary": "ef36374d80713d8f27477c72af481f3688ca6eb22177cc60d4921935682955ea",
+      "combatBase": "2bef03deee2675f22726f8eafa6a072f29ecded383063d29aed906870285e1bc",
+      "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf"
+    },
+    "compiledClassSha256": {
+      "combatLibrary": "pending",
+      "combatBase": "pending"
+    },
+    "sourceTest": "passed",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "authenticated PRE-CU hit-result dispatch and single-target success-cost handling can no longer cross into inherited NGE expertise authority",
+    "preserved": "Core3 primary and secondary defense, authored three-pool costs, one-time area cost draining, PRE-CU block/dodge/counter/ricochet, NGE compatibility helpers for retained later content, and all expansion quests/zones",
+    "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": [
+    "clean x64 server build",
+    "compiled combat/combat_base bytecode audit",
+    "healthy live cluster using the built binary"
+  ]
+}

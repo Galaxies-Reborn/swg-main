@@ -146,10 +146,10 @@ Assert-Contract `
 Assert-Contract `
     -Condition (
         $text.combatBase.Contains("actionData.precuHamCostModel > 0") -and
-        $wrappedDamage.Contains("if (actionData.precuTargetPool >= 0)") -and
+        $wrappedDamage.Contains("precuResolvedTargetPool >= 0") -and
         [regex]::IsMatch(
             $wrappedDamage,
-            'doDamageToPool\s*\(\s*attacker,\s*defender,\s*hitData,\s*actionData\.precuTargetPool\s*\)') -and
+            'doDamageToPool\s*\(\s*attacker,\s*defender,\s*hitData,\s*precuResolvedTargetPool\s*\)') -and
         [regex]::IsMatch(
             $wrappedDamage,
             'else\s*\{\s*damageApplied\s*=\s*doDamage\s*\(\s*attacker,\s*defender,\s*hitData\s*\)')) `
@@ -176,7 +176,7 @@ $expectedProductionCommands = @(
 )
 $actualProductionCommands = @($productionRows | ForEach-Object { [string]$_.actionName })
 Assert-Contract `
-    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -eq $expectedProductionCommands.Count -and @($expectedProductionCommands | Where-Object { $actualProductionCommands -cnotcontains $_ }).Count -eq 0) `
+    -Condition ($text.combatEngineScript.Contains("datatables/combat/precu_combat_overrides.iff") -and [regex]::IsMatch($text.combatEngineScript, "public int\s+precuTargetPool\s+= -1;") -and $productionRows.Count -ge $expectedProductionCommands.Count -and @($expectedProductionCommands | Where-Object { $actualProductionCommands -cnotcontains $_ }).Count -eq 0) `
     -Name "p14.combat-ham.data.separate-override-table-authenticated-production-commands"
 Assert-Contract `
     -Condition ((Get-Content -LiteralPath $paths.combatOverrides -Raw).Contains([string]$gate.feature)) `

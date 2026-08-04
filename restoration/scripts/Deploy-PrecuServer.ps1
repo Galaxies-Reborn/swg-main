@@ -103,6 +103,10 @@ Write-Host "Verifying the direct-source PRE-CU retained reverse/performance auth
 & (Join-Path $PSScriptRoot "Test-P14PrecuRetainedReversePerformanceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU combat expertise isolation before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuCombatExpertiseIsolation.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -706,6 +710,11 @@ javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | gr
 ! javap -classpath "$class_root" -v script.library.performance | grep -Fq 'expertise_'
 javap -classpath "$class_root" -v script.library.performance | grep -Fq 'isNgeInspirationEnabled'
 javap -classpath "$class_root" -v script.library.performance | grep -Fq 'holographicCleanup'
+javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'precuHamCostModel'
+javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'freeshot_case_miss'
+javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuPrimaryAttackResult'
+javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuSecondaryDefenseResult'
+javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getDefenderResult'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
