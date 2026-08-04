@@ -195,12 +195,12 @@ $liveFixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 
 Assert-Contract -Condition (
     $primaryChance.Contains('dataTableSearchColumnForString(actionData.actionName, "actionName", PRECU_COMBAT_OVERRIDES)') -and
-    $primaryChance.Contains('boolean profiledCreature =') -and
-    $primaryChance.Contains('hasObjVar(attackerData.id, "precu.combatProfile")') -and
+    $primaryChance.Contains('if (!isPrecuAuthoritativeAttack(attackerData.id, actionData))') -and
     $primaryChance.Contains('int weaponRow = getPrecuWeaponProfileRow(weaponData);')) -Name "p14.primary-accuracy.runtime.authenticated-action-or-profile"
 Assert-Contract -Condition (
-    $primaryChance.Contains('if (actionRow < 0 && !profiledCreature)') -and
-    $primaryChance.Contains('if (!isIdValid(weaponData.id))') -and
+    $primaryChance.Contains('int accuracyBonus = actionRow >= 0 ?') -and
+    $primaryChance.Contains('getPrecuActionAccuracyBonus(attackerData.id, actionRow) : 0;') -and
+    $primaryChance.Contains('if (weaponRow < 0)') -and
     -not $primaryChance.Contains('accuracyBonus <= 0')) -Name "p14.primary-accuracy.runtime.zero-bonus-is-valid"
 Assert-Contract -Condition (
     $primaryChance.Contains('getPrecuAttackerAccuracyTotal(attackerData, defenderData, weaponRow, accuracyBonus)') -and

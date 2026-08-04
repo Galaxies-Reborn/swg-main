@@ -2651,3 +2651,18 @@ rows remain present. The user-verified mission-terminal sources remain
 hash-pinned and unchanged. Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeGcwRankRewardRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 315 retires the inherited automatic NGE creature-combat profile
+selector for every ground attacker carrying an authenticated PRE-CU creature
+profile. The later table assigned 313 profiles and 284 distinct unmapped
+profession, Beast Master, delay, heal, and utility actions to 5,317 creature
+rows. Profiled creatures now use their normal default attack through the
+existing Core3 damage, accuracy, HAM, armor, and two-second AI cadence routes.
+
+Explicitly forced and one-shot encounter actions remain available, preserving
+retained Mustafar, Kashyyyk, Tansarii, quest, boss, and scripted encounter
+mechanics. Unprofiled retired compatibility actors keep their old selector;
+the creature/profile/combat tables and user-verified mission-terminal sources
+remain unchanged. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCreatureAutoActionAuthority.ps1 -SourceRoot <direct-server-checkout>
