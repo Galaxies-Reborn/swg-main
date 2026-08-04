@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-species-innate-authority",
+  "status": "implemented-build-pending",
+  "scope": "Restore the Publish 14.1 active species innates and their authored species, HAM, duration, reuse, targeting, and state-effect authority without restoring unrelated racial combat modifiers or bypassing Novice Scout harvesting admission.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU active species innates",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3References": {
+      "regeneration": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/creature/commands/RegenerationCommand.h",
+      "vitalize": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/creature/commands/VitalizeCommand.h",
+      "equilibrium": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/creature/commands/EquilibriumCommand.h",
+      "wookieeRoar": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/creature/commands/WookieeRoarCommand.h"
+    },
+    "preservedSkillTableReferences": {
+      "swgGenesis": "https://github.com/SWGGenesis/swgLauncher/blob/master/profcalc/skills.csv",
+      "rocLauncher": "https://github.com/dpwhittaker/RoC-Launcher/blob/master/profcalc/skills.csv"
+    },
+    "findings": [
+      "Two independent preserved PRE-CU skill tables agree that Trandoshans receive Regeneration, Wookiees receive Wookiee Roar, and Zabraks receive Vitalize plus Equilibrium.",
+      "Regeneration grants 175 Constitution for 300 seconds and has a 3600-second reuse; Vitalize grants 50 Health, Action, and Mind for 600 seconds and has a 3600-second reuse.",
+      "Equilibrium averages current Health, Action, and Mind and moves all three pools to that average; its 3600-second reuse is independent of Vitalize.",
+      "Wookiee Roar is an enemy-targeted 15-meter, 90-degree cone that applies a 60-second Intimidate state and has a 300-second reuse."
+    ]
+  },
+  "diagnosis": {
+    "historicalSpeciesRowsWithActivePrecuInnates": 0,
+    "historicalSharedSelfInnateCooldownGroup": "species_innate",
+    "historicalEquilibriumFixedHealthToActionTransfer": 250,
+    "historicalWookieeRoarCombatDefinitionPresent": false,
+    "historicalNgeReplacementBuffRows": 3
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 9,
+    "gameplaySourceFiles": 8,
+    "activeSpeciesInnateRows": 3,
+    "speciesInnates": {
+      "species_trandoshan": {
+        "commands": ["regeneration"],
+        "skillMods": ["private_innate_regeneration=1"]
+      },
+      "species_wookiee": {
+        "commands": ["wookieeRoar"],
+        "skillMods": ["private_innate_roar=1"]
+      },
+      "species_zabrak": {
+        "commands": ["vitalize", "equilibrium"],
+        "skillMods": ["private_innate_equilibrium=1", "private_innate_vitalize=1"]
+      }
+    },
+    "speciesWithNoActiveInnate": [
+      "species_bothan",
+      "species_human",
+      "species_moncal",
+      "species_rodian",
+      "species_twilek",
+      "species_ithorian",
+      "species_sullustan"
+    ],
+    "ngeSpeciesAbilityGrants": 0,
+    "speciesCreatureHarvestingGrants": 0,
+    "regenerationConstitution": 175,
+    "regenerationDurationSeconds": 300,
+    "regenerationReuseSeconds": 3600,
+    "vitalizeHealthActionMind": 50,
+    "vitalizeDurationSeconds": 600,
+    "vitalizeReuseSeconds": 3600,
+    "equilibriumReuseSeconds": 3600,
+    "wookieeRoarRangeMeters": 15,
+    "wookieeRoarConeDegrees": 90,
+    "wookieeRoarIntimidateChance": 100,
+    "wookieeRoarIntimidateDurationSeconds": 60,
+    "wookieeRoarReuseSeconds": 300,
+    "wookieeRoarLocalizedActionNameFallback": true,
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "innateLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/innate.java",
+    "speciesInnate": "dsrc/sku.0/sys.server/compiled/game/script/player/species_innate.java",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "combatSpam": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "b3d5edc734154bf7768b270c011866a3183a7f62",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "innateLibrary": "0316118bae0b1ce05e779072e5eb97479e5b08197cbe14d08257f079a4a15b06",
+      "speciesInnate": "0c81adcbc2828158794e7756ec886677199db87355a14e875b58c34ae670adc7",
+      "combatActions": "f08852b6f6ae56cf0bcda5068305a8390896f75a65decd552ed13b1a376fd159",
+      "skills": "3a8b9ee5fbbf92af5610ef713fd1fb5914056c4949028507266ddee2f9eb2f53",
+      "commandTable": "0fcdb7cddd7f4b692fd8bd4535ab88f18ddd2af2e840ba337775858fc162d519",
+      "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
+      "combatData": "44656473c5070db0f36acc29715311d0f29bbf10eb58f28faeb3cc709764f882",
+      "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf"
+    },
+    "fullJavaCompile": "pending",
+    "compiledClassSha256": {
+      "innateLibrary": "",
+      "speciesInnate": "",
+      "combatActions": ""
+    },
+    "compiledDataSha256": {
+      "skills": "",
+      "commandTable": "",
+      "buffTable": "",
+      "combatData": "",
+      "combatOverrides": ""
+    },
+    "bytecodeAudit": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "",
+    "serverBinaryBuildId": "",
+    "sourceWorkParity": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 0,
+    "compiledClassesPresent": false,
+    "compiledDataPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "active PRE-CU species-innate grants and live Regeneration, Vitalize, Equilibrium, and Wookiee Roar effects, targeting, category, display, and independent cooldown authority",
+    "preserved": "all ten species identities and languages, default character commands and item certifications, later quests, conversations, zones, retained compatibility rows, PRE-CU command-name combat logging, and Novice Scout-only creature harvesting",
+    "notClaimedComplete": "passive racial balance modifiers and other dormant later gameplay mechanics remain separate decisions in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "commit and push direct dsrc source",
+    "full Docker x64 build and deployment",
+    "compiled-bytecode, compiled-data, and source/work parity verification",
+    "healthy live runtime and post-start log audit"
+  ]
+}

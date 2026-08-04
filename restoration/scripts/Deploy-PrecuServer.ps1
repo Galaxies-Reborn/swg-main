@@ -82,6 +82,10 @@ source_combat_base="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/s
 work_combat_base="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
 source_combat_actions="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
 work_combat_actions="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+source_innate="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/innate.java"
+work_innate="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/innate.java"
+source_species_innate="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/species_innate.java"
+work_species_innate="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/species_innate.java"
 source_combat_player="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java"
 work_combat_player="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_player.java"
 source_ai_corpse="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java"
@@ -128,6 +132,10 @@ source_command_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datata
 work_command_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 source_skills="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 work_skills="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+source_buff_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+work_buff_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+source_combat_data="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
+work_combat_data="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 work_conversation="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
@@ -283,6 +291,8 @@ cmp -s "$source_loot" "$work_loot"
 cmp -s "$source_creature_profiles" "$work_creature_profiles"
 cmp -s "$source_combat_base" "$work_combat_base"
 cmp -s "$source_combat_actions" "$work_combat_actions"
+cmp -s "$source_innate" "$work_innate"
+cmp -s "$source_species_innate" "$work_species_innate"
 cmp -s "$source_combat_player" "$work_combat_player"
 cmp -s "$source_ai_corpse" "$work_ai_corpse"
 cmp -s "$source_combat_overrides" "$work_combat_overrides"
@@ -306,6 +316,8 @@ cmp -s "$source_travel" "$work_travel"
 cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
+cmp -s "$source_buff_table" "$work_buff_table"
+cmp -s "$source_combat_data" "$work_combat_data"
 cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_xp_library" "$work_xp_library"
 cmp -s "$source_factions_library" "$work_factions_library"
@@ -765,6 +777,16 @@ javap -classpath "$class_root" -c script.ai.pet_control_device | grep -Fq 'getDe
 javap -classpath "$class_root" -c script.ai.pet_control_device | grep -Fq 'getDetonationDroidMaxDamage'
 javap -classpath "$class_root" -c script.npc.pet_deed.droid_deed | grep -Fq 'getDetonationDroidMinDamage'
 javap -classpath "$class_root" -c script.npc.pet_deed.droid_deed | grep -Fq 'getDetonationDroidMaxDamage'
+javap -classpath "$class_root" -constants script.library.innate | grep -Fq 'DURATION_VIT = 600.0f'
+! javap -classpath "$class_root" -v script.library.innate | grep -Fq 'VALUE_EQUALIZE_AMOUNT'
+equalize_bytecode="$(javap -classpath "$class_root" -c -p script.library.innate | sed -n '/equalizeEffect/,/doAntiModCheck/p')"
+printf '%s' "$equalize_bytecode" | grep -Fq 'idiv'
+test "$(printf '%s' "$equalize_bytecode" | grep -Fc 'Method addAttribModifier')" -eq 3
+javap -classpath "$class_root" -v script.player.species_innate | grep -Fq 'private_innate_regeneration'
+javap -classpath "$class_root" -v script.player.species_innate | grep -Fq 'private_innate_vitalize'
+javap -classpath "$class_root" -v script.player.species_innate | grep -Fq 'private_innate_equilibrium'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'private_innate_roar'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'wookieeRoar'
 grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/ai/pet.java"
 grep -Fq 'datastorage * pet_lib.getDetonationDroidMinDamage()' "$work_script/ai/pet_control_device.java"
 grep -Fq 'datastorage * pet_lib.getDetonationDroidMinDamage()' "$work_script/npc/pet_deed/droid_deed.java"
@@ -847,11 +869,20 @@ grep -Fq 'getStoredAttackTime' "$work_weapon_header"
 awk -F '	' '$1 ~ /^harvestCorpse$/ { found=1; if ($9 !~ /^harvestCorpse$/) exit 2 } END { if (!found) exit 3 }' "$work_command_table"
 awk -F '	' '$1 ~ /^species_(bothan|human|moncal|rodian|trandoshan|twilek|wookiee|zabrak|ithorian|sullustan)$/ { found++; if ($23 ~ /creature_harvesting/) exit 2 } END { if (found != 10) exit 3 }' "$work_skills"
 awk -F '	' '$1 ~ /^outdoors_scout_novice$/ { found=1; if ($22 !~ /harvestCorpse/ || $23 !~ /creature_harvesting=15/) exit 2 } END { if (!found) exit 3 }' "$work_skills"
+awk -F '	' '$1 ~ /^species_(bothan|human|moncal|rodian|trandoshan|twilek|wookiee|zabrak|ithorian|sullustan)$/ { found++; if ($22 ~ /_ability_1/ || $23 ~ /_ability_1|creature_harvesting/) exit 2; if ($1 == "species_trandoshan" && ($22 !~ /regeneration/ || $23 != "private_innate_regeneration=1")) exit 4; if ($1 == "species_wookiee" && ($22 !~ /wookieeRoar/ || $23 != "private_innate_roar=1")) exit 5; if ($1 == "species_zabrak" && ($22 !~ /vitalize/ || $22 !~ /equilibrium/ || $23 !~ /private_innate_equilibrium=1/ || $23 !~ /private_innate_vitalize=1/)) exit 6 } END { if (found != 10) exit 3 }' "$work_skills"
+awk -F '	' '$1 == "regeneration" { r++; if ($87 != "innate_regeneration" || $90 != 3600) exit 2 } $1 == "vitalize" { v++; if ($87 != "innate_vitalize" || $90 != 3600) exit 3 } $1 == "equilibrium" { e++; if ($87 != "innate_equilibrium" || $90 != 3600) exit 4 } $1 == "wookieeRoar" { w++; if ($2 != "combat" || $74 != "enemy" || $75 != "required" || $79 != "combat_general" || $83 != "combat" || $84 != 1 || $85 != "ALL" || $87 != "innate_roar" || $88 != 0 || $89 != 1 || $90 != 300) exit 5 } END { if (r != 1 || v != 1 || e != 1 || w != 1) exit 6 }' "$work_command_table"
+awk -F '	' '$1 == "innate_regeneration" { r++; if ($7 != 300 || $8 != "constitution" || $9 != 175) exit 2 } $1 == "innate_vitalize" { v++; if ($7 != 600 || $8 != "health" || $9 != 50 || $10 != "action" || $11 != 50 || $12 != "mind" || $13 != 50) exit 3 } $1 == "innate_wookiee_roar" { w++; if ($8 != "" || $10 != "" || $12 != "" || $14 != "" || $16 != "") exit 4 } END { if (r != 1 || v != 1 || w != 1) exit 5 }' "$work_buff_table"
+awk -F '	' '$1 == "wookieeRoar" { found++; if ($42 != "CONE" || $43 != 15 || $44 != 90 || $46 != 15 || $56 != 0 || $57 != 0 || $59 != 0 || $82 != "UNARMED" || $83 != "MELEE_WEAPON" || $92 != "ACTION_NAME") exit 2 } END { if (found != 1) exit 3 }' "$work_combat_data"
+awk -F '	' '$1 == "wookieeRoar" { found++; if ($5 != "NO_ATTRIBUTE" || $11 != "INTIMIDATE" || $12 != 100 || $14 != 60 || $15 != "intimidate_defense" || $16 != "jedi_state_defense" || $17 != "resistance_states" || $38 != "intimidate") exit 2 } END { if (found != 1) exit 3 }' "$work_combat_overrides"
 awk -F '	' '$1 ~ /^kreetle$/ { found=1; if ($3 != 3 || $5 != 35 || $6 != 45 || $8 != 90 || $9 != 110) exit 2 } END { if (!found) exit 3 }' "$work_creature_profiles"
 awk -F '	' '$1 ~ /^lesser_desert_womprat$/ { found=1; if ($2 !~ /^lesser_desert_womp_rat$/ || $3 != 5 || $5 != 45 || $6 != 50) exit 2 } END { if (!found) exit 3 }' "$work_creature_profiles"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/skill/skills.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.iff"
 nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'
 nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
