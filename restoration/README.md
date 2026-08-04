@@ -2636,3 +2636,18 @@ effect-mapping rows, expansion quests/zones, and the user-verified mission
 terminal sources remain preserved. Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePassiveProfessionRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 314 retires the post-NGE GCW rank combat-reward layer without
+changing the authenticated Publish 14.1 faction rank system. The twelve
+Imperial/Rebel ability skills are rejected by the generic retired-progression
+gate; rank changes no longer grant their six combat tiers. Login,
+initialization, recapacitation, and retired-skill callbacks remove persisted
+reward skills, their active retaliation/adrenaline/unstoppable/last-man/aura
+buffs, the repeating aura controller, and its faction state.
+
+Faction-point promotion costs, persisted ranks, recruiters, titles/badges,
+bases, battles, quests, zones, and the later compatibility skill/combat/buff
+rows remain present. The user-verified mission-terminal sources remain
+hash-pinned and unchanged. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgeGcwRankRewardRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>

@@ -1,36 +1,34 @@
 {
   "schemaVersion": 1,
-  "feature": "p14-post-nge-passive-profession-runtime-retirement",
+  "feature": "p14-post-nge-gcw-rank-reward-runtime-retirement",
   "status": "ready",
-  "scope": "Retire automatic NGE Jedi stance/focus and Smuggler Underworld expertise passives while preserving Publish 14.1 skill-box progression, Smuggler title/reward quests, and retained expansion data.",
+  "scope": "Retire post-NGE GCW rank ability skills, buffs, and aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, and retained battle content.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "findings": [
-      "Publish 14.1 player progression is driven by independently learned skill boxes rather than NGE class and expertise trees.",
-      "The inherited automatic fs_buff_ca_1/fs_buff_def_1_1 and sm_underworld_* application paths read NGE expertise modifiers and are not Publish 14.1 profession passives.",
-      "Later buff, effect-mapping, quest, and zone data can remain loadable without granting player progression authority."
+      "Publish 14.1 faction rank is persisted independently and promoted through authored faction-point costs; it is not an NGE profession or expertise reward tree.",
+      "The inherited pvp_imperial_* and pvp_rebel_* skill rows grant six later GCW combat ability tiers per faction, including an expertise-protection aura and airstrike.",
+      "Faction rank, badges/titles, recruiters, bases, battles, quests, zones, and compatibility data can remain active without granting those later combat abilities."
     ]
   },
   "expected": {
-    "changedSourceFiles": 3,
-    "retiredPassiveBuffs": 11,
-    "genericRetiredSkillAdmissionGuards": 3,
-    "retiredSkillGrantCallbackDominatesEffects": true,
-    "automaticJediPassiveApplicationReachable": false,
-    "automaticSmugglerPassiveApplicationReachable": false,
-    "underworldFactionChangeAppliesPassive": false,
-    "stalePassiveCleanupOnInitializeLoginAndRecap": true,
-    "skillAcquisitionFeedbackUsesCombatLevel": false,
-    "smugglerTitlesAndRewardQuestsPreserved": true,
-    "compatibilityBuffRowsPreserved": true,
-    "compatibilityEffectMappingsPreserved": true,
+    "retiredRewardSkills": 12,
+    "retiredActiveBuffs": 12,
+    "retiredRankGrantSites": 6,
+    "genericRetiredSkillAdmissionDominates": true,
+    "persistedRewardCleanupOnInitializeLoginAndRecap": true,
+    "auraControllerDetached": true,
+    "auraFactionStateRemoved": true,
+    "precuFactionRankPreserved": true,
+    "rankBadgePresentationPreserved": true,
+    "rewardCompatibilityRowsPreserved": true,
     "missionCoreChanged": false
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
     "directSourceCommit": "27611631c259b1601709cf2987c28312f85d6cc7",
-    "hostMaterializationWorkflow": "retired; host Artifacts and Staging trees absent",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceContentSha256": "443a25fe408cf3c8491fff90b39474e75d86123023d1cb4a1a1e485626c87b1c",
     "sourceSha256": {
@@ -47,11 +45,13 @@
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
     "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "sourceWorkParity": "passed for all three changed source files",
     "result": "passed"
   },
   "continuityEvidence": {
+    "skillDataSha256": "6ee0686eec7e1d25db2ef1bc645eed98145c23d7fa125705b3188957103a5c6d",
+    "combatDataSha256": "06dd12d6b3d95c06349f425601f4542bd595c513ea054717379dec83eda4c418",
     "buffDataSha256": "161b58312dee946eec4e9a0ea1c0f6c9250c59978edb707fff7e363e48684114",
-    "effectMappingSha256": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
     "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
     "missionSourceSha256": {
       "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
@@ -65,13 +65,13 @@
     "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
-    "containerStartedAt": "2026-08-04T05:59:00.731904836Z",
+    "containerStartedAt": "2026-08-04T06:29:20.109736202Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "sourceWorkParityFiles": 3,
-    "compiledBytecodeProbes": "passed generic retired-skill admission, passive cleanup, expertise allocation cleanup, and absence of faction passive dispatch",
+    "compiledBytecodeProbes": "passed retired reward-family admission, persisted skill/buff cleanup, aura controller detachment, and player lifecycle dispatch",
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 369,
+    "liveGameProcessPid": 366,
     "liveBinaryInode": 12110814,
     "liveBinarySize": 22619240,
     "processCounts": {
