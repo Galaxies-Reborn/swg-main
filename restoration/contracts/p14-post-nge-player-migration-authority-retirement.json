@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-player-migration-authority-retirement",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make PRE-CU skill boxes and XP authoritative across login and character transfer while retiring automatic NGE live conversions, roadmap/template/combat-level restoration, raw command injection, respec state, and Combat Upgrade reward creation. Retained expansion quests, collections, zones, items, credits, waypoints, and mission state continue to transfer.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -29,7 +29,7 @@
     "missionCoreChanged": false
   },
   "buildEvidence": {
-    "overlayPatch": {
+    "archivedOverlayPatch": {
       "path": "restoration/patches/dsrc/382-p14-post-nge-player-migration-authority-retirement.patch",
       "bytes": 18046,
       "sha256": "5ef952081af1cfc6b42f2891fea1761b17f444e022ec5816c8c694848cab91f5"
@@ -42,16 +42,24 @@
       "player/base/base_player.java": "cbb38f55585dfa8d98a8b817aeea395036e6685e11f6afa97c6478f6b3d75002",
       "player/live_conversions.java": "7cf4a6c9a45fd54263e42a504383bdb5153e223b38aff3051e1d4bd2d4f3277f"
     },
-    "staticContract": "pending",
-    "fullJavaCompile": "pending",
-    "cleanMaterializationPatches": 414,
-    "cleanMaterializationAcceptanceFiles": 1173,
-    "materializationFingerprint": "pending",
-    "materializedBuild": "pending",
-    "architecture": "pending x86-64 verification",
-    "compiledClassSha256": {},
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "staticContract": "passed",
+    "fullJavaCompile": "passed (direct-source x64 Ant compile exit 0 on 2026-08-04)",
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "4cb142d0abfeb7a3df39586da5b5125eb50c1c6b",
+    "hostMaterializationWorkflow": "retired; host Artifacts and Staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "directSourceBuild": "passed from the read-only direct repository mount into the dedicated Docker work volume",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "compiledClassSha256": {
+      "cureward/cureward.class": "61bb2bbb4c72e5461a45f95225758d38fd6280a5cabeefe079b2f7f8cc7ac162",
+      "library/skill.class": "16696feb54733db6236398dc7997b2c545e4eb1aa6c7f940a084f384de7e1209",
+      "player/base/base_player.class": "62c9d5ad2cf5f8feb1857a62790973f484920fcb6e6c34664f5f72d1bab980ad",
+      "player/live_conversions.class": "9f3b3d7401c70afa530b6e645e9b4cba2e7d650fbff585ab347209f68f339f84"
+    },
+    "deploymentProbe": "passed direct source/work parity for all four changed Java files, compiled-bytecode hashes, six-binary x64 architecture, read-only source mount, health/readiness, live mapped-binary identity, and post-start log audit",
+    "result": "passed"
   },
   "continuityEvidence": {
     "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
@@ -71,25 +79,32 @@
     ]
   },
   "runtimeEvidence": {
-    "date": "2026-08-03",
+    "date": "2026-08-04",
     "container": "swg-precu",
-    "sourceMount": "pending",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
     "sourceMountReadOnly": true,
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "liveProcessMappedBuiltBinary": false,
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T05:22:46.249035483Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 365,
+    "liveBinaryInode": 12110814,
+    "liveBinarySize": 22619240,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; zero fatal, severe, exception, mission error, empty ConGenericMessage, ABI, or database-conversion matches; cluster ready for players",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "automatic NGE live conversions, Combat Upgrade reward creation, stale roadmap/respec state, CTS NGE template/working-skill/combat-level authority, retired NGE skill restoration, and raw command restoration",
     "preserved": "PRE-CU skill boxes and XP plus retained expansion quests, collections, zones, objects, items, credits, waypoints, space state, and user-verified mission-terminal behavior",
     "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider precedence audit"
   },
-  "requiredBeforeReady": [
-    "clean materialization and static contract pass",
-    "dependent regression contracts pass",
-    "full x64 server build passes",
-    "deployed server is healthy and player-ready with the built binary mapped"
-  ]
+  "requiredBeforeReady": []
 }

@@ -2619,6 +2619,6 @@ inventory, bank, datapad, appearance, hangar, credits, waypoints, and space
 state remain preserved. Mission sources stay hash-pinned to the user-verified
 working terminal build.
 
-Validate a materialized tree with:
+Validate the direct server checkout with:
 
-    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1 -SourceRoot <materialized-staging-directory>
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1 -SourceRoot <direct-server-checkout>

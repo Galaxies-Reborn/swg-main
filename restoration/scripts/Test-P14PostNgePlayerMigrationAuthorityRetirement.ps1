@@ -47,16 +47,16 @@ $relativeSourceMap = [ordered]@{
     "player/live_conversions.java" = "player/live_conversions.java"
 }
 
-$patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.overlayPatch.path)
-Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.player-migration.overlay.exists"
+$patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.archivedOverlayPatch.path)
+Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.player-migration.archived-overlay.exists"
 $patchText = ""
 if (Test-Path -LiteralPath $patchPath -PathType Leaf)
 {
     $patchText = Get-Content -LiteralPath $patchPath -Raw
     Assert-Contract (
-        (Get-Item -LiteralPath $patchPath).Length -eq [long]$contract.buildEvidence.overlayPatch.bytes -and
-        (Get-FileHash -Algorithm SHA256 -LiteralPath $patchPath).Hash.ToLowerInvariant() -ceq [string]$contract.buildEvidence.overlayPatch.sha256
-    ) "p14.player-migration.overlay.authenticated"
+        (Get-Item -LiteralPath $patchPath).Length -eq [long]$contract.buildEvidence.archivedOverlayPatch.bytes -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $patchPath).Hash.ToLowerInvariant() -ceq [string]$contract.buildEvidence.archivedOverlayPatch.sha256
+    ) "p14.player-migration.archived-overlay.authenticated"
 }
 
 $targets = @(
@@ -65,9 +65,9 @@ $targets = @(
         Sort-Object
 )
 $expectedTargets = @($relativeSourceMap.Values | ForEach-Object { "sku.0/sys.server/compiled/game/script/$_" } | Sort-Object)
-Assert-Contract ($targets.Count -eq [int]$contract.expected.changedSourceFiles -and (($targets -join $lf) -ceq ($expectedTargets -join $lf))) "p14.player-migration.overlay.target-set"
+Assert-Contract ($targets.Count -eq [int]$contract.expected.changedSourceFiles -and (($targets -join $lf) -ceq ($expectedTargets -join $lf))) "p14.player-migration.archived-overlay.target-set"
 Assert-Contract ((Get-TextSha256 (($targets -join $lf) + $lf)) -ceq [string]$contract.buildEvidence.sourceSetSha256) "p14.player-migration.source-set.authenticated"
-Assert-Contract (-not $patchText.Contains("materialize-") -and -not $patchText.Contains("E:\SWG")) "p14.player-migration.overlay.portable-paths"
+Assert-Contract (-not $patchText.Contains("materialize-") -and -not $patchText.Contains("E:\SWG")) "p14.player-migration.archived-overlay.portable-paths"
 
 $sourceTexts = @{}
 $contentRecords = ""
@@ -168,7 +168,42 @@ foreach ($property in $contract.continuityEvidence.missionSourceSha256.PSObject.
     Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq [string]$property.Value) "p14.player-migration.mission.$($property.Name).unchanged"
 }
 Assert-Contract ([string]$contract.continuityEvidence.missionTerminalUserVerification -like "working in-world*") "p14.player-migration.mission-terminal-user-baseline-recorded"
-Assert-Contract (-not $patchText.Contains("systems/missions/") -and -not $patchText.Contains("library/missions.java")) "p14.player-migration.overlay-excludes-missions"
+Assert-Contract (-not $patchText.Contains("systems/missions/") -and -not $patchText.Contains("library/missions.java")) "p14.player-migration.archived-overlay-excludes-missions"
+
+$dsrcGitlink = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$compiledClassProperties = @($contract.buildEvidence.compiledClassSha256.PSObject.Properties)
+Assert-Contract (
+    [string]$contract.status -ceq "ready" -and
+    [string]$contract.buildEvidence.staticContract -ceq "passed" -and
+    [string]$contract.buildEvidence.result -ceq "passed" -and
+    $contract.requiredBeforeReady.Count -eq 0
+) "p14.player-migration.ready-contract"
+Assert-Contract (
+    [string]$manifest.sourceMode -ceq "direct-branch" -and
+    [string]$contract.buildEvidence.sourceMode -ceq "direct-branch" -and
+    $dsrcGitlink.Count -eq 1 -and
+    [string]$contract.buildEvidence.directSourceGitlink -ceq [string]$dsrcGitlink[0].commit -and
+    [string]$contract.buildEvidence.hostMaterializationWorkflow -like "retired*" -and
+    [string]$contract.buildEvidence.directSourceBuild -like "passed*"
+) "p14.player-migration.direct-source-build-authority"
+Assert-Contract (
+    [string]$contract.buildEvidence.fullJavaCompile -like "passed*" -and
+    [string]$contract.buildEvidence.architecture -like "ELF 64-bit LSB x86-64*" -and
+    [string]$contract.buildEvidence.serverBinarySha256 -match '^[a-f0-9]{64}$' -and
+    [string]$contract.buildEvidence.serverBinaryBuildId -match '^[a-f0-9]{40}$' -and
+    $compiledClassProperties.Count -eq $relativeSourceMap.Count -and
+    @($compiledClassProperties | Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0 -and
+    [string]$contract.buildEvidence.deploymentProbe -like "passed*"
+) "p14.player-migration.compiled-x64-deployment"
+Assert-Contract (
+    ([string]$contract.runtimeEvidence.sourceMount).Replace('\', '/').Contains('/Source/pre-cu-reborn-server-x64 -> /swg-precu-source') -and
+    [bool]$contract.runtimeEvidence.sourceMountReadOnly -and
+    [string]$contract.runtimeEvidence.containerHealth -ceq "healthy" -and
+    [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
+    [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary -and
+    [string]$contract.runtimeEvidence.postStartLogAudit -like "*zero fatal*" -and
+    [string]$contract.runtimeEvidence.result -ceq "passed"
+) "p14.player-migration.runtime-ready"
 
 if ($failures.Count -gt 0)
 {
