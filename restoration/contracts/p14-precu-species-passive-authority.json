@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-species-passive-authority",
+  "status": "implemented-build-pending",
+  "scope": "Restore Publish 14.1 passive racial skill modifiers for all ten playable species while preserving the project rule that corpse harvesting requires Novice Scout and preserving the current default command, certification, schematic, quest, conversation, and zone surfaces.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU passive species modifiers",
+    "preservedSkillTableReferences": {
+      "swgGenesis": "https://github.com/SWGGenesis/swgLauncher/blob/master/profcalc/skills.csv",
+      "rocLauncher": "https://github.com/dpwhittaker/RoC-Launcher/blob/master/profcalc/skills.csv"
+    },
+    "authenticatedProjectReference": "Source/legacy/precu-restore/authentic/skills.precu_merged.tab",
+    "currentClientReference": "SwgCuiSkillBoxData.h k_skillBoxMods",
+    "findings": [
+      "Two independent preserved PRE-CU skill tables and the authenticated project reference agree on the passive modifier sets and values for all ten playable species.",
+      "The current x64 DX11 client skill-box data independently carries the racial bonus values, including Zabrak anti_shock, Wookiee tame_bonus, and Human leadership; its Bothan display helper labels the canonical server take_cover modifier as cover.",
+      "The retained server runtime consumes leadership in squad-leader calculations and tame_bonus in creature-taming calculations; all skill modifiers remain native skill-statistic inputs.",
+      "The historical Trandoshan and Sullustan creature_harvesting bonuses are intentionally omitted under the project rule that Novice Scout exclusively grants corpse harvesting."
+    ]
+  },
+  "diagnosis": {
+    "historicalSpeciesRowsWithPassivePrecuModifiers": 0,
+    "historicalSpeciesRowsWithOnlyPrivateInnateMarkers": 3,
+    "expectedSpeciesRowsWithPassivePrecuModifiers": 10,
+    "projectOverrideHistoricalSpeciesHarvestingModifiersOmitted": 2
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 1,
+    "gameplaySourceFiles": 1,
+    "speciesModifiers": {
+      "species_bothan": ["camouflage=15", "take_cover=10"],
+      "species_human": ["leadership=10", "general_experimentation=15"],
+      "species_moncal": ["alert=15", "weapon_assembly=10", "structure_assembly=10"],
+      "species_rodian": ["blind_defense=15", "onehandmelee_accuracy=10", "twohandmelee_accuracy=10", "weapon_assembly=10"],
+      "species_trandoshan": ["unarmed_accuracy=10", "unarmed_speed=5", "unarmed_damage=15", "melee_defense=10", "private_innate_regeneration=1"],
+      "species_twilek": ["healing_dance_wound=15", "healing_music_wound=5", "healing_dance_shock=15", "healing_music_shock=5"],
+      "species_wookiee": ["trapping=10", "tame_bonus=10", "rescue=10", "warcry=10", "private_innate_roar=1"],
+      "species_zabrak": ["dizzy_defense=10", "stun_defense=10", "intimidate_defense=10", "anti_shock=5", "private_innate_equilibrium=1", "private_innate_vitalize=1"],
+      "species_ithorian": ["dizzy_defense=10", "stun_defense=10", "tame_bonus=10", "melee_defense=10", "chassis_assembly=10", "power_systems=10", "shields_assembly=10", "advanced_assembly=10"],
+      "species_sullustan": ["engine_assembly=10", "booster_assembly=10", "weapon_systems=10", "trapping=10"]
+    },
+    "commonCommands": ["startDance", "stopDance", "startMusic", "stopMustic", "startDance+basic", "startMusic+starwars1", "slitherhorn", "cert_ordnance_level1"],
+    "activeInnateCommands": {
+      "species_trandoshan": ["regeneration"],
+      "species_wookiee": ["wookieeRoar"],
+      "species_zabrak": ["vitalize", "equilibrium"]
+    },
+    "wookieeSchematics": ["craftWookieItems", "craftArtisanFreebieGroupA"],
+    "otherSpeciesSchematics": ["craftArtisanFreebieGroupA"],
+    "speciesCreatureHarvestingGrants": 0,
+    "noviceScoutHarvestingModifier": "creature_harvesting=15",
+    "noviceScoutHarvestCommand": "harvestCorpse",
+    "ngeSpeciesAbilityGrants": 0,
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "squadLeader": "dsrc/sku.0/sys.server/compiled/game/script/library/squad_leader.java",
+    "petLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pet_lib.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "05f3383948401b1b139be7052a69f9c169fb3ff5",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
+    },
+    "compiledDataSha256": {
+      "skills": "pending"
+    },
+    "fullDataBuild": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledDataPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "passive PRE-CU racial skill modifiers for all ten playable species, including authored combat, crafting, entertainment, taming, and squad-leader bonuses",
+    "preserved": "active PRE-CU species innates, current default character commands and item certifications, Wookiee crafting access, later quests, conversations, zones, and Novice Scout-only corpse harvesting",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Run a clean Docker x64 data/server build from pushed direct source.",
+    "Verify the compiled skills.iff, source/work parity, x64 server binary, and live cluster readiness."
+  ]
+}

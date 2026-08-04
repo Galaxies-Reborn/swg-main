@@ -77,9 +77,10 @@ foreach ($property in $contract.expected.speciesInnates.PSObject.Properties)
     $mods = if ($row.Count -eq 1) { @(Get-CommaValues $row[0].SKILL_MODS) } else { @() }
     $expectedCommands = @($property.Value.commands | ForEach-Object { [string]$_ })
     $expectedMods = @($property.Value.skillMods | ForEach-Object { [string]$_ })
+    $actualPrivateMods = @($mods | Where-Object { $_ -like 'private_innate_*' })
     Assert-Contract ($row.Count -eq 1 -and
         @($expectedCommands | Where-Object { $commands -cnotcontains $_ }).Count -eq 0 -and
-        ($mods -join "`n") -ceq ($expectedMods -join "`n")) `
+        ($actualPrivateMods -join "`n") -ceq ($expectedMods -join "`n")) `
         "p14.species-innate.grant.$($property.Name)"
 }
 $activeInnates = @('regeneration', 'wookieeRoar', 'vitalize', 'equilibrium')
