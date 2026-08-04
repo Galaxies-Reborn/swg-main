@@ -46,6 +46,12 @@ if ($LASTEXITCODE -ne 0)
     throw "Docker container '$Container' was not found."
 }
 
+$repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+Write-Host "Verifying the direct-source PRE-CU combat routing closure before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuCombatRoutingClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+
 if (-not $SkipBuild)
 {
     $javaDependencyClean = @'
@@ -136,6 +142,8 @@ source_buff_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatable
 work_buff_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
 source_combat_data="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 work_combat_data="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
+source_npc_combat_dir="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/combat"
+work_npc_combat_dir="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/combat"
 source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 work_conversation="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
 source_script="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script"
@@ -322,6 +330,13 @@ cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_buff_table" "$work_buff_table"
 cmp -s "$source_combat_data" "$work_combat_data"
+source_npc_tables="$(find "$source_npc_combat_dir" -maxdepth 1 -type f -name 'npc_*.tab' -printf '%f\n' | sort)"
+work_npc_tables="$(find "$work_npc_combat_dir" -maxdepth 1 -type f -name 'npc_*.tab' -printf '%f\n' | sort)"
+test "$source_npc_tables" = "$work_npc_tables"
+test "$(printf '%s\n' "$source_npc_tables" | sed '/^$/d' | wc -l)" -eq 14
+for npc_table_name in $source_npc_tables; do
+    cmp -s "$source_npc_combat_dir/$npc_table_name" "$work_npc_combat_dir/$npc_table_name"
+done
 cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_xp_library" "$work_xp_library"
 cmp -s "$source_factions_library" "$work_factions_library"

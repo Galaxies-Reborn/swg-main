@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-combat-routing-closure",
+  "status": "implemented-build-pending",
+  "scope": "Fail closed if any combat action granted by a retained PRE-CU profession family, or referenced by a current NPC combat table, can fall through to the post-NGE combat path instead of the authoritative PRE-CU combat override path.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 combat commands and NPC special attacks are skill- and action-authored; player level and post-NGE profession packages are not their gameplay authority.",
+      "The current server routes PRE-CU attack rows through precu_combat_overrides.tab, whose values feed the restored HAM cost, weapon cadence, primary hit, secondary defense, state, and pool-damage handling.",
+      "Center of Being is the only retained profession command that intersects combat_data.tab without an override row; its authenticated lifecycle is intentionally a direct NON_ATTACK handler with a 50-point Action drain and a visible PRE-CU buff."
+    ]
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 4,
+    "gameplaySourceFiles": 0,
+    "retainedProfessionRoots": 51,
+    "retainedProfessionRows": 945,
+    "retainedUniqueCommands": 771,
+    "retainedCombatActions": 157,
+    "combatOverrideRows": 163,
+    "directLifecycleExceptions": [
+      "centerOfBeing"
+    ],
+    "uncoveredRetainedCombatActions": 0,
+    "npcCombatTables": 14,
+    "npcCombatActions": 108,
+    "uncoveredNpcCombatActions": 0,
+    "centerOfBeingCombatDataHitType": "NON_ATTACK",
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "npcCombatDirectory": "dsrc/sku.0/sys.server/compiled/game/datatables/combat"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "d60a610c1d0f9b951d2589613b0e745ae09212c6",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
+      "combatData": "44656473c5070db0f36acc29715311d0f29bbf10eb58f28faeb3cc709764f882",
+      "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf",
+      "combatActions": "f08852b6f6ae56cf0bcda5068305a8390896f75a65decd552ed13b1a376fd159",
+      "npcCombatTableSet": "5769a3344b57d53464306230e38394689090d4047df1c8e4912f8d8660a738e2"
+    },
+    "sourceTest": "passed; all 157 retained profession combat actions are covered after the authenticated Center of Being direct-lifecycle exception, and all 108 NPC combat actions are covered",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "combat-path routing coverage for every action currently granted by the 51 retained PRE-CU profession families and every action currently referenced by the 14 NPC combat tables",
+    "preserved": "the authenticated direct Center of Being lifecycle, restored PRE-CU combat math, all retained profession skills, NPC attack selections, later quests, conversations, zones, and content",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "commit and push the direct source checkpoint",
+    "pass a clean x64 Docker build and mandatory source/work parity probe",
+    "restart the live container and verify healthy player-ready processes map the built x64 binary",
+    "record build and runtime evidence"
+  ]
+}
