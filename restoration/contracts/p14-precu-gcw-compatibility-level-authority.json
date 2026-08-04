@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-gcw-compatibility-level-authority",
+  "status": "implemented-build-pending",
+  "scope": "Prevent the removed NGE player combat level from regaining authority in dormant or retained GCW compatibility ratios while preserving authored NPC difficulty, Publish 14 faction standing and rank, and later-content data whose NGE progression effects remain retired.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 character combat capability is derived from learned combat skill boxes under the 250-point skill budget, not an NGE player combat level.",
+      "The retained GCW library still held seven player-side level reads in a dormant PvP credit helper and a compatibility NPC-credit helper.",
+      "releaseGcwPointCredit has no caller in the compiled script tree, getNpcKillCredit is referenced only by the retired GCW-point grant chain, and native pclib no longer calls releaseGcwPointCredit.",
+      "The NGE current/lifetime GCW point pipeline remains hard-retired, while Publish 14 faction standing, faction rank, and open-world battlefield systems remain authoritative.",
+      "Routing compatibility ratios through getPrecuEncounterDifficulty closes future NGE precedence without re-enabling retired GCW progression or replacing authored NPC levels."
+    ]
+  },
+  "expected": {
+    "rawPlayerLevelReadsInGcw": 0,
+    "precuPlayerDifficultyReadsInGcw": 7,
+    "authoredNpcLevelReadsInGcw": 1,
+    "releaseGcwPointCreditReferencesInScriptTree": 1,
+    "getNpcKillCreditReferencesInScriptTree": 2,
+    "nativePclibReleaseCalls": 0,
+    "postNgeGcwGrantPipelineRetired": true,
+    "postNgeBuffMultiplierRetired": true,
+    "precuFactionStandingPreserved": true,
+    "precuFactionRankPreserved": true
+  },
+  "sourceFiles": {
+    "gcw": "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java",
+    "skill": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "factions": "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java",
+    "pclib": "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "e64b2c3d934c34f7486eece46f8e984e0c5ae8b9",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "gcw": "ce637cd09ae661907365d39f770a02802cdab0050077c81e74858667675a3030",
+      "skill": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+      "factions": "ae1c694858be813f6d95485a93dcbfa170003be1b94c4118d1af37cb550f995f",
+      "pclib": "c397905f11e28a8fdbccfbc3e49f91ea53cb91b6b9f89290933cec8b9b8d68c7"
+    },
+    "compiledClassSha256": {
+      "gcw": "pending"
+    },
+    "sourceTest": "passed; all seven player compatibility reads use PRE-CU skill difficulty, the sole authored NPC level remains, reachability is bounded, and retained/retired GCW authorities remain separated",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassPresent": false,
+    "compiledClassSize": 0,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "liveBinaryMapEntries": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all seven raw NGE player combat-level reads retained in GCW compatibility calculations",
+    "preserved": "authored NPC difficulty, Publish 14 faction standing and faction rank, open-world battlefield gameplay, later quests and content, and the hard retirement of NGE GCW points, weekly ratings, invasions, and queued battlefields",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "full clean Java compilation",
+    "x64 server build and deployment",
+    "compiled GCW bytecode audit",
+    "healthy player-ready runtime verification"
+  ]
+}

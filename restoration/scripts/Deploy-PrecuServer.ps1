@@ -59,6 +59,10 @@ Write-Host "Verifying the direct-source PRE-CU dynamic mission difficulty author
 & (Join-Path $PSScriptRoot "Test-P14PrecuDynamicMissionDifficultyAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU GCW compatibility level authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuGcwCompatibilityLevelAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -357,6 +361,9 @@ cmp -s "$source_factions_library" "$work_factions_library"
 cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
 cmp -s "$source_jedi_saber_component" "$work_jedi_saber_component"
 cmp -s "$source_gcw_library" "$work_gcw_library"
+! grep -E -q '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*(player|killer|obj_id)[[:space:]]*\)' "$work_gcw_library"
+test "$(grep -E -o 'skill\.getPrecuEncounterDifficulty[[:space:]]*\([[:space:]]*(player|killer|obj_id)[[:space:]]*\)' "$work_gcw_library" | wc -l)" -eq 7
+test "$(grep -E -o '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*npc[[:space:]]*\)' "$work_gcw_library" | wc -l)" -eq 1
 cmp -s "$source_gcw_city" "$work_gcw_city"
 cmp -s "$source_planet_base" "$work_planet_base"
 cmp -s "$source_live_conversions" "$work_live_conversions"
@@ -684,6 +691,9 @@ printf '%s' "$gcw_grant_bytecode" | grep -Fq '0: return'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'pvpModifyCurrentGcwPoints'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'gcwInvasionCreditForGCW'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'grantGcwPointsToRegion'
+gcw_level_authority_bytecode="$(javap -classpath "$class_root" -c -p script.library.gcw)"
+test "$(printf '%s' "$gcw_level_authority_bytecode" | grep -Fc 'Method script/library/skill.getPrecuEncounterDifficulty' || true)" -eq 7
+test "$(printf '%s' "$gcw_level_authority_bytecode" | grep -Fc 'Method getLevel' || true)" -eq 1
 gcw_city_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeCityInvasionRetired/,/assignScanInterests/p')"
 printf '%s' "$gcw_city_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -c -p script.systems.gcw.gcw_city | grep -Fq 'retirePostNgeCityInvasion'
