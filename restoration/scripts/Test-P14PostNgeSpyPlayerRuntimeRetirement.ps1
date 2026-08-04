@@ -123,10 +123,10 @@ $grantBody = Get-SourceSlice $skillText "public static boolean grant(" "public s
 $grantPlayerBody = Get-SourceSlice $skillText "public static boolean grantSkillToPlayer(" "public static boolean purchaseSkill("
 $purchaseBody = Get-SourceSlice $skillText "public static boolean purchaseSkill(" "public static boolean hasRequiredXpForSkillPurchase("
 Assert-Contract (
-    (Is-Before $grantBody "isRetiredPostNgeSpySkill(skillName)" "grantSkillToPlayer(target, skillName)") -and
-    (Is-Before $grantPlayerBody "isRetiredPostNgeSpySkill(skillName)" "grantSkill(player, skillName)") -and
-    (Is-Before $purchaseBody "isRetiredPostNgeSpySkill(skillName)" "getSkillPointCost(skillName)") -and
-    (Is-Before $purchaseBody "isRetiredPostNgeSpySkill(skillName)" "deductXpCostForSkillPurchase")
+    (Is-Before $grantBody "isRetiredNgeProgressionSkillName(skillName)" "grantSkillToPlayer(target, skillName)") -and
+    (Is-Before $grantPlayerBody "isRetiredNgeProgressionSkillName(skillName)" "grantSkill(player, skillName)") -and
+    (Is-Before $purchaseBody "isRetiredNgeProgressionSkillName(skillName)" "getSkillPointCost(skillName)") -and
+    (Is-Before $purchaseBody "isRetiredNgeProgressionSkillName(skillName)" "deductXpCostForSkillPurchase")
 ) "p14.spy-retirement.skill-entrypoints.fail-closed"
 
 $stealthText = [string]$sourceTexts["systems/skills/stealth/player_stealth.java"]
@@ -178,9 +178,10 @@ Assert-Contract (
 ) "p14.spy-retirement.cash-callbacks.fail-closed"
 
 $basePlayerText = [string]$sourceTexts["player/base/base_player.java"]
-$skillGrantedBody = Get-SourceSlice $basePlayerText "public int OnSkillGranted" "public int OnSkillRevoked"
+$skillGrantedBody = Get-SourceSlice $basePlayerText "public int OnSkillGranted" "public int handleStartJediKnightTrials"
 Assert-Contract (
-    (Is-Before $skillGrantedBody "skill.isRetiredPostNgeSpySkill(skillName)" 'getLevel(self)') -and
+    (Is-Before $skillGrantedBody "skill.isRetiredNgeProgressionSkillName(skillName)" "badge.grantMasterSkillBadge") -and
+    $skillGrantedBody.Contains("skill.isRetiredPostNgeSpySkill(skillName)") -and
     $skillGrantedBody.Contains("revokeSkillSilent(self, skillName)") -and
     $skillGrantedBody.Contains("player_stealth.retirePostNgeSpyPlayerState(self)") -and
     $skillGrantedBody.Contains("return SCRIPT_OVERRIDE;")

@@ -2622,3 +2622,17 @@ working terminal build.
 Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 313 retires the remaining automatic NGE profession passives attached
+to the player lifecycle. Login, initialization, recapacitation, delayed
+callbacks, and retired skill changes now remove the Jedi stance/focus and
+Smuggler Underworld-rank expertise buffs instead of applying them. Java skill
+grant, trainer, and purchase surfaces reject every retired `class_*` and
+`expertise*` family before effects run, matching the existing native admission
+boundary. Skill-box acquisition feedback no longer depends on NGE combat level.
+
+Smuggler Underworld title and reward-quest grants remain active. Later buff and
+effect-mapping rows, expansion quests/zones, and the user-verified mission
+terminal sources remain preserved. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePassiveProfessionRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>

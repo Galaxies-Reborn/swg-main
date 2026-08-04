@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-passive-profession-runtime-retirement",
+  "status": "ready",
+  "scope": "Retire automatic NGE Jedi stance/focus and Smuggler Underworld expertise passives while preserving Publish 14.1 skill-box progression, Smuggler title/reward quests, and retained expansion data.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 player progression is driven by independently learned skill boxes rather than NGE class and expertise trees.",
+      "The inherited automatic fs_buff_ca_1/fs_buff_def_1_1 and sm_underworld_* application paths read NGE expertise modifiers and are not Publish 14.1 profession passives.",
+      "Later buff, effect-mapping, quest, and zone data can remain loadable without granting player progression authority."
+    ]
+  },
+  "expected": {
+    "changedSourceFiles": 3,
+    "retiredPassiveBuffs": 11,
+    "genericRetiredSkillAdmissionGuards": 3,
+    "retiredSkillGrantCallbackDominatesEffects": true,
+    "automaticJediPassiveApplicationReachable": false,
+    "automaticSmugglerPassiveApplicationReachable": false,
+    "underworldFactionChangeAppliesPassive": false,
+    "stalePassiveCleanupOnInitializeLoginAndRecap": true,
+    "skillAcquisitionFeedbackUsesCombatLevel": false,
+    "smugglerTitlesAndRewardQuestsPreserved": true,
+    "compatibilityBuffRowsPreserved": true,
+    "compatibilityEffectMappingsPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "a410acd77cdfa4df5721ad258903528d91a48389",
+    "hostMaterializationWorkflow": "retired; host Artifacts and Staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceContentSha256": "61d7f2941c317fbec1ed79ea7e2d7f7a85a555fd49096f6045b25a0d3868b179",
+    "sourceSha256": {
+      "library/factions.java": "cde584277c559f8cb8debc23a22e8015997ba7ed207d07912eb5f7e5687de322",
+      "library/skill.java": "6a49df766ba10589bbd5ca9860051c5d6f84d5c447e4670c3e2833ff003b1ed4",
+      "player/base/base_player.java": "78ef82189d52c01f51f3d925a502ab3b86ca3c62f05ff5c737319325ea60035a"
+    },
+    "fullJavaCompile": "passed in the direct-source x64 Docker build on 2026-08-04",
+    "compiledClassSha256": {
+      "library/factions.class": "311a6d30903775821b403ac108ca7f64caf830d35e99e48da68f8feddcc929ea",
+      "library/skill.class": "6dd497eca3a588ae47b7eb764145e54c8e54cab514d04c0f4564275660eb4b10",
+      "player/base/base_player.class": "9c9905dd4036ca01d289dd662f4ee6f01ba3b5cab5fd386797c6c9c56509ea50"
+    },
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "buffDataSha256": "161b58312dee946eec4e9a0ea1c0f6c9250c59978edb707fff7e363e48684114",
+    "effectMappingSha256": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerStartedAt": "2026-08-04T05:59:00.731904836Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 3,
+    "compiledBytecodeProbes": "passed generic retired-skill admission, passive cleanup, expertise allocation cleanup, and absence of faction passive dispatch",
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 369,
+    "liveBinaryInode": 12110814,
+    "liveBinarySize": 22619240,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, or empty ConGenericMessage matches",
+    "result": "passed"
+  },
+  "requiredBeforeReady": []
+}
