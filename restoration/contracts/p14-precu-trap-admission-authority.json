@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-trap-admission-authority",
+  "status": "implemented-build-pending",
+  "scope": "Require the Publish 14.1 Novice Scout skill box as well as a positive trapping modifier for ordinary trap radial use, preventing passive Wookiee and Sullustan racial trapping bonuses from granting the Scout trap ability while preserving trap targeting, queuing, consumption, and experience behavior.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/creature/commands/ThrowTrapCommand.h",
+    "findings": [
+      "The pinned Publish 14.1 implementation rejects trap use when trapping is below one or the player lacks outdoors_scout_novice.",
+      "The authenticated PRE-CU skill table grants both trapping and novice trap schematics from outdoors_scout_novice.",
+      "Wookiee and Sullustan passive species rows intentionally retain trapping bonuses, but those modifiers are bonuses to learned trapping rather than grants of the Novice Scout trap ability."
+    ]
+  },
+  "diagnosis": {
+    "productionEntryPoint": "item.trap.trap_base.OnObjectMenuSelect",
+    "radialMenuType": "ITEM_USE",
+    "staleAdmissionGate": "skillMod <= 0",
+    "bypassSpecies": ["species_wookiee", "species_sullustan"],
+    "precuSkillAuthority": "outdoors_scout_novice"
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 2,
+    "gameplaySourceFiles": 1,
+    "trappingModifierReadsInAdmission": 1,
+    "noviceScoutSkillChecksInAdmission": 1,
+    "skillModifierOnlyAdmissionChecks": 0,
+    "queueCommandCrc": 88718951,
+    "noviceScoutModifier": "trapping=5",
+    "noviceScoutTrapSchematicGroup": "craftScoutTrapGroupNovice",
+    "passiveTrappingSpecies": {
+      "species_wookiee": "trapping=10",
+      "species_sullustan": "trapping=10"
+    },
+    "speciesNoviceScoutGrants": 0,
+    "preservedTargetRules": [
+      "valid look-at target",
+      "visible target",
+      "living and non-incapacitated monster",
+      "not a pet"
+    ],
+    "preservedTrapLifecycle": [
+      "queued throwTrap command",
+      "stack decrement or object destruction",
+      "target-authored creature difficulty for Scout experience"
+    ],
+    "laterQuestsZonesAndContentPreserved": true
+  },
+  "sourceFiles": {
+    "trapBase": "dsrc/sku.0/sys.server/compiled/game/script/item/trap/trap_base.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "d60a610c1d0f9b951d2589613b0e745ae09212c6",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "trapBase": "2f2b8282b7c59c9820e7dcd20bd0288092ee331a2cf33607bcca5da35ca04da3",
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
+    },
+    "compiledClassSha256": {
+      "trapBase": ""
+    },
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending x86-64 verification",
+    "serverBinarySha256": "",
+    "serverBinaryBuildId": "",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the ordinary trap radial path's skill-modifier-only admission bypass",
+    "preserved": "PRE-CU racial trapping bonuses, Novice Scout trap progression, trap target validation, command queuing, item consumption, Scout experience, retained expansion scout devices, and later content",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "clean x64 Docker build from the pushed direct source",
+    "source/work parity and compiled trap admission bytecode verification",
+    "healthy live cluster and mapped-binary verification"
+  ]
+}

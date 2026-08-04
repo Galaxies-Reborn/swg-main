@@ -166,6 +166,8 @@ source_cureward="$source_script/cureward/cureward.java"
 work_cureward="$work_script/cureward/cureward.java"
 source_open_world_battlefield="$source_script/library/battlefield.java"
 work_open_world_battlefield="$work_script/library/battlefield.java"
+source_trap_base="$source_script/item/trap/trap_base.java"
+work_trap_base="$work_script/item/trap/trap_base.java"
 source_battlefield_controller="$source_script/systems/gcw/pvp_battlefield.java"
 work_battlefield_controller="$work_script/systems/gcw/pvp_battlefield.java"
 source_battlefield_terminal="$source_script/systems/gcw/battlefield_terminal.java"
@@ -331,6 +333,7 @@ cmp -s "$source_planet_base" "$work_planet_base"
 cmp -s "$source_live_conversions" "$work_live_conversions"
 cmp -s "$source_cureward" "$work_cureward"
 cmp -s "$source_open_world_battlefield" "$work_open_world_battlefield"
+cmp -s "$source_trap_base" "$work_trap_base"
 cmp -s "$source_battlefield_controller" "$work_battlefield_controller"
 cmp -s "$source_battlefield_terminal" "$work_battlefield_terminal"
 cmp -s "$source_battlefield_player" "$work_battlefield_player"
@@ -666,6 +669,11 @@ test "$(printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fc 'craftin
 printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fq 'Method hasSkill'
 ! printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fq 'script/library/utils.isProfession'
 ! printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fq 'TRADER'
+trap_admission_bytecode="$(javap -classpath "$class_root" -c -p script.item.trap.trap_base | sed -n '/public int OnObjectMenuSelect(/,/public void trapUsed(/p')"
+test "$(printf '%s' "$trap_admission_bytecode" | grep -Fc 'trapping' || true)" -eq 1
+test "$(printf '%s' "$trap_admission_bytecode" | grep -Fc 'outdoors_scout_novice' || true)" -eq 1
+printf '%s' "$trap_admission_bytecode" | grep -Fq 'Method hasSkill'
+printf '%s' "$trap_admission_bytecode" | grep -Fq '88718951'
 javap -classpath "$class_root" -c script.library.skill | grep -Fq 'isRetiredNgeProgressionSkillName'
 cts_upload_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/OnUploadCharacter/,/OnDownloadCharacter/p')"
 printf '%s' "$cts_upload_bytecode" | grep -Fq 'using PRE-CU skill-box authority'
