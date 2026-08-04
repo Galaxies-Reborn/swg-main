@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-metrics-level-authority",
+  "status": "implemented-build-pending",
+  "scope": "Make production combat-kill, XP-rate, and quest metrics describe PRE-CU skill-box combat difficulty instead of the removed NGE player combat level while preserving authored NPC level, metric schemas, and gameplay reward behavior.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/group/GroupObjectImplementation.cpp"
+    ],
+    "findings": [
+      "Publish 14.1 derives player combat capability from learned weapon skill modifiers and skill boxes rather than an NGE profession level.",
+      "The shared PRE-CU encounter adapter maps learned combat skill-box investment to a hidden compatibility score and is already authoritative for group difficulty.",
+      "metrics.doKillMetrics is called by the active combat-XP path, metrics.doXpRateMetrics is called by XP awards, and metrics.doQuestMetrics is called by quest completion.",
+      "The production metric library retained four raw player-level reads even though its group metric already used PRE-CU group difficulty.",
+      "The defeated creature's authored getLevel(target) value remains correct descriptive content and is intentionally preserved."
+    ]
+  },
+  "expected": {
+    "rawPlayerLevelReadsInMetrics": 0,
+    "precuPlayerDifficultyReadsInMetrics": 4,
+    "authoredTargetLevelReadsInMetrics": 1,
+    "precuGroupDifficultyReadsInMetrics": 1,
+    "productionMetricEntrypoints": 3,
+    "productionMetricCallSites": 3,
+    "metricLogSchemasPreserved": true,
+    "xpAndQuestRewardsUnchanged": true,
+    "authoredNpcDifficultyPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "metrics": "dsrc/sku.0/sys.server/compiled/game/script/library/metrics.java",
+    "skill": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "xp": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "707d63d536377eea4a6bd71ec294b988256a9120",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "466fed9f7bc1c20b59582223b44601222f119d2ad5f4205ee491e85ad02e937c",
+      "metrics": "42a172c5c4e8f2b7c16fb19bfd215388dcd1192192a0c9a3096599a602d855d1",
+      "skill": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+      "xp": "92ecf581e7a35511fdd21006ca03e57b236da21feec507434e78027157111dee",
+      "basePlayer": "54ce43971ab8e9b288a4322a39cc9d7e6aafb409c45fa538dfb35786c6057ae7"
+    },
+    "compiledClassSha256": {
+      "metrics": "pending"
+    },
+    "sourceTest": "passed; all four player metric fields use PRE-CU skill difficulty, group difficulty remains PRE-CU, the one authored creature level remains, and all three production call sites and log schemas are preserved",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassPresent": false,
+    "compiledClassSize": 0,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "liveBinaryMapEntries": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the four raw NGE player combat-level fields in production kill, XP-rate, and quest metrics",
+    "preserved": "metric configuration and schemas, authored defeated-creature level, PRE-CU group difficulty, combat XP, quest XP and credits, kill accounting, expansion quest content, and all non-level metric fields",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "full clean Java compilation",
+    "x64 server build and deployment",
+    "compiled metrics bytecode audit",
+    "healthy player-ready runtime verification"
+  ]
+}

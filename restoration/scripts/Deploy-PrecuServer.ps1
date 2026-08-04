@@ -63,6 +63,10 @@ Write-Host "Verifying the direct-source PRE-CU GCW compatibility level authority
 & (Join-Path $PSScriptRoot "Test-P14PrecuGcwCompatibilityLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU metrics level authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuMetricsLevelAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -168,6 +172,8 @@ source_missions="$source_script/library/missions.java"
 work_missions="$work_script/library/missions.java"
 source_xp_library="$source_script/library/xp.java"
 work_xp_library="$work_script/library/xp.java"
+source_metrics_library="$source_script/library/metrics.java"
+work_metrics_library="$work_script/library/metrics.java"
 source_factions_library="$source_script/library/factions.java"
 work_factions_library="$work_script/library/factions.java"
 source_faction_perk_library="$source_script/library/faction_perk.java"
@@ -357,6 +363,10 @@ for npc_table_name in $source_npc_tables; do
 done
 cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_xp_library" "$work_xp_library"
+cmp -s "$source_metrics_library" "$work_metrics_library"
+! grep -E -q '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*(member|killCredit|player)[[:space:]]*\)' "$work_metrics_library"
+test "$(grep -E -o 'skill\.getPrecuEncounterDifficulty[[:space:]]*\([[:space:]]*(member|killCredit|player)[[:space:]]*\)' "$work_metrics_library" | wc -l)" -eq 4
+test "$(grep -E -o '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*target[[:space:]]*\)' "$work_metrics_library" | wc -l)" -eq 1
 cmp -s "$source_factions_library" "$work_factions_library"
 cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
 cmp -s "$source_jedi_saber_component" "$work_jedi_saber_component"
@@ -653,6 +663,10 @@ javap -classpath "$class_root" -v script.library.xp | grep -Fq 'capPrecuCombatXp
 javap -classpath "$class_root" -v script.library.xp | grep -Fq 'private_jedi_difficulty'
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuWeaponCombatLevel'
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuCombatLevel'
+metrics_level_authority_bytecode="$(javap -classpath "$class_root" -c -p script.library.metrics)"
+test "$(printf '%s' "$metrics_level_authority_bytecode" | grep -Fc 'Method script/library/skill.getPrecuEncounterDifficulty' || true)" -eq 4
+test "$(printf '%s' "$metrics_level_authority_bytecode" | grep -Fc 'Method getLevel' || true)" -eq 1
+test "$(printf '%s' "$metrics_level_authority_bytecode" | grep -Fc 'Method script/library/skill.getGroupLevel' || true)" -eq 1
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuWeaponCombatLevel'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | grep -Fq 'getPrecuCombatLevel'
 stealth_detect_bytecode="$(javap -classpath "$class_root" -c script.library.stealth | sed -n '/public static float getDetectChance(/,/public static float getDetectChanceWithDetailedOutput(/p')"
