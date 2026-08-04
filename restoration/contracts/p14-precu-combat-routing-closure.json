@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-routing-closure",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Fail closed if any combat action granted by a retained PRE-CU profession family, or referenced by a current NPC combat table, can fall through to the post-NGE combat path instead of the authoritative PRE-CU combat override path.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -56,30 +56,30 @@
       "npcCombatTableSet": "44fafc926294d8a39928dd35b363b3f1ddcfe40980add99271207bf349e0a384"
     },
     "compiledClassSha256": {
-      "combatActions": ""
+      "combatActions": "ef10b35fb44260d5cb17e06b5a36ed603275a1d037293dfae8fc902c38259a58"
     },
     "sourceTest": "passed; all 157 retained profession combat actions are covered after the authenticated Center of Being direct-lifecycle exception, and all 108 NPC combat actions are covered",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and combat_actions.class was emitted 2026-08-04T16:47:24Z",
-    "fullServerBuild": "passed in 523.8 seconds from the pushed direct source with all x64 server and data targets completed",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and combat_actions.class was emitted at 2026-08-04T23:18:32Z",
+    "fullServerBuild": "passed in the Docker work volume as part of the 597.1-second clean deployment from pushed parent c971cc6 and direct dsrc 9b64370d",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed byte-for-byte for skills.tab, combat_data.tab, precu_combat_overrides.tab, combat_actions.java, and all 14 npc_*.tab files",
+    "sourceWorkParity": "passed byte-for-byte for skills.tab, combat_data.tab, precu_combat_overrides.tab, combat_actions.java, and all 14 npc_*.tab files against the read-only direct-source mount",
     "deploymentProbe": "passed direct-source routing closure, mandatory source/work parity including the complete NPC combat table set, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "pending"
+    "result": "passed"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-04T16:51:52.784973903Z",
+    "containerStartedAt": "2026-08-04T23:23:42.259819343Z",
     "containerHealth": "healthy",
-    "clusterReadyForPlayers": false,
+    "clusterReadyForPlayers": true,
     "compiledDataPresent": true,
     "compiledNpcCombatTables": 14,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": 365,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 368,
     "liveBinaryInode": 12110805,
     "liveBinarySize": 22601480,
     "liveBinaryMapEntries": 2,
@@ -91,16 +91,13 @@
       "PlanetServer": 14,
       "SwgGameServer": 14
     },
-    "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
-    "result": "pending"
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "combat-path routing coverage for every action currently granted by the 51 retained PRE-CU profession families and every action currently referenced by the 14 NPC combat tables",
     "preserved": "the authenticated direct Center of Being lifecycle, restored PRE-CU combat math, all retained profession skills, NPC attack selections, later quests, conversations, zones, and content",
     "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": [
-    "complete the cumulative clean Java and x64 server rebuild",
-    "refresh compiled and live deployment evidence"
-  ]
+  "requiredBeforeReady": []
 }
