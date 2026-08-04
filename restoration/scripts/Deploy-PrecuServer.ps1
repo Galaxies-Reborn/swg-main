@@ -83,6 +83,10 @@ Write-Host "Verifying the direct-source PRE-CU resource sampling cadence authori
 & (Join-Path $PSScriptRoot "Test-P14PrecuResourceSamplingCadenceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU player-vendor maintenance authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuPlayerVendorMaintenanceAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -306,6 +310,8 @@ source_cybernetic_crafting="$source_script/systems/crafting/armor/crafting_new_c
 work_cybernetic_crafting="$work_script/systems/crafting/armor/crafting_new_cybernetics_final.java"
 source_survey_tool="$source_script/item/survey_tool/survey_tool_script.java"
 work_survey_tool="$work_script/item/survey_tool/survey_tool_script.java"
+source_player_vendor="$source_script/terminal/vendor.java"
+work_player_vendor="$work_script/terminal/vendor.java"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -493,6 +499,14 @@ cmp -s "$source_survey_tool" "$work_survey_tool"
 grep -Fq 'public static final int SURVEY_TOOL_DELAY = 25;' "$work_survey_tool"
 ! grep -Fq 'MIN_SURVEY_TOOL_DELAY' "$work_survey_tool"
 ! grep -Fq 'expertise_resource_sampling_time_decrease' "$work_survey_tool"
+cmp -s "$source_player_vendor" "$work_player_vendor"
+! grep -Fq 'expertise_vendor_cost_decrease' "$work_player_vendor"
+! grep -Fq 'utils.isProfession(owner, utils.TRADER)' "$work_player_vendor"
+! grep -Fq 'utils.isProfession(ownerId, utils.TRADER)' "$work_player_vendor"
+grep -Fq 'hasSkill(owner, "crafting_merchant_master")' "$work_player_vendor"
+grep -Fq 'hasSkill(owner, "crafting_merchant_sales_02")' "$work_player_vendor"
+grep -Fq 'cost += 6 * loops;' "$work_player_vendor"
+grep -Fq 'cost += 6;' "$work_player_vendor"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -594,6 +608,9 @@ javap -classpath "$class_root" -v script.library.player_structure | grep -Fq 'pl
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'SURVEY_TOOL_DELAY = 25'
 ! javap -classpath "$class_root" -v script.item.survey_tool.survey_tool_script | grep -Fq 'expertise_resource_sampling_time_decrease'
 ! javap -classpath "$class_root" -v script.item.survey_tool.survey_tool_script | grep -Fq 'MIN_SURVEY_TOOL_DELAY'
+! javap -classpath "$class_root" -v script.terminal.vendor | grep -Fq 'expertise_vendor_cost_decrease'
+javap -classpath "$class_root" -v script.terminal.vendor | grep -Fq 'crafting_merchant_master'
+javap -classpath "$class_root" -v script.terminal.vendor | grep -Fq 'crafting_merchant_sales_02'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'

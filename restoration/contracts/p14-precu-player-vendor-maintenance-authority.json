@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-player-vendor-maintenance-authority",
+  "status": "implemented-build-pending",
+  "scope": "Restore Publish 14.1 player-vendor maintenance rates and Merchant skill ownership while removing the active NGE Trader/expertise authority from billing and status display.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFile": "MMOCoreORB/src/server/zone/objects/tangible/components/vendor/VendorDataComponent.cpp",
+    "findings": [
+      "Publish 14.1 charges 15 credits per vendor-maintenance hour.",
+      "Master Merchant reduces the rate to 60 percent; Merchant Sales II reduces it to 80 percent when the owner is not a master.",
+      "Map registration adds a flat 6 credits per hour after the Merchant reduction.",
+      "The inherited script instead treated every novice Artisan as a later Trader, multiplied the registration cost, and applied expertise_vendor_cost_decrease."
+    ]
+  },
+  "expected": {
+    "baseHourlyRate": 15,
+    "masterMerchantRate": 9,
+    "salesTwoRate": 12,
+    "registrationHourlySurcharge": 6,
+    "registeredBaseRate": 21,
+    "registeredMasterRate": 15,
+    "registeredSalesTwoRate": 18,
+    "billingCalculations": 1,
+    "statusCalculations": 1,
+    "ngeExpertiseReads": 0,
+    "genericTraderChecks": 0,
+    "hiringModifierRateChecks": 0,
+    "maintenanceLoopPreserved": true,
+    "poolDecayRepairAndStatusPreserved": true
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "vendor": "dsrc/sku.0/sys.server/compiled/game/script/terminal/vendor.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "4b7a96e592dd930ae0951546594765cba989661d",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "fa1260d75bf245f2839e187cafb821faf8e7ad709002673e496288bf8337384f",
+      "vendor": "d65bf2ecee16e79574960c7af5e4ad0f4945af53539f0fb819696c2131fde2e9",
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
+    },
+    "compiledClassSha256": {
+      "vendor": "pending"
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "generic later-Trader, NGE expertise, and multiplicative registration authority in both active player-vendor maintenance calculations",
+    "preserved": "maintenance heartbeat accounting, vendor pools and withdrawals, decay and repair, Master Merchant and Sales II benefits, map registration, status display, vendor items, search, sales tax, lifecycle, XP, and retained vendor content",
+    "notClaimedComplete": "reverse engineering, armor, healing, movement, performance, and other content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}
