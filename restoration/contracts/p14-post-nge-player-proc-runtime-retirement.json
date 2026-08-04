@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-player-proc-runtime-retirement",
+  "status": "ready",
+  "scope": "Retire NGE expertise, item, buff, cybernetic, and reactive combat-proc runtime for players while preserving Publish 14.1 combat authority and retained expansion NPC encounter mechanics.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "The pinned Publish 14.1 combat runtime has no NGE expertise, item-proc, cybernetic-proc, or reactive-proc list authority.",
+      "The inherited login, weapon, wearable, buff, and cybernetic callbacks rebuild later-era proc lists even after NGE expertise and class admission are retired.",
+      "Authenticated PRE-CU combat already bypasses proc execution, but persisted lists and retained unprofiled commands leave a player-runtime reachability gap."
+    ]
+  },
+  "diagnosis": {
+    "directPlayerListRebuildCallSites": 22,
+    "directPlayerListRebuildConsumerFiles": 7,
+    "combatProcExecutionCallSites": 2,
+    "procTableRows": 97,
+    "distinctProcCommands": 96,
+    "guaranteedProcRows": 28,
+    "weaponRowsWithProcEffects": 16,
+    "distinctWeaponProcEffects": 6,
+    "cyberneticRows": 44,
+    "cyberneticRowsWithProcEffects": 1,
+    "armorRowsWithReactiveEffects": 0
+  },
+  "expected": {
+    "playerProcListConstructionReachable": false,
+    "playerReactiveListConstructionReachable": false,
+    "playerAttackerProcExecutionReachable": false,
+    "playerDefenderReactiveExecutionReachable": false,
+    "persistedPlayerProcStateCleaned": true,
+    "expertiseProcStateCleaned": true,
+    "buffProcStateCleaned": true,
+    "reactiveCooldownStateCleaned": true,
+    "retainedExpansionNpcProcRuntimePreserved": true,
+    "procCompatibilityDataPreserved": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "c8b5dbd479b6cc1c66246c34e56331c4ebeae467",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "library/proc.java": "fc1ce5d625811fac0341f18cfbc782af7258f2dc9d288f8d3797160828624658"
+    },
+    "compiledClassSha256": {
+      "library/proc.class": "875e0c8a69df2b7396f5cbe6c2733c586ec2b6d2533ea7c0fed106bb142f0c2f"
+    },
+    "fullJavaCompile": "passed in 299.4 seconds from the pushed direct-source revision",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
+    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
+    "sourceWorkParity": "passed for library/proc.java",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "procDataSha256": "6e049ed2a4d6d003b3c3f478c6b9023f6640dd0dda3e432e2a22248885c399bd",
+    "cyberneticDataSha256": "032bd6b24d9ee1875191bf164e0aeb4e279ec366dfddb60400aac5d3551688a5",
+    "weaponDataSha256": "e3fd89a7139ed6edad842f54f32031108faae23407e7103e67dcc3aeca82c664",
+    "armorDataSha256": "a2e4c0337d050e94b14cdc2118131704f44dc9c8c2f6295566c0a5f2f3ca685d",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
+    "containerStartedAt": "2026-08-04T07:39:30.899501102Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "sourceWorkParityFiles": 1,
+    "compiledBytecodeProbes": "passed: the player predicate is constant-enabled and player-only; cleanup removes five list sources and the reactive cooldown tree; execution cleans attacker and defender before list reads; both builders return before weapon, cybernetic, buff, expertise, or wearable data reads; the non-player compatibility bodies remain present",
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 368,
+    "liveBinaryInode": 12110814,
+    "liveBinarySize": 22619240,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, or empty ConGenericMessage matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all player list construction, persisted list state, expertise/buff proc state, reactive cooldown state, attacker proc execution, and defender reactive execution routed through the shared proc library",
+    "preserved": "Publish 14.1 combat, retained proc/cybernetic/item data, retained expansion NPC proc mechanics, content objects, quests, conversations, zones, and user-verified mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

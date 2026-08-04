@@ -2666,3 +2666,17 @@ the creature/profile/combat tables and user-verified mission-terminal sources
 remain unchanged. Validate the direct server checkout with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuCreatureAutoActionAuthority.ps1 -SourceRoot <direct-server-checkout>
+
+Milestone 316 retires the inherited NGE expertise, item, buff, cybernetic,
+and reactive combat-proc runtime for players. Login, weapon, wearable, buff,
+and cybernetic callbacks previously converged on 22 list-rebuild calls across
+seven consumers, backed by 97 later proc rows. The shared proc library now
+cleans persisted player list and cooldown state before either construction or
+execution can take effect.
+
+Retained expansion NPC encounter procs remain available because the boundary
+is player-only. Publish 14.1 combat, the compatibility data, later content
+objects, quests, conversations, zones, and the user-verified mission-terminal
+sources remain unchanged. Validate the direct server checkout with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PostNgePlayerProcRuntimeRetirement.ps1 -SourceRoot <direct-server-checkout>
