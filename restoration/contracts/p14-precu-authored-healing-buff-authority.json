@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-authored-healing-buff-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Remove active NGE expertise chance, duration, healing, target, reduction, HOT, and aggro authority from retained combat/healing actions while preserving authored action values, buff-table fallback durations, medical hate, PvP help, effects, and lifecycle.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -52,31 +52,47 @@
       "healing": "cb4e616071fa5621b3135f4131c17c58e4da657dc813e3f3f9d38c15b6aeb28e"
     },
     "compiledClassSha256": {
-      "combat": "pending",
-      "healing": "pending"
+      "combat": "f678214b8adf5e084f4ad2a58bce9da5ee9fca0f9d54bd4dcc0feb8015ab68cb",
+      "healing": "21ac77a22b64de9e7a10cc119bf79e166868838d7e7ad1721e6fb9b677d75dbb"
     },
-    "sourceTest": "pending",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "sourceTest": "passed; 12 active expertise reads and the private chance gate are retired, all four combat/healing buff sites use one authored-duration helper, nonzero action duration wins, zero duration falls back to the buff table, and heal/HOT/hate/life-siphon sources remain authored",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and combat.class/healing.class were emitted at 2026-08-04T21:00:38Z",
+    "fullServerBuild": "passed in 733.3 seconds from pushed parent 3232f2f and direct dsrc e5abea819",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for combat.java and healing.java against the read-only direct-source mount",
+    "bytecodeAudit": "passed; combat.class and healing.class retain their authored-duration calls, healing.class contains no expertise_ constant, and neither class contains the retired chance/duration/healing helper constants in this milestone boundary",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused authored-healing/buff source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "pending",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "pending",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "liveProcessMappedBuiltBinary": false,
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T21:07:05.332102199Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "combat": 104543,
+      "healing": 103950
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 364,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, or Oracle error matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "the active expertise chance/duration surface shared by retained combat and healing buffs plus all direct expertise healing, HOT, target, reduction, and medical-hate calculations in library/healing.java",
