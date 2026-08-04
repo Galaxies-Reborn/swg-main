@@ -48,6 +48,16 @@ if ($LASTEXITCODE -ne 0)
 
 if (-not $SkipBuild)
 {
+    $javaDependencyClean = @'
+set -eu
+class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/script"
+if [ -d "$class_root" ]; then
+    find "$class_root" -type f -name '*.class' -delete
+    test "$(find "$class_root" -type f -name '*.class' -print -quit)" = ""
+fi
+'@
+    Write-Host "Removing compiled Java classes to enforce a complete dependency rebuild..."
+    Invoke-DockerScript -ContainerName $Container -Script $javaDependencyClean
     Write-Host "Synchronizing the read-only source mount and building the writable server volume..."
     Invoke-Docker -Arguments @("exec", $Container, "/usr/local/bin/swg-entrypoint", "build")
 }
@@ -749,9 +759,15 @@ javap -classpath "$class_root" -constants script.systems.crafting.droid.modules.
 ! javap -classpath "$class_root" -v script.systems.crafting.droid.modules.droid_bomb | grep -Fq 'getLevel'
 javap -classpath "$class_root" -constants script.library.pet_lib | grep -Fq 'DETONATION_DROID_MIN_DAMAGE = 150'
 javap -classpath "$class_root" -constants script.library.pet_lib | grep -Fq 'DETONATION_DROID_MAX_DAMAGE = 200'
+javap -classpath "$class_root" -c script.ai.pet | grep -Eq 'sipush[[:space:]]+150'
+javap -classpath "$class_root" -c script.ai.pet | grep -Eq 'sipush[[:space:]]+200'
+javap -classpath "$class_root" -c script.ai.pet_control_device | grep -Fq 'getDetonationDroidMinDamage'
+javap -classpath "$class_root" -c script.ai.pet_control_device | grep -Fq 'getDetonationDroidMaxDamage'
+javap -classpath "$class_root" -c script.npc.pet_deed.droid_deed | grep -Fq 'getDetonationDroidMinDamage'
+javap -classpath "$class_root" -c script.npc.pet_deed.droid_deed | grep -Fq 'getDetonationDroidMaxDamage'
 grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/ai/pet.java"
-grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/ai/pet_control_device.java"
-grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/npc/pet_deed/droid_deed.java"
+grep -Fq 'datastorage * pet_lib.getDetonationDroidMinDamage()' "$work_script/ai/pet_control_device.java"
+grep -Fq 'datastorage * pet_lib.getDetonationDroidMinDamage()' "$work_script/npc/pet_deed/droid_deed.java"
 grep -Fq 'int target_min_damage = min_dam' "$work_script/systems/crafting/droid/modules/droid_bomb.java"
 grep -Fq 'getAttackableTargetsInRadius(droid, PRECU_DETONATION_RADIUS, true)' "$work_script/systems/crafting/droid/modules/droid_bomb.java"
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_ACTION_BASE_COST = 124'

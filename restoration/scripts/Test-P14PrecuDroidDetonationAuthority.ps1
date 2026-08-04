@@ -92,10 +92,14 @@ Assert-Contract ($detonate.Contains("int target_min_damage = min_dam") -and
     "p14.droid-detonation.independent-fixed-pvp-range"
 Assert-Contract ($petLibrary.Contains("DETONATION_DROID_MIN_DAMAGE = 150") -and
     $petLibrary.Contains("DETONATION_DROID_MAX_DAMAGE = 200") -and
-    @($pet, $petControlDevice, $droidDeed | Where-Object {
-        $_.Contains("datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE") -and
-        $_.Contains("datastorage * pet_lib.DETONATION_DROID_MAX_DAMAGE")
-    }).Count -eq [int]$contract.expected.liveExamineSurfaces) `
+    $petLibrary.Contains("public static int getDetonationDroidMinDamage()") -and
+    $petLibrary.Contains("public static int getDetonationDroidMaxDamage()") -and
+    $pet.Contains("datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE") -and
+    $pet.Contains("datastorage * pet_lib.DETONATION_DROID_MAX_DAMAGE") -and
+    $petControlDevice.Contains("datastorage * pet_lib.getDetonationDroidMinDamage()") -and
+    $petControlDevice.Contains("datastorage * pet_lib.getDetonationDroidMaxDamage()") -and
+    $droidDeed.Contains("datastorage * pet_lib.getDetonationDroidMinDamage()") -and
+    $droidDeed.Contains("datastorage * pet_lib.getDetonationDroidMaxDamage()")) `
     "p14.droid-detonation.precu-examine-range"
 Assert-Contract ($menuRequest.Contains('hasSkill(player, "combat_smuggler_novice")') -and
     $menuRequest.Contains('hasSkill(player, "combat_bountyhunter_novice")') -and
