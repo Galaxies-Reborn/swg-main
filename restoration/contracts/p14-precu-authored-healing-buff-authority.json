@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-authored-healing-buff-authority",
+  "status": "implemented-build-pending",
+  "scope": "Remove active NGE expertise chance, duration, healing, target, reduction, HOT, and aggro authority from retained combat/healing actions while preserving authored action values, buff-table fallback durations, medical hate, PvP help, effects, and lifecycle.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/HealDamageCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/HealWoundCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/QuickHealCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/HealEnhanceCommand.h"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 source tree contains no expertise authority.",
+      "Publish 14.1 medicine admission and recovery cadence use authored medicine properties plus healing_ability, combat_healing_ability, healing_injury_speed, healing_range_speed, and healing_wound_speed skill mods.",
+      "Publish 14.1 healing applies the medicine or command heal power directly to the selected HAM pool; it does not multiply that power through later profession expertise.",
+      "Retained expansion combat/healing actions therefore keep their authored action and buff-table values but may not consult later expertise chance, duration, heal, HOT, target, reduction, or aggro modifiers."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 2,
+    "historicalExecutableExpertiseReads": 12,
+    "remainingBoundedExpertiseReads": 0,
+    "remainingHealingExpertiseReads": 0,
+    "authoredDurationCallSites": 4,
+    "authoredDurationDefinitions": 1,
+    "authoredNonZeroDurationPreserved": true,
+    "buffTableFallbackDurationPreserved": true,
+    "combatAttackerAndDefenderBuffsPreserved": true,
+    "healingAttackerAndDefenderBuffsPreserved": true,
+    "baseHealAmountSource": "action_data.addedDamage",
+    "hotMaximumSource": "action_data.addedDamage",
+    "hotDurationSource": "action_data.dotDuration",
+    "hotTickSource": "action_data.dotIntensity",
+    "medicalHateFormula": "delta / HEALING_AGGRO_REDUCER",
+    "lifeSiphonFormula": "round(damage * percentToHeal)",
+    "precuSkillAndMedicineAuthorityPreserved": true,
+    "retainedEffectsAndLifecyclePreserved": true
+  },
+  "sourceFiles": {
+    "combat": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "e5abea8190da8a944bac199c8f7bb0b646c61b26",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "combat": "a0f63c6cf39734451eaa6f3904e052d2e4d911c1b7631583d28c9a8741a0757f",
+      "healing": "cb4e616071fa5621b3135f4131c17c58e4da657dc813e3f3f9d38c15b6aeb28e"
+    },
+    "compiledClassSha256": {
+      "combat": "pending",
+      "healing": "pending"
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the active expertise chance/duration surface shared by retained combat and healing buffs plus all direct expertise healing, HOT, target, reduction, and medical-hate calculations in library/healing.java",
+    "preserved": "authored combat-data values, buff-table default durations, direct and over-time healing, medical hate, PvP help, defender/medic buffs, DOT resistance, life siphon, medical spam, particles, and existing PRE-CU medicine/skill authority",
+    "notClaimedComplete": "other combat expertise calculations, reverse engineering, armor, movement, performance compatibility, and content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}

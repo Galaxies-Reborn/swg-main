@@ -87,6 +87,10 @@ Write-Host "Verifying the direct-source PRE-CU player-vendor maintenance authori
 & (Join-Path $PSScriptRoot "Test-P14PrecuPlayerVendorMaintenanceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU authored healing/buff authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredHealingBuffAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -312,6 +316,10 @@ source_survey_tool="$source_script/item/survey_tool/survey_tool_script.java"
 work_survey_tool="$work_script/item/survey_tool/survey_tool_script.java"
 source_player_vendor="$source_script/terminal/vendor.java"
 work_player_vendor="$work_script/terminal/vendor.java"
+source_combat_library="$source_script/library/combat.java"
+work_combat_library="$work_script/library/combat.java"
+source_healing_library="$source_script/library/healing.java"
+work_healing_library="$work_script/library/healing.java"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -507,6 +515,14 @@ grep -Fq 'hasSkill(owner, "crafting_merchant_master")' "$work_player_vendor"
 grep -Fq 'hasSkill(owner, "crafting_merchant_sales_02")' "$work_player_vendor"
 grep -Fq 'cost += 6 * loops;' "$work_player_vendor"
 grep -Fq 'cost += 6;' "$work_player_vendor"
+cmp -s "$source_combat_library" "$work_combat_library"
+cmp -s "$source_healing_library" "$work_healing_library"
+! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
+grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
+test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
+! grep -Fq 'expertise_' "$work_healing_library"
+! grep -Eq 'getExpertiseModifiedHealing|getHealingAfterReductions|getTargetHealingBonus' "$work_healing_library"
+grep -Fq 'float modifiedHate = delta / HEALING_AGGRO_REDUCER;' "$work_healing_library"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -611,6 +627,11 @@ javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_sc
 ! javap -classpath "$class_root" -v script.terminal.vendor | grep -Fq 'expertise_vendor_cost_decrease'
 javap -classpath "$class_root" -v script.terminal.vendor | grep -Fq 'crafting_merchant_master'
 javap -classpath "$class_root" -v script.terminal.vendor | grep -Fq 'crafting_merchant_sales_02'
+! javap -classpath "$class_root" -v script.library.combat | grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_'
+javap -classpath "$class_root" -v script.library.combat | grep -Fq 'getAuthoredBuffDuration'
+! javap -classpath "$class_root" -v script.library.healing | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.library.healing | grep -Eq 'getExpertiseModifiedHealing|getHealingAfterReductions|getTargetHealingBonus'
+javap -classpath "$class_root" -v script.library.healing | grep -Fq 'getAuthoredBuffDuration'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
