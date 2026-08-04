@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-retained-vendor-profession-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Preserve retained expansion vendors while replacing their singular NGE class assumption with explicit Publish 14.1 multi-profession skill ownership, and prevent an unmapped PRE-CU character from being classified as a Trader.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -58,34 +58,53 @@
       "orionVendorTable": "60f784bae89a087f7ab7c82b4e7532bd3fe7c8e2e275962af7c05b07d46679b8"
     },
     "compiledClassSha256": {
-      "utils": "pending",
-      "vendor": "pending",
-      "meatlumpVendor": "pending",
-      "novaOrionVendor": "pending",
-      "banner": "pending"
+      "utils": "c12f20092081a5f63fc2ee38849ca0538a8ba356968942dbafe254dfb0e6b787",
+      "vendor": "20fa0ae1612ffd753b222f5b02647f844cc57ec8ce9baff49166f704891442a4",
+      "meatlumpVendor": "60e3b8bccbb5a0adbf9a29ef6a8e47645291be7c7ead899bb28d73da40ce3925",
+      "novaOrionVendor": "fdd5071e878cd766b48e54df610416a45dcc65ef8f9f09c03a48ccab6efe33d4",
+      "banner": "588ddb49ecd1a461a45636f57d299907f1afcd31fa65d6c80075012f8dbabc6b"
     },
-    "sourceTest": "pending",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "sourceTest": "passed; explicit Trader ownership, an explicit no-profession value, multi-profession vendor selection, item-local Ranger admission, selection revalidation, faction/common inventories, all-class vendors, and the bounded banner consumer were all verified",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and all five retained-vendor authority classes were emitted between 2026-08-04T19:18:31Z and 2026-08-04T19:18:42Z",
+    "fullServerBuild": "passed in 751.6 seconds from pushed parent 55ad3808dc726d98f7ac973dd9d8d6e354f6c7bd and direct dsrc 2f7f9593af79d345abce4b520a49416bf5df4f31",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for utils.java, vendor.java, mtp_vendor.java, and nova_orion_vendor.java against the read-only direct-source mount",
+    "bytecodeAudit": "passed; utils exposes NO_PROFESSION and explicit Trader ownership, the generic vendor enumerates retained PRE-CU item professions and opens a validated selector, class-zero-only vendors do not read a singular profession, and the banner remains the sole singular compatibility consumer",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused retained-vendor source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "pending",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "pending",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "liveProcessMappedBuiltBinary": false,
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T19:25:04.74357162Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "utils": 149891,
+      "vendor": 9482,
+      "meatlumpVendor": 5067,
+      "novaOrionVendor": 5304,
+      "banner": 3154
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 366,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "false Trader identity for unmapped PRE-CU characters and singular class-container selection in retained vendors",
