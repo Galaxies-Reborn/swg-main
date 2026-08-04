@@ -134,6 +134,8 @@ source_factions_library="$source_script/library/factions.java"
 work_factions_library="$work_script/library/factions.java"
 source_faction_perk_library="$source_script/library/faction_perk.java"
 work_faction_perk_library="$work_script/library/faction_perk.java"
+source_jedi_saber_component="$source_script/systems/jedi/jedi_saber_component.java"
+work_jedi_saber_component="$work_script/systems/jedi/jedi_saber_component.java"
 source_gcw_library="$source_script/library/gcw.java"
 work_gcw_library="$work_script/library/gcw.java"
 source_gcw_city="$source_script/systems/gcw/gcw_city.java"
@@ -296,6 +298,7 @@ cmp -s "$source_missions" "$work_missions"
 cmp -s "$source_xp_library" "$work_xp_library"
 cmp -s "$source_factions_library" "$work_factions_library"
 cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
+cmp -s "$source_jedi_saber_component" "$work_jedi_saber_component"
 cmp -s "$source_gcw_library" "$work_gcw_library"
 cmp -s "$source_gcw_city" "$work_gcw_city"
 cmp -s "$source_planet_base" "$work_planet_base"
@@ -420,6 +423,14 @@ javap -classpath "$class_root" -v script.library.luck | grep -Fq 'force_luck'
 ! javap -classpath "$class_root" -v script.library.luck | grep -Fq 'getLevel'
 javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'getPrecuCraftingLuckRoll'
 ! javap -classpath "$class_root" -v script.library.craftinglib | grep -Fq 'isLucky'
+# Publish 14.1 crystal quality is an authored property of the crystal/loot
+# result, never a derivative of the receiving player's NGE combat level.
+javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
+javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'Crystal item level = '
+javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'canTuneLightsaberCrystal'
+! javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'getLevel'
+grep -Fq 'rand(1, 50)' "$work_jedi_saber_component"
+grep -Fq 'getIntObjVar(self, levelObjVar)' "$work_jedi_saber_component"
 # Publish 14.1 has an entertainer attribute-buff session, but no native NGE
 # Buff Builder or general/TCG percentage-XP progression layer.
 buff_progression_retired_bytecode="$(javap -classpath "$class_root" -c script.library.buff | sed -n '/isPostNgeBuffProgressionRetired/,/retirePostNgeBuffProgression/p')"

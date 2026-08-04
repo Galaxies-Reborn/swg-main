@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-lightsaber-crystal-item-level-authority",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Make retained legacy lightsaber crystal initialization consume authored crystal item metadata instead of the receiving player's removed NGE combat level while preserving static crystal tiers, tuning eligibility, and a player-independent compatibility fallback.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU item and Jedi progression with retained expansion crystal content",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Reference": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/objects/tangible/component/lightsaber/LightsaberCrystalComponentImplementation.cpp",
+    "findings": [
+      "Core3 stores the crafting experimental creatureLevel on the crystal as itemLevel and generates crystal stats from that itemLevel.",
+      "Core3 never derives crystal itemLevel from the player who receives or tunes the crystal.",
+      "This source's retained legacy equivalent is jedi.crystal.stats.level, which saber dismantling writes immediately after createObject returns.",
+      "Current static crystal rows carry authored min/max/quality metadata and bypass legacy dynamic initialization."
+    ]
+  },
+  "diagnosis": {
+    "historicalPlayerLevelReads": 2,
+    "historicalAuthority": "getLevel of the creature containing the destination inventory",
+    "legacyAuthoredLevelObjVar": "jedi.crystal.stats.level",
+    "legacyCreatorWritesAfterCreateObject": true,
+    "staticKraytPearlRows": 20,
+    "staticPowerCrystalRows": 21,
+    "staticColorCrystalRows": 31
+  },
+  "expected": {
+    "playerLevelReads": 0,
+    "playerContainerOwnerTraversal": false,
+    "deferredInitializationSeconds": 0.5,
+    "authoredCrystalLevelPreserved": true,
+    "colorCrystalSentinelPreserved": -1,
+    "missingMetadataFallbackMinimum": 1,
+    "missingMetadataFallbackMaximum": 50,
+    "fallbackDependsOnPlayer": false,
+    "staticItemsBypassLegacyInitialization": true,
+    "crystalTuningSkill": "force_title_jedi_rank_01",
+    "crystalTuningCallSites": 2
+  },
+  "sourceFiles": {
+    "saberComponent": "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_saber_component.java",
+    "jediLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+    "saberBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/saber_base.java",
+    "componentRanges": "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/saber_component_ranges.tab",
+    "masterItems": "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
+    "itemStats": "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "a8d9375c68d89e157210429a2a891006ffa80177",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "systems/jedi/jedi_saber_component.java": "b995bd24a1db9e25f6bd67bb4e637b732eadf0cbcf0cbffa1e50ad23c38dc9bd"
+    },
+    "fullJavaCompile": "pending",
+    "compiledClassSha256": "pending",
+    "bytecodeAudit": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "result": "pending"
+  },
+  "continuityEvidence": {
+    "jediLibrarySha256": "47b5ab3d5a56edc2607b0168bb43494a500cc54d386052838afda5192cedcaca",
+    "saberBaseSha256": "58892d7bd08903b28faf646243ebd5acaffc10506c7fb53e7114d618ba06b49e",
+    "componentRangesSha256": "cecbbcb73a25561845c26ff2535843c687c9104224d94cc9ec313c62c06f8834",
+    "masterItemsSha256": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+    "itemStatsSha256": "18bc1a63d3972d2732b265e2e9fb8a59f594ab7052d8045a2a118d2bcd5bc081"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 0,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the retained legacy saber component's dependency on the receiving player's NGE combat level",
+    "preserved": "authored static crystal tiers, legacy authored level metadata, the color-crystal sentinel, crystal tuning and ownership, old-object conversion, containment retries, and the historical metadata-less compatibility fallback",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Commit and push the direct dsrc source.",
+    "Pass the full Docker x64 server build and bytecode probes.",
+    "Deploy and verify the healthy live cluster.",
+    "Record final direct-source, class, binary, and runtime evidence."
+  ]
+}
