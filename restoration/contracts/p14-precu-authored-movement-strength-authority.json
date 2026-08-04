@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-authored-movement-strength-authority",
+  "status": "implemented-build-pending",
+  "scope": "Make authored movement-table or explicit caller strength authoritative for active movement modifiers, removing the remaining NGE expertise multiplier without changing validation, immunity, persistence, recalculation, or cleanup.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/BurstRunCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun1Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun2Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun3Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/RetreatCommand.h"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 source tree contains no expertise authority.",
+      "Publish 14.1 movement abilities use their authored command/buff magnitude and PRE-CU skill mods; Force Run rank selects its authored buff and Retreat applies a fixed 1.822 speed/acceleration multiplier.",
+      "Retreat's group_burst_run skill mod changes HAM cost, not the authored 1.822 movement magnitude.",
+      "The inherited shared movement helper could still rescale table or caller strength through expertise_movement_buff_<name>, including stale later Spy and Force-sensitive rows."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "historicalExecutableExpertiseReads": 2,
+    "remainingExecutableExpertiseReads": 0,
+    "defaultStrengthSource": "datatables/movement/movement.iff",
+    "explicitCallerStrengthPreserved": true,
+    "defaultStrengthStoredByName": true,
+    "customStrengthStoredInScriptVar": true,
+    "validationAndImmunityPreserved": true,
+    "refreshAndRemovalPreserved": true,
+    "authoredExamples": {
+      "burstRun": 75.0,
+      "retreat": 82.2,
+      "fs_force_run": 125.0
+    },
+    "productionDirectCallSites": 4,
+    "lineEndingBloat": false
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "movement": "dsrc/sku.0/sys.server/compiled/game/script/library/movement.java",
+    "movementTable": "dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "220d03f17c297562460200600facf05a473f847d",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "attributes": "53be6f287d42c8b68a1f25993e27b46a2f3db71fcd37a171b406ff59cbfff025",
+      "movement": "b8d061191c34f84dc27e94e4a1c89f2086ff37a99e3c877ee1ccf9f78c944e53",
+      "movementTable": "47c71f95deb97b117e09830e089b9410bc1826d6a54dc9bdc499290b27f10fff"
+    },
+    "compiledClassSha256": {
+      "movement": "pending"
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the shared movement helper's active NGE expertise multiplier for table-backed and explicit movement modifier strength",
+    "preserved": "movement target/type validation, on-foot restrictions, immunity, duplicate prevention, table and explicit strengths, script-var persistence, refresh, removal, dispel behavior, combat effects, PRE-CU Retreat, retained buffs, and expansion content",
+    "notClaimedComplete": "other combat expertise calculations, reverse engineering, armor, performance compatibility, and content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}

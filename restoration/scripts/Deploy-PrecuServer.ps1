@@ -91,6 +91,10 @@ Write-Host "Verifying the direct-source PRE-CU authored healing/buff authority b
 & (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredHealingBuffAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU authored movement strength authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredMovementStrengthAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -320,6 +324,10 @@ source_combat_library="$source_script/library/combat.java"
 work_combat_library="$work_script/library/combat.java"
 source_healing_library="$source_script/library/healing.java"
 work_healing_library="$work_script/library/healing.java"
+source_movement_library="$source_script/library/movement.java"
+work_movement_library="$work_script/library/movement.java"
+source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
+work_movement_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -523,6 +531,12 @@ test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_
 ! grep -Fq 'expertise_' "$work_healing_library"
 ! grep -Eq 'getExpertiseModifiedHealing|getHealingAfterReductions|getTargetHealingBonus' "$work_healing_library"
 grep -Fq 'float modifiedHate = delta / HEALING_AGGRO_REDUCER;' "$work_healing_library"
+cmp -s "$source_movement_library" "$work_movement_library"
+cmp -s "$source_movement_table" "$work_movement_table"
+! grep -Fq 'expertise_movement_buff_' "$work_movement_library"
+grep -Fq 'strength = getStrength(name);' "$work_movement_library"
+grep -Fq 'retreat'$'\t''boost'$'\t''82.2' "$work_movement_table"
+grep -Fq 'fs_force_run'$'\t''boost'$'\t''125' "$work_movement_table"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -632,6 +646,8 @@ javap -classpath "$class_root" -v script.library.combat | grep -Fq 'getAuthoredB
 ! javap -classpath "$class_root" -v script.library.healing | grep -Fq 'expertise_'
 ! javap -classpath "$class_root" -v script.library.healing | grep -Eq 'getExpertiseModifiedHealing|getHealingAfterReductions|getTargetHealingBonus'
 javap -classpath "$class_root" -v script.library.healing | grep -Fq 'getAuthoredBuffDuration'
+! javap -classpath "$class_root" -v script.library.movement | grep -Fq 'expertise_movement_buff_'
+javap -classpath "$class_root" -v script.library.movement | grep -Fq 'getStrength'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
