@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-mobile-stealth-detection-authority",
+  "status": "implemented-build-pending",
+  "scope": "Make production-reachable mobile conceal detection resolve players through the authenticated equipped-weapon PRE-CU combat level while preserving authored NPC creature levels, camouflage and detection modifiers, retained later content, and retired post-NGE Spy player gameplay.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/ai/AiAgentImplementation.cpp",
+      "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ConcealCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/MaskscentCommand.h"
+    ],
+    "findings": [
+      "Publish 14.1 Ranger conceal and Scout mask scent are skill-mod mechanics that remain production gameplay.",
+      "Pinned Core3 mobile camouflage detection compares the equipped-weapon PRE-CU player level with the detecting creature's authored level; it does not consume an NGE visible player combat level.",
+      "Pinned Core3 calculates that internal player value from private_<equipped weapon type>_combat_difficulty divided by 100 plus one and caps it at 25.",
+      "The authenticated project helper xp.getPrecuCombatLevel already implements the same player-versus-NPC boundary and is distinct from retained-content encounter difficulty."
+    ]
+  },
+  "diagnosis": {
+    "productionEntryPoint": "ai.ai_aggro calls stealth.passiveDetectHiddenTarget for concealed targets",
+    "affectedSharedMethods": [
+      "stealth.getDetectChance",
+      "stealth.getDetectChanceWithDetailedOutput"
+    ],
+    "staleDirectLevelReads": 4,
+    "dormantCompatibilitySurfacesChanged": false
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 1,
+    "gameplaySourceFiles": 1,
+    "detectionMethods": 2,
+    "precuCombatLevelCalls": 4,
+    "directGetLevelCallsInDetectionMethods": 0,
+    "playerDifficultyAuthority": "equipped-weapon PRE-CU combat level capped at 25",
+    "npcDifficultyAuthority": "authored creature level",
+    "preservedDetectionInputs": [
+      "base detection chance",
+      "camouflage or invisibility skill modifier",
+      "detect_hidden modifier",
+      "elite and boss difficulty class",
+      "Force cloak adjustment",
+      "minimum and maximum chance bounds"
+    ],
+    "precuSkillCommandsPreserved": [
+      "maskscent",
+      "conceal"
+    ],
+    "postNgeSpyPlayerRuntimeRetired": true,
+    "laterNpcAndExpansionContentPreserved": true
+  },
+  "sourceFiles": {
+    "stealth": "dsrc/sku.0/sys.server/compiled/game/script/library/stealth.java",
+    "xp": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "aiAggro": "dsrc/sku.0/sys.server/compiled/game/script/ai/ai_aggro.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "7473b02216d17d7ae724904de2cff8b04408e98e",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "stealth": "fc63bd188ca47df40dafcc76cdd3075c6a6e5e8bac9f227bf0945a3a00dae00a"
+    },
+    "compiledClassSha256": {
+      "stealth": ""
+    },
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "",
+    "serverBinaryBuildId": "",
+    "sourceWorkParity": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the production mobile conceal detector's four direct reads of the removed NGE player-level field",
+    "preserved": "Publish 14.1 maskscent and conceal skills, current detection probability inputs, authored NPC creature levels, Force cloak compatibility, retained expansion NPCs and devices, and retired Spy player gameplay",
+    "notClaimedComplete": "dormant post-NGE theft and hologram compatibility plus other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "clean Docker Java and x64 server build",
+    "source/work parity and focused bytecode probes",
+    "healthy player-ready restart with live mapped-binary verification"
+  ]
+}

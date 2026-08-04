@@ -606,6 +606,12 @@ javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuWeapo
 javap -classpath "$class_root" -c -p script.library.xp | grep -Fq 'getPrecuCombatLevel'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuWeaponCombatLevel'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | grep -Fq 'getPrecuCombatLevel'
+stealth_detect_bytecode="$(javap -classpath "$class_root" -c script.library.stealth | sed -n '/public static float getDetectChance(/,/public static float getDetectChanceWithDetailedOutput(/p')"
+test "$(printf '%s' "$stealth_detect_bytecode" | grep -Fc 'script/library/xp.getPrecuCombatLevel' || true)" -eq 2
+! printf '%s' "$stealth_detect_bytecode" | grep -Fq 'Method script/base_class.getLevel'
+stealth_detect_detailed_bytecode="$(javap -classpath "$class_root" -c script.library.stealth | sed -n '/public static float getDetectChanceWithDetailedOutput(/,/public static boolean activeDetectHiddenTarget(/p')"
+test "$(printf '%s' "$stealth_detect_detailed_bytecode" | grep -Fc 'script/library/xp.getPrecuCombatLevel' || true)" -eq 2
+! printf '%s' "$stealth_detect_detailed_bytecode" | grep -Fq 'Method script/base_class.getLevel'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'player_level.iff'
 ! javap -classpath "$class_root" -v script.library.xp | grep -Fq 'free_trial_level_cap'
 ! javap -classpath "$class_root" -v script.library.missions | grep -Fq 'prose_mission_xp_amount'
