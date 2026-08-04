@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-open-world-battlefield-artisan-authority",
+  "status": "implemented-build-pending",
+  "scope": "Make the retained PRE-CU open-world battlefield constructor authorize the Novice Artisan skill box instead of the retired NGE Trader profession while preserving faction, constructor-proximity, active-battlefield, build-point, construction, repair, and reinforcement rules.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/objects/creature/commands/PlaceBattlefieldStructureCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/RepairBattlefieldStructureCommand.h"
+    ],
+    "findings": [
+      "Publish 14.1 retains placeBattlefieldStructure and repairBattlefieldStructure command admission without an NGE profession-template check.",
+      "The retained battlefield script's own admission message requires Artisan skill, but its active gate had been wired to the later NGE Trader profession identity.",
+      "The authenticated PRE-CU skill table defines crafting_artisan_novice as the Novice Artisan skill box."
+    ]
+  },
+  "diagnosis": {
+    "productionEntryPoints": [
+      "systems.battlefield.player_battlefield.msgBuildStructureSelected",
+      "systems.battlefield.player_battlefield.placeBattlefieldStructure"
+    ],
+    "sharedAdmissionMethod": "library.battlefield.canBuildBattlefieldStructure",
+    "activeCallSites": 2,
+    "staleNgeProfessionGate": "utils.isProfession(player, utils.TRADER)",
+    "precuSkillAuthority": "crafting_artisan_novice"
+  },
+  "expected": {
+    "changedDirectRepositoryFiles": 2,
+    "gameplaySourceFiles": 1,
+    "artisanSkillChecksInAdmissionMethod": 1,
+    "ngeTraderProfessionChecksInAdmissionMethod": 0,
+    "activeAdmissionCallSites": 2,
+    "preservedAdmissionRules": [
+      "valid battlefield master and player",
+      "battlefield faction resolution",
+      "near a constructor owned by the player's faction",
+      "active battlefield"
+    ],
+    "downstreamRulesPreserved": [
+      "faction build points",
+      "structure selection and placement",
+      "construction timing",
+      "repair costs and pulses",
+      "reinforcement acquisition"
+    ],
+    "postNgeQueuedBattlefieldRuntimeRetired": true,
+    "laterNpcQuestAndExpansionContentPreserved": true
+  },
+  "sourceFiles": {
+    "battlefield": "dsrc/sku.0/sys.server/compiled/game/script/library/battlefield.java",
+    "playerBattlefield": "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/player_battlefield.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "486eea550b7922e4740403b70f79b5e6a5434145",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "battlefield": "2813dc280350c5eab73324a8a178107b5ef7ac9d615feaa6eb0a2ced33a7fc31",
+      "playerBattlefield": "39729ee9bd2b9e5e0b62833974896a5f41119ef9b8631418284e8094b92c07a3",
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
+    },
+    "compiledClassSha256": {},
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the live open-world battlefield construction gate's dependency on the retired NGE Trader profession identity",
+    "preserved": "retained PRE-CU open-world battlefield participation, faction/proximity/active-state/build-point checks, construction, repairs, reinforcements, later-zone content, and the separate retirement of Game Update 10 queued battlefields",
+    "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "commit and push the direct dsrc source",
+    "run the clean x64 Java and server build from the read-only source mount",
+    "pass source/work parity and focused bytecode probes",
+    "restart swg-precu and verify health, readiness, logs, and live mapped binary",
+    "record immutable build and runtime evidence"
+  ]
+}

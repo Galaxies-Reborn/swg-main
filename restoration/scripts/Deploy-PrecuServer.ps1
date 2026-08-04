@@ -164,6 +164,8 @@ source_live_conversions="$source_script/player/live_conversions.java"
 work_live_conversions="$work_script/player/live_conversions.java"
 source_cureward="$source_script/cureward/cureward.java"
 work_cureward="$work_script/cureward/cureward.java"
+source_open_world_battlefield="$source_script/library/battlefield.java"
+work_open_world_battlefield="$work_script/library/battlefield.java"
 source_battlefield_controller="$source_script/systems/gcw/pvp_battlefield.java"
 work_battlefield_controller="$work_script/systems/gcw/pvp_battlefield.java"
 source_battlefield_terminal="$source_script/systems/gcw/battlefield_terminal.java"
@@ -328,6 +330,7 @@ cmp -s "$source_gcw_city" "$work_gcw_city"
 cmp -s "$source_planet_base" "$work_planet_base"
 cmp -s "$source_live_conversions" "$work_live_conversions"
 cmp -s "$source_cureward" "$work_cureward"
+cmp -s "$source_open_world_battlefield" "$work_open_world_battlefield"
 cmp -s "$source_battlefield_controller" "$work_battlefield_controller"
 cmp -s "$source_battlefield_terminal" "$work_battlefield_terminal"
 cmp -s "$source_battlefield_player" "$work_battlefield_player"
@@ -658,6 +661,11 @@ javap -classpath "$class_root" -constants script.player.live_conversions | grep 
 javap -classpath "$class_root" -c script.player.live_conversions | grep -Fq 'cureward.cureward'
 javap -classpath "$class_root" -constants script.cureward.cureward | grep -Fq 'COMBAT_UPGRADE_REWARD_RUNTIME_RETIRED = true'
 ! javap -classpath "$class_root" -v script.cureward.cureward | grep -Fq 'frn_loyalty_award_plaque_'
+open_world_battlefield_build_bytecode="$(javap -classpath "$class_root" -c -p script.library.battlefield | sed -n '/public static boolean canBuildBattlefieldStructure(/,/public static boolean canBuildReinforcement(/p')"
+test "$(printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fc 'crafting_artisan_novice' || true)" -eq 1
+printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fq 'Method hasSkill'
+! printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fq 'script/library/utils.isProfession'
+! printf '%s' "$open_world_battlefield_build_bytecode" | grep -Fq 'TRADER'
 javap -classpath "$class_root" -c script.library.skill | grep -Fq 'isRetiredNgeProgressionSkillName'
 cts_upload_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/OnUploadCharacter/,/OnDownloadCharacter/p')"
 printf '%s' "$cts_upload_bytecode" | grep -Fq 'using PRE-CU skill-box authority'
