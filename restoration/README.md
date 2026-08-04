@@ -2786,3 +2786,17 @@ grants, or expertise points. The direct native commit is built only in the
 Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgePlayerLevelServiceRetirement.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 324 adapts the retained Series 4 T-16 Skyhopper TCG consumable to
+PRE-CU progression. The inherited script previously read combat level and the
+NGE `player_level` table, called a deliberately inert class-template XP grant,
+then reported success and consumed the toy even though no XP was awarded.
+
+The toy now uses its existing level-cap fallback for every PRE-CU player: it
+grants one random collection item, plays the authored flyby effect, and is
+consumed only after delivery succeeds. Failed delivery leaves the toy intact.
+Its user-facing description now states the collection reward. The unrelated
+TCG content remains present, while no generic or fabricated skill XP enters the
+PRE-CU progression graph. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14PrecuTcgInstantXpAdapter.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready

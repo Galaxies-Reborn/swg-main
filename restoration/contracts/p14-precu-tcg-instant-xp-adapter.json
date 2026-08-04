@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-tcg-instant-xp-adapter",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Preserve the retained Series 4 T-16 Skyhopper consumable without allowing its NGE percentage-to-next-level XP path to override Publish 14.1 skill-box progression.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU progression with retained expansion content",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3Reference": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+    "findings": [
+      "Publish 14.1 XP grants name an authored XP pool and feed owned skill-box progression rather than a class-template level.",
+      "The retained TCG script already authored a random collection-item fallback for NGE level-cap players.",
+      "Using that content fallback for every PRE-CU player preserves the item without inventing a generic XP pool or visible combat level."
+    ]
+  },
+  "diagnosis": {
+    "authoredItemRows": 1,
+    "authoredGrantXpPercent": 0.2,
+    "historicalPlayerLevelReads": 1,
+    "historicalPlayerLevelTablePaths": 1,
+    "historicalPlayerLevelTableReads": 2,
+    "historicalTemplateXpGrantCalls": 1,
+    "historicalCollectionFallbackCalls": 1,
+    "historicalConsumeCalls": 2,
+    "expectedConsumeCalls": 1
+  },
+  "expected": {
+    "playerLevelReads": 0,
+    "playerLevelTableReads": 0,
+    "templateXpGrantCalls": 0,
+    "genericXpAwarded": false,
+    "collectionReplacementGranted": true,
+    "authoredFlybyEffectPreserved": true,
+    "consumeOnlyAfterSuccessfulDelivery": true,
+    "failedDeliveryPreservesConsumable": true,
+    "authoredItemAndObjvarPreserved": true,
+    "userFacingDescriptionAccurate": true,
+    "adjacentNgeBuffXpRuntimeRetired": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "4268a14030a411523b9028d543fd6932f3a6b26f",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "systems/tcg/tcg_instant_xp_grant.java": "1b4cb6a66db7ea1dfdb31f8e368eb8b25bf97680f3084f85894582225a8d9792",
+      "datatables/item/master_item/master_item.tab": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d"
+    },
+    "fullJavaCompile": "pending",
+    "compiledClassSha256": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending x86-64 verification",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "result": "pending"
+  },
+  "continuityEvidence": {
+    "itemStatsSha256": "18bc1a63d3972d2732b265e2e9fb8a59f594ab7052d8045a2a118d2bcd5bc081",
+    "xpLibrarySha256": "92ecf581e7a35511fdd21006ca03e57b236da21feec507434e78027157111dee",
+    "collectionLibrarySha256": "3f8107a6a4ebb73f136d0c9d74f8ae172762ccb1ee051f5f19aa4709caa68b58",
+    "magsealLootSha256": "96447e67a67760a88c55354bce9399faa6ae677b6c6024ddffdf16fb1055e90f",
+    "buffHandlerSha256": "6de78fc02fd6de7da203e29a893c68a728ca8fb1f4f7244665310acdc168e88b",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 0,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the live T-16 TCG percentage-to-next-level calculation, player-level table reads, generic template-XP call, false XP success report, and premature consumable decrement",
+    "preserved": "the T-16 item, use radial, authored containment and objvar guards, flyby effect, random Magseal collection reward, collection inventory/error handling, retained expansion content, and mission behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "full Java and x86-64 Docker build",
+    "compiled-class and source/work parity proof",
+    "live cluster restart and post-start log audit"
+  ]
+}
