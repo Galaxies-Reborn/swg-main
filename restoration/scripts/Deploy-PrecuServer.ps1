@@ -258,7 +258,7 @@ precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.jav
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/tcg/target_creature.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/hideout/mtp_instance_entrance_cell.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
 precu_cosmetic_familiar_paths="ai/familiar.java"
-precu_droid_detonation_paths="systems/crafting/droid/modules/droid_bomb.java"
+precu_droid_detonation_paths="ai/pet.java ai/pet_control_device.java library/pet_lib.java npc/pet_deed/droid_deed.java systems/crafting/droid/modules/droid_bomb.java"
 post_nge_beast_creation_paths="ai/pet_control_device.java library/beast_lib.java library/incubator.java npc/pet_deed/pet_deed.java player/base/base_player.java player/player_utility.java systems/beast/base_incubator.java systems/beast/beast_dye.java systems/beast/beast_egg.java systems/beast/beast_food.java systems/beast/beast_steroid_injector.java systems/beast/decoration_item.java systems/beast/enzyme_crafting_base.java systems/beast/enzyme_crafting_centrifuge.java systems/beast/enzyme_crafting_combiner.java systems/beast/enzyme_crafting_processor.java systems/beast/enzyme_extractor.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
@@ -747,6 +747,11 @@ javap -classpath "$class_root" -constants script.systems.crafting.droid.modules.
 javap -classpath "$class_root" -constants script.systems.crafting.droid.modules.droid_bomb | grep -Fq 'PRECU_DETONATION_RADIUS = 17'
 javap -classpath "$class_root" -constants script.systems.crafting.droid.modules.droid_bomb | grep -Fq 'PRECU_PLAYER_DAMAGE_MULTIPLIER = 0.25f'
 ! javap -classpath "$class_root" -v script.systems.crafting.droid.modules.droid_bomb | grep -Fq 'getLevel'
+javap -classpath "$class_root" -constants script.library.pet_lib | grep -Fq 'DETONATION_DROID_MIN_DAMAGE = 150'
+javap -classpath "$class_root" -constants script.library.pet_lib | grep -Fq 'DETONATION_DROID_MAX_DAMAGE = 200'
+grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/ai/pet.java"
+grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/ai/pet_control_device.java"
+grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/npc/pet_deed/droid_deed.java"
 grep -Fq 'int target_min_damage = min_dam' "$work_script/systems/crafting/droid/modules/droid_bomb.java"
 grep -Fq 'getAttackableTargetsInRadius(droid, PRECU_DETONATION_RADIUS, true)' "$work_script/systems/crafting/droid/modules/droid_bomb.java"
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_ACTION_BASE_COST = 124'

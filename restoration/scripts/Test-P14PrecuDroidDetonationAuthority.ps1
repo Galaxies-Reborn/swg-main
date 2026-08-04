@@ -54,7 +54,11 @@ foreach ($path in $paths.Values)
 }
 
 $bomb = Get-Content -LiteralPath $paths.droidBomb -Raw
+$pet = Get-Content -LiteralPath $paths.pet -Raw
 $petMaster = Get-Content -LiteralPath $paths.petMaster -Raw
+$petControlDevice = Get-Content -LiteralPath $paths.petControlDevice -Raw
+$droidDeed = Get-Content -LiteralPath $paths.droidDeed -Raw
+$petLibrary = Get-Content -LiteralPath $paths.petLibrary -Raw
 $detonate = Get-BracedSurface $bomb "public void detonateDroid"
 $menuRequest = Get-BracedSurface $bomb "public int OnObjectMenuRequest"
 $menuSelect = Get-BracedSurface $bomb "public int OnObjectMenuSelect"
@@ -86,6 +90,13 @@ Assert-Contract ($detonate.Contains("int target_min_damage = min_dam") -and
     $detonate.Contains("weaponData.minDamage = target_min_damage") -and
     $detonate.Contains("weaponData.maxDamage = target_max_damage")) `
     "p14.droid-detonation.independent-fixed-pvp-range"
+Assert-Contract ($petLibrary.Contains("DETONATION_DROID_MIN_DAMAGE = 150") -and
+    $petLibrary.Contains("DETONATION_DROID_MAX_DAMAGE = 200") -and
+    @($pet, $petControlDevice, $droidDeed | Where-Object {
+        $_.Contains("datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE") -and
+        $_.Contains("datastorage * pet_lib.DETONATION_DROID_MAX_DAMAGE")
+    }).Count -eq [int]$contract.expected.liveExamineSurfaces) `
+    "p14.droid-detonation.precu-examine-range"
 Assert-Contract ($menuRequest.Contains('hasSkill(player, "combat_smuggler_novice")') -and
     $menuRequest.Contains('hasSkill(player, "combat_bountyhunter_novice")') -and
     $menuSelect.Contains('hasSkill(player, "combat_smuggler_novice")') -and
@@ -122,6 +133,7 @@ foreach ($property in $contract.buildEvidence.sourceSha256.PSObject.Properties)
         [string]$property.Value) "p14.droid-detonation.$($property.Name).authenticated"
 }
 $continuity = [ordered]@{
+    petSha256 = $paths.pet
     petMasterSha256 = $paths.petMaster
     petControlDeviceSha256 = $paths.petControlDevice
     droidDeedSha256 = $paths.droidDeed
@@ -149,6 +161,8 @@ if ($Expectation -eq "Ready")
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.droid-detonation.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256 -match '^[a-f0-9]{64}$' -and
+        @($contract.buildEvidence.compiledDisplayClassSha256.PSObject.Properties |
+            Where-Object { [string]$_.Value -match '^[a-f0-9]{64}$' }).Count -eq 4 -and
         [bool]$contract.runtimeEvidence.compiledClassPresent -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `

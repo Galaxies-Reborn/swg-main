@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-droid-detonation-authority",
-  "status": "ready",
+  "status": "implemented-build-verified-live-pending",
   "scope": "Make crafted droid detonation use Publish 14.1 module-rating damage, a fixed blast radius, and fixed PvP reduction while removing the victim's NGE combat level from live damage authority.",
   "eraEvidence": {
     "targetEra": "Publish 14.1 PRE-CU crafted droid detonation",
@@ -22,15 +22,19 @@
     "historicalDirectPlayerLevelReads": 1,
     "historicalVictimLevelFormula": "getLevel(target) / 90.0",
     "historicalSharedRangeMutationAcrossTargets": true,
-    "historicalLevelScaledRadiusFormula": "20 + floor(0.3 * bomb level)"
+    "historicalLevelScaledRadiusFormula": "20 + floor(0.3 * bomb level)",
+    "historicalDisplayedDamageRangePerRating": [65, 97]
   },
   "expected": {
-    "changedSourceFiles": 1,
+    "changedSourceFiles": 2,
     "directPlayerLevelReads": 0,
     "moduleDamageMinPerRating": 150,
     "moduleDamageMaxPerRating": 200,
     "blastRadiusMeters": 17,
     "playerDamageMultiplier": 0.25,
+    "displayedDamageMinPerRating": 150,
+    "displayedDamageMaxPerRating": 200,
+    "liveExamineSurfaces": 3,
     "damageRangeIndependentPerTarget": true,
     "moduleRatingAndMseBonusRemainAuthoritative": true,
     "noviceSmugglerOrBountyHunterAdmission": true,
@@ -39,6 +43,7 @@
   },
   "sourceFiles": {
     "droidBomb": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/droid_bomb.java",
+    "pet": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet.java",
     "petMaster": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_master.java",
     "petControlDevice": "dsrc/sku.0/sys.server/compiled/game/script/ai/pet_control_device.java",
     "droidDeed": "dsrc/sku.0/sys.server/compiled/game/script/npc/pet_deed/droid_deed.java",
@@ -52,27 +57,35 @@
   "authoredModuleRatingMaxima": [10, 15, 20, 25, 30],
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "c086efcec7d7926a2b34cc6ad148539eaae70146",
+    "directSourceGitlink": "17eb79c591ce52f56db2d15e93b599718884fc5c",
     "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
-      "droidBomb": "bf497b3aabb3de7d4b81f2a63b75e17008f87712a35f375a5847c89241309a9d"
+      "droidBomb": "bf497b3aabb3de7d4b81f2a63b75e17008f87712a35f375a5847c89241309a9d",
+      "petLibrary": "dbbe8d1370944711ceae0fab0e4ca0dd0ada4a6c0ea9d30a7abcdddb9879e671"
     },
-    "fullJavaCompile": "passed from pushed direct source; droid_bomb.class emitted 2026-08-04T12:49:55Z",
-    "compiledClassSha256": "9cf0375c0e750916533cc4817eca91be7f51dab579f81b5423d50752c0e3fc65",
-    "bytecodeAudit": "all four exact PRE-CU detonation constants present; zero getLevel symbols",
-    "fullServerBuild": "passed in 491.5 seconds from pushed direct source",
-    "architecture": "ELF 64-bit LSB x86-64; LoginServer, TaskManager, ConnectionServer, SwgDatabaseServer, PlanetServer, and SwgGameServer verified",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed for systems/crafting/droid/modules/droid_bomb.java",
-    "result": "passed"
+    "fullJavaCompile": "pending",
+    "compiledClassSha256": "",
+    "compiledDisplayClassSha256": {
+      "pet": "",
+      "petControlDevice": "",
+      "droidDeed": "",
+      "petLibrary": ""
+    },
+    "bytecodeAudit": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "",
+    "serverBinaryBuildId": "",
+    "sourceWorkParity": "pending",
+    "result": "pending"
   },
   "continuityEvidence": {
+    "petSha256": "9b241cdb4ea433f0a41999664dc35ff2f3bd0b8996cdb42b9ae1154b28563def",
     "petMasterSha256": "09e385857c7d429bdc5a638d52afdfbf03e03c1f1e1238a5874cf1a4d7ba07be",
     "petControlDeviceSha256": "7d58546e2ce7730aa4e6581605edb04b156d8c7f127d0e593560e892ee9a5be8",
     "droidDeedSha256": "bdad955a40add68dbac19b6142e652b7623c0249893a7dbf149ed37fc2bdf1d1",
-    "petLibrarySha256": "36b0b9e56646335d9055d01e54c52a68f34a34b8bc394ad620b5ba06aa70970f",
+    "petLibrarySha256": "dbbe8d1370944711ceae0fab0e4ca0dd0ada4a6c0ea9d30a7abcdddb9879e671",
     "detonationModule1Sha256": "5d639b847e3316f9f98ee8e9f3735625f825aea992872536f5bb10f724610d0d",
     "detonationModule2Sha256": "7395de4bef0cad33bd896209c75b1b37ad1277cd608ef554db9a6cb0cc2220ae",
     "detonationModule3Sha256": "e17b5809c40c1edab31a701eef62711327bfb1c9cd89597dfd7fced0d805f496",
@@ -80,34 +93,32 @@
     "detonationModule5Sha256": "634074aaea87be5fa382eb5ef02fc2d841d96283b30e7c22b90f72f267f1163d"
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
+    "date": "",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-04T12:54:18.707971941Z",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "sourceWorkParityFiles": 1,
-    "compiledClassPresent": true,
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 367,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
-    "processCounts": {
-      "LoginServer": 1,
-      "TaskManager": 1,
-      "ConnectionServer": 1,
-      "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
-    },
-    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or database-conversion matches",
-    "result": "passed"
+    "containerStartedAt": "",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 0,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "live crafted-droid explosion damage and radius authority, including victim-level scaling and cross-target range mutation",
+    "closedInThisMilestone": "live crafted-droid explosion damage, radius, and examine-display authority, including victim-level scaling, cross-target range mutation, and the stale 65-97 display range",
     "preserved": "crafted module ratings and bonuses, PRE-CU Novice Smuggler/Bounty Hunter admission, ownership and warmup checks, countdown, armor processing, PvP notification, hate, XP and damage credit, control-device consumption, and all five retained module schematics",
     "notClaimedComplete": "other dormant later combat mechanics and remaining non-player creature-level compatibility code remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "commit and push direct dsrc source",
+    "full Docker x64 build and deployment",
+    "compiled-bytecode and source/work parity verification",
+    "healthy live runtime and post-start log audit"
+  ]
 }
