@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-smuggler-content-expertise-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Preserve retained junk-dealer and contraband content for Publish 14.1 Smugglers while preventing inherited NGE expertise bonuses, proc buffs, and secondary payouts from becoming gameplay authority.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -39,37 +39,48 @@
       "smuggler": "d6bb3a8acb16dec3043b9367ac8782905674ee04e3ff2b3688ca53030ec466ec"
     },
     "compiledClassSha256": {
-      "smuggler": ""
+      "smuggler": "bb5464eaaae58b2917749deddb9785e631f2774077b191c5d9c55c486193f606"
     },
-    "sourceTest": "passed; pending parent checkpoint",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "sourceTest": "passed; exact 19-row Publish 14.1 Smuggler family, slicing abilities, PRE-CU profession admission, retained junk/space content, retired corpse menu, ungranted compatibility handler, and zero Smuggler expertise/proc authority authenticated",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and smuggler.class was emitted at 2026-08-04T23:45:27.659845363Z",
+    "fullServerBuild": "passed in the Docker work volume from pushed parent 76506bb and direct dsrc 6a25d0ed; final gate-only verification used pushed parent 5612823 without rebuilding",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for smuggler.java against the read-only direct-source mount; both copies have SHA-256 d6bb3a8acb16dec3043b9367ac8782905674ee04e3ff2b3688ca53030ec466ec",
+    "bytecodeAudit": "passed; smuggler.class contains no expertise_, sm_feeling_lucky, or ACCT_RELIC_DEALER constant and retains handleSoldJunk, money.systemPayout, spaceContrabandDropCheck, and contrabandDropCheck",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused PRE-CU Smuggler source and bytecode gates, cumulative data/native/bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification; an initial symbolic-field bytecode assertion was corrected to its compiled method/string evidence and the completed clean build was reused",
+    "result": "passed"
   },
   "runtimeEvidence": {
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "liveProcessMappedBuiltBinary": false,
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T23:53:26.687163632Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 33836,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 364,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "NGE Smuggler expertise can no longer alter retained junk-dealer payouts or contraband drop chances and cannot proc the later Feeling Lucky buff.",
     "preserved": "The exact Publish 14.1 Smuggler skill family, slicing ownership, base junk sale, underworld faction tiers, space contraband drops, and later content remain intact.",
     "notClaimedComplete": "Other shared libraries and content-specific handlers remain subject to the broader PRE-CU precedence audit."
   },
-  "requiredBeforeReady": [
-    "clean full Java compile",
-    "x64 server deployment",
-    "source/work parity and bytecode audit",
-    "live readiness verification"
-  ]
+  "requiredBeforeReady": []
 }
