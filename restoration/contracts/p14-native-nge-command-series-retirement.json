@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-native-nge-command-series-retirement",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Retire the native NGE combat-level command upgrade ladder so Publish 14.1 command ownership remains authoritative through owned skill boxes and explicit quest/item grants.",
+  "eraEvidence": {
+    "targetEra": "Publish 14.1 PRE-CU",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "core3Reference": "https://github.com/swgemu/Core3/blob/fa82ea3b73065c11d33556a9d51b711117985bc0/MMOCoreORB/src/server/zone/managers/skill/SkillManager.cpp",
+    "findings": [
+      "Core3 adds and removes player abilities from the abilities authored on acquired or surrendered skill boxes.",
+      "Core3 does not grant upgraded combat abilities from an NGE player-level command-series table.",
+      "The inherited command series contains later Force Sensitive, Bounty Hunter, Smuggler, Officer, Commando, Medic, Spy, Entertainer, Beast Master, and related level ladders."
+    ]
+  },
+  "diagnosis": {
+    "commandSeriesRows": 240,
+    "uniqueSeriesCommands": 240,
+    "minimumLevel": 1,
+    "maximumLevel": 90,
+    "prefixCounts": {
+      "fs": 38,
+      "bh": 19,
+      "sm": 17,
+      "of": 42,
+      "co": 20,
+      "me": 36,
+      "sp": 39,
+      "en": 22,
+      "bm": 6,
+      "other": 1
+    },
+    "seriesRowsOverlappingNonRetiredSkillCommands": 0,
+    "historicalNativeTableLoadSites": 1,
+    "historicalLevelComparisonSites": 1,
+    "historicalSeriesGrantSites": 1,
+    "historicalSeriesRevokeSites": 1
+  },
+  "expected": {
+    "nativeTableLoadSites": 0,
+    "nativeLevelComparisonSites": 0,
+    "nativeSeriesGrantSites": 0,
+    "nativeSeriesRevokeSites": 0,
+    "recomputeCommandSeriesLinkCompatibleNoOp": true,
+    "skillBoxCommandGrantPreserved": true,
+    "skillBoxCommandRevokePreserved": true,
+    "explicitQuestAndItemCommandGrantsPreserved": true,
+    "commandSeriesDataPreservedForCompatibility": true,
+    "playerLifecycleCompatibilityCallersSafe": true,
+    "missionCoreChanged": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "nativeSourceCommit": "b26f4abaf31226098aef247edf4ebde3189f3e1b",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "CreatureObject.cpp": "8f460c1f094c04492fcf78711030d728ce7bffa4f28d889a395c145fb7b65776"
+    },
+    "cppCompile": "passed from pushed direct native source revision",
+    "fullServerBuild": "passed; Docker x86-64 Release build completed 2026-08-04T10:05:54Z",
+    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
+    "serverBinarySha256": "cdcac75fe9ff1dfb2d785bf46cd3f934739f32904247eff63870fa8b5c1d5feb",
+    "serverBinaryBuildId": "7edac654b8a979308108b5ca4c8a5a961d4bb6d5",
+    "sourceWorkParity": "passed for CreatureObject.cpp",
+    "result": "passed"
+  },
+  "continuityEvidence": {
+    "commandSeriesSha256": "389577d16a787f884a7f36234840c843fb890ca9ddbb63eedeffc8f91d184a58",
+    "skillDataSha256": "6ee0686eec7e1d25db2ef1bc645eed98145c23d7fa125705b3188957103a5c6d",
+    "basePlayerSha256": "54ce43971ab8e9b288a4322a39cc9d7e6aafb409c45fa538dfb35786c6057ae7",
+    "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
+    "missionSourceSha256": {
+      "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
+      "systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
+      "library/missions.java": "4f634ca94eaf5bd13a0cb77cdeff2f907d3acc2dc59b0ac217bb3341fcc5387d"
+    }
+  },
+  "runtimeEvidence": {
+    "date": "2026-08-04",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending restart"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "native command_series table loading and combat-level-based automatic command grant/revoke authority",
+    "preserved": "skill-box command ownership, skill grant and surrender, explicit quest/item grants, command compatibility APIs/data, retained expansion quests, conversations, zones, and mission-terminal behavior",
+    "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Restart the x64 cluster from the authenticated Docker work-volume binary.",
+    "Verify process-to-built-binary mapping, readiness, health, and clean post-start logs."
+  ]
+}

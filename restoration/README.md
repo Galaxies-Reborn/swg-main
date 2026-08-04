@@ -2755,3 +2755,19 @@ native source in the `swg-precu-work-x64` Docker volume with the source mount
 read-only and no host staging or artifact tree. Validate with:
 
     powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativePrecuPlayerDifficultyAuthority.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
+
+Milestone 322 retires the native NGE combat-level command-series ladder. The
+inherited server loaded 240 level 1-90 upgrades spanning Force Sensitive,
+Bounty Hunter, Smuggler, Officer, Commando, Medic, Spy, Entertainer, Beast
+Master, and related later professions, then granted or revoked those commands
+from player level during login and skill callbacks.
+
+The command-series table is no longer loaded, and its retained native/JNI entry
+point is a link-compatible no-op. Publish 14.1 commands continue to come from
+owned skill boxes, with direct quest and item grants preserved. The compatibility
+table remains in source for retained content, but no row overlaps a non-retired
+skill command and it cannot override PRE-CU ownership. The x64 server is built
+from the pushed direct native source in `swg-precu-work-x64`; no host staging or
+artifact tree is used. Validate with:
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\restoration\scripts\Test-P14NativeNgeCommandSeriesRetirement.ps1 -SourceRoot <direct-server-checkout> -Expectation Ready
