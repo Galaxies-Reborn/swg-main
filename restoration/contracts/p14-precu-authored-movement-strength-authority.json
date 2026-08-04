@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-authored-movement-strength-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make authored movement-table or explicit caller strength authoritative for active movement modifiers, removing the remaining NGE expertise multiplier without changing validation, immunity, persistence, recalculation, or cleanup.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -53,30 +53,43 @@
       "movementTable": "47c71f95deb97b117e09830e089b9410bc1826d6a54dc9bdc499290b27f10fff"
     },
     "compiledClassSha256": {
-      "movement": "pending"
+      "movement": "229e4bdab58d6489dd5ceeb92fabb1836b5815dbba77fdc3f9745d48a6c4829f"
     },
-    "sourceTest": "pending",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "sourceTest": "passed; both executable NGE expertise reads are retired, table-backed and explicit strengths retain their original precedence, movement validation/immunity/persistence/refresh/removal remain present, and authored burstRun/retreat/fs_force_run rows are authenticated",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and movement.class was emitted at 2026-08-04T21:28:17Z",
+    "fullServerBuild": "passed in 715.2 seconds from pushed parent 4fef95f and direct dsrc 220d03f17",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for movement.java and movement.tab against the read-only direct-source mount; movement.java remains CRLF with an explicit -text policy and no whole-file line-ending churn",
+    "bytecodeAudit": "passed; movement.class contains no expertise_movement_buff_ constant and retains getStrength, MOVEMENT_OBJVAR, movement-immunity, and recalculation constants/calls",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused authored-movement source/table and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "pending",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "pending",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "liveProcessMappedBuiltBinary": false,
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-04T21:34:35.379265495Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 12386,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 368,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, or Oracle error matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "the shared movement helper's active NGE expertise multiplier for table-backed and explicit movement modifier strength",
