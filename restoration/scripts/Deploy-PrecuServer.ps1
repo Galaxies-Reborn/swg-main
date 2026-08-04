@@ -747,7 +747,8 @@ javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -F
 ! javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'expertise_'
 ! javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'sm_feeling_lucky'
 ! javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'ACCT_RELIC_DEALER'
-javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'ACCT_JUNK_DEALER'
+javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'handleSoldJunk'
+javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'script/library/money.systemPayout'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'spaceContrabandDropCheck'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'contrabandDropCheck'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
