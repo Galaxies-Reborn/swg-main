@@ -99,6 +99,10 @@ Write-Host "Verifying the direct-source PRE-CU authored armor protection authori
 & (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredArmorProtectionAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU retained reverse/performance authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuRetainedReversePerformanceAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -334,6 +338,14 @@ source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datat
 work_movement_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
 source_armor_library="$source_script/library/armor.java"
 work_armor_library="$work_script/library/armor.java"
+source_reverse_engineering_tool="$source_script/item/tool/reverse_engineering_tool.java"
+work_reverse_engineering_tool="$work_script/item/tool/reverse_engineering_tool.java"
+source_performance_library="$source_script/library/performance.java"
+work_performance_library="$work_script/library/performance.java"
+source_skills_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+work_skills_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+source_schematic_group_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab"
+work_schematic_group_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/crafting/schematic_group.tab"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -549,6 +561,23 @@ cmp -s "$source_armor_library" "$work_armor_library"
 grep -Fq 'getFloatObjVar(mob, OBJVAR_ARMOR_BASE + "." + OBJVAR_GENERAL_PROTECTION)' "$work_armor_library"
 grep -Fq 'fltSpecialProts[intJ] += fltWeight * fltSpecialProt;' "$work_armor_library"
 grep -Fq 'combat.getArmorDecayPercentage(objArmor)' "$work_armor_library"
+cmp -s "$source_reverse_engineering_tool" "$work_reverse_engineering_tool"
+cmp -s "$source_performance_library" "$work_performance_library"
+cmp -s "$source_skills_table" "$work_skills_table"
+cmp -s "$source_schematic_group_table" "$work_schematic_group_table"
+! grep -Fq 'expertise_' "$work_reverse_engineering_tool"
+! grep -Fq 'getEnhancedSkillStatisticModifierUncapped' "$work_reverse_engineering_tool"
+! grep -Fq 'reverseEngineeringBonusMultiplier' "$work_reverse_engineering_tool"
+grep -Fq 'crafting_tailor_master' "$work_reverse_engineering_tool"
+grep -Fq 'crafting_armorsmith_master' "$work_reverse_engineering_tool"
+grep -Fq 'crafting_weaponsmith_master' "$work_reverse_engineering_tool"
+grep -Fq 'getFloatObjVar(self, "crafting.stationMod")' "$work_reverse_engineering_tool"
+grep -Fq 'getFloatObjVar(self, "res_quality")' "$work_reverse_engineering_tool"
+! grep -Fq 'expertise_' "$work_performance_library"
+grep -Fq 'if (!isNgeInspirationEnabled())' "$work_performance_library"
+grep -Fq 'int maxHoloAllowed = 1;' "$work_performance_library"
+awk -F '\t' '$1 == "crafting_tailor_master" { t = 1 } $1 == "crafting_armorsmith_master" { a = 1 } $1 == "crafting_weaponsmith_master" { w = 1 } END { exit t && a && w ? 0 : 1 }' "$work_skills_table"
+awk -F '\t' '$1 == "craftArtisanNewbieGroupA" && $2 == "object/draft_schematic/item/item_reverse_engineering_tool.iff" { tool = 1 } $1 == "craftArtisanNewbieGroupA" && $2 == "object/draft_schematic/reverse_engineering/enhancement_module.iff" { module = 1 } END { exit tool && module ? 0 : 1 }' "$work_schematic_group_table"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -666,6 +695,17 @@ javap -classpath "$class_root" -v script.library.armor | grep -Fq 'getArmorSpeci
 javap -classpath "$class_root" -v script.library.armor | grep -Fq 'getArmorDecayPercentage'
 javap -classpath "$class_root" -v script.library.combat | grep -Fq 'applyPrecuArmorProtection'
 javap -classpath "$class_root" -v script.library.combat | grep -Fq 'getPrecuArmorObjectProtection'
+! javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'getEnhancedSkillStatisticModifierUncapped'
+! javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'reverseEngineeringBonusMultiplier'
+javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'crafting_tailor_master'
+javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'crafting_armorsmith_master'
+javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'crafting_weaponsmith_master'
+javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'crafting.stationMod'
+javap -classpath "$class_root" -v script.item.tool.reverse_engineering_tool | grep -Fq 'res_quality'
+! javap -classpath "$class_root" -v script.library.performance | grep -Fq 'expertise_'
+javap -classpath "$class_root" -v script.library.performance | grep -Fq 'isNgeInspirationEnabled'
+javap -classpath "$class_root" -v script.library.performance | grep -Fq 'holographicCleanup'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
