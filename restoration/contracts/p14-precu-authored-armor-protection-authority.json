@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-authored-armor-protection-authority",
+  "status": "implemented-build-pending",
+  "scope": "Make authored mob, armor-piece, and pseudo-armor protection authoritative in the live armor recalculation cache, removing inherited NGE expertise, armor-set expertise, overridable protection, and entertainer build-a-buff resistance inputs without changing Publish 14.1 hit-location mitigation.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3PrimaryFiles": [
+      "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp"
+    ],
+    "findings": [
+      "The pinned Publish 14.1 combat manager selects the armor object at the resolved hit location and reads that object's authored rating and damage-type resistance.",
+      "Publish 14.1 applies PSG protection before the struck armor object, applies the weapon-versus-armor rating multiplier, and wears armor condition from incoming damage.",
+      "The pinned Publish 14.1 source contains no NGE expertise, armor-set expertise, overridable protection, or entertainer build-a-buff authority.",
+      "The retained armor recalculation helper is production-reachable on login, armor/cybernetic transfer, buff recalculation, faction changes, target dummies, and battlefield vehicles."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "historicalExecutableNgeProtectionReads": 12,
+    "remainingArmorExpertiseReads": 0,
+    "remainingElementalBuildABuffReads": 0,
+    "qualifiedProductionRecalculationCallSites": 14,
+    "mobBaseProtectionPreserved": true,
+    "weightedArmorPieceProtectionPreserved": true,
+    "armorConditionScalingPreserved": true,
+    "pseudoArmorProtectionPreserved": true,
+    "armorSetTrackingPreserved": true,
+    "precuHitLocationMitigationPreserved": true,
+    "psgBeforeArmorPreserved": true,
+    "authoredRatingAndResistancePreserved": true
+  },
+  "sourceFiles": {
+    "armor": "dsrc/sku.0/sys.server/compiled/game/script/library/armor.java",
+    "combat": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "10f92d37be96044a7e9cd14b83a058659ac3f61a",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "armor": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
+      "combat": "a0f63c6cf39734451eaa6f3904e052d2e4d911c1b7631583d28c9a8741a0757f"
+    },
+    "compiledClassSha256": {
+      "armor": "pending",
+      "combat": "pending"
+    },
+    "sourceTest": "pending",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "pending",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "all executable NGE expertise, armor-set expertise, overridable protection, and entertainer elemental-resistance reads in the live shared armor recalculation library",
+    "preserved": "authored armor-object general and special protections, armor condition scaling, weighted client defense display/cache values, pseudo armor, armor-set identification, PSG selection, Publish 14.1 hit-location mitigation, armor piercing, condition wear, cybernetics, and retained expansion equipment",
+    "notClaimedComplete": "combat outcome expertise, reverse engineering, performance compatibility, buff-handler compatibility, and other content-specific expertise references remain subject to later reachability audits"
+  },
+  "requiredBeforeReady": []
+}

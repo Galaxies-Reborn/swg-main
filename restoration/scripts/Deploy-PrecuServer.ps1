@@ -95,6 +95,10 @@ Write-Host "Verifying the direct-source PRE-CU authored movement strength author
 & (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredMovementStrengthAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU authored armor protection authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredArmorProtectionAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -328,6 +332,8 @@ source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
 work_movement_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
+source_armor_library="$source_script/library/armor.java"
+work_armor_library="$work_script/library/armor.java"
 source_weapons_library="$source_script/library/weapons.java"
 work_weapons_library="$work_script/library/weapons.java"
 source_combat_weapon="$source_script/systems/combat/combat_weapon.java"
@@ -537,6 +543,12 @@ cmp -s "$source_movement_table" "$work_movement_table"
 grep -Fq 'strength = getStrength(name);' "$work_movement_library"
 awk -F '\t' '$1 == "retreat" && $2 == "boost" && $3 == "82.2" { found = 1 } END { exit found ? 0 : 1 }' "$work_movement_table"
 awk -F '\t' '$1 == "fs_force_run" && $2 == "boost" && $3 == "125" { found = 1 } END { exit found ? 0 : 1 }' "$work_movement_table"
+cmp -s "$source_armor_library" "$work_armor_library"
+! grep -Fq 'expertise_' "$work_armor_library"
+! grep -Fq '"elemental_resistance"' "$work_armor_library"
+grep -Fq 'getFloatObjVar(mob, OBJVAR_ARMOR_BASE + "." + OBJVAR_GENERAL_PROTECTION)' "$work_armor_library"
+grep -Fq 'fltSpecialProts[intJ] += fltWeight * fltSpecialProt;' "$work_armor_library"
+grep -Fq 'combat.getArmorDecayPercentage(objArmor)' "$work_armor_library"
 cmp -s "$source_weapons_library" "$work_weapons_library"
 cmp -s "$source_combat_weapon" "$work_combat_weapon"
 diff -qr "$source_conversation" "$work_conversation" >/dev/null
@@ -648,6 +660,12 @@ javap -classpath "$class_root" -v script.library.combat | grep -Fq 'getAuthoredB
 javap -classpath "$class_root" -v script.library.healing | grep -Fq 'getAuthoredBuffDuration'
 ! javap -classpath "$class_root" -v script.library.movement | grep -Fq 'expertise_movement_buff_'
 javap -classpath "$class_root" -v script.library.movement | grep -Fq 'getStrength'
+! javap -classpath "$class_root" -v script.library.armor | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.library.armor | grep -Fq 'elemental_resistance'
+javap -classpath "$class_root" -v script.library.armor | grep -Fq 'getArmorSpecialProtections'
+javap -classpath "$class_root" -v script.library.armor | grep -Fq 'getArmorDecayPercentage'
+javap -classpath "$class_root" -v script.library.combat | grep -Fq 'applyPrecuArmorProtection'
+javap -classpath "$class_root" -v script.library.combat | grep -Fq 'getPrecuArmorObjectProtection'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
