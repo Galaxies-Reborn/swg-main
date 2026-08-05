@@ -80,31 +80,52 @@ Assert-Contract ($ranged.Count -eq [int]$contract.expected.rangedSpeedModifiers 
     ($allSpeedMods | Select-Object -Unique).Count -eq [int]$contract.expected.generatedWeaponSpeedModifiers) `
     "p14.heroic-jewelry-speed.exact-precu-speed-modifiers"
 
-$statOne = @(Get-JavaStringArray -Text $itemText -Name "STAT_ONE")
-$statTwo = @(Get-JavaStringArray -Text $itemText -Name "STAT_TWO")
-$statValues = [regex]::Match($itemText,
-    'public static final int\[\]\s+STAT_VALS\s*=\s*\{(?<body>.*?)\};',
-    [Text.RegularExpressions.RegexOptions]::Singleline)
-$values = @([regex]::Matches($statValues.Groups['body'].Value, '\d+') | ForEach-Object {
-    [int]$_.Value
-})
-Assert-Contract (($statOne -join '|') -ceq 'agility_modified|stamina_modified|constitution_modified' -and
-    ($statTwo -join '|') -ceq 'precision_modified|strength_modified|luck_modified' -and
-    ($values -join '|') -ceq '25|25|2') "p14.heroic-jewelry-speed.adjacent-rolls-and-values-preserved"
-Assert-Contract (-not $itemText.Contains('expertise_') -and
-    -not $itemText.Contains('getWeightedWeaponValue') -and
+$legacyPrimary = @(Get-JavaStringArray -Text $itemText -Name "LEGACY_NGE_PRIMARY_MODIFIERS")
+$legacyAction = @(Get-JavaStringArray -Text $itemText -Name "LEGACY_NGE_ACTION_MODIFIERS")
+$expectedPrimary = @(
+    'agility_modified', 'stamina_modified', 'constitution_modified',
+    'precision_modified', 'strength_modified', 'luck_modified'
+)
+$expectedAction = @(
+    'expertise_action_weapon_0', 'expertise_action_weapon_1',
+    'expertise_action_weapon_2', 'expertise_action_weapon_4',
+    'expertise_action_weapon_5', 'expertise_action_weapon_6',
+    'expertise_action_weapon_7', 'expertise_action_weapon_9',
+    'expertise_action_weapon_10', 'expertise_action_weapon_11'
+)
+Assert-Contract ($legacyPrimary.Count -eq [int]$contract.expected.legacyNgePrimaryModifiers -and
+    ($legacyPrimary -join '|') -ceq ($expectedPrimary -join '|') -and
+    $legacyAction.Count -eq [int]$contract.expected.legacyNgeActionModifiers -and
+    ($legacyAction -join '|') -ceq ($expectedAction -join '|')) `
+    "p14.heroic-jewelry-speed.exact-legacy-migration-leaves"
+Assert-Contract (-not $itemText.Contains('STAT_ONE') -and
+    -not $itemText.Contains('STAT_TWO') -and
+    -not $itemText.Contains('STAT_VALS') -and
+    $itemText.Contains("public static final int WEAPON_SPEED_VALUE = $($contract.expected.generatedWeaponSpeedValue);") -and
     $itemText.Contains('"skillmod.bonus." + getWeightedWeaponSpeedModifier()') -and
     ([regex]::Matches($itemText, 'setObjVar\(self, "skillmod[.]bonus')).Count -eq
-        [int]$contract.expected.generatedModifiersPerItem) `
-    "p14.heroic-jewelry-speed.nge-expertise-writer-retired"
+        [int]$contract.expected.generatedModifiersPerItem -and
+    -not [regex]::IsMatch($itemText,
+        'setObjVar\([^\r\n]*(?:_modified|expertise_action_weapon_)')) `
+    "p14.heroic-jewelry-speed.nge-writers-retired"
+Assert-Contract (([regex]::Matches($itemText,
+    'removeLegacyNgeModifiers\(self\);')).Count -eq
+        [int]$contract.expected.legacyMigrationCallSites -and
+    ([regex]::Matches($itemText,
+        'if \(!hasWeaponSpeedModifier\(self\)\)')).Count -eq
+        [int]$contract.expected.legacyMigrationCallSites -and
+    $itemText.Contains('removeObjVar(self, objVar);') -and
+    -not $itemText.Contains('removeObjVar(self, "skillmod.bonus");')) `
+    "p14.heroic-jewelry-speed.persisted-item-migration"
 Assert-Contract ($itemText.Contains("weightingRoll <= $($contract.expected.rangedWeightMaximum)") -and
     $itemText.Contains("weightingRoll >= $($contract.expected.lightsaberWeightMinimum)") -and
     $itemText.Contains('return weaponChoices[rand(0, weaponChoices.length - 1)];')) `
     "p14.heroic-jewelry-speed.weighting-preserved"
 Assert-Contract (([regex]::Matches($itemText,
     'messageTo\(self, "generateRandomStats", null, 3, false\);')).Count -eq 2 -and
-    ([regex]::Matches($itemText, 'if \(!hasObjVar\(self, "skillmod[.]bonus"\)\)')).Count -eq 3) `
-    "p14.heroic-jewelry-speed.one-time-lifecycle-preserved"
+    ([regex]::Matches($itemText,
+        'if \(!hasWeaponSpeedModifier\(self\)\)')).Count -eq 3) `
+    "p14.heroic-jewelry-speed.delayed-idempotent-lifecycle"
 
 $boundRows = @($masterRows | Where-Object { $_.scripts -ceq 'item.heroic_random_stat_item' })
 Assert-Contract ($masterRows.Count -eq [int]$contract.expected.heroicJewelryDefinitions -and

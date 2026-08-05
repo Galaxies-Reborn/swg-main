@@ -813,8 +813,21 @@ cmp -s "$source_master_item_table" "$work_master_item_table"
 cmp -s "$source_heroic_drops" "$work_heroic_drops"
 cmp -s "$source_skills_table" "$work_skills_table"
 cmp -s "$source_queue" "$work_queue"
-! grep -Fq 'expertise_' "$work_heroic_random_stat_item"
 grep -Fq 'getWeightedWeaponSpeedModifier' "$work_heroic_random_stat_item"
+grep -Fq 'LEGACY_NGE_PRIMARY_MODIFIERS' "$work_heroic_random_stat_item"
+grep -Fq 'LEGACY_NGE_ACTION_MODIFIERS' "$work_heroic_random_stat_item"
+test "$(grep -Fc 'removeLegacyNgeModifiers(self);' "$work_heroic_random_stat_item")" -eq 3
+test "$(grep -Fc 'if (!hasWeaponSpeedModifier(self))' "$work_heroic_random_stat_item")" -eq 3
+test "$(grep -Fc 'setObjVar(self, "skillmod.bonus." +' "$work_heroic_random_stat_item")" -eq 1
+! grep -Eq 'setObjVar\(.*(_modified|expertise_action_weapon_)' "$work_heroic_random_stat_item"
+grep -Fq 'removeObjVar(self, objVar);' "$work_heroic_random_stat_item"
+! grep -Fq 'removeObjVar(self, "skillmod.bonus");' "$work_heroic_random_stat_item"
+for legacy_primary in agility_modified stamina_modified constitution_modified precision_modified strength_modified luck_modified; do
+    test "$(grep -Fc "\"$legacy_primary\"" "$work_heroic_random_stat_item")" -eq 1
+done
+for legacy_action in expertise_action_weapon_0 expertise_action_weapon_1 expertise_action_weapon_2 expertise_action_weapon_4 expertise_action_weapon_5 expertise_action_weapon_6 expertise_action_weapon_7 expertise_action_weapon_9 expertise_action_weapon_10 expertise_action_weapon_11; do
+    test "$(grep -Fc "\"$legacy_action\"" "$work_heroic_random_stat_item")" -eq 1
+done
 grep -Fq 'weightingRoll <= 57' "$work_heroic_random_stat_item"
 grep -Fq 'weightingRoll >= 78' "$work_heroic_random_stat_item"
 for speed_mod in rifle_speed carbine_speed pistol_speed onehandmelee_speed twohandmelee_speed unarmed_speed polearm_speed onehandlightsaber_speed twohandlightsaber_speed polearmlightsaber_speed; do
@@ -1015,10 +1028,20 @@ javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.wampa_boss 
 ! javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'expertise_glancing_blow_reduction'
 javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'warnPlayerTimerBegin'
 javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'handleBossDistanceCheck'
-# Retained heroic jewelry translates its later weapon action-cost expertise
-# roll to the exact Publish 14.1 weapon-speed modifiers consumed by cadence.
-! javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq 'expertise_action_weapon_'
+# Retained heroic jewelry writes only an authenticated Publish 14.1 weapon
+# speed modifier. Its explicit NGE symbols exist solely to migrate exact leaves
+# from persisted items; they cannot appear in the generation writer.
 javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq 'getWeightedWeaponSpeedModifier'
+javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq 'removeLegacyNgeModifiers'
+heroic_generation_bytecode="$(javap -classpath "$class_root" -c -p script.item.heroic_random_stat_item | sed -n '/public int generateRandomStats/,/public void removeLegacyNgeModifiers/p')"
+printf '%s\n' "$heroic_generation_bytecode" | grep -Fq 'setObjVar'
+! printf '%s\n' "$heroic_generation_bytecode" | grep -Eq '(_modified|expertise_action_weapon_)'
+for legacy_action in expertise_action_weapon_0 expertise_action_weapon_1 expertise_action_weapon_2 expertise_action_weapon_4 expertise_action_weapon_5 expertise_action_weapon_6 expertise_action_weapon_7 expertise_action_weapon_9 expertise_action_weapon_10 expertise_action_weapon_11; do
+    javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq "String $legacy_action"
+done
+for legacy_primary in agility_modified stamina_modified constitution_modified precision_modified strength_modified luck_modified; do
+    javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq "String $legacy_primary"
+done
 for speed_mod in rifle_speed carbine_speed pistol_speed onehandmelee_speed twohandmelee_speed unarmed_speed polearm_speed onehandlightsaber_speed twohandlightsaber_speed polearmlightsaber_speed; do
     javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq "$speed_mod"
 done
