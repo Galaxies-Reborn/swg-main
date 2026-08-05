@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-retained-boss-glancing-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Preserve the retained Echo Base Uncle Joe and Outbreak afflicted-rancor encounters while removing their NGE-only glancing-blow expertise writes from PRE-CU combat initialization.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -50,50 +50,53 @@
       "outbreakBuildout": "b81b8f1f424eeb1aad6b93f26d5b17d42242aff2e8d18b95b1a813649cc33912"
     },
     "compiledClassSha256": {
-      "wampaBoss": "",
-      "outbreakBoss": ""
+      "wampaBoss": "90105e385469ddca46395b2d2a225a31e412231958c3a9ae458ccb7d5625ac4c",
+      "outbreakBoss": "e0753f358337c3e5d3174cc2ac5af2deb3e4961fd90941148e6d196bc6db0514"
     },
     "sourceTest": "passed; both production boss routes, the PRE-CU/non-PRE-CU hit-table separation, retained encounter lifecycle, and zero boss glancing-expertise writers authenticated",
     "focusedJavaCompile": "passed in an ephemeral in-memory directory that was removed immediately; both classes retained their encounter entrypoints and contained no expertise_glancing_blow_reduction symbol",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "",
-    "serverBinaryBuildId": "",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, wampa_boss.class was emitted at 2026-08-05T03:27:44.340762538Z, and boss_fight_functionality.class was emitted at 2026-08-05T03:27:44.657706182Z",
+    "fullServerBuild": "passed in 619.4 seconds from pushed parent 639c6a6 and direct dsrc 5ac90909c",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for both changed boss sources between the read-only direct source and Docker work volume; the wampa source copies have SHA-256 c0425c70c577ef79407a89da23ec200d87bda8420937af70e7a9b41edd696064 and the Outbreak source copies have SHA-256 652504b646406b239c5706dbf4995e216e68b4fbf9529ec6951f65e673f73c0b",
+    "bytecodeAudit": "passed; both emitted boss classes contain their authenticated encounter lifecycle symbols and neither contains expertise_glancing_blow_reduction",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused retained-boss source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
+    "containerStartedAt": "2026-08-05T03:33:23.100564839Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
     "compiledClassSizes": {
-      "wampaBoss": 0,
-      "outbreakBoss": 0
+      "wampaBoss": 8151,
+      "outbreakBoss": 11505
     },
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": 0,
-    "liveBinaryInode": 0,
-    "liveBinarySize": 0,
-    "liveBinaryMapEntries": 0,
-    "processCounts": {},
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 364,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "No retained boss OnAttach path can write the NGE glancing-blow-reduction expertise statistic into PRE-CU combat state.",
     "preserved": "Both boss creature rows, AI profiles, HP initialization, Echo Base spawn and add lifecycle, Outbreak wave-event terminal/node route, encounter timers, leash/reset logic, combat targeting, buffs, effects, loot, and completion signals remain available.",
     "notClaimedComplete": "The legacy glancing helper remains isolated for non-PRE-CU compatibility, and other retained content-specific expertise references remain subject to later reachability audits."
   },
-  "requiredBeforeReady": [
-    "Pass a clean full Java and x64 server build from the pushed direct-source pin.",
-    "Authenticate source/work parity and both emitted boss classes.",
-    "Restart the server, observe the player-ready marker, verify the mapped x64 binary, and audit post-start logs."
-  ]
+  "requiredBeforeReady": []
 }
