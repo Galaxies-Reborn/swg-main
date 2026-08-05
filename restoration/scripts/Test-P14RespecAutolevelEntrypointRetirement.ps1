@@ -12,6 +12,7 @@ $files = [ordered]@{
     "antidecay.java" = "dsrc/sku.0/sys.server/compiled/game/script/systems/veteran_reward/antidecay.java"
     "auto_level.java" = "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/auto_level.java"
     "base_player.java" = "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+    "utils.java" = "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java"
 }
 $text = [ordered]@{}
 foreach ($entry in $files.GetEnumerator())
@@ -41,6 +42,20 @@ foreach ($entry in $guards.GetEnumerator())
     {
         throw "$helper does not fail closed."
     }
+}
+$utils = $text["utils.java"]
+$ctsRespecStart = $utils.IndexOf("public static void updateRespecCTSObjvars", [StringComparison]::Ordinal)
+$ctsBeastStart = $utils.IndexOf("public static void updateBeastMasterCTSObjvars", $ctsRespecStart, [StringComparison]::Ordinal)
+$ctsRespec = $utils.Substring($ctsRespecStart, $ctsBeastStart - $ctsRespecStart)
+$ctsGuard = $ctsRespec.IndexOf("if (isPostNgeCtsProgressionRestorationRetired())", [StringComparison]::Ordinal)
+if (-not $utils.Contains("public static boolean isPostNgeCtsProgressionRestorationRetired()") -or
+    $ctsGuard -lt 0 -or
+    $ctsRespec.IndexOf("getLevel(player)", [StringComparison]::Ordinal) -lt $ctsGuard -or
+    $ctsRespec.IndexOf("respec.autoLevelPlayer", [StringComparison]::Ordinal) -lt $ctsGuard -or
+    -not $ctsRespec.Contains('removeObjVar(player, "respecsBought")') -or
+    -not $ctsRespec.Contains("removeObjVar(player, respec.PROF_LEVEL_ARRAY)"))
+{
+    throw "CTS retroactive profession-level restoration is not fail-closed."
 }
 $base = $text["base_player.java"]
 foreach ($forbidden in @(

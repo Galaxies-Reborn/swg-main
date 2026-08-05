@@ -43,9 +43,12 @@ function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker
 $relativeSourceMap = [ordered]@{
     "cureward/cureward.java" = "cureward/cureward.java"
     "library/skill.java" = "library/skill.java"
+    "library/utils.java" = "library/utils.java"
     "player/base/base_player.java" = "player/base/base_player.java"
     "player/live_conversions.java" = "player/live_conversions.java"
 }
+Assert-Contract ($relativeSourceMap.Count -eq [int]$contract.expected.authoritativeSourceFiles) `
+    "p14.player-migration.direct-source.target-count"
 
 $patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.archivedOverlayPatch.path)
 Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.player-migration.archived-overlay.exists"
@@ -64,8 +67,14 @@ $targets = @(
         ForEach-Object { $_.Groups[1].Value } |
         Sort-Object
 )
-$expectedTargets = @($relativeSourceMap.Values | ForEach-Object { "sku.0/sys.server/compiled/game/script/$_" } | Sort-Object)
-Assert-Contract ($targets.Count -eq [int]$contract.expected.changedSourceFiles -and (($targets -join $lf) -ceq ($expectedTargets -join $lf))) "p14.player-migration.archived-overlay.target-set"
+$archivedOverlaySources = @(
+    "cureward/cureward.java",
+    "library/skill.java",
+    "player/base/base_player.java",
+    "player/live_conversions.java"
+)
+$expectedTargets = @($archivedOverlaySources | ForEach-Object { "sku.0/sys.server/compiled/game/script/$_" } | Sort-Object)
+Assert-Contract ($targets.Count -eq [int]$contract.expected.archivedOverlayChangedSourceFiles -and (($targets -join $lf) -ceq ($expectedTargets -join $lf))) "p14.player-migration.archived-overlay.target-set"
 Assert-Contract ((Get-TextSha256 (($targets -join $lf) + $lf)) -ceq [string]$contract.buildEvidence.sourceSetSha256) "p14.player-migration.source-set.authenticated"
 Assert-Contract (-not $patchText.Contains("materialize-") -and -not $patchText.Contains("E:\SWG")) "p14.player-migration.archived-overlay.portable-paths"
 
@@ -93,6 +102,28 @@ Assert-Contract (
     $retiredSkillPredicate.Contains('skillName.startsWith("expertise_")') -and
     $retiredSkillPredicate.Contains('skillName.startsWith("internal_expertise_")')
 ) "p14.player-migration.retired-skill-families"
+
+$utils = [string]$sourceTexts["library/utils.java"]
+$ctsCoordinator = Get-SourceSlice $utils "public static void updateCTSObjVars" "public static void updateRespecCTSObjvars"
+$ctsRespec = Get-SourceSlice $utils "public static void updateRespecCTSObjvars" "public static void updateBeastMasterCTSObjvars"
+$ctsBeast = Get-SourceSlice $utils "public static void updateBeastMasterCTSObjvars" "public static void updateHousePackupCTSObjvars"
+$respecGuard = $ctsRespec.IndexOf("if (isPostNgeCtsProgressionRestorationRetired())", [System.StringComparison]::Ordinal)
+$respecLevel = $ctsRespec.IndexOf("getLevel(player)", [System.StringComparison]::Ordinal)
+$respecAutoLevel = $ctsRespec.IndexOf("respec.autoLevelPlayer", [System.StringComparison]::Ordinal)
+$beastGuard = $ctsBeast.IndexOf("if (isPostNgeCtsProgressionRestorationRetired())", [System.StringComparison]::Ordinal)
+$beastWrite = $ctsBeast.IndexOf("utils.setBatchObjVar(player, beast_lib.PLAYER_KNOWN_SKILLS_LIST", [System.StringComparison]::Ordinal)
+Assert-Contract (
+    $utils.Contains("public static boolean isPostNgeCtsProgressionRestorationRetired()") -and
+    $utils.Substring($utils.IndexOf("public static boolean isPostNgeCtsProgressionRestorationRetired()"), 180).Contains("return true;") -and
+    $ctsCoordinator.Contains("utils.updateRespecCTSObjvars(player, ctsOjbvars)") -and
+    $ctsCoordinator.Contains("utils.updateBeastMasterCTSObjvars(player, ctsOjbvars)") -and
+    $ctsCoordinator.Contains("utils.updateHousePackupCTSObjvars(player, ctsOjbvars)") -and
+    $respecGuard -ge 0 -and $respecLevel -gt $respecGuard -and $respecAutoLevel -gt $respecGuard -and
+    $ctsRespec.Contains('removeObjVar(player, "respecsBought")') -and
+    $ctsRespec.Contains("removeObjVar(player, respec.PROF_LEVEL_ARRAY)") -and
+    $beastGuard -ge 0 -and $beastWrite -gt $beastGuard -and
+    $ctsBeast.Contains("beast_lib.retirePostNgeBeastMasterPlayerState(player)")
+) "p14.player-migration.cts-retroactive-progression-fails-closed"
 
 $conversions = [string]$sourceTexts["player/live_conversions.java"]
 $cleanup = Get-SourceSlice $conversions "public static void retirePostNgePlayerMigrationState" "public int OnAttach"

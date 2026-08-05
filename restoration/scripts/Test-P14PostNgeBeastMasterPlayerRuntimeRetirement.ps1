@@ -60,6 +60,7 @@ $relativeSourceMap = [ordered]@{
     "ai/creature_combat.java" = "ai/creature_combat.java"
     "conversation/trainer_beast_master.java" = "conversation/trainer_beast_master.java"
     "library/beast_lib.java" = "library/beast_lib.java"
+    "library/utils.java" = "library/utils.java"
     "player/base/base_player.java" = "player/base/base_player.java"
     "player/live_conversions.java" = "player/live_conversions.java"
     "player/player_beastmaster.java" = "player/player_beastmaster.java"
@@ -194,6 +195,16 @@ Assert-Contract (
     (Is-Before $hasSkill "isRetiredPostNgeBeastMasterPlayer(player)" "getKnownSkillsCrc(player)") -and
     (Is-Before $knownSkills "isRetiredPostNgeBeastMasterPlayer(player)" "utils.hasIntBatchObjVar")
 ) "p14.beast-retirement.known-skill-state-fails-closed"
+
+$utilsLibrary = [string]$sourceTexts["library/utils.java"]
+$ctsBeastRestore = Get-SourceSlice $utilsLibrary `
+    "public static void updateBeastMasterCTSObjvars" `
+    "public static void updateHousePackupCTSObjvars"
+Assert-Contract (
+    (Is-Before $ctsBeastRestore "isPostNgeCtsProgressionRestorationRetired" "utils.setBatchObjVar(player, beast_lib.PLAYER_KNOWN_SKILLS_LIST") -and
+    $ctsBeastRestore.Contains("beast_lib.retirePostNgeBeastMasterPlayerState(player)") -and
+    (Is-Before $ctsBeastRestore "beast_lib.retirePostNgeBeastMasterPlayerState(player)" "utils.setBatchObjVar(player, beast_lib.PLAYER_KNOWN_SKILLS_LIST")
+) "p14.beast-retirement.cts-known-skill-restore-fails-closed"
 
 $beastAi = [string]$sourceTexts["ai/beast.java"]
 $creatureCombat = [string]$sourceTexts["ai/creature_combat.java"]
