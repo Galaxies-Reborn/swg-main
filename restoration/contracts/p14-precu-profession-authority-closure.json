@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "precu-profession-authority-closure",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Replace remaining executable NGE class/phase profession authority with Publish 14.1 skill-box ownership, native Jedi state, and the existing hidden PRE-CU combat-skill score; retire post-NGE Officer, Force Sensitive, Smuggler, Bounty Hunter, Commando, Medic, and Entertainer player combat families while preserving their classic PRE-CU skill-box commands, stale-data cleanup, NPC behavior, and expansion content.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -67,7 +67,9 @@
     "precuSmugglerSkillRows": 19,
     "precuSmugglerCommands": 11,
     "precuSmugglerSmCommands": 0,
-    "authoritativeBountyHunterRuntimeFiles": 2,
+    "authoritativeBountyHunterRuntimeFiles": 5,
+    "retiredNgeBountyHunterShieldBuffs": 4,
+    "retiredBountyHunterShieldScriptCallbacks": 3,
     "postNgeBountyHunterPlayerActionHandlers": 87,
     "postNgeBountyHunterStandardActionHandlers": 87,
     "postNgeBountyHunterDirectCallbacks": 0,
@@ -118,7 +120,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "e625d67fae8061fcd59a93f66f94c70440c5df30",
+    "directSourceGitlink": "e36e64bea59a3e8c3b388f7919ec81085fbfa970",
     "lineEndingPolicy": "The three touched legacy Officer persistence scripts were normalized to the repository-declared LF policy; no generated overlay or staging tree was created.",
     "officerRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/ai/officer_pet.java": "3bbbab602848af451d1085bc6f3ca33d68cb8a5d0741010f62732155e3479b97",
@@ -144,7 +146,10 @@
     },
     "bountyHunterRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1",
+      "sku.0/sys.server/compiled/game/script/library/buff.java": "834d8d948ed5a059ba583ab81b4fc110c6a9228651bc7e7da29b5f4df517621c",
+      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "c7f65dce469326a64b5a7ceaa2cd89ec75ed695352ba0c940df49f846c1733cd",
+      "sku.0/sys.server/compiled/game/script/player/skill/bh_shields.java": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7"
     },
     "commandoRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
@@ -158,7 +163,7 @@
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source Officer, Force Sensitive, Smuggler, Bounty Hunter, Commando, Medic, and Entertainer runtime closure remains intact while the shared base_player meditation tick retires its random post-NGE buff grant.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source profession action closure remains intact while exact persisted NGE Bounty Hunter shield state and writers now fail closed for players without removing retained compatibility data or NPC behavior.",
     "missionSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
@@ -226,7 +231,7 @@
     },
     "sourceWorkParity": "passed byte-for-byte for all 5 authoritative Officer sources and both shared Force Sensitive/Smuggler/Bounty Hunter/Commando/Medic/Entertainer combat sources between the read-only direct-source mount and Docker work volume",
     "deploymentProbe": "passed; mandatory profession, Officer, Force Sensitive, Smuggler, Bounty Hunter, Commando, Medic, and Entertainer source parity and bytecode gates completed before container replacement, followed by x64 architecture, readiness, mapped-binary, and clean-log verification",
-    "result": "passed",
+    "result": "pending-current-source-build",
     "bytecodeProbes": [
       "hidden PRE-CU combat-score thresholds 25/50/75",
       "PRE-CU Smuggler underworld and master authority",
@@ -270,7 +275,7 @@
       }
     },
     "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
-    "result": "passed"
+    "result": "stale-after-current-source-change"
   },
   "requiredBeforeReady": []
 }

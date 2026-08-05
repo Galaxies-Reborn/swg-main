@@ -499,6 +499,8 @@ source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
 source_buff_library="$source_script/library/buff.java"
 work_buff_library="$work_script/library/buff.java"
+source_bh_shields="$source_script/player/skill/bh_shields.java"
+work_bh_shields="$work_script/player/skill/bh_shields.java"
 source_meditation_library="$source_script/library/meditation.java"
 work_meditation_library="$work_script/library/meditation.java"
 source_performcommands="$source_script/player/skill/performcommands.java"
@@ -927,6 +929,7 @@ cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
 cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
+cmp -s "$source_bh_shields" "$work_bh_shields"
 cmp -s "$source_meditation_library" "$work_meditation_library"
 cmp -s "$source_performcommands" "$work_performcommands"
 cmp -s "$source_buff_handler" "$work_buff_handler"
@@ -984,6 +987,24 @@ printf '%s' "$meditation_tick_source" | grep -Fq 'meditation.trance(self)'
 printf '%s' "$meditation_tick_source" | grep -Fq 'messageTo(self, meditation.HANDLER_MEDITATION_TICK'
 ! printf '%s' "$meditation_tick_source" | grep -Eq 'MEDITATE_BUFFS|fs_meditate_|buff\.applyBuff|utils\.isProfession\(self, utils\.FORCE_SENSITIVE\)|utils\.setScriptVar\(self, meditation\.VAR_MEDITATION_BASE'
 awk -F '\t' '$1 ~ /^fs_meditate_[123]$/ { found++; if ($8 !~ /^expertise_/ || $12 != "expertise_resource_quality_increase") exit 2 } END { if (found != 3) exit 3 }' "$work_buff_table"
+bounty_hunter_shield_predicate_source="$(sed -n '/public static boolean isRetiredPostNgeBountyHunterShieldBuff/,/public static void retirePostNgeBountyHunterShieldState/p' "$work_buff_library")"
+bounty_hunter_shield_cleanup_source="$(sed -n '/public static void retirePostNgeBountyHunterShieldState/,/public static void retirePostNgeBuffProgression/p' "$work_buff_library")"
+for retired_bounty_hunter_shield_buff in bh_shields_handler bh_shields bh_shields_block bh_shields_charged; do
+    printf '%s' "$bounty_hunter_shield_predicate_source" | grep -Fq "buffName.equals(\"$retired_bounty_hunter_shield_buff\")"
+    printf '%s' "$bounty_hunter_shield_cleanup_source" | grep -Fq "\"$retired_bounty_hunter_shield_buff\""
+done
+printf '%s' "$bounty_hunter_shield_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$bounty_hunter_shield_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+printf '%s' "$bounty_hunter_shield_cleanup_source" | grep -Fq 'detachScript(player, "player.skill.bh_shields")'
+grep -Fq 'retirePostNgeBountyHunterShieldState(player);' "$work_buff_library"
+can_apply_buff_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isPlayer(target) && isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
+bounty_hunter_shield_handler_source="$(sed -n '/public int bhShieldsAddBuffHandler/,/public int bhShieldsRemoveBuffHandler/p' "$work_buff_handler")"
+printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'if (isPlayer(self))'
+printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'buff.retirePostNgeBountyHunterShieldState(self);'
+test "$(grep -Fc 'buff.retirePostNgeBountyHunterShieldState(self);' "$work_bh_shields")" -eq 3
+test "$(grep -Fc 'if (isPlayer(self))' "$work_bh_shields")" -eq 3
+awk -F '\t' '$1 ~ /^bh_shields(_handler|_block|_charged)?$/ { found++ } END { if (found != 4) exit 3 }' "$work_buff_table"
 cmp -s "$source_player_stealth" "$work_player_stealth"
 cmp -s "$source_beast_library" "$work_beast_library"
 cmp -s "$source_beast_control_device" "$work_beast_control_device"
@@ -1320,6 +1341,17 @@ javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeM
 for retired_meditation_buff in fs_meditate_1 fs_meditate_2 fs_meditate_3; do
     javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_meditation_buff"
 done
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeBountyHunterShieldState'
+for retired_bounty_hunter_shield_buff in bh_shields_handler bh_shields bh_shields_block bh_shields_charged; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_bounty_hunter_shield_buff"
+done
+bounty_hunter_shield_script_bytecode="$(javap -classpath "$class_root" -c -p script.player.skill.bh_shields)"
+test "$(printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fc 'retirePostNgeBountyHunterShieldState')" -eq 3
+printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnAttach'
+printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnInitialize'
+printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnCreatureDamaged'
+javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'retirePostNgeBountyHunterShieldState'
 javap -classpath "$class_root" -c script.library.meditation | grep -Fq 'retirePostNgeMeditationBuffs'
 ! javap -classpath "$class_root" -v script.library.meditation | grep -Fq 'fs_meditate_'
 meditation_tick_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/handleMeditationTick/,/msgCoupDeGraceAuthoritativeCheck/p')"

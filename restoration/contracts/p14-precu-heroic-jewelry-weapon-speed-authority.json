@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-heroic-jewelry-weapon-speed-authority",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Keep retained heroic jewelry and buff content while limiting gameplay authority to Publish-era skill modifiers, migrating persisted NGE item leaves, and refusing the same six later primary-stat modifiers at the generic buff writer.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -53,7 +53,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "e625d67fae8061fcd59a93f66f94c70440c5df30",
+    "directSourceGitlink": "e36e64bea59a3e8c3b388f7919ec81085fbfa970",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "heroicItemScript": "5845ed2afb96376bf9e34b3336d481dde34759e7b6b5feb933a09a5805ca63b4",
@@ -61,14 +61,14 @@
       "heroicDrops": "abc93f2e913c1c1ab064bf5d1cb11db582a2dc4df96b2f7bd03e1234a1812db6",
       "skillTable": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "commandQueue": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba",
-      "buffHandler": "d60eff951e1addd1d86db4b5d3a1e52a1aa50479b08a9dca709983e2c57158e0",
+      "buffHandler": "c7f65dce469326a64b5a7ceaa2cd89ec75ed695352ba0c940df49f846c1733cd",
       "effectMapping": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a"
     },
     "compiledClassSha256": {
       "heroicItemScript": "4b4706329d4590d45624e3f6900bda19050b33fb9b88712188b3bb2e0fbc79f5",
       "buffHandler": "6fd82c3044d8a96d345bf4294ff642d65c7dfafb206ff7b9f41de6794ddd7777"
     },
-    "sourceTest": "passed; the existing heroic item migration remains intact, the generic buff handler rejects the exact same six later primary statistics before any writer, and all three creature milk modifiers plus ordinary PRE-CU skill modifiers remain available",
+    "sourceTest": "passed against current source; heroic item migration and exact-six primary-stat rejection remain intact while the shared handler independently retires persisted NGE Bounty Hunter shields for players",
     "focusedJavaCompile": "passed with Java 8 target in an ephemeral /dev/shm directory removed immediately; buff_handler.class SHA-256 c1dd50451ae48e5d9271b96339a55c170aa1d248d0a2c292862148c05e90eb60, size 98020 bytes",
     "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes; heroic_random_stat_item.class was emitted at 2026-08-05T06:00:04.450607896Z and buff_handler.class at 2026-08-05T06:00:07.582622137Z",
     "fullServerBuild": "passed from pushed parent 940874cb70b6497145d70da59d6821c808b1a8bd and direct dsrc f6039707f77fb6ebe98794dea1f37fba0842d7c7 with all server and data targets completed",
@@ -78,7 +78,7 @@
     "sourceWorkParity": "passed byte-for-byte for all seven contract sources between the read-only direct-source mount and Docker work volume; every copy matches its authenticated sourceSha256 value",
     "bytecodeAudit": "passed; heroic_random_stat_item.class retains its legacy-state cleanup routine and all ten authenticated PRE-CU weapon-speed modifiers, buff_handler.class retains the centralized exact-six primary-stat retirement predicate, and the source gates authenticate one weighted +2 speed writer with no NGE item-stat writer",
     "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, heroic-item and primary-stat source/bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
-    "result": "passed"
+    "result": "pending-current-source-build"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
@@ -106,7 +106,7 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "stale-after-current-source-change"
   },
   "auditBoundary": {
     "closedInThisMilestone": "Retained heroic jewelry no longer writes NGE primary stats or weapon action-cost expertise, and retained buff mappings cannot materialize the same six later primary statistics through the generic writer.",

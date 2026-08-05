@@ -162,12 +162,19 @@ $bountyHunterRuntimeSources = [ordered]@{
         "systems/combat/combat_base.java"
     "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
         "systems/combat/combat_actions.java"
+    "sku.0/sys.server/compiled/game/script/library/buff.java" =
+        "library/buff.java"
+    "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java" =
+        "systems/buff/buff_handler.java"
+    "sku.0/sys.server/compiled/game/script/player/skill/bh_shields.java" =
+        "player/skill/bh_shields.java"
 }
 Assert-Contract ($bountyHunterRuntimeSources.Count -eq
         [int]$contract.expected.authoritativeBountyHunterRuntimeFiles -and
     @($contract.buildEvidence.bountyHunterRuntimeSourceSha256.PSObject.Properties).Count -eq
         $bountyHunterRuntimeSources.Count) `
     "p14.profession-closure.bounty-hunter-runtime.source-count"
+$bountyHunterTexts = [ordered]@{}
 foreach ($property in $contract.buildEvidence.bountyHunterRuntimeSourceSha256.PSObject.Properties)
 {
     $path = Join-Path $dsrc $property.Name
@@ -176,6 +183,11 @@ foreach ($property in $contract.buildEvidence.bountyHunterRuntimeSourceSha256.PS
         (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
             [string]$property.Value) `
         "p14.profession-closure.bounty-hunter-runtime.source.$($property.Name).authenticated"
+    if (Test-Path -LiteralPath $path -PathType Leaf)
+    {
+        $bountyHunterTexts[$bountyHunterRuntimeSources[$property.Name]] =
+            Get-Content -LiteralPath $path -Raw
+    }
 }
 
 $commandoRuntimeSources = [ordered]@{
@@ -385,6 +397,45 @@ Assert-Contract ($bountyHunterHandlers.Count -eq
     $directBountyHunterHandlers.Count -eq
         [int]$contract.expected.postNgeBountyHunterDirectCallbacks) `
     "p14.profession-closure.bounty-hunter-runtime.all-player-actions-covered"
+
+$bountyHunterBuffLibrary = [string]$bountyHunterTexts["library/buff.java"]
+$bountyHunterBuffHandler = [string]$bountyHunterTexts["systems/buff/buff_handler.java"]
+$bountyHunterShieldScript = [string]$bountyHunterTexts["player/skill/bh_shields.java"]
+$bountyHunterShieldPredicate = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff" `
+    "public static void retirePostNgeBountyHunterShieldState"
+$bountyHunterShieldCleanup = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "public static void retirePostNgeBountyHunterShieldState" `
+    "public static void retirePostNgeBuffProgression"
+$bountyHunterShieldHandler = Get-FunctionSlice $bountyHunterBuffHandler `
+    "public int bhShieldsAddBuffHandler" `
+    "public int bhShieldsRemoveBuffHandler"
+$retiredBountyHunterShieldBuffs = @(
+    "bh_shields_handler", "bh_shields", "bh_shields_block", "bh_shields_charged"
+)
+$shieldPredicateNames = @($retiredBountyHunterShieldBuffs | Where-Object {
+    $bountyHunterShieldPredicate.Contains('buffName.equals("' + $_ + '")')
+})
+Assert-Contract ($shieldPredicateNames.Count -eq
+        [int]$contract.expected.retiredNgeBountyHunterShieldBuffs -and
+    $bountyHunterShieldCleanup.Contains("!isPlayer(player)") -and
+    $bountyHunterShieldCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    $bountyHunterShieldCleanup.Contains('detachScript(player, "player.skill.bh_shields");') -and
+    $bountyHunterBuffLibrary.Contains(
+        "isPlayer(target) && isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)") -and
+    $bountyHunterShieldHandler.Contains("if (isPlayer(self))") -and
+    $bountyHunterShieldHandler.IndexOf("retirePostNgeBountyHunterShieldState",
+        [StringComparison]::Ordinal) -lt
+        $bountyHunterShieldHandler.IndexOf("attachScript", [StringComparison]::Ordinal) -and
+    ([regex]::Matches($bountyHunterShieldScript,
+        'buff\.retirePostNgeBountyHunterShieldState\(self\);')).Count -eq
+        [int]$contract.expected.retiredBountyHunterShieldScriptCallbacks -and
+    ([regex]::Matches($bountyHunterShieldScript, 'if \(isPlayer\(self\)\)')).Count -eq
+        [int]$contract.expected.retiredBountyHunterShieldScriptCallbacks -and
+    $bountyHunterShieldScript.IndexOf("retirePostNgeBountyHunterShieldState",
+        [StringComparison]::Ordinal) -lt
+        $bountyHunterShieldScript.IndexOf("buff.applyBuff", [StringComparison]::Ordinal)) `
+    "p14.profession-closure.bounty-hunter-runtime.persisted-shields-retired"
 
 $commandoPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeCommandoPlayerAction" `
@@ -820,7 +871,7 @@ Assert-Contract ($missionTerminal.Contains("menu_info_types.MISSION_TERMINAL_LIS
     $missionBase.Contains("split=false dailyCashPenalty=false")) `
     "p14.profession-closure.mission-terminal.continuity"
 
-Assert-Contract (@("implemented-build-verified-live-pending", "ready") -ccontains
+Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -ccontains
     [string]$contract.status) "p14.profession-closure.contract.status"
 
 if ($Expectation -eq "Ready")

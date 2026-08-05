@@ -66,6 +66,7 @@ $basePlayer = [string]$texts.basePlayer
 $buffHandler = [string]$texts.buffHandler
 $buffLibrary = [string]$texts.buffLibrary
 $meditationLibrary = [string]$texts.meditationLibrary
+$bountyHunterShieldScript = [string]$texts.bountyHunterShieldScript
 $dictionaryCost = Get-BracedBlock $combatLibrary `
     "public static int[] getActionCost(obj_id self, weapon_data weaponData, dictionary actionData)"
 $typedCost = Get-BracedBlock $combatLibrary `
@@ -288,6 +289,72 @@ Assert-Contract ($meditationRows.Count -eq
     }).Count -eq 0) `
     "p14.combat-expertise-isolation.meditation.compatibility-rows-preserved"
 
+$bountyHunterShieldPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff(String buffName)"
+$bountyHunterShieldCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBountyHunterShieldState(obj_id player)"
+$canApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$bountyHunterShieldHandler = Get-BracedBlock $buffHandler `
+    "public int bhShieldsAddBuffHandler("
+$bountyHunterShieldCallbacks = @(
+    (Get-BracedBlock $bountyHunterShieldScript "public int OnAttach(")
+    (Get-BracedBlock $bountyHunterShieldScript "public int OnInitialize(")
+    (Get-BracedBlock $bountyHunterShieldScript "public int OnCreatureDamaged(")
+)
+$retiredBountyHunterShieldNames = @(
+    "bh_shields_handler", "bh_shields", "bh_shields_block", "bh_shields_charged"
+)
+$predicateNames = @($retiredBountyHunterShieldNames | Where-Object {
+    $bountyHunterShieldPredicate.Contains('buffName.equals("' + $_ + '")')
+})
+$cleanupNames = @([regex]::Matches($bountyHunterShieldCleanup,
+        '"(bh_shields(?:_handler|_block|_charged)?)"') |
+    ForEach-Object { $_.Groups[1].Value })
+Assert-Contract ($predicateNames.Count -eq
+        [int]$contract.expected.retiredNgeBountyHunterShieldBuffs -and
+    $cleanupNames.Count -eq [int]$contract.expected.retiredNgeBountyHunterShieldBuffs -and
+    @($cleanupNames | Select-Object -Unique).Count -eq $cleanupNames.Count -and
+    $bountyHunterShieldCleanup.Contains("!isPlayer(player)") -and
+    $bountyHunterShieldCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    $bountyHunterShieldCleanup.Contains('detachScript(player, "player.skill.bh_shields");') -and
+    $buffProgressionCleanup.Contains("retirePostNgeBountyHunterShieldState(player);")) `
+    "p14.combat-expertise-isolation.bounty-hunter-shields.persisted-state-retired"
+$genericShieldGate = $canApplyBuff.IndexOf(
+    "isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)",
+    [StringComparison]::Ordinal)
+$genericExistingBuffReturn = $canApplyBuff.IndexOf("hasBuff(target, nameCrc)",
+    [StringComparison]::Ordinal)
+$handlerPlayerGate = $bountyHunterShieldHandler.IndexOf("if (isPlayer(self))",
+    [StringComparison]::Ordinal)
+$handlerCleanup = $bountyHunterShieldHandler.IndexOf(
+    "buff.retirePostNgeBountyHunterShieldState(self);", [StringComparison]::Ordinal)
+$handlerAttach = $bountyHunterShieldHandler.IndexOf(
+    'attachScript(self, "player.skill.bh_shields");', [StringComparison]::Ordinal)
+$guardedShieldCallbacks = @($bountyHunterShieldCallbacks | Where-Object {
+    $_.Contains("if (isPlayer(self))") -and
+    $_.Contains("buff.retirePostNgeBountyHunterShieldState(self);")
+})
+$damageCallback = $bountyHunterShieldCallbacks[2]
+Assert-Contract ($genericShieldGate -ge 0 -and
+    $genericExistingBuffReturn -gt $genericShieldGate -and
+    $handlerPlayerGate -ge 0 -and $handlerCleanup -gt $handlerPlayerGate -and
+    $handlerAttach -gt $handlerCleanup -and
+    $guardedShieldCallbacks.Count -eq
+        [int]$contract.expected.retiredBountyHunterShieldScriptCallbacks -and
+    $damageCallback.IndexOf("buff.retirePostNgeBountyHunterShieldState(self);",
+        [StringComparison]::Ordinal) -lt
+        $damageCallback.IndexOf("buff.applyBuff", [StringComparison]::Ordinal)) `
+    "p14.combat-expertise-isolation.bounty-hunter-shields.all-player-writers-fail-closed"
+$bountyHunterShieldRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $retiredBountyHunterShieldNames -ccontains [string]$_.NAME
+})
+Assert-Contract ($bountyHunterShieldRows.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterShieldCompatibilityRows -and
+    @($bountyHunterShieldRows | Select-Object -ExpandProperty NAME -Unique).Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterShieldCompatibilityRows) `
+    "p14.combat-expertise-isolation.bounty-hunter-shields.compatibility-rows-preserved"
+
 if ($Expectation -eq "Ready")
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
@@ -304,6 +371,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.compiledClassSha256.buffHandler -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.buffLibrary -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.meditationLibrary -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.bountyHunterShieldScript -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.combat-expertise-isolation.live-evidence"
