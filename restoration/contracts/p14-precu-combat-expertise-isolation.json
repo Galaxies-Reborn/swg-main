@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, and clean persisted NGE display-only, expertise, or later primary-stat buff state without recreating it.",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, and clean persisted NGE display-only, expertise, later primary-stat, and random meditation buff state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -18,7 +18,9 @@
       "Area costs remain drained once before the hit engine; their per-defender success-cost result must remain zero to prevent duplicate drains.",
       "The authenticated Publish-era stripped-skillmod corpus has SHA-256 b2520748b03006faef7357372ea1e7eb7adbe5e52a8abd34db604b48a3e513a3 and contains zero display_only_* combat-stat keys.",
       "The inherited NGE expertise listing retains thirteen display_only_* rows, while base_player previously recalculated and rewrote thirteen NGE combat statistics after login, equipment, armor, buff, and skill-mod events.",
-      "Twenty-two production callbacks remain attached to the cleanup handler, which removes fourteen known legacy keys—including one cleanup-only historical key—without reading combat statistics or writing skill modifiers."
+      "Twenty-two production callbacks remain attached to the cleanup handler, which removes fourteen known legacy keys—including one cleanup-only historical key—without reading combat statistics or writing skill modifiers.",
+      "The retained Teras Kasi meditate lifecycle already follows pinned Publish 14.1 DOT and wound-healing semantics, but its legacy library still declared three persistent fs_meditate_* rows whose effects are NGE expertise, resource-quality, and modified-primary-stat bonuses.",
+      "Those three compatibility rows remain loadable, while login cleanup and meditate admission now remove them before the authenticated PRE-CU meditation state begins."
     ]
   },
   "expected": {
@@ -49,6 +51,9 @@
     "remainingLiteralExpertiseBuffWriters": 3,
     "remainingLiteralExpertiseWritersFailClosed": true,
     "staleExpertiseBuffStateRemoved": true,
+    "retiredNgeMeditationBuffs": 3,
+    "retainedNgeMeditationCompatibilityRows": 3,
+    "meditationCleanupDominatesPrecuStart": true,
     "laterQuestsZonesAndContentPreserved": true
   },
   "sourceFiles": {
@@ -59,11 +64,14 @@
     "skillModListing": "dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab",
     "armorLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/armor.java",
     "reverseEngineering": "dsrc/sku.0/sys.server/compiled/game/script/library/reverse_engineering.java",
-    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
+    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java",
+    "buffLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java",
+    "meditationLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/meditation.java",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "3a6a92fea626b32e70285943344668f2f4c4ca6c",
+    "directSourceGitlink": "8e12e508409109bed9463746165f17c1badcc5e5",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "ef36374d80713d8f27477c72af481f3688ca6eb22177cc60d4921935682955ea",
@@ -73,58 +81,58 @@
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "be819192dcbd884c6dedc501f9a4aebe338d862598f25c20b1cadddd6b673933",
-      "buffHandler": "d60eff951e1addd1d86db4b5d3a1e52a1aa50479b08a9dca709983e2c57158e0"
+      "buffHandler": "d60eff951e1addd1d86db4b5d3a1e52a1aa50479b08a9dca709983e2c57158e0",
+      "buffLibrary": "8c95304d0f6a4cb1f6c421ea3012778b6aa5363ea0ddb6589cb397431d5f1477",
+      "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
+      "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9"
     },
     "compiledClassSha256": {
       "combatLibrary": "f80271507ca8490d94f42003604a0f622b9d4a5b9b9a1f4dfe99baf342851c9e",
       "combatBase": "8fb3b0899c0fa17873231f6b9b1b249eb604e885a8262d1556b5b8f1e9269586",
       "basePlayer": "32e580e3521625c36a5f6308c2cb8fe638d84f5b3d03f85e12763c1c807d1c2b",
-      "buffHandler": "6fd82c3044d8a96d345bf4294ff642d65c7dfafb206ff7b9f41de6794ddd7777"
+      "buffHandler": "6fd82c3044d8a96d345bf4294ff642d65c7dfafb206ff7b9f41de6794ddd7777",
+      "buffLibrary": null,
+      "meditationLibrary": null
     },
-    "sourceTest": "passed; existing PRE-CU combat, display-only, and expertise-buff isolation remains intact; the generic buff predicate now rejects the exact six unauthenticated later primary-stat modifiers while preserving the three creature milk modifiers and all ordinary PRE-CU skill modifiers",
-    "focusedJavaCompile": "passed with Java 8 target in an ephemeral /dev/shm directory removed immediately; buff_handler.class SHA-256 c1dd50451ae48e5d9271b96339a55c170aa1d248d0a2c292862148c05e90eb60, size 98020 bytes",
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 669.5 seconds from pushed parent 33be874 and direct dsrc 3a6a92f",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed byte-for-byte for combat expertise isolation sources and the changed combat dependency between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed; emitted combat and buff classes preserve PRE-CU expertise isolation and the player-only fs_*, sm_*, bh_*, co_*, me_*, and en_* retirement boundaries",
-    "deploymentProbe": "passed all direct-source preflight contracts, mandatory parity and bytecode gates, x64 architecture, restart/readiness, mapped-binary verification, and clean log audit",
-    "result": "passed"
+    "sourceTest": "passed; existing PRE-CU combat, display-only, and expertise-buff isolation remains intact; exact fs_meditate_1/2/3 cleanup dominates authenticated meditation start while their compatibility rows remain unchanged",
+    "focusedJavaCompile": "passed for buff.java and meditation.java with Java 8 target in an ephemeral /dev/shm directory removed immediately; emitted meditation bytecode contains the cleanup call and no fs_meditate_* symbol",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": null,
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "sourceWorkParity": null,
+    "bytecodeAudit": null,
+    "deploymentProbe": null,
+    "result": "pending"
   },
   "runtimeEvidence": {
-    "date": "2026-08-05",
+    "date": null,
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-05T09:56:43.819612011Z",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
+    "containerStartedAt": null,
+    "containerHealth": null,
+    "clusterReadyForPlayers": false,
     "compiledClassSizes": {
-      "combatLibrary": 104566,
-      "combatBase": 146987,
-      "basePlayer": 314934,
-      "buffHandler": 131116
+      "combatLibrary": null,
+      "combatBase": null,
+      "basePlayer": null,
+      "buffHandler": null,
+      "buffLibrary": null,
+      "meditationLibrary": null
     },
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 367,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
-    "liveBinaryMapEntries": 2,
-    "processCounts": {
-      "LoginServer": 1,
-      "TaskManager": 1,
-      "ConnectionServer": 1,
-      "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
-    },
-    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
-    "result": "passed"
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": null,
+    "liveBinaryInode": null,
+    "liveBinarySize": null,
+    "liveBinaryMapEntries": null,
+    "processCounts": null,
+    "postStartLogAudit": null,
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU hit-result and action-cost dispatch cannot cross into inherited NGE expertise authority, while production lifecycle and buff handlers can only remove—not recreate—NGE display-only, expertise, or later primary-stat state",
+    "closedInThisMilestone": "authenticated PRE-CU hit-result and action-cost dispatch cannot cross into inherited NGE expertise authority, while production lifecycle and buff handlers can only remove—not recreate—NGE display-only, expertise, later primary-stat, or fs_meditate_* state",
     "preserved": "Core3 primary and secondary defense, authored three-pool costs, one-time area cost draining, PRE-CU block/dodge/counter/ricochet, ordinary PRE-CU skill buffs, all twenty-two display cleanup callbacks, retained buff rows/icons and compatibility metadata, and all expansion quests/zones",
     "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
   },

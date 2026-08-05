@@ -103,10 +103,22 @@ Assert-Contract ((Get-TextSha256 $contentRecords) -ceq [string]$contract.buildEv
 $buffText = [string]$sourceTexts["library/buff.java"]
 $flagBody = Get-SourceSlice $buffText "public static boolean isPostNgeBuffProgressionRetired()" "public static void retirePostNgeBuffProgression"
 $cleanupBody = Get-SourceSlice $buffText "public static void retirePostNgeBuffProgression" "public static final String DOT_BLEEDING"
+$meditationCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgeMeditationBuffs" "public static final String DOT_BLEEDING"
 Assert-Contract ($flagBody.Contains("return true;")) "p14.buff-progression.central-flag.true"
 foreach ($buffName in @($contract.expected.retiredBuffs))
 {
     Assert-Contract ($cleanupBody.Contains("removeBuff(player, `"$buffName`")")) "p14.buff-progression.cleanup.buff.$buffName"
+}
+Assert-Contract ($cleanupBody.Contains("retirePostNgeMeditationBuffs(player);") -and
+    $meditationCleanupBody.Contains("removeBuff(player, retiredBuff);") -and
+    ([regex]::Matches($meditationCleanupBody, '"fs_meditate_[123]"')).Count -eq
+        @($contract.expected.retiredMeditationBuffs).Count) `
+    "p14.buff-progression.cleanup.meditation-buffs"
+foreach ($buffName in @($contract.expected.retiredMeditationBuffs))
+{
+    Assert-Contract ($meditationCleanupBody.Contains("`"$buffName`"")) `
+        "p14.buff-progression.cleanup.meditation.$buffName"
 }
 foreach ($tree in @($contract.expected.retiredScriptVarTrees))
 {
@@ -213,6 +225,11 @@ $performanceText = Get-Content -LiteralPath $performancePath -Raw
 Assert-Contract ($performanceText.Contains("healing_dance_mind") -and
     $performanceText.Contains("healing_music_mind") -and $performanceText.Contains("private_buff_mind") -and
     $performanceText.Contains("getUnmodifiedMaxAttrib")) "p14.buff-progression.precu-attribute-session.preserved"
+
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+Assert-Contract ($dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
+    "p14.buff-progression.direct-source-pin"
 
 $missionMap = [ordered]@{
     "mission_terminal.java" = (Join-Path $scriptRoot "systems/missions/base/mission_terminal.java")

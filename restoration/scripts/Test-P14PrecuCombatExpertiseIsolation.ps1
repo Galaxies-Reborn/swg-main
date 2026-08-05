@@ -64,6 +64,8 @@ $combatLibrary = [string]$texts.combatLibrary
 $combatBase = [string]$texts.combatBase
 $basePlayer = [string]$texts.basePlayer
 $buffHandler = [string]$texts.buffHandler
+$buffLibrary = [string]$texts.buffLibrary
+$meditationLibrary = [string]$texts.meditationLibrary
 $dictionaryCost = Get-BracedBlock $combatLibrary `
     "public static int[] getActionCost(obj_id self, weapon_data weaponData, dictionary actionData)"
 $typedCost = Get-BracedBlock $combatLibrary `
@@ -241,6 +243,40 @@ Assert-Contract ($literalExpertiseWriters -eq
         $buildABuff.IndexOf("performance.buildabuff.buffComponentKeys", [StringComparison]::Ordinal)) `
     "p14.combat-expertise-isolation.buff.remaining-literals-fail-closed"
 
+$buffProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$meditationBuffCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeMeditationBuffs(obj_id player)"
+$meditationStart = Get-BracedBlock $meditationLibrary `
+    "public static boolean startMeditation(obj_id player)"
+$retiredMeditationNames = @([regex]::Matches($meditationBuffCleanup,
+        '"fs_meditate_[123]"') | ForEach-Object { $_.Value.Trim('"') })
+Assert-Contract ($buffProgressionCleanup.Contains("retirePostNgeMeditationBuffs(player);") -and
+    $retiredMeditationNames.Count -eq [int]$contract.expected.retiredNgeMeditationBuffs -and
+    @($retiredMeditationNames | Select-Object -Unique).Count -eq
+        [int]$contract.expected.retiredNgeMeditationBuffs -and
+    $meditationBuffCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    -not $meditationLibrary.Contains("MEDITATE_BUFFS") -and
+    -not $meditationLibrary.Contains("fs_meditate_")) `
+    "p14.combat-expertise-isolation.meditation.exact-nge-buffs-retired"
+Assert-Contract ($meditationStart.IndexOf("buff.retirePostNgeMeditationBuffs(player);",
+        [StringComparison]::Ordinal) -ge 0 -and
+    $meditationStart.IndexOf("buff.retirePostNgeMeditationBuffs(player);",
+        [StringComparison]::Ordinal) -lt
+        $meditationStart.IndexOf("setState(player, STATE_MEDITATE, true);",
+            [StringComparison]::Ordinal)) `
+    "p14.combat-expertise-isolation.meditation.cleanup-dominates-start"
+$meditationRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    [string]$_.NAME -match '^fs_meditate_[123]$'
+})
+Assert-Contract ($meditationRows.Count -eq
+        [int]$contract.expected.retainedNgeMeditationCompatibilityRows -and
+    @($meditationRows | Where-Object {
+        ([string]$_.EFFECT1_PARAM -notlike "expertise_*") -or
+        ([string]$_.EFFECT3_PARAM -cne "expertise_resource_quality_increase")
+    }).Count -eq 0) `
+    "p14.combat-expertise-isolation.meditation.compatibility-rows-preserved"
+
 if ($Expectation -eq "Ready")
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
@@ -255,6 +291,8 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.compiledClassSha256.combatBase -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.basePlayer -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.buffHandler -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.buffLibrary -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.meditationLibrary -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.combat-expertise-isolation.live-evidence"

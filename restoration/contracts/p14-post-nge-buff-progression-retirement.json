@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
-  "status": "ready",
-  "scope": "Retire live NGE Build-a-Buff and general/TCG XP-buff progression authority without removing later-content data compatibility or the restored Publish 14.1 entertainer Mind/Focus/Willpower session.",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, and random fs_meditate_* bonuses without removing later-content data compatibility or the restored Publish 14.1 entertainer and Teras Kasi lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -15,7 +15,8 @@
       "Publish 14.1 entertainer attribute buffs are accumulated through dance/music watch and listen sessions and apply Mind, Focus, and Willpower pools.",
       "Pinned Publish 14.1 Core3 contains no native Buff Builder, buildabuff_inspiration handler, general percentage-of-level XP buff, or TCG XP grant path.",
       "Publish 14.1 awards explicit profession XP types from combat, crafting, and performance activity rather than scaling them from an NGE 1-90 player level.",
-      "Later buff rows and effect mappings remain compatibility data so retained expansion assets can load while their post-NGE progression handlers fail closed."
+      "Later buff rows and effect mappings remain compatibility data so retained expansion assets can load while their post-NGE progression handlers fail closed.",
+      "Pinned Publish 14.1 Teras Kasi meditation reduces DOT strength and heals wounds; it does not randomly grant fs_meditate_* expertise, resource-quality, or modified-primary-stat bonuses."
     ]
   },
   "expected": {
@@ -24,6 +25,11 @@
     "retiredBuffs": [
       "buildabuff_inspiration",
       "general_inspiration"
+    ],
+    "retiredMeditationBuffs": [
+      "fs_meditate_1",
+      "fs_meditate_2",
+      "fs_meditate_3"
     ],
     "retiredScriptVarTrees": [
       "performance.buildabuff",
@@ -49,47 +55,49 @@
     "missionCoreChanged": false
   },
   "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "8e12e508409109bed9463746165f17c1badcc5e5",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "8d6dc99ce1d60c042ba23022387504ba6b157ef88bf3aa7684d077100bb3838a",
+    "sourceContentSha256": "ed878d82b8672017042b605ae50fa7c6a07be9e979fd361073946e2319d3f13c",
     "sourceSha256": {
-      "library/buff.java": "1cc4b630a8d0b7d025ef0f07cc277df6e1c38ec425155aad73c7553a854a722a",
+      "library/buff.java": "8c95304d0f6a4cb1f6c421ea3012778b6aa5363ea0ddb6589cb397431d5f1477",
       "library/gcw.java": "ce637cd09ae661907365d39f770a02802cdab0050077c81e74858667675a3030",
       "library/xp.java": "92ecf581e7a35511fdd21006ca03e57b236da21feec507434e78027157111dee",
-      "player/base/base_player.java": "54ce43971ab8e9b288a4322a39cc9d7e6aafb409c45fa538dfb35786c6057ae7",
+      "player/base/base_player.java": "1b969192f911f5b562ac32a92cbd6169b6ec1562a360329d297c4034f0e7dc6b",
       "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
-      "systems/buff/buff_handler.java": "6de78fc02fd6de7da203e29a893c68a728ca8fb1f4f7244665310acdc168e88b",
+      "systems/buff/buff_handler.java": "d60eff951e1addd1d86db4b5d3a1e52a1aa50479b08a9dca709983e2c57158e0",
       "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
-      "systems/crafting/crafting_base.java": "34a7dbf3dcf4ee0d83a9c94ff364a343323ee371f36c8e5a4bd8156f1a0dbe25"
+      "systems/crafting/crafting_base.java": "de35b9d30117847130799743e3998dda6065971fae28e04f01d24d4310f5e83b"
     },
-    "currentSourceEvidenceRefreshedBy": "Milestone 339 PRE-CU GCW compatibility level authority; Build-a-Buff and XP retirement remain unchanged while dormant GCW player ratios move to the PRE-CU skill-box adapter.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source PRE-CU meditation precedence closure: login and meditate admission remove exact fs_meditate_1/2/3 legacy state while the retained compatibility rows remain loadable.",
     "compiledClassSha256": {
-      "script.library.buff": "4bc00f332a230c8e3d65ad71af698521f12434e8ec24d789c843eda66b32c922",
-      "script.library.gcw": "ce6198578433e3f9909b60fe95da27483f146640d9cd8a57705eda94897db16e",
-      "script.library.xp": "42652073fafbd2c9f3ce69333575380900cf89317fd4c43be745f42d90e915f8",
-      "script.player.base.base_player": "983379fdf875bdf1d7e58e420583886042ea1946bcb31c36bb4a639d2639a5a0",
-      "script.player.skill.performcommands": "5dc70349b8a928421c9f3b8ec46d0dd709f08754b830ea52b48861783d694c40",
-      "script.systems.buff.buff_handler": "76c938b8ec7942954138d2f3be6b1ee63488ee085825c42c88d176c08a5ee1af",
-      "script.systems.buff_builder.buff_builder_cancel": "23f8a8d9104312ee086af63b50bcd9d463c9e05a311bf11786a4792a77d7b0db",
-      "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
-      "script.systems.crafting.crafting_base": "d1ff857f6c92049d873a2fbd6bc933d7b1fe0066dd095ef371c9862d470ec03b"
+      "script.library.buff": null,
+      "script.library.gcw": null,
+      "script.library.xp": null,
+      "script.player.base.base_player": null,
+      "script.player.skill.performcommands": null,
+      "script.systems.buff.buff_handler": null,
+      "script.systems.buff_builder.buff_builder_cancel": null,
+      "script.systems.buff_builder.buff_builder_response": null,
+      "script.systems.crafting.crafting_base": null
     },
-    "staticContract": "passed with authenticated overlay, target set, source set/content, fail-closed dominance, compatibility-data, PRE-CU entertainer-session, and mission-continuity checks",
-    "fullJavaCompile": "passed from the pushed direct-source revision; M320 classes emitted 2026-08-04T09:16:17Z",
+    "staticContract": "passed against the direct source; exact meditation cleanup, existing fail-closed progression handlers, compatibility data, PRE-CU entertainer/Teras Kasi lifecycles, and mission continuity authenticated",
+    "fullJavaCompile": "pending",
     "cleanMaterializationPatches": 413,
     "cleanMaterializationAcceptanceFiles": 1170,
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
-    "materializedBuild": "passed from the pushed direct-source revision in Docker volume swg-precu-work-x64; host materialization retired",
-    "architecture": "ELF 64-bit x86-64",
-    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
-    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
-    "deploymentProbe": "passed all nine source/work comparisons, central retirement flag and cleanup bytecode, command/callback/handler/XP/crafting/GCW bytecode, cumulative PRE-CU probes, x64 architecture, health/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "materializedBuild": "host materialization retired; clean direct-source Docker deployment pending",
+    "architecture": null,
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "deploymentProbe": null,
+    "result": "pending"
   },
   "continuityEvidence": {
     "precuAttributeBuffSession": "Mind/Focus/Willpower accumulation and stop-watch/stop-listen activation remain in library/performance.java and its live fixture.",
@@ -101,37 +109,25 @@
     }
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
+    "date": null,
     "container": "swg-precu",
     "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
-    "containerHealth": "healthy",
-    "containerStartedAt": "2026-08-04T09:22:58.164664615Z",
-    "clusterReadyForPlayers": true,
-    "processCounts": {
-      "LoginServer": 1,
-      "TaskManager": 1,
-      "ConnectionServer": 1,
-      "SwgDatabaseServer": 1,
-      "SwgGameServer": 14
-    },
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 367,
-    "liveBinaryInode": 12110814,
-    "representativeSourceWorkParity": true,
-    "bytecodeProbes": [
-      "library.buff retirement predicate returns true and exposes centralized stale-state cleanup",
-      "performcommands, builder response/cancel, login, buff handlers, XP, crafting, and GCW classes call the centralized retirement authority",
-      "all nine changed source/work pairs match byte-for-byte"
-    ],
-    "postStartLogAudit": {
-      "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
-    },
-    "result": "passed"
+    "containerHealth": null,
+    "containerStartedAt": null,
+    "clusterReadyForPlayers": false,
+    "processCounts": null,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": null,
+    "liveBinaryInode": null,
+    "representativeSourceWorkParity": false,
+    "bytecodeProbes": null,
+    "postStartLogAudit": null,
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks and general/TCG XP, crafting-XP, and GCW buff multipliers",
+    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, GCW buff multipliers, and persisted random fs_meditate_* bonuses",
     "notClaimedComplete": "ordinary non-progression effects in composite retained buffs, retained GCW commlink behavior, beasts and familiars, transition compatibility, stealth and theft systems beyond their generic lucky proc, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []

@@ -490,6 +490,8 @@ source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
 source_buff_library="$source_script/library/buff.java"
 work_buff_library="$work_script/library/buff.java"
+source_meditation_library="$source_script/library/meditation.java"
+work_meditation_library="$work_script/library/meditation.java"
 source_performcommands="$source_script/player/skill/performcommands.java"
 work_performcommands="$work_script/player/skill/performcommands.java"
 source_buff_handler="$source_script/systems/buff/buff_handler.java"
@@ -916,6 +918,7 @@ cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
 cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
+cmp -s "$source_meditation_library" "$work_meditation_library"
 cmp -s "$source_performcommands" "$work_performcommands"
 cmp -s "$source_buff_handler" "$work_buff_handler"
 display_cleanup_source="$(sed -n '/public int setDisplayOnlyDefensiveMods/,/public int OnGetAttributes/p' "$work_base_player")"
@@ -957,6 +960,17 @@ buildabuff_source="$(sed -n '/public int buildabuffAddBuffHandler/,/public int b
 test "$(grep -Ec 'addSkillModModifier\(self, *"expertise_' "$work_buff_handler")" -eq 3
 test "$(printf '%s' "$buildabuff_source" | grep -Ec 'addSkillModModifier\(self, *"expertise_')" -eq 3
 printf '%s' "$buildabuff_source" | grep -Fq 'buff.isPostNgeBuffProgressionRetired()'
+meditation_cleanup_source="$(sed -n '/public static void retirePostNgeMeditationBuffs/,/public static final String DOT_BLEEDING/p' "$work_buff_library")"
+printf '%s' "$meditation_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+test "$(printf '%s' "$meditation_cleanup_source" | grep -Ec '"fs_meditate_[123]"')" -eq 3
+for retired_meditation_buff in fs_meditate_1 fs_meditate_2 fs_meditate_3; do
+    printf '%s' "$meditation_cleanup_source" | grep -Fq "\"$retired_meditation_buff\""
+done
+grep -Fq 'retirePostNgeMeditationBuffs(player);' "$work_buff_library"
+meditation_start_source="$(sed -n '/public static boolean startMeditation/,/public static void endMeditation/p' "$work_meditation_library")"
+printf '%s' "$meditation_start_source" | grep -Fq 'buff.retirePostNgeMeditationBuffs(player);'
+! grep -Fq 'fs_meditate_' "$work_meditation_library"
+awk -F '\t' '$1 ~ /^fs_meditate_[123]$/ { found++; if ($8 !~ /^expertise_/ || $12 != "expertise_resource_quality_increase") exit 2 } END { if (found != 3) exit 3 }' "$work_buff_table"
 cmp -s "$source_player_stealth" "$work_player_stealth"
 cmp -s "$source_beast_library" "$work_beast_library"
 cmp -s "$source_beast_control_device" "$work_beast_control_device"
@@ -1289,6 +1303,12 @@ grep -Fq 'getIntObjVar(self, levelObjVar)' "$work_jedi_saber_component"
 buff_progression_retired_bytecode="$(javap -classpath "$class_root" -c script.library.buff | sed -n '/isPostNgeBuffProgressionRetired/,/retirePostNgeBuffProgression/p')"
 printf '%s' "$buff_progression_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeBuffProgression'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeMeditationBuffs'
+for retired_meditation_buff in fs_meditate_1 fs_meditate_2 fs_meditate_3; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_meditation_buff"
+done
+javap -classpath "$class_root" -c script.library.meditation | grep -Fq 'retirePostNgeMeditationBuffs'
+! javap -classpath "$class_root" -v script.library.meditation | grep -Fq 'fs_meditate_'
 javap -classpath "$class_root" -v script.player.skill.performcommands | grep -Fq 'isPostNgeBuffProgressionRetired'
 javap -classpath "$class_root" -v script.player.skill.performcommands | grep -Fq 'retirePostNgeBuffProgression'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'isPostNgeBuffProgressionRetired'
