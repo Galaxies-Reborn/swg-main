@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, and clean persisted NGE display-only, expertise, or later primary-stat buff state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -77,44 +77,51 @@
     },
     "compiledClassSha256": {
       "combatLibrary": "f80271507ca8490d94f42003604a0f622b9d4a5b9b9a1f4dfe99baf342851c9e",
-      "combatBase": null,
+      "combatBase": "c3a6e459722ec3db1208e5fad0f447bc7ce9403ccbe93adb97ac284d94a53d01",
       "basePlayer": "32e580e3521625c36a5f6308c2cb8fe638d84f5b3d03f85e12763c1c807d1c2b",
       "buffHandler": "6fd82c3044d8a96d345bf4294ff642d65c7dfafb206ff7b9f41de6794ddd7777"
     },
     "sourceTest": "passed; existing PRE-CU combat, display-only, and expertise-buff isolation remains intact; the generic buff predicate now rejects the exact six unauthenticated later primary-stat modifiers while preserving the three creature milk modifiers and all ordinary PRE-CU skill modifiers",
     "focusedJavaCompile": "passed with Java 8 target in an ephemeral /dev/shm directory removed immediately; buff_handler.class SHA-256 c1dd50451ae48e5d9271b96339a55c170aa1d248d0a2c292862148c05e90eb60, size 98020 bytes",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": null,
-    "serverBinarySha256": null,
-    "serverBinaryBuildId": null,
-    "sourceWorkParity": null,
-    "bytecodeAudit": null,
-    "deploymentProbe": null,
-    "result": "pending"
+    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 654.4 seconds from pushed parent 987d5a8 and direct dsrc 4a23f12",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for combat expertise isolation sources and the changed combat dependency between the read-only direct-source mount and Docker work volume",
+    "bytecodeAudit": "passed; emitted combat and buff classes preserve PRE-CU expertise isolation and the player-only fs_* retirement boundary",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory parity and bytecode gates, x64 architecture, restart/readiness, mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": null,
+    "date": "2026-08-05",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": null,
-    "containerHealth": null,
-    "clusterReadyForPlayers": false,
+    "containerStartedAt": "2026-08-05T08:25:14.864010626Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
     "compiledClassSizes": {
-      "combatLibrary": null,
-      "combatBase": null,
-      "basePlayer": null,
-      "buffHandler": null
+      "combatLibrary": 104566,
+      "combatBase": 146027,
+      "basePlayer": 314934,
+      "buffHandler": 131116
     },
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": null,
-    "liveBinaryInode": null,
-    "liveBinarySize": null,
-    "liveBinaryMapEntries": null,
-    "processCounts": null,
-    "postStartLogAudit": null,
-    "result": "pending"
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 365,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "authenticated PRE-CU hit-result and action-cost dispatch cannot cross into inherited NGE expertise authority, while production lifecycle and buff handlers can only remove—not recreate—NGE display-only, expertise, or later primary-stat state",
