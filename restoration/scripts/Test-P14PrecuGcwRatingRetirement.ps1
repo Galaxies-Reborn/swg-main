@@ -13,6 +13,11 @@ $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14Precu
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$manifestDsrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$indexedDsrcCommit = (& git -C $repositoryRoot rev-parse ":dsrc").Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed dsrc gitlink." }
+$checkedOutDsrcCommit = (& git -C (Join-Path $repositoryRoot "dsrc") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out dsrc commit." }
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
@@ -36,6 +41,12 @@ function Get-BeforeFirstReturn([string]$Text)
     return $Text.Substring(0, $index + "return;".Length)
 }
 
+Assert-Contract ($manifestDsrc.Count -eq 1 -and
+    [string]$manifestDsrc[0].commit -ceq [string]$contract.buildEvidence.directSourceCommit -and
+    $indexedDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit -and
+    $checkedOutDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit) `
+    "p14.gcw-rating.direct-source-commit-synchronized"
+
 foreach ($component in @("dsrc", "src"))
 {
     $evidence = $contract.buildEvidence.overlayPatches.$component
@@ -52,6 +63,13 @@ foreach ($component in @("dsrc", "src"))
 
 $paths = [ordered]@{
     "script.library.gcw" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java"
+    "script.library.faction_perk" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/faction_perk.java"
+    "script.systems.gcw.gcw_parent_object" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_parent_object.java"
+    "script.faction_perk.hq.loader" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/loader.java"
+    "script.faction_perk.hq.planetary_base_register" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/planetary_base_register.java"
+    "datatable.faction_perk.hq.hq_point_values" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/faction_perk/hq/hq_point_values.tab"
+    "datatable.faction_recruiter.imperial.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/imperial/installation.tab"
+    "datatable.faction_recruiter.rebel.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab"
     "PlayerObject.cpp" = Join-Path $source "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
     "PlayerObject.h" = Join-Path $source "src/engine/server/library/serverGame/src/shared/object/PlayerObject.h"
     "ScriptMethodsPvp.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
@@ -76,6 +94,13 @@ foreach ($name in $paths.Keys)
 }
 
 $gcw = [string]$texts["script.library.gcw"]
+$factionPerk = [string]$texts["script.library.faction_perk"]
+$gcwParent = [string]$texts["script.systems.gcw.gcw_parent_object"]
+$hqLoader = [string]$texts["script.faction_perk.hq.loader"]
+$baseRegister = [string]$texts["script.faction_perk.hq.planetary_base_register"]
+$hqPointValues = [string]$texts["datatable.faction_perk.hq.hq_point_values"]
+$imperialInstallations = [string]$texts["datatable.faction_recruiter.imperial.installation"]
+$rebelInstallations = [string]$texts["datatable.faction_recruiter.rebel.installation"]
 $player = [string]$texts["PlayerObject.cpp"]
 $playerHeader = [string]$texts["PlayerObject.h"]
 $scriptPvp = [string]$texts["ScriptMethodsPvp.cpp"]
@@ -117,6 +142,116 @@ Assert-Contract ($player.Contains("void grantGcwFactionalPresenceScore(std::stri
     $player.Contains("if (!lfgCharacterData.locationFactionalPresenceGcwRegion.empty())") -and
     $player.Contains("grantGcwFactionalPresenceScore(lfgCharacterData.locationFactionalPresenceGcwRegion, *this, *owner);")) `
     "p14.gcw-rating.regional-presentation-compatibility-retained"
+
+$periodicOverwrite = Get-FunctionSlice $gcwParent `
+    "public int updateGCWData" `
+    "public int updateGCWScore"
+$deltaUpdate = Get-FunctionSlice $gcwParent `
+    "public int updateGCWScore" `
+    "public int synchronizeGCWScore"
+$absoluteUpdate = Get-FunctionSlice $gcwParent `
+    "public int synchronizeGCWScore" `
+    "private void ensurePrecuControlScoreState"
+Assert-Contract ($periodicOverwrite.Contains("ensurePrecuControlScoreState(self);") -and
+    -not $periodicOverwrite.Contains("getImperialPercentileByRegion") -and
+    -not $periodicOverwrite.Contains("getRebelPercentileByRegion") -and
+    -not $periodicOverwrite.Contains('messageTo(self, "updateGCWData"')) `
+    "p14.gcw-rating.nge-percentile-planet-overwrite-retired"
+Assert-Contract ($deltaUpdate.Contains('params.containsKey("intScoreChange")') -and
+    $deltaUpdate.Contains('params.containsKey("strFaction")') -and
+    $deltaUpdate.Contains('"Imperial".equals(faction)') -and
+    $deltaUpdate.Contains('"Rebel".equals(faction)') -and
+    $deltaUpdate.Contains('Math.max(0L, adjustedScore)') -and
+    $deltaUpdate.Contains('setObjVar(self, scoreObjVar, newScore)')) `
+    "p14.gcw-rating.precu-base-delta-handler-restored"
+Assert-Contract ($absoluteUpdate.Contains('params.containsKey("imperialScore")') -and
+    $absoluteUpdate.Contains('params.containsKey("rebelScore")') -and
+    $absoluteUpdate.Contains('setObjVar(self, "Imperial.controlScore", Math.max(0, params.getInt("imperialScore")))') -and
+    $absoluteUpdate.Contains('setObjVar(self, "Rebel.controlScore", Math.max(0, params.getInt("rebelScore")))')) `
+    "p14.gcw-rating.precu-base-absolute-synchronizer-restored"
+
+$changePlanetScore = Get-FunctionSlice $gcw `
+    "public static void changeGCWScore" `
+    "public static void synchronizePlanetaryBaseControlScore"
+$synchronizePlanetScore = Get-FunctionSlice $gcw `
+    "public static void synchronizePlanetaryBaseControlScore" `
+    "public static void incrementGCWScore"
+$killAccumulator = Get-FunctionSlice $gcw `
+    "public static void checkAndUpdateGCWStanding" `
+    "public static obj_id getPub30StaticBaseControllerId"
+Assert-Contract ($changePlanetScore.Contains('intValue == 0') -and
+    $changePlanetScore.Contains('!"Imperial".equals(strFaction)') -and
+    $changePlanetScore.Contains('!"Rebel".equals(strFaction)') -and
+    $changePlanetScore.Contains('isIdValid(objParent)') -and
+    $changePlanetScore.Contains('messageTo(objParent, "updateGCWScore"')) `
+    "p14.gcw-rating.base-delta-message-validated"
+Assert-Contract ($synchronizePlanetScore.Contains('Math.max(0, imperialScore)') -and
+    $synchronizePlanetScore.Contains('Math.max(0, rebelScore)') -and
+    $synchronizePlanetScore.Contains('messageTo(objParent, "synchronizeGCWScore"')) `
+    "p14.gcw-rating.base-absolute-message-validated"
+Assert-Contract ($killAccumulator.Contains('removeObjVar(self, "gcw.intKillScore")') -and
+    -not $killAccumulator.Contains("changeGCWScore") -and
+    -not $killAccumulator.Contains("earned_gcw_points")) `
+    "p14.gcw-rating.non-base-kill-planet-score-retired"
+
+$basePointLookup = Get-FunctionSlice $factionPerk `
+    "public static int grabFactionBasePointValue" `
+    "public static boolean executeComlinkReinforcements"
+Assert-Contract ($basePointLookup.Contains("int default_point_value = 0;") -and
+    $basePointLookup.Contains("if (point_value < 0)")) `
+    "p14.gcw-rating.unknown-later-base-has-no-control-authority"
+Assert-Contract ($hqLoader.Contains('dungeon_info.put("pointValue", Math.max(0, faction_perk.grabFactionBasePointValue(self)))')) `
+    "p14.gcw-rating.base-registry-records-authored-point-value"
+Assert-Contract ($baseRegister.Contains("PRECU_BASE_RECONCILIATION_PULSE = 3600.0f") -and
+    $baseRegister.Contains('dataItem.containsKey("pointValue")') -and
+    $baseRegister.Contains("rebelScore += pointValue") -and
+    $baseRegister.Contains("imperialScore += pointValue") -and
+    $baseRegister.Contains("setBaseCount(self, rebel, imperial)") -and
+    $baseRegister.Contains("gcw.synchronizePlanetaryBaseControlScore(getLocation(self), imperialScore, rebelScore)") -and
+    $baseRegister.Contains("releaseClusterWideDataLock(manage_name, lock_key)")) `
+    "p14.gcw-rating.base-registry-periodic-absolute-reconciliation"
+
+$expectedBaseValues = [ordered]@{
+    "object/building/faction_perk/hq/hq_s01_imp.iff" = 1
+    "object/building/faction_perk/hq/hq_s01_imp_pvp.iff" = 2
+    "object/building/faction_perk/hq/hq_s02_imp.iff" = 3
+    "object/building/faction_perk/hq/hq_s02_imp_pvp.iff" = 6
+    "object/building/faction_perk/hq/hq_s03_imp.iff" = 4
+    "object/building/faction_perk/hq/hq_s03_imp_pvp.iff" = 8
+    "object/building/faction_perk/hq/hq_s04_imp.iff" = 10
+    "object/building/faction_perk/hq/hq_s04_imp_pvp.iff" = 20
+    "object/building/faction_perk/hq/hq_s01_rebel.iff" = 1
+    "object/building/faction_perk/hq/hq_s01_rebel_pvp.iff" = 2
+    "object/building/faction_perk/hq/hq_s02_rebel.iff" = 3
+    "object/building/faction_perk/hq/hq_s02_rebel_pvp.iff" = 6
+    "object/building/faction_perk/hq/hq_s03_rebel.iff" = 4
+    "object/building/faction_perk/hq/hq_s03_rebel_pvp.iff" = 8
+    "object/building/faction_perk/hq/hq_s04_rebel.iff" = 10
+    "object/building/faction_perk/hq/hq_s04_rebel_pvp.iff" = 20
+}
+$baseValueRows = [ordered]@{}
+foreach ($line in ($hqPointValues -split "`r?`n" | Select-Object -Skip 2 | Where-Object { $_.Length -gt 0 }))
+{
+    $columns = $line -split "`t"
+    if ($columns.Count -eq 2)
+    {
+        $baseValueRows[$columns[0]] = [int]$columns[1]
+    }
+}
+$baseValuesMatch = $baseValueRows.Count -eq $expectedBaseValues.Count
+foreach ($template in $expectedBaseValues.Keys)
+{
+    $baseValuesMatch = $baseValuesMatch -and $baseValueRows.Contains($template) -and
+        $baseValueRows[$template] -eq $expectedBaseValues[$template]
+}
+Assert-Contract ($baseValuesMatch -and -not $hqPointValues.Contains("hq_s05")) `
+    "p14.gcw-rating.exact-precu-player-base-point-values"
+$requiredRecruiterBaseTiers = @("hq_s01", "hq_s02", "hq_s03", "hq_s04")
+Assert-Contract ((@($requiredRecruiterBaseTiers | Where-Object {
+        -not $imperialInstallations.Contains($_) -or -not $rebelInstallations.Contains($_)
+    }).Count -eq 0) -and
+    -not $imperialInstallations.Contains("hq_s05") -and -not $rebelInstallations.Contains("hq_s05")) `
+    "p14.gcw-rating.precu-recruiter-excludes-later-s05-base"
 
 $retire = Get-FunctionSlice $player `
     "void PlayerObject::retirePostNgeGcwRatingState()" `
