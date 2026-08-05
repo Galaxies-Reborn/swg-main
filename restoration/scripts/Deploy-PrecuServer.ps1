@@ -973,6 +973,10 @@ grep -Fq 'retirePostNgeMeditationBuffs(player);' "$work_buff_library"
 meditation_start_source="$(sed -n '/public static boolean startMeditation/,/public static void endMeditation/p' "$work_meditation_library")"
 printf '%s' "$meditation_start_source" | grep -Fq 'buff.retirePostNgeMeditationBuffs(player);'
 ! grep -Fq 'fs_meditate_' "$work_meditation_library"
+meditation_tick_source="$(sed -n '/public int handleMeditationTick/,/public int msgCoupDeGraceAuthoritativeCheck/p' "$work_base_player")"
+printf '%s' "$meditation_tick_source" | grep -Fq 'meditation.trance(self)'
+printf '%s' "$meditation_tick_source" | grep -Fq 'messageTo(self, meditation.HANDLER_MEDITATION_TICK'
+! printf '%s' "$meditation_tick_source" | grep -Eq 'MEDITATE_BUFFS|fs_meditate_|buff\.applyBuff|utils\.isProfession\(self, utils\.FORCE_SENSITIVE\)|utils\.setScriptVar\(self, meditation\.VAR_MEDITATION_BASE'
 awk -F '\t' '$1 ~ /^fs_meditate_[123]$/ { found++; if ($8 !~ /^expertise_/ || $12 != "expertise_resource_quality_increase") exit 2 } END { if (found != 3) exit 3 }' "$work_buff_table"
 cmp -s "$source_player_stealth" "$work_player_stealth"
 cmp -s "$source_beast_library" "$work_beast_library"
@@ -1312,6 +1316,10 @@ for retired_meditation_buff in fs_meditate_1 fs_meditate_2 fs_meditate_3; do
 done
 javap -classpath "$class_root" -c script.library.meditation | grep -Fq 'retirePostNgeMeditationBuffs'
 ! javap -classpath "$class_root" -v script.library.meditation | grep -Fq 'fs_meditate_'
+meditation_tick_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/handleMeditationTick/,/msgCoupDeGraceAuthoritativeCheck/p')"
+printf '%s' "$meditation_tick_bytecode" | grep -Fq 'meditation.trance'
+printf '%s' "$meditation_tick_bytecode" | grep -Fq 'messageTo'
+! printf '%s' "$meditation_tick_bytecode" | grep -Eq 'MEDITATE_BUFFS|fs_meditate_|buff\.applyBuff|utils\.isProfession|VAR_MEDITATION_BASE'
 javap -classpath "$class_root" -v script.player.skill.performcommands | grep -Fq 'isPostNgeBuffProgressionRetired'
 javap -classpath "$class_root" -v script.player.skill.performcommands | grep -Fq 'retirePostNgeBuffProgression'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'isPostNgeBuffProgressionRetired'

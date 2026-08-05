@@ -249,6 +249,8 @@ $meditationBuffCleanup = Get-BracedBlock $buffLibrary `
     "public static void retirePostNgeMeditationBuffs(obj_id player)"
 $meditationStart = Get-BracedBlock $meditationLibrary `
     "public static boolean startMeditation(obj_id player)"
+$meditationTick = Get-BracedBlock $basePlayer `
+    "public int handleMeditationTick(obj_id self, dictionary params)"
 $retiredMeditationNames = @([regex]::Matches($meditationBuffCleanup,
         '"fs_meditate_[123]"') | ForEach-Object { $_.Value.Trim('"') })
 Assert-Contract ($buffProgressionCleanup.Contains("retirePostNgeMeditationBuffs(player);") -and
@@ -266,6 +268,15 @@ Assert-Contract ($meditationStart.IndexOf("buff.retirePostNgeMeditationBuffs(pla
         $meditationStart.IndexOf("setState(player, STATE_MEDITATE, true);",
             [StringComparison]::Ordinal)) `
     "p14.combat-expertise-isolation.meditation.cleanup-dominates-start"
+Assert-Contract ([bool]$contract.expected.meditationTickRandomGrantRetired -and
+    $meditationTick.Contains("meditation.trance(self)") -and
+    $meditationTick.Contains("messageTo(self, meditation.HANDLER_MEDITATION_TICK") -and
+    -not $meditationTick.Contains("MEDITATE_BUFFS") -and
+    -not $meditationTick.Contains("fs_meditate_") -and
+    -not $meditationTick.Contains("buff.applyBuff") -and
+    -not $meditationTick.Contains("utils.isProfession(self, utils.FORCE_SENSITIVE)") -and
+    -not $meditationTick.Contains("utils.setScriptVar(self, meditation.VAR_MEDITATION_BASE")) `
+    "p14.combat-expertise-isolation.meditation.random-tick-grant-retired"
 $meditationRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
     [string]$_.NAME -match '^fs_meditate_[123]$'
 })

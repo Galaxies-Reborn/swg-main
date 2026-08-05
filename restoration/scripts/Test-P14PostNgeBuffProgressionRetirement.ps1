@@ -105,6 +105,8 @@ $flagBody = Get-SourceSlice $buffText "public static boolean isPostNgeBuffProgre
 $cleanupBody = Get-SourceSlice $buffText "public static void retirePostNgeBuffProgression" "public static final String DOT_BLEEDING"
 $meditationCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgeMeditationBuffs" "public static final String DOT_BLEEDING"
+$meditationTickBody = Get-SourceSlice ([string]$sourceTexts["player/base/base_player.java"]) `
+    "public int handleMeditationTick" "public int msgCoupDeGraceAuthoritativeCheck"
 Assert-Contract ($flagBody.Contains("return true;")) "p14.buff-progression.central-flag.true"
 foreach ($buffName in @($contract.expected.retiredBuffs))
 {
@@ -120,6 +122,15 @@ foreach ($buffName in @($contract.expected.retiredMeditationBuffs))
     Assert-Contract ($meditationCleanupBody.Contains("`"$buffName`"")) `
         "p14.buff-progression.cleanup.meditation.$buffName"
 }
+Assert-Contract ([bool]$contract.expected.randomMeditationTickGrantRetired -and
+    $meditationTickBody.Contains("meditation.trance(self)") -and
+    $meditationTickBody.Contains("messageTo(self, meditation.HANDLER_MEDITATION_TICK") -and
+    -not $meditationTickBody.Contains("MEDITATE_BUFFS") -and
+    -not $meditationTickBody.Contains("fs_meditate_") -and
+    -not $meditationTickBody.Contains("buff.applyBuff") -and
+    -not $meditationTickBody.Contains("utils.isProfession(self, utils.FORCE_SENSITIVE)") -and
+    -not $meditationTickBody.Contains("utils.setScriptVar(self, meditation.VAR_MEDITATION_BASE")) `
+    "p14.buff-progression.meditation.random-tick-grant-retired"
 foreach ($tree in @($contract.expected.retiredScriptVarTrees))
 {
     Assert-Contract ($cleanupBody.Contains("removeScriptVarTree(player, `"$tree`")")) "p14.buff-progression.cleanup.scriptvar.$tree"
