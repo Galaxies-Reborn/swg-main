@@ -579,6 +579,18 @@ $masterLookup = Get-FunctionSlice $gcw `
 $precuPercentile = Get-FunctionSlice $gcw `
     "public static int getImperialPercentileByRegion" `
     "public static int getRebelPercentileByRegion"
+$gcwDictionary = Get-FunctionSlice $gcw `
+    "public static dictionary getGCWDictionary" `
+    "public static int getImperialPlanetControlScore"
+$imperialRatio = Get-FunctionSlice $gcw `
+    "public static float getImperialRatio" `
+    "public static float getRebelRatio"
+$rebelRatio = Get-FunctionSlice $gcw `
+    "public static float getRebelRatio" `
+    "public static void incrementGCWStanding"
+$baseDestroy = Get-FunctionSlice $hqLoader `
+    "public int OnDestroy" `
+    "private void setCWData"
 $planetReconciliation = Get-FunctionSlice $planetBase `
     "public int reconcilePrecuGcwBaseControl" `
     "public int OnClusterWideDataResponse"
@@ -613,6 +625,15 @@ Assert-Contract ($precuPercentile.Contains("getImperialPlanetControlScore(target
     -not $precuPercentile.Contains("getGcwImperialScorePercentile") -and
     [bool]$contract.expected.precuBaseDerivedRegionalPresentation) `
     "p14.gcw-rating.regional-presentation-derived-from-base-control"
+Assert-Contract ($gcwDictionary.Contains("getImperialPlanetControlScore(self)") -and
+    $gcwDictionary.Contains("getRebelPlanetControlScore(self)") -and
+    $imperialRatio.Contains("getImperialPlanetControlScore(objNPC)") -and
+    $imperialRatio.Contains("getRebelPlanetControlScore(objNPC)") -and
+    $rebelRatio.Contains("getImperialPlanetControlScore(objNPC)") -and
+    $rebelRatio.Contains("getRebelPlanetControlScore(objNPC)") -and
+    -not ($gcwDictionary + $imperialRatio + $rebelRatio).Contains("getIntObjVar") -and
+    [bool]$contract.expected.precuPlanetRatioReadsDirect) `
+    "p14.gcw-rating.legacy-score-readers-use-planet-authority"
 Assert-Contract ($planetDeltaUpdate.Contains('params.containsKey("intScoreChange")') -and
     $planetDeltaUpdate.Contains('params.containsKey("strFaction")') -and
     $planetDeltaUpdate.Contains('"Imperial".equals(faction)') -and
@@ -657,6 +678,13 @@ Assert-Contract ($basePointLookup.Contains("int default_point_value = 0;") -and
     "p14.gcw-rating.unknown-later-base-has-no-control-authority"
 Assert-Contract ($hqLoader.Contains('dungeon_info.put("pointValue", Math.max(0, faction_perk.grabFactionBasePointValue(self)))')) `
     "p14.gcw-rating.base-registry-records-authored-point-value"
+Assert-Contract ($hqLoader.Contains('PRECU_BASE_CWD_MANAGER = "gcw_player_base"') -and
+    $hqLoader.Contains('PRECU_BASE_CWD_ELEMENT_PREFIX = "base_cwdata_manager"') -and
+    $baseDestroy.Contains('removeClusterWideData(PRECU_BASE_CWD_MANAGER, PRECU_BASE_CWD_ELEMENT_PREFIX + "-" + self, 0)') -and
+    $baseDestroy.IndexOf("removeClusterWideData", [System.StringComparison]::Ordinal) -lt
+        $baseDestroy.IndexOf("gcw.decrementGCWScore", [System.StringComparison]::Ordinal) -and
+    [bool]$contract.expected.destroyedPlayerBaseRegistryRecordRemoved) `
+    "p14.gcw-rating.destroyed-base-removed-from-authoritative-registry"
 Assert-Contract ($baseRegister.Contains("PRECU_BASE_RECONCILIATION_PULSE = 3600.0f") -and
     $baseRegister.Contains("setBaseCount(self, rebel, imperial)") -and
     $baseRegister.Contains("releaseClusterWideDataLock(manage_name, lock_key)") -and
