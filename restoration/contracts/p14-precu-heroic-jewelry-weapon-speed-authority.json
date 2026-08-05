@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-heroic-jewelry-weapon-speed-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Keep the retained heroic jewelry loot while translating its generated NGE weapon action-cost expertise roll to the corresponding Publish 14.1 weapon-speed skill modifier consumed by the authoritative PRE-CU cadence path.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -50,45 +50,48 @@
       "skillTable": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "commandQueue": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba"
     },
-    "compiledClassSha256": "",
-    "sourceTest": "passed; pending parent gate commit",
+    "compiledClassSha256": "dc4c0ab97d2fed97e3403d197d772b84a84a7fd64dd2ed28732aa50762826a60",
+    "sourceTest": "passed; authenticated exact PRE-CU speed pools, unchanged weighting/value/lifecycle, all twenty-six master-item bindings, all seventy-two heroic loot placements, skill-table definitions, native cadence consumption, and zero heroic expertise references",
     "focusedJavaCompile": "passed in an ephemeral in-memory directory that was removed immediately; bytecode retained all ten PRE-CU speed modifiers and contained no expertise_action_weapon symbol",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "",
-    "serverBinaryBuildId": "",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and heroic_random_stat_item.class was emitted at 2026-08-05T03:53:43.016085205Z",
+    "fullServerBuild": "passed in 647.8 seconds from pushed parent f33b09f and direct dsrc 15edcac8c",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for heroic_random_stat_item.java, master_item.tab, heroic_drops.tab, skills.tab, and CommandQueue.cpp between the read-only source and Docker work volume; the changed Java source copies both have SHA-256 f8e99da8dbbf80635c97aee582f56b91af644ba6e95a5fdd2c8b18a8ccf637f7",
+    "bytecodeAudit": "passed; heroic_random_stat_item.class contains the weighted helper and all ten Publish 14.1 weapon-speed modifiers and contains no expertise_action_weapon symbol",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused heroic jewelry source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "compiledClassSize": 0,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": 0,
-    "liveBinaryInode": 0,
-    "liveBinarySize": 0,
-    "liveBinaryMapEntries": 0,
-    "processCounts": {},
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-05T03:59:34.563893553Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 2877,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 366,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "New retained heroic jewelry can no longer seed an NGE weapon action-cost expertise statistic; its weighted weapon roll now participates in the authoritative PRE-CU attack-speed calculation.",
     "preserved": "All jewelry templates, names, item-table rows, heroic loot placements, delayed one-time initialization, two existing primary-stat rolls, +25/+25/+2 magnitudes, and the original ranged/melee/lightsaber weighting remain unchanged.",
     "notClaimedComplete": "The two inherited NGE primary-stat rolls require a separate authenticated translation; other retained content-specific expertise references remain subject to later production-reachability audits."
   },
-  "requiredBeforeReady": [
-    "Pass a clean full Java and x64 server build from the pushed direct-source pin.",
-    "Authenticate source/work parity and the emitted heroic jewelry class.",
-    "Restart the server, observe the player-ready marker, verify the mapped x64 binary, and audit post-start logs."
-  ]
+  "requiredBeforeReady": []
 }
