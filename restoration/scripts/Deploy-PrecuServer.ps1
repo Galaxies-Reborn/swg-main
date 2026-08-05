@@ -617,6 +617,9 @@ grep -Fq 'setInvulnerable(beast, true);' "$work_tcg_library"
 grep -Fq 'tcg.barnDisplayBeast' "$work_barn_ranchhand"
 grep -Fq 'tcg.barnDisplayBeast' "$work_barn_lite_device"
 grep -Fq 'destroyObject(self);' "$work_barn_beast"
+! grep -Fq 'expertise_' "$work_barn_beast"
+test "$(grep -Fc 'getWeaponMinDamage(' "$work_barn_beast")" -eq 2
+test "$(grep -Fc 'getWeaponMaxDamage(' "$work_barn_beast")" -eq 2
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -828,6 +831,9 @@ javap -classpath "$class_root" -v script.systems.tcg.barn_lite_device | grep -Fq
 javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'barnStorage.'
 javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'beast_roaming'
 javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'destroyObject'
+! javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'expertise_'
+javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'getWeaponMinDamage'
+javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'getWeaponMaxDamage'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'

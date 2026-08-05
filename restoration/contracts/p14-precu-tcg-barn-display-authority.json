@@ -1,28 +1,31 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-tcg-barn-display-authority",
-  "status": "ready",
-  "scope": "Keep the retained TCG barn display and storage content while removing NGE Beast Master expertise and attention-penalty authority from its cosmetic creature representations.",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Keep the retained TCG barn display and storage content while removing NGE Beast Master expertise and attention-penalty authority from its cosmetic creature representations and their attribute readout.",
   "eraEvidence": {
     "basis": "The Publish 14.1 Creature Handler rules remain authoritative and the post-NGE Beast Master player runtime is already retired. Retained later-content barn representations are cosmetic, invulnerable objects and must not reactivate NGE player expertise or attention mechanics.",
     "findings": [
       "The barn display path creates an invulnerable representation, attaches its retained barn and AI scripts, and persists a storage-slot link for later reclaim.",
       "Its base damage, health, regeneration, armor, and weapon speed come from retained authored beast tables, with stored incubation bonuses applied independently of player expertise.",
       "The removed code derived display regeneration, health, speed, armor, damage, special damage, and attention-debuff reduction from post-NGE Beast Master expertise.",
+      "The representation attribute handler redundantly multiplied the already initialized current/default weapon values by expertise_damage_all, allowing a later NGE modifier to make displayed damage diverge from the authored weapon values.",
       "The live Beast Control Device menus remain denied to players by the existing post-NGE Beast Master retirement guards."
     ]
   },
   "expected": {
-    "changedGameplaySourceFiles": 1,
+    "changedGameplaySourceFiles": 2,
     "ngeExpertiseReferencesInTcgLibrary": 0,
     "expertiseHelperCallsInTcgLibrary": 0,
     "attentionPenaltyReferencesInTcgLibrary": 0,
+    "ngeExpertiseReferencesInBarnDisplayScript": 0,
     "directBarnDisplayCallers": 2,
     "internalRoamingDisplayBranches": 2,
     "displayRepresentationInvulnerable": true,
     "authoredBaseStatsPreserved": true,
     "storedIncubationBonusesPreserved": true,
     "storedHealthExperienceAndLevelabilityPreserved": true,
+    "displayedDamageUsesInitializedWeaponValues": true,
     "playerBeastMasterRuntimeRetirementPreserved": true
   },
   "sourceFiles": {
@@ -35,8 +38,8 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "b286a324dbe241aa476a483642cad7caa28c5313",
-    "lineEndingPolicy": "the touched legacy tcg.java blob was normalized to the repository's declared LF policy",
+    "directSourceGitlink": "8e1910b25d57a1c8e1e87b99f24ae125ffb5b61e",
+    "lineEndingPolicy": "the touched legacy tcg.java and barn_beast.java blobs were normalized to the repository's declared LF policy",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "tcgLibrary": "82254ffb6e21d463dec4ae070b11e6749862730223d0b818c5998d81ef81c8b1",
@@ -44,54 +47,53 @@
       "beastControlDevice": "527fb77039e8429b38fde80d301a9950ce70f84ffc62d046bc315757d6267438",
       "barnRanchhand": "6d77030a63a44f6129a375ee6ec069b8c8e41b8f272b6565ee6692cd19e80054",
       "barnLiteDevice": "73bd9d8cf8414801b190a9b52144933536fd3a943201cb6bb4d4f83ea8ae1fb9",
-      "barnBeast": "be8c7f8af28f35d645083d12f2cb26dccf595aacaac764f8be89ba1f580824e4"
+      "barnBeast": "c6404b206e064a4e9f7b47224e424305a7440993e61c20ee40b127df53a8f14c"
     },
     "compiledClassSha256": {
-      "tcgLibrary": "86cd010531020c9bd8f430c9e92c704b302aab0b33b16eafb1a05fffe930fb4a"
+      "tcgLibrary": "86cd010531020c9bd8f430c9e92c704b302aab0b33b16eafb1a05fffe930fb4a",
+      "barnBeast": "pending-clean-build"
     },
-    "sourceTest": "passed; retained display creation, authored and incubation statistics, storage lifecycle, player-runtime retirement, and the absence of NGE expertise and attention authority were authenticated",
-    "focusedJavaCompile": "passed; tcg.java compiled successfully against the current direct-source work tree",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and tcg.class was emitted at 2026-08-05T00:48:40.456750910Z",
-    "fullServerBuild": "passed in the 472.3-second clean build run from pushed parent 09a71fe and direct dsrc b286a324; deployment halted only on a verifier assumption about an inlined Java constant, which was corrected and pushed at e461601 without changing the emitted build outputs",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed byte-for-byte for tcg.java, barn_ranchhand.java, barn_lite_device.java, and barn_beast.java against the read-only direct-source mount; all six contract source hashes authenticated",
-    "bytecodeAudit": "passed; tcg.class contains no expertise_, getExpertiseStat, getExpertiseSpeed, or ATTENTION_PENALTY_DEBUFF symbols and retains barnDisplayBeast, initializeBeastStatsFromBarn, authored regeneration, and invulnerability symbols; both controller classes retain display calls and barn_beast.class retains storage and destruction symbols",
-    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused TCG barn source and bytecode gates, cumulative data/native/bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "sourceTest": "passed; retained display creation, authored and incubation statistics, exact current/default weapon readout, storage lifecycle, player-runtime retirement, and the absence of NGE expertise and attention authority were authenticated",
+    "focusedJavaCompile": "passed; barn_beast.java compiled directly against the current server classpath and its emitted class contains no expertise_damage_all symbol",
+    "fullJavaCompile": "pending clean deployment for direct dsrc 8e1910b25",
+    "fullServerBuild": "pending clean deployment for direct dsrc 8e1910b25",
+    "architecture": "pending clean deployment",
+    "serverBinarySha256": "pending clean deployment",
+    "serverBinaryBuildId": "pending clean deployment",
+    "sourceWorkParity": "pending clean deployment",
+    "bytecodeAudit": "pending clean deployment",
+    "deploymentProbe": "pending clean deployment",
+    "result": "pending"
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
+    "date": "pending",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-05T00:58:30.392426993Z",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
     "compiledClassSizes": {
-      "tcgLibrary": 29614
+      "tcgLibrary": 0,
+      "barnBeast": 0
     },
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 367,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
-    "liveBinaryMapEntries": 2,
-    "processCounts": {
-      "LoginServer": 1,
-      "TaskManager": 1,
-      "ConnectionServer": 1,
-      "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
-    },
-    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "liveBinaryMapEntries": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "Retained TCG barn representations can no longer inherit post-NGE Beast Master expertise statistics or impose the NGE attention penalty on a player.",
+    "closedInThisMilestone": "Retained TCG barn representations and their attribute readout can no longer inherit post-NGE Beast Master expertise statistics or impose the NGE attention penalty on a player.",
     "preserved": "Barn placement, display selection, roaming restoration, coloring, naming, scale, animations, authored base values, stored incubation bonuses, stored health/experience/levelability, and reclaim behavior remain available.",
     "notClaimedComplete": "Other retained TCG and Beast-era compatibility content remains subject to the wider PRE-CU precedence audit."
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Pass the full clean Java and x64 native build from the named Docker work volume.",
+    "Authenticate the emitted tcg.class and barn_beast.class plus the live server process.",
+    "Start a healthy cluster with no fatal post-start log evidence."
+  ]
 }

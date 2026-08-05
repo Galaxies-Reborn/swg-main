@@ -66,6 +66,8 @@ $initialize = Get-BracedBlock $tcg `
     "public static void initializeBeastStatsFromBarn"
 $showRoaming = Get-BracedBlock $tcg `
     "public static boolean showRoamingBeasts"
+$displayAttributes = Get-BracedBlock $barnBeast `
+    "public int OnGetAttributes"
 $runtimeRetired = Get-BracedBlock $beastLibrary `
     "public static boolean isPostNgeBeastMasterPlayerRuntimeRetired"
 
@@ -117,6 +119,14 @@ Assert-Contract ($barnBeast.Contains("tcg.BEAST_ROAMING") -and
     $barnBeast.Contains("removeObjVar") -and
     $barnBeast.Contains("destroyObject(self)")) `
     "p14.tcg-barn.reclaim-and-pack-preserved"
+Assert-Contract (-not $barnBeast.Contains("expertise_") -and
+    -not $displayAttributes.Contains("getEnhancedSkillStatisticModifierUncapped") -and
+    ([regex]::Matches($displayAttributes, 'getWeaponMinDamage\(')).Count -eq 2 -and
+    ([regex]::Matches($displayAttributes, 'getWeaponMaxDamage\(')).Count -eq 2 -and
+    $displayAttributes.Contains('names[idx] = "damage"') -and
+    $displayAttributes.Contains('names[idx] = "attackspeed"') -and
+    $displayAttributes.Contains('names[idx] = "basedps"')) `
+    "p14.tcg-barn.displayed-damage-uses-initialized-weapon-values"
 
 Assert-Contract ($runtimeRetired.Contains("return true") -and
     ([regex]::Matches($beastControlDevice, 'beast_lib\.isRetiredPostNgeBeastMasterPlayer\(player\)')).Count -eq 2) `
@@ -138,7 +148,8 @@ if ($Expectation -eq "Ready")
     Assert-Contract ($dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.tcg-barn.direct-source-pin"
-    Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.tcgLibrary -match '^[a-f0-9]{64}$' -and
+    Assert-Contract (@($contract.buildEvidence.compiledClassSha256.PSObject.Properties |
+        Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0 -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.tcg-barn.live-evidence"
