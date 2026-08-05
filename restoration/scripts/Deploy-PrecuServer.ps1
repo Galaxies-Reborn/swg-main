@@ -59,6 +59,10 @@ Write-Host "Verifying the direct-source PRE-CU combat routing closure before bui
 & (Join-Path $PSScriptRoot "Test-P14PrecuCombatRoutingClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU profession and Officer runtime authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuProfessionAuthorityClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU zone transition level authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuZoneTransitionLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -511,6 +515,7 @@ precu_cosmetic_familiar_paths="ai/familiar.java"
 precu_droid_detonation_paths="ai/pet.java ai/pet_control_device.java library/pet_lib.java npc/pet_deed/droid_deed.java systems/crafting/droid/modules/droid_bomb.java"
 post_nge_beast_creation_paths="ai/pet_control_device.java library/beast_lib.java library/incubator.java npc/pet_deed/pet_deed.java player/base/base_player.java player/player_utility.java systems/beast/base_incubator.java systems/beast/beast_dye.java systems/beast/beast_egg.java systems/beast/beast_food.java systems/beast/beast_steroid_injector.java systems/beast/decoration_item.java systems/beast/enzyme_crafting_base.java systems/beast/enzyme_crafting_centrifuge.java systems/beast/enzyme_crafting_combiner.java systems/beast/enzyme_crafting_processor.java systems/beast/enzyme_extractor.java"
 post_nge_beast_runtime_paths="ai/beast.java ai/beast_control_device.java ai/creature_combat.java conversation/trainer_beast_master.java library/beast_lib.java player/base/base_player.java player/live_conversions.java player/player_beastmaster.java systems/combat/combat_actions.java systems/combat/combat_base.java"
+post_nge_officer_runtime_paths="ai/officer_pet.java systems/combat/combat_base.java systems/combat/combat_actions.java systems/combat/combat_supply_drop_controller.java systems/combat/combat_supply_drop_crate.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -968,6 +973,18 @@ done
 for post_nge_beast_runtime_path in $post_nge_beast_runtime_paths; do
     cmp -s "$source_script/$post_nge_beast_runtime_path" "$work_script/$post_nge_beast_runtime_path"
 done
+for post_nge_officer_runtime_path in $post_nge_officer_runtime_paths; do
+    cmp -s "$source_script/$post_nge_officer_runtime_path" "$work_script/$post_nge_officer_runtime_path"
+done
+grep -Fq 'actionName.startsWith("of_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'isRetiredPostNgeOfficerPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
+test "$(grep -Fc 'isRetiredPostNgeOfficerPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 3
+! grep -Fq 'expertise_of_reinforcements_1' "$work_script/ai/officer_pet.java"
+grep -Fq 'pet_lib.destroyOfficerPets(master)' "$work_script/ai/officer_pet.java"
+test "$(grep -Fc 'retirePostNgeOfficerSupplyDrop(self, owner)' "$work_script/systems/combat/combat_supply_drop_controller.java")" -eq 3
+grep -Fq 'isPlayer(owner)' "$work_script/systems/combat/combat_supply_drop_controller.java"
+grep -Fq 'isPlayer(transferer)' "$work_script/systems/combat/combat_supply_drop_crate.java"
+grep -Fq 'retirePostNgeOfficerSupplyCrate(self)' "$work_script/systems/combat/combat_supply_drop_crate.java"
 ! grep -R -F 'expertise_bm_' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -E -R 'get(Enhanced)?SkillStatisticModifier(Uncapped)?\([^\r\n]*"(bm_|incubation_time_reduction)' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -Fq 'playerLearnBeastMasterSkill' "$work_script/conversation/trainer_beast_master.java"
@@ -1272,6 +1289,18 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sp_neutralize_device_1'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeSpyPlayerAction'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'isRetiredPostNgeSpyBuffName'
+# Publish 14.1 Squad Leader remains authoritative. Retire the post-NGE Officer
+# command family and every delayed/persisted player reinforcement surface.
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeOfficerPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'of_'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeOfficerPlayerAction'
+javap -classpath "$class_root" -v script.ai.officer_pet | grep -Fq 'retirePostNgeOfficerPet'
+javap -classpath "$class_root" -v script.ai.officer_pet | grep -Fq 'destroyOfficerPets'
+! javap -classpath "$class_root" -v script.ai.officer_pet | grep -Fq 'expertise_of_reinforcements_1'
+javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_controller | grep -Fq 'retirePostNgeOfficerSupplyDrop'
+javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_controller | grep -Fq 'destroyOfficerPets'
+javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_crate | grep -Fq 'retirePostNgeOfficerSupplyCrate'
+javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_crate | grep -Fq 'no_access_not_in_group'
 # Publish 14.1 Creature Handler remains authoritative. Retain Beast Master
 # assets for later-content loading but retire their player combat runtime.
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'

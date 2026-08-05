@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -86,6 +89,103 @@ Assert-Contract ((Get-TextSha256 $contentRecordText) -ceq [string]$contract.buil
     "p14.profession-closure.source-content.authenticated"
 $changedText = $changedTextBuilder.ToString()
 
+$officerRuntimeSources = [ordered]@{
+    "sku.0/sys.server/compiled/game/script/ai/officer_pet.java" = "ai/officer_pet.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java" = "systems/combat/combat_base.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_supply_drop_controller.java" = "systems/combat/combat_supply_drop_controller.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_supply_drop_crate.java" = "systems/combat/combat_supply_drop_crate.java"
+}
+Assert-Contract ($officerRuntimeSources.Count -eq [int]$contract.expected.authoritativeOfficerRuntimeFiles -and
+    @($contract.buildEvidence.officerRuntimeSourceSha256.PSObject.Properties).Count -eq
+        $officerRuntimeSources.Count) `
+    "p14.profession-closure.officer-runtime.source-count"
+$officerTexts = [ordered]@{}
+foreach ($property in $contract.buildEvidence.officerRuntimeSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $dsrc $property.Name
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        $officerRuntimeSources.Contains($property.Name) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            [string]$property.Value) `
+        "p14.profession-closure.officer-runtime.source.$($property.Name).authenticated"
+    if (Test-Path -LiteralPath $path -PathType Leaf)
+    {
+        $officerTexts[$officerRuntimeSources[$property.Name]] = Get-Content -LiteralPath $path -Raw
+    }
+}
+
+$combatBase = [string]$officerTexts["systems/combat/combat_base.java"]
+$officerPredicate = Get-FunctionSlice $combatBase `
+    "public static boolean isRetiredPostNgeOfficerPlayerAction" `
+    "public boolean combatStandardAction"
+Assert-Contract ($officerPredicate.Contains("isPlayer(self)") -and
+    $officerPredicate.Contains('actionName.startsWith("of_")') -and
+    $combatBase.Contains("if (isRetiredPostNgeOfficerPlayerAction(self, actionName))")) `
+    "p14.profession-closure.officer-runtime.central-player-action-gate"
+
+$combatActions = [string]$officerTexts["systems/combat/combat_actions.java"]
+$officerHandlers = @([regex]::Matches(
+    $combatActions,
+    '(?ms)^\s*public int (of_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+$standardOfficerHandlers = @($officerHandlers | Where-Object { $_.Value.Contains("combatStandardAction(") })
+$directOfficerHandlers = @($officerHandlers | Where-Object { -not $_.Value.Contains("combatStandardAction(") })
+$expectedDirectOfficerHandlers = @("of_last_words_recourse", "of_rally_point_def", "of_rally_point_off")
+$actualDirectOfficerHandlers = @($directOfficerHandlers | ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+$directOfficerHandlersGuarded = @($directOfficerHandlers | Where-Object {
+    $_.Value.Contains("isRetiredPostNgeOfficerPlayerAction(")
+}).Count -eq $directOfficerHandlers.Count
+Assert-Contract ($officerHandlers.Count -eq [int]$contract.expected.postNgeOfficerPlayerActionHandlers -and
+    $standardOfficerHandlers.Count -eq [int]$contract.expected.postNgeOfficerStandardActionHandlers -and
+    $directOfficerHandlers.Count -eq [int]$contract.expected.postNgeOfficerDirectCallbacks -and
+    ($actualDirectOfficerHandlers -join "`n") -ceq ($expectedDirectOfficerHandlers -join "`n") -and
+    $directOfficerHandlersGuarded) `
+    "p14.profession-closure.officer-runtime.all-player-actions-covered"
+
+$officerPet = [string]$officerTexts["ai/officer_pet.java"]
+Assert-Contract (-not $officerPet.Contains("expertise_of_reinforcements_1") -and
+    $officerPet.Contains("retirePostNgeOfficerPet") -and
+    $officerPet.Contains("pet_lib.destroyOfficerPets(master)") -and
+    $officerPet.Contains("destroyObject(self)")) `
+    "p14.profession-closure.officer-runtime.persisted-pet-retired"
+
+$supplyController = [string]$officerTexts["systems/combat/combat_supply_drop_controller.java"]
+$controllerCallbacks = @("startLandingSequence", "dropReinforcements", "dropSupplies")
+$controllerCallbacksGuarded = $true
+foreach ($callback in $controllerCallbacks)
+{
+    $slice = Get-FunctionSlice $supplyController "public int $callback" "public int"
+    if (-not $slice.Contains("retirePostNgeOfficerSupplyDrop(self, owner)"))
+    {
+        $controllerCallbacksGuarded = $false
+    }
+}
+$summonOfficerPet = Get-FunctionSlice $supplyController "public void summonOfficerPet" `
+    "public boolean retirePostNgeOfficerSupplyDrop"
+Assert-Contract ($controllerCallbacksGuarded -and
+    $summonOfficerPet.Contains("isPlayer(owner)") -and
+    $summonOfficerPet.Contains("pet_lib.destroyOfficerPets(owner)") -and
+    $summonOfficerPet.Contains("return;")) `
+    "p14.profession-closure.officer-runtime.delayed-drops-and-hirelings-retired"
+
+$supplyCrate = [string]$officerTexts["systems/combat/combat_supply_drop_crate.java"]
+$crateTransfer = Get-FunctionSlice $supplyCrate "public int OnAboutToLoseItem" `
+    "public boolean retirePostNgeOfficerSupplyCrate"
+Assert-Contract ($supplyCrate.Contains("public int OnAttach") -and
+    $supplyCrate.Contains("public int OnInitialize") -and
+    $supplyCrate.Contains("retirePostNgeOfficerSupplyCrate(self)") -and
+    $crateTransfer.Contains("isPlayer(transferer)") -and
+    $crateTransfer.Contains("return SCRIPT_OVERRIDE;")) `
+    "p14.profession-closure.officer-runtime.persisted-crate-retired"
+
+$officerExpertiseReaders = @(Get-ChildItem -LiteralPath `
+        (Join-Path $dsrc "sku.0/sys.server/compiled/game/script") -Recurse -File -Filter "*.java" |
+    Where-Object { $_.FullName -notmatch '[\\/](?:test|working|beta)[\\/]' } |
+    Select-String -SimpleMatch 'expertise_of_reinforcements_1')
+Assert-Contract ($officerExpertiseReaders.Count -eq
+    [int]$contract.expected.productionOfficerReinforcementExpertiseReaders) `
+    "p14.profession-closure.officer-runtime.production-expertise-reader-absent"
+
 $ngePattern = 'class_(?:bountyhunter|commando|domestics|engineering|entertainer|forcesensitive|medic|munitions|officer|smuggler|spy|structures|trader)'
 $executableAuthorityText = [regex]::Replace(
     $changedText,
@@ -131,6 +231,25 @@ Assert-Contract ($skillText.Contains("PRECU_PHASE_TWO_COMBAT_SCORE = 25") -and
     $phaseSlice.Contains("getPrecuCombatSkillScore(player)") -and
     -not [regex]::IsMatch($phaseSlice, $ngePattern)) `
     "p14.profession-closure.phase.hidden-precu-combat-score"
+
+$officerSkillsTable = Get-SourceText "sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+$commandTable = Get-SourceText "sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+$combatTable = Get-SourceText "sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
+$commandSeries = Get-SourceText "sku.0/sys.server/compiled/game/datatables/command/command_series.tab"
+$creatureTable = Get-SourceText "sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_officer_').Count -eq
+        [int]$contract.expected.retainedOfficerClassSkillRows) -and
+    ([regex]::Matches($officerSkillsTable, '(?m)^expertise_of_').Count -eq
+        [int]$contract.expected.retainedOfficerExpertiseSkillRows) -and
+    ([regex]::Matches($commandTable, '(?m)^of_').Count -eq
+        [int]$contract.expected.retainedOfficerCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^of_').Count -eq
+        [int]$contract.expected.retainedOfficerCombatRows) -and
+    ([regex]::Matches($commandSeries, '(?m)^of_').Count -eq
+        [int]$contract.expected.retainedOfficerCommandSeriesRows) -and
+    ([regex]::Matches($creatureTable, '(?m)^officer_reinforcement_').Count -eq
+        [int]$contract.expected.retainedOfficerReinforcementCreatureRows)) `
+    "p14.profession-closure.officer-runtime.compatibility-data-retained"
 
 $utilsText = Get-SourceText "sku.0/sys.server/compiled/game/script/library/utils.java"
 $professionSlice = Get-FunctionSlice $utilsText "public static int getPlayerProfession" "public static byte[] packObject"
@@ -229,6 +348,31 @@ Assert-Contract ($missionTerminal.Contains("menu_info_types.MISSION_TERMINAL_LIS
     $missionBase.Contains("MAX_MISSIONS = 10") -and $missionBase.Contains("fullRewardEach=") -and
     $missionBase.Contains("split=false dailyCashPenalty=false")) `
     "p14.profession-closure.mission-terminal.continuity"
+
+Assert-Contract (@("implemented-build-verified-live-pending", "ready") -ccontains
+    [string]$contract.status) "p14.profession-closure.contract.status"
+
+if ($Expectation -eq "Ready")
+{
+    $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+    $officerClassHashesValid = $null -ne $contract.buildEvidence.officerRuntimeClassEvidence -and
+        @($contract.buildEvidence.officerRuntimeClassEvidence.PSObject.Properties |
+            Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
+    Assert-Contract ([string]$manifest.sourceMode -ceq "direct-branch" -and
+        $dsrcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
+        "p14.profession-closure.direct-source-pin"
+    Assert-Contract ([string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$contract.runtimeEvidence.result -ceq "passed" -and
+        $officerClassHashesValid -and
+        [bool]$contract.runtimeEvidence.deployment.clusterReadyForPlayers -and
+        [bool]$contract.runtimeEvidence.deployment.mappedNewlyBuiltBinary) `
+        "p14.profession-closure.live-evidence"
+}
+
+$contractText = Get-Content -LiteralPath $contractPath -Raw
+Assert-Contract (-not $contractText.Contains("/Artifacts/") -and
+    -not $contractText.Contains("/Staging/")) "p14.profession-closure.no-host-staging"
 
 if ($failures.Count -gt 0)
 {
