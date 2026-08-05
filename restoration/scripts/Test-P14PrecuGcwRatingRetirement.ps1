@@ -88,6 +88,10 @@ $paths = [ordered]@{
     "script.systems.spawning.spawn_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java"
     "script.city.ship_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/city/ship_spawner.java"
     "script.item.publish_gift.gcw_mulit_image_painting" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/item/publish_gift/gcw_mulit_image_painting.java"
+    "script.library.holiday" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/holiday.java"
+    "script.systems.collections.collection_gcw" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/collections/collection_gcw.java"
+    "datatable.item.master_item.master_item" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+    "datatable.item.master_item.item_stats" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
     "datatable.faction_perk.hq.hq_point_values" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/faction_perk/hq/hq_point_values.tab"
     "datatable.faction_recruiter.imperial.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/imperial/installation.tab"
     "datatable.faction_recruiter.rebel.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab"
@@ -139,6 +143,10 @@ $travel = [string]$texts["script.library.travel"]
 $ambientSpawn = [string]$texts["script.systems.spawning.spawn_base"]
 $cityShipSpawner = [string]$texts["script.city.ship_spawner"]
 $gcwPainting = [string]$texts["script.item.publish_gift.gcw_mulit_image_painting"]
+$holiday = [string]$texts["script.library.holiday"]
+$collectionGcw = [string]$texts["script.systems.collections.collection_gcw"]
+$masterItems = [string]$texts["datatable.item.master_item.master_item"]
+$itemStats = [string]$texts["datatable.item.master_item.item_stats"]
 $hqPointValues = [string]$texts["datatable.faction_perk.hq.hq_point_values"]
 $imperialInstallations = [string]$texts["datatable.faction_recruiter.imperial.installation"]
 $rebelInstallations = [string]$texts["datatable.faction_recruiter.rebel.installation"]
@@ -174,6 +182,61 @@ Assert-Contract ($grant.Contains("Publish 14 faction standing and faction rank a
 Assert-Contract ($gcw.Contains('_grantGcwPoints(null, attacker, pointValue, false, -1, "")') -and
     $gcw.Contains("_grantGcwPoints(victim, attacker, pointValue, pvpKill, point_type, information)")) `
     "p14.gcw-rating.all-shared-grants-use-retired-choke-point"
+
+$holidayReward = Get-FunctionSlice $holiday `
+    "public static boolean rewardEmpireDayPlayer" `
+    "public static boolean setEventLockOutTimeStamp"
+Assert-Contract ($holidayReward.Contains("getEventTokens(") -and
+    $holidayReward.Contains("buff.applyBuff") -and
+    $holidayReward.Contains("play2dNonLoopingSound") -and
+    -not $holidayReward.Contains("pvpModifyCurrentGcwPoints") -and
+    -not $holidayReward.Contains("SID_GCW_POINTS") -and
+    -not [bool]$contract.expected.holidayGcwPointMessageReachable -and
+    [bool]$contract.expected.holidayTokenRewardsPreserved) `
+    "p14.gcw-rating.holiday-token-reward-retained-without-nge-points"
+
+$collectionMenuRequest = Get-FunctionSlice $collectionGcw `
+    "public int OnObjectMenuRequest" `
+    "public int OnObjectMenuSelect"
+$collectionMenuSelect = Get-FunctionSlice $collectionGcw `
+    "public int OnObjectMenuSelect" `
+    "public int handlerSuiGrantGcwPoints"
+$collectionHandler = Get-FunctionSlice $collectionGcw `
+    "public int handlerSuiGrantGcwPoints" `
+    "public int __no_later_method__"
+Assert-Contract ($collectionMenuRequest.Contains("return SCRIPT_CONTINUE;") -and
+    -not $collectionMenuRequest.Contains("mi.addRootMenu") -and
+    $collectionMenuSelect.Contains("return SCRIPT_CONTINUE;") -and
+    -not $collectionMenuSelect.Contains("sui.msgbox") -and
+    $collectionHandler.Contains("sui.removePid(player, PID_NAME)") -and
+    -not ($collectionMenuRequest + $collectionMenuSelect + $collectionHandler).Contains("pvpModifyCurrentGcwPoints") -and
+    -not $collectionHandler.Contains("decrementCount") -and
+    -not $collectionHandler.Contains("destroyObject") -and
+    -not $collectionHandler.Contains("sendSystemMessage(player, USED_ITEM)") -and
+    -not [bool]$contract.expected.gcwCollectionConsumeReachable) `
+    "p14.gcw-rating.gcw-point-collection-consume-retired-nondestructively"
+
+$gcwItemPattern = '(?m)^(?:col_reward_(?:rebel|imperial)_gcw_|item_event_lifeday_gcw_|item_gcw_points_(?:rebel|imperial)_gcw_)'
+$masterItemRows = [regex]::Matches($masterItems, $gcwItemPattern).Count
+$masterItemScriptRows = [regex]::Matches($masterItems, $gcwItemPattern + '[^\r\n]*systems\.collections\.collection_gcw').Count
+$itemStatRows = [regex]::Matches($itemStats, $gcwItemPattern + '[^\r\n]*collection\.gcw_point_value=').Count
+Assert-Contract ($masterItemRows -eq [int]$contract.expected.gcwCollectionItemsPreserved -and
+    $masterItemScriptRows -eq [int]$contract.expected.gcwCollectionItemsPreserved -and
+    $itemStatRows -eq [int]$contract.expected.gcwCollectionItemsPreserved) `
+    "p14.gcw-rating.gcw-point-collection-items-preserved"
+
+$scriptRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script"
+$productionWriterCalls = 0
+Get-ChildItem -LiteralPath $scriptRoot -Recurse -File -Filter "*.java" | Where-Object {
+    $_.Name -cne "base_class.java" -and -not $_.FullName.EndsWith("\hnguyen\cwdm_test.java", [System.StringComparison]::OrdinalIgnoreCase)
+} | ForEach-Object {
+    foreach ($line in [System.IO.File]::ReadLines($_.FullName))
+    {
+        if ($line.Contains("pvpModifyCurrentGcwPoints(")) { ++$productionWriterCalls }
+    }
+}
+Assert-Contract ($productionWriterCalls -eq [int]$contract.expected.directProductionGcwPointWriterCalls) `
+    "p14.gcw-rating.direct-production-gcw-point-writers-retired"
 
 $factionalPresence = Get-FunctionSlice $player `
     "void PlayerObjectNamespace::grantGcwFactionalPresenceScore" `
@@ -509,7 +572,7 @@ $nativeBridge = Get-FunctionSlice $scriptPvp `
 Assert-Contract ($nativeBridge.Contains("player->modifyCurrentGcwPoints(adjustment, true)") -and
     -not $nativeBridge.Contains("getGcwDefenderRegionBonus") -and
     (Get-BeforeFirstReturn (Get-FunctionSlice $player "void PlayerObject::modifyCurrentGcwPoints" "void PlayerObject::modifyCurrentGcwRating")).Contains("retirePostNgeGcwRatingState();")) `
-    "p14.gcw-rating.direct-holiday-and-collection-bypasses-closed-natively"
+    "p14.gcw-rating.native-compatibility-bridge-inert"
 
 $scriptImperialScoreWriter = Get-FunctionSlice $scriptPvp `
     "void JNICALL ScriptMethodsPvpNamespace::adjustGcwImperialScore" `
