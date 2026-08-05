@@ -432,6 +432,8 @@ source_battlefield_vehicle_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled
 work_battlefield_vehicle_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/vehicle/battlefield_vehicle.tab"
 source_echo_base_spawns="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab"
 work_echo_base_spawns="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab"
+source_vehicle_mine="$source_script/theme_park/heroic/echo_base/vehicle_mine.java"
+work_vehicle_mine="$work_script/theme_park/heroic/echo_base/vehicle_mine.java"
 source_wampa_boss="$source_script/theme_park/heroic/echo_base/wampa_boss.java"
 work_wampa_boss="$work_script/theme_park/heroic/echo_base/wampa_boss.java"
 source_outbreak_boss="$source_script/theme_park/outbreak/boss_fight_functionality.java"
@@ -787,11 +789,22 @@ grep -Fq 'combat.getArmorDecayPercentage(objArmor)' "$work_armor_library"
 cmp -s "$source_battlefield_vehicle" "$work_battlefield_vehicle"
 cmp -s "$source_battlefield_vehicle_table" "$work_battlefield_vehicle_table"
 cmp -s "$source_echo_base_spawns" "$work_echo_base_spawns"
+cmp -s "$source_vehicle_mine" "$work_vehicle_mine"
 ! grep -Fq 'expertise_innate_protection_all' "$work_battlefield_vehicle"
 grep -Fq 'setObjVar(target, armor.OBJVAR_ARMOR_BASE + "." + armor.OBJVAR_GENERAL_PROTECTION, amount);' "$work_battlefield_vehicle"
 grep -Fq 'armor.recalculateArmorForMob(target);' "$work_battlefield_vehicle"
 awk -F '\t' '$1 == "snowspeeder.iff" { snow++; if ($2 != "adventure2" || $3 != 600000 || $4 != 10000) exit 2 } $1 == "hoth_at_st.iff" { atst++; if ($2 != "adventure2" || $3 != 650000 || $4 != 15000) exit 3 } END { if (snow != 1 || atst != 1) exit 4 }' "$work_battlefield_vehicle_table"
 awk -F '\t' '$0 ~ /systems[.]vehicle_system[.]battlefield_vehicle/ { total++; if ($1 == "object/mobile/vehicle/snowspeeder.iff") snow++; else if ($1 == "object/mobile/vehicle/hoth_at_st.iff") atst++; else exit 2 } END { if (total != 21 || snow != 13 || atst != 8) exit 3 }' "$work_echo_base_spawns"
+! grep -Fq 'strength_modified' "$work_vehicle_mine"
+! grep -Fq 'addSkillModModifier' "$work_vehicle_mine"
+test "$(grep -Fc 'createTriggerVolume("hoth_vehicle_mine", 10.0f, true);' "$work_vehicle_mine")" -eq 1
+test "$(grep -Fc 'queueCommand(self, (-1220440242),' "$work_vehicle_mine")" -eq 2
+grep -Fq 'stealth.checkForAndMakeVisible(breacher);' "$work_vehicle_mine"
+test "$(grep -Fc 'removeTriggerVolume("hoth_vehicle_mine");' "$work_vehicle_mine")" -eq 2
+awk -F '\t' '$1 == "heroic_echo_vehicle_mine" { spawn++ } $1 ~ /^deleteSpawn:vehicle_mine_[0-9][0-9]:combat_explosion_lair_large[.]cef$/ { cleanup++ } END { if (spawn != 60 || cleanup != 60) exit 2 }' "$work_echo_base_spawns"
+awk -F '\t' 'NR == 1 { for (i = 1; i <= NF; i++) column[$i] = i; next } $(column["creatureName"]) == "heroic_echo_vehicle_mine" { found++; if ($(column["BaseLevel"]) != 91 || $(column["template"]) != "vehicle_mine.iff" || $(column["scripts"]) != "theme_park.heroic.echo_base.vehicle_mine") exit 2 } END { if (found != 1) exit 3 }' "$work_creatures_table"
+awk -F '\t' 'NR == 1 { for (i = 1; i <= NF; i++) column[$i] = i; next } $(column["commandName"]) == "hoth_sapper_detonate" { found++; if ($(column["scriptHook"]) != "hoth_sapper_detonate" || $(column["commandGroup"]) != "combat_ranged" || $(column["target"]) != "other" || $(column["targetType"]) != "all") exit 2 } END { if (found != 1) exit 3 }' "$work_command_table"
+awk -F '\t' 'NR == 1 { for (i = 1; i <= NF; i++) column[$i] = i; next } $(column["actionName"]) == "hoth_sapper_detonate" { found++; if ($(column["attackType"]) != "AREA" || $(column["coneLength"]) != 10 || $(column["addedDamage"]) != 150000 || $(column["weaponType"]) != "RIFLE" || $(column["weaponCategory"]) != "RANGED_WEAPON" || $(column["damageType"]) != "ENERGY" || $(column["specialLine"]) != "sapper") exit 2 } END { if (found != 1) exit 3 }' "$work_combat_data"
 cmp -s "$source_wampa_boss" "$work_wampa_boss"
 cmp -s "$source_outbreak_boss" "$work_outbreak_boss"
 cmp -s "$source_outbreak_buildout" "$work_outbreak_buildout"
@@ -1020,6 +1033,13 @@ javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'fas
 ! javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'expertise_innate_protection_all'
 javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'armor.general_protection'
 javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'recalculateArmorForMob'
+# Retained Echo Base mines preserve their trigger and sapper command lifecycle but
+# cannot seed the NGE strength primary statistic into the PRE-CU ruleset.
+! javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.vehicle_mine | grep -Fq 'strength_modified'
+javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.vehicle_mine | grep -Fq 'hoth_vehicle_mine'
+javap -classpath "$class_root" -c script.theme_park.heroic.echo_base.vehicle_mine | grep -Fq -- '-1220440242'
+javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.vehicle_mine | grep -Fq 'checkForAndMakeVisible'
+javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.vehicle_mine | grep -Fq 'removeTriggerVolume'
 # Retained later bosses keep their encounter lifecycle but cannot seed the NGE
 # glancing-blow expertise statistic into the PRE-CU combat route.
 ! javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.wampa_boss | grep -Fq 'expertise_glancing_blow_reduction'

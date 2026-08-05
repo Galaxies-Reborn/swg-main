@@ -103,6 +103,60 @@ Assert-Contract ($echoRows.Count -eq [int]$contract.expected.echoBaseVehicleSpaw
     $atstRows.Count -eq [int]$contract.expected.echoBaseHothAtstSpawns) `
     "p14.battlefield-vehicle-armor.echo-base-reachability"
 
+$vehicleMineScript = Get-Content -LiteralPath $paths.vehicleMineScript -Raw
+Assert-Contract (-not $vehicleMineScript.Contains("strength_modified") -and
+    -not $vehicleMineScript.Contains("addSkillModModifier")) `
+    "p14.battlefield-vehicle-armor.mine-nge-primary-writer-retired"
+Assert-Contract (([regex]::Matches($vehicleMineScript,
+            'createTriggerVolume\("hoth_vehicle_mine", 10[.]0f, true\)')).Count -eq 1 -and
+    ([regex]::Matches($vehicleMineScript,
+            'queueCommand\(self, \(-1220440242\),')).Count -eq
+        [int]$contract.expected.vehicleMineQueueSites -and
+    ([regex]::Matches($vehicleMineScript,
+            'removeTriggerVolume\("hoth_vehicle_mine"\)')).Count -eq 2 -and
+    $vehicleMineScript.Contains("stealth.checkForAndMakeVisible(breacher);") -and
+    [int]$contract.expected.vehicleMineTriggerRadius -eq 10 -and
+    [int]$contract.expected.vehicleMineQueuedCommandCrc -eq -1220440242) `
+    "p14.battlefield-vehicle-armor.mine-lifecycle-preserved"
+
+$echoBaseText = Get-Content -LiteralPath $paths.echoBaseSpawns
+$mineSpawnRows = @($echoBaseText |
+    Where-Object { $_ -match '^heroic_echo_vehicle_mine\t' })
+$mineCleanupRows = @($echoBaseText |
+    Where-Object { $_ -match '^deleteSpawn:vehicle_mine_[0-9]{2}:combat_explosion_lair_large[.]cef\t' })
+Assert-Contract ($mineSpawnRows.Count -eq [int]$contract.expected.echoBaseVehicleMineSpawns -and
+    $mineCleanupRows.Count -eq [int]$contract.expected.echoBaseVehicleMineCleanupRows) `
+    "p14.battlefield-vehicle-armor.mine-spawn-cleanup-reachability"
+
+$creatureRows = @(Import-Csv -LiteralPath $paths.creatures -Delimiter "`t" |
+    Where-Object { [string]$_.creatureName -ceq "heroic_echo_vehicle_mine" })
+Assert-Contract ($creatureRows.Count -eq 1 -and
+    [int]$creatureRows[0].BaseLevel -eq 91 -and
+    [string]$creatureRows[0].template -ceq "vehicle_mine.iff" -and
+    [string]$creatureRows[0].scripts -ceq "theme_park.heroic.echo_base.vehicle_mine") `
+    "p14.battlefield-vehicle-armor.mine-creature-binding"
+
+$commandRows = @(Import-Csv -LiteralPath $paths.commandTable -Delimiter "`t" |
+    Where-Object { [string]$_.commandName -ceq "hoth_sapper_detonate" })
+Assert-Contract ($commandRows.Count -eq [int]$contract.expected.vehicleMineCommandRows -and
+    [string]$commandRows[0].scriptHook -ceq "hoth_sapper_detonate" -and
+    [string]$commandRows[0].commandGroup -ceq "combat_ranged" -and
+    [string]$commandRows[0].target -ceq "other" -and
+    [string]$commandRows[0].targetType -ceq "all") `
+    "p14.battlefield-vehicle-armor.mine-command-binding"
+
+$combatRows = @(Import-Csv -LiteralPath $paths.combatData -Delimiter "`t" |
+    Where-Object { [string]$_.actionName -ceq "hoth_sapper_detonate" })
+Assert-Contract ($combatRows.Count -eq [int]$contract.expected.vehicleMineCombatRows -and
+    [string]$combatRows[0].attackType -ceq "AREA" -and
+    [int]$combatRows[0].coneLength -eq [int]$contract.expected.vehicleMineTriggerRadius -and
+    [int]$combatRows[0].addedDamage -eq [int]$contract.expected.vehicleMineAuthoredAddedDamage -and
+    [string]$combatRows[0].weaponType -ceq "RIFLE" -and
+    [string]$combatRows[0].weaponCategory -ceq "RANGED_WEAPON" -and
+    [string]$combatRows[0].damageType -ceq "ENERGY" -and
+    [string]$combatRows[0].specialLine -ceq "sapper") `
+    "p14.battlefield-vehicle-armor.mine-combat-data-preserved"
+
 foreach ($property in $contract.buildEvidence.sourceSha256.PSObject.Properties)
 {
     Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $paths[$property.Name]).Hash.ToLowerInvariant() -ceq
@@ -119,7 +173,10 @@ if ($Expectation -eq "Ready")
     Assert-Contract ($dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.battlefield-vehicle-armor.direct-source-pin"
-    Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256 -match '^[a-f0-9]{64}$' -and
+    $compiledHashes = $contract.buildEvidence.compiledClassSha256
+    Assert-Contract ($null -ne $compiledHashes -and
+        [string]$compiledHashes.vehicleScript -match '^[a-f0-9]{64}$' -and
+        [string]$compiledHashes.vehicleMineScript -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.battlefield-vehicle-armor.live-evidence"
