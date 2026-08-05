@@ -100,6 +100,24 @@ Assert-Contract ($gcw.Contains('_grantGcwPoints(null, attacker, pointValue, fals
     $gcw.Contains("_grantGcwPoints(victim, attacker, pointValue, pvpKill, point_type, information)")) `
     "p14.gcw-rating.all-shared-grants-use-retired-choke-point"
 
+$factionalPresence = Get-FunctionSlice $player `
+    "void PlayerObjectNamespace::grantGcwFactionalPresenceScore" `
+    "// ======================================================================"
+$retiredPresenceInputs = @("UNREF(gcwCategory);", "UNREF(po);", "UNREF(co);")
+$retiredPresenceWriters = @(
+    "co.getLevel()", "po.getCurrentGcwRank()", "getGcwFactionalPresenceGcwRankBonusPct",
+    "getGcwFactionalPresenceLevelPct", "getGcwFactionalPresenceMountedPct",
+    "getGcwFactionalPresenceAlignedCityBonusPct", "getGcwFactionalPresenceAlignedCityRankBonusPct",
+    "getGcwFactionalPresenceAlignedCityAgeBonusPct", "adjustGcwImperialScore", "adjustGcwRebelScore"
+)
+Assert-Contract ((@($retiredPresenceInputs | Where-Object { -not $factionalPresence.Contains($_) }).Count -eq 0) -and
+    (@($retiredPresenceWriters | Where-Object { $factionalPresence.Contains($_) }).Count -eq 0)) `
+    "p14.gcw-rating.passive-factional-presence-writer-retired"
+Assert-Contract ($player.Contains("void grantGcwFactionalPresenceScore(std::string const & gcwCategory, PlayerObject const & po, CreatureObject const & co);") -and
+    $player.Contains("if (!lfgCharacterData.locationFactionalPresenceGcwRegion.empty())") -and
+    $player.Contains("grantGcwFactionalPresenceScore(lfgCharacterData.locationFactionalPresenceGcwRegion, *this, *owner);")) `
+    "p14.gcw-rating.regional-presentation-compatibility-retained"
+
 $retire = Get-FunctionSlice $player `
     "void PlayerObject::retirePostNgeGcwRatingState()" `
     "void PlayerObject::clearSessionActivity()"
