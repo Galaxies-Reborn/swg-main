@@ -883,7 +883,10 @@ javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'getW
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'getLevelBonus'
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'reverseEngineerArmor'
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'reverseEngineerWeapon'
-javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'SCF_reverse_engineered'
+# ship_component_flags.SCF_reverse_engineered is a compile-time constant, so
+# javac legally inlines its value. Authenticate the named constant in source
+# above and the emitted flag objvar path here.
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'ship_comp.flags'
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'reverse_engineering.charges'
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'calculateFiresprayGrant'
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'createLegendaryLoot'
