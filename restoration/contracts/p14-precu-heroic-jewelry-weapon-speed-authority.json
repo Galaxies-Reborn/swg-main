@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-heroic-jewelry-weapon-speed-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Keep retained heroic jewelry and buff content while limiting gameplay authority to Publish-era skill modifiers, migrating persisted NGE item leaves, and refusing the same six later primary-stat modifiers at the generic buff writer.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -66,34 +66,34 @@
     },
     "compiledClassSha256": {
       "heroicItemScript": "4b4706329d4590d45624e3f6900bda19050b33fb9b88712188b3bb2e0fbc79f5",
-      "buffHandler": "6fd82c3044d8a96d345bf4294ff642d65c7dfafb206ff7b9f41de6794ddd7777"
+      "buffHandler": "bbfc81d24ce5934206c623b9777d828dceaf96f4ee16cafce46db39ea299358c"
     },
     "sourceTest": "passed against current source; heroic item migration and exact-six primary-stat rejection remain intact while the shared handler independently retires persisted NGE Bounty Hunter shields for players",
-    "focusedJavaCompile": "passed with Java 8 target in an ephemeral /dev/shm directory removed immediately; buff_handler.class SHA-256 c1dd50451ae48e5d9271b96339a55c170aa1d248d0a2c292862148c05e90eb60, size 98020 bytes",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes; heroic_random_stat_item.class was emitted at 2026-08-05T06:00:04.450607896Z and buff_handler.class at 2026-08-05T06:00:07.582622137Z",
-    "fullServerBuild": "passed from pushed parent 940874cb70b6497145d70da59d6821c808b1a8bd and direct dsrc f6039707f77fb6ebe98794dea1f37fba0842d7c7 with all server and data targets completed",
+    "focusedJavaCompile": "passed for current buff.java, buff_handler.java, and bh_shields.java with Java 8 target in an ephemeral /dev/shm directory removed immediately; heroic item authority remained authenticated",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes",
+    "fullServerBuild": "passed in 691.5 seconds from pushed parent e0ba74d and direct dsrc e36e64bea with all x64 server and data targets completed",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
     "sourceWorkParity": "passed byte-for-byte for all seven contract sources between the read-only direct-source mount and Docker work volume; every copy matches its authenticated sourceSha256 value",
-    "bytecodeAudit": "passed; heroic_random_stat_item.class retains its legacy-state cleanup routine and all ten authenticated PRE-CU weapon-speed modifiers, buff_handler.class retains the centralized exact-six primary-stat retirement predicate, and the source gates authenticate one weighted +2 speed writer with no NGE item-stat writer",
-    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, heroic-item and primary-stat source/bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
-    "result": "pending-current-source-build"
+    "bytecodeAudit": "passed; heroic_random_stat_item.class retains its legacy-state cleanup and all ten authenticated PRE-CU speed modifiers, buff_handler.class retains exact-six primary-stat retirement plus independent player-only shield cleanup, and the source gates retain one weighted +2 speed writer with no NGE item-stat writer",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, heroic-item, primary-stat, and Bounty Hunter shield source/bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-05T06:05:59.413163928Z",
+    "containerStartedAt": "2026-08-05T11:22:30.850964304Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassSizes": {
       "heroicItemScript": 4208,
-      "buffHandler": 131116
+      "buffHandler": 131199
     },
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 367,
+    "liveGameProcessPid": 365,
     "liveBinaryInode": 12110805,
     "liveBinarySize": 22601480,
     "liveBinaryMapEntries": 2,
@@ -106,7 +106,7 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "stale-after-current-source-change"
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "Retained heroic jewelry no longer writes NGE primary stats or weapon action-cost expertise, and retained buff mappings cannot materialize the same six later primary statistics through the generic writer.",
