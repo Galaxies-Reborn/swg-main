@@ -2,11 +2,12 @@
   "schemaVersion": 1,
   "feature": "nge-skill-template-retirement",
   "status": "ready",
-  "scope": "Retire the later NGE class/roadmap skill-template graph while retaining the empty datatable schema required by inherited client libraries.",
+  "scope": "Retire the later NGE class/roadmap skill-template graph and fail closed its native persisted fields while retaining the empty datatable schema required by inherited client libraries.",
   "sourceFiles": {
     "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "skillTemplateTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill_template/skill_template.tab",
-    "roadmapRewardsTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/roadmap/item_rewards.tab"
+    "roadmapRewardsTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/roadmap/item_rewards.tab",
+    "nativePlayerObject": "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
   },
   "archiveEvidence": {
     "clientRoot": "E:/SWG/SWGSource/PreCU-Client",
@@ -23,9 +24,14 @@
     "retiredPrerequisiteSkillRows": 112,
     "remainingPrerequisiteSkillRows": 0,
     "remainingPrerequisiteReferences": 0,
-    "roadmapRewardDataRows": 303
+    "roadmapRewardDataRows": 303,
+    "nativeSkillTemplateAlwaysEmpty": true,
+    "nativeWorkingSkillAlwaysEmpty": true,
+    "nativeClientMutationCallbacks": 0,
+    "nativeGroupAndLfgProfessionNeutralized": true
   },
   "buildEvidence": {
+    "nativeSourceCommit": "c1f78306287dad0a600f29a63d1da356d5dd1c97",
     "overlayPatch": "restoration/patches/dsrc/138-p14-nge-skill-template-retirement.patch",
     "overlayPatchBytes": 97387,
     "overlayPatchSha256": "1a4bd603af79769efc174ef1a6777b23ee5b4d721d98b32ae573e26dcac3d7fd",
@@ -33,7 +39,8 @@
     "sourceSha256": {
       "skills.tab": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "skill_template.tab": "dd2511d28cecaf023e258cb6a16c6cacef763bbff520504329b264d3e5076881",
-      "item_rewards.tab": "a6ca26ed95a543b9ce642ab3f56981d9aad96ef6ac0636580e14456559e73c90"
+      "item_rewards.tab": "a6ca26ed95a543b9ce642ab3f56981d9aad96ef6ac0636580e14456559e73c90",
+      "PlayerObject.cpp": "cba0e835a156d968c41da57a657586b120e08caff7d7c67d8c999f0ecdc17bc6"
     },
     "currentSourceEvidenceRefreshedBy": "Milestone 312 clean materialization; the inert roadmap sentinel and zero prerequisite references are unchanged while later PRE-CU skill and retained-content patches changed the cumulative source hashes.",
     "clientTableBuild": {
@@ -53,8 +60,9 @@
     }
   },
   "runtimeBoundary": {
-    "skillTemplateField": "cleared during Publish 14 character creation",
-    "workingSkillField": "cleared during Publish 14 character creation",
+    "skillTemplateField": "native setter always stores empty, so character creation, login cleanup, persisted migration, and client requests cannot populate it",
+    "workingSkillField": "native setter always stores empty, so character creation, login cleanup, persisted migration, and client requests cannot populate it",
+    "nativePresentationCleanup": "clearing the compatibility field also normalizes group and connected-LFG profession data to unknown",
     "clientCompatibility": "ExpertiseManager and RoadmapManager may load the inert sentinel without a missing or zero-row datatable fatal"
   },
   "clientAssetPublication": {

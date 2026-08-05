@@ -2,11 +2,19 @@
   "schemaVersion": 1,
   "feature": "neutral-progression-presentation",
   "status": "ready",
-  "scope": "Remove singular NGE profession and combat-level presentation from GCW score rows and instance logs without changing scoring or admission.",
+  "scope": "Remove singular NGE profession and combat-level presentation from GCW rows, instance logs, LFG, groups, guild membership, and city citizenship without changing retained content admission.",
   "eraEvidence": {
     "publish141Boundary": "Publish 14.1 characters own multiple independently learned skill professions and have no singular roadmap class or combat level.",
     "gcwBoundary": "The profession and level fields are presentation values; GCW score accumulation uses separate counters.",
-    "instanceBoundary": "The class and level values are used only in CustomerServiceLog strings after the player has already been admitted and transferred."
+    "instanceBoundary": "The class and level values are used only in CustomerServiceLog strings after the player has already been admitted and transferred.",
+    "nativeSocialBoundary": "LFG, group, guild, and city transports inherited a singular roadmap profession plus combat-level field even though Publish 14.1 characters own multiple independent profession skill graphs.",
+    "nativePersistenceBoundary": "Guild and city records can preserve old profession-template and combat-level values until rewritten, so online synchronization and all new writes must normalize both fields."
+  },
+  "sourceFiles": {
+    "nativePlayerObject": "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp",
+    "nativeCreatureObject": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp",
+    "nativeGuildObject": "src/engine/server/library/serverGame/src/shared/object/GuildObject.cpp",
+    "nativeCityObject": "src/engine/server/library/serverGame/src/shared/object/CityObject.cpp"
   },
   "expected": {
     "skillTemplateReadsOnSurface": 0,
@@ -14,15 +22,26 @@
     "gcwPresentationLevel": 0,
     "neutralLabel": "Publish 14.1 skills",
     "gcwCountersPreserved": 6,
-    "instanceTransferCallsPreserved": 2
+    "instanceTransferCallsPreserved": 2,
+    "nativeLfgPlayerLevel": 0,
+    "nativeGroupPlayerLevel": 0,
+    "nativePlayerProfession": "unknown",
+    "nativeGuildProfessionAndLevelNormalized": true,
+    "nativeCityProfessionAndLevelNormalized": true,
+    "npcLevelAndProfessionPresentationPreserved": true
   },
   "buildEvidence": {
+    "nativeSourceCommit": "c1f78306287dad0a600f29a63d1da356d5dd1c97",
     "overlayPatch": "restoration/patches/dsrc/159-p14-neutral-progression-presentation.patch",
     "overlayPatchBytes": 3136,
     "overlayPatchSha256": "af674926be84dd085cf8e26ee9059a53bec8f685c6762e80aa9589b25700afe9",
     "sourceSha256": {
-      "gcw.java": "1b083a328044be88ed5fee5fc6f4632bf06cc0adfd6573e05f1474f71e578445",
-      "player_instance.java": "1ab5e2b77a5a83ecbf6b3cf1921942f9b62ccebb0a5395ccbe7df8ced6e2d7b4"
+      "gcw.java": "7bc7e2aec3cb5516541e9cc599cdf0d291e13868a803e39da157cda2998716b7",
+      "player_instance.java": "fd35f1bf60967b8d82d1b1be008892d537a8c9d7568092850347991d09c4181c",
+      "PlayerObject.cpp": "cba0e835a156d968c41da57a657586b120e08caff7d7c67d8c999f0ecdc17bc6",
+      "CreatureObject.cpp": "0320f2b990362b9ceb0b8f231945221e9cdd518f7c48453a6be4e0d033252fec",
+      "GuildObject.cpp": "1a0e94a74fad6b8e8b906165ce568a75c7cebce57cfc708924d8ebb5662269cb",
+      "CityObject.cpp": "bde9e197a05bd30ddfaedf8d03648dd0a66f439014743cc70c2ffe1d8697ff37"
     },
     "javaCompile": "passed",
     "classSha256": {
