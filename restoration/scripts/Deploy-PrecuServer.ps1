@@ -103,6 +103,10 @@ Write-Host "Verifying the direct-source PRE-CU battlefield vehicle armor authori
 & (Join-Path $PSScriptRoot "Test-P14PrecuBattlefieldVehicleArmorAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU retained boss glancing authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuRetainedBossGlancingAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU retained reverse/performance authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuRetainedReversePerformanceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -424,6 +428,12 @@ source_battlefield_vehicle_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled
 work_battlefield_vehicle_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/vehicle/battlefield_vehicle.tab"
 source_echo_base_spawns="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab"
 work_echo_base_spawns="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab"
+source_wampa_boss="$source_script/theme_park/heroic/echo_base/wampa_boss.java"
+work_wampa_boss="$work_script/theme_park/heroic/echo_base/wampa_boss.java"
+source_outbreak_boss="$source_script/theme_park/outbreak/boss_fight_functionality.java"
+work_outbreak_boss="$work_script/theme_park/outbreak/boss_fight_functionality.java"
+source_outbreak_buildout="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/dathomir/dathomir_1_1.tab"
+work_outbreak_buildout="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/dathomir/dathomir_1_1.tab"
 source_reverse_engineering_tool="$source_script/item/tool/reverse_engineering_tool.java"
 work_reverse_engineering_tool="$work_script/item/tool/reverse_engineering_tool.java"
 source_performance_library="$source_script/library/performance.java"
@@ -772,6 +782,22 @@ grep -Fq 'setObjVar(target, armor.OBJVAR_ARMOR_BASE + "." + armor.OBJVAR_GENERAL
 grep -Fq 'armor.recalculateArmorForMob(target);' "$work_battlefield_vehicle"
 awk -F '\t' '$1 == "snowspeeder.iff" { snow++; if ($2 != "adventure2" || $3 != 600000 || $4 != 10000) exit 2 } $1 == "hoth_at_st.iff" { atst++; if ($2 != "adventure2" || $3 != 650000 || $4 != 15000) exit 3 } END { if (snow != 1 || atst != 1) exit 4 }' "$work_battlefield_vehicle_table"
 awk -F '\t' '$0 ~ /systems[.]vehicle_system[.]battlefield_vehicle/ { total++; if ($1 == "object/mobile/vehicle/snowspeeder.iff") snow++; else if ($1 == "object/mobile/vehicle/hoth_at_st.iff") atst++; else exit 2 } END { if (total != 21 || snow != 13 || atst != 8) exit 3 }' "$work_echo_base_spawns"
+cmp -s "$source_wampa_boss" "$work_wampa_boss"
+cmp -s "$source_outbreak_boss" "$work_outbreak_boss"
+cmp -s "$source_outbreak_buildout" "$work_outbreak_buildout"
+! grep -Fq 'expertise_glancing_blow_reduction' "$work_wampa_boss"
+! grep -Fq 'expertise_glancing_blow_reduction' "$work_outbreak_boss"
+grep -Fq 'trial.setHp(self, trial.HP_UNCLE_JOE);' "$work_wampa_boss"
+grep -Fq 'buff.applyBuff(self, "open_balance_buff", -1.0f);' "$work_wampa_boss"
+grep -Fq 'summon_adds' "$work_wampa_boss"
+grep -Fq 'trial.setHp(self, trial.HP_UNCLE_JOE);' "$work_outbreak_boss"
+grep -Fq 'warnPlayerTimerBegin' "$work_outbreak_boss"
+grep -Fq 'handleBossDistanceCheck' "$work_outbreak_boss"
+awk -F '\t' '$1 == "heroic_echo_wampa_boss" { wampa++; if ($0 !~ /theme_park[.]heroic[.]echo_base[.]wampa_boss/) exit 2 } $1 == "outbreak_afflicted_rancor" { outbreak++; if ($0 !~ /theme_park[.]outbreak[.]boss_fight_functionality/) exit 3 } END { if (wampa != 1 || outbreak != 1) exit 4 }' "$work_creatures_table"
+awk -F '\t' '$1 == "echo_base_wampa_boss" { wampa++; if ($0 !~ /wampa_boss_ice_throw_prep/) exit 2 } $1 == "outbreak_afflicted_rancor" { outbreak++; if ($0 !~ /death_troopers_afflicted_toss/) exit 3 } END { if (wampa != 1 || outbreak != 1) exit 4 }' "$work_ai_combat_profiles"
+awk -F '\t' '$1 == "heroic_echo_wampa_boss" && $2 == "uncle_joe_id" { found++ } END { if (found != 1) exit 2 }' "$work_echo_base_spawns"
+test "$(grep -Fc 'object/tangible/quest/outbreak/group_boss_fight_terminal.iff' "$work_outbreak_buildout")" -eq 1
+test "$(grep -Fc 'outbreak_afflicted_rancor' "$work_outbreak_buildout")" -eq 1
 cmp -s "$source_reverse_engineering_tool" "$work_reverse_engineering_tool"
 cmp -s "$source_performance_library" "$work_performance_library"
 cmp -s "$source_skills_table" "$work_skills_table"
@@ -952,6 +978,14 @@ javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'fas
 ! javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'expertise_innate_protection_all'
 javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'armor.general_protection'
 javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'recalculateArmorForMob'
+# Retained later bosses keep their encounter lifecycle but cannot seed the NGE
+# glancing-blow expertise statistic into the PRE-CU combat route.
+! javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.wampa_boss | grep -Fq 'expertise_glancing_blow_reduction'
+javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.wampa_boss | grep -Fq 'open_balance_buff'
+javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.wampa_boss | grep -Fq 'summon_adds'
+! javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'expertise_glancing_blow_reduction'
+javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'warnPlayerTimerBegin'
+javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'handleBossDistanceCheck'
 # The retained simulator exposes only the armor and defense statistics consumed
 # by the authoritative Publish 14.1 combat route.
 ! javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'expertise_'

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-retained-boss-glancing-authority",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Preserve the retained Echo Base Uncle Joe and Outbreak afflicted-rancor encounters while removing their NGE-only glancing-blow expertise writes from PRE-CU combat initialization.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 primary hit resolution produces hit or miss, followed by its authored secondary defense result; it has no NGE glancing-blow result or expertise_glancing_blow_reduction statistic.",
+      "The authenticated PRE-CU combat branch calls getPrecuPrimaryAttackResult and getPrecuSecondaryDefenseResult, while the later getDefenderResult/getAttackerResult hit tables are confined to the non-PRE-CU branch.",
+      "Uncle Joe and the Outbreak afflicted rancor each wrote expertise_glancing_blow_reduction=100 during OnAttach even though that statistic belongs only to the later hit table.",
+      "Both bosses are live retained content: Uncle Joe has an Echo Base spawn and the afflicted rancor has a creature binding plus an authored Dathomir terminal/node wave-event route."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 2,
+    "historicalBossGlancingExpertiseWriters": 2,
+    "remainingBossGlancingExpertiseWriters": 0,
+    "remainingLegacyGlancingExpertiseReaders": 1,
+    "retainedBossCreatureRows": 2,
+    "retainedBossAiProfiles": 2,
+    "echoBaseBossSpawns": 1,
+    "outbreakBossTerminals": 1,
+    "outbreakBossNodes": 1,
+    "precuPrimaryGlancingOutcomes": 0,
+    "precuSecondaryGlancingOutcomes": 0,
+    "retainedEncounterContentPreserved": true
+  },
+  "sourceFiles": {
+    "wampaBoss": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/heroic/echo_base/wampa_boss.java",
+    "outbreakBoss": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/outbreak/boss_fight_functionality.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "creatures": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab",
+    "aiProfiles": "dsrc/sku.0/sys.server/compiled/game/datatables/ai/ai_combat_profiles.tab",
+    "echoBaseSpawns": "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab",
+    "outbreakBuildout": "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/dathomir/dathomir_1_1.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "5ac90909c9b53626b97a1f1308b1c13089e315d9",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "wampaBoss": "c0425c70c577ef79407a89da23ec200d87bda8420937af70e7a9b41edd696064",
+      "outbreakBoss": "652504b646406b239c5706dbf4995e216e68b4fbf9529ec6951f65e673f73c0b",
+      "combatBase": "49f90e3a9734f8cc087497c9c6ce2cd63c6cab3f129fffe83bd4e02745c2f720",
+      "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
+      "aiProfiles": "f48ba7fa193f32efd8dc02e9577249943cff07c0a99255ba4e1f7848e0021787",
+      "echoBaseSpawns": "8f7969b09f0c088353dd5c7555a7054e1086d4c035e048bcc9ffe5cae8949856",
+      "outbreakBuildout": "b81b8f1f424eeb1aad6b93f26d5b17d42242aff2e8d18b95b1a813649cc33912"
+    },
+    "compiledClassSha256": {
+      "wampaBoss": "",
+      "outbreakBoss": ""
+    },
+    "sourceTest": "passed; both production boss routes, the PRE-CU/non-PRE-CU hit-table separation, retained encounter lifecycle, and zero boss glancing-expertise writers authenticated",
+    "focusedJavaCompile": "passed in an ephemeral in-memory directory that was removed immediately; both classes retained their encounter entrypoints and contained no expertise_glancing_blow_reduction symbol",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "",
+    "serverBinaryBuildId": "",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "compiledClassSizes": {
+      "wampaBoss": 0,
+      "outbreakBoss": 0
+    },
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "liveBinaryMapEntries": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "No retained boss OnAttach path can write the NGE glancing-blow-reduction expertise statistic into PRE-CU combat state.",
+    "preserved": "Both boss creature rows, AI profiles, HP initialization, Echo Base spawn and add lifecycle, Outbreak wave-event terminal/node route, encounter timers, leash/reset logic, combat targeting, buffs, effects, loot, and completion signals remain available.",
+    "notClaimedComplete": "The legacy glancing helper remains isolated for non-PRE-CU compatibility, and other retained content-specific expertise references remain subject to later reachability audits."
+  },
+  "requiredBeforeReady": [
+    "Pass a clean full Java and x64 server build from the pushed direct-source pin.",
+    "Authenticate source/work parity and both emitted boss classes.",
+    "Restart the server, observe the player-ready marker, verify the mapped x64 binary, and audit post-start logs."
+  ]
+}
