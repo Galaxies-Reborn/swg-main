@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-smuggler-patrol-chance-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Preserve retained Smuggler missions and patrol encounters while making their authored baseline contraband and Fast Talk chances authoritative instead of allowing the inherited NGE expertise tree to rewrite them.",
   "eraEvidence": {
     "basis": "The authenticated Publish 14.1 Smuggler profession is an owned skill-box graph with no expertise_sly_lie or expertise_fast_talk statistics. Retained later Smuggler missions may remain available, but their baseline encounter probabilities must not depend on the removed NGE expertise tree.",
@@ -52,44 +52,48 @@
       "commandTable": "0fcdb7cddd7f4b692fd8bd4535ab88f18ddd2af2e840ba337775858fc162d519",
       "combatData": "44656473c5070db0f36acc29715311d0f29bbf10eb58f28faeb3cc709764f882"
     },
-    "compiledClassSha256": "",
+    "compiledClassSha256": "161414a0d54e6940dff4a93d92a0c4f624802a4bf019157939e3eeffcd00d3a7",
     "sourceTest": "passed; PRE-CU profession admission, retained mission/bootstrap/patrol reachability, exact 5/15/25 authored chances, compatibility command isolation, and zero patrol expertise reads authenticated",
     "focusedJavaCompile": "passed in an ephemeral in-memory directory that was removed immediately; emitted patrol bytecode retained all three named baseline constants and contained no expertise symbol",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "pending",
-    "serverBinaryBuildId": "pending",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and smuggler_spawn_enemy.class was emitted at 2026-08-05T02:42:05.244256419Z",
+    "fullServerBuild": "passed in 617.4 seconds from pushed parent 8903812 and direct dsrc 691ff0d7f",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for smuggler_spawn_enemy.java between the read-only direct source and Docker work volume; both copies have SHA-256 51e62b0eb9308c28b43f2f48d8335f3e7a9df771bbb0324fea03f894eb9ef0e3",
+    "bytecodeAudit": "passed; smuggler_spawn_enemy.class retains CONTRABAND_BASE_PASS_CHANCE, SLY_LIE_BASE_BONUS, FAST_TALK_BASE_CHANCE, contrabandCheckResult, and fastTalkReaction while containing no expertise symbol or getSmugglerRank call",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused patrol source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "pending",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "compiledClassSize": 0,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": 0,
-    "liveBinaryInode": 0,
-    "liveBinarySize": 0,
-    "liveBinaryMapEntries": 0,
-    "processCounts": {},
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-05T02:48:00.458006379Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 9790,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 364,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "Retained Smuggler patrol contraband and Fast Talk outcomes can no longer consume NGE expertise or expertise-scaled underworld rank.",
     "preserved": "PRE-CU Novice Smuggler admission, retained bootstrap mail, ten Smuggler mission families, thirty-six patrol creature definitions, quest ownership, barks, snares, combat, cleanup, Sly Lie compatibility, Fast Talk confusion, and command/combat data rows remain available.",
     "notClaimedComplete": "The ungranted summoned junk-dealer ability, Beast Master compatibility, and other dormant or content-specific expertise families remain subject to later reachability audits."
   },
-  "requiredBeforeReady": [
-    "Pass a clean full Java and x64 server build from the pushed direct-source revision.",
-    "Verify source/work parity, emitted patrol bytecode, restart readiness, live mapped binary, process topology, and clean post-start logs."
-  ]
+  "requiredBeforeReady": []
 }
