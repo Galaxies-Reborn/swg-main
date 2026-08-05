@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, and clean persisted NGE display-only, expertise, later primary-stat, and random meditation buff state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -90,47 +90,54 @@
     "compiledClassSha256": {
       "combatLibrary": "f80271507ca8490d94f42003604a0f622b9d4a5b9b9a1f4dfe99baf342851c9e",
       "combatBase": "8fb3b0899c0fa17873231f6b9b1b249eb604e885a8262d1556b5b8f1e9269586",
-      "basePlayer": null,
+      "basePlayer": "8a57c36d6e4330c8305130b7b89dd3ba5599aa459e88d9cf7b54dda3bc10163a",
       "buffHandler": "6fd82c3044d8a96d345bf4294ff642d65c7dfafb206ff7b9f41de6794ddd7777",
-      "buffLibrary": null,
-      "meditationLibrary": null
+      "buffLibrary": "a4386dcd11ff697a00e69b7bc83c1a06aafc44c04c76cf7876d084122afd8511",
+      "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88"
     },
     "sourceTest": "passed; existing PRE-CU combat, display-only, and expertise-buff isolation remains intact; exact fs_meditate_1/2/3 cleanup dominates authenticated meditation start, the tick has no random NGE grant path, and compatibility rows remain unchanged",
     "focusedJavaCompile": "buff.java and meditation.java passed a Java 8 focused compile in an ephemeral /dev/shm directory removed immediately; the subsequent full dependency compile exposed the base_player consumer, which is now removed and guarded by full-source/bytecode deployment checks",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": null,
-    "serverBinarySha256": null,
-    "serverBinaryBuildId": null,
-    "sourceWorkParity": null,
-    "bytecodeAudit": null,
-    "deploymentProbe": null,
-    "result": "pending"
+    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 673.6 seconds from pushed parent bb98361 and direct dsrc e625d67",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for combat expertise sources plus buff.java, meditation.java, and base_player.java between the read-only direct-source mount and Docker work volume",
+    "bytecodeAudit": "passed; emitted meditation start calls exact legacy cleanup, base_player meditation ticks retain PRE-CU trance/rescheduling and contain no random NGE grant path, and existing PRE-CU combat/expertise isolation remains intact",
+    "deploymentProbe": "passed all expanded direct-source preflight contracts, mandatory parity and meditation bytecode gates, x64 architecture, health/readiness, mapped-binary verification, and clean post-start log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": null,
+    "date": "2026-08-05",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": null,
-    "containerHealth": null,
-    "clusterReadyForPlayers": false,
+    "containerStartedAt": "2026-08-05T10:50:24.294661533Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
     "compiledClassSizes": {
-      "combatLibrary": null,
-      "combatBase": null,
-      "basePlayer": null,
-      "buffHandler": null,
-      "buffLibrary": null,
-      "meditationLibrary": null
+      "combatLibrary": 104566,
+      "combatBase": 146987,
+      "basePlayer": 314724,
+      "buffHandler": 131116,
+      "buffLibrary": 34628,
+      "meditationLibrary": 11841
     },
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": null,
-    "liveBinaryInode": null,
-    "liveBinarySize": null,
-    "liveBinaryMapEntries": null,
-    "processCounts": null,
-    "postStartLogAudit": null,
-    "result": "pending"
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 401,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "authenticated PRE-CU hit-result and action-cost dispatch cannot cross into inherited NGE expertise authority, while production lifecycle and buff handlers can only remove—not recreate—NGE display-only, expertise, later primary-stat, or fs_meditate_* state",
