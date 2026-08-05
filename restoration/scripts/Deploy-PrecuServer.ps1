@@ -900,6 +900,29 @@ test "$(printf '%s' "$display_cleanup_source" | grep -Fc 'removeAttribOrSkillMod
 test "$(grep -Eh 'messageTo\([^;]*"setDisplayOnlyDefensiveMods"' "$work_base_player" "$work_armor_library" "$work_reverse_engineering_library" "$work_buff_handler" | wc -l)" -eq 22
 test "$(grep -Ec 'messageTo\([^;]*"setDisplayOnlyDefensiveMods"' "$work_base_player")" -eq 6
 awk -F '\t' '$1 ~ /^display_only_/ { found++; if ($2 != "ALL" || $3 != "combat" || $4 != 1) exit 2 } END { if (found != 13) exit 3 }' "$work_skill_mod_listing"
+grep -Fq 'modifierName.startsWith("expertise_")' "$work_buff_handler"
+skill_add_source="$(sed -n '/public int skillAddBuffHandler/,/public int skillRemoveBuffHandler/p' "$work_buff_handler")"
+skill_percent_source="$(sed -n '/public int skillPercentAddBuffHandler/,/public int skillPercentRemoveBuffHandler/p' "$work_buff_handler")"
+force_power_source="$(sed -n '/public int forcePowerAddBuffHandler/,/public int forcePowerRemoveBuffHandler/p' "$work_buff_handler")"
+for expertise_writer_source in "$skill_add_source" "$skill_percent_source" "$force_power_source"; do
+    printf '%s' "$expertise_writer_source" | grep -Fq 'isRetiredNgeExpertiseModifier(subtype)'
+    printf '%s' "$expertise_writer_source" | grep -Fq 'retireNgeExpertiseModifier(self, effectName)'
+    printf '%s' "$expertise_writer_source" | grep -Fq 'addSkillModModifier'
+done
+armor_break_source="$(sed -n '/public int armorBreakAddBuffHandler/,/public int armorBreakRemoveBuffHandler/p' "$work_buff_handler")"
+printf '%s' "$armor_break_source" | grep -Fq 'retireNgeExpertiseModifier(self, effectName)'
+printf '%s' "$armor_break_source" | grep -Fq 'utils.removeScriptVar(self, INITIAL_GENERAL_PROTECTION)'
+! printf '%s' "$armor_break_source" | grep -Fq 'getSkillStatisticModifier'
+! printf '%s' "$armor_break_source" | grep -Fq 'getEnhancedSkillStatisticModifier'
+! printf '%s' "$armor_break_source" | grep -Fq 'addSkillModModifier'
+stance_source="$(sed -n '/public int stanceAddBuffHandler/,/public int stanceRemoveBuffHandler/p' "$work_buff_handler")"
+printf '%s' "$stance_source" | grep -Fq 'retireNgeExpertiseModifier(self, "expertise_fs_force_clarity_1_proc")'
+printf '%s' "$stance_source" | grep -Fq 'retireNgeExpertiseModifier(self, "expertise_fs_flurry_charge_proc")'
+! printf '%s' "$stance_source" | grep -Fq 'addSkillModModifier(self, "expertise_fs_'
+buildabuff_source="$(sed -n '/public int buildabuffAddBuffHandler/,/public int buildabuffRemoveBuffHandler/p' "$work_buff_handler")"
+test "$(grep -Ec 'addSkillModModifier\(self, *"expertise_' "$work_buff_handler")" -eq 3
+test "$(printf '%s' "$buildabuff_source" | grep -Ec 'addSkillModModifier\(self, *"expertise_')" -eq 3
+printf '%s' "$buildabuff_source" | grep -Fq 'buff.isPostNgeBuffProgressionRetired()'
 cmp -s "$source_player_stealth" "$work_player_stealth"
 cmp -s "$source_beast_library" "$work_beast_library"
 cmp -s "$source_beast_control_device" "$work_beast_control_device"
@@ -1024,6 +1047,20 @@ test "$(printf '%s' "$display_cleanup_bytecode" | grep -Fc 'display_only_')" -eq
 printf '%s' "$display_cleanup_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
 ! printf '%s' "$display_cleanup_bytecode" | grep -Fq 'addSkillModModifier'
 ! printf '%s' "$display_cleanup_bytecode" | grep -Fq 'script/library/combat.get'
+# Production buff handlers clean retained NGE expertise modifiers without
+# recreating them; dormant Build-a-Buff remains behind its earlier hard gate.
+buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+printf '%s' "$buff_handler_bytecode" | grep -Fq 'isRetiredNgeExpertiseModifier'
+armor_break_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int armorBreakAddBuffHandler/,/public int armorBreakRemoveBuffHandler/p')"
+printf '%s' "$armor_break_bytecode" | grep -Fq 'retireNgeExpertiseModifier'
+printf '%s' "$armor_break_bytecode" | grep -Fq 'amor.unmodifiedArmorValue'
+! printf '%s' "$armor_break_bytecode" | grep -Fq 'getSkillStatisticModifier'
+! printf '%s' "$armor_break_bytecode" | grep -Fq 'getEnhancedSkillStatisticModifier'
+! printf '%s' "$armor_break_bytecode" | grep -Fq 'addSkillModModifier'
+stance_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int stanceAddBuffHandler/,/public int stanceRemoveBuffHandler/p')"
+printf '%s' "$stance_bytecode" | grep -Fq 'expertise_fs_force_clarity_1_proc'
+printf '%s' "$stance_bytecode" | grep -Fq 'expertise_fs_flurry_charge_proc'
+! printf '%s' "$stance_bytecode" | grep -Fq 'Method addSkillModModifier'
 # Authenticated PRE-CU DOTs persist their era route through every pulse while
 # later-content compatibility callers retain the inherited DOT path.
 javap -classpath "$class_root" -v script.library.dot | grep -Fq 'applyPrecuDotEffect'

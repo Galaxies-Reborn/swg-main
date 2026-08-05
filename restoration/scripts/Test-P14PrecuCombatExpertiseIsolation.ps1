@@ -63,6 +63,7 @@ foreach ($property in $contract.sourceFiles.PSObject.Properties)
 $combatLibrary = [string]$texts.combatLibrary
 $combatBase = [string]$texts.combatBase
 $basePlayer = [string]$texts.basePlayer
+$buffHandler = [string]$texts.buffHandler
 $dictionaryCost = Get-BracedBlock $combatLibrary `
     "public static int[] getActionCost(obj_id self, weapon_data weaponData, dictionary actionData)"
 $typedCost = Get-BracedBlock $combatLibrary `
@@ -162,6 +163,68 @@ Assert-Contract ($displayCallbackCounts.basePlayer -eq [int]$contract.expected.b
         [int]$contract.expected.productionCleanupCallbacks) `
     "p14.combat-expertise-isolation.display.production-cleanup-reachability"
 
+$expertisePredicate = Get-BracedBlock $buffHandler `
+    "public boolean isRetiredNgeExpertiseModifier(String modifierName)"
+$expertiseCleanup = Get-BracedBlock $buffHandler `
+    "public void retireNgeExpertiseModifier(obj_id self, String effectName)"
+Assert-Contract ($expertisePredicate.Contains('modifierName.startsWith("expertise_")') -and
+    $expertiseCleanup.Contains("hasSkillModModifier(self, effectName)") -and
+    $expertiseCleanup.Contains("removeAttribOrSkillModModifier(self, effectName)")) `
+    "p14.combat-expertise-isolation.buff.central-cleanup-authority"
+
+$genericExpertiseHandlers = @(
+    (Get-BracedBlock $buffHandler "public int skillAddBuffHandler(")
+    (Get-BracedBlock $buffHandler "public int skillPercentAddBuffHandler(")
+    (Get-BracedBlock $buffHandler "public int forcePowerAddBuffHandler(")
+)
+$guardedGenericHandlers = @($genericExpertiseHandlers | Where-Object {
+    $guard = $_.IndexOf("isRetiredNgeExpertiseModifier(subtype)", [StringComparison]::Ordinal)
+    $cleanup = $_.IndexOf("retireNgeExpertiseModifier(self, effectName)", [StringComparison]::Ordinal)
+    $writer = $_.IndexOf("addSkillModModifier", [StringComparison]::Ordinal)
+    $guard -ge 0 -and $cleanup -gt $guard -and $writer -gt $guard
+})
+$percentHandler = $genericExpertiseHandlers[1]
+Assert-Contract ($genericExpertiseHandlers.Count + 1 -eq
+        [int]$contract.expected.productionExpertiseBuffWriterHandlersGuarded -and
+    $guardedGenericHandlers.Count -eq 3 -and
+    $percentHandler.IndexOf("isRetiredNgeExpertiseModifier(subtype)", [StringComparison]::Ordinal) -lt
+        $percentHandler.IndexOf("getSkillStatisticModifier", [StringComparison]::Ordinal)) `
+    "p14.combat-expertise-isolation.buff.generic-writers-guarded"
+
+$armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
+$armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
+Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and
+    $armorBreak.Contains("utils.removeScriptVar(self, INITIAL_GENERAL_PROTECTION)") -and
+    $armorBreak.Contains('buff.applyBuff(self, caster, "bh_crit_hit_vuln")') -and
+    -not $armorBreak.Contains("getSkillStatisticModifier") -and
+    -not $armorBreak.Contains("getEnhancedSkillStatisticModifier") -and
+    -not $armorBreak.Contains("addSkillModModifier") -and
+    [int]$contract.expected.armorBreakNgeExpertiseReads -eq 0 -and
+    [int]$contract.expected.armorBreakNgeExpertiseWrites -eq 0 -and
+    $armorBreakRemove.Contains("utils.removeScriptVar(self, INITIAL_GENERAL_PROTECTION)")) `
+    "p14.combat-expertise-isolation.buff.armor-break-cleanup-only"
+
+$stanceHandler = Get-BracedBlock $buffHandler "public int stanceAddBuffHandler("
+Assert-Contract ($stanceHandler.Contains('retireNgeExpertiseModifier(self, "expertise_fs_force_clarity_1_proc")') -and
+    $stanceHandler.Contains('retireNgeExpertiseModifier(self, "expertise_fs_flurry_charge_proc")') -and
+    $stanceHandler.Contains('messageTo(self, "cacheExpertiseProcReacList"') -and
+    -not $stanceHandler.Contains('addSkillModModifier(self, "expertise_fs_force_clarity_1_proc"') -and
+    -not $stanceHandler.Contains('addSkillModModifier(self, "expertise_fs_flurry_charge_proc"') -and
+    [int]$contract.expected.directStanceExpertiseWriters -eq 0) `
+    "p14.combat-expertise-isolation.buff.stance-procs-cleanup-only"
+
+$buildABuff = Get-BracedBlock $buffHandler "public int buildabuffAddBuffHandler("
+$literalExpertiseWriters = ([regex]::Matches($buffHandler,
+        'addSkillModModifier\(self,\s*"expertise_')).Count
+$buildLiteralExpertiseWriters = ([regex]::Matches($buildABuff,
+        'addSkillModModifier\(self,\s*"expertise_')).Count
+Assert-Contract ($literalExpertiseWriters -eq
+        [int]$contract.expected.remainingLiteralExpertiseBuffWriters -and
+    $buildLiteralExpertiseWriters -eq $literalExpertiseWriters -and
+    $buildABuff.IndexOf("buff.isPostNgeBuffProgressionRetired()", [StringComparison]::Ordinal) -lt
+        $buildABuff.IndexOf("performance.buildabuff.buffComponentKeys", [StringComparison]::Ordinal)) `
+    "p14.combat-expertise-isolation.buff.remaining-literals-fail-closed"
+
 if ($Expectation -eq "Ready")
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
@@ -175,6 +238,7 @@ if ($Expectation -eq "Ready")
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.combatLibrary -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.combatBase -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.basePlayer -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.buffHandler -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.combat-expertise-isolation.live-evidence"
