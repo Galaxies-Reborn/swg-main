@@ -115,6 +115,10 @@ Write-Host "Verifying the direct-source PRE-CU Smuggler content expertise author
 & (Join-Path $PSScriptRoot "Test-P14PrecuSmugglerContentExpertiseAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU target-dummy defense authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuTargetDummyDefenseAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -348,6 +352,10 @@ source_dot_library="$source_script/library/dot.java"
 work_dot_library="$work_script/library/dot.java"
 source_smuggler_library="$source_script/library/smuggler.java"
 work_smuggler_library="$work_script/library/smuggler.java"
+source_target_dummy_library="$source_script/library/target_dummy.java"
+work_target_dummy_library="$work_script/library/target_dummy.java"
+source_target_simulator="$source_script/systems/tcg/target_creature.java"
+work_target_simulator="$work_script/systems/tcg/target_creature.java"
 source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
@@ -567,6 +575,19 @@ cmp -s "$source_smuggler_library" "$work_smuggler_library"
 grep -Fq 'money.ACCT_JUNK_DEALER' "$work_smuggler_library"
 grep -Fq 'int chance = (12 - tier * 2);' "$work_smuggler_library"
 grep -Fq 'int chance = (12 - (dropTier * 2));' "$work_smuggler_library"
+cmp -s "$source_target_dummy_library" "$work_target_dummy_library"
+cmp -s "$source_target_simulator" "$work_target_simulator"
+! grep -Fq 'expertise_' "$work_target_dummy_library"
+! grep -Fq 'armor.recalculateArmorForMob' "$work_target_dummy_library"
+grep -Fq '"precu_armor_rating"' "$work_target_dummy_library"
+grep -Fq '"precu_armor_lightsaber"' "$work_target_dummy_library"
+grep -Fq '"ranged_defense"' "$work_target_dummy_library"
+grep -Fq '"melee_defense"' "$work_target_dummy_library"
+grep -Fq '"unarmed_passive_defense"' "$work_target_dummy_library"
+grep -Fq 'applyPersistedTargetDummyDefenses(targetDummy)' "$work_target_dummy_library"
+grep -Fq 'setObjVar(targetDummy, "precu.armor.rating", value)' "$work_target_dummy_library"
+grep -Fq 'getPrecuTargetDummyArmorObjVar(defenseName)' "$work_target_dummy_library"
+grep -Fq 'Enter a whole-number PRE-CU defense value.' "$work_target_simulator"
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -751,6 +772,18 @@ javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'handleSold
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'script/library/money.systemPayout'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'spaceContrabandDropCheck'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'contrabandDropCheck'
+# The retained simulator exposes only the armor and defense statistics consumed
+# by the authoritative Publish 14.1 combat route.
+! javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'armor.recalculateArmorForMob'
+javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'precu_armor_rating'
+javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'precu_armor_lightsaber'
+javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'ranged_defense'
+javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'melee_defense'
+javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'unarmed_passive_defense'
+javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'applyPersistedTargetDummyDefenses'
+javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'precu.armor.rating'
+javap -classpath "$class_root" -v script.systems.tcg.target_creature | grep -Fq 'Enter a whole-number PRE-CU defense value.'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
