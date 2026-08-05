@@ -55,6 +55,12 @@ Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retir
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying post-NGE Spy player-runtime retirement against current direct source before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgeSpyPlayerRuntimeRetirement.ps1") `
+    -SourceRoot $repositoryRoot
+Write-Host "Verifying PRE-CU Restuss admission authority against current direct source before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuRestussAdmissionAuthority.ps1") `
+    -SourceRoot $repositoryRoot
 Write-Host "Verifying the direct-source PRE-CU combat routing closure before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuCombatRoutingClosure.ps1") `
     -SourceRoot $repositoryRoot `
