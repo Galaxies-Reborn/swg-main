@@ -84,6 +84,10 @@ $paths = [ordered]@{
     "script.terminal.terminal_city" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_city.java"
     "script.terminal.terminal_gcw_publish_gift" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java"
     "script.terminal.terminal_guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_guild.java"
+    "script.library.travel" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/travel.java"
+    "script.systems.spawning.spawn_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java"
+    "script.city.ship_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/city/ship_spawner.java"
+    "script.item.publish_gift.gcw_mulit_image_painting" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/item/publish_gift/gcw_mulit_image_painting.java"
     "datatable.faction_perk.hq.hq_point_values" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/faction_perk/hq/hq_point_values.tab"
     "datatable.faction_recruiter.imperial.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/imperial/installation.tab"
     "datatable.faction_recruiter.rebel.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab"
@@ -97,7 +101,11 @@ $paths = [ordered]@{
     "ScriptMethodsPvp.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
     "script.systems.missions.base.mission_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
     "script.library.groundquests" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java"
+    "script.library.battlefield" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/battlefield.java"
     "script.systems.battlefield.player_battlefield" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/player_battlefield.java"
+    "script.systems.battlefield.game_destroy" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/game_destroy.java"
+    "script.systems.battlefield.game_assault" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/game_assault.java"
+    "script.systems.battlefield.battlefield_utility" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/battlefield/battlefield_utility.java"
     "script.library.space_combat" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/space_combat.java"
     "script.systems.gcw.space.battle_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/space/battle_spawner.java"
 }
@@ -127,6 +135,10 @@ $cityHall = [string]$texts["script.systems.city.city_hall"]
 $terminalCity = [string]$texts["script.terminal.terminal_city"]
 $terminalGcw = [string]$texts["script.terminal.terminal_gcw_publish_gift"]
 $terminalGuild = [string]$texts["script.terminal.terminal_guild"]
+$travel = [string]$texts["script.library.travel"]
+$ambientSpawn = [string]$texts["script.systems.spawning.spawn_base"]
+$cityShipSpawner = [string]$texts["script.city.ship_spawner"]
+$gcwPainting = [string]$texts["script.item.publish_gift.gcw_mulit_image_painting"]
 $hqPointValues = [string]$texts["datatable.faction_perk.hq.hq_point_values"]
 $imperialInstallations = [string]$texts["datatable.faction_recruiter.imperial.installation"]
 $rebelInstallations = [string]$texts["datatable.faction_recruiter.rebel.installation"]
@@ -140,7 +152,11 @@ $scriptGuild = [string]$texts["ScriptMethodsGuild.cpp"]
 $scriptPvp = [string]$texts["ScriptMethodsPvp.cpp"]
 $mission = [string]$texts["script.systems.missions.base.mission_base"]
 $groundquests = [string]$texts["script.library.groundquests"]
+$battlefieldLibrary = [string]$texts["script.library.battlefield"]
 $battlefield = [string]$texts["script.systems.battlefield.player_battlefield"]
+$battlefieldDestroy = [string]$texts["script.systems.battlefield.game_destroy"]
+$battlefieldAssault = [string]$texts["script.systems.battlefield.game_assault"]
+$battlefieldUtility = [string]$texts["script.systems.battlefield.battlefield_utility"]
 $spaceCombat = [string]$texts["script.library.space_combat"]
 $spaceBattle = [string]$texts["script.systems.gcw.space.battle_spawner"]
 
@@ -592,6 +608,70 @@ Assert-Contract (-not [bool]$contract.expected.regionalScoreScriptMutationReacha
     $scriptPvp.Contains("ServerUniverse::getInstance().getGcwGroupImperialScorePercentile")) `
     "p14.gcw-rating.regional-score-read-compatibility-only"
 
+$travelPerk = Get-FunctionSlice $travel `
+    "public static boolean qualifiesForGcwTravelPerks" `
+    "public static boolean restrictedByGcwTravelRestrictions"
+$travelRestriction = Get-FunctionSlice $travel `
+    "public static boolean restrictedByGcwTravelRestrictions" `
+    "public static int getGcwTravelRestrictionsSurcharge"
+$travelSurcharge = Get-FunctionSlice $travel `
+    "public static int getGcwTravelRestrictionsSurcharge" `
+    "public static String getGcwTravelRestrictionsAvailableStarport"
+$travelStarport = Get-FunctionSlice $travel `
+    "public static String getGcwTravelRestrictionsAvailableStarport" `
+    "public static obj_id getTravelShuttle"
+Assert-Contract ($travelPerk.Contains("return false;") -and
+    $travelRestriction.Contains("return false;") -and
+    $travelSurcharge.Contains("return 0;") -and
+    $travelStarport.Contains("return null;") -and
+    -not ($travelPerk + $travelRestriction + $travelSurcharge + $travelStarport).Contains("ScorePercentile") -and
+    -not ($travelPerk + $travelRestriction + $travelSurcharge + $travelStarport).Contains("pvpGetCurrentGcwRank") -and
+    -not [bool]$contract.expected.regionalScoreTravelGameplayAuthority) `
+    "p14.gcw-rating.regional-score-travel-gameplay-retired"
+
+$ambientSelection = Get-FunctionSlice $ambientSpawn `
+    "public int[] getValidSpawn" `
+    "public boolean checkDifficulty"
+$ambientCompatibility = Get-FunctionSlice $ambientSpawn `
+    "public boolean checkGalacticCivilWarStandings" `
+    "public boolean __no_later_method__"
+$spawnListRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/spawn_lists"
+$authoredFactionRows = 0
+Get-ChildItem -LiteralPath $spawnListRoot -Recurse -File -Filter "*.tab" | ForEach-Object {
+    $rows = @(Get-Content -LiteralPath $_.FullName)
+    if ($rows.Count -lt 3) { return }
+    $columns = $rows[0] -split "`t", -1
+    $factionColumn = [Array]::IndexOf($columns, "intGCWFaction")
+    if ($factionColumn -lt 0) { return }
+    for ($row = 2; $row -lt $rows.Count; ++$row)
+    {
+        $values = $rows[$row] -split "`t", -1
+        if ($values.Count -gt $factionColumn -and $values[$factionColumn] -match "^[1-9]") { ++$authoredFactionRows }
+    }
+}
+Assert-Contract ($ambientSelection.Contains("checkDifficulty(intMinDifficulty, intMaxDifficulty, dctPlayerStats)") -and
+    -not $ambientSelection.Contains("intGCW") -and
+    -not $ambientSelection.Contains("checkGalacticCivilWarStandings") -and
+    -not $ambientSpawn.Contains("getGcwGroupImperialScorePercentile") -and
+    -not $ambientSpawn.Contains("getGcwImperialScorePercentile") -and
+    $ambientCompatibility.Contains("return true;") -and
+    $authoredFactionRows -eq [int]$contract.expected.authoredAmbientFactionRowsEligibleForNormalSelection -and
+    -not [bool]$contract.expected.regionalScoreAmbientSpawnAuthority) `
+    "p14.gcw-rating.regional-score-ambient-spawn-authority-retired"
+
+$spaceBattleStart = Get-FunctionSlice $spaceBattle `
+    "public int startSpaceGCWBattle" `
+    "public void makeComponentsUntargetable"
+Assert-Contract ($spaceBattleStart.Contains('rand(0, 1) == 0 ? "imperial" : "rebel"') -and
+    -not $spaceBattleStart.Contains("getGcw") -and
+    -not [bool]$contract.expected.regionalScoreSpaceBattleSideAuthority) `
+    "p14.gcw-rating.regional-score-space-battle-side-authority-retired"
+Assert-Contract ($terminalGcw.Contains("getGcwGroupImperialScorePercentile(strSubCategory)") -and
+    $cityShipSpawner.Contains("getGcwImperialScorePercentile") -and
+    $gcwPainting.Contains("getGcwGroupImperialScorePercentile") -and
+    [bool]$contract.expected.regionalScorePresentationReadCompatibilityPreserved) `
+    "p14.gcw-rating.regional-score-presentation-remains-read-only"
+
 Assert-Contract ($mission.Contains("transferBankCreditsFromNamedAccount(money.ACCT_MISSION_DYNAMIC, recipient, intReward") -and
     $mission.Contains("factions.awardFactionStanding(objPlayer, strFaction, intFactionReward)") -and
     $mission.Contains("fullRewardEach=") -and
@@ -605,6 +685,28 @@ Assert-Contract ($battlefield.Contains("factions.addFactionStanding(self, factio
     -not $battlefield.Contains("item_battlefield_rebel_token_") -and
     -not $battlefield.Contains("item_battlefield_imperial_token_")) `
     "p14.gcw-rating.precu-open-world-battlefield-standing-retained"
+Assert-Contract ($battlefieldLibrary.Contains("STARTING_BUILD_POINTS = 500") -and
+    $battlefieldLibrary.Contains("MAXIMUM_POPULATION = 50") -and
+    $battlefieldLibrary.Contains("MAXIMUM_FACTION_SIZE_DIFFERENCE = 5") -and
+    $battlefieldLibrary.Contains("factions.addFactionStanding(player, faction, amt * -1)") -and
+    $battlefieldDestroy.Contains("if (total_time < 900)") -and
+    $battlefieldDestroy.Contains("if (percent_time > 0.1)") -and
+    $battlefieldDestroy.Contains('params.put("standing", 25.0f)') -and
+    $battlefieldAssault.Contains("if (total_time < 900)") -and
+    $battlefieldAssault.Contains("if (percent_time > 0.1)") -and
+    $battlefieldAssault.Contains('params.put("standing", 25.0f)') -and
+    -not ($battlefieldLibrary + $battlefield + $battlefieldDestroy + $battlefieldAssault).Contains("getLevel(") -and
+    -not ($battlefieldLibrary + $battlefield + $battlefieldDestroy + $battlefieldAssault).Contains("expertise") -and
+    -not ($battlefieldLibrary + $battlefield + $battlefieldDestroy + $battlefieldAssault).Contains("item_battlefield_") -and
+    [bool]$contract.expected.precuOpenWorldBattlefieldBalanceAudited -and
+    [int]$contract.expected.precuOpenWorldBattlefieldRewardStanding -eq 25 -and
+    [int]$contract.expected.precuOpenWorldBattlefieldMinimumRewardSeconds -eq 900 -and
+    [double]$contract.expected.precuOpenWorldBattlefieldMinimumParticipationFraction -eq 0.1) `
+    "p14.gcw-rating.precu-open-world-battlefield-balance-audited"
+Assert-Contract ($battlefieldUtility.Contains("public int OnSpeaking") -and
+    $battlefieldUtility.Contains("sendSystemMessageTestingOnly") -and
+    -not [bool]$contract.expected.battlefieldUtilityProductionAttachmentReachable) `
+    "p14.gcw-rating.battlefield-utility-remains-dormant-testing-surface"
 Assert-Contract ($spaceCombat.Contains("public static void doFactionPointGrant") -and
     $spaceCombat.Contains("factions.addFactionStanding(objPlayer, factions.FACTION_IMPERIAL, intImperialFactionPoints)") -and
     $spaceCombat.Contains("factions.addFactionStanding(objPlayer, factions.FACTION_REBEL, intRebelFactionPoints)")) `
