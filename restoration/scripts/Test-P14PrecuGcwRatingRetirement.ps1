@@ -14,10 +14,15 @@ $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
 $manifestDsrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$manifestSrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
 $indexedDsrcCommit = (& git -C $repositoryRoot rev-parse ":dsrc").Trim()
 if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed dsrc gitlink." }
 $checkedOutDsrcCommit = (& git -C (Join-Path $repositoryRoot "dsrc") rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out dsrc commit." }
+$indexedSrcCommit = (& git -C $repositoryRoot rev-parse ":src").Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed src gitlink." }
+$checkedOutSrcCommit = (& git -C (Join-Path $repositoryRoot "src") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out src commit." }
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
@@ -46,6 +51,11 @@ Assert-Contract ($manifestDsrc.Count -eq 1 -and
     $indexedDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit -and
     $checkedOutDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit) `
     "p14.gcw-rating.direct-source-commit-synchronized"
+Assert-Contract ($manifestSrc.Count -eq 1 -and
+    [string]$manifestSrc[0].commit -ceq [string]$contract.buildEvidence.nativeSourceCommit -and
+    $indexedSrcCommit -ceq [string]$contract.buildEvidence.nativeSourceCommit -and
+    $checkedOutSrcCommit -ceq [string]$contract.buildEvidence.nativeSourceCommit) `
+    "p14.gcw-rating.native-source-commit-synchronized"
 
 foreach ($component in @("dsrc", "src"))
 {
@@ -67,11 +77,21 @@ $paths = [ordered]@{
     "script.systems.gcw.gcw_parent_object" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_parent_object.java"
     "script.faction_perk.hq.loader" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/loader.java"
     "script.faction_perk.hq.planetary_base_register" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/planetary_base_register.java"
+    "script.library.guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/guild.java"
+    "script.player.player_guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/player/player_guild.java"
+    "script.player.player_utility" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java"
+    "script.systems.city.city_hall" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/city/city_hall.java"
+    "script.terminal.terminal_city" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_city.java"
+    "script.terminal.terminal_gcw_publish_gift" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java"
+    "script.terminal.terminal_guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_guild.java"
     "datatable.faction_perk.hq.hq_point_values" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/faction_perk/hq/hq_point_values.tab"
     "datatable.faction_recruiter.imperial.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/imperial/installation.tab"
     "datatable.faction_recruiter.rebel.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab"
     "PlayerObject.cpp" = Join-Path $source "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
     "PlayerObject.h" = Join-Path $source "src/engine/server/library/serverGame/src/shared/object/PlayerObject.h"
+    "Pvp.cpp" = Join-Path $source "src/engine/server/library/serverGame/src/shared/pvp/Pvp.cpp"
+    "ScriptMethodsCity.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsCity.cpp"
+    "ScriptMethodsGuild.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsGuild.cpp"
     "ScriptMethodsPvp.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
     "script.systems.missions.base.mission_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
     "script.library.groundquests" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java"
@@ -98,11 +118,21 @@ $factionPerk = [string]$texts["script.library.faction_perk"]
 $gcwParent = [string]$texts["script.systems.gcw.gcw_parent_object"]
 $hqLoader = [string]$texts["script.faction_perk.hq.loader"]
 $baseRegister = [string]$texts["script.faction_perk.hq.planetary_base_register"]
+$guildLibrary = [string]$texts["script.library.guild"]
+$playerGuild = [string]$texts["script.player.player_guild"]
+$playerUtility = [string]$texts["script.player.player_utility"]
+$cityHall = [string]$texts["script.systems.city.city_hall"]
+$terminalCity = [string]$texts["script.terminal.terminal_city"]
+$terminalGcw = [string]$texts["script.terminal.terminal_gcw_publish_gift"]
+$terminalGuild = [string]$texts["script.terminal.terminal_guild"]
 $hqPointValues = [string]$texts["datatable.faction_perk.hq.hq_point_values"]
 $imperialInstallations = [string]$texts["datatable.faction_recruiter.imperial.installation"]
 $rebelInstallations = [string]$texts["datatable.faction_recruiter.rebel.installation"]
 $player = [string]$texts["PlayerObject.cpp"]
 $playerHeader = [string]$texts["PlayerObject.h"]
+$nativePvp = [string]$texts["Pvp.cpp"]
+$scriptCity = [string]$texts["ScriptMethodsCity.cpp"]
+$scriptGuild = [string]$texts["ScriptMethodsGuild.cpp"]
 $scriptPvp = [string]$texts["ScriptMethodsPvp.cpp"]
 $mission = [string]$texts["script.systems.missions.base.mission_base"]
 $groundquests = [string]$texts["script.library.groundquests"]
@@ -142,6 +172,152 @@ Assert-Contract ($player.Contains("void grantGcwFactionalPresenceScore(std::stri
     $player.Contains("if (!lfgCharacterData.locationFactionalPresenceGcwRegion.empty())") -and
     $player.Contains("grantGcwFactionalPresenceScore(lfgCharacterData.locationFactionalPresenceGcwRegion, *this, *owner);")) `
     "p14.gcw-rating.regional-presentation-compatibility-retained"
+
+$defenderRegionList = Get-FunctionSlice $scriptPvp `
+    "jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegions(" `
+    "jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsCitiesImperial("
+Assert-Contract ($defenderRegionList.Contains("return 0;") -and
+    -not $defenderRegionList.Contains("Pvp::getAllGcwScoreCategory")) `
+    "p14.gcw-rating.regional-defender-membership-list-retired"
+
+$defenderQueryFunctions = [ordered]@{
+    citiesImperial = @("jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsCitiesImperial", "jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsCitiesRebel")
+    citiesRebel = @("jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsCitiesRebel", "jint JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsCitiesVersion")
+    guildsImperial = @("jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsGuildsImperial", "jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsGuildsRebel")
+    guildsRebel = @("jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsGuildsRebel", "jint JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionsGuildsVersion")
+    cityDetailsImperial = @("jintArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionCitiesImperial", "jintArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionCitiesRebel")
+    cityDetailsRebel = @("jintArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionCitiesRebel", "jintArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionGuildsImperial")
+    guildDetailsImperial = @("jintArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionGuildsImperial", "jintArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionGuildsRebel")
+    guildDetailsRebel = @("jintArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionGuildsRebel", "jfloat JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionImperialBonus")
+}
+foreach ($name in $defenderQueryFunctions.Keys)
+{
+    $markers = $defenderQueryFunctions[$name]
+    $slice = Get-FunctionSlice $scriptPvp $markers[0] $markers[1]
+    Assert-Contract ($slice.Contains("return 0;") -and
+        -not $slice.Contains("getGcwRegionDefenderCities") -and
+        -not $slice.Contains("getGcwRegionDefenderGuilds") -and
+        -not $slice.Contains("Pvp::getAllGcwScoreCategory")) `
+        "p14.gcw-rating.regional-defender-query.$name.retired"
+}
+
+$scriptImperialBonus = Get-FunctionSlice $scriptPvp `
+    "jfloat JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionImperialBonus" `
+    "jfloat JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionRebelBonus"
+$scriptRebelBonus = Get-FunctionSlice $scriptPvp `
+    "jfloat JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegionRebelBonus" `
+    "// ======================================================================"
+$pvpImperialBonus = Get-FunctionSlice $nativePvp `
+    "float Pvp::getGcwDefenderRegionImperialBonus" `
+    "float Pvp::getGcwDefenderRegionRebelBonus"
+$pvpRebelBonus = Get-FunctionSlice $nativePvp `
+    "float Pvp::getGcwDefenderRegionRebelBonus" `
+    "bool Pvp::getGcwDefenderRegionBonus"
+$pvpDefenderBonus = Get-FunctionSlice $nativePvp `
+    "bool Pvp::getGcwDefenderRegionBonus" `
+    "void PvpNamespace::loadGcwRankTable"
+Assert-Contract ($scriptImperialBonus.Contains("return 0.0f;") -and
+    $scriptRebelBonus.Contains("return 0.0f;") -and
+    -not $scriptImperialBonus.Contains("Pvp::getGcwDefenderRegionImperialBonus") -and
+    -not $scriptRebelBonus.Contains("Pvp::getGcwDefenderRegionRebelBonus") -and
+    $pvpImperialBonus.Contains("return 0.0f;") -and
+    $pvpRebelBonus.Contains("return 0.0f;") -and
+    $pvpDefenderBonus.Contains("bonus = 0.0f;") -and
+    $pvpDefenderBonus.Contains("return false;")) `
+    "p14.gcw-rating.regional-defender-bonus-retired"
+
+$cityGetRegion = Get-FunctionSlice $scriptCity `
+    "jstring JNICALL ScriptMethodsCityNamespace::cityGetGcwDefenderRegion" `
+    "jint JNICALL ScriptMethodsCityNamespace::cityGetTimeJoinedGcwDefenderRegion"
+$citySetRegion = Get-FunctionSlice $scriptCity `
+    "void JNICALL ScriptMethodsCityNamespace::citySetGcwDefenderRegion" `
+    "void JNICALL ScriptMethodsCityNamespace::citySetLeader"
+$guildGetRegion = Get-FunctionSlice $scriptGuild `
+    "jstring JNICALL ScriptMethodsGuildNamespace::guildGetCurrentGcwDefenderRegion" `
+    "jint JNICALL ScriptMethodsGuildNamespace::guildGetTimeJoinedCurrentGcwDefenderRegion"
+$guildPreviousRegion = Get-FunctionSlice $scriptGuild `
+    "jstring JNICALL ScriptMethodsGuildNamespace::guildGetPreviousGcwDefenderRegion" `
+    "jint JNICALL ScriptMethodsGuildNamespace::guildGetTimeLeftPreviousGcwDefenderRegion"
+$guildSetRegion = Get-FunctionSlice $scriptGuild `
+    "void JNICALL ScriptMethodsGuildNamespace::guildSetGcwDefenderRegion" `
+    "void JNICALL ScriptMethodsGuildNamespace::guildAddCreatorMember"
+Assert-Contract ($cityGetRegion.Contains('JavaString emptyRegion("")') -and
+    -not $cityGetRegion.Contains("CityInterface::getCityInfo") -and
+    $citySetRegion.Contains("CityInterface::setCityGcwDefenderRegion(cityId, std::string(), 0, false)") -and
+    -not $citySetRegion.Contains("Pvp::getGcwScoreCategory") -and
+    $guildGetRegion.Contains('JavaString emptyRegion("")') -and
+    $guildPreviousRegion.Contains('JavaString emptyRegion("")') -and
+    $guildSetRegion.Contains("GuildInterface::setGuildGcwDefenderRegion(guildId, std::string())") -and
+    -not $guildSetRegion.Contains("Pvp::getGcwScoreCategory")) `
+    "p14.gcw-rating.regional-defender-membership-mutation-retired"
+
+$playerDefenderUpdate = Get-FunctionSlice $player `
+    "void PlayerObject::updateGcwDefenderRegionInfo()" `
+    "void PlayerObject::squelch("
+$playerSetTitle = Get-FunctionSlice $player `
+    "void PlayerObject::setTitle(" `
+    "std::string const &PlayerObject::getTitle()"
+$retiredDefenderTitles = @("city_gcw_region_defender", "guild_gcw_region_defender", "imperial_gcw_war_planner", "rebel_gcw_war_planner")
+Assert-Contract ($playerDefenderUpdate.Contains("m_cityGcwDefenderRegion.set(std::make_pair(std::string(), std::make_pair(false, false)))") -and
+    $playerDefenderUpdate.Contains("m_guildGcwDefenderRegion.set(std::make_pair(std::string(), std::make_pair(false, false)))") -and
+    $playerDefenderUpdate.Contains('modifyCollectionSlotValue("imperial_gcw_war_planner", -1ll)') -and
+    $playerDefenderUpdate.Contains('modifyCollectionSlotValue("rebel_gcw_war_planner", -1ll)') -and
+    (@($retiredDefenderTitles | Where-Object { -not $playerSetTitle.Contains($_) -or -not $playerDefenderUpdate.Contains($_) }).Count -eq 0) -and
+    -not $playerDefenderUpdate.Contains("CityInterface::getCityInfo") -and
+    -not $playerDefenderUpdate.Contains("GuildInterface::getGuildInfo") -and
+    -not $playerDefenderUpdate.Contains("getGcwImperialScorePercentile")) `
+    "p14.gcw-rating.regional-defender-player-state-and-titles-scrubbed"
+
+$cityMenuRequest = Get-FunctionSlice $terminalCity "public int OnObjectMenuRequest" "public int OnObjectMenuSelect"
+$cityMenuSelect = Get-FunctionSlice $terminalCity "public int OnObjectMenuSelect" "public void forceUpdate"
+$cityInfo = Get-FunctionSlice $terminalCity "public void showCityInfo" "public void showCitizensList"
+$guildMenuRequest = Get-FunctionSlice $terminalGuild "public int OnObjectMenuRequest" "public int OnObjectMenuSelect"
+$guildMenuSelect = Get-FunctionSlice $terminalGuild "public int OnObjectMenuSelect" "public obj_id getMenuContextObjId"
+$guildInfo = Get-FunctionSlice $guildLibrary "public static void showGuildInfo" "public static void showGuildEnemies"
+$warMenuRequest = Get-FunctionSlice $terminalGcw "public int OnObjectMenuRequest" "public int OnObjectMenuSelect"
+$warDefenderSelection = Get-FunctionSlice $terminalGcw `
+    "else if (item == menu_info_types.SERVER_MENU4)" `
+    "return SCRIPT_CONTINUE;"
+Assert-Contract (-not $cityMenuRequest.Contains("SERVER_MENU17, SID_BEGIN_GCW_REGION_DEFENDER") -and
+    -not $cityMenuRequest.Contains("SERVER_MENU18, SID_END_GCW_REGION_DEFENDER") -and
+    $cityMenuSelect.Contains("item == menu_info_types.SERVER_MENU17 || item == menu_info_types.SERVER_MENU18") -and
+    $cityMenuSelect.Contains('citySetGcwDefenderRegion(city_id, "", 0, false)') -and
+    -not $cityMenuSelect.Contains("Select a GCW region") -and
+    -not $cityInfo.Contains("GCW Region Defender") -and
+    -not $guildMenuRequest.Contains("SERVER_MENU22, SID_END_GCW_REGION_DEFENDER") -and
+    -not $guildMenuRequest.Contains("SERVER_MENU23, SID_BEGIN_GCW_REGION_DEFENDER") -and
+    $guildMenuSelect.Contains("item == menu_info_types.SERVER_MENU22 || item == menu_info_types.SERVER_MENU23") -and
+    $guildMenuSelect.Contains('guildSetGcwDefenderRegion(guildId, "")') -and
+    -not $guildMenuSelect.Contains("Select a GCW region") -and
+    -not $guildInfo.Contains("GCW Region Defender") -and
+    -not $warMenuRequest.Contains("menu_info_types.SERVER_MENU4") -and
+    $warDefenderSelection.Contains("gcw.gcwRegionDefenderTablePid") -and
+    $warDefenderSelection.Contains("gcw.gcwRegionDefenderDetailsTablePid") -and
+    -not $warDefenderSelection.Contains("getGcwDefenderRegions") -and
+    -not $warDefenderSelection.Contains("sui.tableColumnMajor")) `
+    "p14.gcw-rating.regional-defender-terminal-presentation-retired"
+
+Assert-Contract (-not $playerUtility.Contains("GCW Region Defender Rebel Bonus") -and
+    -not $playerUtility.Contains("selectedGcwDefenderRegion") -and
+    -not $playerUtility.Contains("getGcwDefenderRegions()") -and
+    $playerUtility.Contains('citySetGcwDefenderRegion(cityId, "", 0, false)') -and
+    -not $playerGuild.Contains("selectedGcwDefenderRegion") -and
+    -not $playerGuild.Contains("getGcwDefenderRegions()") -and
+    $playerGuild.Contains('guildSetGcwDefenderRegion(guildId, "")') -and
+    -not $cityHall.Contains('messageTo(self, "retryDepersistCityGcwRegionDefender"') -and
+    -not $cityHall.Contains("cityGcwRegionDefender.region") -and
+    $cityHall.Contains('citySetGcwDefenderRegion(city_id, "", 0, false)')) `
+    "p14.gcw-rating.regional-defender-stale-callbacks-cleanup-only"
+
+Assert-Contract ($terminalGcw.Contains("getGcwGroupImperialScorePercentile(strSubCategory)") -and
+    $gcw.Contains("getGcwImperialScorePercentile(category)") -and
+    [bool]$contract.expected.regionalScoreAndContentCompatibilityPreserved -and
+    -not [bool]$contract.expected.postNgeRegionalDefenderMembershipReachable -and
+    -not [bool]$contract.expected.postNgeRegionalDefenderBonusReachable -and
+    -not [bool]$contract.expected.postNgeRegionalDefenderTitlesReachable -and
+    -not [bool]$contract.expected.postNgeRegionalDefenderPresentationReachable -and
+    [bool]$contract.expected.staleRegionalDefenderPlayerStateScrubbed) `
+    "p14.gcw-rating.regional-content-preserved-with-defender-system-retired"
 
 $periodicOverwrite = Get-FunctionSlice $gcwParent `
     "public int updateGCWData" `
@@ -311,6 +487,7 @@ $nativeBridge = Get-FunctionSlice $scriptPvp `
     "void JNICALL ScriptMethodsPvpNamespace::pvpModifyCurrentGcwPoints" `
     "void JNICALL ScriptMethodsPvpNamespace::pvpModifyCurrentPvpKills"
 Assert-Contract ($nativeBridge.Contains("player->modifyCurrentGcwPoints(adjustment, true)") -and
+    -not $nativeBridge.Contains("getGcwDefenderRegionBonus") -and
     (Get-BeforeFirstReturn (Get-FunctionSlice $player "void PlayerObject::modifyCurrentGcwPoints" "void PlayerObject::modifyCurrentGcwRating")).Contains("retirePostNgeGcwRatingState();")) `
     "p14.gcw-rating.direct-holiday-and-collection-bypasses-closed-natively"
 
