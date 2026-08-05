@@ -119,6 +119,10 @@ Write-Host "Verifying the direct-source PRE-CU target-dummy defense authority be
 & (Join-Path $PSScriptRoot "Test-P14PrecuTargetDummyDefenseAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU TCG barn-display authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuTcgBarnDisplayAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -356,6 +360,14 @@ source_target_dummy_library="$source_script/library/target_dummy.java"
 work_target_dummy_library="$work_script/library/target_dummy.java"
 source_target_simulator="$source_script/systems/tcg/target_creature.java"
 work_target_simulator="$work_script/systems/tcg/target_creature.java"
+source_tcg_library="$source_script/library/tcg.java"
+work_tcg_library="$work_script/library/tcg.java"
+source_barn_ranchhand="$source_script/systems/tcg/barn_ranchhand.java"
+work_barn_ranchhand="$work_script/systems/tcg/barn_ranchhand.java"
+source_barn_lite_device="$source_script/systems/tcg/barn_lite_device.java"
+work_barn_lite_device="$work_script/systems/tcg/barn_lite_device.java"
+source_barn_beast="$source_script/systems/tcg/barn_beast.java"
+work_barn_beast="$work_script/systems/tcg/barn_beast.java"
 source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
@@ -588,6 +600,23 @@ grep -Fq 'applyPersistedTargetDummyDefenses(targetDummy)' "$work_target_dummy_li
 grep -Fq 'setObjVar(targetDummy, "precu.armor.rating", value)' "$work_target_dummy_library"
 grep -Fq 'getPrecuTargetDummyArmorObjVar(defenseName)' "$work_target_dummy_library"
 grep -Fq 'Enter a whole-number PRE-CU defense value.' "$work_target_simulator"
+cmp -s "$source_tcg_library" "$work_tcg_library"
+cmp -s "$source_barn_ranchhand" "$work_barn_ranchhand"
+cmp -s "$source_barn_lite_device" "$work_barn_lite_device"
+cmp -s "$source_barn_beast" "$work_barn_beast"
+! grep -Fq 'expertise_' "$work_tcg_library"
+! grep -Fq 'getExpertiseStat' "$work_tcg_library"
+! grep -Fq 'getExpertiseSpeed' "$work_tcg_library"
+! grep -Fq 'ATTENTION_PENALTY_DEBUFF' "$work_tcg_library"
+! grep -Fq 'buff.applyBuff' "$work_tcg_library"
+grep -Fq 'float primarySpeed = beast_lib.BEAST_WEAPON_SPEED;' "$work_tcg_library"
+grep -Fq 'int healthRegen = beastStatsDict.getInt("HealthRegen");' "$work_tcg_library"
+grep -Fq 'int actionRegen = beastStatsDict.getInt("ActionRegen");' "$work_tcg_library"
+grep -Fq 'int intArmor = (int)(beastStatsDict.getInt("Armor")' "$work_tcg_library"
+grep -Fq 'setInvulnerable(beast, true);' "$work_tcg_library"
+grep -Fq 'tcg.barnDisplayBeast' "$work_barn_ranchhand"
+grep -Fq 'tcg.barnDisplayBeast' "$work_barn_lite_device"
+grep -Fq 'destroyObject(self);' "$work_barn_beast"
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -784,6 +813,19 @@ javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'unarme
 javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'applyPersistedTargetDummyDefenses'
 javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'precu.armor.rating'
 javap -classpath "$class_root" -v script.systems.tcg.target_creature | grep -Fq 'Enter a whole-number PRE-CU defense value.'
+# Retained TCG barn representations use authored and stored display values only;
+# post-NGE Beast Master expertise and attention mechanics never enter the path.
+! javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'getExpertiseStat'
+! javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'getExpertiseSpeed'
+! javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'ATTENTION_PENALTY_DEBUFF'
+javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'barnDisplayBeast'
+javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'initializeBeastStatsFromBarn'
+javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'HealthRegen'
+javap -classpath "$class_root" -v script.library.tcg | grep -Fq 'setInvulnerable'
+javap -classpath "$class_root" -v script.systems.tcg.barn_ranchhand | grep -Fq 'barnDisplayBeast'
+javap -classpath "$class_root" -v script.systems.tcg.barn_lite_device | grep -Fq 'barnDisplayBeast'
+javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'BEAST_ROAMING'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
