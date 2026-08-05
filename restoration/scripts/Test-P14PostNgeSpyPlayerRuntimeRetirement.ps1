@@ -246,6 +246,7 @@ $handlerText = [string]$sourceTexts["systems/buff/buff_handler.java"]
 $invisAddBody = Get-SourceSlice $handlerText "public void invisBuffAddBuffHandler" "public void noBreakInvisRemoveBuffHandler"
 Assert-Contract (
     (Is-Before $invisAddBody "isRetiredPostNgeSpyBuffName(effectName)" "stealth.invisBuffAdded") -and
+    (Is-Before $invisAddBody "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)" "stealth.invisBuffAdded") -and
     $invisAddBody.Contains("isPlayer(self)") -and
     $invisAddBody.Contains("buff.removeBuff(self, buffName)")
 ) "p14.spy-retirement.direct-buff-application.fail-closed"

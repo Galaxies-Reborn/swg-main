@@ -977,8 +977,8 @@ printf '%s' "$stance_source" | grep -Fq 'retireNgeExpertiseModifier(self, "exper
 ! printf '%s' "$stance_source" | grep -Fq 'addSkillModModifier(self, "expertise_fs_'
 force_sensitive_stance_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS/,/public static boolean isRetiredPostNgeForceSensitiveStanceBuff/p' "$work_buff_library")"
 force_sensitive_stance_cleanup_source="$(sed -n '/public static void retirePostNgeForceSensitiveStanceState/,/public static boolean isRetiredPostNgeBountyHunterShieldBuff/p' "$work_buff_library")"
-retired_force_sensitive_stance_buffs="fs_buff_def_1_1 fs_buff_ca_1 jedi_reflect_flurry fs_saber_shackle_1 fs_saber_shackle_2 fs_saber_shackle_3 fs_saber_shackle_4 fs_soothing_aura_1 fs_soothing_aura_2 fs_soothing_aura_3 fs_soothing_aura_4 fs_anticipate_aggression_1 fs_anticipate_aggression_2 fs_reactive_response_1 fs_reactive_response_2 fs_perceptive_sentinel_1 fs_perceptive_sentinel_2 fs_perceptive_sentinel_3 fs_perceptive_sentinel_4 fs_saber_reflect fs_ruthless_precision_1 fs_ruthless_precision_2 fs_ruthless_precision_3 fs_ruthless_precision_4 fs_tempt_hatred_1 fs_tempt_hatred_2 fs_wracking_energy_1 fs_wracking_energy_2 fs_wracking_energy_3 fs_wracking_energy_4 fs_imp_force_drain_1 fs_imp_force_drain_2 fs_imp_force_drain_3 fs_imp_force_drain_4"
-test "$(printf '%s\n' $retired_force_sensitive_stance_buffs | wc -l)" -eq 34
+retired_force_sensitive_stance_buffs="fs_buff_def_1_1 fs_buff_ca_1 jedi_reflect_flurry fs_saber_shackle_1 fs_saber_shackle_2 fs_saber_shackle_3 fs_saber_shackle_4 fs_soothing_aura_1 fs_soothing_aura_2 fs_soothing_aura_3 fs_soothing_aura_4 fs_anticipate_aggression_1 fs_anticipate_aggression_2 fs_reactive_response_1 fs_reactive_response_2 fs_perceptive_sentinel_1 fs_perceptive_sentinel_2 fs_perceptive_sentinel_3 fs_perceptive_sentinel_4 fs_saber_reflect fs_ruthless_precision_1 fs_ruthless_precision_2 fs_ruthless_precision_3 fs_ruthless_precision_4 fs_tempt_hatred_1 fs_tempt_hatred_2 fs_wracking_energy_1 fs_wracking_energy_2 fs_wracking_energy_3 fs_wracking_energy_4 fs_imp_force_drain_1 fs_imp_force_drain_2 fs_imp_force_drain_3 fs_imp_force_drain_4 invis_fs_buff_invis_1"
+test "$(printf '%s\n' $retired_force_sensitive_stance_buffs | wc -l)" -eq 35
 retained_force_sensitive_stance_rows=0
 for retired_force_sensitive_stance_buff in $retired_force_sensitive_stance_buffs; do
     printf '%s' "$force_sensitive_stance_inventory_source" | grep -Fq "\"$retired_force_sensitive_stance_buff\""
@@ -986,8 +986,11 @@ for retired_force_sensitive_stance_buff in $retired_force_sensitive_stance_buffs
         retained_force_sensitive_stance_rows=$((retained_force_sensitive_stance_rows + 1))
     fi
 done
-test "$retained_force_sensitive_stance_rows" -eq 33
+test "$retained_force_sensitive_stance_rows" -eq 34
 ! awk -F '\t' '$1 == "fs_imp_force_drain_4" { found=1 } END { exit(found ? 0 : 1) }' "$work_buff_table"
+awk -F '\t' '$1 == "invis_fs_buff_invis_1" { found++ } END { if (found != 1) exit 3 }' "$work_buff_table"
+awk -F '\t' '$1 == "invis_forceCloak" { found++ } END { if (found != 1) exit 3 }' "$work_buff_table"
+! printf '%s' "$force_sensitive_stance_inventory_source" | grep -Fq '"invis_forceCloak"'
 awk -F '\t' '$1 == "centerofbeing" { found++; if ($8 != "private_center_of_being") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
 printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq '!isPlayer(player)'
 printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
@@ -1074,6 +1077,10 @@ force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | 
 force_sensitive_stance_visual_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.playStanceVisual(self, effectName);' | head -1 | cut -d: -f1)"
 test "$force_sensitive_stance_handler_gate_line" -lt "$force_sensitive_stance_handler_cleanup_line"
 test "$force_sensitive_stance_handler_cleanup_line" -lt "$force_sensitive_stance_visual_line"
+force_sensitive_invis_handler_source="$(sed -n '/public void invisBuffAddBuffHandler/,/public void noBreakInvisRemoveBuffHandler/p' "$work_buff_handler")"
+force_sensitive_invis_handler_gate_line="$(printf '%s\n' "$force_sensitive_invis_handler_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
+force_sensitive_invis_handler_effect_line="$(printf '%s\n' "$force_sensitive_invis_handler_source" | grep -Fn 'stealth.invisBuffAdded(self, effectName);' | head -1 | cut -d: -f1)"
+test "$force_sensitive_invis_handler_gate_line" -lt "$force_sensitive_invis_handler_effect_line"
 bounty_hunter_shield_handler_source="$(sed -n '/public int bhShieldsAddBuffHandler/,/public int bhShieldsRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'if (isPlayer(self))'
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'buff.retirePostNgeBountyHunterShieldState(self);'
@@ -1272,6 +1279,10 @@ printf '%s' "$stance_bytecode" | grep -Fq 'expertise_fs_flurry_charge_proc'
 ! printf '%s' "$stance_bytecode" | grep -Fq 'Method addSkillModModifier'
 printf '%s' "$stance_bytecode" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff'
 printf '%s' "$stance_bytecode" | grep -Fq 'retirePostNgeForceSensitiveStanceState'
+invis_buff_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public void invisBuffAddBuffHandler/,/public void noBreakInvisRemoveBuffHandler/p')"
+printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff'
+printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'invisBuffAdded'
 # Authenticated PRE-CU DOTs persist their era route through every pulse while
 # later-content compatibility callers retain the inherited DOT path.
 javap -classpath "$class_root" -v script.library.dot | grep -Fq 'applyPrecuDotEffect'

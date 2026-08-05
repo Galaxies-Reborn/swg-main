@@ -321,6 +321,13 @@ $forceSensitiveHandlerCleanup = $stanceHandler.IndexOf(
     [StringComparison]::Ordinal)
 $forceSensitiveHandlerVisual = $stanceHandler.IndexOf(
     "buff.playStanceVisual(self, effectName);", [StringComparison]::Ordinal)
+$forceSensitiveInvisHandler = Get-BracedBlock $buffHandler `
+    "public void invisBuffAddBuffHandler(obj_id self"
+$forceSensitiveInvisHandlerGate = $forceSensitiveInvisHandler.IndexOf(
+    "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)",
+    [StringComparison]::Ordinal)
+$forceSensitiveInvisHandlerEffect = $forceSensitiveInvisHandler.IndexOf(
+    "stealth.invisBuffAdded(self, effectName);", [StringComparison]::Ordinal)
 Assert-Contract ($retiredForceSensitiveStanceNames.Count -eq
         [int]$contract.expected.retiredNgeForceSensitiveStanceStateBuffs -and
     @($retiredForceSensitiveStanceNames | Select-Object -Unique).Count -eq
@@ -341,6 +348,8 @@ Assert-Contract ($retiredForceSensitiveStanceNames.Count -eq
     $forceSensitiveHandlerGate -ge 0 -and
     $forceSensitiveHandlerCleanup -gt $forceSensitiveHandlerGate -and
     $forceSensitiveHandlerVisual -gt $forceSensitiveHandlerCleanup -and
+    $forceSensitiveInvisHandlerGate -ge 0 -and
+    $forceSensitiveInvisHandlerEffect -gt $forceSensitiveInvisHandlerGate -and
     $isInStance.Contains("retirePostNgeForceSensitiveStanceState(player);") -and
     $isInStance.Contains("return false;") -and
     $isInStance.Contains("return true;") -and
@@ -358,6 +367,8 @@ Assert-Contract ($forceSensitiveStanceRows.Count -eq
     }).Count -eq
         [int]$contract.expected.historicalForceSensitiveStanceCleanupOnlyNames -and
     $retiredForceSensitiveStanceNames -ccontains "fs_imp_force_drain_4" -and
+    $retiredForceSensitiveStanceNames -ccontains "invis_fs_buff_invis_1" -and
+    -not ($retiredForceSensitiveStanceNames -ccontains "invis_forceCloak") -and
     [bool]$contract.expected.precuCenterOfBeingPreserved -and
     -not ($retiredForceSensitiveStanceNames -ccontains "centerofbeing") -and
     @(Import-SwgTab -Path $paths.buffTable | Where-Object {

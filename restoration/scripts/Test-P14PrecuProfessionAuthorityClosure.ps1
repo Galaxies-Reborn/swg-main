@@ -341,6 +341,8 @@ $forceSensitiveCanApply = Get-FunctionSlice $forceSensitiveBuff `
     "public static boolean applyBuff(obj_id target, String name)"
 $forceSensitiveStanceHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
     "public int stanceAddBuffHandler" "public int stanceRemoveBuffHandler"
+$forceSensitiveInvisHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public void invisBuffAddBuffHandler" "public void noBreakInvisRemoveBuffHandler"
 $forceSensitiveStanceQuery = Get-FunctionSlice $forceSensitiveBuff `
     "public static boolean isInStance" "public static boolean isInFocus"
 $forceSensitiveFocusQuery = Get-FunctionSlice $forceSensitiveBuff `
@@ -361,6 +363,11 @@ $forceSensitiveHandlerCleanup = $forceSensitiveStanceHandler.IndexOf(
     [StringComparison]::Ordinal)
 $forceSensitiveHandlerVisual = $forceSensitiveStanceHandler.IndexOf(
     "buff.playStanceVisual(self, effectName);", [StringComparison]::Ordinal)
+$forceSensitiveInvisHandlerGate = $forceSensitiveInvisHandler.IndexOf(
+    "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)",
+    [StringComparison]::Ordinal)
+$forceSensitiveInvisHandlerEffect = $forceSensitiveInvisHandler.IndexOf(
+    "stealth.invisBuffAdded(self, effectName);", [StringComparison]::Ordinal)
 Assert-Contract ($retiredForceSensitiveStanceNames.Count -eq
         [int]$contract.expected.retiredNgeForceSensitiveStanceStateBuffs -and
     @($retiredForceSensitiveStanceNames | Select-Object -Unique).Count -eq
@@ -374,6 +381,8 @@ Assert-Contract ($retiredForceSensitiveStanceNames.Count -eq
     $forceSensitiveHandlerGate -ge 0 -and
     $forceSensitiveHandlerCleanup -gt $forceSensitiveHandlerGate -and
     $forceSensitiveHandlerVisual -gt $forceSensitiveHandlerCleanup -and
+    $forceSensitiveInvisHandlerGate -ge 0 -and
+    $forceSensitiveInvisHandlerEffect -gt $forceSensitiveInvisHandlerGate -and
     $forceSensitiveStanceQuery.Contains(
         "retirePostNgeForceSensitiveStanceState(player);") -and
     $forceSensitiveStanceQuery.Contains("return false;") -and
@@ -763,6 +772,8 @@ Assert-Contract ($retiredForceSensitiveStanceRows.Count -eq
     }).Count -eq
         [int]$contract.expected.historicalForceSensitiveStanceCleanupOnlyNames -and
     $retiredForceSensitiveStanceNames -ccontains "fs_imp_force_drain_4" -and
+    $retiredForceSensitiveStanceNames -ccontains "invis_fs_buff_invis_1" -and
+    -not ($retiredForceSensitiveStanceNames -ccontains "invis_forceCloak") -and
     [bool]$contract.expected.precuCenterOfBeingPreserved -and
     -not ($retiredForceSensitiveStanceNames -ccontains "centerofbeing") -and
     @($buffRows | Where-Object {

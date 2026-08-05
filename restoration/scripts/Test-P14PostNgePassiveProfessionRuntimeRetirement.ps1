@@ -133,6 +133,8 @@ $existingBuffReturn = $canApply.IndexOf("hasBuff(target, nameCrc)",
     [StringComparison]::Ordinal)
 $stanceAdd = Get-SourceSlice $buffHandler `
     "public int stanceAddBuffHandler" "public int stanceRemoveBuffHandler"
+$invisAdd = Get-SourceSlice $buffHandler `
+    "public void invisBuffAddBuffHandler" "public void noBreakInvisRemoveBuffHandler"
 $stanceHandlerGate = $stanceAdd.IndexOf(
     "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)",
     [StringComparison]::Ordinal)
@@ -140,6 +142,11 @@ $stanceHandlerCleanup = $stanceAdd.IndexOf(
     "buff.retirePostNgeForceSensitiveStanceState(self);",
     [StringComparison]::Ordinal)
 $stanceVisual = $stanceAdd.IndexOf("buff.playStanceVisual(self, effectName);",
+    [StringComparison]::Ordinal)
+$invisHandlerGate = $invisAdd.IndexOf(
+    "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)",
+    [StringComparison]::Ordinal)
+$invisHandlerEffect = $invisAdd.IndexOf("stealth.invisBuffAdded(self, effectName);",
     [StringComparison]::Ordinal)
 $isInStance = Get-SourceSlice $buffLibrary `
     "public static boolean isInStance" "public static boolean isInFocus"
@@ -150,6 +157,7 @@ Assert-Contract ([bool]$contract.expected.genericRetiredBuffAdmissionFailsClosed
     [bool]$contract.expected.stanceHandlerFailsClosedBeforeVisualAndExpertiseReads -and
     $stanceHandlerGate -ge 0 -and $stanceHandlerCleanup -gt $stanceHandlerGate -and
     $stanceVisual -gt $stanceHandlerCleanup -and
+    $invisHandlerGate -ge 0 -and $invisHandlerEffect -gt $invisHandlerGate -and
     $stanceAdd.Contains('subtype.equals("expertise_stance")') -and
     $stanceAdd.Contains('subtype.equals("expertise_focus")') -and
     [bool]$contract.expected.stanceAndFocusQueriesFailClosedForPlayers -and
@@ -181,6 +189,8 @@ Assert-Contract ($retiredStanceRows.Count -eq
         $_ -cnotin @($retiredStanceRows | Select-Object -ExpandProperty NAME)
     }).Count -eq [int]$contract.expected.historicalForceSensitiveStanceCleanupOnlyNames -and
     $retiredStanceNames -ccontains "fs_imp_force_drain_4" -and
+    $retiredStanceNames -ccontains "invis_fs_buff_invis_1" -and
+    -not ($retiredStanceNames -ccontains "invis_forceCloak") -and
     -not ($retiredStanceNames -ccontains "centerofbeing") -and
     $centerRows.Count -eq 1 -and
     [bool]$contract.expected.precuCenterOfBeingPreserved -and
