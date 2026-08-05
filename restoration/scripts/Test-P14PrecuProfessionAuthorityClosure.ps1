@@ -157,6 +157,48 @@ foreach ($property in $contract.buildEvidence.smugglerRuntimeSourceSha256.PSObje
         "p14.profession-closure.smuggler-runtime.source.$($property.Name).authenticated"
 }
 
+$bountyHunterRuntimeSources = [ordered]@{
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java" =
+        "systems/combat/combat_base.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
+        "systems/combat/combat_actions.java"
+}
+Assert-Contract ($bountyHunterRuntimeSources.Count -eq
+        [int]$contract.expected.authoritativeBountyHunterRuntimeFiles -and
+    @($contract.buildEvidence.bountyHunterRuntimeSourceSha256.PSObject.Properties).Count -eq
+        $bountyHunterRuntimeSources.Count) `
+    "p14.profession-closure.bounty-hunter-runtime.source-count"
+foreach ($property in $contract.buildEvidence.bountyHunterRuntimeSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $dsrc $property.Name
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        $bountyHunterRuntimeSources.Contains($property.Name) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            [string]$property.Value) `
+        "p14.profession-closure.bounty-hunter-runtime.source.$($property.Name).authenticated"
+}
+
+$commandoRuntimeSources = [ordered]@{
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java" =
+        "systems/combat/combat_base.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
+        "systems/combat/combat_actions.java"
+}
+Assert-Contract ($commandoRuntimeSources.Count -eq
+        [int]$contract.expected.authoritativeCommandoRuntimeFiles -and
+    @($contract.buildEvidence.commandoRuntimeSourceSha256.PSObject.Properties).Count -eq
+        $commandoRuntimeSources.Count) `
+    "p14.profession-closure.commando-runtime.source-count"
+foreach ($property in $contract.buildEvidence.commandoRuntimeSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $dsrc $property.Name
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        $commandoRuntimeSources.Contains($property.Name) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            [string]$property.Value) `
+        "p14.profession-closure.commando-runtime.source.$($property.Name).authenticated"
+}
+
 $combatBase = [string]$officerTexts["systems/combat/combat_base.java"]
 $officerPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeOfficerPlayerAction" `
@@ -221,7 +263,7 @@ Assert-Contract ($forceSensitiveHandlers.Count -eq
 
 $smugglerPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeSmugglerPlayerAction" `
-    "public boolean combatStandardAction"
+    "public static boolean isRetiredPostNgeBountyHunterPlayerAction"
 Assert-Contract ($smugglerPredicate.Contains("isPlayer(self)") -and
     $smugglerPredicate.Contains('actionName.startsWith("sm_")') -and
     $combatBase.Contains("if (isRetiredPostNgeSmugglerPlayerAction(self, actionName))")) `
@@ -277,6 +319,60 @@ Assert-Contract ($smugglerHandlers.Count -eq
         ($expectedDirectSmugglerHandlers -join "`n") -and
     $directSmugglerHandlersGuarded) `
     "p14.profession-closure.smuggler-runtime.all-player-actions-covered"
+
+$bountyHunterPredicate = Get-FunctionSlice $combatBase `
+    "public static boolean isRetiredPostNgeBountyHunterPlayerAction" `
+    "public static boolean isRetiredPostNgeCommandoPlayerAction"
+Assert-Contract ($bountyHunterPredicate.Contains("isPlayer(self)") -and
+    $bountyHunterPredicate.Contains('actionName.startsWith("bh_")') -and
+    $combatBase.Contains("if (isRetiredPostNgeBountyHunterPlayerAction(self, actionName))")) `
+    "p14.profession-closure.bounty-hunter-runtime.central-player-action-gate"
+$bountyHunterHandlers = @([regex]::Matches(
+    $combatActions,
+    '(?ms)^\s*public int (bh_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+$standardBountyHunterHandlers = @($bountyHunterHandlers | Where-Object {
+    $_.Value.Contains("combatStandardAction(")
+})
+$directBountyHunterHandlers = @($bountyHunterHandlers | Where-Object {
+    -not $_.Value.Contains("combatStandardAction(")
+})
+Assert-Contract ($bountyHunterHandlers.Count -eq
+        [int]$contract.expected.postNgeBountyHunterPlayerActionHandlers -and
+    $standardBountyHunterHandlers.Count -eq
+        [int]$contract.expected.postNgeBountyHunterStandardActionHandlers -and
+    $directBountyHunterHandlers.Count -eq
+        [int]$contract.expected.postNgeBountyHunterDirectCallbacks) `
+    "p14.profession-closure.bounty-hunter-runtime.all-player-actions-covered"
+
+$commandoPredicate = Get-FunctionSlice $combatBase `
+    "public static boolean isRetiredPostNgeCommandoPlayerAction" `
+    "public boolean combatStandardAction"
+Assert-Contract ($commandoPredicate.Contains("isPlayer(self)") -and
+    $commandoPredicate.Contains('actionName.startsWith("co_")') -and
+    $combatBase.Contains("if (isRetiredPostNgeCommandoPlayerAction(self, actionName))")) `
+    "p14.profession-closure.commando-runtime.central-player-action-gate"
+$commandoHandlers = @([regex]::Matches(
+    $combatActions,
+    '(?ms)^\s*public int (co_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+$standardCommandoHandlers = @($commandoHandlers | Where-Object {
+    $_.Value.Contains("combatStandardAction(")
+})
+$directCommandoHandlers = @($commandoHandlers | Where-Object {
+    -not $_.Value.Contains("combatStandardAction(")
+})
+$directCommandoGuarded = $directCommandoHandlers.Count -eq 1 -and
+    $directCommandoHandlers[0].Groups[1].Value -ceq "co_kill_trap_1" -and
+    $directCommandoHandlers[0].Value.Contains(
+        'isRetiredPostNgeCommandoPlayerAction(self, "co_kill_trap_1")') -and
+    $directCommandoHandlers[0].Value.Contains("return SCRIPT_OVERRIDE;")
+Assert-Contract ($commandoHandlers.Count -eq
+        [int]$contract.expected.postNgeCommandoPlayerActionHandlers -and
+    $standardCommandoHandlers.Count -eq
+        [int]$contract.expected.postNgeCommandoStandardActionHandlers -and
+    $directCommandoHandlers.Count -eq
+        [int]$contract.expected.postNgeCommandoDirectCallbacks -and
+    $directCommandoGuarded) `
+    "p14.profession-closure.commando-runtime.all-player-actions-covered"
 
 $officerPet = [string]$officerTexts["ai/officer_pet.java"]
 Assert-Contract (-not $officerPet.Contains("expertise_of_reinforcements_1") -and
@@ -436,6 +532,50 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_smuggler_').
         [int]$contract.expected.precuSmugglerSmCommands) `
     "p14.profession-closure.smuggler-runtime.data-and-precu-command-boundary"
 
+$precuBountyHunterRows = @($skillRows | Where-Object {
+    [string]$_.NAME -match '^combat_bountyhunter(?:_|$)'
+})
+$precuBountyHunterCommands = @($precuBountyHunterRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_bountyhunter_').Count -eq
+        [int]$contract.expected.retainedBountyHunterClassSkillRows) -and
+    ([regex]::Matches($officerSkillsTable, '(?m)^expertise_bh_').Count -eq
+        [int]$contract.expected.retainedBountyHunterExpertiseSkillRows) -and
+    ([regex]::Matches($commandTable, '(?m)^bh_').Count -eq
+        [int]$contract.expected.retainedBountyHunterCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^bh_').Count -eq
+        [int]$contract.expected.retainedBountyHunterCombatRows) -and
+    ([regex]::Matches($commandSeries, '(?m)^bh_').Count -eq
+        [int]$contract.expected.retainedBountyHunterCommandSeriesRows) -and
+    $precuBountyHunterRows.Count -eq [int]$contract.expected.precuBountyHunterSkillRows -and
+    $precuBountyHunterCommands.Count -eq [int]$contract.expected.precuBountyHunterCommands -and
+    @($precuBountyHunterCommands | Where-Object { $_ -match '^bh_' }).Count -eq
+        [int]$contract.expected.precuBountyHunterBhCommands) `
+    "p14.profession-closure.bounty-hunter-runtime.data-and-precu-command-boundary"
+
+$precuCommandoRows = @($skillRows | Where-Object {
+    [string]$_.NAME -match '^combat_commando(?:_|$)'
+})
+$precuCommandoCommands = @($precuCommandoRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_commando_').Count -eq
+        [int]$contract.expected.retainedCommandoClassSkillRows) -and
+    ([regex]::Matches($officerSkillsTable, '(?m)^expertise_co_').Count -eq
+        [int]$contract.expected.retainedCommandoExpertiseSkillRows) -and
+    ([regex]::Matches($commandTable, '(?m)^co_').Count -eq
+        [int]$contract.expected.retainedCommandoCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^co_').Count -eq
+        [int]$contract.expected.retainedCommandoCombatRows) -and
+    ([regex]::Matches($commandSeries, '(?m)^co_').Count -eq
+        [int]$contract.expected.retainedCommandoCommandSeriesRows) -and
+    $precuCommandoRows.Count -eq [int]$contract.expected.precuCommandoSkillRows -and
+    $precuCommandoCommands.Count -eq [int]$contract.expected.precuCommandoCommands -and
+    @($precuCommandoCommands | Where-Object { $_ -match '^co_' }).Count -eq
+        [int]$contract.expected.precuCommandoCoCommands) `
+    "p14.profession-closure.commando-runtime.data-and-precu-command-boundary"
+
 $utilsText = Get-SourceText "sku.0/sys.server/compiled/game/script/library/utils.java"
 $professionSlice = Get-FunctionSlice $utilsText "public static int getPlayerProfession" "public static byte[] packObject"
 $professionOrder = @("FORCE_SENSITIVE", "BOUNTY_HUNTER", "SMUGGLER", "COMMANDO", "OFFICER", "MEDIC", "ENTERTAINER", "TRADER")
@@ -551,6 +691,14 @@ if ($Expectation -eq "Ready")
         $null -ne $contract.buildEvidence.smugglerRuntimeClassEvidence -and
         @($contract.buildEvidence.smugglerRuntimeClassEvidence.PSObject.Properties |
             Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
+    $bountyHunterClassHashesValid =
+        $null -ne $contract.buildEvidence.bountyHunterRuntimeClassEvidence -and
+        @($contract.buildEvidence.bountyHunterRuntimeClassEvidence.PSObject.Properties |
+            Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
+    $commandoClassHashesValid =
+        $null -ne $contract.buildEvidence.commandoRuntimeClassEvidence -and
+        @($contract.buildEvidence.commandoRuntimeClassEvidence.PSObject.Properties |
+            Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
     Assert-Contract ([string]$manifest.sourceMode -ceq "direct-branch" -and
         $dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
@@ -560,6 +708,8 @@ if ($Expectation -eq "Ready")
         $officerClassHashesValid -and
         $forceSensitiveClassHashesValid -and
         $smugglerClassHashesValid -and
+        $bountyHunterClassHashesValid -and
+        $commandoClassHashesValid -and
         [bool]$contract.runtimeEvidence.deployment.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.deployment.mappedNewlyBuiltBinary) `
         "p14.profession-closure.live-evidence"

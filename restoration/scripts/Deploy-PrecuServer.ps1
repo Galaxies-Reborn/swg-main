@@ -995,6 +995,12 @@ test "$(grep -Fc 'isRetiredPostNgeSmugglerPlayerAction(self, "' "$work_script/sy
 for recourse in sm_feeling_lucky_recourse sm_lucky_break_recourse sm_break_the_deal_recourse sm_melee_stun_recourse; do
     grep -Fq "buff.removeBuff(self, \"$recourse\")" "$work_script/systems/combat/combat_actions.java"
 done
+grep -Fq 'actionName.startsWith("bh_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'isRetiredPostNgeBountyHunterPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'actionName.startsWith("co_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
+test "$(grep -Fc 'isRetiredPostNgeCommandoPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 1
+grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, "co_kill_trap_1")' "$work_script/systems/combat/combat_actions.java"
 ! grep -R -F 'expertise_bm_' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -E -R 'get(Enhanced)?SkillStatisticModifier(Uncapped)?\([^\r\n]*"(bm_|incubation_time_reduction)' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -Fq 'playerLearnBeastMasterSkill' "$work_script/conversation/trainer_beast_master.java"
@@ -1323,6 +1329,12 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sm_'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeSmugglerPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'sm_inspect_cargo'
+# Publish 14.1 Bounty Hunter and Commando use their combat_bountyhunter and
+# combat_commando trees; bh_* and co_* remain NPC/content compatibility only.
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBountyHunterPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'co_kill_trap_1'
 # Publish 14.1 Creature Handler remains authoritative. Retain Beast Master
 # assets for later-content loading but retire their player combat runtime.
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'
