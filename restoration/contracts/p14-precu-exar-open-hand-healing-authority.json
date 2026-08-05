@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-exar-open-hand-healing-authority",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Retain the Exar Kun Open Hand encounter while making its authored 125000-point sacrifice heal authoritative instead of allowing a post-NGE healing-reduction expertise statistic to rewrite it.",
+  "eraEvidence": {
+    "basis": "The expansion encounter is intentionally retained, but Publish 14.1 player progression has no NGE expertise_healing_reduction statistic. The encounter authors supplied a fixed heal amount and a separate eight-step sacrifice-buff ladder.",
+    "findings": [
+      "heroic_exar_kun.tab directly spawns heroic_exar_open_hand and attaches theme_park.heroic.exar_kun.open_hand.",
+      "The creature definition and mobile template remain live inputs for the spawned boss.",
+      "A successful sacrifice kills the selected cultist, increments encounter state, applies the corresponding sacrifice buff, heals Open Hand, and plays the retained effect.",
+      "The removed arithmetic was the only NGE expertise reference in open_hand.java and could reduce the authored 125000-point heal according to an expertise-derived stat on the boss."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "ngeExpertiseReferences": 0,
+    "authoredSacrificeHeal": 125000,
+    "sacrificeBuffTiers": 8,
+    "spawnRows": 1,
+    "spawnScript": "theme_park.heroic.exar_kun.open_hand",
+    "creatureLevel": 90,
+    "creatureDifficulty": "BOSS",
+    "sacrificeSelectionAndKillPreserved": true,
+    "sacrificeStateAndBuffsPreserved": true,
+    "clientEffectPreserved": true
+  },
+  "sourceFiles": {
+    "openHand": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/heroic/exar_kun/open_hand.java",
+    "spawnTable": "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/heroic_exar_kun.tab",
+    "creatures": "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab",
+    "mobileTemplate": "dsrc/sku.0/sys.server/compiled/game/object/mobile/exar_kun_open_hand.tpf"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "80e3e88acf00798c3ed7c88e5bd87a5d62b6710c",
+    "lineEndingPolicy": "the touched legacy open_hand.java blob was normalized to the repository's declared LF policy and trailing whitespace was removed",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "openHand": "77af8ac8c04fcb427891efe82d09d3039e549ac4afa3ae268612157fbac0ab21",
+      "spawnTable": "a8449720359a80c9815f8c2b5cf9e292ec4ec7981264e3a12b158eb634444940",
+      "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
+      "mobileTemplate": "674c4da21edc565b8780a723b17d49490ef4dcbaf5c442a7d32deffb0a9fa53a"
+    },
+    "compiledClassSha256": null,
+    "sourceTest": "passed; live spawn and creature reachability, the exact authored heal, cultist selection and death, encounter state, eight buff tiers, and client effect were authenticated without NGE expertise authority",
+    "focusedJavaCompile": "passed in an ephemeral in-memory output directory that was removed immediately; emitted bytecode retained sacrificeAdd and 125000 with no expertise_healing_reduction or enhanced-stat lookup symbol",
+    "fullJavaCompile": null,
+    "fullServerBuild": null,
+    "architecture": null,
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "sourceWorkParity": null,
+    "bytecodeAudit": null,
+    "deploymentProbe": null,
+    "result": "pending-live-deployment"
+  },
+  "runtimeEvidence": {
+    "date": null,
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": null,
+    "containerHealth": null,
+    "clusterReadyForPlayers": false,
+    "compiledClassSize": null,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": null,
+    "liveBinaryInode": null,
+    "liveBinarySize": null,
+    "liveBinaryMapEntries": null,
+    "processCounts": null,
+    "postStartLogAudit": null,
+    "result": "pending-live-deployment"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "Open Hand's sacrifice heal can no longer be reduced by the post-NGE expertise_healing_reduction statistic.",
+    "preserved": "The retained Exar Kun spawn route, boss definition, encounter scheduling, cultist selection, cultist death, encounter counter, eight sacrifice buffs, heal effect, share-pain, and spark mechanics remain available.",
+    "notClaimedComplete": "Nandina's separate authored heal of Gorvo remains the next known Java consumer of expertise_healing_reduction and is intentionally tracked as a later bounded milestone."
+  },
+  "requiredBeforeReady": [
+    "Run a clean full Java dependency rebuild and x64 server build from the pinned direct source.",
+    "Authenticate source/work parity and emitted Open Hand bytecode in the deployment gate.",
+    "Restart the server, prove the live process maps the built x64 binary, and audit post-start logs."
+  ]
+}

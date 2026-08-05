@@ -127,6 +127,10 @@ Write-Host "Verifying the direct-source PRE-CU space reverse-engineering authori
 & (Join-Path $PSScriptRoot "Test-P14PrecuSpaceReverseEngineeringAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU Exar Open Hand healing authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuExarOpenHandHealingAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -382,6 +386,14 @@ source_reverse_loot_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/d
 work_reverse_loot_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot.tab"
 source_reverse_loot_lookup_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot_lookup.tab"
 work_reverse_loot_lookup_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot_lookup.tab"
+source_exar_open_hand="$source_script/theme_park/heroic/exar_kun/open_hand.java"
+work_exar_open_hand="$work_script/theme_park/heroic/exar_kun/open_hand.java"
+source_exar_spawn_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/heroic_exar_kun.tab"
+work_exar_spawn_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/heroic_exar_kun.tab"
+source_creatures_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+work_creatures_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+source_exar_open_hand_template="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/mobile/exar_kun_open_hand.tpf"
+work_exar_open_hand_template="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/mobile/exar_kun_open_hand.tpf"
 source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
@@ -662,6 +674,24 @@ grep -Fq 'calculateFiresprayGrant' "$work_space_analysis_tool"
 grep -Fq 'createLegendaryLoot' "$work_space_analysis_tool"
 grep -Fq '"space.crafting.analysis_tool"' "$work_space_analysis_template"
 grep -Fq '"space.crafting.analysis_tool"' "$work_space_armor_analysis_template"
+cmp -s "$source_exar_open_hand" "$work_exar_open_hand"
+cmp -s "$source_exar_spawn_table" "$work_exar_spawn_table"
+cmp -s "$source_creatures_table" "$work_creatures_table"
+cmp -s "$source_exar_open_hand_template" "$work_exar_open_hand_template"
+! grep -Fq 'expertise_' "$work_exar_open_hand"
+! grep -Fq 'getEnhancedSkillStatisticModifierUncapped' "$work_exar_open_hand"
+! grep -Fq 'healingReduction' "$work_exar_open_hand"
+! grep -Fq 'float redux' "$work_exar_open_hand"
+test "$(grep -Fc 'healing.healDamage(self, HEALTH, 125000);' "$work_exar_open_hand")" -eq 1
+grep -Fq 'incrementAddsKilled(self);' "$work_exar_open_hand"
+grep -Fq 'String sacBuff = getSacrificeBuff(self);' "$work_exar_open_hand"
+grep -Fq 'kill(add);' "$work_exar_open_hand"
+grep -Fq 'buff.applyBuff(self, sacBuff);' "$work_exar_open_hand"
+grep -Fq 'clienteffect/bacta_bomb.cef' "$work_exar_open_hand"
+test "$(grep -Ec 'sacrifice = "kun_(one|two|three|four|five|six|seven|eight)_sacrifice";' "$work_exar_open_hand")" -eq 8
+awk -F '\t' '$1 == "heroic_exar_open_hand" { found++; if ($2 != "open" || $3 != "spawn_open" || $4 != "r2" || $9 != "theme_park.heroic.exar_kun.open_hand" || $11 !~ /OnDeath:triggerId:open_won/ || $12 != 1) exit 2 } END { if (found != 1) exit 3 }' "$work_exar_spawn_table"
+awk -F '\t' '$1 == "heroic_exar_open_hand" { found++; if ($2 != 90 || $7 != "BOSS" || $14 != "exar_kun_open_hand.iff" || $76 != "heroic_exar_open_hand") exit 2 } END { if (found != 1) exit 3 }' "$work_creatures_table"
+grep -Fq 'sharedTemplate = "object/mobile/shared_exar_kun_open_hand.iff"' "$work_exar_open_hand_template"
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -890,6 +920,15 @@ javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'reverse_engineering.charges'
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'calculateFiresprayGrant'
 javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'createLegendaryLoot'
+# The retained Open Hand encounter heals its authored fixed amount after a
+# sacrifice and cannot inherit the later NGE healing-reduction statistic.
+! javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'expertise_healing_reduction'
+! javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'getEnhancedSkillStatisticModifierUncapped'
+javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq '125000'
+javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'sacrificeAdd'
+javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'incrementAddsKilled'
+javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'getSacrificeBuff'
+javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'clienteffect/bacta_bomb.cef'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
