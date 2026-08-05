@@ -107,6 +107,10 @@ Write-Host "Verifying the direct-source PRE-CU retained boss glancing authority 
 & (Join-Path $PSScriptRoot "Test-P14PrecuRetainedBossGlancingAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU heroic jewelry weapon-speed authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuHeroicJewelryWeaponSpeedAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU retained reverse/performance authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuRetainedReversePerformanceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -434,6 +438,12 @@ source_outbreak_boss="$source_script/theme_park/outbreak/boss_fight_functionalit
 work_outbreak_boss="$work_script/theme_park/outbreak/boss_fight_functionality.java"
 source_outbreak_buildout="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/dathomir/dathomir_1_1.tab"
 work_outbreak_buildout="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/dathomir/dathomir_1_1.tab"
+source_heroic_random_stat_item="$source_script/item/heroic_random_stat_item.java"
+work_heroic_random_stat_item="$work_script/item/heroic_random_stat_item.java"
+source_master_item_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+work_master_item_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+source_heroic_drops="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/loot/loot_items/dungeon/heroic_drops.tab"
+work_heroic_drops="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/loot/loot_items/dungeon/heroic_drops.tab"
 source_reverse_engineering_tool="$source_script/item/tool/reverse_engineering_tool.java"
 work_reverse_engineering_tool="$work_script/item/tool/reverse_engineering_tool.java"
 source_performance_library="$source_script/library/performance.java"
@@ -798,6 +808,25 @@ awk -F '\t' '$1 == "echo_base_wampa_boss" { wampa++; if ($0 !~ /wampa_boss_ice_t
 awk -F '\t' '$1 == "heroic_echo_wampa_boss" && $2 == "uncle_joe_id" { found++ } END { if (found != 1) exit 2 }' "$work_echo_base_spawns"
 test "$(grep -Fc 'object/tangible/quest/outbreak/group_boss_fight_terminal.iff' "$work_outbreak_buildout")" -eq 1
 test "$(grep -Fc 'outbreak_afflicted_rancor' "$work_outbreak_buildout")" -eq 1
+cmp -s "$source_heroic_random_stat_item" "$work_heroic_random_stat_item"
+cmp -s "$source_master_item_table" "$work_master_item_table"
+cmp -s "$source_heroic_drops" "$work_heroic_drops"
+cmp -s "$source_skills_table" "$work_skills_table"
+cmp -s "$source_queue" "$work_queue"
+! grep -Fq 'expertise_' "$work_heroic_random_stat_item"
+grep -Fq 'getWeightedWeaponSpeedModifier' "$work_heroic_random_stat_item"
+grep -Fq 'weightingRoll <= 57' "$work_heroic_random_stat_item"
+grep -Fq 'weightingRoll >= 78' "$work_heroic_random_stat_item"
+for speed_mod in rifle_speed carbine_speed pistol_speed onehandmelee_speed twohandmelee_speed unarmed_speed polearm_speed onehandlightsaber_speed twohandlightsaber_speed polearmlightsaber_speed; do
+    test "$(grep -Fc "\"$speed_mod\"" "$work_heroic_random_stat_item")" -eq 1
+    grep -Fq "$speed_mod=" "$work_skills_table"
+    grep -Fq "return \"$speed_mod\";" "$work_queue"
+done
+awk -F '\t' '$1 ~ /^item_heroic_random_/ { total++; if ($2 !~ /^object\/tangible\/wearables\/(ring|necklace|bracelet)\// || $11 != "item.heroic_random_stat_item") exit 2 } END { if (total != 26) exit 3 }' "$work_master_item_table"
+test "$(grep -Eo 'item_heroic_random_(ring|neck|bracelet_[lr])_[0-9]{2}_[0-9]{2}' "$work_heroic_drops" | wc -l)" -eq 72
+test "$(grep -Eo 'item_heroic_random_(ring|neck|bracelet_[lr])_[0-9]{2}_[0-9]{2}' "$work_heroic_drops" | sort -u | wc -l)" -eq 26
+grep -Fq 'owner.getEnhancedModValue(speedSkill)' "$work_queue"
+grep -Fq 'return executeTime > 1.0f ? executeTime : 1.0f;' "$work_queue"
 cmp -s "$source_reverse_engineering_tool" "$work_reverse_engineering_tool"
 cmp -s "$source_performance_library" "$work_performance_library"
 cmp -s "$source_skills_table" "$work_skills_table"
@@ -986,6 +1015,13 @@ javap -classpath "$class_root" -v script.theme_park.heroic.echo_base.wampa_boss 
 ! javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'expertise_glancing_blow_reduction'
 javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'warnPlayerTimerBegin'
 javap -classpath "$class_root" -v script.theme_park.outbreak.boss_fight_functionality | grep -Fq 'handleBossDistanceCheck'
+# Retained heroic jewelry translates its later weapon action-cost expertise
+# roll to the exact Publish 14.1 weapon-speed modifiers consumed by cadence.
+! javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq 'expertise_action_weapon_'
+javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq 'getWeightedWeaponSpeedModifier'
+for speed_mod in rifle_speed carbine_speed pistol_speed onehandmelee_speed twohandmelee_speed unarmed_speed polearm_speed onehandlightsaber_speed twohandlightsaber_speed polearmlightsaber_speed; do
+    javap -classpath "$class_root" -v script.item.heroic_random_stat_item | grep -Fq "$speed_mod"
+done
 # The retained simulator exposes only the armor and defense statistics consumed
 # by the authoritative Publish 14.1 combat route.
 ! javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'expertise_'
