@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-smuggler-content-expertise-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Preserve retained junk-dealer, summoned-dealer lifecycle, and contraband content for Publish 14.1 Smugglers while preventing inherited NGE expertise bonuses, proc buffs, secondary payouts, and tiered primary/combat buffs from becoming gameplay authority.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -48,36 +48,49 @@
       "smuggler": "d6bb3a8acb16dec3043b9367ac8782905674ee04e3ff2b3688ca53030ec466ec",
       "junkDealerSummon": "9bc9c97531381576418e4c4be5e3f2679fc154078abb910b786a27db5e9b3ead"
     },
-    "compiledClassSha256": null,
+    "compiledClassSha256": {
+      "smuggler": "bb5464eaaae58b2917749deddb9785e631f2774077b191c5d9c55c486193f606",
+      "junkDealerSummon": "d6bb9bd4de64717d4c849d9a18109ca4cb0304febd9f279bd6ecf7737ba3b863"
+    },
     "sourceTest": "passed; exact 19-row Publish 14.1 Smuggler family, slicing abilities, PRE-CU profession admission, retained junk/space and summoned-dealer content, retired corpse menu, ungranted compatibility handlers, and zero Smuggler expertise/proc/buff authority authenticated",
     "focusedJavaCompile": "passed with Java 8 target in an ephemeral /dev/shm directory removed immediately; junk_dealer_summon.class SHA-256 449d5fe28a475f3cbd68825bf2f08cf7834542474eed40eeb0123352b0411bd4, size 3433 bytes",
-    "fullJavaCompile": null,
-    "fullServerBuild": null,
-    "architecture": null,
-    "serverBinarySha256": null,
-    "serverBinaryBuildId": null,
-    "sourceWorkParity": null,
-    "bytecodeAudit": null,
-    "deploymentProbe": null,
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes; smuggler.class was emitted at 2026-08-05T06:25:37.191988037Z and junk_dealer_summon.class at 2026-08-05T06:25:37.715660148Z",
+    "fullServerBuild": "passed in 617 seconds from pushed parent 0ff9441 and direct dsrc d7fe7590e with all server and data targets completed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for smuggler.java and junk_dealer_summon.java between the read-only direct-source mount and Docker work volume; their SHA-256 values are d6bb3a8acb16dec3043b9367ac8782905674ee04e3ff2b3688ca53030ec466ec and 9bc9c97531381576418e4c4be5e3f2679fc154078abb910b786a27db5e9b3ead",
+    "bytecodeAudit": "passed; smuggler.class contains no expertise_, sm_feeling_lucky, or ACCT_RELIC_DEALER symbol and retains its authored junk/contraband paths; junk_dealer_summon.class contains no expertise_, sm_junk_dealer_, or buffParty symbol and retains greeting, profit reporting, timeout, dismissal, runaway, and cleanup lifecycle symbols",
+    "deploymentProbe": "passed all 26 direct-source preflight contracts, mandatory source/work parity, focused summoned-dealer source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
+    "date": "2026-08-05",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": null,
-    "containerHealth": null,
-    "clusterReadyForPlayers": false,
-    "compiledClassSizes": null,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": null,
-    "liveBinaryInode": null,
-    "liveBinarySize": null,
-    "liveBinaryMapEntries": null,
-    "processCounts": null,
-    "postStartLogAudit": null,
-    "result": "pending"
+    "containerStartedAt": "2026-08-05T06:31:23.324756029Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSizes": {
+      "smuggler": 33836,
+      "junkDealerSummon": 4265
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 364,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "NGE Smuggler expertise can no longer alter retained junk-dealer payouts or contraband drop chances, proc the later Feeling Lucky buff, or cause the retained summoned dealer to apply any tiered NGE primary/combat buff.",
