@@ -1001,6 +1001,12 @@ grep -Fq 'actionName.startsWith("co_")' "$work_script/systems/combat/combat_base
 grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeCommandoPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 1
 grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, "co_kill_trap_1")' "$work_script/systems/combat/combat_actions.java"
+grep -Fq 'actionName.startsWith("me_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'isRetiredPostNgeMedicPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
+test "$(grep -Fc 'isRetiredPostNgeMedicPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 17
+grep -Fq 'actionName.startsWith("en_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'isRetiredPostNgeEntertainerPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
+test "$(grep -Fc 'isRetiredPostNgeEntertainerPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 2
 ! grep -R -F 'expertise_bm_' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -E -R 'get(Enhanced)?SkillStatisticModifier(Uncapped)?\([^\r\n]*"(bm_|incubation_time_reduction)' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -Fq 'playerLearnBeastMasterSkill' "$work_script/conversation/trainer_beast_master.java"
@@ -1335,6 +1341,14 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'co_kill_trap_1'
+# Publish 14.1 Medic/Doctor/Combat Medic and Entertainer/Dancer/Musician/
+# Image Designer trees remain authoritative; me_* and en_* are compatibility.
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeMedicPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeEntertainerPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeMedicPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeEntertainerPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'me_buff_health_1'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'en_holographic_image'
 # Publish 14.1 Creature Handler remains authoritative. Retain Beast Master
 # assets for later-content loading but retire their player combat runtime.
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'

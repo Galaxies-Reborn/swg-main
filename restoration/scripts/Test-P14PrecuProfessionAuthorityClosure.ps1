@@ -199,6 +199,48 @@ foreach ($property in $contract.buildEvidence.commandoRuntimeSourceSha256.PSObje
         "p14.profession-closure.commando-runtime.source.$($property.Name).authenticated"
 }
 
+$medicRuntimeSources = [ordered]@{
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java" =
+        "systems/combat/combat_base.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
+        "systems/combat/combat_actions.java"
+}
+Assert-Contract ($medicRuntimeSources.Count -eq
+        [int]$contract.expected.authoritativeMedicRuntimeFiles -and
+    @($contract.buildEvidence.medicRuntimeSourceSha256.PSObject.Properties).Count -eq
+        $medicRuntimeSources.Count) `
+    "p14.profession-closure.medic-runtime.source-count"
+foreach ($property in $contract.buildEvidence.medicRuntimeSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $dsrc $property.Name
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        $medicRuntimeSources.Contains($property.Name) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            [string]$property.Value) `
+        "p14.profession-closure.medic-runtime.source.$($property.Name).authenticated"
+}
+
+$entertainerRuntimeSources = [ordered]@{
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java" =
+        "systems/combat/combat_base.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
+        "systems/combat/combat_actions.java"
+}
+Assert-Contract ($entertainerRuntimeSources.Count -eq
+        [int]$contract.expected.authoritativeEntertainerRuntimeFiles -and
+    @($contract.buildEvidence.entertainerRuntimeSourceSha256.PSObject.Properties).Count -eq
+        $entertainerRuntimeSources.Count) `
+    "p14.profession-closure.entertainer-runtime.source-count"
+foreach ($property in $contract.buildEvidence.entertainerRuntimeSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $dsrc $property.Name
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        $entertainerRuntimeSources.Contains($property.Name) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            [string]$property.Value) `
+        "p14.profession-closure.entertainer-runtime.source.$($property.Name).authenticated"
+}
+
 $combatBase = [string]$officerTexts["systems/combat/combat_base.java"]
 $officerPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeOfficerPlayerAction" `
@@ -346,7 +388,7 @@ Assert-Contract ($bountyHunterHandlers.Count -eq
 
 $commandoPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeCommandoPlayerAction" `
-    "public boolean combatStandardAction"
+    "public static boolean isRetiredPostNgeMedicPlayerAction"
 Assert-Contract ($commandoPredicate.Contains("isPlayer(self)") -and
     $commandoPredicate.Contains('actionName.startsWith("co_")') -and
     $combatBase.Contains("if (isRetiredPostNgeCommandoPlayerAction(self, actionName))")) `
@@ -373,6 +415,66 @@ Assert-Contract ($commandoHandlers.Count -eq
         [int]$contract.expected.postNgeCommandoDirectCallbacks -and
     $directCommandoGuarded) `
     "p14.profession-closure.commando-runtime.all-player-actions-covered"
+
+$medicPredicate = Get-FunctionSlice $combatBase `
+    "public static boolean isRetiredPostNgeMedicPlayerAction" `
+    "public static boolean isRetiredPostNgeEntertainerPlayerAction"
+Assert-Contract ($medicPredicate.Contains("isPlayer(self)") -and
+    $medicPredicate.Contains('actionName.startsWith("me_")') -and
+    $combatBase.Contains("if (isRetiredPostNgeMedicPlayerAction(self, actionName))")) `
+    "p14.profession-closure.medic-runtime.central-player-action-gate"
+$medicHandlers = @([regex]::Matches(
+    $combatActions,
+    '(?ms)^\s*public int (me_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+$standardMedicHandlers = @($medicHandlers | Where-Object {
+    $_.Value.Contains("combatStandardAction(")
+})
+$directMedicHandlers = @($medicHandlers | Where-Object {
+    -not $_.Value.Contains("combatStandardAction(")
+})
+$directMedicHandlersGuarded = @($directMedicHandlers | Where-Object {
+    $_.Value.Contains('isRetiredPostNgeMedicPlayerAction(self, "' +
+        $_.Groups[1].Value + '")') -and
+    $_.Value.Contains("return SCRIPT_OVERRIDE;")
+}).Count -eq $directMedicHandlers.Count
+Assert-Contract ($medicHandlers.Count -eq
+        [int]$contract.expected.postNgeMedicPlayerActionHandlers -and
+    $standardMedicHandlers.Count -eq
+        [int]$contract.expected.postNgeMedicStandardActionHandlers -and
+    $directMedicHandlers.Count -eq
+        [int]$contract.expected.postNgeMedicDirectCallbacks -and
+    $directMedicHandlersGuarded) `
+    "p14.profession-closure.medic-runtime.all-player-actions-covered"
+
+$entertainerPredicate = Get-FunctionSlice $combatBase `
+    "public static boolean isRetiredPostNgeEntertainerPlayerAction" `
+    "public boolean combatStandardAction"
+Assert-Contract ($entertainerPredicate.Contains("isPlayer(self)") -and
+    $entertainerPredicate.Contains('actionName.startsWith("en_")') -and
+    $combatBase.Contains("if (isRetiredPostNgeEntertainerPlayerAction(self, actionName))")) `
+    "p14.profession-closure.entertainer-runtime.central-player-action-gate"
+$entertainerHandlers = @([regex]::Matches(
+    $combatActions,
+    '(?ms)^\s*public int (en_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+$standardEntertainerHandlers = @($entertainerHandlers | Where-Object {
+    $_.Value.Contains("combatStandardAction(")
+})
+$directEntertainerHandlers = @($entertainerHandlers | Where-Object {
+    -not $_.Value.Contains("combatStandardAction(")
+})
+$directEntertainerHandlersGuarded = @($directEntertainerHandlers | Where-Object {
+    $_.Value.Contains('isRetiredPostNgeEntertainerPlayerAction(self, "' +
+        $_.Groups[1].Value + '")') -and
+    $_.Value.Contains("return SCRIPT_OVERRIDE;")
+}).Count -eq $directEntertainerHandlers.Count
+Assert-Contract ($entertainerHandlers.Count -eq
+        [int]$contract.expected.postNgeEntertainerPlayerActionHandlers -and
+    $standardEntertainerHandlers.Count -eq
+        [int]$contract.expected.postNgeEntertainerStandardActionHandlers -and
+    $directEntertainerHandlers.Count -eq
+        [int]$contract.expected.postNgeEntertainerDirectCallbacks -and
+    $directEntertainerHandlersGuarded) `
+    "p14.profession-closure.entertainer-runtime.all-player-actions-covered"
 
 $officerPet = [string]$officerTexts["ai/officer_pet.java"]
 Assert-Contract (-not $officerPet.Contains("expertise_of_reinforcements_1") -and
@@ -576,6 +678,50 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_commando_').
         [int]$contract.expected.precuCommandoCoCommands) `
     "p14.profession-closure.commando-runtime.data-and-precu-command-boundary"
 
+$precuMedicRows = @($skillRows | Where-Object {
+    [string]$_.NAME -match '^(science_medic|science_doctor|science_combatmedic)(?:_|$)'
+})
+$precuMedicCommands = @($precuMedicRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_medic_').Count -eq
+        [int]$contract.expected.retainedMedicClassSkillRows) -and
+    ([regex]::Matches($officerSkillsTable, '(?m)^expertise_me_').Count -eq
+        [int]$contract.expected.retainedMedicExpertiseSkillRows) -and
+    ([regex]::Matches($commandTable, '(?m)^me_').Count -eq
+        [int]$contract.expected.retainedMedicCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^me_').Count -eq
+        [int]$contract.expected.retainedMedicCombatRows) -and
+    ([regex]::Matches($commandSeries, '(?m)^me_').Count -eq
+        [int]$contract.expected.retainedMedicCommandSeriesRows) -and
+    $precuMedicRows.Count -eq [int]$contract.expected.precuMedicSkillRows -and
+    $precuMedicCommands.Count -eq [int]$contract.expected.precuMedicCommands -and
+    @($precuMedicCommands | Where-Object { $_ -match '^me_' }).Count -eq
+        [int]$contract.expected.precuMedicMeCommands) `
+    "p14.profession-closure.medic-runtime.data-and-precu-command-boundary"
+
+$precuEntertainerRows = @($skillRows | Where-Object {
+    [string]$_.NAME -match '^(social_entertainer|social_dancer|social_musician|social_imagedesigner)(?:_|$)'
+})
+$precuEntertainerCommands = @($precuEntertainerRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_entertainer_').Count -eq
+        [int]$contract.expected.retainedEntertainerClassSkillRows) -and
+    ([regex]::Matches($officerSkillsTable, '(?m)^expertise_en_').Count -eq
+        [int]$contract.expected.retainedEntertainerExpertiseSkillRows) -and
+    ([regex]::Matches($commandTable, '(?m)^en_').Count -eq
+        [int]$contract.expected.retainedEntertainerCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^en_').Count -eq
+        [int]$contract.expected.retainedEntertainerCombatRows) -and
+    ([regex]::Matches($commandSeries, '(?m)^en_').Count -eq
+        [int]$contract.expected.retainedEntertainerCommandSeriesRows) -and
+    $precuEntertainerRows.Count -eq [int]$contract.expected.precuEntertainerSkillRows -and
+    $precuEntertainerCommands.Count -eq [int]$contract.expected.precuEntertainerCommands -and
+    @($precuEntertainerCommands | Where-Object { $_ -match '^en_' }).Count -eq
+        [int]$contract.expected.precuEntertainerEnCommands) `
+    "p14.profession-closure.entertainer-runtime.data-and-precu-command-boundary"
+
 $utilsText = Get-SourceText "sku.0/sys.server/compiled/game/script/library/utils.java"
 $professionSlice = Get-FunctionSlice $utilsText "public static int getPlayerProfession" "public static byte[] packObject"
 $professionOrder = @("FORCE_SENSITIVE", "BOUNTY_HUNTER", "SMUGGLER", "COMMANDO", "OFFICER", "MEDIC", "ENTERTAINER", "TRADER")
@@ -699,6 +845,14 @@ if ($Expectation -eq "Ready")
         $null -ne $contract.buildEvidence.commandoRuntimeClassEvidence -and
         @($contract.buildEvidence.commandoRuntimeClassEvidence.PSObject.Properties |
             Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
+    $medicClassHashesValid =
+        $null -ne $contract.buildEvidence.medicRuntimeClassEvidence -and
+        @($contract.buildEvidence.medicRuntimeClassEvidence.PSObject.Properties |
+            Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
+    $entertainerClassHashesValid =
+        $null -ne $contract.buildEvidence.entertainerRuntimeClassEvidence -and
+        @($contract.buildEvidence.entertainerRuntimeClassEvidence.PSObject.Properties |
+            Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
     Assert-Contract ([string]$manifest.sourceMode -ceq "direct-branch" -and
         $dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
@@ -710,6 +864,8 @@ if ($Expectation -eq "Ready")
         $smugglerClassHashesValid -and
         $bountyHunterClassHashesValid -and
         $commandoClassHashesValid -and
+        $medicClassHashesValid -and
+        $entertainerClassHashesValid -and
         [bool]$contract.runtimeEvidence.deployment.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.deployment.mappedNewlyBuiltBinary) `
         "p14.profession-closure.live-evidence"
