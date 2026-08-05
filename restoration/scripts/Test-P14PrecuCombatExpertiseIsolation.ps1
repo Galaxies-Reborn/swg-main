@@ -62,6 +62,7 @@ foreach ($property in $contract.sourceFiles.PSObject.Properties)
 
 $combatLibrary = [string]$texts.combatLibrary
 $combatBase = [string]$texts.combatBase
+$basePlayer = [string]$texts.basePlayer
 $dictionaryCost = Get-BracedBlock $combatLibrary `
     "public static int[] getActionCost(obj_id self, weapon_data weaponData, dictionary actionData)"
 $typedCost = Get-BracedBlock $combatLibrary `
@@ -123,6 +124,44 @@ Assert-Contract ($overrides.Count -eq [int]$contract.expected.authenticatedComba
     $invalidPools.Count -eq 0) `
     "p14.combat-expertise-isolation.data.all-overrides-explicit-target-pool"
 
+$displayCleanup = Get-BracedBlock $basePlayer `
+    "public int setDisplayOnlyDefensiveMods(obj_id self, dictionary params)"
+$cleanupKeys = @([regex]::Matches($displayCleanup, '"(display_only_[^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+Assert-Contract ($cleanupKeys.Count -eq [int]$contract.expected.legacyNgeDisplayCleanupKeys -and
+    @($cleanupKeys | Select-Object -Unique).Count -eq $cleanupKeys.Count -and
+    ([regex]::Matches($displayCleanup, "removeAttribOrSkillModModifier\(")).Count -eq 1 -and
+    -not $displayCleanup.Contains("addSkillModModifier") -and
+    -not $displayCleanup.Contains("combat.get")) `
+    "p14.combat-expertise-isolation.display.cleanup-only-handler"
+
+$displayListingRows = @(Import-SwgTab -Path $paths.skillModListing |
+    Where-Object { [string]$_.skill_mod -like "display_only_*" })
+$uncoveredListingRows = @($displayListingRows |
+    Where-Object { $cleanupKeys -cnotcontains [string]$_.skill_mod })
+Assert-Contract ($displayListingRows.Count -eq [int]$contract.expected.inheritedNgeDisplayListingRows -and
+    $uncoveredListingRows.Count -eq 0 -and
+    @($displayListingRows | Where-Object {
+        [string]$_.profession -cne "ALL" -or [string]$_.category -cne "combat" -or
+        [int]$_.display -ne 1
+    }).Count -eq 0) `
+    "p14.combat-expertise-isolation.display.inherited-metadata-bounded"
+
+$displayCallbackCounts = [ordered]@{
+    basePlayer = ([regex]::Matches([string]$texts.basePlayer,
+            'messageTo\([^;\r\n]*"setDisplayOnlyDefensiveMods"')).Count
+    armorLibrary = ([regex]::Matches([string]$texts.armorLibrary,
+            'messageTo\([^;\r\n]*"setDisplayOnlyDefensiveMods"')).Count
+    reverseEngineering = ([regex]::Matches([string]$texts.reverseEngineering,
+            'messageTo\([^;\r\n]*"setDisplayOnlyDefensiveMods"')).Count
+    buffHandler = ([regex]::Matches([string]$texts.buffHandler,
+            'messageTo\([^;\r\n]*"setDisplayOnlyDefensiveMods"')).Count
+}
+Assert-Contract ($displayCallbackCounts.basePlayer -eq [int]$contract.expected.basePlayerCleanupCallbacks -and
+    ($displayCallbackCounts.Values | Measure-Object -Sum).Sum -eq
+        [int]$contract.expected.productionCleanupCallbacks) `
+    "p14.combat-expertise-isolation.display.production-cleanup-reachability"
+
 if ($Expectation -eq "Ready")
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
@@ -135,6 +174,7 @@ if ($Expectation -eq "Ready")
         "p14.combat-expertise-isolation.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.combatLibrary -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.combatBase -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.basePlayer -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.combat-expertise-isolation.live-evidence"

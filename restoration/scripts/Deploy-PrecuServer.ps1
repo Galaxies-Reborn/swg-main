@@ -378,6 +378,10 @@ source_player_vendor="$source_script/terminal/vendor.java"
 work_player_vendor="$work_script/terminal/vendor.java"
 source_combat_library="$source_script/library/combat.java"
 work_combat_library="$work_script/library/combat.java"
+source_reverse_engineering_library="$source_script/library/reverse_engineering.java"
+work_reverse_engineering_library="$work_script/library/reverse_engineering.java"
+source_skill_mod_listing="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab"
+work_skill_mod_listing="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab"
 source_healing_library="$source_script/library/healing.java"
 work_healing_library="$work_script/library/healing.java"
 source_dot_library="$source_script/library/dot.java"
@@ -650,6 +654,8 @@ grep -Fq 'hasSkill(owner, "crafting_merchant_sales_02")' "$work_player_vendor"
 grep -Fq 'cost += 6 * loops;' "$work_player_vendor"
 grep -Fq 'cost += 6;' "$work_player_vendor"
 cmp -s "$source_combat_library" "$work_combat_library"
+cmp -s "$source_reverse_engineering_library" "$work_reverse_engineering_library"
+cmp -s "$source_skill_mod_listing" "$work_skill_mod_listing"
 cmp -s "$source_healing_library" "$work_healing_library"
 cmp -s "$source_dot_library" "$work_dot_library"
 cmp -s "$source_smuggler_library" "$work_smuggler_library"
@@ -886,6 +892,14 @@ cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
 cmp -s "$source_performcommands" "$work_performcommands"
 cmp -s "$source_buff_handler" "$work_buff_handler"
+display_cleanup_source="$(sed -n '/public int setDisplayOnlyDefensiveMods/,/public int OnGetAttributes/p' "$work_base_player")"
+test "$(printf '%s' "$display_cleanup_source" | grep -Fc '"display_only_')" -eq 14
+test "$(printf '%s' "$display_cleanup_source" | grep -Fc 'removeAttribOrSkillModModifier(')" -eq 1
+! printf '%s' "$display_cleanup_source" | grep -Fq 'addSkillModModifier'
+! printf '%s' "$display_cleanup_source" | grep -Fq 'combat.get'
+test "$(grep -Eh 'messageTo\([^;]*"setDisplayOnlyDefensiveMods"' "$work_base_player" "$work_armor_library" "$work_reverse_engineering_library" "$work_buff_handler" | wc -l)" -eq 22
+test "$(grep -Ec 'messageTo\([^;]*"setDisplayOnlyDefensiveMods"' "$work_base_player")" -eq 6
+awk -F '\t' '$1 ~ /^display_only_/ { found++; if ($2 != "ALL" || $3 != "combat" || $4 != 1) exit 2 } END { if (found != 13) exit 3 }' "$work_skill_mod_listing"
 cmp -s "$source_player_stealth" "$work_player_stealth"
 cmp -s "$source_beast_library" "$work_beast_library"
 cmp -s "$source_beast_control_device" "$work_beast_control_device"
@@ -1003,6 +1017,13 @@ javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'freeshot_
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuPrimaryAttackResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuSecondaryDefenseResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getDefenderResult'
+# Production callbacks retain a persisted-state cleanup path for the NGE
+# display-only combat statistics, but the PRE-CU player never recreates them.
+display_cleanup_bytecode="$(javap -classpath "$class_root" -c -p script.player.base.base_player | sed -n '/public int setDisplayOnlyDefensiveMods/,/public int OnGetAttributes/p')"
+test "$(printf '%s' "$display_cleanup_bytecode" | grep -Fc 'display_only_')" -eq 14
+printf '%s' "$display_cleanup_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
+! printf '%s' "$display_cleanup_bytecode" | grep -Fq 'addSkillModModifier'
+! printf '%s' "$display_cleanup_bytecode" | grep -Fq 'script/library/combat.get'
 # Authenticated PRE-CU DOTs persist their era route through every pulse while
 # later-content compatibility callers retain the inherited DOT path.
 javap -classpath "$class_root" -v script.library.dot | grep -Fq 'applyPrecuDotEffect'
