@@ -79,6 +79,10 @@ $paths = [ordered]@{
     "template.gcw.pvp_region_watcher" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/pvp_region_watcher.tpf"
     "script.library.faction_perk" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/faction_perk.java"
     "script.systems.gcw.gcw_parent_object" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_parent_object.java"
+    "script.systems.gcw.gcw_data_updater" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_data_updater.java"
+    "script.planet.planet_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/planet/planet_base.java"
+    "script.city.guard_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/city/guard_spawner.java"
+    "script.theme_park.script_spawner.spawner_methods.gcw_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/theme_park/script_spawner/spawner_methods/gcw_spawner.java"
     "script.faction_perk.hq.loader" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/loader.java"
     "script.faction_perk.hq.planetary_base_register" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/planetary_base_register.java"
     "script.library.guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/guild.java"
@@ -141,6 +145,10 @@ $pvpRegionController = [string]$texts["script.systems.gcw.pvp_region_bonus_contr
 $pvpRegionWatcherTemplate = [string]$texts["template.gcw.pvp_region_watcher"]
 $factionPerk = [string]$texts["script.library.faction_perk"]
 $gcwParent = [string]$texts["script.systems.gcw.gcw_parent_object"]
+$gcwDataUpdater = [string]$texts["script.systems.gcw.gcw_data_updater"]
+$planetBase = [string]$texts["script.planet.planet_base"]
+$guardSpawner = [string]$texts["script.city.guard_spawner"]
+$gcwSpawner = [string]$texts["script.theme_park.script_spawner.spawner_methods.gcw_spawner"]
 $hqLoader = [string]$texts["script.faction_perk.hq.loader"]
 $baseRegister = [string]$texts["script.faction_perk.hq.planetary_base_register"]
 $guildLibrary = [string]$texts["script.library.guild"]
@@ -547,7 +555,7 @@ Assert-Contract (-not $playerUtility.Contains("GCW Region Defender Rebel Bonus")
     "p14.gcw-rating.regional-defender-stale-callbacks-cleanup-only"
 
 Assert-Contract ($terminalGcw.Contains("getGcwGroupImperialScorePercentile(strSubCategory)") -and
-    $gcw.Contains("getGcwImperialScorePercentile(category)") -and
+    $gcw.Contains("getImperialPlanetControlScore(target)") -and
     [bool]$contract.expected.regionalScoreAndContentCompatibilityPreserved -and
     -not [bool]$contract.expected.postNgeRegionalDefenderMembershipReachable -and
     -not [bool]$contract.expected.postNgeRegionalDefenderBonusReachable -and
@@ -556,32 +564,66 @@ Assert-Contract ($terminalGcw.Contains("getGcwGroupImperialScorePercentile(strSu
     [bool]$contract.expected.staleRegionalDefenderPlayerStateScrubbed) `
     "p14.gcw-rating.regional-content-preserved-with-defender-system-retired"
 
-$periodicOverwrite = Get-FunctionSlice $gcwParent `
+$legacyPeriodicUpdate = Get-FunctionSlice $gcwParent `
     "public int updateGCWData" `
     "public int updateGCWScore"
-$deltaUpdate = Get-FunctionSlice $gcwParent `
+$legacyDeltaForwarder = Get-FunctionSlice $gcwParent `
     "public int updateGCWScore" `
     "public int synchronizeGCWScore"
-$absoluteUpdate = Get-FunctionSlice $gcwParent `
+$legacyAbsoluteForwarder = Get-FunctionSlice $gcwParent `
     "public int synchronizeGCWScore" `
-    "private void ensurePrecuControlScoreState"
-Assert-Contract ($periodicOverwrite.Contains("ensurePrecuControlScoreState(self);") -and
-    -not $periodicOverwrite.Contains("getImperialPercentileByRegion") -and
-    -not $periodicOverwrite.Contains("getRebelPercentileByRegion") -and
-    -not $periodicOverwrite.Contains('messageTo(self, "updateGCWData"')) `
+    "}`n}"
+$masterLookup = Get-FunctionSlice $gcw `
+    "public static obj_id getGCWMasterObject(location locTest)" `
+    "public static boolean isPrecuGcwControlPlanet"
+$precuPercentile = Get-FunctionSlice $gcw `
+    "public static int getImperialPercentileByRegion" `
+    "public static int getRebelPercentileByRegion"
+$planetReconciliation = Get-FunctionSlice $planetBase `
+    "public int reconcilePrecuGcwBaseControl" `
+    "public int OnClusterWideDataResponse"
+$planetAbsoluteResponse = Get-FunctionSlice $planetBase `
+    "public int OnClusterWideDataResponse" `
+    "public int updateGCWScore"
+$planetDeltaUpdate = Get-FunctionSlice $planetBase `
+    "public int updateGCWScore" `
+    "public int synchronizeGCWScore"
+$planetAbsoluteUpdate = Get-FunctionSlice $planetBase `
+    "public int synchronizeGCWScore" `
+    "public int updateGCWData"
+Assert-Contract (-not $legacyPeriodicUpdate.Contains("setObjVar") -and
+    -not $legacyPeriodicUpdate.Contains("getImperialPercentileByRegion") -and
+    -not $legacyPeriodicUpdate.Contains("getRebelPercentileByRegion") -and
+    -not $legacyPeriodicUpdate.Contains('messageTo(self, "updateGCWData"')) `
     "p14.gcw-rating.nge-percentile-planet-overwrite-retired"
-Assert-Contract ($deltaUpdate.Contains('params.containsKey("intScoreChange")') -and
-    $deltaUpdate.Contains('params.containsKey("strFaction")') -and
-    $deltaUpdate.Contains('"Imperial".equals(faction)') -and
-    $deltaUpdate.Contains('"Rebel".equals(faction)') -and
-    $deltaUpdate.Contains('Math.max(0L, adjustedScore)') -and
-    $deltaUpdate.Contains('setObjVar(self, scoreObjVar, newScore)')) `
-    "p14.gcw-rating.precu-base-delta-handler-restored"
-Assert-Contract ($absoluteUpdate.Contains('params.containsKey("imperialScore")') -and
-    $absoluteUpdate.Contains('params.containsKey("rebelScore")') -and
-    $absoluteUpdate.Contains('setObjVar(self, "Imperial.controlScore", Math.max(0, params.getInt("imperialScore")))') -and
-    $absoluteUpdate.Contains('setObjVar(self, "Rebel.controlScore", Math.max(0, params.getInt("rebelScore")))')) `
-    "p14.gcw-rating.precu-base-absolute-synchronizer-restored"
+Assert-Contract ($legacyDeltaForwarder.Contains("gcw.changeGCWScore(getLocation(self)") -and
+    $legacyAbsoluteForwarder.Contains("gcw.synchronizePlanetaryBaseControlScore(getLocation(self)") -and
+    -not $gcwParent.Contains("ensurePrecuControlScoreState") -and
+    -not $gcwParent.Contains("setObjVar(self")) `
+    "p14.gcw-rating.legacy-master-object-demoted-to-forwarder"
+Assert-Contract ($masterLookup.Contains("isPrecuGcwControlPlanet(locTest.area)") -and
+    $masterLookup.Contains("return getPlanetByName(locTest.area);") -and
+    -not $masterLookup.Contains("gcw_master_objects") -and
+    -not $masterLookup.Contains("strObjId") -and
+    -not [bool]$contract.expected.legacyGcwMasterObjectIdsRequired) `
+    "p14.gcw-rating.planet-object-is-control-authority"
+Assert-Contract ($precuPercentile.Contains("getImperialPlanetControlScore(target)") -and
+    $precuPercentile.Contains("getRebelPlanetControlScore(target)") -and
+    $precuPercentile.Contains("(long)imperial * 100L") -and
+    -not $precuPercentile.Contains("getGcwImperialScorePercentile") -and
+    [bool]$contract.expected.precuBaseDerivedRegionalPresentation) `
+    "p14.gcw-rating.regional-presentation-derived-from-base-control"
+Assert-Contract ($planetDeltaUpdate.Contains('params.containsKey("intScoreChange")') -and
+    $planetDeltaUpdate.Contains('params.containsKey("strFaction")') -and
+    $planetDeltaUpdate.Contains('"Imperial".equals(faction)') -and
+    $planetDeltaUpdate.Contains('"Rebel".equals(faction)') -and
+    $planetDeltaUpdate.Contains("clampPrecuGcwScore(adjustedScore)") -and
+    $planetDeltaUpdate.Contains("setObjVar(self, scoreObjVar")) `
+    "p14.gcw-rating.precu-base-delta-handler-on-planet"
+Assert-Contract ($planetAbsoluteUpdate.Contains('params.containsKey("imperialScore")') -and
+    $planetAbsoluteUpdate.Contains('params.containsKey("rebelScore")') -and
+    $planetAbsoluteUpdate.Contains("applyPrecuGcwControlScores(self")) `
+    "p14.gcw-rating.precu-base-absolute-synchronizer-on-planet"
 
 $changePlanetScore = Get-FunctionSlice $gcw `
     "public static void changeGCWScore" `
@@ -616,13 +658,42 @@ Assert-Contract ($basePointLookup.Contains("int default_point_value = 0;") -and
 Assert-Contract ($hqLoader.Contains('dungeon_info.put("pointValue", Math.max(0, faction_perk.grabFactionBasePointValue(self)))')) `
     "p14.gcw-rating.base-registry-records-authored-point-value"
 Assert-Contract ($baseRegister.Contains("PRECU_BASE_RECONCILIATION_PULSE = 3600.0f") -and
-    $baseRegister.Contains('dataItem.containsKey("pointValue")') -and
-    $baseRegister.Contains("rebelScore += pointValue") -and
-    $baseRegister.Contains("imperialScore += pointValue") -and
     $baseRegister.Contains("setBaseCount(self, rebel, imperial)") -and
-    $baseRegister.Contains("gcw.synchronizePlanetaryBaseControlScore(getLocation(self), imperialScore, rebelScore)") -and
-    $baseRegister.Contains("releaseClusterWideDataLock(manage_name, lock_key)")) `
-    "p14.gcw-rating.base-registry-periodic-absolute-reconciliation"
+    $baseRegister.Contains("releaseClusterWideDataLock(manage_name, lock_key)") -and
+    -not $baseRegister.Contains("synchronizePlanetaryBaseControlScore") -and
+    -not $baseRegister.Contains("controlScore")) `
+    "p14.gcw-rating.base-register-retained-for-placement-counts-only"
+Assert-Contract ($planetReconciliation.Contains('getClusterWideData("gcw_player_base", "base_cwdata_manager*", false, self)') -and
+    $planetReconciliation.Contains("PRECU_GCW_RECONCILIATION_PULSE") -and
+    $planetAbsoluteResponse.Contains('dataItem.containsKey("pointValue")') -and
+    $planetAbsoluteResponse.Contains("imperialScore += pointValue") -and
+    $planetAbsoluteResponse.Contains("rebelScore += pointValue") -and
+    $planetAbsoluteResponse.Contains("applyPrecuGcwControlScores(self") -and
+    [int]$contract.expected.precuPlayerBaseReconciliationSeconds -eq 3600) `
+    "p14.gcw-rating.planet-periodic-absolute-reconciliation"
+
+$classicControlPlanets = @("tatooine", "corellia", "dantooine", "dathomir", "endor", "lok", "naboo", "rori", "talus", "yavin4")
+$allControlPlanetsPresent = $true
+foreach ($controlPlanet in $classicControlPlanets)
+{
+    if (-not $gcw.Contains('"' + $controlPlanet + '"')) { $allControlPlanetsPresent = $false }
+}
+Assert-Contract ($allControlPlanetsPresent -and
+    $classicControlPlanets.Count -eq [int]$contract.expected.precuPlanetControlSceneCount -and
+    [bool]$contract.expected.precuPlanetObjectControlAuthority) `
+    "p14.gcw-rating.ten-classic-ground-planets-covered"
+Assert-Contract ($gcwDataUpdater.Contains("getImperialPlanetControlScore(self)") -and
+    $gcwDataUpdater.Contains("getRebelPlanetControlScore(self)") -and
+    $gcwDataUpdater.Contains("oldWinner != newWinner") -and
+    -not $gcwDataUpdater.Contains("getImperialPercentileByRegion") -and
+    -not $gcwDataUpdater.Contains("getRebelPercentileByRegion")) `
+    "p14.gcw-rating.retained-gcw-content-uses-raw-base-totals"
+Assert-Contract ($gcw.Contains("PRECU_GCW_DIFFICULTY_SCORE_DELTA = 64") -and
+    $guardSpawner.Contains("scoreDelta >= gcw.PRECU_GCW_DIFFICULTY_SCORE_DELTA") -and
+    $gcwSpawner.Contains("imperialScore - rebelScore >= gcw.PRECU_GCW_DIFFICULTY_SCORE_DELTA") -and
+    $gcwSpawner.Contains("rebelScore - imperialScore >= gcw.PRECU_GCW_DIFFICULTY_SCORE_DELTA") -and
+    [int]$contract.expected.precuBaseDifficultyScoreDelta -eq 64) `
+    "p14.gcw-rating.precu-base-difference-drives-difficulty"
 
 $expectedBaseValues = [ordered]@{
     "object/building/faction_perk/hq/hq_s01_imp.iff" = 1
