@@ -13,6 +13,16 @@ $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14Precu
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$manifestDsrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$manifestSrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
+$indexedDsrcCommit = (& git -C $repositoryRoot rev-parse ":dsrc").Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed dsrc gitlink." }
+$checkedOutDsrcCommit = (& git -C (Join-Path $repositoryRoot "dsrc") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out dsrc commit." }
+$indexedSrcCommit = (& git -C $repositoryRoot rev-parse ":src").Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed src gitlink." }
+$checkedOutSrcCommit = (& git -C (Join-Path $repositoryRoot "src") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out src commit." }
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
@@ -43,6 +53,17 @@ function Assert-RetiredEntrypoint(
     Assert-Contract ($flagIndex -ge 0 -and $retireIndex -gt $flagIndex -and $returnIndex -gt $retireIndex) $Name
 }
 
+Assert-Contract ($manifestDsrc.Count -eq 1 -and
+    [string]$manifestDsrc[0].commit -ceq [string]$contract.buildEvidence.directSourceCommit -and
+    $indexedDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit -and
+    $checkedOutDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit) `
+    "p14.queued-battlefield.direct-source-commit-synchronized"
+Assert-Contract ($manifestSrc.Count -eq 1 -and
+    [string]$manifestSrc[0].commit -ceq [string]$contract.buildEvidence.nativeSourceCommit -and
+    $indexedSrcCommit -ceq [string]$contract.buildEvidence.nativeSourceCommit -and
+    $checkedOutSrcCommit -ceq [string]$contract.buildEvidence.nativeSourceCommit) `
+    "p14.queued-battlefield.native-source-commit-synchronized"
+
 $patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.overlayPatch.path)
 Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.queued-battlefield.overlay.exists"
 if (Test-Path -LiteralPath $patchPath -PathType Leaf)
@@ -61,6 +82,7 @@ $paths = [ordered]@{
     "script.systems.gcw.battlefield_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/battlefield_terminal.java"
     "script.systems.gcw.player_pvp" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java"
     "script.systems.gcw.pvp_battlefield" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_battlefield.java"
+    "script.terminal.terminal_gcw_publish_gift" = "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java"
     "buildout.endor_1_1" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_1.tab"
     "buildout.endor_1_8" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_8.tab"
     "buildout.yavin4_3_1" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_3_1.tab"
@@ -91,6 +113,7 @@ $gcw = [string]$texts["script.library.gcw"]
 $controller = [string]$texts["script.systems.gcw.pvp_battlefield"]
 $terminal = [string]$texts["script.systems.gcw.battlefield_terminal"]
 $playerPvp = [string]$texts["script.systems.gcw.player_pvp"]
+$warTerminal = [string]$texts["script.terminal.terminal_gcw_publish_gift"]
 $conversions = [string]$texts["script.player.live_conversions"]
 $basePlayer = [string]$texts["script.player.base.base_player"]
 
@@ -171,6 +194,32 @@ foreach ($name in $playerHandlers.Keys)
     Assert-RetiredEntrypoint $playerPvp $markers[0] $markers[1] `
         "retirePostNgeQueuedBattlefieldPlayer(self);" "p14.queued-battlefield.player-entrypoint.$name.retired"
 }
+
+$warTerminalRetire = Get-FunctionSlice $warTerminal `
+    "private void retirePostNgeWarTerminalState" `
+    "public int OnObjectMenuRequest"
+$warTerminalMenuRequest = Get-FunctionSlice $warTerminal `
+    "public int OnObjectMenuRequest" `
+    "public int OnObjectMenuSelect"
+$warTerminalMenuSelect = Get-FunctionSlice $warTerminal `
+    "public int OnObjectMenuSelect" `
+    "public int OnClusterWideDataResponse"
+$warTerminalStaleSelection = Get-FunctionSlice $warTerminal `
+    "else if (item == menu_info_types.SERVER_MENU1 || item == menu_info_types.SERVER_MENU3)" `
+    "else if (item == menu_info_types.SERVER_MENU2)"
+Assert-Contract ($warTerminalRetire.Contains("action == menu_info_types.SERVER_MENU1 || action == menu_info_types.SERVER_MENU3") -and
+    $warTerminalRetire.Contains('removeObjVar(self, "gcwWarIntelPadMostRecentAction")') -and
+    -not $warTerminalMenuRequest.Contains("menu_info_types.SERVER_MENU1") -and
+    $warTerminalStaleSelection.Contains("retirePostNgeWarTerminalState(self, player);") -and
+    $warTerminalStaleSelection.Contains("return SCRIPT_CONTINUE;") -and
+    -not $warTerminal.Contains("displayBattlefieldSui") -and
+    -not [bool]$contract.expected.warTerminalQueueMenuReachable -and
+    [bool]$contract.expected.staleWarIntelpadQueueActionScrubbed) `
+    "p14.queued-battlefield.war-terminal-queue-action-retired"
+Assert-Contract ($warTerminalMenuRequest.Contains("SERVER_MENU6, SID_MENU_GCW_REPORT") -and
+    $warTerminalMenuSelect.Contains("openSui(player);") -and
+    [bool]$contract.expected.warTerminalReportPreserved) `
+    "p14.queued-battlefield.war-terminal-report-preserved"
 
 $addPlayerScripts = Get-FunctionSlice $conversions "public void addPlayerScripts" "public void addPlayerCommandScripts"
 Assert-Contract ($addPlayerScripts.Contains("gcw.isPostNgeQueuedBattlefieldRetired()") -and

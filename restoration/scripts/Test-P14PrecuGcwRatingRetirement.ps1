@@ -357,7 +357,12 @@ $cityInfo = Get-FunctionSlice $terminalCity "public void showCityInfo" "public v
 $guildMenuRequest = Get-FunctionSlice $terminalGuild "public int OnObjectMenuRequest" "public int OnObjectMenuSelect"
 $guildMenuSelect = Get-FunctionSlice $terminalGuild "public int OnObjectMenuSelect" "public obj_id getMenuContextObjId"
 $guildInfo = Get-FunctionSlice $guildLibrary "public static void showGuildInfo" "public static void showGuildEnemies"
+$warRetire = Get-FunctionSlice $terminalGcw "private void retirePostNgeWarTerminalState" "public int OnObjectMenuRequest"
 $warMenuRequest = Get-FunctionSlice $terminalGcw "public int OnObjectMenuRequest" "public int OnObjectMenuSelect"
+$warMenuSelect = Get-FunctionSlice $terminalGcw "public int OnObjectMenuSelect" "public int OnClusterWideDataResponse"
+$warStaleSelection = Get-FunctionSlice $terminalGcw `
+    "else if (item == menu_info_types.SERVER_MENU1 || item == menu_info_types.SERVER_MENU3)" `
+    "else if (item == menu_info_types.SERVER_MENU2)"
 $warDefenderSelection = Get-FunctionSlice $terminalGcw `
     "else if (item == menu_info_types.SERVER_MENU4)" `
     "return SCRIPT_CONTINUE;"
@@ -379,6 +384,41 @@ Assert-Contract (-not $cityMenuRequest.Contains("SERVER_MENU17, SID_BEGIN_GCW_RE
     -not $warDefenderSelection.Contains("getGcwDefenderRegions") -and
     -not $warDefenderSelection.Contains("sui.tableColumnMajor")) `
     "p14.gcw-rating.regional-defender-terminal-presentation-retired"
+
+$requiredWarTerminalCleanup = @(
+    'removeObjVar(self, "gcwWarIntelPadMostRecentAction")',
+    'utils.removeScriptVar(player, "gcw.gcwPersonalContributionTablePid")',
+    'utils.removeLocalVar(playerObject, "gcwContributionTrackingLastUpdated")',
+    'utils.removeLocalVar(playerObject, "gcwContributionTrackingColumnName")',
+    'utils.removeLocalVar(playerObject, "gcwContributionTrackingColumnType")',
+    'utils.removeLocalVar(playerObject, "gcwContributionTrackingColumn0")',
+    'utils.removeLocalVar(playerObject, "gcwContributionTrackingColumn1")'
+)
+Assert-Contract ($warRetire.Contains("action == menu_info_types.SERVER_MENU1 || action == menu_info_types.SERVER_MENU3") -and
+    (@($requiredWarTerminalCleanup | Where-Object { -not $warRetire.Contains($_) }).Count -eq 0) -and
+    $warMenuRequest.Contains("retirePostNgeWarTerminalState(self, player);") -and
+    $warMenuSelect.Contains("retirePostNgeWarTerminalState(self, player);") -and
+    -not $warMenuRequest.Contains("menu_info_types.SERVER_MENU1") -and
+    -not $warMenuRequest.Contains("menu_info_types.SERVER_MENU3") -and
+    $warStaleSelection.Contains("retirePostNgeWarTerminalState(self, player);") -and
+    $warStaleSelection.Contains("return SCRIPT_CONTINUE;") -and
+    -not $terminalGcw.Contains("battlefield_war_terminal_menu") -and
+    -not $terminalGcw.Contains("gcw_personal_contribution_war_terminal_menu") -and
+    -not $terminalGcw.Contains("displayBattlefieldSui") -and
+    -not $terminalGcw.Contains("getGcwContributionTrackingTableDictionary") -and
+    -not $terminalGcw.Contains("gcw_personal_contribution_sui_table_header") -and
+    -not [bool]$contract.expected.warTerminalQueuedBattlefieldActionReachable -and
+    -not [bool]$contract.expected.warTerminalPersonalContributionReachable -and
+    [bool]$contract.expected.staleContributionLedgerStateScrubbed) `
+    "p14.gcw-rating.war-terminal-queue-and-contribution-retired"
+Assert-Contract ($warMenuRequest.Contains("SERVER_MENU5, SID_MENU_GCW") -and
+    $warMenuRequest.Contains("SERVER_MENU6, SID_MENU_GCW_REPORT") -and
+    $warMenuRequest.Contains("SERVER_MENU2, SID_MENU_GCW_FACTIONAL_PRESENCE") -and
+    $warMenuSelect.Contains("getGcwFactionalPresenceTableDictionary()") -and
+    $terminalGcw.Contains("getGcwGroupImperialScorePercentile(strSubCategory)") -and
+    [bool]$contract.expected.warTerminalReportPreserved -and
+    [bool]$contract.expected.warTerminalFactionPresencePreserved) `
+    "p14.gcw-rating.war-terminal-report-and-faction-presence-preserved"
 
 Assert-Contract (-not $playerUtility.Contains("GCW Region Defender Rebel Bonus") -and
     -not $playerUtility.Contains("selectedGcwDefenderRegion") -and
@@ -524,7 +564,9 @@ $requiredResets = @(
     "m_gcwRatingActualCalcTime = 0"
 )
 Assert-Contract ($playerHeader.Contains("void  retirePostNgeGcwRatingState();") -and
-    (@($requiredResets | Where-Object { -not $retire.Contains($_) }).Count -eq 0)) `
+    (@($requiredResets | Where-Object { -not $retire.Contains($_) }).Count -eq 0) -and
+    $retire.Contains('removeObjVarItem("gcwContributionTracking")') -and
+    $retire.Contains('removeObjVarItem("gcwContributionTrackingLastUpdated")')) `
     "p14.gcw-rating.authoritative-persisted-state-scrub"
 
 $endBaselines = Get-FunctionSlice $player "void PlayerObject::endBaselines()" "void PlayerObject::onLoadedFromDatabase()"
@@ -573,6 +615,18 @@ Assert-Contract ($nativeBridge.Contains("player->modifyCurrentGcwPoints(adjustme
     -not $nativeBridge.Contains("getGcwDefenderRegionBonus") -and
     (Get-BeforeFirstReturn (Get-FunctionSlice $player "void PlayerObject::modifyCurrentGcwPoints" "void PlayerObject::modifyCurrentGcwRating")).Contains("retirePostNgeGcwRatingState();")) `
     "p14.gcw-rating.native-compatibility-bridge-inert"
+
+$nativeContributionRead = Get-FunctionSlice $scriptPvp `
+    "jobject JNICALL ScriptMethodsPvpNamespace::getGcwContributionTrackingTableDictionary" `
+    "jobjectArray JNICALL ScriptMethodsPvpNamespace::getGcwDefenderRegions"
+Assert-Contract ($nativeContributionRead.Contains("UNREF(env);") -and
+    $nativeContributionRead.Contains("UNREF(self);") -and
+    $nativeContributionRead.Contains("UNREF(player);") -and
+    $nativeContributionRead.Contains("return 0;") -and
+    -not $nativeContributionRead.Contains("JavaLibrary::getObject") -and
+    -not $nativeContributionRead.Contains("gcwContribution") -and
+    -not $nativeContributionRead.Contains("JavaDictionaryPtr")) `
+    "p14.gcw-rating.native-contribution-ledger-read-inert"
 
 $scriptImperialScoreWriter = Get-FunctionSlice $scriptPvp `
     "void JNICALL ScriptMethodsPvpNamespace::adjustGcwImperialScore" `

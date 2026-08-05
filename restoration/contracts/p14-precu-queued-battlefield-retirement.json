@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-queued-battlefield-retirement",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Retire the post-NGE Game Update 10 four-map queued/warped/level-gated battlefield system while preserving the PRE-CU open-world battlefield implementation, faction standing, mission terminals, and later-zone scenery assets.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -11,7 +11,8 @@
     "findings": [
       "The pinned Publish 14 reference creates open-world battlefield markers and no-build/no-spawn active areas on eight original planets; it has no four-map cross-server queue, invitation, warp, level-75 admission, or token-reward controller.",
       "The later pvp_battlefields table names four queued maps, and systems.gcw.player_pvp enforces level 75, 4v4-to-16v16 queue/invitation flow, warp admission, scoreboards, and battlefield tokens.",
-      "The retained systems.battlefield implementation is a distinct open-world region game using battlefield.tab, faction selection, battlefield structures, and PRE-CU faction-standing rewards."
+      "The retained systems.battlefield implementation is a distinct open-world region game using battlefield.tab, faction selection, battlefield structures, and PRE-CU faction-standing rewards.",
+      "The retained War Terminal still exposed a queue action after the queued player handler was detached, leaving a dead interaction and a cached intelpad action that could survive older sessions."
     ]
   },
   "expected": {
@@ -26,6 +27,9 @@
     "persistedPlayerScriptsCleanAndDetach": true,
     "battlefieldCloneOverrideReachable": false,
     "battlefieldRegionPushbackReachable": false,
+    "warTerminalQueueMenuReachable": false,
+    "staleWarIntelpadQueueActionScrubbed": true,
+    "warTerminalReportPreserved": true,
     "laterZoneSceneryRowsPreserved": true,
     "precuOpenWorldBattlefieldSourceChanged": false,
     "precuFactionStandingRewardsPreserved": true,
@@ -38,6 +42,7 @@
     "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/battlefield_terminal.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_battlefield.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java",
     "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_1.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_8.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_3_1.tab",
@@ -58,6 +63,8 @@
       "bytes": 39704,
       "sha256": "49bb11af85a30bd885c5958f80607b0c96dc6f1f16dec44af2b5e1c7338799cc"
     },
+    "directSourceCommit": "72270b9b2219f371f76158f73f2a4c2d70a0183a",
+    "nativeSourceCommit": "f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
     "sourceSha256": {
       "script.library.gcw": "9175a186391ac2d10c13346a3777bae01bc476f1aa97d7c1ba4acc1869d9f78d",
       "script.player.base.base_player": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744",
@@ -65,6 +72,7 @@
       "script.systems.gcw.battlefield_terminal": "ebf1a8b81c923e07492aa22867446945658a800c4dbc7f778de6122973a18615",
       "script.systems.gcw.player_pvp": "f7cbe4a58383e78bc8021beabb5d5eb850d7c3b74e39fd169e3d69aa9e5b1a7f",
       "script.systems.gcw.pvp_battlefield": "706602177b0f0b6daea1678a1525514176b718493dff2325773ea0489b31b059",
+      "script.terminal.terminal_gcw_publish_gift": "4caf393b3dc65abd4474e9785096a259cc629b39defaf78d9fc2f184dd351f5b",
       "buildout.endor_1_1": "02c1e2e021e2ea66bdfdfc48cb5582c18c18613b8cb1ba07e21960c50170e533",
       "buildout.endor_1_8": "79149a2bae6089c27d25b06db23adafe5355e3480bf7c135d7ad6084c3af5447",
       "buildout.yavin4_3_1": "4ff21823909e56520a42789d3f7f8a66d3c19733f10ba6858abea1a71bab1ef3",
@@ -77,7 +85,7 @@
       "retained.mission_terminal": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
       "retained.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03"
     },
-    "isolatedJavaCompile": "passed with javac -source 8 -target 8 against the deployed Milestone 296 x64 class set",
+    "isolatedJavaCompile": "the original queued-battlefield closure passed with javac -source 8 -target 8; the War Terminal queue-action closure also passed focused compilation against the current deployed x64 class set, and transient output was deleted",
     "isolatedClassSha256": {
       "script.library.gcw": "864a15301344fd4dd41d12fe8631464ce69ae547d225caa4f2b17671cfec6ca0",
       "script.player.base.base_player": "4d4eff5d567d6ab45bc54722400afb2aee73039dc2484beb456e52f9f91a2395",
@@ -96,7 +104,8 @@
       "script.player.live_conversions.deployedFullBuild": "05d4ae140ab131b48a7f02ccf105586f2ac9dd16f61a4ff9ddf209cb4c943b41",
       "script.systems.gcw.battlefield_terminal.deployedFullBuild": "29cebce16f6901c97dd7e35bef29f74af25095a62287de71481aa58eda3afa1a",
       "script.systems.gcw.player_pvp.deployedFullBuild": "f75730307dce0201bdd1669114805bc0c4f6f6cac7b035d683b724dd31ab41c2",
-      "script.systems.gcw.pvp_battlefield.deployedFullBuild": "f49a19da8fb0509074e1f13456e204cd5fea1c1b79fe47328f7f5473e2d69a75"
+      "script.systems.gcw.pvp_battlefield.deployedFullBuild": "f49a19da8fb0509074e1f13456e204cd5fea1c1b79fe47328f7f5473e2d69a75",
+      "script.terminal.terminal_gcw_publish_gift.deployedFullBuild": "4ce0b45f901828775714fd4ee3d36d5fc2647db4d0925092ff3c88fcc39ce7d0"
     },
     "compiledBuildoutSha256": {
       "endor_1_1.iff": "e7cda2866b66c447301c336ae75e742bc55f3e1cbc95dab8df17ed472bd05468",
@@ -104,11 +113,11 @@
       "yavin4_3_1.iff": "48cef7711b46f66beac6e4150429af7847611ac461aa32032f7b785003589a7d",
       "yavin4_5_5.iff": "5f4e78e02226a7e340d4d920bf0c97b16dbbdaca6723dd18d87c83987e2eebad"
     },
-    "fullX64Build": "passed (Release native build, 5747 compiled Java class files, buildout/content compilation, and restart-time database/config refresh)",
+    "fullX64Build": "pending for direct-source commit 72270b9b2219f371f76158f73f2a4c2d70a0183a and synchronized native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6; the preceding c3209108/84241fab x64 deployment passed",
     "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
-    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
-    "deploymentProbe": "passed source/work comparisons, queued-battlefield cleanup and guarded-entrypoint bytecode, detached controller/terminal buildout rows, retained PRE-CU battlefield/mission/faction regressions, rendered runtime configuration, x64 architecture, health/readiness, and live mapped-binary verification"
+    "serverBinarySha256": "f5e5c426a38c725b684bafa295b3b6d99d70ee16c8254572267c048da189fb74",
+    "serverBinaryBuildId": "acbb260b98fd68558022568806edeaf4ceba7a9b",
+    "deploymentProbe": "the preceding queued-battlefield deployment passed; updated War Terminal bytecode, source/work parity, x64 binary authentication, health/readiness, and Phase A are pending"
   },
   "runtimeEvidence": {
     "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
@@ -120,12 +129,19 @@
     "fatalStartupLines": 0,
     "exceptionStartupLines": 0,
     "missionErrorLines": 0,
+    "deployedDirectSourceCommit": "c3209108b0bc0346b6fb154c5750159a61014776",
+    "pendingDirectSourceCommit": "72270b9b2219f371f76158f73f2a4c2d70a0183a",
+    "pendingNativeSourceCommit": "f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
     "missionTerminalContinuity": "The user physically reached a combat mission terminal after Milestone 296 and confirmed that it works; its source and reward hashes remain protected and unchanged in this overlay."
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all known controller buildouts, capture-terminal buildouts, persisted-controller cleanup, cross-server queue/status, player-script attachment, level-75 admission, warp, battlefield cloning, pushback-region, scoreboard, and token-reward reachability for the Game Update 10 four-map system",
+    "closedInThisMilestone": "all known controller buildouts, capture-terminal buildouts, persisted-controller cleanup, cross-server queue/status, War Terminal queue menu and cached action, player-script attachment, level-75 admission, warp, battlefield cloning, pushback-region, scoreboard, and token-reward reachability for the Game Update 10 four-map system",
     "retainedContent": "PRE-CU open-world battlefield code/data and faction-standing rewards, ordinary open-world PvP, faction rank/perks, mission terminals and rewards, static faction bases, later-zone scenery, and authored quests",
     "notClaimedComplete": "static faction-base timing/rewards and wider regional planet-control presentation remain separate audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "full x64 build and deployment from direct-source commit 72270b9b2219f371f76158f73f2a4c2d70a0183a and native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
+    "deployed War Terminal bytecode authentication",
+    "healthy readiness, exact process counts, and full Phase A ready regression"
+  ]
 }
