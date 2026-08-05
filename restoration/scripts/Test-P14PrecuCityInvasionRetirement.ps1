@@ -13,6 +13,12 @@ $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14Precu
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$manifestDsrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$indexedDsrcCommit = (& git -C $repositoryRoot rev-parse ":dsrc").Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed dsrc gitlink." }
+$checkedOutDsrcCommit = (& git -C (Join-Path $repositoryRoot "dsrc") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out dsrc commit." }
+$lf = [char]10
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
@@ -28,6 +34,25 @@ function Get-FunctionSlice([string]$Text, [string]$Start, [string]$Next)
     if ($nextIndex -lt 0) { return $Text.Substring($startIndex) }
     return $Text.Substring($startIndex, $nextIndex - $startIndex)
 }
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try
+    {
+        return ([System.BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Text)))).Replace("-", "").ToLowerInvariant()
+    }
+    finally
+    {
+        $sha.Dispose()
+    }
+}
+
+Assert-Contract ($manifestDsrc.Count -eq 1 -and
+    [string]$manifestDsrc[0].commit -ceq [string]$contract.buildEvidence.directSourceCommit -and
+    $indexedDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit -and
+    $checkedOutDsrcCommit -ceq [string]$contract.buildEvidence.directSourceCommit) `
+    "p14.city-invasion.direct-source-commit-synchronized"
 
 $patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.overlayPatch.path)
 Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.city-invasion.overlay.exists"
@@ -71,6 +96,44 @@ foreach ($name in $paths.Keys)
         Assert-Contract ($actualHash -ceq $expectedHash) "p14.city-invasion.source.$name.authenticated"
     }
 }
+
+$extensionTargets = @($contract.directSourceExtensions | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($extensionTargets.Count -eq [int]$contract.expected.cityAssetTemplatesPreserved -and
+    (Get-TextSha256 (($extensionTargets -join $lf) + $lf)) -ceq [string]$contract.buildEvidence.sourceExtensionSetSha256) `
+    "p14.city-invasion.template-source-set.authenticated"
+$extensionTexts = @{}
+$extensionContentRecords = ""
+foreach ($relativePath in $extensionTargets)
+{
+    $path = Join-Path $source $relativePath
+    Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) "p14.city-invasion.template.$relativePath.exists"
+    if (Test-Path -LiteralPath $path -PathType Leaf)
+    {
+        $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+        $extensionContentRecords += "$relativePath=$hash$lf"
+        $extensionTexts[$relativePath] = Get-Content -LiteralPath $path -Raw
+    }
+}
+Assert-Contract ((Get-TextSha256 $extensionContentRecords) -ceq [string]$contract.buildEvidence.sourceExtensionContentSha256) `
+    "p14.city-invasion.template-source-content.authenticated"
+
+$cityControllerPattern = '(?m)^\s*scripts\s*=.*systems\.gcw\.(?:gcw_city_kit|gcw_barricade|gcw_patrol|gcw_tower|gcw_vehicle|gcw_camp)'
+$emptyTemplatePattern = '(?m)^\s*scripts\s*=\s*\+?\s*\[\s*\]\s*$'
+$cityControllerTemplates = @($extensionTargets | Where-Object { [regex]::IsMatch([string]$extensionTexts[$_], $cityControllerPattern) })
+$inertTemplates = @($extensionTargets | Where-Object { [regex]::IsMatch([string]$extensionTexts[$_], $emptyTemplatePattern) })
+$killCreditTemplates = @($extensionTargets | Where-Object { ([string]$extensionTexts[$_]).Contains("systems.combat.credit_for_kills") })
+$campTemplates = @($extensionTargets | Where-Object { ([string]$extensionTexts[$_]).Contains("item.camp.camp_advanced") })
+Assert-Contract ($cityControllerTemplates.Count -eq 0 -and
+    -not [bool]$contract.expected.cityAssetTemplateControllerScriptsAttached) `
+    "p14.city-invasion.template-controllers-detached"
+Assert-Contract ($inertTemplates.Count -eq [int]$contract.expected.inertCityAssetTemplates) `
+    "p14.city-invasion.inert-template-count"
+Assert-Contract ($killCreditTemplates.Count -eq [int]$contract.expected.destructibleKillCreditScriptsPreserved -and
+    @($killCreditTemplates | Where-Object { -not ([string]$extensionTexts[$_]).Contains("systems.gcw.gcw_barricade") }).Count -eq $killCreditTemplates.Count) `
+    "p14.city-invasion.destructible-kill-credit-scripts-preserved"
+Assert-Contract ($campTemplates.Count -eq [int]$contract.expected.genericCampScriptsPreserved -and
+    @($campTemplates | Where-Object { -not ([string]$extensionTexts[$_]).Contains("systems.gcw.gcw_camp") }).Count -eq $campTemplates.Count) `
+    "p14.city-invasion.generic-camp-script-preserved"
 
 $gcw = [string]$texts["script.library.gcw"]
 $city = [string]$texts["script.systems.gcw.gcw_city"]
