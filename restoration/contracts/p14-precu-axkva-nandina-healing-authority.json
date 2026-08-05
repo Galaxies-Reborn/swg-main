@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-axkva-nandina-healing-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Retain the Axkva Min Nandina and Gorvo encounter while making Nandina's authored 50000-point heal authoritative instead of allowing the post-NGE healing-reduction statistic to rewrite it.",
   "eraEvidence": {
     "basis": "The expansion encounter is intentionally retained, but Publish 14.1 player progression has no expertise_healing_reduction statistic. The command handler supplies an authored fixed heal amount and the live AI profile supplies its cadence.",
@@ -46,45 +46,48 @@
       "spawnTable": "fb64fb44dc98767c1498f8c85597040ede766e4e7dd84fbaaf0201ff51f90951",
       "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe"
     },
-    "compiledClassSha256": null,
+    "compiledClassSha256": "2c0cdf613a03cb9b5ee0590746b77a83ca98e3953a1a2e4e5ac63c13c08de475",
     "sourceTest": "passed; command and combat routing, live AI cadence, initial/reset spawns, creature definitions, Gorvo resolution, exact authored heal, and client effect were authenticated with zero Java healing-reduction expertise consumers",
     "focusedJavaCompile": "passed in an ephemeral in-memory output directory that was removed immediately; emitted combat_actions bytecode retained nandina_heal and 50000 with no expertise_healing_reduction symbol",
-    "fullJavaCompile": null,
-    "fullServerBuild": null,
-    "architecture": null,
-    "serverBinarySha256": null,
-    "serverBinaryBuildId": null,
-    "sourceWorkParity": null,
-    "bytecodeAudit": null,
-    "deploymentProbe": null,
-    "result": "pending-live-deployment"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and combat_actions.class was emitted at 2026-08-05T02:17:33.958052165Z",
+    "fullServerBuild": "passed in 699.3 seconds from pushed parent 8f3d091 and direct dsrc a4e802e46",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for combat_actions.java, combat_data.tab, command_table.tab, ai_combat_profiles.tab, heroic_axkva_min.tab, and creatures.tab; all six contract source hashes authenticated and combat_actions.java matched at cbfd64a84b3d776d05022ad2304d16e69146d4960935294f0ac232ca29eae9cc",
+    "bytecodeAudit": "passed; combat_actions.class contains no expertise_healing_reduction symbol and retains nandina_heal, the 50000 authored heal, spawn_id lookup, and bacta-bomb client effect",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused Nandina source and bytecode gates, cumulative data/native/bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": null,
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": null,
-    "containerHealth": null,
-    "clusterReadyForPlayers": false,
-    "compiledClassSize": null,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": null,
-    "liveBinaryInode": null,
-    "liveBinarySize": null,
-    "liveBinaryMapEntries": null,
-    "processCounts": null,
-    "postStartLogAudit": null,
-    "result": "pending-live-deployment"
+    "containerStartedAt": "2026-08-05T02:23:48.479166366Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 319816,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 370,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "308 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "No server Java path can consume expertise_healing_reduction, and Nandina's retained heal now always uses its authored 50000-point value.",
     "preserved": "Axkva instance spawns and resets, Nandina and Gorvo scripts, AI cadence, command/combat routing, Gorvo lookup and dead-target admission, healing call, and client effect remain available.",
     "notClaimedComplete": "NGE healing-reduction rows remain as inert later-content data while player NGE command/skill admission is retired; other expertise families remain subject to the wider PRE-CU precedence audit."
   },
-  "requiredBeforeReady": [
-    "Run a clean full Java dependency rebuild and x64 server build from the pinned direct source.",
-    "Authenticate source/work parity and emitted combat-actions bytecode in the deployment gate.",
-    "Restart the server, prove the live process maps the built x64 binary, and audit post-start logs."
-  ]
+  "requiredBeforeReady": []
 }
