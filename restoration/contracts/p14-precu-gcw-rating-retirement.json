@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-gcw-rating-retirement",
-  "status": "ready",
-  "scope": "Retire the post-NGE current/lifetime GCW point, PvP-kill rating-input, weekly rating conversion, decay, invasion-credit, rating-derived regional-score progression, passive combat-level/rank factional-presence writer, NGE percentile overwrite of planetary control, and later city/guild regional-defender membership, bonus, title, and presentation system while restoring Publish 14 player-base control scores, faction standing/rank, general regional content compatibility, and independent mission, quest, PRE-CU open-world battlefield, and space rewards.",
+  "status": "implemented-build-pending",
+  "scope": "Retire the post-NGE current/lifetime GCW point, PvP-kill rating-input, weekly rating conversion, decay, invasion-credit, rating-derived regional-score progression, passive combat-level/rank factional-presence writer, manual/admin and native regional-score writers and decay, NGE percentile overwrite of planetary control, and later city/guild regional-defender membership, bonus, title, and presentation system while restoring Publish 14 player-base control scores, faction standing/rank, general regional content compatibility, and independent mission, quest, PRE-CU open-world battlefield, and space rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -22,6 +22,7 @@
       "Publish 14 planetary control is recomputed from registered player faction bases using exact authored HQ values: s01 1/2, s02 3/6, s03 4/8, and s04 10/20 for PvE/PvP variants.",
       "The pinned recruiter omits s05 from its purchasable installation list and the pinned score map has no s05 entry; retained later s05 assets therefore have no PRE-CU planetary-control authority.",
       "An exact search of pinned Core3 for gcw_region_defender, gcwregiondefender, GCW defender region, and war planner finds no city/guild regional-defender enrollment, reward bonus, or title subsystem.",
+      "An exact search of pinned Core3 for GCW score, GCWScore, ImperialScorePercentile, RebelScorePercentile, adjustGCW, and decayGCW finds no later regional raw-score, percentile, adjustment-queue, or weekly-decay subsystem.",
       "The retained ground mission path awards credits and faction standing independently of its later GCW-rating side effect.",
       "The retained space kill path already awards authored Rebel/Imperial faction standing, and the space battle path awards physical faction tokens independently of later GCW-rating points."
     ]
@@ -47,6 +48,12 @@
     "postNgeRegionalDefenderPresentationReachable": false,
     "staleRegionalDefenderPlayerStateScrubbed": true,
     "regionalScoreAndContentCompatibilityPreserved": true,
+    "regionalScoreScriptMutationReachable": false,
+    "regionalScoreAdminMutationReachable": false,
+    "regionalScoreNativeQueueMutationReachable": false,
+    "regionalScoreCrossServerMutationReachable": false,
+    "regionalScoreWeeklyOrImmediateDecayReachable": false,
+    "regionalScoreReadCompatibilityPreserved": true,
     "precuPlayerBasePlanetControlAuthority": true,
     "precuPlayerBaseDeltaUpdatesValidated": true,
     "precuPlayerBaseAbsoluteReconciliation": true,
@@ -82,6 +89,8 @@
     "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab",
     "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp",
     "src/engine/server/library/serverGame/src/shared/object/PlayerObject.h",
+    "src/engine/server/library/serverGame/src/shared/console/ConsoleCommandParserServer.cpp",
+    "src/engine/server/library/serverGame/src/shared/object/PlanetObject.cpp",
     "src/engine/server/library/serverGame/src/shared/pvp/Pvp.cpp",
     "src/engine/server/library/serverScript/src/shared/ScriptMethodsCity.cpp",
     "src/engine/server/library/serverScript/src/shared/ScriptMethodsGuild.cpp",
@@ -108,7 +117,7 @@
       }
     },
     "directSourceCommit": "883e66095ea06e10b7715360b9f4461c4467b9ae",
-    "nativeSourceCommit": "927b92d5a4a3af4e037cc800c71911bfbe5c95c5",
+    "nativeSourceCommit": "84241fabc5de10fb6924337f3a34bd7c02315953",
     "sourceSha256": {
       "script.library.gcw": "9175a186391ac2d10c13346a3777bae01bc476f1aa97d7c1ba4acc1869d9f78d",
       "script.library.faction_perk": "7baf89bd7af8946652592ac55756c29ae4f57c3a620b51f1b7323943fd943f99",
@@ -127,17 +136,19 @@
       "datatable.faction_recruiter.rebel.installation": "9c4a5c1b03a33b69d446f7049696715bcfb23eb1aa664ce6540dc6bfddd50b62",
       "PlayerObject.cpp": "ade4f96ce7f6903cf4f22383b6f368b061529d3cef520e4da7fc8650681db8da",
       "PlayerObject.h": "0d239c657befb1f6253ac8cbb39a210542e97924ab500af20a2fa762514523a3",
+      "ConsoleCommandParserServer.cpp": "06b54774d9afd2170e1f373bfee1b7654df973581d5d2381d9acb763491f494a",
+      "PlanetObject.cpp": "cf74b71e566a119d58d6dc7afa76cfb5d0f734afaeb9544a0a2be26a253a0fb2",
       "Pvp.cpp": "829342ee13adc9572912fbea14636c3a975af9f92e4855614482c9e63b5b883f",
       "ScriptMethodsCity.cpp": "f54032b0ed3af09801e4ffda9c96af27820efacf236e4c18ab01f1f859188870",
       "ScriptMethodsGuild.cpp": "a1f5c7814fd94f2d0e374c678704489cac7318ab03a8b2d2d8a6960f04b4f342",
-      "ScriptMethodsPvp.cpp": "c84c25ed86d021a2f1ba0eeadea80f145e77abe77ee00e2295002e8056841765",
+      "ScriptMethodsPvp.cpp": "dd2e2ed32fcbbd56529cb78544bb11f4132bbddca16ea1db3360b7a2972fa8ec",
       "script.systems.missions.base.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
       "script.library.groundquests": "17ea0ee5bbd198cf5769c00bc7834045333cce7b2435e87fa4daa6103d3fbc3f",
       "script.systems.battlefield.player_battlefield": "39729ee9bd2b9e5e0b62833974896a5f41119ef9b8631418284e8094b92c07a3",
       "script.library.space_combat": "d536ce0c27803b06ff08f72c9b5afe0576609b3ad4a7a30653fac34382bc9db7",
       "script.systems.gcw.space.battle_spawner": "d741fdf033f08d40d25302a1f26638c931e1478634005f3198a267a0ba2f99dc"
     },
-    "staticContract": "passed against the locked regional-defender retirement source and Phase A ready regression suite",
+    "staticContract": "pending against the locked regional-score-writer retirement source and Phase A ready regression suite",
     "isolatedJavaCompile": "passed for guild.java, player_guild.java, player_utility.java, city_hall.java, terminal_city.java, terminal_gcw_publish_gift.java, and terminal_guild.java with javac -source 8 -target 8 against the verified x64 class set; transient container output was deleted",
     "compiledClassSha256": {
       "script.library.gcw.isolated": "20ddc2d34429546881619cebc0df853d7f0b522d43881b2b0559544dbe9956fb",
@@ -154,14 +165,14 @@
       "script.terminal.terminal_gcw_publish_gift.deployedFullBuild": "4ce0b45f901828775714fd4ee3d36d5fc2647db4d0925092ff3c88fcc39ce7d0",
       "script.terminal.terminal_guild.deployedFullBuild": "14b9c6ca9a9a4d37a9d9e3e73032003555942c25f575dd59c3b0055e6dbe7eb0"
     },
-    "isolatedNativeBuild": "passed focused x64 Release rebuilds of serverGame and serverScript from the synchronized direct-source Docker volume",
-    "cumulativeSourceExtension": "The direct source retains the authoritative recurring city-invasion and GU10 queued-battlefield retirement predicates, preserves the distinct PRE-CU open-world battlefield faction-standing reward, retires the passive connected-player factional-presence writer and later regional-defender membership/bonus/title/presentation surfaces including stale SUI and city depersistence callbacks, and restores base-authored Publish 14 planetary control without the NGE regional percentile overwrite.",
+    "isolatedNativeBuild": "passed focused x64 Release rebuilds of serverGame and serverScript from the synchronized direct-source Docker volume for native commit 84241fabc5de10fb6924337f3a34bd7c02315953",
+    "cumulativeSourceExtension": "The direct source retains the authoritative recurring city-invasion and GU10 queued-battlefield retirement predicates, preserves the distinct PRE-CU open-world battlefield faction-standing reward and read-only later regional content queries, retires the passive connected-player factional-presence writer, manual/admin and native regional-score adjustment and decay paths, and later regional-defender membership/bonus/title/presentation surfaces including stale SUI and city depersistence callbacks, and restores base-authored Publish 14 planetary control without the NGE regional percentile overwrite.",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "9b2fb72de89b653fc5962c99571e980e1272d31087f0d0dcfe2cbf63be2e0035",
     "serverBinaryBuildId": "8c8a9da85607c56b0eab896af54a35f3e90126ed",
-    "directSourceBuild": "focused and full x64 native and Java builds passed from the synchronized committed direct-source branches with no host artifact or staging tree",
-    "fullX64Build": "passed and deployed for direct-source commits 883e66095ea06e10b7715360b9f4461c4467b9ae and 927b92d5a4a3af4e037cc800c71911bfbe5c95c5",
-    "deploymentProbe": "passed exact 13-file source/work parity, seven-class bytecode and hash authentication, six-binary x64 architecture, readiness, process-count, and live mapped-binary verification"
+    "directSourceBuild": "focused x64 native builds passed from the synchronized committed direct-source branches with no host artifact or staging tree; full deployment is pending",
+    "fullX64Build": "pending for direct-source commits 883e66095ea06e10b7715360b9f4461c4467b9ae and 84241fabc5de10fb6924337f3a34bd7c02315953",
+    "deploymentProbe": "pending exact regional-score-writer source/work, x64 binary, readiness, process-count, and live mapped-binary verification"
   },
   "runtimeEvidence": {
     "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fourteen configured SwgGameServer scene processes",
@@ -187,9 +198,12 @@
     "missionTerminalContinuity": "The user verified the live combat mission terminal before this milestone; mission source is excluded from both overlays and authenticated as retained."
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all script and native mutation entrypoints for later current/lifetime GCW points, rating inputs, weekly conversion/decay scheduling, rating-derived invasion credit, rating-derived regional score, the native passive connected-player factional-presence writer, the NGE percentile overwrite of planet control, the non-base kill accumulator's planet-score mutation, and later city/guild regional-defender enrollment, bonuses, titles, replicated player state, and report presentation; player-base scores now use exact Publish 14 values and periodic absolute registry reconciliation",
+    "closedInThisMilestone": "all script and native mutation entrypoints for later current/lifetime GCW points, rating inputs, weekly conversion/decay scheduling, rating-derived invasion credit, rating-derived regional score, manual/admin and native regional-score adjustment queues and weekly/immediate decay, the native passive connected-player factional-presence writer, the NGE percentile overwrite of planet control, the non-base kill accumulator's planet-score mutation, and later city/guild regional-defender enrollment, bonuses, titles, replicated player state, and report presentation; player-base scores now use exact Publish 14 values and periodic absolute registry reconciliation",
     "retainedContent": "PRE-CU faction standing and creature rank, faction recruiters and s01-s04 perks, general regional score/category/planet-state data and compatibility call surfaces, mission credits and standing, ground-quest independent item/token rewards, open-world battlefield standing, space standing and battle tokens, faction bases, later s05 assets without control authority, later zones, and authored quest content",
-    "notClaimedComplete": "PRE-CU open-world battlefield balance, manual/admin regional content hooks, and the wider ground GCW gameplay surface remain separate audits"
+    "notClaimedComplete": "PRE-CU open-world battlefield balance, later regional-score consumers, and the wider ground GCW gameplay surface remain separate audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Pass the full clean direct-source x64 build, restart, and readiness gate for native commit 84241fabc5de10fb6924337f3a34bd7c02315953.",
+    "Authenticate deployed regional-score-writer source/work parity and the live mapped x64 server binary."
+  ]
 }

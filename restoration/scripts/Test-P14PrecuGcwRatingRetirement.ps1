@@ -89,6 +89,8 @@ $paths = [ordered]@{
     "datatable.faction_recruiter.rebel.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab"
     "PlayerObject.cpp" = Join-Path $source "src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
     "PlayerObject.h" = Join-Path $source "src/engine/server/library/serverGame/src/shared/object/PlayerObject.h"
+    "ConsoleCommandParserServer.cpp" = Join-Path $source "src/engine/server/library/serverGame/src/shared/console/ConsoleCommandParserServer.cpp"
+    "PlanetObject.cpp" = Join-Path $source "src/engine/server/library/serverGame/src/shared/object/PlanetObject.cpp"
     "Pvp.cpp" = Join-Path $source "src/engine/server/library/serverGame/src/shared/pvp/Pvp.cpp"
     "ScriptMethodsCity.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsCity.cpp"
     "ScriptMethodsGuild.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsGuild.cpp"
@@ -130,6 +132,8 @@ $imperialInstallations = [string]$texts["datatable.faction_recruiter.imperial.in
 $rebelInstallations = [string]$texts["datatable.faction_recruiter.rebel.installation"]
 $player = [string]$texts["PlayerObject.cpp"]
 $playerHeader = [string]$texts["PlayerObject.h"]
+$serverConsole = [string]$texts["ConsoleCommandParserServer.cpp"]
+$planet = [string]$texts["PlanetObject.cpp"]
 $nativePvp = [string]$texts["Pvp.cpp"]
 $scriptCity = [string]$texts["ScriptMethodsCity.cpp"]
 $scriptGuild = [string]$texts["ScriptMethodsGuild.cpp"]
@@ -490,6 +494,103 @@ Assert-Contract ($nativeBridge.Contains("player->modifyCurrentGcwPoints(adjustme
     -not $nativeBridge.Contains("getGcwDefenderRegionBonus") -and
     (Get-BeforeFirstReturn (Get-FunctionSlice $player "void PlayerObject::modifyCurrentGcwPoints" "void PlayerObject::modifyCurrentGcwRating")).Contains("retirePostNgeGcwRatingState();")) `
     "p14.gcw-rating.direct-holiday-and-collection-bypasses-closed-natively"
+
+$scriptImperialScoreWriter = Get-FunctionSlice $scriptPvp `
+    "void JNICALL ScriptMethodsPvpNamespace::adjustGcwImperialScore" `
+    "void JNICALL ScriptMethodsPvpNamespace::adjustGcwRebelScore"
+$scriptRebelScoreWriter = Get-FunctionSlice $scriptPvp `
+    "void JNICALL ScriptMethodsPvpNamespace::adjustGcwRebelScore" `
+    "jint JNICALL ScriptMethodsPvpNamespace::getGcwImperialScorePercentile"
+$scriptImperialScoreWriterActive = Get-BeforeFirstReturn $scriptImperialScoreWriter
+$scriptRebelScoreWriterActive = Get-BeforeFirstReturn $scriptRebelScoreWriter
+Assert-Contract ($scriptImperialScoreWriterActive.Contains("UNREF(adjustment);") -and
+    $scriptRebelScoreWriterActive.Contains("UNREF(adjustment);") -and
+    -not $scriptImperialScoreWriterActive.Contains("ServerUniverse::getInstance().adjustGcwImperialScore") -and
+    -not $scriptRebelScoreWriterActive.Contains("ServerUniverse::getInstance().adjustGcwRebelScore")) `
+    "p14.gcw-rating.regional-score-script-writers-retired"
+
+$consoleImperialScoreWriter = Get-FunctionSlice $serverConsole `
+    'else if (isAbbrev(argv[0], "adjustGcwImperialScore"))' `
+    'else if (isAbbrev(argv[0], "adjustGcwRebelScore"))'
+$consoleRebelScoreWriter = Get-FunctionSlice $serverConsole `
+    'else if (isAbbrev(argv[0], "adjustGcwRebelScore"))' `
+    'else if (isAbbrev(argv[0], "decayGcwScore"))'
+$consoleScoreDecay = Get-FunctionSlice $serverConsole `
+    'else if (isAbbrev(argv[0], "decayGcwScore"))' `
+    'else if (isAbbrev(argv[0], "showGcwFactionalPresence"))'
+Assert-Contract ($consoleImperialScoreWriter.Contains("Publish 14 regional GCW score adjustment is retired") -and
+    $consoleRebelScoreWriter.Contains("Publish 14 regional GCW score adjustment is retired") -and
+    $consoleScoreDecay.Contains("Publish 14 regional GCW score decay is retired") -and
+    -not $consoleImperialScoreWriter.Contains("ServerUniverse::getInstance().adjustGcwImperialScore") -and
+    -not $consoleRebelScoreWriter.Contains("ServerUniverse::getInstance().adjustGcwRebelScore") -and
+    -not $consoleScoreDecay.Contains('MessageToQueue::sendMessageToC')) `
+    "p14.gcw-rating.regional-score-admin-writers-retired"
+
+$planetImperialScoreWriter = Get-FunctionSlice $planet `
+    "void PlanetObject::adjustGcwImperialScore" `
+    "void PlanetObject::adjustGcwRebelScore"
+$planetRebelScoreWriter = Get-FunctionSlice $planet `
+    "void PlanetObject::adjustGcwRebelScore" `
+    "int PlanetObject::getGcwImperialScorePercentile"
+$planetImperialScoreWriterActive = Get-BeforeFirstReturn $planetImperialScoreWriter
+$planetRebelScoreWriterActive = Get-BeforeFirstReturn $planetRebelScoreWriter
+Assert-Contract ($planetImperialScoreWriterActive.Contains("UNREF(adjustment);") -and
+    $planetRebelScoreWriterActive.Contains("UNREF(adjustment);") -and
+    -not $planetImperialScoreWriterActive.Contains("m_gcwImperialScoreAdjustment.insert") -and
+    -not $planetRebelScoreWriterActive.Contains("m_gcwRebelScoreAdjustment.insert")) `
+    "p14.gcw-rating.regional-score-native-adjustment-queue-retired"
+
+$trackingUpdate = Get-FunctionSlice $planet `
+    "void PlanetObject::updateGcwTrackingData()" `
+    "void PlanetObject::adjustGcwImperialScore"
+$trackingGateStart = $trackingUpdate.IndexOf("Publish 14 has no regional-score adjustment pipeline", [System.StringComparison]::Ordinal)
+$trackingLegacyStart = if ($trackingGateStart -ge 0) {
+    $trackingUpdate.IndexOf("if (m_nextGcwTrackingUpdate == 0)", $trackingGateStart, [System.StringComparison]::Ordinal)
+} else { -1 }
+$trackingGate = if ($trackingGateStart -ge 0 -and $trackingLegacyStart -gt $trackingGateStart) {
+    $trackingUpdate.Substring($trackingGateStart, $trackingLegacyStart - $trackingGateStart)
+} else { "" }
+Assert-Contract ($trackingGate.Contains("m_gcwImperialScoreAdjustment.clear();") -and
+    $trackingGate.Contains("m_gcwRebelScoreAdjustment.clear();") -and
+    $trackingGate.Contains("m_nextGcwTrackingUpdate = 0;") -and
+    $trackingGate.Contains("return;") -and
+    $trackingUpdate.Contains("GcwScoreStatRaw") -and
+    $trackingUpdate.Contains("GcwScoreStatPct")) `
+    "p14.gcw-rating.regional-score-cross-server-writer-retired-read-broadcast-preserved"
+
+$scheduledDecay = Get-FunctionSlice $planet `
+    'else if (message.getMethod() == "C++DoGcwDecay")' `
+    'else if (message.getMethod() == "C++DoGcwDecayImmediate")'
+$immediateDecay = Get-FunctionSlice $planet `
+    'else if (message.getMethod() == "C++DoGcwDecayImmediate")' `
+    "void PlanetObject::endBaselines()"
+$scheduledDecayActive = Get-BeforeFirstReturn $scheduledDecay
+$immediateDecayActive = Get-BeforeFirstReturn $immediateDecay
+$endBaselines = Get-FunctionSlice $planet `
+    "void PlanetObject::endBaselines()" `
+    "void PlanetObject::setConnectedCharacterLfgData"
+$endBaselinesActive = Get-BeforeFirstReturn $endBaselines
+Assert-Contract ($scheduledDecayActive.Contains('removeObjVarItem("gcwScore.nextDecayTime")') -and
+    $immediateDecayActive.Contains('removeObjVarItem("gcwScore.nextDecayTime")') -and
+    $endBaselinesActive.Contains('removeObjVarItem("gcwScore.nextDecayTime")') -and
+    -not $scheduledDecayActive.Contains("m_gcwImperialScore.set") -and
+    -not $scheduledDecayActive.Contains("m_gcwRebelScore.set") -and
+    -not $immediateDecayActive.Contains("m_gcwImperialScore.set") -and
+    -not $immediateDecayActive.Contains("m_gcwRebelScore.set") -and
+    -not $endBaselinesActive.Contains('MessageToQueue::sendMessageToC(getNetworkId(), "C++DoGcwDecay"') -and
+    $endBaselinesActive.Contains("m_gcwImperialScore.set") -and
+    $endBaselinesActive.Contains("m_gcwRebelScore.set")) `
+    "p14.gcw-rating.regional-score-weekly-and-immediate-decay-retired-read-state-preserved"
+
+Assert-Contract (-not [bool]$contract.expected.regionalScoreScriptMutationReachable -and
+    -not [bool]$contract.expected.regionalScoreAdminMutationReachable -and
+    -not [bool]$contract.expected.regionalScoreNativeQueueMutationReachable -and
+    -not [bool]$contract.expected.regionalScoreCrossServerMutationReachable -and
+    -not [bool]$contract.expected.regionalScoreWeeklyOrImmediateDecayReachable -and
+    [bool]$contract.expected.regionalScoreReadCompatibilityPreserved -and
+    $scriptPvp.Contains("ServerUniverse::getInstance().getGcwImperialScorePercentile") -and
+    $scriptPvp.Contains("ServerUniverse::getInstance().getGcwGroupImperialScorePercentile")) `
+    "p14.gcw-rating.regional-score-read-compatibility-only"
 
 Assert-Contract ($mission.Contains("transferBankCreditsFromNamedAccount(money.ACCT_MISSION_DYNAMIC, recipient, intReward") -and
     $mission.Contains("factions.awardFactionStanding(objPlayer, strFaction, intFactionReward)") -and
