@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -52,13 +55,19 @@ function Is-Before([string]$Text, [string]$First, [string]$Second)
 }
 
 $relativeSourceMap = [ordered]@{
+    "ai/beast.java" = "ai/beast.java"
     "ai/beast_control_device.java" = "ai/beast_control_device.java"
+    "ai/creature_combat.java" = "ai/creature_combat.java"
+    "conversation/trainer_beast_master.java" = "conversation/trainer_beast_master.java"
     "library/beast_lib.java" = "library/beast_lib.java"
     "player/base/base_player.java" = "player/base/base_player.java"
+    "player/live_conversions.java" = "player/live_conversions.java"
     "player/player_beastmaster.java" = "player/player_beastmaster.java"
     "systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
     "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
 }
+Assert-Contract ($relativeSourceMap.Count -eq [int]$contract.expected.authoritativeSourceFiles) `
+    "p14.beast-retirement.direct-source.target-count"
 
 $patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.overlayPatch.path)
 Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.beast-retirement.overlay.exists"
@@ -79,13 +88,21 @@ $targets = @(
         ForEach-Object { $_.Groups[1].Value } |
         Sort-Object
 )
+$archivedOverlaySources = @(
+    "ai/beast_control_device.java",
+    "library/beast_lib.java",
+    "player/base/base_player.java",
+    "player/player_beastmaster.java",
+    "systems/combat/combat_actions.java",
+    "systems/combat/combat_base.java"
+)
 $expectedTargets = @(
-    $relativeSourceMap.Values |
+    $archivedOverlaySources |
         ForEach-Object { "sku.0/sys.server/compiled/game/script/$_" } |
         Sort-Object
 )
 Assert-Contract (
-    $targets.Count -eq [int]$contract.expected.changedSourceFiles -and
+    $targets.Count -eq [int]$contract.expected.archivedOverlayChangedSourceFiles -and
     (($targets -join $lf) -ceq ($expectedTargets -join $lf))
 ) "p14.beast-retirement.overlay.target-set"
 Assert-Contract (
@@ -143,6 +160,8 @@ Assert-Contract (
     $cleanup.Contains('utils.setScriptVar(player, "beast.no_store_message", true)') -and
     $cleanup.Contains('buff.getBuffOnTargetFromGroup(player, "bm_player_buff")') -and
     $cleanup.Contains("removeAttentionPenaltyDebuff(player)") -and
+    $cleanup.Contains("utils.removeBatchObjVar(player, PLAYER_KNOWN_SKILLS_LIST)") -and
+    $cleanup.Contains("setBeastmasterPetCommands(player, new String[0])") -and
     $cleanup.Contains('detachScript(player, "player.player_beastmaster")')
 ) "p14.beast-retirement.player-presentation-cleanup"
 
@@ -153,11 +172,57 @@ $createBeast = Get-SourceSlice $beastLibrary "public static obj_id createBasicBe
 $verifyBeast = Get-SourceSlice $beastLibrary "public static void verifyAndUpdateCalledBeastStats(" "public static void removeAttentionPenaltyDebuff("
 Assert-Contract (
     -not $isBeast.Contains("isRetiredPostNgeBeastMasterPlayer") -and
-    (Is-Before $isBeastMaster "isRetiredPostNgeBeastMasterPlayer(player)" 'getSkillStatisticModifier(player, "expertise_bm_base_mod")') -and
+    $isBeastMaster.Contains("return false;") -and
+    -not $isBeastMaster.Contains("getSkillStatisticModifier") -and
     (Is-Before $getBeast "isRetiredPostNgeBeastMasterPlayer(player)" "callable.getCallable") -and
     (Is-Before $createBeast "isRetiredPostNgeBeastMasterPlayer(player)" "isBeastMaster(player)") -and
     $verifyBeast.Contains("retirePostNgeBeastMasterPlayerState(player)")
 ) "p14.beast-retirement.central-entrypoints-fail-closed"
+
+$learnSkill = Get-SourceSlice $beastLibrary `
+    "public static String[] playerLearnBeastMasterSkill(obj_id player, String newSkill, boolean notify)" `
+    "public static boolean isLearnableBeastMasterSkill("
+$hasSkill = Get-SourceSlice $beastLibrary `
+    "public static boolean hasBeastMasterSkill(" `
+    "public static void sendCreatureAbilitySkillLearnSpam("
+$knownSkills = Get-SourceSlice $beastLibrary `
+    "public static Vector getKnownSkillsCrc(" `
+    "public static void trainPetAbility("
+Assert-Contract (
+    (Is-Before $learnSkill "isRetiredPostNgeBeastMasterPlayer(player)" "utils.setBatchObjVar(player, PLAYER_KNOWN_SKILLS_LIST") -and
+    $learnSkill.Contains("utils.removeBatchObjVar(player, PLAYER_KNOWN_SKILLS_LIST)") -and
+    (Is-Before $hasSkill "isRetiredPostNgeBeastMasterPlayer(player)" "getKnownSkillsCrc(player)") -and
+    (Is-Before $knownSkills "isRetiredPostNgeBeastMasterPlayer(player)" "utils.hasIntBatchObjVar")
+) "p14.beast-retirement.known-skill-state-fails-closed"
+
+$beastAi = [string]$sourceTexts["ai/beast.java"]
+$creatureCombat = [string]$sourceTexts["ai/creature_combat.java"]
+Assert-Contract (
+    -not $beastAi.Contains("expertise_") -and
+    -not $beastAi.Contains("bm_ability_2") -and
+    -not $beastAi.Contains("bm_ability_3") -and
+    -not $beastAi.Contains("bm_ability_4") -and
+    -not $creatureCombat.Contains("expertise_bm_") -and
+    $creatureCombat.Contains("int actionRegen = 4") -and
+    $creatureCombat.Contains("int healthRegen = 150")
+) "p14.beast-retirement.authored-beast-display-and-regen"
+
+$trainer = [string]$sourceTexts["conversation/trainer_beast_master.java"]
+$liveConversions = [string]$sourceTexts["player/live_conversions.java"]
+Assert-Contract (
+    $trainer.Contains('c_stringFile = "conversation/trainer_beast_master"') -and
+    $trainer.Contains("CONVERSE_START") -and
+    -not $trainer.Contains("playerLearnBeastMasterSkill") -and
+    ([regex]::Matches($trainer, "retirePostNgeBeastMasterPlayerState").Count -ge 3)
+) "p14.beast-retirement.trainer-conversation-retained-grants-retired"
+$liveAttach = Get-SourceSlice $liveConversions `
+    "if (beast_lib.isPostNgeBeastMasterPlayerRuntimeRetired())" `
+    'if (!hasScript(player, "player.player_guild"))'
+Assert-Contract (
+    (Is-Before $liveAttach "isPostNgeBeastMasterPlayerRuntimeRetired" 'attachScript(player, "player.player_beastmaster")') -and
+    $liveAttach.Contains("retirePostNgeBeastMasterPlayerState(player)") -and
+    $liveAttach.Contains("else if")
+) "p14.beast-retirement.live-conversion-cannot-reattach"
 
 $basePlayer = [string]$sourceTexts["player/base/base_player.java"]
 $baseInitialize = Get-SourceSlice $basePlayer "public int OnInitialize(" 'LOG("base_player - OnInitialize"'
@@ -192,6 +257,15 @@ Assert-Contract (
     $initialize.Contains("return SCRIPT_OVERRIDE;") -and
     $detachCallback.Contains("beast_lib.retirePostNgeBeastMasterPlayerState(self)")
 ) "p14.beast-retirement.persisted-script-self-detaches"
+$skillGranted = Get-SourceSlice $playerBeastMaster "public int OnSkillGranted(" "public int OnSkillRevoked("
+$skillRevoked = Get-SourceSlice $playerBeastMaster "public int OnSkillRevoked(" "public int OnEnteredCombat("
+Assert-Contract (
+    $skillGranted.Contains("retirePostNgeBeastMasterPlayerState(self)") -and
+    $skillGranted.Contains("return SCRIPT_OVERRIDE") -and
+    $skillRevoked.Contains("retirePostNgeBeastMasterPlayerState(self)") -and
+    $skillRevoked.Contains("return SCRIPT_OVERRIDE") -and
+    -not $playerBeastMaster.Contains("expertise_bm_")
+) "p14.beast-retirement.persisted-skill-callbacks-fail-closed"
 
 $combatBase = [string]$sourceTexts["systems/combat/combat_base.java"]
 $combatGate = Get-SourceSlice $combatBase `
@@ -240,6 +314,23 @@ Assert-Contract (
     $bmCombatRows.Count -eq [int]$contract.expected.bmCombatDataCompatibilityRows
 ) "p14.beast-retirement.compatibility-data-retained"
 
+$productionJava = Get-ChildItem -LiteralPath $scriptRoot -Recurse -File -Filter "*.java" |
+    Where-Object {
+        $_.FullName -notmatch '[\\/]working[\\/]' -and
+        $_.FullName -notmatch '[\\/]test[\\/]'
+    }
+$productionExpertiseReferences = @(
+    $productionJava | Select-String -SimpleMatch "expertise_bm_"
+)
+$beastSkillModifierReferences = @(
+    $productionJava | Select-String -Pattern `
+        'get(?:Enhanced)?SkillStatisticModifier(?:Uncapped)?\([^\r\n]*"(?:bm_|incubation_time_reduction)'
+)
+Assert-Contract (
+    $productionExpertiseReferences.Count -eq [int]$contract.expected.productionExpertiseBmReferences -and
+    $beastSkillModifierReferences.Count -eq [int]$contract.expected.productionBeastMasterSkillModifierReaders
+) "p14.beast-retirement.production-expertise-authority-absent"
+
 foreach ($entry in $contract.continuityEvidence.precuCreatureHandlerSourceSha256.PSObject.Properties)
 {
     $path = Join-Path $scriptRoot $entry.Name
@@ -272,8 +363,23 @@ Assert-Contract (-not $patchText.Contains("systems/missions/") -and -not $patchT
     "p14.beast-retirement.mission-core-continuity"
 
 Assert-Contract (
-    @("implemented-build-pending", "ready") -ccontains [string]$contract.status
+    @("implemented-build-verified-live-pending", "ready") -ccontains [string]$contract.status
 ) "p14.beast-retirement.contract.status"
+
+if ($Expectation -eq "Ready")
+{
+    $dsrcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "dsrc" })
+    Assert-Contract (
+        [string]$manifest.sourceMode -ceq "direct-branch" -and
+        $dsrcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink
+    ) "p14.beast-retirement.direct-source-pin"
+    Assert-Contract (
+        [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
+        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary -and
+        [string]$contract.buildEvidence.result -ceq "passed"
+    ) "p14.beast-retirement.live-evidence"
+}
 
 if ($failures.Count -gt 0)
 {

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-beast-master-player-runtime-retirement",
-  "status": "ready",
-  "scope": "Retire the post-NGE Beast Master combat-pet runtime for players so Publish 14.1 Creature Handler tame, control, and pet combat remain authoritative while retained beast data and later-content NPCs continue to load.",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Retire post-NGE Beast Master identity, combat-pet progression, trainer grants, live-conversion reattachment, expertise arithmetic, and persisted known-skill state for players while Publish 14.1 Creature Handler tame/control runtime and retained later-content conversations, assets, templates, and data continue to load.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -15,11 +15,14 @@
       "Pinned Publish 14.1 Core3 has no Beast Master, incubator, expertise_bm_, or bm_* player runtime in its server and script gameplay trees.",
       "Publish 14.1 creature pets are tamed, persisted, called, and controlled through Creature Handler skill modifiers and the pet control device lifecycle.",
       "The current NGE source retains Beast Master data and NPC-capable scripts for compatibility, but those assets must not establish player progression or combat authority.",
-      "The retirement boundary is player-only; later-content NPC creatures and retained object/data loading are not deleted."
+      "The retirement boundary is player-only; later-content NPC creatures and retained object/data loading are not deleted.",
+      "The retained generated Beast Master trainer and live-conversion script formed two bypasses around the original retirement boundary: one could persist Beast abilities and the other could reattach the retired player script.",
+      "Retained Beast AI and incubation content can use authored table, station, power, and incubation values, but no player Beast Master expertise or reverse-engineered Beast skill modifier may alter those values."
     ]
   },
   "expected": {
-    "changedSourceFiles": 6,
+    "authoritativeSourceFiles": 10,
+    "archivedOverlayChangedSourceFiles": 6,
     "authoritativePlayersOnly": true,
     "retiredActionPrefix": "bm_",
     "beastMasterIdentityForPlayers": false,
@@ -30,6 +33,15 @@
     "playerBeastMasterBuffGroupRemoved": "bm_player_buff",
     "attentionPenaltyBuffsRemoved": 5,
     "beastMasterPetToolbarCleared": true,
+    "persistedKnownSkillsRemoved": "beast_master.known_skills",
+    "trainerConversationRetained": true,
+    "trainerSkillGrantsForPlayers": false,
+    "liveConversionCanReattachPlayerScript": false,
+    "productionExpertiseBmReferences": 0,
+    "productionBeastMasterSkillModifierReaders": 0,
+    "retainedBeastStatsUseAuthoredTablesAndIncubationOnly": true,
+    "retainedBeastDisplayUsesStoredWeaponValues": true,
+    "retainedBeastAbilitySlotsFromExpertise": false,
     "expertiseBmCompatibilityRows": 53,
     "bmCommandCompatibilityRows": 124,
     "bmCombatDataCompatibilityRows": 116,
@@ -38,7 +50,6 @@
     "directCallbacksGuarded": [
       "bm_paralytic_poison_recourse"
     ],
-    "npcBeastBehaviorChanged": false,
     "beastTemplatesOrDatatablesDeleted": false,
     "precuCreatureHandlerFilesChanged": false,
     "precuMechanicsPreserved": [
@@ -52,41 +63,42 @@
     "missionCoreChanged": false
   },
   "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "081beb2d82dfdcf6362ad6218e82d6d6d3a28621",
+    "lineEndingPolicy": "The touched legacy ai/beast.java blob was normalized to the repository-declared LF policy; no generated overlay or staging tree was created.",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/380-p14-post-nge-beast-master-player-runtime-retirement.patch",
       "bytes": 10791,
-      "sha256": "9551d05998f54a0b245d038824aee386c5881c5106541db1794fc01a30401e2c"
+      "sha256": "9551d05998f54a0b245d038824aee386c5881c5106541db1794fc01a30401e2c",
+      "role": "authenticated archival origin only; current authority is the pinned direct-source branch"
     },
     "sourceSetSha256": "98053d1c6d65270fabd09a19042c39b3eed8642dd5c03286e1566145fc4b72ca",
-    "sourceContentSha256": "d399e16916bb741197fde38293871dfc09e4e6ae4424538fc2575c4d671ac6b3",
-    "currentSourceEvidenceRefreshedBy": "Milestone 331 PRE-CU species-innate authority; Beast Master retirement remains unchanged while the shared combat action source gains Wookiee Roar.",
+    "sourceContentSha256": "11dd9549d2a02f29dbcfff8e461c3be89d48a4b8977d74ec8444341e2b18a822",
+    "currentSourceEvidenceRefreshedBy": "Direct-source Beast Master authority closure: persisted grants and reattachment fail closed while retained beasts use authored values without expertise arithmetic.",
     "sourceSha256": {
+      "ai/beast.java": "77949fda3b5deecf0dcbeffab998ba5fe84d7d4a6cded6b48a06a0b6fe50652d",
       "ai/beast_control_device.java": "527fb77039e8429b38fde80d301a9950ce70f84ffc62d046bc315757d6267438",
-      "library/beast_lib.java": "80318f87487f64a05f9bd0677ef73c86761da8e9044df62962073918a0291bf4",
-      "player/base/base_player.java": "54ce43971ab8e9b288a4322a39cc9d7e6aafb409c45fa538dfb35786c6057ae7",
-      "player/player_beastmaster.java": "fc0e84578848f28504882b93c76c6f8a1467e9d284bb57086948d50c9169f6bf",
-      "systems/combat/combat_actions.java": "f08852b6f6ae56cf0bcda5068305a8390896f75a65decd552ed13b1a376fd159",
-      "systems/combat/combat_base.java": "1df619b7594e4d166c6380f4208d6388ef87ab75ca27467d0776412fe132bda8"
+      "ai/creature_combat.java": "578bc7d3ce98ceb2d8b3aba40f18838ac051995dbf2af2c417514a0afc992577",
+      "conversation/trainer_beast_master.java": "af9a2921c9baa8c42023d196ff80352c2977428ad1ba2220d40ede653228da41",
+      "library/beast_lib.java": "ce946c880920aeb7ff6e06f086d44ba8f21c08fc1f64fd9d111eed51d59b54df",
+      "player/base/base_player.java": "1b969192f911f5b562ac32a92cbd6169b6ec1562a360329d297c4034f0e7dc6b",
+      "player/live_conversions.java": "f64f41cac33da391ea2885cd77e89a3083529181362511d2623c7120b4c4cbf9",
+      "player/player_beastmaster.java": "336fe4e2aca9db270e13647ea588d48e3a13f9e795039b93abe3e0618ce25ca5",
+      "systems/combat/combat_actions.java": "a6acf78d49734a742f7ede0be270cfc8ad68a0929b7667a928a6dc02d8a9bcc2",
+      "systems/combat/combat_base.java": "49f90e3a9734f8cc087497c9c6ce2cd63c6cab3f129fffe83bd4e02745c2f720"
     },
     "staticContract": "passed",
-    "fullJavaCompile": "passed and reverified in the cumulative M331 clean Docker build from pushed direct source; combat_actions.class emitted 2026-08-04T14:19:50Z",
-    "cleanMaterializationPatches": 413,
-    "cleanMaterializationAcceptanceFiles": 1170,
-    "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
-    "materializedBuild": "passed from the pushed direct-source revision in Docker volume swg-precu-work-x64; host materialization retired",
-    "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
-    "serverBinarySha256": "54b161500c015aa0ba2204d08d7621f652f5df19828ffea83787b94042030de1",
-    "serverBinaryBuildId": "a74a68b769ee89eaf18dac01aafbb31223270d40",
-    "compiledClassSha256": {
-      "ai/beast_control_device.class": "e5b2865fdba70a8a73c2af7da77cd195f313d059fd3c2ff602bda75a063389ca",
-      "library/beast_lib.class": "29b162710e7cf4ff009a4750a65570ac3f208e5c074ea5578ffe2b72dc4e5fbc",
-      "player/base/base_player.class": "983379fdf875bdf1d7e58e420583886042ea1946bcb31c36bb4a639d2639a5a0",
-      "player/player_beastmaster.class": "d12ea0e21859f11934f4f468a87b0ab248ad365cc33398299a360f4e38f1ca82",
-      "systems/combat/combat_actions.class": "ab54fd971e11902ad9aee3105cb2a165c68860c36779d6d5992073f47da84cc0",
-      "systems/combat/combat_base.class": "ed5d7d5dae977dfff073d4678b78b2dca77c359bd29d3a60522120cb0238ba5d"
-    },
-    "deploymentProbe": "passed synchronized-source, compiled-bytecode, x64 artifact, rendered runtime configuration, and live mapped-binary probes",
-    "result": "passed"
+    "focusedJavaCompile": "passed for all 11 changed sources with Java 8 target in an ephemeral /dev/shm directory removed immediately",
+    "fullJavaCompile": null,
+    "fullServerBuild": null,
+    "architecture": null,
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "compiledClassSha256": null,
+    "sourceWorkParity": null,
+    "bytecodeAudit": null,
+    "deploymentProbe": null,
+    "result": "pending"
   },
   "continuityEvidence": {
     "precuCreatureHandlerSourceSha256": {
@@ -103,24 +115,27 @@
     }
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
+    "date": "2026-08-05",
     "container": "swg-precu",
     "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
-    "containerStartedAt": "2026-08-04T09:22:58.164664615Z",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 367,
-    "liveBinaryInode": 12110814,
-    "coreProcessCount": 19,
-    "postStartLogAudit": "344 lines; zero fatal, severe, exception, mission error, or empty ConGenericMessage warnings; cluster ready for players",
-    "result": "passed"
+    "containerStartedAt": null,
+    "containerHealth": null,
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": null,
+    "liveBinaryInode": null,
+    "liveBinarySize": null,
+    "liveBinaryMapEntries": null,
+    "processCounts": null,
+    "postStartLogAudit": null,
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player Beast Master identity, active combat-beast lifecycle, Beast Control Device call/store menu authority, player Beast Master script attachment, bm_* standard combat execution, and the one direct bm_* recourse callback",
-    "notClaimedComplete": "incubator and enzyme crafting presentation, cosmetic familiar and holopet surfaces, retained later-content beast data, and other dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+    "closedInThisMilestone": "player Beast Master identity, active combat-beast lifecycle, known-skill persistence, trainer grants, live-conversion script reattachment, Beast expertise arithmetic, additional expertise ability slots, and expertise-scaled retained-beast stats/display/regen",
+    "preserved": "Publish 14.1 Creature Handler tame/control runtime plus retained Beast trainer conversation, assets, templates, compatibility rows, and authored Beast/incubation data",
+    "notClaimedComplete": "cosmetic familiar and holopet surfaces, retained later-content Beast buffs/items, and other dormant later mechanics remain in the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }

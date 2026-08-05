@@ -47,6 +47,14 @@ if ($LASTEXITCODE -ne 0)
 }
 
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+Write-Host "Verifying direct-source post-NGE Beast Master player-runtime retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterPlayerRuntimeRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU combat routing closure before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuCombatRoutingClosure.ps1") `
     -SourceRoot $repositoryRoot `
@@ -502,6 +510,7 @@ precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperia
 precu_cosmetic_familiar_paths="ai/familiar.java"
 precu_droid_detonation_paths="ai/pet.java ai/pet_control_device.java library/pet_lib.java npc/pet_deed/droid_deed.java systems/crafting/droid/modules/droid_bomb.java"
 post_nge_beast_creation_paths="ai/pet_control_device.java library/beast_lib.java library/incubator.java npc/pet_deed/pet_deed.java player/base/base_player.java player/player_utility.java systems/beast/base_incubator.java systems/beast/beast_dye.java systems/beast/beast_egg.java systems/beast/beast_food.java systems/beast/beast_steroid_injector.java systems/beast/decoration_item.java systems/beast/enzyme_crafting_base.java systems/beast/enzyme_crafting_centrifuge.java systems/beast/enzyme_crafting_combiner.java systems/beast/enzyme_crafting_processor.java systems/beast/enzyme_extractor.java"
+post_nge_beast_runtime_paths="ai/beast.java ai/beast_control_device.java ai/creature_combat.java conversation/trainer_beast_master.java library/beast_lib.java player/base/base_player.java player/live_conversions.java player/player_beastmaster.java systems/combat/combat_actions.java systems/combat/combat_base.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -956,6 +965,19 @@ cmp -s "$source_script/npc/pet_deed/droid_deed.java" "$work_script/npc/pet_deed/
 for post_nge_beast_creation_path in $post_nge_beast_creation_paths; do
     cmp -s "$source_script/$post_nge_beast_creation_path" "$work_script/$post_nge_beast_creation_path"
 done
+for post_nge_beast_runtime_path in $post_nge_beast_runtime_paths; do
+    cmp -s "$source_script/$post_nge_beast_runtime_path" "$work_script/$post_nge_beast_runtime_path"
+done
+! grep -R -F 'expertise_bm_' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
+! grep -E -R 'get(Enhanced)?SkillStatisticModifier(Uncapped)?\([^\r\n]*"(bm_|incubation_time_reduction)' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
+! grep -Fq 'playerLearnBeastMasterSkill' "$work_script/conversation/trainer_beast_master.java"
+grep -Fq 'conversation/trainer_beast_master' "$work_script/conversation/trainer_beast_master.java"
+grep -Fq 'retirePostNgeBeastMasterPlayerState(player)' "$work_script/conversation/trainer_beast_master.java"
+grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired()' "$work_script/player/live_conversions.java"
+grep -Fq 'retirePostNgeBeastMasterPlayerState(player)' "$work_script/player/live_conversions.java"
+! grep -Fq 'getSkillStatisticModifier' "$work_script/systems/beast/base_incubator.java"
+! grep -Fq 'getEnhancedSkillStatisticModifier' "$work_script/systems/beast/enzyme_crafting_base.java"
+! grep -Fq 'hasSkill(player, "expertise_bm_' "$work_script/systems/beast/beast_egg.java"
 for precu_item_level_path in $precu_item_level_paths; do
     cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
 done
@@ -1255,22 +1277,40 @@ javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'i
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'retirePostNgeBeastMasterPlayerState'
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'bm_player_buff'
+! javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'expertise_bm_'
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'beast_master.known_skills'
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'setBeastmasterPetCommands'
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'removeBatchObjVar'
 javap -classpath "$class_root" -v script.ai.beast_control_device | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
+! javap -classpath "$class_root" -v script.ai.beast | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.ai.creature_combat | grep -Fq 'expertise_bm_'
+! javap -classpath "$class_root" -v script.conversation.trainer_beast_master | grep -Fq 'playerLearnBeastMasterSkill'
+javap -classpath "$class_root" -v script.conversation.trainer_beast_master | grep -Fq 'conversation/trainer_beast_master'
+javap -classpath "$class_root" -v script.conversation.trainer_beast_master | grep -Fq 'retirePostNgeBeastMasterPlayerState'
+javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'
+javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'retirePostNgeBeastMasterPlayerState'
 javap -classpath "$class_root" -v script.player.player_beastmaster | grep -Fq 'handleRetirePostNgeBeastMasterPlayerState'
+! javap -classpath "$class_root" -v script.player.player_beastmaster | grep -Fq 'expertise_bm_'
 javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeBeastMasterPlayerState'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBeastMasterPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
+! javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'expertise_bm_'
 # Retire the remaining NGE Beast Master player creation and conversion
 # surfaces without deleting retained content or PRE-CU Bio-Engineer crafting.
 javap -classpath "$class_root" -constants script.library.incubator | grep -Fq 'POST_NGE_BEAST_MASTER_CREATION_PLAYER_RUNTIME_RETIRED = true'
 javap -classpath "$class_root" -v script.library.incubator | grep -Fq 'retirePostNgeBeastMasterCreationPlayerState'
 javap -classpath "$class_root" -v script.library.incubator | grep -Fq 'retirePostNgeIncubatorStationState'
+! javap -classpath "$class_root" -v script.library.incubator | grep -Fq 'expertise_bm_'
+! javap -classpath "$class_root" -v script.library.incubator | grep -Fq 'incubation_time_reduction'
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'createHolopetCubeFromEgg'
 javap -classpath "$class_root" -v script.systems.beast.base_incubator | grep -Fq 'OnIncubatorCommitted'
 javap -classpath "$class_root" -v script.systems.beast.base_incubator | grep -Fq 'isPostNgeBeastMasterCreationPlayerRuntimeRetired'
+! javap -classpath "$class_root" -v script.systems.beast.base_incubator | grep -Fq 'getEnhancedSkillStatisticModifier'
 javap -classpath "$class_root" -v script.systems.beast.enzyme_crafting_base | grep -Fq 'isPostNgeBeastMasterCreationPlayerRuntimeRetired'
 javap -classpath "$class_root" -v script.systems.beast.enzyme_crafting_base | grep -Fq 'terminateProcess'
+! javap -classpath "$class_root" -v script.systems.beast.enzyme_crafting_base | grep -Fq 'getEnhancedSkillStatisticModifier'
 javap -classpath "$class_root" -v script.systems.beast.beast_egg | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
+! javap -classpath "$class_root" -v script.systems.beast.beast_egg | grep -Fq 'expertise_bm_'
 javap -classpath "$class_root" -v script.systems.beast.enzyme_extractor | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
 javap -classpath "$class_root" -v script.ai.pet_control_device | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'
 javap -classpath "$class_root" -v script.npc.pet_deed.pet_deed | grep -Fq 'isRetiredPostNgeBeastMasterCreationPlayer'

@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -76,6 +79,8 @@ $relativeSourceMap = [ordered]@{
     "systems/beast/enzyme_crafting_processor.java" = "systems/beast/enzyme_crafting_processor.java"
     "systems/beast/enzyme_extractor.java" = "systems/beast/enzyme_extractor.java"
 }
+Assert-Contract ($relativeSourceMap.Count -eq [int]$contract.expected.authoritativeSourceFiles) `
+    "p14.beast-creation-retirement.direct-source.target-count"
 
 $patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.overlayPatch.path)
 Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.beast-creation-retirement.overlay.exists"
@@ -129,6 +134,23 @@ foreach ($entry in $relativeSourceMap.GetEnumerator())
 Assert-Contract (
     (Get-TextSha256 $contentRecords) -ceq [string]$contract.buildEvidence.sourceContentSha256
 ) "p14.beast-creation-retirement.source-content.authenticated"
+
+$creationAuthorityText = @(
+    [string]$sourceTexts["library/beast_lib.java"],
+    [string]$sourceTexts["library/incubator.java"],
+    [string]$sourceTexts["systems/beast/base_incubator.java"],
+    [string]$sourceTexts["systems/beast/beast_egg.java"],
+    [string]$sourceTexts["systems/beast/enzyme_crafting_base.java"]
+) -join $lf
+Assert-Contract (
+    -not $creationAuthorityText.Contains("expertise_bm_") -and
+    -not $creationAuthorityText.Contains('getSkillStatisticModifier(player, "incubation_time_reduction")') -and
+    -not ([string]$sourceTexts["systems/beast/base_incubator.java"]).Contains('getEnhancedSkillStatisticModifier') -and
+    -not ([string]$sourceTexts["systems/beast/enzyme_crafting_base.java"]).Contains('getEnhancedSkillStatisticModifier') -and
+    -not ([string]$sourceTexts["systems/beast/beast_egg.java"]).Contains('hasSkill(player, "expertise_bm_') -and
+    [int]$contract.expected.creationExpertiseBmReferences -eq 0 -and
+    [int]$contract.expected.creationBeastMasterSkillModifierReaders -eq 0
+) "p14.beast-creation-retirement.expertise-and-skillmod-authority-absent"
 
 $incubator = [string]$sourceTexts["library/incubator.java"]
 $predicate = Get-SourceSlice $incubator "public static final boolean POST_NGE_BEAST_MASTER_CREATION_PLAYER_RUNTIME_RETIRED" "public static void retirePostNgeBeastMasterCreationPlayerState"
@@ -289,6 +311,25 @@ Assert-Contract (
     -not $patchText.Contains("systems/missions/") -and
     -not $patchText.Contains("library/missions.java")
 ) "p14.beast-creation-retirement.overlay-excludes-precu-bio-engineer-and-missions"
+
+Assert-Contract (
+    @("implemented-build-verified-live-pending", "ready") -ccontains [string]$contract.status
+) "p14.beast-creation-retirement.contract.status"
+
+if ($Expectation -eq "Ready")
+{
+    $dsrcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "dsrc" })
+    Assert-Contract (
+        [string]$manifest.sourceMode -ceq "direct-branch" -and
+        $dsrcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink
+    ) "p14.beast-creation-retirement.direct-source-pin"
+    Assert-Contract (
+        [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
+        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary -and
+        [string]$contract.buildEvidence.result -ceq "passed"
+    ) "p14.beast-creation-retirement.live-evidence"
+}
 
 if ($failures.Count -gt 0)
 {
