@@ -722,7 +722,7 @@ Assert-Contract (-not $patchText.Contains("systems/missions/") -and
     -not $patchText.Contains("mission_base.java")) `
     "p14.gcw-rating.mission-terminal-source-untouched"
 
-Assert-Contract (@("implemented-build-pending", "ready-for-live-verification", "ready") -contains [string]$contract.status) `
+Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -contains [string]$contract.status) `
     "p14.gcw-rating.contract.status"
 
 if ($failures.Count -gt 0)
