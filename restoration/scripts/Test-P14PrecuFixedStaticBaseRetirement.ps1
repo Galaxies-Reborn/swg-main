@@ -156,6 +156,11 @@ $buildoutIds = [ordered]@{
     "buildout.talus_2_3" = @("-2064109315", "-1916708911", "-1610009447", "-1839426456", "-1682065689", "-376575756", "-336486068")
     "buildout.naboo_5_4" = @("-1946025983", "-949623093", "-1925852435", "-1288314132", "-1202557081", "-1156051021", "-859124609")
 }
+$pvpRegionWatcherIds = [ordered]@{
+    "buildout.corellia_7_2" = "-537065502"
+    "buildout.talus_2_3" = "-1324255298"
+    "buildout.naboo_5_4" = "-529152824"
+}
 $bunkerPortalCrc = [ordered]@{
     "-899991077" = "portalProperty.crc|0|1682376097|$|"
     "-1916708911" = "portalProperty.crc|0|-2111613717|$|"
@@ -181,7 +186,22 @@ foreach ($name in $buildoutIds.Keys)
     Assert-Contract ($valid -and -not $text.Contains("systems.gcw.static_base") -and
         -not $text.Contains("gcw.static_base.master") -and -not $text.Contains("collection.gcw_control_check")) `
         "p14.fixed-static-base.$name.seven-rows-inert-scenery-retained"
+
+    $watcherRows = @($lines | Where-Object { $_.StartsWith([string]$pvpRegionWatcherIds[$name] + "`t", [System.StringComparison]::Ordinal) })
+    $watcherValid = $watcherRows.Count -eq 1
+    if ($watcherValid)
+    {
+        $watcherColumns = $watcherRows[0].Split("`t", [System.StringSplitOptions]::None)
+        $watcherValid = $watcherColumns.Count -eq 13 -and
+            $watcherColumns[2] -ceq "object/tangible/gcw/pvp_region_watcher.iff" -and
+            $watcherColumns[11].Length -eq 0
+    }
+    Assert-Contract ($watcherValid -and
+        -not [bool]$contract.expected.coLocatedPvpRegionWatcherScriptsAttached) `
+        "p14.fixed-static-base.$name.pvp-region-watcher-inert-scenery-retained"
 }
+Assert-Contract ([int]$contract.expected.coLocatedPvpRegionWatcherSceneryPreserved -eq 3) `
+    "p14.fixed-static-base.pvp-region-watcher-scenery-count"
 
 $hqLibrary = [string]$texts["retained.library.hq"]
 $hqLoader = [string]$texts["retained.hq.loader"]

@@ -72,7 +72,10 @@ foreach ($component in @("dsrc", "src"))
 }
 
 $paths = [ordered]@{
+    "attributes" = Join-Path $source "dsrc/.gitattributes"
     "script.library.gcw" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java"
+    "script.player.player_faction" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/player/player_faction.java"
+    "script.systems.gcw.pvp_region_bonus_controller" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_region_bonus_controller.java"
     "script.library.faction_perk" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/faction_perk.java"
     "script.systems.gcw.gcw_parent_object" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_parent_object.java"
     "script.faction_perk.hq.loader" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/loader.java"
@@ -103,6 +106,10 @@ $paths = [ordered]@{
     "ScriptMethodsCity.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsCity.cpp"
     "ScriptMethodsGuild.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsGuild.cpp"
     "ScriptMethodsPvp.cpp" = Join-Path $source "src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
+    "buildout.corellia_7_2" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_7_2.tab"
+    "buildout.talus_2_3" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_2_3.tab"
+    "buildout.rori_7_7" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_7_7.tab"
+    "buildout.naboo_5_4" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab"
     "script.systems.missions.base.mission_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
     "script.library.groundquests" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java"
     "script.library.battlefield" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/battlefield.java"
@@ -128,6 +135,8 @@ foreach ($name in $paths.Keys)
 }
 
 $gcw = [string]$texts["script.library.gcw"]
+$playerFaction = [string]$texts["script.player.player_faction"]
+$pvpRegionController = [string]$texts["script.systems.gcw.pvp_region_bonus_controller"]
 $factionPerk = [string]$texts["script.library.faction_perk"]
 $gcwParent = [string]$texts["script.systems.gcw.gcw_parent_object"]
 $hqLoader = [string]$texts["script.faction_perk.hq.loader"]
@@ -167,6 +176,103 @@ $battlefieldAssault = [string]$texts["script.systems.battlefield.game_assault"]
 $battlefieldUtility = [string]$texts["script.systems.battlefield.battlefield_utility"]
 $spaceCombat = [string]$texts["script.library.space_combat"]
 $spaceBattle = [string]$texts["script.systems.gcw.space.battle_spawner"]
+
+$pvpRegionFlag = Get-FunctionSlice $gcw `
+    "public static boolean isPostNgePvpRegionBonusRetired()" `
+    "public static final String GCW_TUTORIAL_FLAG"
+Assert-Contract ($pvpRegionFlag.Contains("fixed-base/Restuss") -and
+    $pvpRegionFlag.Contains("ordinary open-world PvP") -and
+    $pvpRegionFlag.Contains("return true;") -and
+    -not [bool]$contract.expected.postNgePvpRegionBonusControllerReachable) `
+    "p14.gcw-rating.pvp-region-bonus-authoritative-retirement-flag"
+
+$releaseRegionCredit = Get-FunctionSlice $gcw "public static boolean releaseGcwPointCredit" "public static void notifyPvpRegionWatcherOfDeath"
+$releaseRegionPrefix = $releaseRegionCredit.Substring(0, $releaseRegionCredit.IndexOf("obj_id[] gcwEnemiesList", [System.StringComparison]::Ordinal))
+Assert-Contract ($releaseRegionPrefix.Contains("isPostNgePvpRegionBonusRetired()") -and
+    $releaseRegionPrefix.Contains("removeScriptVar(player, PVP_REGION_ACTIVITY_PERFORMED)") -and
+    $releaseRegionPrefix.Contains("removeBatchScriptVar(player, LIST_CREDIT_FOR_KILLS)") -and
+    $releaseRegionPrefix.Contains("return false;")) `
+    "p14.gcw-rating.pvp-region-kill-credit-fails-closed"
+$notifyRegionDeath = Get-FunctionSlice $gcw "public static void notifyPvpRegionWatcherOfDeath" "public static boolean isAlreadyInArray"
+Assert-Contract ($notifyRegionDeath.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
+    $notifyRegionDeath.IndexOf("getPvpRegionControllerIdByPlayer", [System.StringComparison]::Ordinal) -and
+    $notifyRegionDeath.Contains("removeScriptVar(player, PVP_REGION_ACTIVITY_PERFORMED)")) `
+    "p14.gcw-rating.pvp-region-death-notification-fails-closed"
+$verifyRegion = Get-FunctionSlice $gcw "public static boolean verifyPvpRegionStatus" "public static int getNpcKillCredit"
+Assert-Contract ($verifyRegion.IndexOf("return false;", [System.StringComparison]::Ordinal) -lt
+    $verifyRegion.IndexOf("getPvpRegionControllerIdByPlayer", [System.StringComparison]::Ordinal) -and
+    $verifyRegion.Contains("removeScriptVar(player, PVP_REGION_ACTIVITY_PERFORMED)")) `
+    "p14.gcw-rating.pvp-region-status-fails-closed"
+foreach ($functionSpec in @(
+    @{ Start = "public static void registerPvpRegionControllerWithPlanet"; Next = "public static obj_id getPvpRegionControllerIdByName"; Return = "return;"; Active = "obj_id planetId" },
+    @{ Start = "public static obj_id getPvpRegionControllerIdByName"; Next = "public static obj_id getPvpRegionControllerIdByPlayer"; Return = "return null;"; Active = "obj_id planetId" },
+    @{ Start = "public static obj_id getPvpRegionControllerIdByPlayer"; Next = "public static void notifyPvpRegionControllerOfPlayerEnter"; Return = "return null;"; Active = "region[] regionList" },
+    @{ Start = "public static void notifyPvpRegionControllerOfPlayerEnter"; Next = "public static void makeBattlefieldRegion"; Return = "return;"; Active = "dictionary dict" },
+    @{ Start = "public static void getRegionToRegister"; Next = "public static boolean isPlayerValidOnBattlefield"; Return = "return;"; Active = "if (!isIdValid(controller))" }
+))
+{
+    $slice = Get-FunctionSlice $gcw $functionSpec.Start $functionSpec.Next
+    Assert-Contract ($slice.Contains("isPostNgePvpRegionBonusRetired()") -and
+        $slice.IndexOf([string]$functionSpec.Return, [System.StringComparison]::Ordinal) -ge 0 -and
+        $slice.IndexOf([string]$functionSpec.Return, [System.StringComparison]::Ordinal) -lt
+        $slice.IndexOf([string]$functionSpec.Active, [System.StringComparison]::Ordinal)) `
+        "p14.gcw-rating.pvp-region.$($functionSpec.Start.Split(' ')[3]).fails-closed"
+}
+
+$playerRegionCleanup = Get-FunctionSlice $playerFaction "public void cleanupRetiredPvpRegionBonusState" "public int OnAttach"
+Assert-Contract ($playerRegionCleanup.Contains("isPostNgePvpRegionBonusRetired()") -and
+    $playerRegionCleanup.Contains("removeScriptVar(self, gcw.PVP_REGION_ACTIVITY_PERFORMED)")) `
+    "p14.gcw-rating.pvp-region-player-state-cleanup"
+foreach ($entrypoint in @("OnAttach", "OnInitialize", "OnLogin"))
+{
+    Assert-Contract ([regex]::IsMatch($playerFaction, "(?s)public int $entrypoint\([^}]+cleanupRetiredPvpRegionBonusState\(self\)")) `
+        "p14.gcw-rating.pvp-region-player-entrypoint.$entrypoint.cleans"
+}
+$receiveRegionBonus = Get-FunctionSlice $playerFaction "public int recievePvpRegionBonus" "public int cmdFactionalHelper"
+Assert-Contract ($receiveRegionBonus.Contains("isPostNgePvpRegionBonusRetired()") -and
+    $receiveRegionBonus.IndexOf("cleanupRetiredPvpRegionBonusState(self)", [System.StringComparison]::Ordinal) -lt
+    $receiveRegionBonus.IndexOf("hasScriptVar(self, gcw.PVP_REGION_ACTIVITY_PERFORMED)", [System.StringComparison]::Ordinal)) `
+    "p14.gcw-rating.pvp-region-player-bonus-fails-closed"
+
+$controllerCleanup = Get-FunctionSlice $pvpRegionController "private void retirePostNgePvpRegionBonus" "public int OnAttach"
+Assert-Contract ($controllerCleanup.Contains("trial.bumpSession(self)") -and
+    $controllerCleanup.Contains("utils.getObjIdScriptVar(planet, registration) == self") -and
+    $controllerCleanup.Contains("removeScriptVar(planet, registration)") -and
+    $controllerCleanup.Contains("removeScriptVarTree(self, GCW_REGION_DATA)") -and
+    $controllerCleanup.Contains('removeScriptVar(self, "pvp_region")') -and
+    $controllerCleanup.Contains("detachScript(self, SCRIPT_NAME)")) `
+    "p14.gcw-rating.pvp-region-persisted-controller-cleans"
+foreach ($entrypoint in @("OnAttach", "OnInitialize", "cycleUpdate", "diedInPvpRegion"))
+{
+    Assert-Contract ([regex]::IsMatch($pvpRegionController,
+        "(?s)public int $entrypoint\([^}]+isPostNgePvpRegionBonusRetired\(\)[^}]+retirePostNgePvpRegionBonus\(self\)[^}]+return SCRIPT_CONTINUE;")) `
+        "p14.gcw-rating.pvp-region-controller-entrypoint.$entrypoint.cleans"
+}
+
+$watcherRows = [ordered]@{
+    "buildout.corellia_7_2" = "-537065502"
+    "buildout.talus_2_3" = "-1324255298"
+    "buildout.rori_7_7" = "-512151733"
+    "buildout.naboo_5_4" = "-529152824"
+}
+foreach ($name in $watcherRows.Keys)
+{
+    $rows = @(([string]$texts[$name] -split "`r?`n") | Where-Object { $_.StartsWith([string]$watcherRows[$name] + "`t", [System.StringComparison]::Ordinal) })
+    $valid = $rows.Count -eq 1
+    if ($valid)
+    {
+        $columns = $rows[0].Split("`t", [System.StringSplitOptions]::None)
+        $valid = $columns.Count -eq 13 -and
+            $columns[2] -ceq "object/tangible/gcw/pvp_region_watcher.iff" -and
+            $columns[11].Length -eq 0
+    }
+    Assert-Contract $valid "p14.gcw-rating.$name.pvp-region-watcher-inert-scenery-retained"
+}
+Assert-Contract (-not [bool]$contract.expected.pvpRegionWatcherBuildoutScriptsAttached -and
+    [bool]$contract.expected.persistedPvpRegionControllerStateScrubbed -and
+    [bool]$contract.expected.stalePvpRegionPlayerStateScrubbed -and
+    [int]$contract.expected.pvpRegionWatcherSceneryPreserved -eq 4) `
+    "p14.gcw-rating.pvp-region-contract-expectations"
 
 $grant = Get-FunctionSlice $gcw `
     "public static void _grantGcwPoints" `
@@ -802,6 +908,11 @@ Assert-Contract ($battlefield.Contains("factions.addFactionStanding(self, factio
     -not $battlefield.Contains("item_battlefield_rebel_token_") -and
     -not $battlefield.Contains("item_battlefield_imperial_token_")) `
     "p14.gcw-rating.precu-open-world-battlefield-standing-retained"
+Assert-Contract ($playerFaction.Contains("public int cmdPVP") -and
+    $playerFaction.Contains("factions.isInAdhocPvpArea(self)") -and
+    $playerFaction.Contains("pvpMakeDeclared(self)") -and
+    [bool]$contract.expected.precuOpenWorldPvpPreserved) `
+    "p14.gcw-rating.precu-open-world-pvp-preserved"
 Assert-Contract ($battlefieldLibrary.Contains("STARTING_BUILD_POINTS = 500") -and
     $battlefieldLibrary.Contains("MAXIMUM_POPULATION = 50") -and
     $battlefieldLibrary.Contains("MAXIMUM_FACTION_SIZE_DIFFERENCE = 5") -and
