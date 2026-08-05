@@ -115,6 +115,10 @@ Write-Host "Verifying the direct-source PRE-CU Smuggler content expertise author
 & (Join-Path $PSScriptRoot "Test-P14PrecuSmugglerContentExpertiseAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU Smuggler patrol chance authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuSmugglerPatrolChanceAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU target-dummy defense authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuTargetDummyDefenseAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -368,6 +372,8 @@ source_dot_library="$source_script/library/dot.java"
 work_dot_library="$work_script/library/dot.java"
 source_smuggler_library="$source_script/library/smuggler.java"
 work_smuggler_library="$work_script/library/smuggler.java"
+source_smuggler_patrol_ai="$source_script/ai/smuggler_spawn_enemy.java"
+work_smuggler_patrol_ai="$work_script/ai/smuggler_spawn_enemy.java"
 source_target_dummy_library="$source_script/library/target_dummy.java"
 work_target_dummy_library="$work_script/library/target_dummy.java"
 source_target_simulator="$source_script/systems/tcg/target_creature.java"
@@ -621,6 +627,17 @@ cmp -s "$source_smuggler_library" "$work_smuggler_library"
 grep -Fq 'money.ACCT_JUNK_DEALER' "$work_smuggler_library"
 grep -Fq 'int chance = (12 - tier * 2);' "$work_smuggler_library"
 grep -Fq 'int chance = (12 - (dropTier * 2));' "$work_smuggler_library"
+cmp -s "$source_smuggler_patrol_ai" "$work_smuggler_patrol_ai"
+! grep -Fq 'expertise_' "$work_smuggler_patrol_ai"
+! grep -Fq 'getSmugglerRank' "$work_smuggler_patrol_ai"
+! grep -Fq 'getFactionStanding' "$work_smuggler_patrol_ai"
+grep -Fq 'public static final int CONTRABAND_BASE_PASS_CHANCE = 5;' "$work_smuggler_patrol_ai"
+grep -Fq 'public static final int SLY_LIE_BASE_BONUS = 10;' "$work_smuggler_patrol_ai"
+grep -Fq 'public static final int FAST_TALK_BASE_CHANCE = 25;' "$work_smuggler_patrol_ai"
+grep -Fq 'int passChance = CONTRABAND_BASE_PASS_CHANCE;' "$work_smuggler_patrol_ai"
+grep -Fq 'passChance += SLY_LIE_BASE_BONUS;' "$work_smuggler_patrol_ai"
+grep -Fq 'if (rand(1, 100) > passChance)' "$work_smuggler_patrol_ai"
+grep -Fq 'if (roll > FAST_TALK_BASE_CHANCE)' "$work_smuggler_patrol_ai"
 cmp -s "$source_target_dummy_library" "$work_target_dummy_library"
 cmp -s "$source_target_simulator" "$work_target_simulator"
 ! grep -Fq 'expertise_' "$work_target_dummy_library"
@@ -903,6 +920,15 @@ javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'handleSold
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'script/library/money.systemPayout'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'spaceContrabandDropCheck'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'contrabandDropCheck'
+# Retained Smuggler patrol encounters use their authored baseline probabilities
+# without NGE expertise or expertise-scaled underworld rank arithmetic.
+! javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'getSmugglerRank'
+javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'CONTRABAND_BASE_PASS_CHANCE'
+javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'SLY_LIE_BASE_BONUS'
+javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'FAST_TALK_BASE_CHANCE'
+javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'contrabandCheckResult'
+javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'fastTalkReaction'
 # The retained simulator exposes only the armor and defense statistics consumed
 # by the authoritative Publish 14.1 combat route.
 ! javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'expertise_'
