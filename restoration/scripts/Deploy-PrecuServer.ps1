@@ -76,6 +76,14 @@ Write-Host "Verifying direct-source post-NGE passive profession runtime retireme
 & (Join-Path $PSScriptRoot "Test-P14PostNgePassiveProfessionRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying direct-source post-NGE player proc runtime retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgePlayerProcRuntimeRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+Write-Host "Verifying direct-source NGE expertise admission retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14NgeExpertiseAdmissionRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying the direct-source PRE-CU zone transition level authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuZoneTransitionLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -374,6 +382,10 @@ source_group_library="$source_script/library/group.java"
 work_group_library="$work_script/library/group.java"
 source_skill_library="$source_script/library/skill.java"
 work_skill_library="$work_script/library/skill.java"
+source_proc_library="$source_script/library/proc.java"
+work_proc_library="$work_script/library/proc.java"
+source_expertise_library="$source_script/library/expertise.java"
+work_expertise_library="$work_script/library/expertise.java"
 source_transition_library="$source_script/library/transition.java"
 work_transition_library="$work_script/library/transition.java"
 source_zone_transition_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/travel/zone_transition.tab"
@@ -648,6 +660,10 @@ cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
+cmp -s "$source_proc_library" "$work_proc_library"
+cmp -s "$source_expertise_library" "$work_expertise_library"
+grep -Fq 'if (proc.isRetiredPostNgePlayerProcActor(player))' "$work_expertise_library"
+grep -Fq 'proc.retirePostNgePlayerProcState(player);' "$work_expertise_library"
 cmp -s "$source_transition_library" "$work_transition_library"
 cmp -s "$source_zone_transition_table" "$work_zone_transition_table"
 cmp -s "$source_utils_library" "$work_utils_library"
@@ -1838,6 +1854,10 @@ javap -classpath "$class_root" -constants script.library.skill | grep -Fq 'PRECU
 javap -classpath "$class_root" -constants script.library.skill | grep -Fq 'PRECU_PHASE_THREE_COMBAT_SCORE = 50'
 javap -classpath "$class_root" -constants script.library.skill | grep -Fq 'PRECU_PHASE_FOUR_COMBAT_SCORE = 75'
 javap -classpath "$class_root" -c script.library.skill | sed -n '/getProfessionPhase/,/validateExpertise/p' | grep -Fq 'getPrecuCombatSkillScore'
+expertise_cache_bytecode="$(javap -classpath "$class_root" -c script.library.expertise | sed -n '/cacheExpertiseProcReacList/,/autoAllocateExpertiseByLevel/p')"
+printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcActor'
+printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
+printf '%s' "$expertise_cache_bytecode" | grep -Fq 'getSkillStatModListingForPlayer'
 javap -classpath "$class_root" -v script.library.utils | grep -Fq 'combat_smuggler_underworld_01'
 ! javap -classpath "$class_root" -v script.library.utils | grep -Eq 'class_(bountyhunter|commando|domestics|engineering|entertainer|forcesensitive|medic|munitions|officer|smuggler|spy|structures|trader)'
 javap -classpath "$class_root" -v script.library.ai_lib | grep -Fq 'combat_smuggler_master'

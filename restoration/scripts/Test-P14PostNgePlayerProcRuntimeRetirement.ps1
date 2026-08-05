@@ -34,18 +34,22 @@ function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker
 }
 
 $procPath = Join-Path $serverGame "script/library/proc.java"
+$expertisePath = Join-Path $serverGame "script/library/expertise.java"
 $procDataPath = Join-Path $serverGame "datatables/proc/proc.tab"
 $cyberneticDataPath = Join-Path $serverGame "datatables/cybernetic/cybernetic.tab"
 $weaponDataPath = Join-Path $serverGame "datatables/item/master_item/weapon_stats.tab"
 $armorDataPath = Join-Path $serverGame "datatables/item/master_item/armor_stats.tab"
-foreach ($path in @($procPath, $procDataPath, $cyberneticDataPath, $weaponDataPath, $armorDataPath))
+foreach ($path in @($procPath, $expertisePath, $procDataPath, $cyberneticDataPath, $weaponDataPath, $armorDataPath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) "p14.player-proc.source.$([IO.Path]::GetFileName($path)).exists"
 }
 
 $procHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $procPath).Hash.ToLowerInvariant()
 Assert-Contract ($procHash -ceq [string]$contract.buildEvidence.sourceSha256."library/proc.java") "p14.player-proc.source.authenticated"
+$expertiseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $expertisePath).Hash.ToLowerInvariant()
+Assert-Contract ($expertiseHash -ceq [string]$contract.buildEvidence.sourceSha256."library/expertise.java") "p14.player-proc.expertise-source.authenticated"
 $procSource = Get-Content -LiteralPath $procPath -Raw
+$expertiseSource = Get-Content -LiteralPath $expertisePath -Raw
 $retirementFlag = Get-SourceSlice $procSource `
     "public static boolean isPostNgePlayerProcRuntimeRetired" `
     "public static boolean isRetiredPostNgePlayerProcActor"
@@ -87,10 +91,22 @@ Assert-Contract ($buildReac.Contains("if (isRetiredPostNgePlayerProcActor(player
     $buildReac.Contains("retirePostNgePlayerProcState(player);") -and
     $buildReac.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
         $buildReac.IndexOf('"chest2"', [System.StringComparison]::Ordinal)) "p14.player-proc.reactive-build-dominated"
+$expertiseCache = Get-SourceSlice $expertiseSource `
+    "public static void cacheExpertiseProcReacList" `
+    "public static void autoAllocateExpertiseByLevel"
+Assert-Contract ($expertiseCache.Contains("if (proc.isRetiredPostNgePlayerProcActor(player))") -and
+    $expertiseCache.Contains("proc.retirePostNgePlayerProcState(player);") -and
+    $expertiseCache.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
+        $expertiseCache.IndexOf("getSkillStatModListingForPlayer(player)", [System.StringComparison]::Ordinal) -and
+    $expertiseCache.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
+        $expertiseCache.IndexOf('utils.setScriptVar(player, "expertiseProcReacList"', [System.StringComparison]::Ordinal)) `
+    "p14.player-proc.expertise-cache-dominated"
 
 $scriptRoot = Join-Path $serverGame "script"
 $rebuildSites = 0
 $rebuildConsumers = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+$expertiseCacheSites = 0
+$expertiseCacheConsumers = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
 $executionSites = 0
 foreach ($javaFile in Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter "*.java" -File)
 {
@@ -101,11 +117,20 @@ foreach ($javaFile in Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter "*
         $rebuildSites += $rebuildCount
         [void]$rebuildConsumers.Add($javaFile.FullName)
     }
+    $expertiseCacheCount = [regex]::Matches($text, 'expertise\.cacheExpertiseProcReacList\(').Count
+    if ($expertiseCacheCount -gt 0)
+    {
+        $expertiseCacheSites += $expertiseCacheCount
+        [void]$expertiseCacheConsumers.Add($javaFile.FullName)
+    }
     $executionSites += [regex]::Matches($text, 'proc\.executeProcEffects\(').Count
 }
 Assert-Contract ($rebuildSites -eq [int]$contract.diagnosis.directPlayerListRebuildCallSites -and
     $rebuildConsumers.Count -eq [int]$contract.diagnosis.directPlayerListRebuildConsumerFiles) "p14.player-proc.rebuild-inventory"
 Assert-Contract ($executionSites -eq [int]$contract.diagnosis.combatProcExecutionCallSites) "p14.player-proc.execution-inventory"
+Assert-Contract ($expertiseCacheSites -eq [int]$contract.diagnosis.directExpertiseCacheCallSites -and
+    $expertiseCacheConsumers.Count -eq [int]$contract.diagnosis.directExpertiseCacheConsumerFiles) `
+    "p14.player-proc.expertise-cache-inventory"
 
 $procRows = @(Import-SwgTab -Path $procDataPath)
 $cyberneticRows = @(Import-SwgTab -Path $cyberneticDataPath)
@@ -147,6 +172,7 @@ if ($Expectation -eq "Ready")
     Assert-Contract ($dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceCommit) "p14.player-proc.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256."library/proc.class" -cne "pending" -and
+        [string]$contract.buildEvidence.compiledClassSha256."library/expertise.class" -cne "pending" -and
         [string]$contract.buildEvidence.fullJavaCompile -like "passed*") "p14.player-proc.compiled-evidence"
     Assert-Contract ([bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) "p14.player-proc.live-evidence"
