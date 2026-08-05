@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "precu-profession-authority-closure",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Replace remaining executable NGE class/phase profession authority with Publish 14.1 skill-box ownership, native Jedi state, and the existing hidden PRE-CU combat-skill score; retire post-NGE Officer, Force Sensitive, Smuggler, Bounty Hunter, Commando, Medic, and Entertainer player combat families while preserving their classic PRE-CU skill-box commands, stale-data cleanup, NPC behavior, and expansion content.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -43,10 +43,14 @@
     "retainedOfficerCombatRows": 94,
     "retainedOfficerCommandSeriesRows": 42,
     "retainedOfficerReinforcementCreatureRows": 5,
-    "authoritativeForceSensitiveRuntimeFiles": 2,
+    "authoritativeForceSensitiveRuntimeFiles": 5,
     "postNgeForceSensitivePlayerActionHandlers": 68,
     "postNgeForceSensitiveStandardActionHandlers": 67,
     "postNgeForceSensitiveDirectCallbacks": 1,
+    "retiredNgeForceSensitiveStanceStateBuffs": 34,
+    "retainedNgeForceSensitiveStanceCompatibilityRows": 33,
+    "historicalForceSensitiveStanceCleanupOnlyNames": 1,
+    "precuCenterOfBeingPreserved": true,
     "retainedForceSensitiveClassSkillRows": 28,
     "retainedForceSensitiveExpertiseSkillRows": 118,
     "retainedForceSensitiveCommandRows": 83,
@@ -120,7 +124,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "e36e64bea59a3e8c3b388f7919ec81085fbfa970",
+    "directSourceGitlink": "703e8743c974790b732a60f16841095bd9491474",
     "lineEndingPolicy": "The three touched legacy Officer persistence scripts were normalized to the repository-declared LF policy; no generated overlay or staging tree was created.",
     "officerRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/ai/officer_pet.java": "3bbbab602848af451d1085bc6f3ca33d68cb8a5d0741010f62732155e3479b97",
@@ -135,10 +139,13 @@
       "sha256": "f789a1269f7a2b85401204bb4bb18996b7cd8d4fcb4a97f107371bdfa38c34d9"
     },
     "sourceSetSha256": "4d626c4950dbe4afa4a18e5ffea076da0b1554e69d9d9b1ef4c386d1e5a64700",
-    "sourceContentSha256": "c30aaac4391f29e5ae9d103010afa877a1410651c1fdbe20d6bcde86933cb2cd",
+    "sourceContentSha256": "8bb36eede9fcaf2b1f50e830602b971458ed6170d3034f1815eca9fd91485b72",
     "forceSensitiveRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1",
+      "sku.0/sys.server/compiled/game/script/library/buff.java": "8e299ce8c29a0d92134a8ef940a1733a4ed3b9f553c3b4f7fc0774e0e70d4379",
+      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "5cef98c4975ec15b77920446e84bc750f70f71be7a7fe72be7f4cc81e2d9857d",
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.java": "4a248ec126896808b511633e26fbf360d8090e156e825426e612c47319451b4d"
     },
     "smugglerRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
@@ -147,8 +154,8 @@
     "bountyHunterRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1",
-      "sku.0/sys.server/compiled/game/script/library/buff.java": "834d8d948ed5a059ba583ab81b4fc110c6a9228651bc7e7da29b5f4df517621c",
-      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "c7f65dce469326a64b5a7ceaa2cd89ec75ed695352ba0c940df49f846c1733cd",
+      "sku.0/sys.server/compiled/game/script/library/buff.java": "8e299ce8c29a0d92134a8ef940a1733a4ed3b9f553c3b4f7fc0774e0e70d4379",
+      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "5cef98c4975ec15b77920446e84bc750f70f71be7a7fe72be7f4cc81e2d9857d",
       "sku.0/sys.server/compiled/game/script/player/skill/bh_shields.java": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7"
     },
     "commandoRuntimeSourceSha256": {
@@ -163,7 +170,7 @@
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source profession action closure remains intact while exact persisted NGE Bounty Hunter shield state and writers now fail closed for players without removing retained compatibility data or NPC behavior.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source profession action and Bounty Hunter shield closure remains intact while exact persisted NGE Force Sensitive stance/focus parents, children, modifiers, and query paths now fail closed for players without removing retained compatibility data, NPC behavior, or PRE-CU Center of Being.",
     "missionSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
@@ -174,7 +181,7 @@
       "acceptanceFiles": 1170,
       "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b"
     },
-    "focusedJavaCompile": "passed for current buff.java, buff_handler.java, and bh_shields.java with Java 8 target in an ephemeral /dev/shm directory removed immediately; preceding profession-family compiles remain authenticated",
+    "focusedJavaCompile": "passed for current buff.java, buff_handler.java, and base_player.java with Java 8 target in an ephemeral /dev/shm directory removed immediately; preceding profession-family compiles remain authenticated",
     "javaCompile": {
       "result": "passed",
       "sourceFiles": 5713,
@@ -232,9 +239,9 @@
       "systems/combat/combat_base.class": "8fb3b0899c0fa17873231f6b9b1b249eb604e885a8262d1556b5b8f1e9269586",
       "systems/combat/combat_actions.class": "9bf68c13eaea8db3cd9885e636ed984f9eb4b46101528f20a8cf8e02c962d9f1"
     },
-    "sourceWorkParity": "passed byte-for-byte for all 5 authoritative Officer sources, all 5 Bounty Hunter runtime sources, and both shared Force Sensitive/Smuggler/Commando/Medic/Entertainer combat sources between the read-only direct-source mount and Docker work volume",
-    "deploymentProbe": "passed; mandatory profession-family source parity plus exact Bounty Hunter shield cleanup source/bytecode gates completed before container replacement, followed by x64 architecture, readiness, mapped-binary, and clean-log verification",
-    "result": "passed",
+    "sourceWorkParity": "pending clean deployment for all 5 authoritative Force Sensitive sources; prior Officer, Bounty Hunter, Smuggler, Commando, Medic, and Entertainer parity remains evidenced",
+    "deploymentProbe": "pending clean deployment with mandatory exact Force Sensitive stance/focus source and bytecode gates",
+    "result": "pending-clean-deployment",
     "bytecodeProbes": [
       "hidden PRE-CU combat-score thresholds 25/50/75",
       "PRE-CU Smuggler underworld and master authority",
@@ -243,6 +250,7 @@
       "explicit PRE-CU Trader ownership and no-profession fallback in the bounded singular adapter",
       "player-only Officer command, delayed drop, crate, and persisted-pet retirement",
       "player-only fs_* combat-action retirement with PRE-CU Jedi/Village command preservation",
+      "player-only persisted Force Sensitive stance/focus state retirement with 33 compatibility rows retained and PRE-CU Center of Being preserved",
       "player-only sm_* combat-action retirement with classic PRE-CU Smuggler command preservation",
       "player-only bh_* combat-action retirement with classic PRE-CU Bounty Hunter command preservation",
       "player-only persisted bh_shields handler, script, block, and charged-state retirement with retained NPC compatibility",

@@ -120,12 +120,19 @@ $forceSensitiveRuntimeSources = [ordered]@{
         "systems/combat/combat_base.java"
     "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
         "systems/combat/combat_actions.java"
+    "sku.0/sys.server/compiled/game/script/library/buff.java" =
+        "library/buff.java"
+    "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java" =
+        "systems/buff/buff_handler.java"
+    "sku.0/sys.server/compiled/game/script/player/base/base_player.java" =
+        "player/base/base_player.java"
 }
 Assert-Contract ($forceSensitiveRuntimeSources.Count -eq
         [int]$contract.expected.authoritativeForceSensitiveRuntimeFiles -and
     @($contract.buildEvidence.forceSensitiveRuntimeSourceSha256.PSObject.Properties).Count -eq
         $forceSensitiveRuntimeSources.Count) `
     "p14.profession-closure.force-sensitive-runtime.source-count"
+$forceSensitiveTexts = [ordered]@{}
 foreach ($property in $contract.buildEvidence.forceSensitiveRuntimeSourceSha256.PSObject.Properties)
 {
     $path = Join-Path $dsrc $property.Name
@@ -134,6 +141,11 @@ foreach ($property in $contract.buildEvidence.forceSensitiveRuntimeSourceSha256.
         (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
             [string]$property.Value) `
         "p14.profession-closure.force-sensitive-runtime.source.$($property.Name).authenticated"
+    if (Test-Path -LiteralPath $path -PathType Leaf)
+    {
+        $forceSensitiveTexts[$forceSensitiveRuntimeSources[$property.Name]] =
+            Get-Content -LiteralPath $path -Raw
+    }
 }
 
 $smugglerRuntimeSources = [ordered]@{
@@ -315,6 +327,63 @@ Assert-Contract ($forceSensitiveHandlers.Count -eq
     $directForceSensitiveGuarded) `
     "p14.profession-closure.force-sensitive-runtime.all-player-actions-covered"
 
+$forceSensitiveBuff = [string]$forceSensitiveTexts["library/buff.java"]
+$forceSensitiveBuffHandler = [string]$forceSensitiveTexts["systems/buff/buff_handler.java"]
+$forceSensitiveBasePlayer = [string]$forceSensitiveTexts["player/base/base_player.java"]
+$forceSensitiveStanceInventory = Get-FunctionSlice $forceSensitiveBuff `
+    "private static final String[] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS" `
+    "public static boolean isRetiredPostNgeForceSensitiveStanceBuff"
+$forceSensitiveStanceCleanup = Get-FunctionSlice $forceSensitiveBuff `
+    "public static void retirePostNgeForceSensitiveStanceState" `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$forceSensitiveCanApply = Get-FunctionSlice $forceSensitiveBuff `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+$forceSensitiveStanceHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public int stanceAddBuffHandler" "public int stanceRemoveBuffHandler"
+$forceSensitiveStanceQuery = Get-FunctionSlice $forceSensitiveBuff `
+    "public static boolean isInStance" "public static boolean isInFocus"
+$forceSensitiveFocusQuery = Get-FunctionSlice $forceSensitiveBuff `
+    "public static boolean isInFocus" "public static boolean playStanceVisual"
+$retiredForceSensitiveStanceNames = @([regex]::Matches(
+        $forceSensitiveStanceInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$forceSensitiveGenericGate = $forceSensitiveCanApply.IndexOf(
+    "isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)",
+    [StringComparison]::Ordinal)
+$forceSensitiveExistingBuffReturn = $forceSensitiveCanApply.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$forceSensitiveHandlerGate = $forceSensitiveStanceHandler.IndexOf(
+    "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)",
+    [StringComparison]::Ordinal)
+$forceSensitiveHandlerCleanup = $forceSensitiveStanceHandler.IndexOf(
+    "buff.retirePostNgeForceSensitiveStanceState(self);",
+    [StringComparison]::Ordinal)
+$forceSensitiveHandlerVisual = $forceSensitiveStanceHandler.IndexOf(
+    "buff.playStanceVisual(self, effectName);", [StringComparison]::Ordinal)
+Assert-Contract ($retiredForceSensitiveStanceNames.Count -eq
+        [int]$contract.expected.retiredNgeForceSensitiveStanceStateBuffs -and
+    @($retiredForceSensitiveStanceNames | Select-Object -Unique).Count -eq
+        $retiredForceSensitiveStanceNames.Count -and
+    $forceSensitiveStanceCleanup.Contains("!isPlayer(player)") -and
+    $forceSensitiveStanceCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    $forceSensitiveBasePlayer.Contains(
+        "buff.retirePostNgeForceSensitiveStanceState(self);") -and
+    $forceSensitiveGenericGate -ge 0 -and
+    $forceSensitiveExistingBuffReturn -gt $forceSensitiveGenericGate -and
+    $forceSensitiveHandlerGate -ge 0 -and
+    $forceSensitiveHandlerCleanup -gt $forceSensitiveHandlerGate -and
+    $forceSensitiveHandlerVisual -gt $forceSensitiveHandlerCleanup -and
+    $forceSensitiveStanceQuery.Contains(
+        "retirePostNgeForceSensitiveStanceState(player);") -and
+    $forceSensitiveStanceQuery.Contains("return false;") -and
+    $forceSensitiveStanceQuery.Contains("return true;") -and
+    $forceSensitiveFocusQuery.Contains(
+        "retirePostNgeForceSensitiveStanceState(player);") -and
+    $forceSensitiveFocusQuery.Contains("return false;") -and
+    $forceSensitiveFocusQuery.Contains("return true;")) `
+    "p14.profession-closure.force-sensitive-runtime.persisted-stances-fail-closed"
+
 $smugglerPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeSmugglerPlayerAction" `
     "public static boolean isRetiredPostNgeBountyHunterPlayerAction"
@@ -410,6 +479,14 @@ $bountyHunterShieldCleanup = Get-FunctionSlice $bountyHunterBuffLibrary `
 $bountyHunterShieldHandler = Get-FunctionSlice $bountyHunterBuffHandler `
     "public int bhShieldsAddBuffHandler" `
     "public int bhShieldsRemoveBuffHandler"
+$bountyHunterCanApply = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+$bountyHunterGenericGate = $bountyHunterCanApply.IndexOf(
+    "isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)",
+    [StringComparison]::Ordinal)
+$bountyHunterExistingBuffReturn = $bountyHunterCanApply.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
 $retiredBountyHunterShieldBuffs = @(
     "bh_shields_handler", "bh_shields", "bh_shields_block", "bh_shields_charged"
 )
@@ -421,8 +498,9 @@ Assert-Contract ($shieldPredicateNames.Count -eq
     $bountyHunterShieldCleanup.Contains("!isPlayer(player)") -and
     $bountyHunterShieldCleanup.Contains("removeBuff(player, retiredBuff);") -and
     $bountyHunterShieldCleanup.Contains('detachScript(player, "player.skill.bh_shields");') -and
-    $bountyHunterBuffLibrary.Contains(
-        "isPlayer(target) && isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)") -and
+    $bountyHunterCanApply.Contains("isPlayer(target)") -and
+    $bountyHunterGenericGate -ge 0 -and
+    $bountyHunterExistingBuffReturn -gt $bountyHunterGenericGate -and
     $bountyHunterShieldHandler.Contains("if (isPlayer(self))") -and
     $bountyHunterShieldHandler.IndexOf("retirePostNgeBountyHunterShieldState",
         [StringComparison]::Ordinal) -lt
@@ -662,6 +740,42 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_forcesensiti
     @($precuJediAndVillageCommands | Where-Object { $_ -match '^fs_' }).Count -eq
         [int]$contract.expected.precuJediAndVillageFsCommands) `
     "p14.profession-closure.force-sensitive-runtime.data-and-precu-command-boundary"
+
+$buffTablePath = Join-Path $dsrc `
+    "sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+$buffTableLines = @(Get-Content -LiteralPath $buffTablePath)
+$buffTableHeaders = $buffTableLines[0] -split "`t"
+$buffRows = @($buffTableLines | Select-Object -Skip 2 |
+    ConvertFrom-Csv -Delimiter "`t" -Header $buffTableHeaders)
+$retiredForceSensitiveStanceRows = @($buffRows | Where-Object {
+    $retiredForceSensitiveStanceNames -ccontains [string]$_.NAME
+})
+$precuCenterOfBeing = Get-FunctionSlice $combatActions `
+    "public int centerOfBeing" "public int forceFocus"
+Assert-Contract ($retiredForceSensitiveStanceRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveStanceCompatibilityRows -and
+    @($retiredForceSensitiveStanceRows | Select-Object -ExpandProperty NAME -Unique).Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveStanceCompatibilityRows -and
+    @($retiredForceSensitiveStanceNames | Where-Object {
+        $_ -cnotin @($retiredForceSensitiveStanceRows |
+            Select-Object -ExpandProperty NAME)
+    }).Count -eq
+        [int]$contract.expected.historicalForceSensitiveStanceCleanupOnlyNames -and
+    $retiredForceSensitiveStanceNames -ccontains "fs_imp_force_drain_4" -and
+    [bool]$contract.expected.precuCenterOfBeingPreserved -and
+    -not ($retiredForceSensitiveStanceNames -ccontains "centerofbeing") -and
+    @($buffRows | Where-Object {
+        [string]$_.NAME -ceq "centerofbeing" -and
+        [string]$_.EFFECT1_PARAM -ceq "private_center_of_being"
+    }).Count -eq 1 -and
+    $precuCenterOfBeing.Contains('hasSkill(self, "combat_brawler_novice")') -and
+    $precuCenterOfBeing.Contains('"centerofbeing"') -and
+    $precuCenterOfBeing.Contains('"center_of_being_duration_') -and
+    $precuCenterOfBeing.Contains("_center_of_being_efficacy") -and
+    $precuCenterOfBeing.Contains("combat.drainCombatActionAttributes") -and
+    -not $precuCenterOfBeing.Contains("fs_buff_def_1_1") -and
+    -not $precuCenterOfBeing.Contains("fs_buff_ca_1")) `
+    "p14.profession-closure.force-sensitive-runtime.compatibility-and-precu-center-boundary"
 
 $precuSmugglerRows = @($skillRows | Where-Object {
     [string]$_.NAME -match '^combat_smuggler(?:_|$)'

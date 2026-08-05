@@ -69,6 +69,10 @@ Write-Host "Verifying the direct-source PRE-CU profession and Officer runtime au
 & (Join-Path $PSScriptRoot "Test-P14PrecuProfessionAuthorityClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying direct-source post-NGE passive profession runtime retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgePassiveProfessionRuntimeRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU zone transition level authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuZoneTransitionLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -968,6 +972,40 @@ stance_source="$(sed -n '/public int stanceAddBuffHandler/,/public int stanceRem
 printf '%s' "$stance_source" | grep -Fq 'retireNgeExpertiseModifier(self, "expertise_fs_force_clarity_1_proc")'
 printf '%s' "$stance_source" | grep -Fq 'retireNgeExpertiseModifier(self, "expertise_fs_flurry_charge_proc")'
 ! printf '%s' "$stance_source" | grep -Fq 'addSkillModModifier(self, "expertise_fs_'
+force_sensitive_stance_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS/,/public static boolean isRetiredPostNgeForceSensitiveStanceBuff/p' "$work_buff_library")"
+force_sensitive_stance_cleanup_source="$(sed -n '/public static void retirePostNgeForceSensitiveStanceState/,/public static boolean isRetiredPostNgeBountyHunterShieldBuff/p' "$work_buff_library")"
+retired_force_sensitive_stance_buffs="fs_buff_def_1_1 fs_buff_ca_1 jedi_reflect_flurry fs_saber_shackle_1 fs_saber_shackle_2 fs_saber_shackle_3 fs_saber_shackle_4 fs_soothing_aura_1 fs_soothing_aura_2 fs_soothing_aura_3 fs_soothing_aura_4 fs_anticipate_aggression_1 fs_anticipate_aggression_2 fs_reactive_response_1 fs_reactive_response_2 fs_perceptive_sentinel_1 fs_perceptive_sentinel_2 fs_perceptive_sentinel_3 fs_perceptive_sentinel_4 fs_saber_reflect fs_ruthless_precision_1 fs_ruthless_precision_2 fs_ruthless_precision_3 fs_ruthless_precision_4 fs_tempt_hatred_1 fs_tempt_hatred_2 fs_wracking_energy_1 fs_wracking_energy_2 fs_wracking_energy_3 fs_wracking_energy_4 fs_imp_force_drain_1 fs_imp_force_drain_2 fs_imp_force_drain_3 fs_imp_force_drain_4"
+test "$(printf '%s\n' $retired_force_sensitive_stance_buffs | wc -l)" -eq 34
+retained_force_sensitive_stance_rows=0
+for retired_force_sensitive_stance_buff in $retired_force_sensitive_stance_buffs; do
+    printf '%s' "$force_sensitive_stance_inventory_source" | grep -Fq "\"$retired_force_sensitive_stance_buff\""
+    if awk -F '\t' -v name="$retired_force_sensitive_stance_buff" '$1 == name { found=1 } END { exit(found ? 0 : 1) }' "$work_buff_table"; then
+        retained_force_sensitive_stance_rows=$((retained_force_sensitive_stance_rows + 1))
+    fi
+done
+test "$retained_force_sensitive_stance_rows" -eq 33
+! awk -F '\t' '$1 == "fs_imp_force_drain_4" { found=1 } END { exit(found ? 0 : 1) }' "$work_buff_table"
+awk -F '\t' '$1 == "centerofbeing" { found++; if ($8 != "private_center_of_being") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
+printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+test "$(printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Ec '"(stanceParry|stanceEvasion|stanceConstitution|focusStamina|focusStrength|expertise_fs_force_clarity_1_proc|expertise_fs_flurry_charge_proc)"')" -eq 7
+printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "expertise_stance_critical")'
+printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "stance.expertise_stance")'
+printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "stance.expertise_focus")'
+grep -Fq 'retirePostNgeForceSensitiveStanceState(player);' "$work_buff_library"
+passive_profession_cleanup_source="$(sed -n '/private void retirePostNgePassiveProfessionState/,/private void retirePostNgeQueuedBattlefieldPlayerState/p' "$work_base_player")"
+printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'buff.retirePostNgeForceSensitiveStanceState(self);'
+! printf '%s' "$passive_profession_cleanup_source" | grep -Eq 'jedi\.JEDI_(STANCE|FOCUS)'
+stance_query_source="$(sed -n '/public static boolean isInStance/,/public static boolean playStanceVisual/p' "$work_buff_library")"
+test "$(printf '%s' "$stance_query_source" | grep -Fc 'retirePostNgeForceSensitiveStanceState(player);')" -eq 2
+! printf '%s' "$stance_query_source" | grep -Eq 'hasBuff\(player, "fs_buff_(def_1_1|ca_1)"\)'
+precu_center_of_being_source="$(sed -n '/public int centerOfBeing/,/public int forceFocus/p' "$work_combat_actions")"
+printf '%s' "$precu_center_of_being_source" | grep -Fq 'hasSkill(self, "combat_brawler_novice")'
+printf '%s' "$precu_center_of_being_source" | grep -Fq '"centerofbeing"'
+printf '%s' "$precu_center_of_being_source" | grep -Fq 'center_of_being_duration_'
+printf '%s' "$precu_center_of_being_source" | grep -Fq '_center_of_being_efficacy'
+printf '%s' "$precu_center_of_being_source" | grep -Fq 'combat.drainCombatActionAttributes'
+! printf '%s' "$precu_center_of_being_source" | grep -Eq 'fs_buff_(def_1_1|ca_1)'
 buildabuff_source="$(sed -n '/public int buildabuffAddBuffHandler/,/public int buildabuffRemoveBuffHandler/p' "$work_buff_handler")"
 test "$(grep -Ec 'addSkillModModifier\(self, *"expertise_' "$work_buff_handler")" -eq 3
 test "$(printf '%s' "$buildabuff_source" | grep -Ec 'addSkillModModifier\(self, *"expertise_')" -eq 3
@@ -998,7 +1036,16 @@ printf '%s' "$bounty_hunter_shield_cleanup_source" | grep -Fq 'removeBuff(player
 printf '%s' "$bounty_hunter_shield_cleanup_source" | grep -Fq 'detachScript(player, "player.skill.bh_shields")'
 grep -Fq 'retirePostNgeBountyHunterShieldState(player);' "$work_buff_library"
 can_apply_buff_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
-printf '%s' "$can_apply_buff_source" | grep -Fq 'isPlayer(target) && isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
+force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
+generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
+force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
+force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
+force_sensitive_stance_visual_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.playStanceVisual(self, effectName);' | head -1 | cut -d: -f1)"
+test "$force_sensitive_stance_handler_gate_line" -lt "$force_sensitive_stance_handler_cleanup_line"
+test "$force_sensitive_stance_handler_cleanup_line" -lt "$force_sensitive_stance_visual_line"
 bounty_hunter_shield_handler_source="$(sed -n '/public int bhShieldsAddBuffHandler/,/public int bhShieldsRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'if (isPlayer(self))'
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'buff.retirePostNgeBountyHunterShieldState(self);'
@@ -1195,6 +1242,8 @@ stance_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int st
 printf '%s' "$stance_bytecode" | grep -Fq 'expertise_fs_force_clarity_1_proc'
 printf '%s' "$stance_bytecode" | grep -Fq 'expertise_fs_flurry_charge_proc'
 ! printf '%s' "$stance_bytecode" | grep -Fq 'Method addSkillModModifier'
+printf '%s' "$stance_bytecode" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff'
+printf '%s' "$stance_bytecode" | grep -Fq 'retirePostNgeForceSensitiveStanceState'
 # Authenticated PRE-CU DOTs persist their era route through every pulse while
 # later-content compatibility callers retain the inherited DOT path.
 javap -classpath "$class_root" -v script.library.dot | grep -Fq 'applyPrecuDotEffect'
@@ -1346,6 +1395,17 @@ javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeB
 for retired_bounty_hunter_shield_buff in bh_shields_handler bh_shields bh_shields_block bh_shields_charged; do
     javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_bounty_hunter_shield_buff"
 done
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeForceSensitiveStanceState'
+for retired_force_sensitive_stance_buff in $retired_force_sensitive_stance_buffs; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_force_sensitive_stance_buff"
+done
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeForceSensitiveStanceState'
+center_of_being_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/public int centerOfBeing/,/public int forceFocus/p')"
+printf '%s' "$center_of_being_bytecode" | grep -Fq 'combat_brawler_novice'
+printf '%s' "$center_of_being_bytecode" | grep -Fq 'centerofbeing'
+printf '%s' "$center_of_being_bytecode" | grep -Fq 'drainCombatActionAttributes'
+! printf '%s' "$center_of_being_bytecode" | grep -Eq 'fs_buff_(def_1_1|ca_1)'
 bounty_hunter_shield_script_bytecode="$(javap -classpath "$class_root" -c -p script.player.skill.bh_shields)"
 test "$(printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fc 'retirePostNgeBountyHunterShieldState')" -eq 3
 printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnAttach'

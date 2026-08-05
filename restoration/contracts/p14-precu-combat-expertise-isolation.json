@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, and clean persisted NGE display-only, expertise, later primary-stat, random meditation buff, and Bounty Hunter shield state without recreating it.",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -22,7 +22,9 @@
       "The retained Teras Kasi meditate lifecycle already follows pinned Publish 14.1 DOT and wound-healing semantics, but inherited runtime also selected one of three persistent fs_meditate_* buffs every third Force Sensitive meditation tick; their effects are NGE expertise, resource-quality, and modified-primary-stat bonuses.",
       "Those three compatibility rows remain loadable, while login cleanup and meditate admission remove persisted state and the meditation tick now runs only the authenticated PRE-CU trance lifecycle.",
       "The NGE bh_shields action is centrally denied, but a persisted player.skill.bh_shields attachment and its buff handler could still react to damage, reattach the script, and seed shield, block, or charged buffs outside command admission.",
-      "The exact four Bounty Hunter shield compatibility rows remain available to retained later-content NPCs, while player login, generic buff admission, handler attachment, script attachment/initialization, and damage callbacks now all fail closed and remove persisted state."
+      "The exact four Bounty Hunter shield compatibility rows remain available to retained later-content NPCs, while player login, generic buff admission, handler attachment, script attachment/initialization, and damage callbacks now all fail closed and remove persisted state.",
+      "The retained NGE Force Sensitive phase tree can persist fs_buff_def_1_1/fs_buff_ca_1 and their expertise-derived child effects independently of the centrally denied fs_* action handlers.",
+      "Player lifecycle cleanup, generic buff admission, the stance add handler, and stance/focus query helpers now fail closed over all 34 known state names; 33 compatibility rows and one historical cleanup-only name remain retained, while the distinct PRE-CU brawler centerOfBeing/centerofbeing path is untouched."
     ]
   },
   "expected": {
@@ -60,6 +62,11 @@
     "retiredNgeBountyHunterShieldBuffs": 4,
     "retiredBountyHunterShieldScriptCallbacks": 3,
     "retainedNgeBountyHunterShieldCompatibilityRows": 4,
+    "retiredNgeForceSensitiveStanceStateBuffs": 34,
+    "retainedNgeForceSensitiveStanceCompatibilityRows": 33,
+    "historicalForceSensitiveStanceCleanupOnlyNames": 1,
+    "forceSensitiveStanceHandlerPlayerFailClosed": true,
+    "precuCenterOfBeingPreserved": true,
     "laterQuestsZonesAndContentPreserved": true
   },
   "sourceFiles": {
@@ -78,18 +85,18 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "e36e64bea59a3e8c3b388f7919ec81085fbfa970",
+    "directSourceGitlink": "703e8743c974790b732a60f16841095bd9491474",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "ef36374d80713d8f27477c72af481f3688ca6eb22177cc60d4921935682955ea",
       "combatBase": "e03fc1a603b862315625950c85a02617f6139bad34a165a39cd18e6f546652c7",
       "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf",
-      "basePlayer": "8faa1f918253f9572da09ebc7282bc9ae6d493402c638796b6e12f669ce36109",
+      "basePlayer": "4a248ec126896808b511633e26fbf360d8090e156e825426e612c47319451b4d",
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "be819192dcbd884c6dedc501f9a4aebe338d862598f25c20b1cadddd6b673933",
-      "buffHandler": "c7f65dce469326a64b5a7ceaa2cd89ec75ed695352ba0c940df49f846c1733cd",
-      "buffLibrary": "834d8d948ed5a059ba583ab81b4fc110c6a9228651bc7e7da29b5f4df517621c",
+      "buffHandler": "5cef98c4975ec15b77920446e84bc750f70f71be7a7fe72be7f4cc81e2d9857d",
+      "buffLibrary": "8e299ce8c29a0d92134a8ef940a1733a4ed3b9f553c3b4f7fc0774e0e70d4379",
       "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
       "bountyHunterShieldScript": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7",
       "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9"
@@ -103,8 +110,8 @@
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
-    "sourceTest": "passed; existing PRE-CU combat, display-only, expertise-buff, and meditation isolation remains intact, while exact player-only Bounty Hunter shield cleanup dominates all persisted callbacks and generic writers without removing compatibility rows",
-    "focusedJavaCompile": "passed for buff.java, buff_handler.java, and player/skill/bh_shields.java with Java 8 target in an ephemeral /dev/shm directory removed immediately",
+    "sourceTest": "passed; existing PRE-CU combat, display-only, expertise-buff, meditation, and Bounty Hunter shield isolation remains intact, while exact player-only Force Sensitive stance/focus cleanup dominates lifecycle, generic admission, handler, and query paths without removing compatibility rows or PRE-CU Center of Being",
+    "focusedJavaCompile": "passed for buff.java, buff_handler.java, and base_player.java with Java 8 target in an ephemeral /dev/shm directory removed immediately",
     "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
     "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 691.5 seconds from pushed parent e0ba74d and direct dsrc e36e64bea",
     "architecture": "ELF 64-bit LSB x86-64",
@@ -113,7 +120,7 @@
     "sourceWorkParity": "passed byte-for-byte for combat expertise sources plus buff.java, buff_handler.java, bh_shields.java, meditation.java, and base_player.java between the read-only direct-source mount and Docker work volume",
     "bytecodeAudit": "passed; bh_shields.class has exactly three player cleanup callbacks, buff.class retains exact four-name predicate/cleanup and generic admission gate, buff_handler.class calls cleanup before player attachment, meditation remains PRE-CU-only, and existing combat/expertise isolation remains intact",
     "deploymentProbe": "passed all expanded direct-source preflight contracts, mandatory parity and Bounty Hunter shield/meditation bytecode gates, x64 architecture, health/readiness, mapped-binary verification, and clean post-start log audit",
-    "result": "passed"
+    "result": "pending-clean-deployment"
   },
   "runtimeEvidence": {
     "date": "2026-08-05",

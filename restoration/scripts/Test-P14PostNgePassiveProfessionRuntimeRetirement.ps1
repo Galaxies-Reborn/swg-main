@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -41,7 +44,13 @@ $relativeSourceMap = [ordered]@{
     "library/factions.java" = "library/factions.java"
     "library/skill.java" = "library/skill.java"
     "player/base/base_player.java" = "player/base/base_player.java"
+    "library/buff.java" = "library/buff.java"
+    "systems/buff/buff_handler.java" = "systems/buff/buff_handler.java"
+    "systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
 }
+Assert-Contract ($relativeSourceMap.Count -eq
+    [int]$contract.expected.authoritativeSourceFiles) `
+    "p14.passive-profession.authoritative-source-count"
 $sourceTexts = @{}
 $contentRecords = ""
 foreach ($entry in $relativeSourceMap.GetEnumerator())
@@ -76,8 +85,113 @@ $retiredBuffNames = @(
     "sm_underworld_range_1", "sm_underworld_range_2", "sm_underworld_range_3",
     "sm_underworld_damage_1", "sm_underworld_damage_2", "sm_underworld_damage_3"
 )
-Assert-Contract ($cleanup.Contains("jedi.JEDI_STANCE") -and $cleanup.Contains("jedi.JEDI_FOCUS") -and $cleanup.Contains("removeSmugglingBuffs(self)")) "p14.passive-profession.central-cleanup"
+Assert-Contract ($cleanup.Contains("buff.retirePostNgeForceSensitiveStanceState(self)") -and
+    $cleanup.Contains("removeSmugglingBuffs(self)")) `
+    "p14.passive-profession.central-cleanup"
 Assert-Contract (@($retiredBuffNames | Where-Object { -not $smugglerCleanup.Contains('"' + $_ + '"') }).Count -eq 0) "p14.passive-profession.smuggler-buff-inventory"
+
+$buffLibrary = [string]$sourceTexts["library/buff.java"]
+$buffHandler = [string]$sourceTexts["systems/buff/buff_handler.java"]
+$combatActions = [string]$sourceTexts["systems/combat/combat_actions.java"]
+$stanceInventory = Get-SourceSlice $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS" `
+    "public static boolean isRetiredPostNgeForceSensitiveStanceBuff"
+$stancePredicate = Get-SourceSlice $buffLibrary `
+    "public static boolean isRetiredPostNgeForceSensitiveStanceBuff" `
+    "public static void retirePostNgeForceSensitiveStanceState"
+$stanceCleanup = Get-SourceSlice $buffLibrary `
+    "public static void retirePostNgeForceSensitiveStanceState" `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$retiredStanceNames = @([regex]::Matches($stanceInventory,
+        '"([A-Za-z0-9_]+)"') | ForEach-Object { $_.Groups[1].Value })
+$modifierInventory = Get-SourceSlice $stanceCleanup `
+    "String[] retiredModifiers" "for (String retiredModifier"
+$retiredStanceModifiers = @([regex]::Matches($modifierInventory,
+        '"([A-Za-z0-9_]+)"') | ForEach-Object { $_.Groups[1].Value })
+Assert-Contract ($retiredStanceNames.Count -eq
+        [int]$contract.expected.retiredForceSensitiveStanceStateBuffs -and
+    @($retiredStanceNames | Select-Object -Unique).Count -eq
+        $retiredStanceNames.Count -and
+    $stancePredicate.Contains(
+        "for (String retiredBuff : RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS)") -and
+    $stanceCleanup.Contains("!isPlayer(player)") -and
+    $stanceCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    $retiredStanceModifiers.Count -eq
+        [int]$contract.expected.retiredForceSensitiveStanceModifiers -and
+    $stanceCleanup.Contains('utils.removeScriptVarTree(player, "expertise_stance_critical")') -and
+    $stanceCleanup.Contains('utils.removeScriptVarTree(player, "stance.expertise_stance")') -and
+    $stanceCleanup.Contains('utils.removeScriptVarTree(player, "stance.expertise_focus")')) `
+    "p14.passive-profession.force-sensitive.persisted-state-inventory"
+
+$canApply = Get-SourceSlice $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+$genericGate = $canApply.IndexOf(
+    "isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)",
+    [StringComparison]::Ordinal)
+$existingBuffReturn = $canApply.IndexOf("hasBuff(target, nameCrc)",
+    [StringComparison]::Ordinal)
+$stanceAdd = Get-SourceSlice $buffHandler `
+    "public int stanceAddBuffHandler" "public int stanceRemoveBuffHandler"
+$stanceHandlerGate = $stanceAdd.IndexOf(
+    "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)",
+    [StringComparison]::Ordinal)
+$stanceHandlerCleanup = $stanceAdd.IndexOf(
+    "buff.retirePostNgeForceSensitiveStanceState(self);",
+    [StringComparison]::Ordinal)
+$stanceVisual = $stanceAdd.IndexOf("buff.playStanceVisual(self, effectName);",
+    [StringComparison]::Ordinal)
+$isInStance = Get-SourceSlice $buffLibrary `
+    "public static boolean isInStance" "public static boolean isInFocus"
+$isInFocus = Get-SourceSlice $buffLibrary `
+    "public static boolean isInFocus" "public static boolean playStanceVisual"
+Assert-Contract ([bool]$contract.expected.genericRetiredBuffAdmissionFailsClosed -and
+    $genericGate -ge 0 -and $existingBuffReturn -gt $genericGate -and
+    [bool]$contract.expected.stanceHandlerFailsClosedBeforeVisualAndExpertiseReads -and
+    $stanceHandlerGate -ge 0 -and $stanceHandlerCleanup -gt $stanceHandlerGate -and
+    $stanceVisual -gt $stanceHandlerCleanup -and
+    $stanceAdd.Contains('subtype.equals("expertise_stance")') -and
+    $stanceAdd.Contains('subtype.equals("expertise_focus")') -and
+    [bool]$contract.expected.stanceAndFocusQueriesFailClosedForPlayers -and
+    $isInStance.Contains("if (isPlayer(player))") -and
+    $isInStance.Contains("retirePostNgeForceSensitiveStanceState(player);") -and
+    $isInStance.Contains("return false;") -and
+    $isInFocus.Contains("if (isPlayer(player))") -and
+    $isInFocus.Contains("retirePostNgeForceSensitiveStanceState(player);") -and
+    $isInFocus.Contains("return false;") -and
+    [bool]$contract.expected.nonPlayerStanceCompatibilityPreserved -and
+    $isInStance.TrimEnd().EndsWith("}") -and $isInStance.Contains("return true;") -and
+    $isInFocus.Contains("return true;")) `
+    "p14.passive-profession.force-sensitive.all-player-writers-and-queries-fail-closed"
+
+$buffTablePath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+$buffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t")
+$retiredStanceRows = @($buffRows | Where-Object {
+    $retiredStanceNames -ccontains [string]$_.NAME
+})
+$centerRows = @($buffRows | Where-Object { [string]$_.NAME -ceq "centerofbeing" })
+$centerOfBeing = Get-SourceSlice $combatActions `
+    "public int centerOfBeing" "public int forceFocus"
+Assert-Contract ($retiredStanceRows.Count -eq
+        [int]$contract.expected.retainedForceSensitiveStanceCompatibilityRows -and
+    @($retiredStanceRows | Select-Object -ExpandProperty NAME -Unique).Count -eq
+        [int]$contract.expected.retainedForceSensitiveStanceCompatibilityRows -and
+    @($retiredStanceNames | Where-Object {
+        $_ -cnotin @($retiredStanceRows | Select-Object -ExpandProperty NAME)
+    }).Count -eq [int]$contract.expected.historicalForceSensitiveStanceCleanupOnlyNames -and
+    $retiredStanceNames -ccontains "fs_imp_force_drain_4" -and
+    -not ($retiredStanceNames -ccontains "centerofbeing") -and
+    $centerRows.Count -eq 1 -and
+    [bool]$contract.expected.precuCenterOfBeingPreserved -and
+    $centerOfBeing.Contains('hasSkill(self, "combat_brawler_novice")') -and
+    $centerOfBeing.Contains('"centerofbeing"') -and
+    $centerOfBeing.Contains('"center_of_being_duration_') -and
+    $centerOfBeing.Contains("_center_of_being_efficacy") -and
+    $centerOfBeing.Contains("combat.drainCombatActionAttributes") -and
+    -not $centerOfBeing.Contains("fs_buff_def_1_1") -and
+    -not $centerOfBeing.Contains("fs_buff_ca_1")) `
+    "p14.passive-profession.force-sensitive.compatibility-and-precu-center-boundary"
 
 $initialize = Get-SourceSlice $player "public int OnInitialize(obj_id self)" "public int OnLogin(obj_id self)"
 $login = Get-SourceSlice $player "public int OnLogin(obj_id self)" "public int handleDelayedLogin"
@@ -115,7 +229,26 @@ foreach ($property in $contract.continuityEvidence.missionSourceSha256.PSObject.
 }
 $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
 Assert-Contract ([string]$manifest.sourceMode -ceq "direct-branch" -and $dsrcPin.Count -eq 1 -and [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceCommit) "p14.passive-profession.direct-source-pin"
-Assert-Contract (@("ready-for-live-verification", "ready") -contains [string]$contract.status) "p14.passive-profession.contract-status"
+if ($Expectation -eq "Ready")
+{
+    $compiledHashes = @($contract.buildEvidence.compiledClassSha256.PSObject.Properties)
+    Assert-Contract ([string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$contract.runtimeEvidence.result -ceq "passed" -and
+        $compiledHashes.Count -eq [int]$contract.expected.authoritativeSourceFiles -and
+        @($compiledHashes | Where-Object {
+            [string]$_.Value -notmatch '^[a-f0-9]{64}$'
+        }).Count -eq 0 -and
+        [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
+        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
+        "p14.passive-profession.ready-evidence"
+}
+else
+{
+    Assert-Contract (@("implemented-build-pending",
+            "implemented-build-verified-live-pending", "ready") -contains
+        [string]$contract.status) "p14.passive-profession.source-status"
+}
 $contractText = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14PostNgePassiveProfessionRuntimeRetirement)) -Raw
 Assert-Contract (-not $contractText.Contains("/Artifacts/") -and -not $contractText.Contains("/Staging/")) "p14.passive-profession.no-host-staging"
 

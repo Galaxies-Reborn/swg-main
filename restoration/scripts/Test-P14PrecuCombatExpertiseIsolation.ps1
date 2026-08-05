@@ -289,6 +289,83 @@ Assert-Contract ($meditationRows.Count -eq
     }).Count -eq 0) `
     "p14.combat-expertise-isolation.meditation.compatibility-rows-preserved"
 
+$forceSensitiveStanceInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS"
+$forceSensitiveStancePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgeForceSensitiveStanceBuff(String buffName)"
+$forceSensitiveStanceCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeForceSensitiveStanceState(obj_id player)"
+$forceSensitiveCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$isInStance = Get-BracedBlock $buffLibrary `
+    "public static boolean isInStance(obj_id player)"
+$isInFocus = Get-BracedBlock $buffLibrary `
+    "public static boolean isInFocus(obj_id player)"
+$retiredForceSensitiveStanceNames = @([regex]::Matches(
+        $forceSensitiveStanceInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$forceSensitiveStanceRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        $retiredForceSensitiveStanceNames -ccontains [string]$_.NAME
+    })
+$forceSensitiveGenericGate = $forceSensitiveCanApplyBuff.IndexOf(
+    "isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)",
+    [StringComparison]::Ordinal)
+$forceSensitiveExistingBuffReturn = $forceSensitiveCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$forceSensitiveHandlerGate = $stanceHandler.IndexOf(
+    "buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)",
+    [StringComparison]::Ordinal)
+$forceSensitiveHandlerCleanup = $stanceHandler.IndexOf(
+    "buff.retirePostNgeForceSensitiveStanceState(self);",
+    [StringComparison]::Ordinal)
+$forceSensitiveHandlerVisual = $stanceHandler.IndexOf(
+    "buff.playStanceVisual(self, effectName);", [StringComparison]::Ordinal)
+Assert-Contract ($retiredForceSensitiveStanceNames.Count -eq
+        [int]$contract.expected.retiredNgeForceSensitiveStanceStateBuffs -and
+    @($retiredForceSensitiveStanceNames | Select-Object -Unique).Count -eq
+        $retiredForceSensitiveStanceNames.Count -and
+    $forceSensitiveStancePredicate.Contains(
+        "for (String retiredBuff : RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS)") -and
+    $forceSensitiveStanceCleanup.Contains("!isPlayer(player)") -and
+    $forceSensitiveStanceCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    $forceSensitiveStanceCleanup.Contains('"expertise_fs_force_clarity_1_proc"') -and
+    $forceSensitiveStanceCleanup.Contains('"expertise_fs_flurry_charge_proc"') -and
+    $buffProgressionCleanup.Contains(
+        "retirePostNgeForceSensitiveStanceState(player);") -and
+    $basePlayer.Contains(
+        "buff.retirePostNgeForceSensitiveStanceState(self);") -and
+    $forceSensitiveGenericGate -ge 0 -and
+    $forceSensitiveExistingBuffReturn -gt $forceSensitiveGenericGate -and
+    [bool]$contract.expected.forceSensitiveStanceHandlerPlayerFailClosed -and
+    $forceSensitiveHandlerGate -ge 0 -and
+    $forceSensitiveHandlerCleanup -gt $forceSensitiveHandlerGate -and
+    $forceSensitiveHandlerVisual -gt $forceSensitiveHandlerCleanup -and
+    $isInStance.Contains("retirePostNgeForceSensitiveStanceState(player);") -and
+    $isInStance.Contains("return false;") -and
+    $isInStance.Contains("return true;") -and
+    $isInFocus.Contains("retirePostNgeForceSensitiveStanceState(player);") -and
+    $isInFocus.Contains("return false;") -and
+    $isInFocus.Contains("return true;")) `
+    "p14.combat-expertise-isolation.force-sensitive-stances.all-player-paths-fail-closed"
+Assert-Contract ($forceSensitiveStanceRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveStanceCompatibilityRows -and
+    @($forceSensitiveStanceRows | Select-Object -ExpandProperty NAME -Unique).Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveStanceCompatibilityRows -and
+    @($retiredForceSensitiveStanceNames | Where-Object {
+        $_ -cnotin @($forceSensitiveStanceRows |
+            Select-Object -ExpandProperty NAME)
+    }).Count -eq
+        [int]$contract.expected.historicalForceSensitiveStanceCleanupOnlyNames -and
+    $retiredForceSensitiveStanceNames -ccontains "fs_imp_force_drain_4" -and
+    [bool]$contract.expected.precuCenterOfBeingPreserved -and
+    -not ($retiredForceSensitiveStanceNames -ccontains "centerofbeing") -and
+    @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+        [string]$_.NAME -ceq "centerofbeing" -and
+        [string]$_.EFFECT1_PARAM -ceq "private_center_of_being"
+    }).Count -eq 1) `
+    "p14.combat-expertise-isolation.force-sensitive-stances.compatibility-and-precu-center-boundary"
+
 $bountyHunterShieldPredicate = Get-BracedBlock $buffLibrary `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff(String buffName)"
 $bountyHunterShieldCleanup = Get-BracedBlock $buffLibrary `
