@@ -99,6 +99,10 @@ Write-Host "Verifying the direct-source PRE-CU authored armor protection authori
 & (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredArmorProtectionAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU battlefield vehicle armor authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuBattlefieldVehicleArmorAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU retained reverse/performance authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuRetainedReversePerformanceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -414,6 +418,12 @@ source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datat
 work_movement_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
 source_armor_library="$source_script/library/armor.java"
 work_armor_library="$work_script/library/armor.java"
+source_battlefield_vehicle="$source_script/systems/vehicle_system/battlefield_vehicle.java"
+work_battlefield_vehicle="$work_script/systems/vehicle_system/battlefield_vehicle.java"
+source_battlefield_vehicle_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/vehicle/battlefield_vehicle.tab"
+work_battlefield_vehicle_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/vehicle/battlefield_vehicle.tab"
+source_echo_base_spawns="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab"
+work_echo_base_spawns="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/echo_base.tab"
 source_reverse_engineering_tool="$source_script/item/tool/reverse_engineering_tool.java"
 work_reverse_engineering_tool="$work_script/item/tool/reverse_engineering_tool.java"
 source_performance_library="$source_script/library/performance.java"
@@ -754,6 +764,14 @@ cmp -s "$source_armor_library" "$work_armor_library"
 grep -Fq 'getFloatObjVar(mob, OBJVAR_ARMOR_BASE + "." + OBJVAR_GENERAL_PROTECTION)' "$work_armor_library"
 grep -Fq 'fltSpecialProts[intJ] += fltWeight * fltSpecialProt;' "$work_armor_library"
 grep -Fq 'combat.getArmorDecayPercentage(objArmor)' "$work_armor_library"
+cmp -s "$source_battlefield_vehicle" "$work_battlefield_vehicle"
+cmp -s "$source_battlefield_vehicle_table" "$work_battlefield_vehicle_table"
+cmp -s "$source_echo_base_spawns" "$work_echo_base_spawns"
+! grep -Fq 'expertise_innate_protection_all' "$work_battlefield_vehicle"
+grep -Fq 'setObjVar(target, armor.OBJVAR_ARMOR_BASE + "." + armor.OBJVAR_GENERAL_PROTECTION, amount);' "$work_battlefield_vehicle"
+grep -Fq 'armor.recalculateArmorForMob(target);' "$work_battlefield_vehicle"
+awk -F '\t' '$1 == "snowspeeder.iff" { snow++; if ($2 != "adventure2" || $3 != 600000 || $4 != 10000) exit 2 } $1 == "hoth_at_st.iff" { atst++; if ($2 != "adventure2" || $3 != 650000 || $4 != 15000) exit 3 } END { if (snow != 1 || atst != 1) exit 4 }' "$work_battlefield_vehicle_table"
+awk -F '\t' '$0 ~ /systems[.]vehicle_system[.]battlefield_vehicle/ { total++; if ($1 == "object/mobile/vehicle/snowspeeder.iff") snow++; else if ($1 == "object/mobile/vehicle/hoth_at_st.iff") atst++; else exit 2 } END { if (total != 21 || snow != 13 || atst != 8) exit 3 }' "$work_echo_base_spawns"
 cmp -s "$source_reverse_engineering_tool" "$work_reverse_engineering_tool"
 cmp -s "$source_performance_library" "$work_performance_library"
 cmp -s "$source_skills_table" "$work_skills_table"
@@ -929,6 +947,11 @@ javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'SLY
 javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'FAST_TALK_BASE_CHANCE'
 javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'contrabandCheckResult'
 javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'fastTalkReaction'
+# Retained Echo Base vehicles consume authored armor through the PRE-CU mob
+# protection objvar and cache, never through the NGE expertise statistic.
+! javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'expertise_innate_protection_all'
+javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'armor.general_protection'
+javap -classpath "$class_root" -v script.systems.vehicle_system.battlefield_vehicle | grep -Fq 'recalculateArmorForMob'
 # The retained simulator exposes only the armor and defense statistics consumed
 # by the authoritative Publish 14.1 combat route.
 ! javap -classpath "$class_root" -v script.library.target_dummy | grep -Fq 'expertise_'
