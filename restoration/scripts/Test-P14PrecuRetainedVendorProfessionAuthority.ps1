@@ -98,9 +98,8 @@ foreach ($file in Get-ChildItem -LiteralPath $productionRoot -Recurse -File -Fil
 }
 Assert-Contract ($singularConsumers.Count -eq
         [int]$contract.expected.externalSingularCompatibilityConsumers -and
-    $singularConsumers[0] -ceq
-        "dsrc/sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/banner_buff_manager.java") `
-    "p14.retained-vendor.singular-consumer.banner-only"
+    $singularConsumers.Count -eq 0) `
+    "p14.retained-vendor.singular-consumers.retired"
 
 $vendor = [string]$texts.vendor
 $vendorShow = Get-SourceSlice $vendor `
@@ -161,14 +160,61 @@ foreach ($name in @("meatlumpVendorTable", "corelliaTimesVendorTable", "novaVend
 }
 Assert-Contract $allClassTablesValid "p14.retained-vendor.all-class-table-boundary"
 
-$banner = Get-SourceSlice ([string]$texts.banner) `
-    "public String getBannerBuff(" `
-    "public int buffPlayers("
-Assert-Contract ($banner.Contains("switch (utils.getPlayerProfession(player))") -and
-    $banner.Contains('return "banner_buff_trader";') -and
-    $banner.Contains("return null;") -and
-    -not $banner.Contains("default:")) `
-    "p14.retained-vendor.banner-no-false-trader-default"
+$banner = [string]$texts.banner
+$bannerAttach = Get-SourceSlice $banner `
+    "public int OnAttach(" `
+    "public int handleDeleteSelf("
+Assert-Contract (-not $banner.Contains("getPlayerProfession(") -and
+    -not $banner.Contains("getBannerBuff(") -and
+    -not $banner.Contains("buffPlayers(") -and
+    -not $banner.Contains("buff.applyBuff") -and
+    $bannerAttach.Contains('messageTo(self, "handleDeleteSelf", null, 180.0f, false)') -and
+    $banner.Contains("trial.cleanupObject(self)")) `
+    "p14.retained-vendor.banner.visual-only-lifecycle"
+
+$buffLibrary = [string]$texts.buff
+$bannerInventory = Get-SourceSlice $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_GCW_BANNER_BUFFS" `
+    "public static boolean isRetiredPostNgeGcwBannerBuff"
+$bannerCleanup = Get-SourceSlice $buffLibrary `
+    "public static void retirePostNgeGcwBannerBuffState" `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$buffProgressionCleanup = Get-SourceSlice $buffLibrary `
+    "public static void retirePostNgeBuffProgression" `
+    "public static void retirePostNgeMeditationBuffs"
+$buffAdmission = Get-SourceSlice $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+$expectedBannerBuffs = @($contract.expected.retiredGcwBannerBuffs | Sort-Object)
+$actualBannerBuffs = @([regex]::Matches($bannerInventory, '"(banner_buff_[^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualBannerBuffs.Count -eq [int]$contract.expected.retiredGcwBannerBuffCount -and
+    (@($actualBannerBuffs | Select-Object -Unique).Count -eq $actualBannerBuffs.Count) -and
+    (($actualBannerBuffs -join "`n") -ceq ($expectedBannerBuffs -join "`n")) -and
+    $bannerCleanup.Contains("isPlayer(player)") -and
+    $bannerCleanup.Contains("removeBuff(player, retiredBuff)") -and
+    $buffProgressionCleanup.Contains("retirePostNgeGcwBannerBuffState(player);") -and
+    $buffAdmission.IndexOf("isRetiredPostNgeGcwBannerBuff(bdata.buffName)",
+        [StringComparison]::Ordinal) -lt
+        $buffAdmission.IndexOf("hasBuff(target, nameCrc)", [StringComparison]::Ordinal)) `
+    "p14.retained-vendor.banner.player-state-fails-closed"
+
+$bannerRows = @(Import-Csv -LiteralPath $sourcePaths.buffTable -Delimiter "`t" |
+    Where-Object { $_.NAME -like "banner_buff_*" })
+$bannerRowNames = @($bannerRows.NAME | Sort-Object)
+Assert-Contract ($bannerRows.Count -eq [int]$contract.expected.retainedGcwBannerBuffRows -and
+    (($bannerRowNames -join "`n") -ceq ($expectedBannerBuffs -join "`n")) -and
+    @($bannerRows | Where-Object { $_.ICON -notlike "Roadmap.*" }).Count -eq 0) `
+    "p14.retained-vendor.banner.compatibility-data-preserved"
+
+$combatBase = [string]$texts.combatBase
+$commandoPredicate = Get-SourceSlice $combatBase `
+    "public static boolean isRetiredPostNgeCommandoPlayerAction" `
+    "public static boolean isRetiredPostNgeMedicPlayerAction"
+Assert-Contract ($commandoPredicate.Contains("isPlayer(self)") -and
+    $commandoPredicate.Contains('actionName.startsWith("co_")') -and
+    $commandoPredicate.Contains('actionName.equals("banner_buff_commando")')) `
+    "p14.retained-vendor.banner.proc-action-player-retired"
 
 if ($Expectation -eq "Ready")
 {

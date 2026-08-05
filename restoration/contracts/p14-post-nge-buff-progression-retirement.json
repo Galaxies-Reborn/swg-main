@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, and random fs_meditate_* bonuses without removing later-content data compatibility or the restored Publish 14.1 entertainer and Teras Kasi lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -16,7 +16,8 @@
       "Pinned Publish 14.1 Core3 contains no native Buff Builder, buildabuff_inspiration handler, general percentage-of-level XP buff, or TCG XP grant path.",
       "Publish 14.1 awards explicit profession XP types from combat, crafting, and performance activity rather than scaling them from an NGE 1-90 player level.",
       "Later buff rows and effect mappings remain compatibility data so retained expansion assets can load while their post-NGE progression handlers fail closed.",
-      "Pinned Publish 14.1 Teras Kasi meditation reduces DOT strength and heals wounds; the inherited every-third-tick Force Sensitive branch that randomly granted fs_meditate_* expertise, resource-quality, or modified-primary-stat bonuses is retired."
+      "Pinned Publish 14.1 Teras Kasi meditation reduces DOT strength and heals wounds; the inherited every-third-tick Force Sensitive branch that randomly granted fs_meditate_* expertise, resource-quality, or modified-primary-stat bonuses is retired.",
+      "The retained GCW banner's nine Roadmap class buffs apply NGE modified primaries, Luck, expertise modifiers, or a proc attack absent from pinned Publish 14.1 and therefore remain data-only compatibility rows."
     ]
   },
   "expected": {
@@ -31,6 +32,19 @@
       "fs_meditate_2",
       "fs_meditate_3"
     ],
+    "retiredGcwBannerBuffCount": 9,
+    "retiredGcwBannerBuffs": [
+      "banner_buff_commando",
+      "banner_buff_smuggler",
+      "banner_buff_medic",
+      "banner_buff_officer",
+      "banner_buff_spy",
+      "banner_buff_bounty_hunter",
+      "banner_buff_force_sensitive",
+      "banner_buff_trader",
+      "banner_buff_entertainer"
+    ],
+    "retainedGcwBannerBuffRows": 9,
     "randomMeditationTickGrantRetired": true,
     "retiredScriptVarTrees": [
       "performance.buildabuff",
@@ -57,16 +71,16 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "703e8743c974790b732a60f16841095bd9491474",
+    "directSourceGitlink": "45e5aa7b643ee0fe98403003d78d6a5972c34e9c",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "569a2c914a438ee5744c53c5a4879e593d54a9af1c407f0ad57e8fcfebf96ae9",
+    "sourceContentSha256": "4736910f8fb76d27062239a4c2eb93bcc1d2862a55db0df5b6fcb480dfca3f85",
     "sourceSha256": {
-      "library/buff.java": "8e299ce8c29a0d92134a8ef940a1733a4ed3b9f553c3b4f7fc0774e0e70d4379",
+      "library/buff.java": "ed0aa8e9bf5a5cffab5fb6482e2d0a6a8d06542e6e6c2aab0c53f3e72f5fbeea",
       "library/gcw.java": "ce637cd09ae661907365d39f770a02802cdab0050077c81e74858667675a3030",
       "library/xp.java": "92ecf581e7a35511fdd21006ca03e57b236da21feec507434e78027157111dee",
       "player/base/base_player.java": "4a248ec126896808b511633e26fbf360d8090e156e825426e612c47319451b4d",
@@ -76,9 +90,9 @@
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
       "systems/crafting/crafting_base.java": "de35b9d30117847130799743e3998dda6065971fae28e04f01d24d4310f5e83b"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source PRE-CU meditation and Bounty Hunter shield closure remains intact while the shared player/buff lifecycle now also retires exact persisted NGE Force Sensitive stance/focus state.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source PRE-CU meditation, Bounty Hunter shield, and Force Sensitive stance closure remains intact while the shared player/buff lifecycle now also retires the exact nine NGE GCW Roadmap banner buffs.",
     "compiledClassSha256": {
-      "script.library.buff": "f51613524350484a78ee81bb73b9f6736c02b65510cd1bb5f6d6fc324a26cd02",
+      "script.library.buff": null,
       "script.library.gcw": "133f988c55249e3a0e00127fc8df0cfc04e642f7f024465557f9134121b8a96b",
       "script.library.xp": "42652073fafbd2c9f3ce69333575380900cf89317fd4c43be745f42d90e915f8",
       "script.player.base.base_player": "679ff45e383063d6e556b834e4c842931d9fc1a4ce703cdb27e643f4eb2e2930",
@@ -88,17 +102,17 @@
       "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
       "script.systems.crafting.crafting_base": "f6f180466a08ec577270760d7a483633420bc11f64c776f9c88f9d19ca1dd148"
     },
-    "staticContract": "passed against the direct source; exact meditation cleanup, retired random tick grants, existing fail-closed progression handlers, compatibility data, PRE-CU entertainer/Teras Kasi lifecycles, independent Bounty Hunter shield and Force Sensitive stance/focus closure, and mission continuity authenticated",
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "staticContract": "passed against the direct source; exact meditation and nine-name GCW banner cleanup, retired random grants/procs, fail-closed generic admission, compatibility data, PRE-CU entertainer/Teras Kasi lifecycles, independent Bounty Hunter shield and Force Sensitive stance/focus closure, and mission continuity authenticated",
+    "fullJavaCompile": "pending clean dependency rebuild from the current direct source",
     "cleanMaterializationPatches": 413,
     "cleanMaterializationAcceptanceFiles": 1170,
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
-    "materializedBuild": "passed in 788.1 seconds from pushed parent a4e5fb9 and direct dsrc 703e874 in Docker volume swg-precu-work-x64; host materialization remains retired",
+    "materializedBuild": "pending clean x64 deployment from the pushed source gate in Docker volume swg-precu-work-x64; host materialization remains retired",
     "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "deploymentProbe": "passed exact meditation, Bounty Hunter shield, and 34-name Force Sensitive stance/focus source/bytecode cleanup gates; existing buff-progression probes; x64 architecture; health/readiness; mapped-binary verification; and clean post-start log audit",
-    "result": "passed"
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "deploymentProbe": "pending exact meditation, Bounty Hunter shield, Force Sensitive stance/focus, and nine-name GCW banner source/bytecode cleanup gates plus x64 live verification",
+    "result": "pending-clean-deployment"
   },
   "continuityEvidence": {
     "precuAttributeBuffSession": "Mind/Focus/Willpower accumulation and stop-watch/stop-listen activation remain in library/performance.java and its live fixture.",
@@ -143,10 +157,10 @@
       "playerReadyMarkers": 1,
       "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
     },
-    "result": "passed"
+    "result": "stale-after-current-source-change"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, GCW buff multipliers, and persisted random fs_meditate_* bonuses",
+    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, GCW buff multipliers, persisted random fs_meditate_* bonuses, and the nine NGE Roadmap GCW banner buffs",
     "notClaimedComplete": "ordinary non-progression effects in composite retained buffs, retained GCW commlink behavior, beasts and familiars, transition compatibility, stealth and theft systems beyond their generic lucky proc, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []

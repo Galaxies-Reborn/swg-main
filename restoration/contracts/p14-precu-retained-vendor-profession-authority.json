@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-retained-vendor-profession-authority",
-  "status": "ready",
-  "scope": "Preserve retained expansion vendors while replacing their singular NGE class assumption with explicit Publish 14.1 multi-profession skill ownership, and prevent an unmapped PRE-CU character from being classified as a Trader.",
+  "status": "implemented-build-pending",
+  "scope": "Preserve retained expansion vendors and faction banner content while replacing singular NGE class assumptions with Publish 14.1 multi-profession skill ownership, preventing false Trader identity, and retiring the banner's Roadmap class buffs and combat proc from player gameplay.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -12,14 +12,30 @@
       "The retained heroic vendor has separate class-indexed containers and copied its class-zero common rows into every existing class container, but previously opened only the first profession selected by a fixed priority order.",
       "The existing item-local compatibility boundary maps retained Spy class ID 5 to outdoors_ranger_novice without making Ranger a global Spy identity.",
       "Meatlump and Nova/Orion resource vendor tables contain only class-zero rows and therefore require no profession classification.",
-      "The retained GCW banner remains the sole bounded singular compatibility consumer; an unmapped PRE-CU owner now receives no false Trader buff because the explicit no-profession value falls through to null."
+      "The retained GCW banner was the last singular NGE class consumer and applied one of nine Roadmap class buffs containing modified NGE primaries, Luck, expertise modifiers, or a server-only combat proc.",
+      "Pinned Publish 14.1 Core3 contains faction perks but no Roadmap class banner-buff system; retained banner items and visuals remain content, while their player stat/proc authority must fail closed."
     ]
   },
   "expected": {
     "noProfessionValue": 0,
     "explicitTraderOwnershipCheck": true,
     "unownedTraderFallbacks": 0,
-    "externalSingularCompatibilityConsumers": 1,
+    "externalSingularCompatibilityConsumers": 0,
+    "retiredGcwBannerBuffCount": 9,
+    "retiredGcwBannerBuffs": [
+      "banner_buff_commando",
+      "banner_buff_smuggler",
+      "banner_buff_medic",
+      "banner_buff_officer",
+      "banner_buff_spy",
+      "banner_buff_bounty_hunter",
+      "banner_buff_force_sensitive",
+      "banner_buff_trader",
+      "banner_buff_entertainer"
+    ],
+    "retainedGcwBannerBuffRows": 9,
+    "bannerCombatProcRetiredForPlayers": true,
+    "bannerVisualLifetimeSeconds": 180,
     "qualifiedVendorProfessionRange": [1, 9],
     "qualifiedVendorRevalidationCalls": 2,
     "heroicVendorClasses": [0, 1, 2, 3, 4, 5, 6, 7],
@@ -35,6 +51,9 @@
     "meatlumpVendor": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/meatlump/mtp_vendor.java",
     "novaOrionVendor": "dsrc/sku.0/sys.server/compiled/game/script/theme_park/dungeon/nova_orion_station/nova_orion_vendor.java",
     "banner": "dsrc/sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/banner_buff_manager.java",
+    "buff": "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
     "heroicVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/heroic_class_items_1.tab",
     "meatlumpVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/mtp_meatlump_vendor.tab",
     "corelliaTimesVendorTable": "dsrc/sku.0/sys.server/compiled/game/datatables/item/vendor/mtp_corellia_times_vendor.tab",
@@ -43,14 +62,17 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "e31e31c723b6669ab11d596866b04910848e2609",
+    "directSourceGitlink": "45e5aa7b643ee0fe98403003d78d6a5972c34e9c",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "utils": "80d5da8170ade1ab3ddbcc8b23234fb206b66840e60a72bfaaed32a4df103506",
       "vendor": "35ad7821145d0851cada3f2f58afc81e4b4f40fed97c4030f54e860f255e16c0",
       "meatlumpVendor": "d27cf4ab9d6a227e5432a440a42ce048eef38f7bbb058eeca3261f69e2a260e4",
       "novaOrionVendor": "a32f6be739877b47430554c7b99a75c84945fa14b2434db2844a97e65b2b2eda",
-      "banner": "779f9fe6c29ad9b477b36640ebddce62bb26ea3969839554f5667a7db5f46145",
+      "banner": "b12c8e2a009e70cdcc2b0d36a28dcdf51b38044bce4b67f869a58a002444fa19",
+      "buff": "ed0aa8e9bf5a5cffab5fb6482e2d0a6a8d06542e6e6c2aab0c53f3e72f5fbeea",
+      "combatBase": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
+      "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
       "heroicVendorTable": "aa01e7006d54a0ad451ac6ad01c03d05bd46a20fe665c644e3a63f0cdda3990e",
       "meatlumpVendorTable": "94d2af4010080b1d9ab0e60092f3e35050e6bfae8bfc1b44e21f54d43f815cea",
       "corelliaTimesVendorTable": "5f982894253cb09c5c06d5df1c92f509d26c65a35fbbcbcbf5651fa635d04d29",
@@ -62,18 +84,21 @@
       "vendor": "20fa0ae1612ffd753b222f5b02647f844cc57ec8ce9baff49166f704891442a4",
       "meatlumpVendor": "60e3b8bccbb5a0adbf9a29ef6a8e47645291be7c7ead899bb28d73da40ce3925",
       "novaOrionVendor": "fdd5071e878cd766b48e54df610416a45dcc65ef8f9f09c03a48ccab6efe33d4",
-      "banner": "588ddb49ecd1a461a45636f57d299907f1afcd31fa65d6c80075012f8dbabc6b"
+      "banner": null,
+      "buff": null,
+      "combatBase": null
     },
-    "sourceTest": "passed; explicit Trader ownership, an explicit no-profession value, multi-profession vendor selection, item-local Ranger admission, selection revalidation, faction/common inventories, all-class vendors, and the bounded banner consumer were all verified",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and all five retained-vendor authority classes were emitted between 2026-08-04T19:48:13Z and 2026-08-04T19:48:22Z",
-    "fullServerBuild": "passed in 728.8 seconds from pushed parent ba9c304 and direct dsrc e31e31c",
+    "sourceTest": "passed against current direct source; explicit Trader ownership, multi-profession vendor selection, zero singular class consumers, exact nine-name banner cleanup and admission denial, visual-only banner lifetime, retained data rows, and player-only proc retirement are authenticated",
+    "focusedJavaCompile": "passed for buff.java, combat_base.java, and banner_buff_manager.java with Java 8 target in an ephemeral /dev/shm directory removed immediately",
+    "fullJavaCompile": "pending clean dependency rebuild from the current direct source",
+    "fullServerBuild": "pending clean x64 deployment from the pushed source gate",
     "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed byte-for-byte for utils.java, vendor.java, mtp_vendor.java, and nova_orion_vendor.java against the read-only direct-source mount",
-    "bytecodeAudit": "passed; utils exposes NO_PROFESSION and explicit Trader ownership, the generic vendor enumerates retained PRE-CU item professions and opens a validated selector, class-zero-only vendors do not read a singular profession, and the banner remains the sole singular compatibility consumer",
-    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused retained-vendor source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "sourceWorkParity": "pending clean synchronization for all thirteen retained-vendor/banner authority sources",
+    "bytecodeAudit": "pending exact banner inventory, player admission, lifecycle cleanup, visual-only manager, and server-only proc denial probes",
+    "deploymentProbe": "pending clean x64 deployment with mandatory retained-vendor/banner source, data, and bytecode gates",
+    "result": "pending-clean-deployment"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
@@ -104,12 +129,12 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
-    "result": "passed"
+    "result": "stale-after-current-source-change"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "false Trader identity for unmapped PRE-CU characters and singular class-container selection in retained vendors",
-    "preserved": "all retained vendor rows and costs, common-row replication, faction-specific inventories, item-local Ranger compatibility, purchase scripts, resource requirements, and the retained GCW banner system",
-    "notClaimedComplete": "the GCW banner still intentionally selects one bounded compatibility buff from its owner and remains a later-content adaptation candidate"
+    "closedInThisMilestone": "false Trader identity, singular class-container selection, the last executable singular NGE profession consumer, and all nine Roadmap banner buffs plus their player combat proc",
+    "preserved": "all retained vendor rows and costs, common-row replication, faction-specific inventories, item-local Ranger compatibility, purchase scripts, resource requirements, faction banner items, placement, visuals, rank costs, and compatibility data rows",
+    "notClaimedComplete": "other retained GCW reward ratios, transition compatibility, stealth/theft, and dormant later mechanics remain in the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }

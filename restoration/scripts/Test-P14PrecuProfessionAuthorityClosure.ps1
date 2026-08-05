@@ -520,6 +520,7 @@ $commandoPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeMedicPlayerAction"
 Assert-Contract ($commandoPredicate.Contains("isPlayer(self)") -and
     $commandoPredicate.Contains('actionName.startsWith("co_")') -and
+    $commandoPredicate.Contains('actionName.equals("banner_buff_commando")') -and
     $combatBase.Contains("if (isRetiredPostNgeCommandoPlayerAction(self, actionName))")) `
     "p14.profession-closure.commando-runtime.central-player-action-gate"
 $commandoHandlers = @([regex]::Matches(
@@ -913,7 +914,7 @@ foreach ($file in Get-ChildItem -LiteralPath $productionRoot -Recurse -File -Fil
     if ((Get-Content -LiteralPath $file.FullName -Raw).Contains("getPlayerProfession(")) { $singularConsumerFiles += $relative }
 }
 Assert-Contract ($singularConsumerFiles.Count -eq [int]$contract.expected.externalSingularCompatibilityConsumers -and
-    ($singularConsumerFiles -contains "sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/banner_buff_manager.java")) `
+    $singularConsumerFiles.Count -eq 0) `
     "p14.profession-closure.singular-adapter.consumers-bounded"
 
 $multiProfessionTokens = @(

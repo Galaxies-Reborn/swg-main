@@ -105,6 +105,15 @@ $flagBody = Get-SourceSlice $buffText "public static boolean isPostNgeBuffProgre
 $cleanupBody = Get-SourceSlice $buffText "public static void retirePostNgeBuffProgression" "public static final String DOT_BLEEDING"
 $meditationCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgeMeditationBuffs" "public static final String DOT_BLEEDING"
+$bannerInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_GCW_BANNER_BUFFS" `
+    "public static boolean isRetiredPostNgeGcwBannerBuff"
+$bannerCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgeGcwBannerBuffState" `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$buffAdmissionBody = Get-SourceSlice $buffText `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
 $meditationTickBody = Get-SourceSlice ([string]$sourceTexts["player/base/base_player.java"]) `
     "public int handleMeditationTick" "public int msgCoupDeGraceAuthoritativeCheck"
 Assert-Contract ($flagBody.Contains("return true;")) "p14.buff-progression.central-flag.true"
@@ -122,6 +131,17 @@ foreach ($buffName in @($contract.expected.retiredMeditationBuffs))
     Assert-Contract ($meditationCleanupBody.Contains("`"$buffName`"")) `
         "p14.buff-progression.cleanup.meditation.$buffName"
 }
+$expectedBannerBuffs = @($contract.expected.retiredGcwBannerBuffs | Sort-Object)
+$actualBannerBuffs = @([regex]::Matches($bannerInventoryBody, '"(banner_buff_[^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualBannerBuffs.Count -eq [int]$contract.expected.retiredGcwBannerBuffCount -and
+    @($actualBannerBuffs | Select-Object -Unique).Count -eq $actualBannerBuffs.Count -and
+    (($actualBannerBuffs -join "`n") -ceq ($expectedBannerBuffs -join "`n")) -and
+    $bannerCleanupBody.Contains("isPlayer(player)") -and
+    $bannerCleanupBody.Contains("removeBuff(player, retiredBuff)") -and
+    $cleanupBody.Contains("retirePostNgeGcwBannerBuffState(player);") -and
+    (Is-Before $buffAdmissionBody "isRetiredPostNgeGcwBannerBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
+    "p14.buff-progression.gcw-banner.player-state-retired"
 Assert-Contract ([bool]$contract.expected.randomMeditationTickGrantRetired -and
     $meditationTickBody.Contains("meditation.trance(self)") -and
     $meditationTickBody.Contains("messageTo(self, meditation.HANDLER_MEDITATION_TICK") -and
@@ -226,6 +246,11 @@ $effectMap = Get-Content -LiteralPath $effectMapPath -Raw
 Assert-Contract ($buffTable.Contains("general_inspiration`t") -and
     $buffTable.Contains("buildabuff_inspiration`t") -and $buffTable.Contains("tcg_series1_radtrooper_badge`t") -and
     $buffTable.Contains("tcg_series1_nuna_ball_advertisement`t")) "p14.buff-progression.compatibility.buff-rows-preserved"
+$bannerRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $_.NAME -like "banner_buff_*" })
+Assert-Contract ($bannerRows.Count -eq [int]$contract.expected.retainedGcwBannerBuffRows -and
+    ((@($bannerRows.NAME | Sort-Object) -join "`n") -ceq ($expectedBannerBuffs -join "`n"))) `
+    "p14.buff-progression.compatibility.gcw-banner-rows-preserved"
 foreach ($mapping in @("buildabuff`t", "xp_bonus_general`t", "xp_granted_general`t", "tcg_xp_bonus`t", "tcg_xp_granted`t"))
 {
     Assert-Contract ($effectMap.Contains($mapping)) "p14.buff-progression.compatibility.effect.$($mapping.Trim())"

@@ -503,6 +503,8 @@ source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
 source_buff_library="$source_script/library/buff.java"
 work_buff_library="$work_script/library/buff.java"
+source_gcw_banner_manager="$source_script/item/gcw_buff_banner/banner_buff_manager.java"
+work_gcw_banner_manager="$work_script/item/gcw_buff_banner/banner_buff_manager.java"
 source_bh_shields="$source_script/player/skill/bh_shields.java"
 work_bh_shields="$work_script/player/skill/bh_shields.java"
 source_meditation_library="$source_script/library/meditation.java"
@@ -933,6 +935,7 @@ cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
 cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
+cmp -s "$source_gcw_banner_manager" "$work_gcw_banner_manager"
 cmp -s "$source_bh_shields" "$work_bh_shields"
 cmp -s "$source_meditation_library" "$work_meditation_library"
 cmp -s "$source_performcommands" "$work_performcommands"
@@ -1006,6 +1009,31 @@ printf '%s' "$precu_center_of_being_source" | grep -Fq 'center_of_being_duration
 printf '%s' "$precu_center_of_being_source" | grep -Fq '_center_of_being_efficacy'
 printf '%s' "$precu_center_of_being_source" | grep -Fq 'combat.drainCombatActionAttributes'
 ! printf '%s' "$precu_center_of_being_source" | grep -Eq 'fs_buff_(def_1_1|ca_1)'
+gcw_banner_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_GCW_BANNER_BUFFS/,/public static boolean isRetiredPostNgeGcwBannerBuff/p' "$work_buff_library")"
+gcw_banner_cleanup_source="$(sed -n '/public static void retirePostNgeGcwBannerBuffState/,/public static boolean isRetiredPostNgeBountyHunterShieldBuff/p' "$work_buff_library")"
+retired_gcw_banner_buffs="banner_buff_commando banner_buff_smuggler banner_buff_medic banner_buff_officer banner_buff_spy banner_buff_bounty_hunter banner_buff_force_sensitive banner_buff_trader banner_buff_entertainer"
+test "$(printf '%s\n' $retired_gcw_banner_buffs | wc -l)" -eq 9
+retained_gcw_banner_rows=0
+for retired_gcw_banner_buff in $retired_gcw_banner_buffs; do
+    printf '%s' "$gcw_banner_inventory_source" | grep -Fq "\"$retired_gcw_banner_buff\""
+    if awk -F '\t' -v name="$retired_gcw_banner_buff" '$1 == name && $6 ~ /^Roadmap\./ { found=1 } END { exit(found ? 0 : 1) }' "$work_buff_table"; then
+        retained_gcw_banner_rows=$((retained_gcw_banner_rows + 1))
+    fi
+done
+test "$retained_gcw_banner_rows" -eq 9
+printf '%s' "$gcw_banner_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$gcw_banner_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+grep -Fq 'retirePostNgeGcwBannerBuffState(player);' "$work_buff_library"
+gcw_banner_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+printf '%s' "$gcw_banner_admission_source" | grep -Fq 'isRetiredPostNgeGcwBannerBuff(bdata.buffName)'
+test "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'isRetiredPostNgeGcwBannerBuff(bdata.buffName)' | cut -d: -f1)" -lt "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'hasBuff(target, nameCrc)' | cut -d: -f1)"
+! grep -Eq 'getPlayerProfession|getBannerBuff|buffPlayers|buff\.applyBuff' "$work_gcw_banner_manager"
+grep -Fq 'messageTo(self, "handleDeleteSelf", null, 180.0f, false);' "$work_gcw_banner_manager"
+test "$(grep -Fc 'trial.cleanupObject(self);' "$work_gcw_banner_manager")" -eq 2
+gcw_commando_retirement_source="$(sed -n '/public static boolean isRetiredPostNgeCommandoPlayerAction/,/public static boolean isRetiredPostNgeMedicPlayerAction/p' "$work_combat_base")"
+printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'isPlayer(self)'
+printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.startsWith("co_")'
+printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.equals("banner_buff_commando")'
 buildabuff_source="$(sed -n '/public int buildabuffAddBuffHandler/,/public int buildabuffRemoveBuffHandler/p' "$work_buff_handler")"
 test "$(grep -Ec 'addSkillModModifier\(self, *"expertise_' "$work_buff_handler")" -eq 3
 test "$(printf '%s' "$buildabuff_source" | grep -Ec 'addSkillModModifier\(self, *"expertise_')" -eq 3
@@ -1612,7 +1640,18 @@ printf '%s' "$retained_vendor_bytecode" | grep -Fq 'script/library/sui.listbox'
 ! printf '%s' "$retained_vendor_bytecode" | grep -Fq 'getPlayerProfession'
 ! javap -classpath "$class_root" -v script.theme_park.meatlump.mtp_vendor | grep -Fq 'getPlayerProfession'
 ! javap -classpath "$class_root" -v script.theme_park.dungeon.nova_orion_station.nova_orion_vendor | grep -Fq 'getPlayerProfession'
-javap -classpath "$class_root" -v script.item.gcw_buff_banner.banner_buff_manager | grep -Fq 'getPlayerProfession'
+gcw_banner_manager_bytecode="$(javap -classpath "$class_root" -c -p script.item.gcw_buff_banner.banner_buff_manager)"
+printf '%s' "$gcw_banner_manager_bytecode" | grep -Fq 'handleDeleteSelf'
+printf '%s' "$gcw_banner_manager_bytecode" | grep -Fq 'float 180.0f'
+test "$(printf '%s' "$gcw_banner_manager_bytecode" | grep -Fc 'script/library/trial.cleanupObject')" -eq 2
+! printf '%s' "$gcw_banner_manager_bytecode" | grep -Eq 'getPlayerProfession|getBannerBuff|buffPlayers|script/library/buff.applyBuff'
+gcw_banner_buff_bytecode="$(javap -classpath "$class_root" -v script.library.buff)"
+printf '%s' "$gcw_banner_buff_bytecode" | grep -Fq 'isRetiredPostNgeGcwBannerBuff'
+printf '%s' "$gcw_banner_buff_bytecode" | grep -Fq 'retirePostNgeGcwBannerBuffState'
+for retired_gcw_banner_buff in $retired_gcw_banner_buffs; do
+    printf '%s' "$gcw_banner_buff_bytecode" | grep -Fq "$retired_gcw_banner_buff"
+done
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'banner_buff_commando'
 javap -classpath "$class_root" -constants script.library.stealth | grep -Fq 'PRECU_TRAPPING_SKILL_MOD = "trapping"'
 javap -classpath "$class_root" -constants script.library.stealth | grep -Fq 'PRECU_CAMOUFLAGE_SKILL_MOD = "camouflage"'
 ! javap -classpath "$class_root" -v script.library.stealth | grep -Fq 'ranger_trap'

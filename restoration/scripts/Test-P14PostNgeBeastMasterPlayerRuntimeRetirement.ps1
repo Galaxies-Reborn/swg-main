@@ -363,7 +363,7 @@ Assert-Contract (-not $patchText.Contains("systems/missions/") -and -not $patchT
     "p14.beast-retirement.mission-core-continuity"
 
 Assert-Contract (
-    @("implemented-build-verified-live-pending", "ready") -ccontains [string]$contract.status
+    @("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -ccontains [string]$contract.status
 ) "p14.beast-retirement.contract.status"
 
 if ($Expectation -eq "Ready")
