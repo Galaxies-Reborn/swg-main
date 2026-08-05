@@ -71,6 +71,9 @@ Write-Host "Verifying the direct-source PRE-CU dynamic mission difficulty author
 & (Join-Path $PSScriptRoot "Test-P14PrecuDynamicMissionDifficultyAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying direct-source post-NGE buff progression retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgeBuffProgressionRetirement.ps1") `
+    -SourceRoot $repositoryRoot
 Write-Host "Verifying the direct-source PRE-CU GCW compatibility level authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuGcwCompatibilityLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `

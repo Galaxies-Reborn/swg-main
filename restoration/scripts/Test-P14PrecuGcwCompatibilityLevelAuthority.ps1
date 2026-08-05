@@ -129,14 +129,24 @@ $gcwRetirementContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14PrecuGcwRatingRetirement)) -Raw | ConvertFrom-Json
 $buffRetirementContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14PostNgeBuffProgressionRetirement)) -Raw | ConvertFrom-Json
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$allowedBuffRetirementStatuses = if ($Expectation -eq "Ready")
+{
+    @("ready")
+}
+else
+{
+    @("implemented-build-pending", "implemented-build-verified-live-pending", "ready")
+}
 Assert-Contract ([string]$rankContract.status -ceq "ready" -and
     [string]$gcwRetirementContract.status -ceq "ready" -and
-    [string]$buffRetirementContract.status -ceq "ready") `
+    $allowedBuffRetirementStatuses -ccontains [string]$buffRetirementContract.status -and
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq [string]$buffRetirementContract.buildEvidence.directSourceGitlink) `
     "p14.gcw-level.adjacent-authority-continuity"
 
 if ($Expectation -eq "Ready")
 {
-    $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
     Assert-Contract ([string]$contract.status -ceq "ready" -and
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed") `
