@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-battlefield-vehicle-armor-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Preserve the retained Echo Base battlefield vehicles and vehicle mines while routing authored vehicle armor through PRE-CU protection and retiring the mine's unrelated NGE primary-stat writer.",
   "eraEvidence": {
     "basis": "The authenticated PRE-CU armor route consumes authored creature protection from armor.general_protection, and the PRE-CU raw-damage route does not consume NGE *_modified primary statistics. Echo Base remains retained later content, but its gameplay state cannot be authored through those NGE statistics.",
@@ -61,36 +61,49 @@
       "commandTable": "0fcdb7cddd7f4b692fd8bd4535ab88f18ddd2af2e840ba337775858fc162d519",
       "combatData": "44656473c5070db0f36acc29715311d0f29bbf10eb58f28faeb3cc709764f882"
     },
-    "compiledClassSha256": null,
+    "compiledClassSha256": {
+      "vehicleScript": "df37bd059a6fda9ad9c301758504844c33ee053691ac1fecacdac9f49dd72d09",
+      "vehicleMineScript": "bee12f4a1255883c2d0c98759d6a4b22bea4094cd1ffc9bc9c9707ef7ce863d1"
+    },
     "sourceTest": "passed; authenticated vehicle armor, all twenty-one vehicle and sixty mine spawns, sixty mine cleanup rows, PRE-CU protection, the exact mine trigger/command/visibility/death lifecycle, its command and combat bindings, and zero vehicle expertise or mine primary-stat writers",
     "focusedJavaCompile": "passed in an ephemeral in-memory directory removed immediately; vehicle_mine.class retains command CRC -1220440242 and contains no strength_modified symbol",
-    "fullJavaCompile": null,
-    "fullServerBuild": null,
-    "architecture": null,
-    "serverBinarySha256": null,
-    "serverBinaryBuildId": null,
-    "sourceWorkParity": null,
-    "bytecodeAudit": null,
-    "deploymentProbe": null,
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, battlefield_vehicle.class was emitted at 2026-08-05T04:42:30.822284189Z, and vehicle_mine.class was emitted at 2026-08-05T04:42:32.319695499Z",
+    "fullServerBuild": "passed in 618.2 seconds from pushed parent 72e8dbe3d4da0365cfd9ec5dbe5312b19a36cd67 and direct dsrc bae87330fffb96bd51cb89742c96eff262bec61a",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for battlefield_vehicle.java, armor.java, battlefield_vehicle.tab, echo_base.tab, vehicle_mine.java, creatures.tab, command_table.tab, and combat_data.tab between the read-only source and Docker work volume; vehicle_mine.java source/work SHA-256 is 04e421df9324c49500f1fadb5efe909545d950086f12644960c8956714f63231",
+    "bytecodeAudit": "passed; vehicle_mine.class contains exactly two command CRC -1220440242 loads, the hoth_vehicle_mine trigger symbol, visibility break, and trigger cleanup, while containing no strength_modified symbol; battlefield_vehicle.class retains PRE-CU armor.general_protection and recalculation with no expertise armor symbol",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, expanded Echo Base vehicle/mine source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, clean Java compilation, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": null,
-    "containerHealth": null,
-    "clusterReadyForPlayers": false,
-    "compiledClassSize": null,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": null,
-    "liveBinaryInode": null,
-    "liveBinarySize": null,
-    "liveBinaryMapEntries": null,
-    "processCounts": null,
-    "postStartLogAudit": null,
-    "result": "pending"
+    "containerStartedAt": "2026-08-05T04:48:11.874544665Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": {
+      "vehicleScript": 11124,
+      "vehicleMineScript": 1859
+    },
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 363,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "308 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "The retained battlefield vehicle initialization path cannot discard authored armor behind NGE expertise, and retained vehicle mines no longer seed an NGE primary statistic unrelated to their attack.",
