@@ -388,6 +388,8 @@ source_dot_library="$source_script/library/dot.java"
 work_dot_library="$work_script/library/dot.java"
 source_smuggler_library="$source_script/library/smuggler.java"
 work_smuggler_library="$work_script/library/smuggler.java"
+source_junk_dealer_summon="$source_script/npc/junk_dealer/junk_dealer_summon.java"
+work_junk_dealer_summon="$work_script/npc/junk_dealer/junk_dealer_summon.java"
 source_smuggler_patrol_ai="$source_script/ai/smuggler_spawn_enemy.java"
 work_smuggler_patrol_ai="$work_script/ai/smuggler_spawn_enemy.java"
 source_target_dummy_library="$source_script/library/target_dummy.java"
@@ -665,6 +667,16 @@ cmp -s "$source_smuggler_library" "$work_smuggler_library"
 grep -Fq 'money.ACCT_JUNK_DEALER' "$work_smuggler_library"
 grep -Fq 'int chance = (12 - tier * 2);' "$work_smuggler_library"
 grep -Fq 'int chance = (12 - (dropTier * 2));' "$work_smuggler_library"
+cmp -s "$source_junk_dealer_summon" "$work_junk_dealer_summon"
+! grep -Fq 'expertise_' "$work_junk_dealer_summon"
+! grep -Fq 'sm_junk_dealer_' "$work_junk_dealer_summon"
+! grep -Fq 'buffParty' "$work_junk_dealer_summon"
+! grep -Fq 'buff.applyBuff' "$work_junk_dealer_summon"
+grep -Fq 'messageTo(self, "timeUp", null, 300, true);' "$work_junk_dealer_summon"
+grep -Fq 'messageTo(self, "handleGreeting", null, 2.0f, false);' "$work_junk_dealer_summon"
+grep -Fq 'new string_id("spam", "junk_dealer_total_profits")' "$work_junk_dealer_summon"
+grep -Fq 'detachScript(self, "conversation.junk_dealer_smuggler")' "$work_junk_dealer_summon"
+grep -Fq 'detachScript(self, "npc.converse.junk_dealer")' "$work_junk_dealer_summon"
 cmp -s "$source_smuggler_patrol_ai" "$work_smuggler_patrol_ai"
 ! grep -Fq 'expertise_' "$work_smuggler_patrol_ai"
 ! grep -Fq 'getSmugglerRank' "$work_smuggler_patrol_ai"
@@ -1090,6 +1102,13 @@ javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'handleSold
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'script/library/money.systemPayout'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'spaceContrabandDropCheck'
 javap -classpath "$class_root" -v script.library.smuggler | grep -Fq 'contrabandDropCheck'
+! javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'sm_junk_dealer_'
+! javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'buffParty'
+javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'handleGreeting'
+javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'totalProfits'
+javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'handleRunAway'
+javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'junk_dealer_total_profits'
 # Retained Smuggler patrol encounters use their authored baseline probabilities
 # without NGE expertise or expertise-scaled underworld rank arithmetic.
 ! javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'expertise_'

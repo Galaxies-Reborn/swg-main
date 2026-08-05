@@ -44,12 +44,13 @@ function Get-BracedBlock([string]$Text, [string]$Signature)
 }
 
 $smugglerPath = Join-Path $source ([string]$contract.sourceFiles.smuggler)
+$junkDealerSummonPath = Join-Path $source ([string]$contract.sourceFiles.junkDealerSummon)
 $skillTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $spaceCombatPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/space_combat.java"
 $utilsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java"
 $corpsePath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java"
 $combatActionsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
-foreach ($path in @($smugglerPath, $skillTablePath, $spaceCombatPath, $utilsPath,
+foreach ($path in @($smugglerPath, $junkDealerSummonPath, $skillTablePath, $spaceCombatPath, $utilsPath,
     $corpsePath, $combatActionsPath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
@@ -67,6 +68,57 @@ Assert-Contract (-not $smuggler.Contains("expertise_") -and
 Assert-Contract (-not $smuggler.Contains("money.ACCT_RELIC_DEALER") -and
     -not $smuggler.Contains('"smugglerMaster"')) `
     "p14.precu-smuggler.nge-secondary-junk-payout-absent"
+
+$junkDealerSummon = Get-Content -LiteralPath $junkDealerSummonPath -Raw
+$junkDealerSummonHash = (Get-FileHash -LiteralPath $junkDealerSummonPath -Algorithm SHA256).Hash.ToLowerInvariant()
+Assert-Contract ($junkDealerSummonHash -ceq
+    [string]$contract.buildEvidence.sourceSha256.junkDealerSummon) `
+    "p14.precu-smuggler.source.junk-dealer-summon.authenticated"
+Assert-Contract (-not $junkDealerSummon.Contains("expertise_") -and
+    -not $junkDealerSummon.Contains("sm_junk_dealer_") -and
+    -not $junkDealerSummon.Contains("buffParty") -and
+    -not $junkDealerSummon.Contains("buff.applyBuff") -and
+    -not $junkDealerSummon.Contains("getSkillStatisticModifier") -and
+    [int]$contract.expected.summonedDealerExpertiseReads -eq 0 -and
+    [int]$contract.expected.summonedDealerNgeBuffReferences -eq 0) `
+    "p14.precu-smuggler.summoned-dealer-nge-buff-authority-absent"
+
+$dealerAttach = Get-BracedBlock $junkDealerSummon `
+    "public int OnAttach(obj_id self)"
+$dealerGreeting = Get-BracedBlock $junkDealerSummon `
+    "public int handleGreeting(obj_id self, dictionary params)"
+$dealerProfit = Get-BracedBlock $junkDealerSummon `
+    "public void totalProfits(obj_id self, obj_id player)"
+$dealerTimeout = Get-BracedBlock $junkDealerSummon `
+    "public int timeUp(obj_id self, dictionary params)"
+$dealerDismissal = Get-BracedBlock $junkDealerSummon `
+    "public int dismissDealer(obj_id self, dictionary params)"
+$dealerRunAway = Get-BracedBlock $junkDealerSummon `
+    "public int handleRunAway(obj_id self, dictionary params)"
+Assert-Contract ($dealerAttach.Contains('messageTo(self, "timeUp", null, 300, true)') -and
+    $dealerAttach.Contains('messageTo(self, "handleGreeting", null, 2.0f, false)') -and
+    [int]$contract.expected.summonedDealerLifetimeSeconds -eq 300 -and
+    $dealerGreeting.Contains('utils.setScriptVar(self, "smugglerMaster", master)') -and
+    $dealerGreeting.Contains('"junk_dealer_greeting_" + phraseId') -and
+    $dealerGreeting.Contains('chat.chat(self, master') -and
+    [bool]$contract.expected.summonedDealerGreetingAndProfitPreserved) `
+    "p14.precu-smuggler.summoned-dealer-greeting-and-lifetime-preserved"
+Assert-Contract ($dealerProfit.Contains('utils.getIntScriptVar(self, "totalProfits")') -and
+    $dealerProfit.Contains('new string_id("spam", "junk_dealer_total_profits")') -and
+    $dealerProfit.Contains("sendSystemMessageProse(player, pp)") -and
+    $dealerTimeout.Contains('utils.setScriptVar(self, "dismissed", 1)') -and
+    $dealerTimeout.Contains('messageTo(self, "handleRunAway", null, 1, false)') -and
+    $dealerTimeout.Contains("totalProfits(self, player)") -and
+    $dealerDismissal.Contains('utils.setScriptVar(self, "dismissed", 1)') -and
+    $dealerDismissal.Contains('messageTo(self, "handleRunAway", null, 1, false)') -and
+    $dealerDismissal.Contains("totalProfits(self, player)")) `
+    "p14.precu-smuggler.summoned-dealer-profit-and-dismissal-preserved"
+Assert-Contract ($dealerRunAway.Contains('detachScript(self, "conversation.junk_dealer_smuggler")') -and
+    $dealerRunAway.Contains('detachScript(self, "npc.converse.junk_dealer")') -and
+    $dealerRunAway.Contains("ai_lib.pathAwayFrom(self, master)") -and
+    $dealerRunAway.Contains('messageTo(self, "cleanUp", null, 5.0f, false)') -and
+    [bool]$contract.expected.summonedDealerDismissalAndCleanupPreserved) `
+    "p14.precu-smuggler.summoned-dealer-cleanup-preserved"
 
 $sellJunk = Get-BracedBlock $smuggler `
     "public static void sellJunkItem(obj_id player, obj_id item, boolean fence, boolean reshowSui)"
@@ -102,6 +154,7 @@ $precuSmugglerRows = @($skillRows | Where-Object {
 $precuSmugglerText = $precuSmugglerRows -join "`n"
 Assert-Contract ($precuSmugglerRows.Count -eq [int]$contract.expected.canonicalPrecuSmugglerRows -and
     -not $precuSmugglerText.Contains("expertise_") -and
+    -not $precuSmugglerText.Contains("sm_off_the_books") -and
     $precuSmugglerText.Contains("slice_containers") -and
     $precuSmugglerText.Contains("slice_terminals") -and
     $precuSmugglerText.Contains("slice_weaponsbasic") -and
@@ -140,6 +193,12 @@ $compatibilityHandler = Get-BracedBlock $combatActions `
 Assert-Contract ($compatibilityHandler.Contains("smuggler.inspectCorpseForContraband(player, target)") -and
     $compatibilityHandler.Contains("return SCRIPT_CONTINUE")) `
     "p14.precu-smuggler.ungranted-compatibility-handler-preserved"
+$summonedDealerCompatibilityHandler = Get-BracedBlock $combatActions `
+    "public int sm_off_the_books(obj_id self, obj_id target, String params, float defaultTime)"
+Assert-Contract ($summonedDealerCompatibilityHandler.Contains('combatStandardAction("sm_off_the_books"') -and
+    $summonedDealerCompatibilityHandler.Contains("callJunkDealer(self)") -and
+    $summonedDealerCompatibilityHandler.Contains("return SCRIPT_CONTINUE")) `
+    "p14.precu-smuggler.ungranted-summoned-dealer-handler-preserved"
 
 if ($Expectation -eq "Ready")
 {
@@ -152,6 +211,7 @@ if ($Expectation -eq "Ready")
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.precu-smuggler.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.smuggler -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.junkDealerSummon -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.precu-smuggler.live-evidence"
