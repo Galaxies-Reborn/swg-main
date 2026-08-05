@@ -82,6 +82,8 @@ $paths = [ordered]@{
     "script.systems.gcw.battlefield_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/battlefield_terminal.java"
     "script.systems.gcw.player_pvp" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java"
     "script.systems.gcw.pvp_battlefield" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_battlefield.java"
+    "template.gcw.battlefield_terminal" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/battlefield_terminal.tpf"
+    "template.gcw.battlefield_beacon" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/battlefield_beacon.tpf"
     "script.terminal.terminal_gcw_publish_gift" = "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java"
     "buildout.endor_1_1" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_1.tab"
     "buildout.endor_1_8" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_8.tab"
@@ -113,6 +115,8 @@ $gcw = [string]$texts["script.library.gcw"]
 $controller = [string]$texts["script.systems.gcw.pvp_battlefield"]
 $terminal = [string]$texts["script.systems.gcw.battlefield_terminal"]
 $playerPvp = [string]$texts["script.systems.gcw.player_pvp"]
+$battlefieldTerminalTemplate = [string]$texts["template.gcw.battlefield_terminal"]
+$battlefieldBeaconTemplate = [string]$texts["template.gcw.battlefield_beacon"]
 $warTerminal = [string]$texts["script.terminal.terminal_gcw_publish_gift"]
 $conversions = [string]$texts["script.player.live_conversions"]
 $basePlayer = [string]$texts["script.player.base.base_player"]
@@ -271,6 +275,17 @@ foreach ($name in $buildoutExpectations.Keys)
         -not ([string]$texts[$name]).Contains("systems.gcw.battlefield_terminal")) `
         "p14.queued-battlefield.buildout.$name.scripts-detached-scenery-retained"
 }
+
+Assert-Contract ($battlefieldTerminalTemplate.Contains('sharedTemplate = "object/tangible/gcw/shared_battlefield_terminal.iff"') -and
+    [regex]::IsMatch($battlefieldTerminalTemplate, '(?m)^scripts\s*=\s*\+\s*\[\s*\]\s*$') -and
+    -not $battlefieldTerminalTemplate.Contains("systems.gcw.battlefield_terminal") -and
+    -not [bool]$contract.expected.captureTerminalTemplateScriptsAttached) `
+    "p14.queued-battlefield.capture-terminal-template-controller-detached"
+Assert-Contract ($battlefieldBeaconTemplate.Contains('sharedTemplate = "object/tangible/gcw/shared_battlefield_beacon.iff"') -and
+    [regex]::IsMatch($battlefieldBeaconTemplate, '(?m)^scripts\s*=\s*\+\s*\[\s*\]\s*$') -and
+    -not $battlefieldBeaconTemplate.Contains("systems.gcw.battlefield_terminal") -and
+    -not [bool]$contract.expected.battlefieldBeaconTemplateScriptsAttached) `
+    "p14.queued-battlefield.beacon-template-controller-detached"
 
 $openWorldLibrary = [string]$texts["retained.library.battlefield"]
 $openWorldRegion = [string]$texts["retained.systems.battlefield.region"]

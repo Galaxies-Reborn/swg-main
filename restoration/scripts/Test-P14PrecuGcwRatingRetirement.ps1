@@ -76,6 +76,7 @@ $paths = [ordered]@{
     "script.library.gcw" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java"
     "script.player.player_faction" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/player/player_faction.java"
     "script.systems.gcw.pvp_region_bonus_controller" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_region_bonus_controller.java"
+    "template.gcw.pvp_region_watcher" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/pvp_region_watcher.tpf"
     "script.library.faction_perk" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/faction_perk.java"
     "script.systems.gcw.gcw_parent_object" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_parent_object.java"
     "script.faction_perk.hq.loader" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/loader.java"
@@ -137,6 +138,7 @@ foreach ($name in $paths.Keys)
 $gcw = [string]$texts["script.library.gcw"]
 $playerFaction = [string]$texts["script.player.player_faction"]
 $pvpRegionController = [string]$texts["script.systems.gcw.pvp_region_bonus_controller"]
+$pvpRegionWatcherTemplate = [string]$texts["template.gcw.pvp_region_watcher"]
 $factionPerk = [string]$texts["script.library.faction_perk"]
 $gcwParent = [string]$texts["script.systems.gcw.gcw_parent_object"]
 $hqLoader = [string]$texts["script.faction_perk.hq.loader"]
@@ -248,6 +250,12 @@ foreach ($entrypoint in @("OnAttach", "OnInitialize", "cycleUpdate", "diedInPvpR
         "(?s)public int $entrypoint\([^}]+isPostNgePvpRegionBonusRetired\(\)[^}]+retirePostNgePvpRegionBonus\(self\)[^}]+return SCRIPT_CONTINUE;")) `
         "p14.gcw-rating.pvp-region-controller-entrypoint.$entrypoint.cleans"
 }
+
+Assert-Contract ($pvpRegionWatcherTemplate.Contains('sharedTemplate = "object/tangible/gcw/shared_pvp_region_watcher.iff"') -and
+    [regex]::IsMatch($pvpRegionWatcherTemplate, '(?m)^scripts\s*=\s*\[\s*\]\s*$') -and
+    -not $pvpRegionWatcherTemplate.Contains("systems.gcw.pvp_region_bonus_controller") -and
+    -not [bool]$contract.expected.pvpRegionWatcherTemplateScriptsAttached) `
+    "p14.gcw-rating.pvp-region-watcher-template-controller-detached"
 
 $watcherRows = [ordered]@{
     "buildout.corellia_7_2" = "-537065502"

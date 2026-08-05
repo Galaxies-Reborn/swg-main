@@ -49,6 +49,8 @@ $paths = [ordered]@{
     "script.static.spawned_object" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/spawned_object.java"
     "script.static.control_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal.java"
     "script.static.control_terminal_player" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/static_base/control_terminal_player.java"
+    "template.gcw.pvp_region_watcher" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/pvp_region_watcher.tpf"
+    "template.gcw.static_base.control_terminal" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/static_base/control_terminal.tpf"
     "script.structure.starport" = "dsrc/sku.0/sys.server/compiled/game/script/structure/municipal/starport.java"
     "script.structure.cloning_facility" = "dsrc/sku.0/sys.server/compiled/game/script/structure/municipal/cloning_facility.java"
     "script.collections.consume_click" = "dsrc/sku.0/sys.server/compiled/game/script/systems/collections/consume_click.java"
@@ -150,6 +152,19 @@ Assert-Contract ($cloner.Contains('template.startsWith("object/tangible/gcw/stat
 Assert-Contract ($collection.Contains('template.startsWith("object/tangible/collection/col_gcw_static_base_")') -and
     $collection.Contains('detachScript(self, "systems.collections.consume_click")')) `
     "p14.fixed-static-base.generic-collection-cleanup-template-scoped"
+
+$pvpRegionWatcherTemplate = [string]$texts["template.gcw.pvp_region_watcher"]
+$controlTerminalTemplate = [string]$texts["template.gcw.static_base.control_terminal"]
+Assert-Contract ($pvpRegionWatcherTemplate.Contains('sharedTemplate = "object/tangible/gcw/shared_pvp_region_watcher.iff"') -and
+    [regex]::IsMatch($pvpRegionWatcherTemplate, '(?m)^scripts\s*=\s*\[\s*\]\s*$') -and
+    -not $pvpRegionWatcherTemplate.Contains("systems.gcw.pvp_region_bonus_controller") -and
+    -not [bool]$contract.expected.pvpRegionWatcherTemplateScriptsAttached) `
+    "p14.fixed-static-base.pvp-region-watcher-template-controller-detached"
+Assert-Contract ($controlTerminalTemplate.Contains('sharedTemplate = "object/tangible/gcw/static_base/shared_control_terminal.iff"') -and
+    [regex]::IsMatch($controlTerminalTemplate, '(?m)^scripts\s*=\s*\+\s*\[\s*\]\s*$') -and
+    -not $controlTerminalTemplate.Contains("systems.gcw.static_base.control_terminal") -and
+    -not [bool]$contract.expected.controlTerminalTemplateScriptsAttached) `
+    "p14.fixed-static-base.control-terminal-template-controller-detached"
 
 $buildoutIds = [ordered]@{
     "buildout.corellia_7_2" = @("-1950861366", "-1861947162", "-1704050194", "-1583793873", "-1043449019", "-899991077", "-485623403")
