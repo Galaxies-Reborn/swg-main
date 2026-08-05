@@ -989,6 +989,12 @@ grep -Fq 'actionName.startsWith("fs_")' "$work_script/systems/combat/combat_base
 grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeForceSensitivePlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 1
 grep -Fq 'buff.removeBuff(self, "fs_dot_immunity_recourse")' "$work_script/systems/combat/combat_actions.java"
+grep -Fq 'actionName.startsWith("sm_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'isRetiredPostNgeSmugglerPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
+test "$(grep -Fc 'isRetiredPostNgeSmugglerPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 6
+for recourse in sm_feeling_lucky_recourse sm_lucky_break_recourse sm_break_the_deal_recourse sm_melee_stun_recourse; do
+    grep -Fq "buff.removeBuff(self, \"$recourse\")" "$work_script/systems/combat/combat_actions.java"
+done
 ! grep -R -F 'expertise_bm_' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -E -R 'get(Enhanced)?SkillStatisticModifier(Uncapped)?\([^\r\n]*"(bm_|incubation_time_reduction)' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -Fq 'playerLearnBeastMasterSkill' "$work_script/conversation/trainer_beast_master.java"
@@ -1311,6 +1317,12 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'fs_'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'fs_dot_immunity_recourse'
+# Publish 14.1 Smuggler uses combat_smuggler skill boxes and classic named
+# commands; sm_* remains retained NGE compatibility without player authority.
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeSmugglerPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sm_'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeSmugglerPlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'sm_inspect_cargo'
 # Publish 14.1 Creature Handler remains authoritative. Retain Beast Master
 # assets for later-content loading but retire their player combat runtime.
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'

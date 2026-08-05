@@ -136,6 +136,27 @@ foreach ($property in $contract.buildEvidence.forceSensitiveRuntimeSourceSha256.
         "p14.profession-closure.force-sensitive-runtime.source.$($property.Name).authenticated"
 }
 
+$smugglerRuntimeSources = [ordered]@{
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java" =
+        "systems/combat/combat_base.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
+        "systems/combat/combat_actions.java"
+}
+Assert-Contract ($smugglerRuntimeSources.Count -eq
+        [int]$contract.expected.authoritativeSmugglerRuntimeFiles -and
+    @($contract.buildEvidence.smugglerRuntimeSourceSha256.PSObject.Properties).Count -eq
+        $smugglerRuntimeSources.Count) `
+    "p14.profession-closure.smuggler-runtime.source-count"
+foreach ($property in $contract.buildEvidence.smugglerRuntimeSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $dsrc $property.Name
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        $smugglerRuntimeSources.Contains($property.Name) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            [string]$property.Value) `
+        "p14.profession-closure.smuggler-runtime.source.$($property.Name).authenticated"
+}
+
 $combatBase = [string]$officerTexts["systems/combat/combat_base.java"]
 $officerPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeOfficerPlayerAction" `
@@ -165,7 +186,7 @@ Assert-Contract ($officerHandlers.Count -eq [int]$contract.expected.postNgeOffic
 
 $forceSensitivePredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeForceSensitivePlayerAction" `
-    "public boolean combatStandardAction"
+    "public static boolean isRetiredPostNgeSmugglerPlayerAction"
 Assert-Contract ($forceSensitivePredicate.Contains("isPlayer(self)") -and
     $forceSensitivePredicate.Contains('actionName.startsWith("fs_")') -and
     $combatBase.Contains("if (isRetiredPostNgeForceSensitivePlayerAction(self, actionName))")) `
@@ -197,6 +218,65 @@ Assert-Contract ($forceSensitiveHandlers.Count -eq
     ($directForceSensitiveHandlerNames -join "`n") -ceq "fs_dot_immunity_recourse" -and
     $directForceSensitiveGuarded) `
     "p14.profession-closure.force-sensitive-runtime.all-player-actions-covered"
+
+$smugglerPredicate = Get-FunctionSlice $combatBase `
+    "public static boolean isRetiredPostNgeSmugglerPlayerAction" `
+    "public boolean combatStandardAction"
+Assert-Contract ($smugglerPredicate.Contains("isPlayer(self)") -and
+    $smugglerPredicate.Contains('actionName.startsWith("sm_")') -and
+    $combatBase.Contains("if (isRetiredPostNgeSmugglerPlayerAction(self, actionName))")) `
+    "p14.profession-closure.smuggler-runtime.central-player-action-gate"
+
+$smugglerHandlers = @([regex]::Matches(
+    $combatActions,
+    '(?ms)^\s*public int (sm_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+$standardSmugglerHandlers = @($smugglerHandlers | Where-Object {
+    $_.Value.Contains("combatStandardAction(")
+})
+$directSmugglerHandlers = @($smugglerHandlers | Where-Object {
+    -not $_.Value.Contains("combatStandardAction(")
+})
+$expectedDirectSmugglerHandlers = @(
+    "sm_break_the_deal_recourse",
+    "sm_disarm_trap_1",
+    "sm_feeling_lucky_recourse",
+    "sm_inspect_cargo",
+    "sm_lucky_break_recourse",
+    "sm_melee_stun_recourse"
+)
+$actualDirectSmugglerHandlers = @($directSmugglerHandlers | ForEach-Object {
+    $_.Groups[1].Value
+} | Sort-Object)
+$directSmugglerHandlersGuarded = $true
+foreach ($handler in $directSmugglerHandlers)
+{
+    $name = $handler.Groups[1].Value
+    if (-not $handler.Value.Contains(
+        "isRetiredPostNgeSmugglerPlayerAction(self, `"$name`")"))
+    {
+        $directSmugglerHandlersGuarded = $false
+    }
+    if ($name.EndsWith("_recourse") -and
+        -not $handler.Value.Contains("buff.removeBuff(self, `"$name`")"))
+    {
+        $directSmugglerHandlersGuarded = $false
+    }
+    if (-not $name.EndsWith("_recourse") -and
+        -not $handler.Value.Contains("return SCRIPT_OVERRIDE;"))
+    {
+        $directSmugglerHandlersGuarded = $false
+    }
+}
+Assert-Contract ($smugglerHandlers.Count -eq
+        [int]$contract.expected.postNgeSmugglerPlayerActionHandlers -and
+    $standardSmugglerHandlers.Count -eq
+        [int]$contract.expected.postNgeSmugglerStandardActionHandlers -and
+    $directSmugglerHandlers.Count -eq
+        [int]$contract.expected.postNgeSmugglerDirectCallbacks -and
+    ($actualDirectSmugglerHandlers -join "`n") -ceq
+        ($expectedDirectSmugglerHandlers -join "`n") -and
+    $directSmugglerHandlersGuarded) `
+    "p14.profession-closure.smuggler-runtime.all-player-actions-covered"
 
 $officerPet = [string]$officerTexts["ai/officer_pet.java"]
 Assert-Contract (-not $officerPet.Contains("expertise_of_reinforcements_1") -and
@@ -334,6 +414,28 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_forcesensiti
         [int]$contract.expected.precuJediAndVillageFsCommands) `
     "p14.profession-closure.force-sensitive-runtime.data-and-precu-command-boundary"
 
+$precuSmugglerRows = @($skillRows | Where-Object {
+    [string]$_.NAME -match '^combat_smuggler(?:_|$)'
+})
+$precuSmugglerCommands = @($precuSmugglerRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_smuggler_').Count -eq
+        [int]$contract.expected.retainedSmugglerClassSkillRows) -and
+    ([regex]::Matches($officerSkillsTable, '(?m)^expertise_sm_').Count -eq
+        [int]$contract.expected.retainedSmugglerExpertiseSkillRows) -and
+    ([regex]::Matches($commandTable, '(?m)^sm_').Count -eq
+        [int]$contract.expected.retainedSmugglerCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^sm_').Count -eq
+        [int]$contract.expected.retainedSmugglerCombatRows) -and
+    ([regex]::Matches($commandSeries, '(?m)^sm_').Count -eq
+        [int]$contract.expected.retainedSmugglerCommandSeriesRows) -and
+    $precuSmugglerRows.Count -eq [int]$contract.expected.precuSmugglerSkillRows -and
+    $precuSmugglerCommands.Count -eq [int]$contract.expected.precuSmugglerCommands -and
+    @($precuSmugglerCommands | Where-Object { $_ -match '^sm_' }).Count -eq
+        [int]$contract.expected.precuSmugglerSmCommands) `
+    "p14.profession-closure.smuggler-runtime.data-and-precu-command-boundary"
+
 $utilsText = Get-SourceText "sku.0/sys.server/compiled/game/script/library/utils.java"
 $professionSlice = Get-FunctionSlice $utilsText "public static int getPlayerProfession" "public static byte[] packObject"
 $professionOrder = @("FORCE_SENSITIVE", "BOUNTY_HUNTER", "SMUGGLER", "COMMANDO", "OFFICER", "MEDIC", "ENTERTAINER", "TRADER")
@@ -445,6 +547,10 @@ if ($Expectation -eq "Ready")
         $null -ne $contract.buildEvidence.forceSensitiveRuntimeClassEvidence -and
         @($contract.buildEvidence.forceSensitiveRuntimeClassEvidence.PSObject.Properties |
             Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
+    $smugglerClassHashesValid =
+        $null -ne $contract.buildEvidence.smugglerRuntimeClassEvidence -and
+        @($contract.buildEvidence.smugglerRuntimeClassEvidence.PSObject.Properties |
+            Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
     Assert-Contract ([string]$manifest.sourceMode -ceq "direct-branch" -and
         $dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
@@ -453,6 +559,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.runtimeEvidence.result -ceq "passed" -and
         $officerClassHashesValid -and
         $forceSensitiveClassHashesValid -and
+        $smugglerClassHashesValid -and
         [bool]$contract.runtimeEvidence.deployment.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.deployment.mappedNewlyBuiltBinary) `
         "p14.profession-closure.live-evidence"
