@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-dot-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Keep authenticated Publish 14.1 combat and Combat Medic damage-over-time effects under classic potency, dissipation, and absorption authority without allowing inherited NGE expertise, vulnerability, armor, generic damage, or repeat pulse-resistance layers to modify them.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -57,42 +57,49 @@
     "compiledClassSha256": {
       "dot": "b3255235f00f7c398e49718afc0f1966c7e1d11a888260d4523315b2ef8d21bc",
       "healing": "31822f57b55a12b6d7abfa8b5793130a64149c22389f2d36ca2df59419cb9c48",
-      "combatBase": null,
-      "combatActions": null
+      "combatBase": "8008a6e5bb7d7920e9d8785b3af4eebcc286d2bbb8801d44949f4aa898f0e17e",
+      "combatActions": "7c78b88eac9c870fd09005e8fbba7a3cbc77ea46833fd8dfe12c43958216fb46"
     },
     "sourceTest": "passed; the normal and PRE-CU helpers select mutually explicit routes, classic application resistance and six-family duration dissipation remain, the per-DOT PRE-CU marker persists into pulses, all six classic absorption families remain at full value with a 50-percent cap, every inherited NGE pulse layer is compatibility-bounded, and all authenticated callers select the correct route",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": null,
-    "serverBinarySha256": null,
-    "serverBinaryBuildId": null,
-    "sourceWorkParity": null,
-    "bytecodeAudit": null,
-    "deploymentProbe": null,
-    "result": "pending"
+    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 661.8 seconds from pushed parent 3607da9 and direct dsrc ddc5f7a",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for DOT/healing sources and both changed combat dependencies between the read-only direct-source mount and Docker work volume",
+    "bytecodeAudit": "passed; emitted DOT, healing, and combat classes retain PRE-CU DOT authority while the shared combat classes enforce the player-only fs_*, sm_*, bh_*, and co_* retirement boundaries",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory parity and bytecode gates, x64 architecture, restart/readiness, mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": null,
+    "date": "2026-08-05",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": null,
-    "containerHealth": null,
-    "clusterReadyForPlayers": false,
+    "containerStartedAt": "2026-08-05T09:25:49.859993444Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
     "compiledClassSizes": {
-      "dot": null,
-      "healing": null,
-      "combatBase": null,
-      "combatActions": null
+      "dot": 49980,
+      "healing": 103955,
+      "combatBase": 146607,
+      "combatActions": 320259
     },
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": null,
-    "liveBinaryInode": null,
-    "liveBinarySize": null,
-    "liveBinaryMapEntries": null,
-    "processCounts": null,
-    "postStartLogAudit": null,
-    "result": "pending"
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 368,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "authenticated PRE-CU DOT creation and pulse processing can no longer cross into inherited NGE DOT expertise, vulnerability, armor, generic damage, or repeat pulse-resistance authority",
