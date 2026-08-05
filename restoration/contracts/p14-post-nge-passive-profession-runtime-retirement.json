@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-passive-profession-runtime-retirement",
-  "status": "ready",
-  "scope": "Retire automatic and persisted NGE Force Sensitive stance/focus and Smuggler Underworld expertise passives while preserving Publish 14.1 skill-box progression, the distinct PRE-CU brawler Center of Being lifecycle, Smuggler title/reward quests, NPC behavior, and retained expansion data.",
+  "status": "implemented-build-pending",
+  "scope": "Retire automatic and persisted NGE Force Sensitive stance/focus, Smuggler Underworld expertise passives, and Commando kill-meter player state while preserving Publish 14.1 skill-box progression, the distinct PRE-CU brawler Center of Being lifecycle, Smuggler title/reward quests, NPC behavior, and retained expansion data.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -10,13 +10,14 @@
       "Publish 14.1 player progression is driven by independently learned skill boxes rather than NGE class and expertise trees.",
       "The inherited automatic fs_buff_ca_1/fs_buff_def_1_1 and sm_underworld_* application paths read NGE expertise modifiers and are not Publish 14.1 profession passives.",
       "The NGE stance handler can rehydrate expertise-derived child buffs and modifiers from persisted parent state even when every fs_* player action is centrally denied.",
+      "The inherited NGE Commando kill meter has independent native, damage, XP-kill, GCW-kill, and command writers; retained compatibility attacks could mutate a restored PRE-CU Commando defender unless player identity is denied at the meter boundary.",
       "The authenticated PRE-CU Center of Being uses the separate centerOfBeing command, centerofbeing buff, and brawler efficacy/duration skill modifiers; it does not use either NGE Force Sensitive stance parent.",
       "Later buff, effect-mapping, quest, and zone data can remain loadable for NPC and expansion compatibility without granting player progression authority."
     ]
   },
   "expected": {
     "changedSourceFiles": 3,
-    "authoritativeSourceFiles": 6,
+    "authoritativeSourceFiles": 10,
     "retiredPassiveBuffs": 43,
     "retiredForceSensitiveStanceStateBuffs": 35,
     "retainedForceSensitiveStanceCompatibilityRows": 34,
@@ -33,6 +34,9 @@
     "automaticSmugglerPassiveApplicationReachable": false,
     "underworldFactionChangeAppliesPassive": false,
     "stalePassiveCleanupOnInitializeLoginAndRecap": true,
+    "centralizedKillMeterWriterCallSites": 7,
+    "productionDirectKillMeterWriterFiles": 1,
+    "nonPlayerKillMeterCompatibilityPreserved": true,
     "skillAcquisitionFeedbackUsesCombatLevel": false,
     "smugglerTitlesAndRewardQuestsPreserved": true,
     "compatibilityBuffRowsPreserved": true,
@@ -41,36 +45,44 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceCommit": "1ebf093dec4165a77bd83d789cfd3048e2fe6bbc",
+    "directSourceCommit": "3bad7bb222ee258489ae4785ae3127b226e4d256",
     "hostMaterializationWorkflow": "retired; host Artifacts and Staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
-    "sourceContentSha256": "14d813d5ada804bc4fd45a8dcda3ddb6b89e488d100290d1ba079eac08010ad9",
+    "sourceContentSha256": "4052e5d1e31b842b0ad7f19f2b793edda12ed4dc415c73bc2e566fdfae2c854f",
     "sourceSha256": {
       "library/factions.java": "ae1c694858be813f6d95485a93dcbfa170003be1b94c4118d1af37cb550f995f",
       "library/skill.java": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
-      "player/base/base_player.java": "4a248ec126896808b511633e26fbf360d8090e156e825426e612c47319451b4d",
+      "player/base/base_player.java": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744",
       "library/buff.java": "661bcae50837f2429eca1edd2ee594ff2a50291cb80eab19d8281050603fb518",
       "systems/buff/buff_handler.java": "e746c0b234dce3b2c721ed246a0c0a0fe3eaaf1109a0fa7abd08180d64dbc266",
-      "systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
+      "systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
+      "library/combat.java": "42d4ed92cbf35a52d1ae01c453888d18b4569828e24fa8a54b3c32ec9c6a05d8",
+      "library/gcw.java": "7bc7e2aec3cb5516541e9cc599cdf0d291e13868a803e39da157cda2998716b7",
+      "library/xp.java": "5f59b224758477a9414231f3d3b132dd52ca8d074b86de86ce288109ad7bf55d",
+      "systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7"
     },
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed in 764.9 seconds from pushed parent 9b3e6ba and direct dsrc 1ebf093 with all x64 server and data targets completed",
+    "fullJavaCompile": "pending clean dependency rebuild",
+    "fullServerBuild": "pending clean x64 deployment from direct dsrc 3bad7bb22",
     "compiledClassSha256": {
       "library/factions.class": "dbb2dee39bc745c32735fd69cfa7997c533d3e04c2da4457e7e53d6de419f727",
       "library/skill.class": "a44487dd93cf152afe771ea6db661c29761c1978f3231c3f63bac2fd074855f3",
       "player/base/base_player.class": "679ff45e383063d6e556b834e4c842931d9fc1a4ce703cdb27e643f4eb2e2930",
       "library/buff.class": "bdb8c5265e1cd0ea87d7578da580a8225612462331944295fe4dbf3ca9202938",
       "systems/buff/buff_handler.class": "92dddf5859e3ebc317f9fe33afc3999efce0a9811c7ba96bd582e177f9a67c27",
-      "systems/combat/combat_actions.class": "9bf68c13eaea8db3cd9885e636ed984f9eb4b46101528f20a8cf8e02c962d9f1"
+      "systems/combat/combat_actions.class": "pending",
+      "library/combat.class": "pending",
+      "library/gcw.class": "pending",
+      "library/xp.class": "pending",
+      "systems/combat/combat_base.class": "pending"
     },
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "focusedJavaCompile": "passed for current buff.java and buff_handler.java with Java 8 target in an ephemeral /dev/shm directory removed immediately",
-    "sourceWorkParity": "passed byte-for-byte for all six authoritative passive-profession sources between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed exact 35-state player cleanup and pre-invisibility callback denial with 34 retained compatibility rows",
-    "deploymentProbe": "passed expanded passive-profession source, parity, bytecode, x64, readiness, mapped-binary, and clean-log gates",
-    "result": "passed"
+    "focusedJavaCompile": "passed all six changed kill-meter sources with Java 8 target in an ephemeral /dev/shm directory removed immediately",
+    "sourceWorkParity": "pending clean source-to-work synchronization for all ten authoritative sources",
+    "bytecodeAudit": "pending clean-build kill-meter player-boundary probes",
+    "deploymentProbe": "pending clean x64 deployment",
+    "result": "pending"
   },
   "continuityEvidence": {
     "buffDataSha256": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
@@ -90,10 +102,10 @@
     "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
     "containerStartedAt": "2026-08-05T13:24:30.472357955Z",
     "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "sourceWorkParityFiles": 6,
-    "compiledBytecodeProbes": "passed generic retired-skill admission, exact Force Sensitive stance/focus/NGE-cloak cleanup and handler/query dominance, passive cleanup, absence of faction passive dispatch, authentic invis_forceCloak retention, and PRE-CU Center of Being preservation",
-    "liveProcessMappedBuiltBinary": true,
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 10,
+    "compiledBytecodeProbes": "pending clean-build player kill-meter retirement probes",
+    "liveProcessMappedBuiltBinary": false,
     "liveGameProcessPid": 362,
     "liveBinaryInode": 12110805,
     "liveBinarySize": 22601480,
@@ -106,7 +118,11 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "clean Java and x64 server deployment",
+    "source/work parity and compiled kill-meter boundary probes",
+    "healthy player-ready server mapped to the newly built x64 binary"
+  ]
 }

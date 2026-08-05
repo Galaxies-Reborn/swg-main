@@ -47,6 +47,10 @@ $relativeSourceMap = [ordered]@{
     "library/buff.java" = "library/buff.java"
     "systems/buff/buff_handler.java" = "systems/buff/buff_handler.java"
     "systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
+    "library/combat.java" = "library/combat.java"
+    "library/gcw.java" = "library/gcw.java"
+    "library/xp.java" = "library/xp.java"
+    "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
 }
 Assert-Contract ($relativeSourceMap.Count -eq
     [int]$contract.expected.authoritativeSourceFiles) `
@@ -86,13 +90,75 @@ $retiredBuffNames = @(
     "sm_underworld_damage_1", "sm_underworld_damage_2", "sm_underworld_damage_3"
 )
 Assert-Contract ($cleanup.Contains("buff.retirePostNgeForceSensitiveStanceState(self)") -and
-    $cleanup.Contains("removeSmugglingBuffs(self)")) `
+    $cleanup.Contains("removeSmugglingBuffs(self)") -and
+    $cleanup.Contains("combat.retirePostNgeKillMeterPlayerState(self)")) `
     "p14.passive-profession.central-cleanup"
 Assert-Contract (@($retiredBuffNames | Where-Object { -not $smugglerCleanup.Contains('"' + $_ + '"') }).Count -eq 0) "p14.passive-profession.smuggler-buff-inventory"
 
 $buffLibrary = [string]$sourceTexts["library/buff.java"]
 $buffHandler = [string]$sourceTexts["systems/buff/buff_handler.java"]
 $combatActions = [string]$sourceTexts["systems/combat/combat_actions.java"]
+$combatLibrary = [string]$sourceTexts["library/combat.java"]
+$gcw = [string]$sourceTexts["library/gcw.java"]
+$xp = [string]$sourceTexts["library/xp.java"]
+$combatBase = [string]$sourceTexts["systems/combat/combat_base.java"]
+$killMeterCleanup = Get-SourceSlice $combatLibrary `
+    "public static void retirePostNgeKillMeterPlayerState" `
+    "public static boolean setKillMeter"
+$killMeterSet = Get-SourceSlice $combatLibrary `
+    "public static boolean setKillMeter" `
+    "public static boolean modifyKillMeter"
+$killMeterModify = Get-SourceSlice $combatLibrary `
+    "public static boolean modifyKillMeter" `
+    "public static boolean canDrainKillMeter"
+$killMeterCanDrain = Get-SourceSlice $combatLibrary `
+    "public static boolean canDrainKillMeter" `
+    "public static boolean drainKillMeter"
+$killMeterDrain = Get-SourceSlice $combatLibrary `
+    "public static boolean drainKillMeter" `
+    "public static location getCommandGroundTargetLocation"
+$killMeterDamageUpdate = Get-SourceSlice $combatBase `
+    "public void doKillMeterUpdate" "__no_later_kill_meter_method__"
+$centralKillMeterWriters = ([regex]::Matches(
+    ($gcw + $xp + $combatActions + $combatBase),
+    'combat\.modifyKillMeter\(')).Count
+$productionDirectKillMeterWriterFiles = @()
+foreach ($file in Get-ChildItem -LiteralPath $scriptRoot -Recurse -File -Filter "*.java")
+{
+    $relative = $file.FullName.Substring($scriptRoot.Length + 1).Replace('\', '/')
+    if ($relative -ceq "base_class.java" -or
+        $relative -match '(^|/)(?:test|qa|working|beta)(/|$)') { continue }
+    if ((Get-Content -LiteralPath $file.FullName -Raw).Contains("incrementKillMeter("))
+    {
+        $productionDirectKillMeterWriterFiles += $relative
+    }
+}
+Assert-Contract ($killMeterCleanup.Contains("if (!isPlayer(player))") -and
+    $killMeterCleanup.Contains("getKillMeter(player)") -and
+    $killMeterCleanup.Contains("incrementKillMeter(player, -current)") -and
+    $killMeterCleanup.Contains('utils.removeScriptVarTree(player, "km")') -and
+    @(@($killMeterSet, $killMeterModify, $killMeterCanDrain, $killMeterDrain) |
+        Where-Object {
+            $_.Contains("if (isPlayer(player))") -and
+            $_.Contains("retirePostNgeKillMeterPlayerState(player)")
+        }).Count -eq 4) `
+    "p14.passive-profession.commando-kill-meter.player-state-fails-closed"
+Assert-Contract ($centralKillMeterWriters -eq
+        [int]$contract.expected.centralizedKillMeterWriterCallSites -and
+    $productionDirectKillMeterWriterFiles.Count -eq
+        [int]$contract.expected.productionDirectKillMeterWriterFiles -and
+    $productionDirectKillMeterWriterFiles[0] -ceq "library/combat.java" -and
+    -not ($gcw + $xp + $combatActions + $combatBase).Contains("incrementKillMeter(")) `
+    "p14.passive-profession.commando-kill-meter.all-production-writers-centralized"
+Assert-Contract ([bool]$contract.expected.nonPlayerKillMeterCompatibilityPreserved -and
+    $killMeterSet.Contains("incrementKillMeter(player, delta)") -and
+    $killMeterCanDrain.Contains("return true;") -and
+    $killMeterDrain.Contains("return true;") -and
+    $killMeterDamageUpdate.Contains("boolean compatibleAttacker = !playerAttacker") -and
+    $killMeterDamageUpdate.Contains("boolean compatibleDefender = !playerDefender") -and
+    $killMeterDamageUpdate.Contains('"km.damage_done"') -and
+    $killMeterDamageUpdate.Contains('"km.damage_taken"')) `
+    "p14.passive-profession.commando-kill-meter.non-player-compatibility-preserved"
 $stanceInventory = Get-SourceSlice $buffLibrary `
     "private static final String[] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS" `
     "public static boolean isRetiredPostNgeForceSensitiveStanceBuff"

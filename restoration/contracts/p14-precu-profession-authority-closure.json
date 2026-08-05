@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "precu-profession-authority-closure",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Replace remaining executable NGE class/phase profession authority with Publish 14.1 skill-box ownership, native Jedi state, and the existing hidden PRE-CU combat-skill score; retire post-NGE Officer, Force Sensitive, Smuggler, Bounty Hunter, Commando, Medic, and Entertainer player combat families while preserving their classic PRE-CU skill-box commands, stale-data cleanup, NPC behavior, and expansion content.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -11,7 +11,8 @@
     "jediBoundary": "jedi_padawan_novice is the authenticated common PRE-CU lightsaber-crafting root; style recipe grants remain governed by the Jedi skill tree.",
     "expansionBoundary": "Retained NGE quests, zones, schematics, terminals, droids, and dungeon interactions remain available but consult PRE-CU skill ownership.",
     "officerBoundary": "Publish 14.1 Squad Leader skill boxes remain authoritative; the later singular Officer class, of_* command family, supply-drop items, and reinforcement pets are compatibility content without player gameplay authority.",
-    "gcwBannerBoundary": "Pinned Publish 14.1 has no Roadmap class banner buffs; the retained faction banner remains visual content while all nine class effects and the Commando proc are retired for players."
+    "gcwBannerBoundary": "Pinned Publish 14.1 has no Roadmap class banner buffs; the retained faction banner remains visual content while all nine class effects and the Commando proc are retired for players.",
+    "commandoKillMeterBoundary": "The native kill meter, its damage intervals, kill awards, vigor costs, and expertise consumers belong to the retained NGE Commando class path; Publish 14.1 combat_commando players have no kill-meter resource."
   },
   "expected": {
     "changedSourceFiles": 68,
@@ -88,10 +89,12 @@
     "precuBountyHunterSkillRows": 19,
     "precuBountyHunterCommands": 19,
     "precuBountyHunterBhCommands": 0,
-    "authoritativeCommandoRuntimeFiles": 2,
+    "authoritativeCommandoRuntimeFiles": 6,
     "postNgeCommandoPlayerActionHandlers": 69,
     "postNgeCommandoStandardActionHandlers": 68,
     "postNgeCommandoDirectCallbacks": 1,
+    "centralizedCommandoKillMeterWriterCallSites": 7,
+    "nonPlayerCommandoKillMeterCompatibilityPreserved": true,
     "retainedCommandoClassSkillRows": 28,
     "retainedCommandoExpertiseSkillRows": 110,
     "retainedCommandoCommandRows": 130,
@@ -127,12 +130,12 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "1ebf093dec4165a77bd83d789cfd3048e2fe6bbc",
+    "directSourceGitlink": "3bad7bb222ee258489ae4785ae3127b226e4d256",
     "lineEndingPolicy": "The three touched legacy Officer persistence scripts were normalized to the repository-declared LF policy; no generated overlay or staging tree was created.",
     "officerRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/ai/officer_pet.java": "3bbbab602848af451d1085bc6f3ca33d68cb8a5d0741010f62732155e3479b97",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_supply_drop_controller.java": "e1d59b602155d6d97cd3952d9dffcd34cabd8cccdf44bf16323001c95ee254c5",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_supply_drop_crate.java": "faabe522a58822b63afa273bbb2e708f60ce5dcfd85097ace793fa268c886ef8"
     },
@@ -142,38 +145,42 @@
       "sha256": "f789a1269f7a2b85401204bb4bb18996b7cd8d4fcb4a97f107371bdfa38c34d9"
     },
     "sourceSetSha256": "4d626c4950dbe4afa4a18e5ffea076da0b1554e69d9d9b1ef4c386d1e5a64700",
-    "sourceContentSha256": "8bb36eede9fcaf2b1f50e830602b971458ed6170d3034f1815eca9fd91485b72",
+    "sourceContentSha256": "0a8c10fe9994dbd0e98bf05630f4111f246185e767959f9f1905c85296fd1ea7",
     "forceSensitiveRuntimeSourceSha256": {
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
       "sku.0/sys.server/compiled/game/script/library/buff.java": "661bcae50837f2429eca1edd2ee594ff2a50291cb80eab19d8281050603fb518",
       "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "e746c0b234dce3b2c721ed246a0c0a0fe3eaaf1109a0fa7abd08180d64dbc266",
-      "sku.0/sys.server/compiled/game/script/player/base/base_player.java": "4a248ec126896808b511633e26fbf360d8090e156e825426e612c47319451b4d"
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.java": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744"
     },
     "smugglerRuntimeSourceSha256": {
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59"
     },
     "bountyHunterRuntimeSourceSha256": {
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
       "sku.0/sys.server/compiled/game/script/library/buff.java": "661bcae50837f2429eca1edd2ee594ff2a50291cb80eab19d8281050603fb518",
       "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "e746c0b234dce3b2c721ed246a0c0a0fe3eaaf1109a0fa7abd08180d64dbc266",
       "sku.0/sys.server/compiled/game/script/player/skill/bh_shields.java": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7"
     },
     "commandoRuntimeSourceSha256": {
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
+      "sku.0/sys.server/compiled/game/script/library/combat.java": "42d4ed92cbf35a52d1ae01c453888d18b4569828e24fa8a54b3c32ec9c6a05d8",
+      "sku.0/sys.server/compiled/game/script/library/gcw.java": "7bc7e2aec3cb5516541e9cc599cdf0d291e13868a803e39da157cda2998716b7",
+      "sku.0/sys.server/compiled/game/script/library/xp.java": "5f59b224758477a9414231f3d3b132dd52ca8d074b86de86ce288109ad7bf55d",
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.java": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744"
     },
     "medicRuntimeSourceSha256": {
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59"
     },
     "entertainerRuntimeSourceSha256": {
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "0ffacc8b86d2d9b82cf0d874d26b620ce4ce54fa1e4dc910a5d043161edb28d8",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "283e74f9f554066c5a8f3da8cd1c824c491835ffab42caa395cf06be9d9dcbc1"
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "4a2043f1a51995309735cfd5010d40804a07ff0da683001997691ea52cd07bd7",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source profession closure now also removes and denies the exact NGE invis_fs_buff_invis_1 player state before its invisibility callback, without retiring authentic invis_forceCloak or NPC/content compatibility.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source profession closure now also clears and denies every NGE Commando kill-meter player writer while preserving non-player compatibility and classic combat_commando skill-box authority.",
     "missionSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
@@ -184,7 +191,7 @@
       "acceptanceFiles": 1170,
       "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b"
     },
-    "focusedJavaCompile": "passed for current buff.java and buff_handler.java with Java 8 target in an ephemeral /dev/shm directory removed immediately; preceding profession-family compiles remain authenticated",
+    "focusedJavaCompile": "passed all six changed kill-meter sources with Java 8 target in an ephemeral /dev/shm directory removed immediately",
     "javaCompile": {
       "result": "passed",
       "sourceFiles": 5713,
@@ -245,9 +252,9 @@
       "systems/combat/combat_base.class": "c2fd7e7a21a1f1ef7f434575ca7f7502ec7e9ebbe0380ea802be499d905cdaa0",
       "systems/combat/combat_actions.class": "9bf68c13eaea8db3cd9885e636ed984f9eb4b46101528f20a8cf8e02c962d9f1"
     },
-    "sourceWorkParity": "passed byte-for-byte for current profession-family sources between the read-only source mount and Docker work volume",
-    "deploymentProbe": "passed mandatory exact 35-state Force Sensitive inventory, invisibility callback, profession-family, x64, readiness, mapped-binary, and clean-log verification",
-    "result": "passed",
+    "sourceWorkParity": "pending clean source-to-work synchronization",
+    "deploymentProbe": "pending kill-meter player-boundary, x64, readiness, mapped-binary, and clean-log verification",
+    "result": "pending",
     "bytecodeProbes": [
       "hidden PRE-CU combat-score thresholds 25/50/75",
       "PRE-CU Smuggler underworld and master authority",
@@ -262,7 +269,7 @@
       "player-only sm_* combat-action retirement with classic PRE-CU Smuggler command preservation",
       "player-only bh_* combat-action retirement with classic PRE-CU Bounty Hunter command preservation",
       "player-only persisted bh_shields handler, script, block, and charged-state retirement with retained NPC compatibility",
-      "player-only co_* combat-action retirement with classic PRE-CU Commando command preservation",
+      "player-only co_* combat-action and native kill-meter retirement with classic PRE-CU Commando command preservation",
       "player-only me_* combat-action retirement with classic PRE-CU Medic/Doctor/Combat Medic command preservation",
       "player-only en_* combat-action retirement with classic PRE-CU Entertainer/Dancer/Musician/Image Designer command preservation"
     ]
@@ -278,9 +285,9 @@
       "sourceMountReadOnly": true,
       "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
       "startedAtUtc": "2026-08-05T13:24:30.472357955Z",
-      "serverHealth": "healthy",
-      "clusterReadyForPlayers": true,
-      "mappedNewlyBuiltBinary": true,
+      "serverHealth": "pending redeployment",
+      "clusterReadyForPlayers": false,
+      "mappedNewlyBuiltBinary": false,
       "liveGameProcessPid": 362,
       "liveBinaryInode": 12110805,
       "liveBinarySize": 22601480,
@@ -295,7 +302,11 @@
       }
     },
     "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "clean x64 deployment from direct dsrc 3bad7bb22",
+    "compiled Commando kill-meter player-boundary probes",
+    "healthy player-ready server mapped to the newly built binary"
+  ]
 }

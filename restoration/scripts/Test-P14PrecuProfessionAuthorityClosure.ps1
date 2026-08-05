@@ -207,12 +207,21 @@ $commandoRuntimeSources = [ordered]@{
         "systems/combat/combat_base.java"
     "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
         "systems/combat/combat_actions.java"
+    "sku.0/sys.server/compiled/game/script/library/combat.java" =
+        "library/combat.java"
+    "sku.0/sys.server/compiled/game/script/library/gcw.java" =
+        "library/gcw.java"
+    "sku.0/sys.server/compiled/game/script/library/xp.java" =
+        "library/xp.java"
+    "sku.0/sys.server/compiled/game/script/player/base/base_player.java" =
+        "player/base/base_player.java"
 }
 Assert-Contract ($commandoRuntimeSources.Count -eq
         [int]$contract.expected.authoritativeCommandoRuntimeFiles -and
     @($contract.buildEvidence.commandoRuntimeSourceSha256.PSObject.Properties).Count -eq
         $commandoRuntimeSources.Count) `
     "p14.profession-closure.commando-runtime.source-count"
+$commandoTexts = [ordered]@{}
 foreach ($property in $contract.buildEvidence.commandoRuntimeSourceSha256.PSObject.Properties)
 {
     $path = Join-Path $dsrc $property.Name
@@ -221,6 +230,11 @@ foreach ($property in $contract.buildEvidence.commandoRuntimeSourceSha256.PSObje
         (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
             [string]$property.Value) `
         "p14.profession-closure.commando-runtime.source.$($property.Name).authenticated"
+    if (Test-Path -LiteralPath $path -PathType Leaf)
+    {
+        $commandoTexts[$commandoRuntimeSources[$property.Name]] =
+            Get-Content -LiteralPath $path -Raw
+    }
 }
 
 $medicRuntimeSources = [ordered]@{
@@ -554,6 +568,50 @@ Assert-Contract ($commandoHandlers.Count -eq
         [int]$contract.expected.postNgeCommandoDirectCallbacks -and
     $directCommandoGuarded) `
     "p14.profession-closure.commando-runtime.all-player-actions-covered"
+$commandoCombat = [string]$commandoTexts["library/combat.java"]
+$commandoCombatBase = [string]$commandoTexts["systems/combat/combat_base.java"]
+$commandoCombatActions = [string]$commandoTexts["systems/combat/combat_actions.java"]
+$commandoGcw = [string]$commandoTexts["library/gcw.java"]
+$commandoXp = [string]$commandoTexts["library/xp.java"]
+$commandoPlayer = [string]$commandoTexts["player/base/base_player.java"]
+$killMeterCleanup = Get-FunctionSlice $commandoCombat `
+    "public static void retirePostNgeKillMeterPlayerState" `
+    "public static boolean setKillMeter"
+$killMeterSet = Get-FunctionSlice $commandoCombat `
+    "public static boolean setKillMeter" "public static boolean modifyKillMeter"
+$killMeterModify = Get-FunctionSlice $commandoCombat `
+    "public static boolean modifyKillMeter" "public static boolean canDrainKillMeter"
+$killMeterCanDrain = Get-FunctionSlice $commandoCombat `
+    "public static boolean canDrainKillMeter" "public static boolean drainKillMeter"
+$killMeterDrain = Get-FunctionSlice $commandoCombat `
+    "public static boolean drainKillMeter" `
+    "public static location getCommandGroundTargetLocation"
+$killMeterDamageUpdate = Get-FunctionSlice $commandoCombatBase `
+    "public void doKillMeterUpdate" "__no_later_kill_meter_method__"
+$passiveCleanup = Get-FunctionSlice $commandoPlayer `
+    "private void retirePostNgePassiveProfessionState" `
+    "private void retirePostNgeQueuedBattlefieldPlayerState"
+$centralKillMeterWriterCount = ([regex]::Matches(
+    ($commandoGcw + $commandoXp + $commandoCombatActions + $commandoCombatBase),
+    'combat\.modifyKillMeter\(')).Count
+Assert-Contract ($killMeterCleanup.Contains("if (!isPlayer(player))") -and
+    $killMeterCleanup.Contains("incrementKillMeter(player, -current)") -and
+    $killMeterCleanup.Contains('utils.removeScriptVarTree(player, "km")') -and
+    @(@($killMeterSet, $killMeterModify, $killMeterCanDrain, $killMeterDrain) |
+        Where-Object {
+            $_.Contains("if (isPlayer(player))") -and
+            $_.Contains("retirePostNgeKillMeterPlayerState(player)")
+        }).Count -eq 4 -and
+    $passiveCleanup.Contains("combat.retirePostNgeKillMeterPlayerState(self)")) `
+    "p14.profession-closure.commando-runtime.persisted-kill-meter-retired"
+Assert-Contract ($centralKillMeterWriterCount -eq
+        [int]$contract.expected.centralizedCommandoKillMeterWriterCallSites -and
+    -not ($commandoGcw + $commandoXp + $commandoCombatActions +
+        $commandoCombatBase).Contains("incrementKillMeter(") -and
+    $killMeterDamageUpdate.Contains("boolean compatibleAttacker = !playerAttacker") -and
+    $killMeterDamageUpdate.Contains("boolean compatibleDefender = !playerDefender") -and
+    [bool]$contract.expected.nonPlayerCommandoKillMeterCompatibilityPreserved) `
+    "p14.profession-closure.commando-runtime.kill-meter-writers-player-bounded"
 
 $medicPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeMedicPlayerAction" `

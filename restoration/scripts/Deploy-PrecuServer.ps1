@@ -65,6 +65,9 @@ Write-Host "Verifying the direct-source PRE-CU combat routing closure before bui
 & (Join-Path $PSScriptRoot "Test-P14PrecuCombatRoutingClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying pinned Core3 damage and NGE kill-meter player isolation before build..."
+& (Join-Path $PSScriptRoot "Test-P14Core3DamageAuthority.ps1") `
+    -SourceRoot $repositoryRoot
 Write-Host "Verifying the direct-source PRE-CU profession and Officer runtime authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuProfessionAuthorityClosure.ps1") `
     -SourceRoot $repositoryRoot `
@@ -1001,7 +1004,29 @@ printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'utils.removeScr
 grep -Fq 'retirePostNgeForceSensitiveStanceState(player);' "$work_buff_library"
 passive_profession_cleanup_source="$(sed -n '/private void retirePostNgePassiveProfessionState/,/private void retirePostNgeQueuedBattlefieldPlayerState/p' "$work_base_player")"
 printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'buff.retirePostNgeForceSensitiveStanceState(self);'
+printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'combat.retirePostNgeKillMeterPlayerState(self);'
 ! printf '%s' "$passive_profession_cleanup_source" | grep -Eq 'jedi\.JEDI_(STANCE|FOCUS)'
+kill_meter_cleanup_source="$(sed -n '/public static void retirePostNgeKillMeterPlayerState/,/public static boolean setKillMeter/p' "$work_combat_library")"
+printf '%s' "$kill_meter_cleanup_source" | grep -Fq 'if (!isPlayer(player))'
+printf '%s' "$kill_meter_cleanup_source" | grep -Fq 'incrementKillMeter(player, -current);'
+printf '%s' "$kill_meter_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "km");'
+kill_meter_set_source="$(sed -n '/public static boolean setKillMeter/,/public static boolean modifyKillMeter/p' "$work_combat_library")"
+kill_meter_modify_source="$(sed -n '/public static boolean modifyKillMeter/,/public static boolean canDrainKillMeter/p' "$work_combat_library")"
+kill_meter_can_drain_source="$(sed -n '/public static boolean canDrainKillMeter/,/public static boolean drainKillMeter/p' "$work_combat_library")"
+kill_meter_drain_source="$(sed -n '/public static boolean drainKillMeter/,/public static location getCommandGroundTargetLocation/p' "$work_combat_library")"
+for kill_meter_player_gate_source in "$kill_meter_set_source" "$kill_meter_modify_source" "$kill_meter_can_drain_source" "$kill_meter_drain_source"; do
+    printf '%s' "$kill_meter_player_gate_source" | grep -Fq 'if (isPlayer(player))'
+    printf '%s' "$kill_meter_player_gate_source" | grep -Fq 'retirePostNgeKillMeterPlayerState(player);'
+done
+kill_meter_update_source="$(sed -n '/public void doKillMeterUpdate/,/^    }/p' "$work_combat_base")"
+printf '%s' "$kill_meter_update_source" | grep -Fq 'boolean compatibleAttacker = !playerAttacker'
+printf '%s' "$kill_meter_update_source" | grep -Fq 'boolean compatibleDefender = !playerDefender'
+printf '%s' "$kill_meter_update_source" | grep -Fq '"km.damage_done"'
+printf '%s' "$kill_meter_update_source" | grep -Fq '"km.damage_taken"'
+for centralized_kill_meter_source in "$work_gcw_library" "$work_xp_library" "$work_combat_actions" "$work_combat_base"; do
+    ! grep -Fq 'incrementKillMeter(' "$centralized_kill_meter_source"
+done
+test "$(grep -Eh 'combat\.modifyKillMeter\(' "$work_gcw_library" "$work_xp_library" "$work_combat_actions" "$work_combat_base" | wc -l)" -eq 7
 stance_query_source="$(sed -n '/public static boolean isInStance/,/public static boolean playStanceVisual/p' "$work_buff_library")"
 test "$(printf '%s' "$stance_query_source" | grep -Fc 'retirePostNgeForceSensitiveStanceState(player);')" -eq 2
 ! printf '%s' "$stance_query_source" | grep -Eq 'hasBuff\(player, "fs_buff_(def_1_1|ca_1)"\)'
@@ -1509,6 +1534,15 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'co_kill_trap_1'
+kill_meter_cleanup_bytecode="$(javap -classpath "$class_root" -c -p script.library.combat | sed -n '/retirePostNgeKillMeterPlayerState/,/setKillMeter/p')"
+printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'getKillMeter'
+printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'incrementKillMeter'
+printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'removeScriptVarTree'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeKillMeterPlayerState'
+for kill_meter_writer_class in script.library.gcw script.library.xp script.systems.combat.combat_actions script.systems.combat.combat_base; do
+    javap -classpath "$class_root" -v "$kill_meter_writer_class" | grep -Fq 'modifyKillMeter'
+    ! javap -classpath "$class_root" -v "$kill_meter_writer_class" | grep -Fq 'incrementKillMeter'
+done
 # Publish 14.1 Medic/Doctor/Combat Medic and Entertainer/Dancer/Musician/
 # Image Designer trees remain authoritative; me_* and en_* are compatibility.
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeMedicPlayerAction'

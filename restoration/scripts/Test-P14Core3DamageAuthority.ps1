@@ -21,9 +21,15 @@ function Assert-Contract([bool]$Condition, [string]$Name)
 }
 
 $combatPath = Join-Path $source ([string]$contract.sourceFiles.combatBase)
+$combatLibraryPath = Join-Path $source ([string]$contract.sourceFiles.combatLibrary)
+$xpPath = Join-Path $source ([string]$contract.sourceFiles.xp)
+$gcwPath = Join-Path $source ([string]$contract.sourceFiles.gcw)
+$combatActionsPath = Join-Path $source ([string]$contract.sourceFiles.combatActions)
+$basePlayerPath = Join-Path $source ([string]$contract.sourceFiles.basePlayer)
 $profilesPath = Join-Path $source ([string]$contract.sourceFiles.weaponProfiles)
 $generatorPath = Join-Path $restorationRoot (([string]$contract.sourceFiles.generator).Substring("restoration/".Length))
-foreach ($path in @($combatPath, $profilesPath, $generatorPath))
+foreach ($path in @($combatPath, $combatLibraryPath, $xpPath, $gcwPath,
+    $combatActionsPath, $basePlayerPath, $profilesPath, $generatorPath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) "p14.damage-authority.source.$([IO.Path]::GetFileName($path))"
 }
@@ -57,6 +63,11 @@ Assert-Contract ($generator.Contains('expectedCommit = "6ea64f60ef33b89121c2a8d1
     $generator.Contains('defenderToughnessModifiers')) "p14.damage-authority.generator.pinned-core3"
 
 $combat = Get-Content -LiteralPath $combatPath -Raw
+$combatLibrary = Get-Content -LiteralPath $combatLibraryPath -Raw
+$xp = Get-Content -LiteralPath $xpPath -Raw
+$gcw = Get-Content -LiteralPath $gcwPath -Raw
+$combatActions = Get-Content -LiteralPath $combatActionsPath -Raw
+$basePlayer = Get-Content -LiteralPath $basePlayerPath -Raw
 Assert-Contract ($combat.Contains('public boolean isPrecuAuthoritativeAttack(') -and
     $combat.Contains('return getPrecuCore3RawDamage(') -and
     $combat.Contains('"damage.pipeline", "PRECU_CORE3"')) "p14.damage-authority.runtime.authoritative-route"
@@ -74,6 +85,28 @@ Assert-Contract ($combat.Contains('if (!precuAuthoritativeAttack)') -and
     $combat.Contains('"damage.ngeExpertiseApplied", 0') -and
     $combat.Contains('healing.applyLifeSiphonHeal(') -and
     $combat.Contains('doKillMeterUpdate(attacker, defender, hitData.damage);')) "p14.damage-authority.runtime.nge-modifiers-contained"
+$killMeterUpdate = $combat.Substring(
+    $combat.IndexOf("public void doKillMeterUpdate", [StringComparison]::Ordinal))
+$killMeterCleanupStart = $combatLibrary.IndexOf(
+    "public static void retirePostNgeKillMeterPlayerState",
+    [StringComparison]::Ordinal)
+$killMeterCleanupEnd = $combatLibrary.IndexOf(
+    "public static boolean setKillMeter", $killMeterCleanupStart,
+    [StringComparison]::Ordinal)
+$killMeterCleanup = if ($killMeterCleanupStart -ge 0 -and
+    $killMeterCleanupEnd -gt $killMeterCleanupStart) {
+    $combatLibrary.Substring($killMeterCleanupStart,
+        $killMeterCleanupEnd - $killMeterCleanupStart)
+} else { "" }
+Assert-Contract ([bool]$contract.expected.ngeKillMeterPlayerStateRetired -and
+    $killMeterCleanup.Contains("if (!isPlayer(player))") -and
+    $killMeterCleanup.Contains("incrementKillMeter(player, -current)") -and
+    $killMeterCleanup.Contains('utils.removeScriptVarTree(player, "km")') -and
+    $killMeterUpdate.Contains("boolean compatibleAttacker = !playerAttacker") -and
+    $killMeterUpdate.Contains("boolean compatibleDefender = !playerDefender") -and
+    -not ($xp + $gcw + $combatActions + $combat).Contains("incrementKillMeter(") -and
+    $basePlayer.Contains("combat.retirePostNgeKillMeterPlayerState(self)")) `
+    "p14.damage-authority.runtime.nge-kill-meter-player-state-retired"
 Assert-Contract (-not $combat.Contains('minDamage = 5;') -and
     -not $combat.Contains('maxDamage = 10;')) "p14.damage-authority.runtime.uncertified-policy"
 Assert-Contract (@("implemented-build-pending", "ready-for-live-verification", "ready") -contains [string]$contract.status) "p14.damage-authority.contract.status"
