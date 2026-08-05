@@ -48,6 +48,16 @@ function Get-JavaStringArray
         ForEach-Object { $_.Groups['value'].Value })
 }
 
+function Get-SourceSlice
+{
+    param([string]$Text, [string]$Start, [string]$End)
+    $startIndex = $Text.IndexOf($Start, [StringComparison]::Ordinal)
+    if ($startIndex -lt 0) { return "" }
+    $endIndex = $Text.IndexOf($End, $startIndex + $Start.Length, [StringComparison]::Ordinal)
+    if ($endIndex -lt 0) { return "" }
+    return $Text.Substring($startIndex, $endIndex - $startIndex)
+}
+
 $paths = @{}
 foreach ($property in $contract.sourceFiles.PSObject.Properties)
 {
@@ -63,6 +73,8 @@ $masterRows = @(Import-Csv -LiteralPath $paths.masterItems -Delimiter "`t" | Whe
 $lootText = Get-Content -LiteralPath $paths.heroicDrops -Raw
 $skillText = Get-Content -LiteralPath $paths.skillTable -Raw
 $queueText = Get-Content -LiteralPath $paths.commandQueue -Raw
+$buffHandlerText = Get-Content -LiteralPath $paths.buffHandler -Raw
+$effectRows = @(Import-Csv -LiteralPath $paths.effectMapping -Delimiter "`t")
 
 $ranged = @(Get-JavaStringArray -Text $itemText -Name "RANGED_SPEED_MODIFIERS")
 $melee = @(Get-JavaStringArray -Text $itemText -Name "MELEE_SPEED_MODIFIERS")
@@ -98,6 +110,46 @@ Assert-Contract ($legacyPrimary.Count -eq [int]$contract.expected.legacyNgePrima
     $legacyAction.Count -eq [int]$contract.expected.legacyNgeActionModifiers -and
     ($legacyAction -join '|') -ceq ($expectedAction -join '|')) `
     "p14.heroic-jewelry-speed.exact-legacy-migration-leaves"
+
+$primaryPredicate = Get-SourceSlice -Text $buffHandlerText `
+    -Start "public boolean isRetiredNgePrimaryStatisticModifier(String modifierName)" `
+    -End "public boolean isRetiredNgeBuffSkillModifier(String modifierName)"
+$buffPredicate = Get-SourceSlice -Text $buffHandlerText `
+    -Start "public boolean isRetiredNgeBuffSkillModifier(String modifierName)" `
+    -End "public void retireNgeExpertiseModifier(obj_id self, String effectName)"
+$primaryPredicateNames = @($expectedPrimary | Where-Object {
+    $primaryPredicate.Contains('modifierName.equals("' + $_ + '")')
+})
+$milkModifiers = @("milk_quantity_modified", "milk_exceptional_modified", "milk_stun_modified")
+$mappedPrimary = @($effectRows | Where-Object { $expectedPrimary -ccontains [string]$_.NAME })
+$mappedMilk = @($effectRows | Where-Object { $milkModifiers -ccontains [string]$_.NAME })
+Assert-Contract ($primaryPredicateNames.Count -eq
+        [int]$contract.expected.genericBuffPrimaryModifiersRetired -and
+    @($primaryPredicateNames | Select-Object -Unique).Count -eq $expectedPrimary.Count -and
+    @($milkModifiers | Where-Object { $primaryPredicate.Contains($_) }).Count -eq 0 -and
+    $buffPredicate.Contains("isRetiredNgeExpertiseModifier(modifierName)") -and
+    $buffPredicate.Contains("isRetiredNgePrimaryStatisticModifier(modifierName)") -and
+    $mappedPrimary.Count -eq $expectedPrimary.Count -and
+    @($mappedPrimary | Where-Object {
+        [string]$_.TYPE -cne "skill" -or [string]$_.SUBTYPE -cne [string]$_.NAME
+    }).Count -eq 0 -and
+    $mappedMilk.Count -eq [int]$contract.expected.retainedCreatureMilkModifiers) `
+    "p14.heroic-jewelry-speed.generic-buff-primary-boundary"
+
+$genericBuffWriters = @(
+    (Get-SourceSlice -Text $buffHandlerText -Start "public int skillAddBuffHandler(" -End "public int skillRemoveBuffHandler(")
+    (Get-SourceSlice -Text $buffHandlerText -Start "public int skillPercentAddBuffHandler(" -End "public int skillPercentRemoveBuffHandler(")
+    (Get-SourceSlice -Text $buffHandlerText -Start "public int forcePowerAddBuffHandler(" -End "public int forcePowerRemoveBuffHandler(")
+)
+$guardedBuffWriters = @($genericBuffWriters | Where-Object {
+    $guard = $_.IndexOf("isRetiredNgeBuffSkillModifier(subtype)", [StringComparison]::Ordinal)
+    $writer = $_.IndexOf("addSkillModModifier", [StringComparison]::Ordinal)
+    $guard -ge 0 -and $writer -gt $guard
+})
+Assert-Contract ($genericBuffWriters.Count -eq
+        [int]$contract.expected.genericBuffWriterHandlersGuarded -and
+    $guardedBuffWriters.Count -eq $genericBuffWriters.Count) `
+    "p14.heroic-jewelry-speed.generic-buff-writers-guarded"
 Assert-Contract (-not $itemText.Contains('STAT_ONE') -and
     -not $itemText.Contains('STAT_TWO') -and
     -not $itemText.Contains('STAT_VALS') -and
@@ -179,7 +231,8 @@ if ($Expectation -eq "Ready")
     Assert-Contract ($dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.heroic-jewelry-speed.direct-source-pin"
-    Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256 -match '^[a-f0-9]{64}$' -and
+    Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.heroicItemScript -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.buffHandler -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.heroic-jewelry-speed.live-evidence"

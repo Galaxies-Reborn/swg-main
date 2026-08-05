@@ -165,9 +165,25 @@ Assert-Contract ($displayCallbackCounts.basePlayer -eq [int]$contract.expected.b
 
 $expertisePredicate = Get-BracedBlock $buffHandler `
     "public boolean isRetiredNgeExpertiseModifier(String modifierName)"
+$primaryPredicate = Get-BracedBlock $buffHandler `
+    "public boolean isRetiredNgePrimaryStatisticModifier(String modifierName)"
+$buffPredicate = Get-BracedBlock $buffHandler `
+    "public boolean isRetiredNgeBuffSkillModifier(String modifierName)"
 $expertiseCleanup = Get-BracedBlock $buffHandler `
     "public void retireNgeExpertiseModifier(obj_id self, String effectName)"
+$primaryModifierNames = @(
+    "agility_modified", "constitution_modified", "luck_modified",
+    "precision_modified", "stamina_modified", "strength_modified"
+)
+$primaryNamesInPredicate = @($primaryModifierNames | Where-Object {
+    $primaryPredicate.Contains('modifierName.equals("' + $_ + '")')
+})
 Assert-Contract ($expertisePredicate.Contains('modifierName.startsWith("expertise_")') -and
+    $primaryNamesInPredicate.Count -eq
+        [int]$contract.expected.retiredNgePrimaryStatisticModifiers -and
+    -not $primaryPredicate.Contains("milk_") -and
+    $buffPredicate.Contains("isRetiredNgeExpertiseModifier(modifierName)") -and
+    $buffPredicate.Contains("isRetiredNgePrimaryStatisticModifier(modifierName)") -and
     $expertiseCleanup.Contains("hasSkillModModifier(self, effectName)") -and
     $expertiseCleanup.Contains("removeAttribOrSkillModModifier(self, effectName)")) `
     "p14.combat-expertise-isolation.buff.central-cleanup-authority"
@@ -178,7 +194,7 @@ $genericExpertiseHandlers = @(
     (Get-BracedBlock $buffHandler "public int forcePowerAddBuffHandler(")
 )
 $guardedGenericHandlers = @($genericExpertiseHandlers | Where-Object {
-    $guard = $_.IndexOf("isRetiredNgeExpertiseModifier(subtype)", [StringComparison]::Ordinal)
+    $guard = $_.IndexOf("isRetiredNgeBuffSkillModifier(subtype)", [StringComparison]::Ordinal)
     $cleanup = $_.IndexOf("retireNgeExpertiseModifier(self, effectName)", [StringComparison]::Ordinal)
     $writer = $_.IndexOf("addSkillModModifier", [StringComparison]::Ordinal)
     $guard -ge 0 -and $cleanup -gt $guard -and $writer -gt $guard
@@ -187,7 +203,7 @@ $percentHandler = $genericExpertiseHandlers[1]
 Assert-Contract ($genericExpertiseHandlers.Count + 1 -eq
         [int]$contract.expected.productionExpertiseBuffWriterHandlersGuarded -and
     $guardedGenericHandlers.Count -eq 3 -and
-    $percentHandler.IndexOf("isRetiredNgeExpertiseModifier(subtype)", [StringComparison]::Ordinal) -lt
+    $percentHandler.IndexOf("isRetiredNgeBuffSkillModifier(subtype)", [StringComparison]::Ordinal) -lt
         $percentHandler.IndexOf("getSkillStatisticModifier", [StringComparison]::Ordinal)) `
     "p14.combat-expertise-isolation.buff.generic-writers-guarded"
 

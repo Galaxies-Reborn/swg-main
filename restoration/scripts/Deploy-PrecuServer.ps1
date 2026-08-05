@@ -901,11 +901,19 @@ test "$(grep -Eh 'messageTo\([^;]*"setDisplayOnlyDefensiveMods"' "$work_base_pla
 test "$(grep -Ec 'messageTo\([^;]*"setDisplayOnlyDefensiveMods"' "$work_base_player")" -eq 6
 awk -F '\t' '$1 ~ /^display_only_/ { found++; if ($2 != "ALL" || $3 != "combat" || $4 != 1) exit 2 } END { if (found != 13) exit 3 }' "$work_skill_mod_listing"
 grep -Fq 'modifierName.startsWith("expertise_")' "$work_buff_handler"
+primary_stat_source="$(sed -n '/public boolean isRetiredNgePrimaryStatisticModifier/,/public boolean isRetiredNgeBuffSkillModifier/p' "$work_buff_handler")"
+for retired_primary_stat in agility_modified constitution_modified luck_modified precision_modified stamina_modified strength_modified; do
+    printf '%s' "$primary_stat_source" | grep -Fq "modifierName.equals(\"$retired_primary_stat\")"
+done
+! printf '%s' "$primary_stat_source" | grep -Fq 'milk_'
+buff_skill_predicate_source="$(sed -n '/public boolean isRetiredNgeBuffSkillModifier/,/public void retireNgeExpertiseModifier/p' "$work_buff_handler")"
+printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgeExpertiseModifier(modifierName)'
+printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgePrimaryStatisticModifier(modifierName)'
 skill_add_source="$(sed -n '/public int skillAddBuffHandler/,/public int skillRemoveBuffHandler/p' "$work_buff_handler")"
 skill_percent_source="$(sed -n '/public int skillPercentAddBuffHandler/,/public int skillPercentRemoveBuffHandler/p' "$work_buff_handler")"
 force_power_source="$(sed -n '/public int forcePowerAddBuffHandler/,/public int forcePowerRemoveBuffHandler/p' "$work_buff_handler")"
 for expertise_writer_source in "$skill_add_source" "$skill_percent_source" "$force_power_source"; do
-    printf '%s' "$expertise_writer_source" | grep -Fq 'isRetiredNgeExpertiseModifier(subtype)'
+    printf '%s' "$expertise_writer_source" | grep -Fq 'isRetiredNgeBuffSkillModifier(subtype)'
     printf '%s' "$expertise_writer_source" | grep -Fq 'retireNgeExpertiseModifier(self, effectName)'
     printf '%s' "$expertise_writer_source" | grep -Fq 'addSkillModModifier'
 done
@@ -1051,6 +1059,11 @@ printf '%s' "$display_cleanup_bytecode" | grep -Fq 'removeAttribOrSkillModModifi
 # recreating them; dormant Build-a-Buff remains behind its earlier hard gate.
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
 printf '%s' "$buff_handler_bytecode" | grep -Fq 'isRetiredNgeExpertiseModifier'
+printf '%s' "$buff_handler_bytecode" | grep -Fq 'isRetiredNgePrimaryStatisticModifier'
+printf '%s' "$buff_handler_bytecode" | grep -Fq 'isRetiredNgeBuffSkillModifier'
+for retired_primary_stat in agility_modified constitution_modified luck_modified precision_modified stamina_modified strength_modified; do
+    printf '%s' "$buff_handler_bytecode" | grep -Fq "$retired_primary_stat"
+done
 armor_break_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int armorBreakAddBuffHandler/,/public int armorBreakRemoveBuffHandler/p')"
 printf '%s' "$armor_break_bytecode" | grep -Fq 'retireNgeExpertiseModifier'
 printf '%s' "$armor_break_bytecode" | grep -Fq 'amor.unmodifiedArmorValue'
