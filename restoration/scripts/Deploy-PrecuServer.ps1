@@ -131,6 +131,10 @@ Write-Host "Verifying the direct-source PRE-CU Exar Open Hand healing authority 
 & (Join-Path $PSScriptRoot "Test-P14PrecuExarOpenHandHealingAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU Axkva Nandina healing authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuAxkvaNandinaHealingAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -394,6 +398,10 @@ source_creatures_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/data
 work_creatures_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
 source_exar_open_hand_template="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/mobile/exar_kun_open_hand.tpf"
 work_exar_open_hand_template="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/mobile/exar_kun_open_hand.tpf"
+source_ai_combat_profiles="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/ai/ai_combat_profiles.tab"
+work_ai_combat_profiles="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/ai/ai_combat_profiles.tab"
+source_axkva_spawn_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/heroic_axkva_min.tab"
+work_axkva_spawn_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/heroic_axkva_min.tab"
 source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
@@ -692,6 +700,25 @@ test "$(grep -Ec 'sacrifice = "kun_(one|two|three|four|five|six|seven|eight)_sac
 awk -F '\t' '$1 == "heroic_exar_open_hand" { found++; if ($2 != "open" || $3 != "spawn_open" || $4 != "r2" || $9 != "theme_park.heroic.exar_kun.open_hand" || $11 !~ /OnDeath:triggerId:open_won/ || $12 != 1) exit 2 } END { if (found != 1) exit 3 }' "$work_exar_spawn_table"
 awk -F '\t' '$1 == "heroic_exar_open_hand" { found++; if ($2 != 90 || $7 != "BOSS" || $14 != "exar_kun_open_hand.iff" || $76 != "heroic_exar_open_hand") exit 2 } END { if (found != 1) exit 3 }' "$work_creatures_table"
 grep -Fq 'sharedTemplate = "object/mobile/shared_exar_kun_open_hand.iff"' "$work_exar_open_hand_template"
+cmp -s "$source_ai_combat_profiles" "$work_ai_combat_profiles"
+cmp -s "$source_axkva_spawn_table" "$work_axkva_spawn_table"
+! grep -R -Fq --include='*.java' 'expertise_healing_reduction' "$work_script"
+nandina_heal_block="$(sed -n '/public int nandina_heal(/,/public int lelli_bleed(/p' "$work_combat_actions")"
+! printf '%s' "$nandina_heal_block" | grep -Fq 'getEnhancedSkillStatisticModifierUncapped'
+! printf '%s' "$nandina_heal_block" | grep -Fq 'healingReduction'
+! printf '%s' "$nandina_heal_block" | grep -Fq 'float redux'
+test "$(printf '%s' "$nandina_heal_block" | grep -Fc 'healing.healDamage(gorvo, HEALTH, 50000);')" -eq 1
+printf '%s' "$nandina_heal_block" | grep -Fq 'trial.getObjectsInDungeonWithObjVar(trial.getTop(self), "spawn_id")'
+printf '%s' "$nandina_heal_block" | grep -Fq 'equals("gorvo")'
+printf '%s' "$nandina_heal_block" | grep -Fq '!isIdValid(gorvo) || ai_lib.isDead(gorvo)'
+printf '%s' "$nandina_heal_block" | grep -Fq 'clienteffect/bacta_bomb.cef'
+awk -F '\t' '$1 == "nandina_heal" { found++ } END { if (found != 1) exit 2 }' "$work_command_table"
+awk -F '\t' '$1 == "nandina_heal" { found++ } END { if (found != 1) exit 2 }' "$work_combat_data"
+awk -F '\t' '$1 == "heroic_axkva_nandina" { found++; if ($3 != "nandina_heal" || $4 != 10 || $5 != 100) exit 2 } END { if (found != 1) exit 3 }' "$work_ai_combat_profiles"
+awk -F '\t' '$1 == "heroic_axkva_nandina" { found++; if ($2 != "nandina" || $9 != "theme_park.heroic.axkva_min.nandina") exit 2 } END { if (found != 2) exit 3 }' "$work_axkva_spawn_table"
+awk -F '\t' '$1 == "heroic_axkva_gorvo" { found++; if ($2 != "gorvo" || $9 != "theme_park.heroic.axkva_min.gorvo") exit 2 } END { if (found != 2) exit 3 }' "$work_axkva_spawn_table"
+awk -F '\t' '$1 == "heroic_axkva_nandina" { found++; if ($2 != 91 || $7 != "BOSS" || $76 != "heroic_axkva_nandina") exit 2 } END { if (found != 1) exit 3 }' "$work_creatures_table"
+awk -F '\t' '$1 == "heroic_axkva_gorvo" { found++; if ($2 != 91 || $7 != "BOSS" || $76 != "heroic_axkva_gorvo") exit 2 } END { if (found != 1) exit 3 }' "$work_creatures_table"
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -929,6 +956,13 @@ javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | 
 javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'incrementAddsKilled'
 javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'getSacrificeBuff'
 javap -classpath "$class_root" -v script.theme_park.heroic.exar_kun.open_hand | grep -Fq 'clienteffect/bacta_bomb.cef'
+# Nandina's retained Axkva encounter heal uses its authored fixed amount and
+# cannot inherit the later NGE healing-reduction statistic from Gorvo.
+! javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'expertise_healing_reduction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'nandina_heal'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq '50000'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'spawn_id'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'clienteffect/bacta_bomb.cef'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'
