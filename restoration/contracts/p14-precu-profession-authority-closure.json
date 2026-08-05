@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "precu-profession-authority-closure",
-  "status": "ready",
-  "scope": "Replace remaining executable NGE class/phase profession authority with Publish 14.1 skill-box ownership, native Jedi state, and the existing hidden PRE-CU combat-skill score; retire post-NGE Officer player commands, delayed supply drops, crates, and reinforcement pets while preserving stale-data cleanup and expansion content.",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Replace remaining executable NGE class/phase profession authority with Publish 14.1 skill-box ownership, native Jedi state, and the existing hidden PRE-CU combat-skill score; retire post-NGE Officer and Force Sensitive player combat families while preserving PRE-CU Squad Leader, Jedi/Village commands, stale-data cleanup, NPC behavior, and expansion content.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "professionBoundary": "Publish 14.1 characters own multiple independently learned profession trees; exact novice, branch, and master skill boxes are authoritative rather than a singular NGE class template.",
@@ -42,16 +42,28 @@
     "retainedOfficerCommandRows": 94,
     "retainedOfficerCombatRows": 94,
     "retainedOfficerCommandSeriesRows": 42,
-    "retainedOfficerReinforcementCreatureRows": 5
+    "retainedOfficerReinforcementCreatureRows": 5,
+    "authoritativeForceSensitiveRuntimeFiles": 2,
+    "postNgeForceSensitivePlayerActionHandlers": 68,
+    "postNgeForceSensitiveStandardActionHandlers": 67,
+    "postNgeForceSensitiveDirectCallbacks": 1,
+    "retainedForceSensitiveClassSkillRows": 28,
+    "retainedForceSensitiveExpertiseSkillRows": 118,
+    "retainedForceSensitiveCommandRows": 83,
+    "retainedForceSensitiveCombatRows": 83,
+    "retainedForceSensitiveCommandSeriesRows": 38,
+    "precuJediAndVillageSkillRows": 171,
+    "precuJediAndVillageCommands": 82,
+    "precuJediAndVillageFsCommands": 0
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "c8119cb21d921ffa7bc315bd5df0a54a6b5874b7",
+    "directSourceGitlink": "4a23f12129576565cb9ec2f4ec4426424255d683",
     "lineEndingPolicy": "The three touched legacy Officer persistence scripts were normalized to the repository-declared LF policy; no generated overlay or staging tree was created.",
     "officerRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/ai/officer_pet.java": "3bbbab602848af451d1085bc6f3ca33d68cb8a5d0741010f62732155e3479b97",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "481323ad0e3b1517f5beadb56f839020613ff3a2da00fa70316d7212319a5171",
-      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "0e6d7daae51f5507a083d374769b35f4051ce554059d38673a684317e23592f5",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "bc7c2bd88b8358e80b4df1fc974f03f9a40b5cd16df44b032df10afaf5c68cf0",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "6e1d5a3824e77dbd0d05209c6e2c2264d23e9c682be6419d0475b61a806ebcb6",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_supply_drop_controller.java": "e1d59b602155d6d97cd3952d9dffcd34cabd8cccdf44bf16323001c95ee254c5",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_supply_drop_crate.java": "faabe522a58822b63afa273bbb2e708f60ce5dcfd85097ace793fa268c886ef8"
     },
@@ -62,7 +74,11 @@
     },
     "sourceSetSha256": "4d626c4950dbe4afa4a18e5ffea076da0b1554e69d9d9b1ef4c386d1e5a64700",
     "sourceContentSha256": "143433e67b5465def9729b9beefd96138e90a6a8e76489dcf738e71a9457d0bd",
-    "currentSourceEvidenceRefreshedBy": "Direct-source Officer runtime closure: all of_* player entrypoints fail closed, delayed drop objects self-retire, stale crates cannot yield NGE supplies, and persisted Officer pets clean up without expertise authority.",
+    "forceSensitiveRuntimeSourceSha256": {
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "bc7c2bd88b8358e80b4df1fc974f03f9a40b5cd16df44b032df10afaf5c68cf0",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "6e1d5a3824e77dbd0d05209c6e2c2264d23e9c682be6419d0475b61a806ebcb6"
+    },
+    "currentSourceEvidenceRefreshedBy": "Direct-source Officer and Force Sensitive runtime closure: of_* and fs_* player actions fail closed while PRE-CU Squad Leader, Jedi/Village commands, delayed-state cleanup, and NPC/content compatibility remain available.",
     "missionSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
@@ -73,20 +89,20 @@
       "acceptanceFiles": 1170,
       "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b"
     },
-    "focusedJavaCompile": "passed for all 5 Officer runtime sources with Java 8 target in an ephemeral /dev/shm directory removed immediately",
+    "focusedJavaCompile": "passed for both Force Sensitive combat sources with Java 8 target in an ephemeral /dev/shm directory removed immediately; the preceding Officer five-source compile remains authenticated",
     "javaCompile": {
-      "result": "passed",
-      "sourceFiles": 5713,
-      "classFiles": 5747,
+      "result": "pending",
+      "sourceFiles": null,
+      "classFiles": null,
       "compilerRuntime": "OpenJDK 11"
     },
     "nativeBuild": {
-      "result": "passed",
-      "architecture": "ELF 64-bit LSB x86-64",
-      "coreBinaries": 6,
-      "swgGameServerSha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-      "swgGameServerBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-      "productionBuildTime": "656.8 seconds"
+      "result": "pending",
+      "architecture": null,
+      "coreBinaries": null,
+      "swgGameServerSha256": null,
+      "swgGameServerBuildId": null,
+      "productionBuildTime": null
     },
     "classEvidence": {
       "library/utils.class": "c12f20092081a5f63fc2ee38849ca0538a8ba356968942dbafe254dfb0e6b787",
@@ -99,21 +115,23 @@
     },
     "officerRuntimeClassEvidence": {
       "ai/officer_pet.class": "0d1bb7c028287d22d79235d18b95812d618a0551243edc24f83c8b0ada291abf",
-      "systems/combat/combat_base.class": "08b9b5b4326231a23c97d5841413b4e15de74fa1ad666e86ec0675f516cbb5f4",
-      "systems/combat/combat_actions.class": "45161de0c70e813772ecf3b8a5e921bffc750823941e46135a0838e3a6447114",
+      "systems/combat/combat_base.class": null,
+      "systems/combat/combat_actions.class": null,
       "systems/combat/combat_supply_drop_controller.class": "616dd6d33a64d2feb7c44aeb7475b1dd90c37d51c9737fa1388d085ccfe87e8a",
       "systems/combat/combat_supply_drop_crate.class": "a45e1d625d95ee1255cf73c0b8fe8a481482e08834a2f2fa97c6ac08ff53ad1d"
     },
-    "sourceWorkParity": "passed byte-for-byte for all 5 authoritative Officer runtime sources between the read-only direct-source mount and Docker work volume",
-    "deploymentProbe": "passed; mandatory profession/Officer source parity and bytecode gates completed before container replacement, followed by x64 architecture, readiness, mapped-binary, and clean-log verification",
-    "result": "passed",
+    "forceSensitiveRuntimeClassEvidence": null,
+    "sourceWorkParity": null,
+    "deploymentProbe": null,
+    "result": "pending",
     "bytecodeProbes": [
       "hidden PRE-CU combat-score thresholds 25/50/75",
       "PRE-CU Smuggler underworld and master authority",
       "PRE-CU Squad Leader, dancer, and musician authority",
       "PRE-CU shipwright, weaponsmith, Commando, and Padawan authority",
       "explicit PRE-CU Trader ownership and no-profession fallback in the bounded singular adapter",
-      "player-only Officer command, delayed drop, crate, and persisted-pet retirement"
+      "player-only Officer command, delayed drop, crate, and persisted-pet retirement",
+      "player-only fs_* combat-action retirement with PRE-CU Jedi/Village command preservation"
     ]
   },
   "runtimeEvidence": {
@@ -126,25 +144,18 @@
       "sourceMount": "E:/SWG/PRE-CU-Reborn/Source/pre-cu-reborn-server-x64 -> /swg-precu-source",
       "sourceMountReadOnly": true,
       "dockerWorkVolume": "swg-precu-work-x64 -> /swg-precu",
-      "startedAtUtc": "2026-08-05T07:53:22.915876345Z",
-      "serverHealth": "healthy",
-      "clusterReadyForPlayers": true,
-      "mappedNewlyBuiltBinary": true,
-      "liveGameProcessPid": 364,
-      "liveBinaryInode": 12110805,
-      "liveBinarySize": 22601480,
-      "liveBinaryMapEntries": 2,
-      "processCounts": {
-        "LoginServer": 1,
-        "TaskManager": 1,
-        "ConnectionServer": 1,
-        "SwgDatabaseServer": 1,
-        "PlanetServer": 14,
-        "SwgGameServer": 14
-      }
+      "startedAtUtc": null,
+      "serverHealth": null,
+      "clusterReadyForPlayers": false,
+      "mappedNewlyBuiltBinary": false,
+      "liveGameProcessPid": null,
+      "liveBinaryInode": null,
+      "liveBinarySize": null,
+      "liveBinaryMapEntries": null,
+      "processCounts": null
     },
-    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle, or database-conversion matches",
-    "result": "passed"
+    "postStartLogAudit": null,
+    "result": "pending"
   },
   "requiredBeforeReady": []
 }

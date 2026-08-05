@@ -115,6 +115,27 @@ foreach ($property in $contract.buildEvidence.officerRuntimeSourceSha256.PSObjec
     }
 }
 
+$forceSensitiveRuntimeSources = [ordered]@{
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java" =
+        "systems/combat/combat_base.java"
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java" =
+        "systems/combat/combat_actions.java"
+}
+Assert-Contract ($forceSensitiveRuntimeSources.Count -eq
+        [int]$contract.expected.authoritativeForceSensitiveRuntimeFiles -and
+    @($contract.buildEvidence.forceSensitiveRuntimeSourceSha256.PSObject.Properties).Count -eq
+        $forceSensitiveRuntimeSources.Count) `
+    "p14.profession-closure.force-sensitive-runtime.source-count"
+foreach ($property in $contract.buildEvidence.forceSensitiveRuntimeSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $dsrc $property.Name
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        $forceSensitiveRuntimeSources.Contains($property.Name) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            [string]$property.Value) `
+        "p14.profession-closure.force-sensitive-runtime.source.$($property.Name).authenticated"
+}
+
 $combatBase = [string]$officerTexts["systems/combat/combat_base.java"]
 $officerPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeOfficerPlayerAction" `
@@ -141,6 +162,41 @@ Assert-Contract ($officerHandlers.Count -eq [int]$contract.expected.postNgeOffic
     ($actualDirectOfficerHandlers -join "`n") -ceq ($expectedDirectOfficerHandlers -join "`n") -and
     $directOfficerHandlersGuarded) `
     "p14.profession-closure.officer-runtime.all-player-actions-covered"
+
+$forceSensitivePredicate = Get-FunctionSlice $combatBase `
+    "public static boolean isRetiredPostNgeForceSensitivePlayerAction" `
+    "public boolean combatStandardAction"
+Assert-Contract ($forceSensitivePredicate.Contains("isPlayer(self)") -and
+    $forceSensitivePredicate.Contains('actionName.startsWith("fs_")') -and
+    $combatBase.Contains("if (isRetiredPostNgeForceSensitivePlayerAction(self, actionName))")) `
+    "p14.profession-closure.force-sensitive-runtime.central-player-action-gate"
+
+$forceSensitiveHandlers = @([regex]::Matches(
+    $combatActions,
+    '(?ms)^\s*public int (fs_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+$standardForceSensitiveHandlers = @($forceSensitiveHandlers | Where-Object {
+    $_.Value.Contains("combatStandardAction(")
+})
+$directForceSensitiveHandlers = @($forceSensitiveHandlers | Where-Object {
+    -not $_.Value.Contains("combatStandardAction(")
+})
+$directForceSensitiveHandlerNames = @($directForceSensitiveHandlers | ForEach-Object {
+    $_.Groups[1].Value
+})
+$directForceSensitiveGuarded = $directForceSensitiveHandlers.Count -eq 1 -and
+    $directForceSensitiveHandlers[0].Value.Contains(
+        'isRetiredPostNgeForceSensitivePlayerAction(self, "fs_dot_immunity_recourse")') -and
+    $directForceSensitiveHandlers[0].Value.Contains(
+        'buff.removeBuff(self, "fs_dot_immunity_recourse")')
+Assert-Contract ($forceSensitiveHandlers.Count -eq
+        [int]$contract.expected.postNgeForceSensitivePlayerActionHandlers -and
+    $standardForceSensitiveHandlers.Count -eq
+        [int]$contract.expected.postNgeForceSensitiveStandardActionHandlers -and
+    $directForceSensitiveHandlers.Count -eq
+        [int]$contract.expected.postNgeForceSensitiveDirectCallbacks -and
+    ($directForceSensitiveHandlerNames -join "`n") -ceq "fs_dot_immunity_recourse" -and
+    $directForceSensitiveGuarded) `
+    "p14.profession-closure.force-sensitive-runtime.all-player-actions-covered"
 
 $officerPet = [string]$officerTexts["ai/officer_pet.java"]
 Assert-Contract (-not $officerPet.Contains("expertise_of_reinforcements_1") -and
@@ -251,6 +307,33 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_officer_').C
         [int]$contract.expected.retainedOfficerReinforcementCreatureRows)) `
     "p14.profession-closure.officer-runtime.compatibility-data-retained"
 
+$skillTablePath = Join-Path $dsrc "sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+$skillTableLines = @(Get-Content -LiteralPath $skillTablePath)
+$skillTableHeaders = $skillTableLines[0] -split "`t"
+$skillRows = @($skillTableLines | Select-Object -Skip 2 |
+    ConvertFrom-Csv -Delimiter "`t" -Header $skillTableHeaders)
+$precuJediAndVillageRows = @($skillRows | Where-Object {
+    [string]$_.NAME -match '^(?:jedi_|force_sensitive_)'
+})
+$precuJediAndVillageCommands = @($precuJediAndVillageRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+} | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_forcesensitive_').Count -eq
+        [int]$contract.expected.retainedForceSensitiveClassSkillRows) -and
+    ([regex]::Matches($officerSkillsTable, '(?m)^expertise_fs_').Count -eq
+        [int]$contract.expected.retainedForceSensitiveExpertiseSkillRows) -and
+    ([regex]::Matches($commandTable, '(?m)^fs_').Count -eq
+        [int]$contract.expected.retainedForceSensitiveCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^fs_').Count -eq
+        [int]$contract.expected.retainedForceSensitiveCombatRows) -and
+    ([regex]::Matches($commandSeries, '(?m)^fs_').Count -eq
+        [int]$contract.expected.retainedForceSensitiveCommandSeriesRows) -and
+    $precuJediAndVillageRows.Count -eq [int]$contract.expected.precuJediAndVillageSkillRows -and
+    $precuJediAndVillageCommands.Count -eq [int]$contract.expected.precuJediAndVillageCommands -and
+    @($precuJediAndVillageCommands | Where-Object { $_ -match '^fs_' }).Count -eq
+        [int]$contract.expected.precuJediAndVillageFsCommands) `
+    "p14.profession-closure.force-sensitive-runtime.data-and-precu-command-boundary"
+
 $utilsText = Get-SourceText "sku.0/sys.server/compiled/game/script/library/utils.java"
 $professionSlice = Get-FunctionSlice $utilsText "public static int getPlayerProfession" "public static byte[] packObject"
 $professionOrder = @("FORCE_SENSITIVE", "BOUNTY_HUNTER", "SMUGGLER", "COMMANDO", "OFFICER", "MEDIC", "ENTERTAINER", "TRADER")
@@ -358,6 +441,10 @@ if ($Expectation -eq "Ready")
     $officerClassHashesValid = $null -ne $contract.buildEvidence.officerRuntimeClassEvidence -and
         @($contract.buildEvidence.officerRuntimeClassEvidence.PSObject.Properties |
             Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
+    $forceSensitiveClassHashesValid =
+        $null -ne $contract.buildEvidence.forceSensitiveRuntimeClassEvidence -and
+        @($contract.buildEvidence.forceSensitiveRuntimeClassEvidence.PSObject.Properties |
+            Where-Object { [string]$_.Value -notmatch '^[a-f0-9]{64}$' }).Count -eq 0
     Assert-Contract ([string]$manifest.sourceMode -ceq "direct-branch" -and
         $dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
@@ -365,6 +452,7 @@ if ($Expectation -eq "Ready")
     Assert-Contract ([string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed" -and
         $officerClassHashesValid -and
+        $forceSensitiveClassHashesValid -and
         [bool]$contract.runtimeEvidence.deployment.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.deployment.mappedNewlyBuiltBinary) `
         "p14.profession-closure.live-evidence"

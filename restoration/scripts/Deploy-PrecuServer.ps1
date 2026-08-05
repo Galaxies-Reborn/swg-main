@@ -985,6 +985,10 @@ test "$(grep -Fc 'retirePostNgeOfficerSupplyDrop(self, owner)' "$work_script/sys
 grep -Fq 'isPlayer(owner)' "$work_script/systems/combat/combat_supply_drop_controller.java"
 grep -Fq 'isPlayer(transferer)' "$work_script/systems/combat/combat_supply_drop_crate.java"
 grep -Fq 'retirePostNgeOfficerSupplyCrate(self)' "$work_script/systems/combat/combat_supply_drop_crate.java"
+grep -Fq 'actionName.startsWith("fs_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
+test "$(grep -Fc 'isRetiredPostNgeForceSensitivePlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 1
+grep -Fq 'buff.removeBuff(self, "fs_dot_immunity_recourse")' "$work_script/systems/combat/combat_actions.java"
 ! grep -R -F 'expertise_bm_' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -E -R 'get(Enhanced)?SkillStatisticModifier(Uncapped)?\([^\r\n]*"(bm_|incubation_time_reduction)' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
 ! grep -Fq 'playerLearnBeastMasterSkill' "$work_script/conversation/trainer_beast_master.java"
@@ -1301,6 +1305,12 @@ javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_contr
 javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_controller | grep -Fq 'destroyOfficerPets'
 javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_crate | grep -Fq 'retirePostNgeOfficerSupplyCrate'
 javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_crate | grep -Fq 'no_access_not_in_group'
+# Publish 14.1 Jedi and Village rows use their classic force*, saber*, heal*,
+# mindBlast*, and jediMindTrick commands; fs_* is retained NGE compatibility.
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'fs_'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'fs_dot_immunity_recourse'
 # Publish 14.1 Creature Handler remains authoritative. Retain Beast Master
 # assets for later-content loading but retire their player combat runtime.
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'
