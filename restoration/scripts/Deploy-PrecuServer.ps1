@@ -123,6 +123,10 @@ Write-Host "Verifying the direct-source PRE-CU TCG barn-display authority before
 & (Join-Path $PSScriptRoot "Test-P14PrecuTcgBarnDisplayAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU space reverse-engineering authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuSpaceReverseEngineeringAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -368,6 +372,16 @@ source_barn_lite_device="$source_script/systems/tcg/barn_lite_device.java"
 work_barn_lite_device="$work_script/systems/tcg/barn_lite_device.java"
 source_barn_beast="$source_script/systems/tcg/barn_beast.java"
 work_barn_beast="$work_script/systems/tcg/barn_beast.java"
+source_space_analysis_tool="$source_script/space/crafting/analysis_tool.java"
+work_space_analysis_tool="$work_script/space/crafting/analysis_tool.java"
+source_space_analysis_template="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/ship/crafted/reverse_engineering/analysis_tool.tpf"
+work_space_analysis_template="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/ship/crafted/reverse_engineering/analysis_tool.tpf"
+source_space_armor_analysis_template="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/ship/crafted/reverse_engineering/armor_analysis_tool.tpf"
+work_space_armor_analysis_template="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/ship/crafted/reverse_engineering/armor_analysis_tool.tpf"
+source_reverse_loot_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot.tab"
+work_reverse_loot_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot.tab"
+source_reverse_loot_lookup_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot_lookup.tab"
+work_reverse_loot_lookup_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot_lookup.tab"
 source_movement_library="$source_script/library/movement.java"
 work_movement_library="$work_script/library/movement.java"
 source_movement_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab"
@@ -620,6 +634,34 @@ grep -Fq 'destroyObject(self);' "$work_barn_beast"
 ! grep -Fq 'expertise_' "$work_barn_beast"
 test "$(grep -Fc 'getWeaponMinDamage(' "$work_barn_beast")" -eq 2
 test "$(grep -Fc 'getWeaponMaxDamage(' "$work_barn_beast")" -eq 2
+cmp -s "$source_space_analysis_tool" "$work_space_analysis_tool"
+cmp -s "$source_space_analysis_template" "$work_space_analysis_template"
+cmp -s "$source_space_armor_analysis_template" "$work_space_armor_analysis_template"
+cmp -s "$source_reverse_loot_table" "$work_reverse_loot_table"
+cmp -s "$source_reverse_loot_lookup_table" "$work_reverse_loot_lookup_table"
+! grep -Fq 'expertise_' "$work_space_analysis_tool"
+! grep -Fq 'getReverseEngineeringExpertiseBonus' "$work_space_analysis_tool"
+! grep -Fq 'getEnhancedSkillStatisticModifier' "$work_space_analysis_tool"
+test "$(grep -Fc 'public obj_id reverseEngineer' "$work_space_analysis_tool")" -eq 8
+test "$(grep -Fc 'float fltBonus = getLevelBonus(player, level);' "$work_space_analysis_tool")" -eq 8
+test "$(grep -Fc 'flags |= ship_component_flags.SCF_reverse_engineered;' "$work_space_analysis_tool")" -eq 8
+test "$(grep -Fc 'setObjVar(self, "reverse_engineering.charges", charges);' "$work_space_analysis_tool")" -eq 8
+grep -Fq 'fltBonus = 0.01f;' "$work_space_analysis_tool"
+grep -Fq 'fltBonus = 0.02f;' "$work_space_analysis_tool"
+grep -Fq 'fltBonus = 0.03f;' "$work_space_analysis_tool"
+grep -Fq 'fltBonus = 0.04f;' "$work_space_analysis_tool"
+grep -Fq 'fltBonus = 0.05f;' "$work_space_analysis_tool"
+grep -Fq 'fltBonus = 0.06f;' "$work_space_analysis_tool"
+grep -Fq 'getSkillStatisticModifier(player, "engineering_reverse")' "$work_space_analysis_tool"
+grep -Fq 'getSkillStatisticModifier(player, "propulsion_reverse")' "$work_space_analysis_tool"
+grep -Fq 'getSkillStatisticModifier(player, "systems_reverse")' "$work_space_analysis_tool"
+grep -Fq 'getSkillStatisticModifier(player, "defense_reverse")' "$work_space_analysis_tool"
+grep -Fq 'getReverseEngineeringLevel' "$work_space_analysis_tool"
+grep -Fq 'destroyObject(objComponent);' "$work_space_analysis_tool"
+grep -Fq 'calculateFiresprayGrant' "$work_space_analysis_tool"
+grep -Fq 'createLegendaryLoot' "$work_space_analysis_tool"
+grep -Fq '"space.crafting.analysis_tool"' "$work_space_analysis_template"
+grep -Fq '"space.crafting.analysis_tool"' "$work_space_armor_analysis_template"
 ! grep -Eq 'expertise_use_buff_chance_line_|private_use_buff_chance_line_|expertise_buff_chance_line_|expertise_buff_duration_(line|group|single)_' "$work_combat_library"
 grep -Fq 'public static float getAuthoredBuffDuration' "$work_combat_library"
 test "$(grep -Eh 'buffDuration = (combat[.])?getAuthoredBuffDuration[(]' "$work_combat_library" "$work_healing_library" | wc -l)" -eq 4
@@ -834,6 +876,17 @@ javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'dest
 ! javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'expertise_'
 javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'getWeaponMinDamage'
 javap -classpath "$class_root" -v script.systems.tcg.barn_beast | grep -Fq 'getWeaponMaxDamage'
+# Retained JTL component reverse engineering uses its authored level curve and
+# PRE-CU Shipwright reverse modifiers, never the later trader expertise tree.
+! javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'expertise_'
+! javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'getReverseEngineeringExpertiseBonus'
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'getLevelBonus'
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'reverseEngineerArmor'
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'reverseEngineerWeapon'
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'SCF_reverse_engineered'
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'reverse_engineering.charges'
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'calculateFiresprayGrant'
+javap -classpath "$class_root" -v script.space.crafting.analysis_tool | grep -Fq 'createLegendaryLoot'
 # Publish 14.1 crystal quality is an authored property of the crystal/loot
 # result, never a derivative of the receiving player's NGE combat level.
 javap -classpath "$class_root" -v script.systems.jedi.jedi_saber_component | grep -Fq 'initializePrecuCrystal'

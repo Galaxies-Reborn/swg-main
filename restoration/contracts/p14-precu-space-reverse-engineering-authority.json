@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-space-reverse-engineering-authority",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Keep retained JTL ship-component reverse engineering while making its authored component-level curve and PRE-CU Shipwright reverse modifiers authoritative, without the later NGE trader expertise bonus.",
+  "eraEvidence": {
+    "basis": "Jump to Lightspeed ship-component reverse engineering is retained content, but the post-NGE expertise tree is not part of the Publish 14.1 profession model. The retained tool already gates each component family with the four Shipwright reverse modifiers and defines its complete one-through-ten output curve locally.",
+    "findings": [
+      "The generic and armor analysis-tool object templates both attach space.crafting.analysis_tool, making this a reachable player crafting path.",
+      "The analysis tool requires a component set whose count equals its reverse-engineering level and whose members share component type and level.",
+      "Eight component-family output methods use engineering_reverse, propulsion_reverse, systems_reverse, or defense_reverse from the retained Shipwright skill tree.",
+      "The authored level curve grants one through six percent for levels one through ten; the removed code added a separate post-NGE expertise_reverse_engineering_bonus on top of every result.",
+      "Charges, reverse-engineered output flags, source-component consumption, legendary loot, and Firespray schematic handling are independent retained behaviors."
+    ]
+  },
+  "expected": {
+    "changedGameplaySourceFiles": 1,
+    "ngeExpertiseReads": 0,
+    "categoryOutputMethods": 8,
+    "levelBonusCallSites": 8,
+    "reverseEngineeredFlagAssignments": 8,
+    "shipwrightReverseModifiers": 4,
+    "liveToolTemplates": 2,
+    "levelBonuses": {
+      "level1": 0.01,
+      "levels2To3": 0.02,
+      "levels4To5": 0.03,
+      "levels6To7": 0.04,
+      "levels8To9": 0.05,
+      "level10": 0.06
+    },
+    "componentTypeAndLevelMatchingPreserved": true,
+    "chargesAndOutputFlagsPreserved": true,
+    "sourceConsumptionPreserved": true,
+    "firesprayAndLegendaryPathsPreserved": true
+  },
+  "sourceFiles": {
+    "analysisTool": "dsrc/sku.0/sys.server/compiled/game/script/space/crafting/analysis_tool.java",
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "genericToolTemplate": "dsrc/sku.0/sys.server/compiled/game/object/tangible/ship/crafted/reverse_engineering/analysis_tool.tpf",
+    "armorToolTemplate": "dsrc/sku.0/sys.server/compiled/game/object/tangible/ship/crafted/reverse_engineering/armor_analysis_tool.tpf",
+    "reverseLoot": "dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot.tab",
+    "reverseLootLookup": "dsrc/sku.0/sys.server/compiled/game/datatables/space_loot/reverse_engineering/reverse_loot_lookup.tab"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "d8537ee4e874aab98f01dbabf53e61e4300ac319",
+    "lineEndingPolicy": "the touched legacy analysis_tool.java blob was normalized to the repository's declared LF policy",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "analysisTool": "6b6587e431eccc0eac4cb59249497e6ed2401da74950ee16f7977c57093e68e7",
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
+      "genericToolTemplate": "042c75873f348a1ebe1959cac83da05a10ccac165a132be8a217f9dfd97b2799",
+      "armorToolTemplate": "dcbe1cc63802be99f7c3f6878fc03828f1d69b5c3356e7c5b481f2595ce1f8f2",
+      "reverseLoot": "b8040af3c22c0b801b9f813d8503e23e26fe722516abe45bbb695d9ea0bde677",
+      "reverseLootLookup": "5ee881ae85308e2c1f95fcf9d7aef5f8c88dd5a0c3d36b53f41ce83625b28dbd"
+    },
+    "compiledClassSha256": null,
+    "sourceTest": "passed; the live template bindings, PRE-CU Shipwright modifiers, exact authored curve, category outputs, component matching, charges, output flags, source consumption, and retained Firespray and legendary paths were authenticated",
+    "focusedJavaCompile": "passed; analysis_tool.java compiled directly against the current server classpath and its emitted class contains no post-NGE expertise symbol",
+    "fullJavaCompile": null,
+    "fullServerBuild": null,
+    "architecture": null,
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "sourceWorkParity": null,
+    "bytecodeAudit": null,
+    "deploymentProbe": null,
+    "result": "pending-live-deployment"
+  },
+  "runtimeEvidence": {
+    "date": null,
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": null,
+    "containerHealth": null,
+    "clusterReadyForPlayers": false,
+    "compiledClassSize": null,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": null,
+    "liveBinaryInode": null,
+    "liveBinarySize": null,
+    "liveBinaryMapEntries": null,
+    "processCounts": null,
+    "postStartLogAudit": null,
+    "result": "pending-live-deployment"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "Retained ship-component reverse engineering can no longer add the post-NGE trader expertise bonus to its authored component-level output curve.",
+    "preserved": "Shipwright reverse-modifier admission, matching component requirements, all eight output families, charges, output flags, source destruction, result calculations, legendary loot, and Firespray handling remain available.",
+    "notClaimedComplete": "Other retained JTL crafting scripts and later-content compatibility systems remain subject to the wider PRE-CU precedence audit."
+  },
+  "requiredBeforeReady": [
+    "Run a clean full Java dependency rebuild and x64 server build from the pinned direct source.",
+    "Authenticate source/work parity and emitted analysis_tool bytecode in the deployment gate.",
+    "Restart the server, prove the live process maps the built x64 binary, and audit post-start logs."
+  ]
+}
