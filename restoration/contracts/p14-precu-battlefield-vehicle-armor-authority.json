@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-battlefield-vehicle-armor-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "ready",
   "scope": "Preserve the retained Echo Base battlefield vehicles while routing their authored datatable armor through the PRE-CU mob protection objvar and cache instead of the inherited NGE expertise statistic.",
   "eraEvidence": {
     "basis": "The authenticated PRE-CU armor route consumes authored creature protection from armor.general_protection. Echo Base is retained later content, so its authored vehicle values remain content data but cannot acquire gameplay authority through an NGE expertise statistic.",
@@ -41,45 +41,48 @@
       "vehicleTable": "c288af4b60e2dbd0400029355e920e92dca61c541b3c5bd7c203b108aac948a5",
       "echoBaseSpawns": "8f7969b09f0c088353dd5c7555a7054e1086d4c035e048bcc9ffe5cae8949856"
     },
-    "compiledClassSha256": "",
+    "compiledClassSha256": "df37bd059a6fda9ad9c301758504844c33ee053691ac1fecacdac9f49dd72d09",
     "sourceTest": "passed; authenticated the authored vehicle table, all twenty-one production Echo Base attachments, the PRE-CU armor.general_protection write/cache route, and zero inherited vehicle armor expertise writes",
     "focusedJavaCompile": "passed in an ephemeral in-memory directory that was removed immediately; emitted bytecode writes armor.general_protection, calls recalculateArmorForMob, and contains no expertise_innate_protection_all symbol",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
-    "architecture": "pending",
-    "serverBinarySha256": "",
-    "serverBinaryBuildId": "",
-    "sourceWorkParity": "pending",
-    "bytecodeAudit": "pending",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and battlefield_vehicle.class was emitted at 2026-08-05T03:06:02.861076364Z",
+    "fullServerBuild": "passed in 607.8 seconds from pushed parent 467d312 and direct dsrc 932f45080",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
+    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "sourceWorkParity": "passed byte-for-byte for battlefield_vehicle.java between the read-only direct source and Docker work volume; both copies have SHA-256 c2259b931a62e473f5eada4a4e0ecdfeae590e243414fadd347a5d9b237a7a6b",
+    "bytecodeAudit": "passed; battlefield_vehicle.class contains armor.general_protection and recalculateArmorForMob and contains no expertise_innate_protection_all symbol",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused battlefield vehicle source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "",
+    "date": "2026-08-04",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "",
-    "containerHealth": "pending",
-    "clusterReadyForPlayers": false,
-    "compiledClassSize": 0,
-    "liveProcessMappedBuiltBinary": false,
-    "liveGameProcessPid": 0,
-    "liveBinaryInode": 0,
-    "liveBinarySize": 0,
-    "liveBinaryMapEntries": 0,
-    "processCounts": {},
-    "postStartLogAudit": "pending",
-    "result": "pending"
+    "containerStartedAt": "2026-08-05T03:11:34.802329188Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "compiledClassSize": 11124,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 362,
+    "liveBinaryInode": 12110805,
+    "liveBinarySize": 22601480,
+    "liveBinaryMapEntries": 2,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "PlanetServer": 14,
+      "SwgGameServer": 14
+    },
+    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "The retained battlefield vehicle initialization path can no longer discard authored armor behind an NGE expertise statistic.",
     "preserved": "Echo Base vehicle templates, spawn counts, health, factions, allowed zone, driver and gunner attacks, special commands, passenger behavior, and authored armor magnitudes remain unchanged.",
     "notClaimedComplete": "Other retained content-specific expertise references remain subject to later production-reachability audits."
   },
-  "requiredBeforeReady": [
-    "Pass a clean full Java and x64 server build from the pushed direct-source pin.",
-    "Authenticate source/work parity and emitted battlefield vehicle bytecode.",
-    "Restart the server, observe the exact player-ready marker, verify the mapped x64 binary, and audit post-start logs."
-  ]
+  "requiredBeforeReady": []
 }
