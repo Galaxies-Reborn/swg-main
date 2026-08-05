@@ -135,6 +135,28 @@ Assert-Contract ($campTemplates.Count -eq [int]$contract.expected.genericCampScr
     @($campTemplates | Where-Object { -not ([string]$extensionTexts[$_]).Contains("systems.gcw.gcw_camp") }).Count -eq $campTemplates.Count) `
     "p14.city-invasion.generic-camp-script-preserved"
 
+$compiledExpectedTargets = @($extensionTargets | ForEach-Object {
+    (($_ -replace '^dsrc/sku\.0/sys\.server/compiled/game/', '') -replace '\.tpf$', '.iff')
+})
+$compiledProperties = @($contract.buildEvidence.compiledTemplateSha256.PSObject.Properties | Sort-Object Name)
+$compiledEvidenceTargets = @($compiledProperties | ForEach-Object { [string]$_.Name })
+$compiledContentRecords = ""
+foreach ($property in $compiledProperties)
+{
+    $compiledContentRecords += "$([string]$property.Name)=$([string]$property.Value)$lf"
+}
+Assert-Contract ($compiledEvidenceTargets.Count -eq [int]$contract.expected.cityAssetTemplatesPreserved -and
+    ($compiledExpectedTargets -join $lf) -ceq ($compiledEvidenceTargets -join $lf) -and
+    (Get-TextSha256 (($compiledEvidenceTargets -join $lf) + $lf)) -ceq [string]$contract.buildEvidence.compiledTemplateSetSha256 -and
+    (Get-TextSha256 $compiledContentRecords) -ceq [string]$contract.buildEvidence.compiledTemplateContentSha256) `
+    "p14.city-invasion.compiled-template-evidence-authenticated"
+Assert-Contract ([int]$contract.buildEvidence.compiledTemplateControllerStrings -eq 0 -and
+    [int]$contract.buildEvidence.compiledGenericCampScriptsPreserved -eq [int]$contract.expected.genericCampScriptsPreserved -and
+    [int]$contract.buildEvidence.compiledDestructibleKillCreditScriptsPreserved -eq [int]$contract.expected.destructibleKillCreditScriptsPreserved) `
+    "p14.city-invasion.compiled-template-script-evidence"
+Assert-Contract ([string]$contract.runtimeEvidence.deployedDirectSourceCommit -ceq [string]$contract.buildEvidence.directSourceCommit) `
+    "p14.city-invasion.deployed-direct-source-synchronized"
+
 $gcw = [string]$texts["script.library.gcw"]
 $city = [string]$texts["script.systems.gcw.gcw_city"]
 $planet = [string]$texts["script.planet.planet_base"]
