@@ -102,6 +102,12 @@ Assert-Contract (@($speciesRows | Where-Object {
     "p14.species-innate.novice-scout-harvesting-boundary"
 
 $commandRows = @(Import-SwgTab -Path $paths.commandTable)
+$retiredSpeciesActions = @($contract.expected.retiredNgeSpeciesAbilityActions |
+    ForEach-Object { [string]$_ })
+Assert-Contract (@($commandRows | Where-Object {
+    $retiredSpeciesActions -ccontains [string]$_.commandName
+}).Count -eq [int]$contract.expected.retainedNgeSpeciesAbilityCommandRows) `
+    "p14.species-innate.nge-command-compatibility-rows-preserved"
 $commandExpected = [ordered]@{
     equilibrium = @('innate_equilibrium', '3600')
     regeneration = @('innate_regeneration', '3600')
@@ -131,6 +137,13 @@ Assert-Contract ($roarCommand.Count -eq 1 -and
     "p14.species-innate.wookiee-roar-command"
 
 $buffRows = @(Import-SwgTab -Path $paths.buffTable)
+$retiredSpeciesBuffRows = @($buffRows | Where-Object {
+    $retiredSpeciesActions -ccontains [string]$_.NAME -or
+        [string]$_.NAME -ceq 'invis_bothan_ability_1'
+})
+Assert-Contract ($retiredSpeciesBuffRows.Count -eq
+    [int]$contract.expected.retainedNgeSpeciesAbilityBuffRows) `
+    "p14.species-innate.nge-buff-compatibility-rows-preserved"
 $regenBuff = @($buffRows | Where-Object { [string]$_.NAME -ceq 'innate_regeneration' })
 $vitalizeBuff = @($buffRows | Where-Object { [string]$_.NAME -ceq 'innate_vitalize' })
 $roarBuff = @($buffRows | Where-Object { [string]$_.NAME -ceq 'innate_wookiee_roar' })
@@ -154,6 +167,10 @@ Assert-Contract ($roarBuff.Count -eq 1 -and
     "p14.species-innate.nge-wookiee-self-buff-retired"
 
 $combatRows = @(Import-SwgTab -Path $paths.combatData)
+Assert-Contract (@($combatRows | Where-Object {
+    $retiredSpeciesActions -ccontains [string]$_.actionName
+}).Count -eq [int]$contract.expected.retainedNgeSpeciesAbilityCombatRows) `
+    "p14.species-innate.nge-combat-compatibility-rows-preserved"
 $roarCombat = @($combatRows | Where-Object { [string]$_.actionName -ceq 'wookieeRoar' })
 Assert-Contract ($roarCombat.Count -eq 1 -and
     [string]$roarCombat[0].attackType -ceq 'CONE' -and
@@ -187,6 +204,8 @@ Assert-Contract (@($spamRows | Where-Object { [string]$_.actionName -ceq 'wookie
 $innateSource = Get-Content -LiteralPath $paths.innateLibrary -Raw
 $speciesSource = Get-Content -LiteralPath $paths.speciesInnate -Raw
 $combatSource = Get-Content -LiteralPath $paths.combatActions -Raw
+$combatBaseSource = Get-Content -LiteralPath $paths.combatBase -Raw
+$basePlayerSource = Get-Content -LiteralPath $paths.basePlayer -Raw
 $equalize = Get-BracedSurface $innateSource 'public static void equalizeEffect'
 $regenHandler = Get-BracedSurface $speciesSource 'public int cmdRegeneration'
 $vitalizeHandler = Get-BracedSurface $speciesSource 'public int cmdVitalize'
@@ -211,6 +230,77 @@ Assert-Contract ($speciesSource.Contains('queueCommand(self, (-1223315403), targ
     $roarHandler.Contains('innate.SID_ROAR_ACTIVE') -and
     -not $roarHandler.Contains('getLevel(')) "p14.species-innate.wookiee-roar-runtime"
 
+$retiredListStart = $combatBaseSource.IndexOf(
+    'private static final String[] RETIRED_POST_NGE_SPECIES_PLAYER_ACTIONS',
+    [StringComparison]::Ordinal)
+$retiredListEnd = $combatBaseSource.IndexOf(
+    'public static boolean isRetiredPostNgeSpeciesPlayerAction',
+    [StringComparison]::Ordinal)
+$retiredList = if ($retiredListStart -ge 0 -and $retiredListEnd -gt $retiredListStart)
+{
+    $combatBaseSource.Substring($retiredListStart, $retiredListEnd - $retiredListStart)
+}
+else { '' }
+$listedActions = @([regex]::Matches($retiredList, '"([a-z]+_ability_1)"') |
+    ForEach-Object { $_.Groups[1].Value })
+Assert-Contract ($listedActions.Count -eq $retiredSpeciesActions.Count -and
+    @($retiredSpeciesActions | Where-Object { $listedActions -cnotcontains $_ }).Count -eq 0 -and
+    @('regeneration','wookieeRoar','vitalize','equilibrium' | Where-Object {
+        $retiredList.Contains('"' + $_ + '"')
+    }).Count -eq 0) "p14.species-innate.exact-nge-player-action-family"
+
+$speciesGate = Get-BracedSurface $combatBaseSource `
+    'public static boolean isRetiredPostNgeSpeciesPlayerAction'
+$speciesCleanup = Get-BracedSurface $combatBaseSource `
+    'public static void retirePostNgeSpeciesAbilityState'
+$standardAction = Get-BracedSurface $combatBaseSource `
+    'public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)'
+$initializeHandler = Get-BracedSurface $basePlayerSource 'public int OnInitialize'
+$loginHandler = Get-BracedSurface $basePlayerSource 'public int OnLogin'
+$gateIndex = $standardAction.IndexOf(
+    'isRetiredPostNgeSpeciesPlayerAction(self, actionName)', [StringComparison]::Ordinal)
+$cleanupIndex = $standardAction.IndexOf(
+    'retirePostNgeSpeciesAbilityState(self)', [StringComparison]::Ordinal)
+$returnIndex = $standardAction.IndexOf('return false;', $cleanupIndex,
+    [StringComparison]::Ordinal)
+$combatEntryIndex = $standardAction.IndexOf('combat.revealPrecuFeignDeath',
+    [StringComparison]::Ordinal)
+Assert-Contract ($speciesGate.Contains('isPlayer(self)') -and
+    $speciesGate.Contains('RETIRED_POST_NGE_SPECIES_PLAYER_ACTIONS') -and
+    $speciesCleanup.Contains('while (hasCommand(player, retiredAction))') -and
+    $speciesCleanup.Contains('revokeCommand(player, retiredAction)') -and
+    $speciesCleanup.Contains('buff.removeBuff(player, retiredAction)') -and
+    $speciesCleanup.Contains('buff.removeBuff(player, "invis_bothan_ability_1")') -and
+    $speciesCleanup.Contains('utils.removeScriptVar(player, healing.VAR_PLAYER_HOT_ID)') -and
+    $gateIndex -ge 0 -and $cleanupIndex -gt $gateIndex -and
+    $returnIndex -gt $cleanupIndex -and $combatEntryIndex -gt $returnIndex) `
+    "p14.species-innate.nge-player-runtime-fails-before-combat"
+$loginCleanupIndex = $loginHandler.IndexOf(
+    'script.systems.combat.combat_base.retirePostNgeSpeciesAbilityState(self)',
+    [StringComparison]::Ordinal)
+$loginMigrationIndex = $loginHandler.IndexOf(
+    'script.player.live_conversions.retirePostNgePlayerMigrationState(self)',
+    [StringComparison]::Ordinal)
+$initializeCleanupIndex = $initializeHandler.IndexOf(
+    'script.systems.combat.combat_base.retirePostNgeSpeciesAbilityState(self)',
+    [StringComparison]::Ordinal)
+$expertiseIndex = $initializeHandler.IndexOf('skill.validateExpertise(self)',
+    [StringComparison]::Ordinal)
+Assert-Contract ($loginMigrationIndex -ge 0 -and
+    $loginCleanupIndex -gt $loginMigrationIndex -and
+    $initializeCleanupIndex -ge 0 -and $expertiseIndex -gt $initializeCleanupIndex) `
+    "p14.species-innate.login-scrubs-stale-command-and-buff-state"
+$retiredHandlers = @($retiredSpeciesActions | ForEach-Object {
+    Get-BracedSurface $combatSource ("public int " + $_)
+})
+Assert-Contract (@($retiredHandlers | Where-Object {
+    [string]::IsNullOrEmpty($_) -or -not $_.Contains('combatStandardAction("')
+}).Count -eq 0 -and
+    ([regex]::Matches(($retiredHandlers -join "`n"), 'getLevel\(self\)').Count -eq
+        [int]$contract.diagnosis.retainedNgeLevelScaledSpeciesAbilityHandlers) -and
+    [int]$contract.expected.ngeSpeciesAbilityLevelReadsReachableByPlayers -eq 0) `
+    "p14.species-innate.all-retained-handlers-dominated-by-player-gate"
+
 if ($Expectation -eq 'Ready')
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq 'dsrc' })
@@ -222,7 +312,7 @@ if ($Expectation -eq 'Ready')
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.species-innate.direct-source-pin"
     Assert-Contract (@($contract.buildEvidence.compiledClassSha256.PSObject.Properties |
-        Where-Object { [string]$_.Value -match '^[a-f0-9]{64}$' }).Count -eq 3 -and
+        Where-Object { [string]$_.Value -match '^[a-f0-9]{64}$' }).Count -eq 5 -and
         @($contract.buildEvidence.compiledDataSha256.PSObject.Properties |
         Where-Object { [string]$_.Value -match '^[a-f0-9]{64}$' }).Count -eq 5 -and
         [bool]$contract.runtimeEvidence.compiledClassesPresent -and

@@ -2357,6 +2357,18 @@ javap -classpath "$class_root" -v script.player.species_innate | grep -Fq 'priva
 javap -classpath "$class_root" -v script.player.species_innate | grep -Fq 'private_innate_equilibrium'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'private_innate_roar'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'wookieeRoar'
+species_retirement_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base | sed -n '/public static boolean isRetiredPostNgeSpeciesPlayerAction/,/public static boolean isRetiredPostNgeSpyPlayerAction/p')"
+for retired_species_action in human_ability_1 wookiee_ability_1 rodian_ability_1 bothan_ability_1 ithorian_ability_1 twilek_ability_1 sullustan_ability_1 moncal_ability_1 trandoshan_ability_1 zabrak_ability_1; do
+    printf '%s' "$species_retirement_bytecode" | grep -Fq "$retired_species_action"
+done
+printf '%s' "$species_retirement_bytecode" | grep -Fq 'Method hasCommand'
+printf '%s' "$species_retirement_bytecode" | grep -Fq 'Method revokeCommand'
+printf '%s' "$species_retirement_bytecode" | grep -Fq 'Method script/library/buff.removeBuff'
+printf '%s' "$species_retirement_bytecode" | grep -Fq 'healing.hot_id'
+species_standard_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base | sed -n '/public boolean combatStandardAction(java.lang.String, script.obj_id, script.obj_id, script.obj_id, java.lang.String, script.combat_engine.combat_data, boolean, boolean, int)/,/public boolean doCombatPreCheck/p')"
+printf '%s' "$species_standard_action_bytecode" | grep -Fq 'Method isRetiredPostNgeSpeciesPlayerAction'
+printf '%s' "$species_standard_action_bytecode" | grep -Fq 'Method retirePostNgeSpeciesAbilityState'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeSpeciesAbilityState'
 grep -Fq 'datastorage * pet_lib.DETONATION_DROID_MIN_DAMAGE' "$work_script/ai/pet.java"
 grep -Fq 'datastorage * pet_lib.getDetonationDroidMinDamage()' "$work_script/ai/pet_control_device.java"
 grep -Fq 'datastorage * pet_lib.getDetonationDroidMinDamage()' "$work_script/npc/pet_deed/droid_deed.java"
@@ -2470,6 +2482,18 @@ grep -Fq 'const uint32_t cs_maximumNumberInGroup = 24;' "$work_group"
 grep -Fq 'reuseableWp.groupPickupWp' "$work_player"
 grep -Fq 'normalizePrecuAttackSpeed' "$work_weapon"
 grep -Fq 'getStoredAttackTime' "$work_weapon_header"
+species_retirement_list_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_SPECIES_PLAYER_ACTIONS/,/public static boolean isRetiredPostNgeSpeciesPlayerAction/p' "$work_combat_base")"
+test "$(printf '%s' "$species_retirement_list_source" | grep -Eoc '"[a-z]+_ability_1"')" -eq 10
+for retired_species_action in human_ability_1 wookiee_ability_1 rodian_ability_1 bothan_ability_1 ithorian_ability_1 twilek_ability_1 sullustan_ability_1 moncal_ability_1 trandoshan_ability_1 zabrak_ability_1; do
+    printf '%s' "$species_retirement_list_source" | grep -Fq "\"$retired_species_action\""
+done
+! printf '%s' "$species_retirement_list_source" | grep -Eq '"(regeneration|wookieeRoar|vitalize|equilibrium)"'
+species_retirement_cleanup_source="$(sed -n '/public static void retirePostNgeSpeciesAbilityState/,/public static boolean isRetiredPostNgeSpyPlayerAction/p' "$work_combat_base")"
+printf '%s' "$species_retirement_cleanup_source" | grep -Fq 'while (hasCommand(player, retiredAction))'
+printf '%s' "$species_retirement_cleanup_source" | grep -Fq 'revokeCommand(player, retiredAction)'
+printf '%s' "$species_retirement_cleanup_source" | grep -Fq 'buff.removeBuff(player, "invis_bothan_ability_1")'
+printf '%s' "$species_retirement_cleanup_source" | grep -Fq 'utils.removeScriptVar(player, healing.VAR_PLAYER_HOT_ID)'
+grep -Fq 'script.systems.combat.combat_base.retirePostNgeSpeciesAbilityState(self);' "$work_base_player"
 awk -F '	' '$1 ~ /^harvestCorpse$/ { found=1; if ($9 !~ /^harvestCorpse$/) exit 2 } END { if (!found) exit 3 }' "$work_command_table"
 awk -F '	' '$1 ~ /^species_(bothan|human|moncal|rodian|trandoshan|twilek|wookiee|zabrak|ithorian|sullustan)$/ { found++; if ($23 ~ /creature_harvesting/) exit 2 } END { if (found != 10) exit 3 }' "$work_skills"
 awk -F '	' '$1 ~ /^outdoors_scout_novice$/ { found=1; if ($22 !~ /harvestCorpse/ || $23 !~ /creature_harvesting=15/) exit 2 } END { if (!found) exit 3 }' "$work_skills"
