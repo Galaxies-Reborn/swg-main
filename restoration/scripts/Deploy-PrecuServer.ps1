@@ -796,7 +796,7 @@ grep -Fq 'if (isPostNgeCtsProgressionRestorationRetired())' "$work_utils_library
 grep -Fq 'removeObjVar(player, respec.PROF_LEVEL_ARRAY);' "$work_utils_library"
 grep -Fq 'beast_lib.retirePostNgeBeastMasterPlayerState(player);' "$work_utils_library"
 grep -Fq 'public static boolean isRetiredPostNgePlayerOwnedBeast(obj_id beast)' "$work_beast_library"
-test "$(grep -Fc 'isRetiredPostNgePlayerOwnedBeast(beast)' "$work_beast_library")" -eq 7
+test "$(grep -Fc 'isRetiredPostNgePlayerOwnedBeast(beast)' "$work_beast_library")" -eq 6
 cmp -s "$source_vendor" "$work_vendor"
 cmp -s "$source_meatlump_vendor" "$work_meatlump_vendor"
 cmp -s "$source_nova_orion_vendor" "$work_nova_orion_vendor"
