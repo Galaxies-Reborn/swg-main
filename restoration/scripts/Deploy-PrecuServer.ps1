@@ -631,7 +631,7 @@ precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperia
 precu_cosmetic_familiar_paths="ai/familiar.java"
 precu_droid_detonation_paths="ai/pet.java ai/pet_control_device.java library/pet_lib.java npc/pet_deed/droid_deed.java systems/crafting/droid/modules/droid_bomb.java"
 post_nge_beast_creation_paths="ai/pet_control_device.java library/beast_lib.java library/incubator.java npc/pet_deed/pet_deed.java player/base/base_player.java player/player_utility.java systems/beast/base_incubator.java systems/beast/beast_dye.java systems/beast/beast_egg.java systems/beast/beast_food.java systems/beast/beast_steroid_injector.java systems/beast/decoration_item.java systems/beast/enzyme_crafting_base.java systems/beast/enzyme_crafting_centrifuge.java systems/beast/enzyme_crafting_combiner.java systems/beast/enzyme_crafting_processor.java systems/beast/enzyme_extractor.java"
-post_nge_beast_runtime_paths="ai/beast.java ai/beast_control_device.java ai/creature_combat.java conversation/trainer_beast_master.java library/beast_lib.java player/base/base_player.java player/live_conversions.java player/player_beastmaster.java systems/combat/combat_actions.java systems/combat/combat_base.java"
+post_nge_beast_runtime_paths="ai/beast.java ai/beast_control_device.java ai/creature_combat.java conversation/trainer_beast_master.java item/loot_schematic/loot_schematic.java library/beast_lib.java player/base/base_player.java player/live_conversions.java player/player_beastmaster.java systems/combat/combat_actions.java systems/combat/combat_base.java"
 post_nge_officer_runtime_paths="ai/officer_pet.java systems/combat/combat_base.java systems/combat/combat_actions.java systems/combat/combat_supply_drop_controller.java systems/combat/combat_supply_drop_crate.java"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
@@ -1789,6 +1789,12 @@ javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'ret
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBeastMasterPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
 ! javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'expertise_bm_'
+javap -classpath "$class_root" -v script.item.loot_schematic.loot_schematic | grep -Fq 'isRetiredPostNgePlayerKnowledgeItem'
+javap -classpath "$class_root" -v script.item.loot_schematic.loot_schematic | grep -Fq 'retirePostNgePlayerKnowledgeItemState'
+javap -classpath "$class_root" -v script.item.loot_schematic.loot_schematic | grep -Fq 'retirePostNgeBeastMasterPlayerState'
+javap -classpath "$class_root" -constants script.item.loot_schematic.loot_schematic | grep -Fq 'TYPE_SKILL = 2'
+javap -classpath "$class_root" -constants script.item.loot_schematic.loot_schematic | grep -Fq 'TYPE_ABILITY = 3'
+javap -classpath "$class_root" -constants script.item.loot_schematic.loot_schematic | grep -Fq 'TYPE_BEAST_ABILITY = 5'
 # Retire the remaining NGE Beast Master player creation and conversion
 # surfaces without deleting retained content or PRE-CU Bio-Engineer crafting.
 javap -classpath "$class_root" -constants script.library.incubator | grep -Fq 'POST_NGE_BEAST_MASTER_CREATION_PLAYER_RUNTIME_RETIRED = true'

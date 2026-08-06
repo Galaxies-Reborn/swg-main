@@ -59,6 +59,7 @@ $relativeSourceMap = [ordered]@{
     "ai/beast_control_device.java" = "ai/beast_control_device.java"
     "ai/creature_combat.java" = "ai/creature_combat.java"
     "conversation/trainer_beast_master.java" = "conversation/trainer_beast_master.java"
+    "item/loot_schematic/loot_schematic.java" = "item/loot_schematic/loot_schematic.java"
     "library/beast_lib.java" = "library/beast_lib.java"
     "library/utils.java" = "library/utils.java"
     "player/base/base_player.java" = "player/base/base_player.java"
@@ -231,6 +232,71 @@ Assert-Contract (
     (Is-Before $hasSkill "isRetiredPostNgeBeastMasterPlayer(player)" "getKnownSkillsCrc(player)") -and
     (Is-Before $knownSkills "isRetiredPostNgeBeastMasterPlayer(player)" "utils.hasIntBatchObjVar")
 ) "p14.beast-retirement.known-skill-state-fails-closed"
+
+$lootSchematic = [string]$sourceTexts["item/loot_schematic/loot_schematic.java"]
+$lootMenuRequest = Get-SourceSlice $lootSchematic `
+    "public int OnObjectMenuRequest(" `
+    "public int OnObjectMenuSelect("
+$lootMenuSelect = Get-SourceSlice $lootSchematic `
+    "public int OnObjectMenuSelect(" `
+    "public int OnGetAttributes("
+$lootAttributes = Get-SourceSlice $lootSchematic `
+    "public int OnGetAttributes(" `
+    "public int handlerReInitialize("
+$lootRetirementPredicate = Get-SourceSlice $lootSchematic `
+    "public boolean isRetiredPostNgePlayerKnowledgeItem(" `
+    "public void retirePostNgePlayerKnowledgeItemState("
+$lootRetirementCleanup = Get-SourceSlice $lootSchematic `
+    "public void retirePostNgePlayerKnowledgeItemState(" `
+    "public void test("
+Assert-Contract (
+    (($contract.expected.playerKnowledgeItemTypesRetired -join ",") -ceq "2,3,5") -and
+    $lootRetirementPredicate.Contains("!isPlayer(player)") -and
+    $lootRetirementPredicate.Contains("type == TYPE_SKILL || type == TYPE_ABILITY || type == TYPE_BEAST_ABILITY") -and
+    $lootRetirementCleanup.Contains("getLootItemType(item) == TYPE_BEAST_ABILITY") -and
+    $lootRetirementCleanup.Contains("beast_lib.retirePostNgeBeastMasterPlayerState(player)")
+) "p14.beast-retirement.knowledge-item-player-only-predicate"
+Assert-Contract (
+    (Is-Before $lootMenuRequest "isRetiredPostNgePlayerKnowledgeItem(self, player)" "switch (type)") -and
+    (Is-Before $lootMenuSelect "isRetiredPostNgePlayerKnowledgeItem(self, player)" "destroyObject(self)") -and
+    $lootMenuSelect.Contains("return SCRIPT_OVERRIDE;") -and
+    (Is-Before $lootAttributes "isRetiredPostNgePlayerKnowledgeItem(self, player)" "utils.getValidAttributeIndex(names)")
+) "p14.beast-retirement.knowledge-item-ui-use-and-attributes-fail-closed"
+
+$itemStatsPath = Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+$itemStats = Import-Csv -LiteralPath $itemStatsPath -Delimiter ([char]9) | Select-Object -Skip 1
+$explicitSchematicKnowledgeItems = @(
+    $itemStats | Where-Object { $_.objvars -match '(?:^|,)int:loot_schematic\.type=1(?:,|$)' }
+)
+$directSkillKnowledgeItems = @(
+    $itemStats | Where-Object {
+        $_.objvars -match '(?:^|,)int:loot_schematic\.type=2(?:,|$)' -or
+        $_.objvars -match '(?:^|,)string:loot_schematic\.skill='
+    }
+)
+$directAbilityKnowledgeItems = @(
+    $itemStats | Where-Object {
+        $_.objvars -match '(?:^|,)int:loot_schematic\.type=3(?:,|$)' -or
+        $_.objvars -match '(?:^|,)string:loot_schematic\.ability='
+    }
+)
+$beastKnowledgeItems = @(
+    $itemStats | Where-Object { $_.objvars -match '(?:^|,)int:loot_schematic\.type=5(?:,|$)' }
+)
+$beastKnowledgeItemsWithPayload = @(
+    $beastKnowledgeItems | Where-Object {
+        $_.objvars -match '(?:^|,)string:loot_schematic\.beast=' -and
+        $_.objvars -match '(?:^|,)string:loot_schematic\.skill_req=expertise_bm_'
+    }
+)
+Assert-Contract (
+    $explicitSchematicKnowledgeItems.Count -eq [int]$contract.expected.explicitSchematicKnowledgeItemsRetained -and
+    $directSkillKnowledgeItems.Count -eq [int]$contract.expected.productionDirectSkillKnowledgeItems -and
+    $directAbilityKnowledgeItems.Count -eq [int]$contract.expected.productionDirectAbilityKnowledgeItems -and
+    $beastKnowledgeItems.Count -eq [int]$contract.expected.productionBeastKnowledgeItems -and
+    $beastKnowledgeItemsWithPayload.Count -eq $beastKnowledgeItems.Count
+) "p14.beast-retirement.production-knowledge-item-inventory"
 
 $utilsLibrary = [string]$sourceTexts["library/utils.java"]
 $ctsBeastRestore = Get-SourceSlice $utilsLibrary `
