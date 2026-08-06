@@ -70,6 +70,8 @@ $paths = [ordered]@{
     "script.systems.gcw.gcw_city" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city.java"
     "script.planet.planet_base" = "dsrc/sku.0/sys.server/compiled/game/script/planet/planet_base.java"
     "script.player.base.base_player" = "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+    "script.player.player_faction" = "dsrc/sku.0/sys.server/compiled/game/script/player/player_faction.java"
+    "script.player.player_utility" = "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java"
     "buildout.tatooine_4_3" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab"
     "buildout.talus_5_3" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab"
     "buildout.naboo_5_6" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
@@ -154,13 +156,23 @@ Assert-Contract ([int]$contract.buildEvidence.compiledTemplateControllerStrings 
     [int]$contract.buildEvidence.compiledGenericCampScriptsPreserved -eq [int]$contract.expected.genericCampScriptsPreserved -and
     [int]$contract.buildEvidence.compiledDestructibleKillCreditScriptsPreserved -eq [int]$contract.expected.destructibleKillCreditScriptsPreserved) `
     "p14.city-invasion.compiled-template-script-evidence"
-Assert-Contract ([string]$contract.runtimeEvidence.deployedDirectSourceCommit -ceq [string]$contract.buildEvidence.directSourceCommit) `
+$deploymentClaimCurrent = if ([string]$contract.status -ceq "ready")
+{
+    [string]$contract.runtimeEvidence.deployedDirectSourceCommit -ceq [string]$contract.buildEvidence.directSourceCommit
+}
+else
+{
+    [string]$contract.runtimeEvidence.deployedDirectSourceCommit -cne [string]$contract.buildEvidence.directSourceCommit
+}
+Assert-Contract $deploymentClaimCurrent `
     "p14.city-invasion.deployed-direct-source-synchronized"
 
 $gcw = [string]$texts["script.library.gcw"]
 $city = [string]$texts["script.systems.gcw.gcw_city"]
 $planet = [string]$texts["script.planet.planet_base"]
 $player = [string]$texts["script.player.base.base_player"]
+$playerFaction = [string]$texts["script.player.player_faction"]
+$playerUtility = [string]$texts["script.player.player_utility"]
 
 $retiredFlag = Get-FunctionSlice $gcw `
     "public static boolean isPostNgeCityInvasionRetired()" `
@@ -245,6 +257,48 @@ Assert-Contract (-not $player.Contains("gcw.invasionRunning.bestine") -and
     -not $player.Contains("gcw.factionDefending.dearic") -and
     -not $player.Contains("gcw.factionDefending.keren")) `
     "p14.city-invasion.invasion-only-cloning-filter-removed"
+
+$playerCleanup = Get-FunctionSlice $gcw `
+    "public static void cleanupRetiredCityInvasionPlayerState" `
+    "public static final String COLOR_REBELS"
+$playerCleanupMarkers = @(
+    'utils.removeScriptVar(player, "gcw.score.pid")',
+    'forceCloseSUIPage(pid)',
+    'removeObjVar(player, GCW_TUTORIAL_FLAG)',
+    'getWaypointsInDatapad(player)',
+    '"Defense Coordinator"',
+    '"Invasion Staging Area Camp"',
+    '"Defending General"',
+    '"Staging Area Camp"',
+    'destroyWaypointInDatapad(waypoint, player)'
+)
+Assert-Contract (@($playerCleanupMarkers | Where-Object { -not $playerCleanup.Contains($_) }).Count -eq 0) `
+    "p14.city-invasion.stale-player-state-scrub"
+
+$tutorialCheck = Get-FunctionSlice $gcw "public static boolean gcwTutorialCheck" "public static boolean gcwCityHelpText"
+$helpText = Get-FunctionSlice $gcw "public static boolean gcwCityHelpText" "`n}"
+Assert-Contract ($tutorialCheck.Contains("isPostNgeCityInvasionRetired()") -and
+    $tutorialCheck.Contains("cleanupRetiredCityInvasionPlayerState(player)") -and
+    $helpText.Contains("isPostNgeCityInvasionRetired()") -and
+    $helpText.Contains("cleanupRetiredCityInvasionPlayerState(player)")) `
+    "p14.city-invasion.library-player-surfaces-retired"
+
+Assert-Contract (([regex]::Matches($playerFaction, 'gcw\.cleanupRetiredCityInvasionPlayerState\(self\);')).Count -ge 7 -and
+    (Get-FunctionSlice $playerFaction "public int cmdGcwScore" "public int cmdGcwSkirmishCityHelp").Contains("return SCRIPT_OVERRIDE;") -and
+    (Get-FunctionSlice $playerFaction "public int cmdGcwSkirmishCityHelp" "public int displayGcwScoreSui").Contains("return SCRIPT_OVERRIDE;") -and
+    (Get-FunctionSlice $playerFaction "public void showGcwScoreboard" "`n}").Contains("isPostNgeCityInvasionRetired()")) `
+    "p14.city-invasion.player-command-and-lifecycle-surfaces-retired"
+
+$utilityHandlers = @(
+    (Get-FunctionSlice $playerUtility "public int notifyPlayerOfGcwCityEventAnnouncement" "public int onGcwFactionalPresenceTableDictionaryResponse"),
+    (Get-FunctionSlice $playerUtility "public int handleGcwCityHelpUi" "public int playIconicGCWWrapUpMessage"),
+    (Get-FunctionSlice $playerUtility "public int playIconicGCWWrapUpMessage" "public int handleCityGcwRegionDefenderChoice")
+)
+Assert-Contract (@($utilityHandlers | Where-Object {
+    -not $_.Contains("gcw.isPostNgeCityInvasionRetired()") -or
+    -not $_.Contains("gcw.cleanupRetiredCityInvasionPlayerState(self)")
+}).Count -eq 0) `
+    "p14.city-invasion.queued-player-callbacks-retired"
 
 $missionTerminal = [string]$texts["retained.mission_terminal"]
 $missionBase = [string]$texts["retained.mission_base"]
