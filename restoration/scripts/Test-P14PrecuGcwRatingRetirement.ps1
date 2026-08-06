@@ -1054,9 +1054,12 @@ Assert-Contract ($frsConfigLines.Count -eq 1 -and
     "p14.gcw-rating.precu-frs-enabled-with-yavin-enclaves"
 
 $runtimeConfigSync = Get-FunctionSlice $dockerEntrypoint "sync_runtime_config_files()" "apply_runtime_scene_profile()"
+$runtimeServiceAddresses = Get-FunctionSlice $dockerEntrypoint "write_runtime_service_addresses()" "ensure_runtime_symlinks()"
 $runtimeInit = Get-FunctionSlice $dockerEntrypoint "init_server()" "build_server()"
 $runtimeRun = Get-FunctionSlice $dockerEntrypoint "run_server()" "mark_git_safe"
 Assert-Contract ($runtimeConfigSync.Contains("for config_file in localOptions.cfg logServerTargets.cfg taskmanager.rc") -and
+    $runtimeServiceAddresses.Contains('s|^(transferServerAddress=).*|\\1${node_address}|') -and
+    $runtimeServiceAddresses.Contains('s|^(clusterName=).*|\\1${SWG_CLUSTER_NAME}|') -and
     $runtimeInit.IndexOf("sync_runtime_config_files", [System.StringComparison]::Ordinal) -lt $runtimeInit.IndexOf("write_runtime_network_config", [System.StringComparison]::Ordinal) -and
     $runtimeRun.IndexOf("sync_runtime_config_files", [System.StringComparison]::Ordinal) -lt $runtimeRun.IndexOf("write_runtime_network_config", [System.StringComparison]::Ordinal) -and
     [bool]$contract.expected.runtimeSceneProfileRehydratesCanonicalConfig) `

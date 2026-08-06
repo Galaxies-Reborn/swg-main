@@ -330,6 +330,8 @@ write_runtime_service_addresses() {
     echo "Setting internal SWG service address to ${node_address}..."
     sed -i -E "s|^(loginServerAddress=).*|\\1${node_address}|" exe/linux/default.cfg
     sed -i -E "s|^(centralServerAddress=).*|\\1${node_address}|" exe/linux/localOptions.cfg
+    sed -i -E "s|^(transferServerAddress=).*|\\1${node_address}|" exe/linux/localOptions.cfg
+    sed -i -E "s|^(clusterName=).*|\\1${SWG_CLUSTER_NAME}|" exe/linux/localOptions.cfg
 }
 
 ensure_runtime_symlinks() {
