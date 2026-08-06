@@ -1665,6 +1665,13 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sp_neutralize_device_1'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeSpyPlayerAction'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'isRetiredPostNgeSpyBuffName'
+stealth_bytecode="$(javap -classpath "$class_root" -c -p script.library.stealth)"
+stealth_theft_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n '/public static boolean doTheftLoot/,/public static boolean hasStealingLootTableEntry/p')"
+test "$(printf '%s' "$stealth_theft_bytecode" | grep -Fc 'script/library/xp.getPrecuCombatLevel')" -eq 2
+! printf '%s' "$stealth_theft_bytecode" | grep -Fq 'script/base_class.getLevel'
+stealth_decoy_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n '/public static script.obj_id createDecoy/,/public static boolean isDecoy/p')"
+test "$(printf '%s' "$stealth_decoy_bytecode" | grep -Fc 'script/library/xp.getPrecuCombatLevel')" -eq 1
+! printf '%s' "$stealth_decoy_bytecode" | grep -Fq 'script/base_class.getLevel'
 # Publish 14.1 Squad Leader remains authoritative. Retire the post-NGE Officer
 # command family and every delayed/persisted player reinforcement surface.
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeOfficerPlayerAction'

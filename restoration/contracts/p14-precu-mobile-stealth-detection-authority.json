@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-mobile-stealth-detection-authority",
-  "status": "ready",
-  "scope": "Make production-reachable mobile conceal detection resolve players through the authenticated equipped-weapon PRE-CU combat level while preserving authored NPC creature levels, camouflage and detection modifiers, retained later content, and retired post-NGE Spy player gameplay.",
+  "status": "implemented-build-pending",
+  "scope": "Make production-reachable mobile conceal detection and retained NPC theft/decoy compatibility resolve players through the authenticated equipped-weapon PRE-CU combat level while preserving authored NPC creature levels, camouflage and detection modifiers, retained later content, and retired post-NGE Spy player gameplay.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -16,17 +16,22 @@
       "Publish 14.1 Ranger conceal and Scout mask scent are skill-mod mechanics that remain production gameplay.",
       "Pinned Core3 mobile camouflage detection compares the equipped-weapon PRE-CU player level with the detecting creature's authored level; it does not consume an NGE visible player combat level.",
       "Pinned Core3 calculates that internal player value from private_<equipped weapon type>_combat_difficulty divided by 100 plus one and caps it at 25.",
-      "The authenticated project helper xp.getPrecuCombatLevel already implements the same player-versus-NPC boundary and is distinct from retained-content encounter difficulty."
+      "The authenticated project helper xp.getPrecuCombatLevel already implements the same player-versus-NPC boundary and is distinct from retained-content encounter difficulty.",
+      "Publish 14.1 has no player Spy theft or decoy profession actions, so those player entry points remain retired while retained NPC and expansion compatibility may continue to use their shared implementations.",
+      "Retained theft comparisons and decoy combat metadata must use the same PRE-CU player-versus-authored-NPC difficulty boundary instead of the removed NGE player-level field."
     ]
   },
   "diagnosis": {
     "productionEntryPoint": "ai.ai_aggro calls stealth.passiveDetectHiddenTarget for concealed targets",
     "affectedSharedMethods": [
       "stealth.getDetectChance",
-      "stealth.getDetectChanceWithDetailedOutput"
+      "stealth.getDetectChanceWithDetailedOutput",
+      "stealth.doTheftLoot",
+      "stealth.createDecoy"
     ],
     "staleDirectLevelReads": 4,
-    "dormantCompatibilitySurfacesChanged": false
+    "staleCompatibilityLevelReads": 4,
+    "dormantCompatibilitySurfacesChanged": true
   },
   "expected": {
     "changedDirectRepositoryFiles": 1,
@@ -34,6 +39,9 @@
     "detectionMethods": 2,
     "precuCombatLevelCalls": 4,
     "directGetLevelCallsInDetectionMethods": 0,
+    "compatibilityMethods": 2,
+    "compatibilityPrecuCombatLevelCalls": 3,
+    "directGetLevelCallsInCompatibilityMethods": 0,
     "playerDifficultyAuthority": "equipped-weapon PRE-CU combat level capped at 25",
     "npcDifficultyAuthority": "authored creature level",
     "preservedDetectionInputs": [
@@ -49,34 +57,38 @@
       "conceal"
     ],
     "postNgeSpyPlayerRuntimeRetired": true,
+    "playerTheftAndDecoyInvocationRetired": true,
+    "retainedNpcTheftAndDecoyCompatibilityPreserved": true,
     "laterNpcAndExpansionContentPreserved": true
   },
   "sourceFiles": {
     "stealth": "dsrc/sku.0/sys.server/compiled/game/script/library/stealth.java",
     "xp": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
     "aiAggro": "dsrc/sku.0/sys.server/compiled/game/script/ai/ai_aggro.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
     "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "d79366a6c1fb003e419b6200cdde490ec43e4f7d",
+    "directSourceGitlink": "7106bebc93ac8414d63f5e3e55f665a194eb96cd",
     "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
-      "stealth": "fc63bd188ca47df40dafcc76cdd3075c6a6e5e8bac9f227bf0945a3a00dae00a"
+      "stealth": "601cd99767cd1c4e66e6d0189aa6bca3d7c6ee34a341c8740c1dda0f605b02dc"
     },
     "compiledClassSha256": {
       "stealth": "315fa8e460be8556b9c0aa5182ad55e43c57ed1fd60a9d818e31b93befe93a34"
     },
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes and stealth.class was emitted 2026-08-04T15:23:37Z",
-    "fullServerBuild": "passed in 607 seconds from the pushed direct source with all server and data targets completed",
+    "fullJavaCompile": "pending for direct source 7106bebc93ac8414d63f5e3e55f665a194eb96cd",
+    "fullServerBuild": "pending for direct source 7106bebc93ac8414d63f5e3e55f665a194eb96cd",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed byte-for-byte; host, read-only source mount, and writable work-volume SHA-256 are fc63bd188ca47df40dafcc76cdd3075c6a6e5e8bac9f227bf0945a3a00dae00a",
-    "bytecodeAudit": "both detection methods contain exactly two xp.getPrecuCombatLevel calls and zero script.base_class.getLevel calls",
-    "deploymentProbe": "passed mandatory source/work parity, cumulative PRE-CU data and bytecode gates, focused conceal-detection bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "sourceWorkParity": "pending for the read-only direct source mount and writable Docker work volume",
+    "bytecodeAudit": "pending; source contract requires two PRE-CU adapter calls in each detection method, two in theft compatibility, one in decoy compatibility, and zero direct player-level reads in those methods",
+    "deploymentProbe": "pending cumulative PRE-CU gates, focused stealth compatibility bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
@@ -104,9 +116,9 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the production mobile conceal detector's four direct reads of the removed NGE player-level field",
-    "preserved": "Publish 14.1 maskscent and conceal skills, current detection probability inputs, authored NPC creature levels, Force cloak compatibility, retained expansion NPCs and devices, and retired Spy player gameplay",
-    "notClaimedComplete": "dormant post-NGE theft and hologram compatibility plus other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+    "closedInThisMilestone": "the production mobile conceal detector plus retained theft and decoy compatibility reads of the removed NGE player-level field",
+    "preserved": "Publish 14.1 maskscent and conceal skills, current detection probability inputs, authored NPC creature levels, Force cloak compatibility, retained expansion NPC theft and decoy behavior, and retired Spy player gameplay",
+    "notClaimedComplete": "retained HEP and wilderness invisibility semantics, authentic PRE-CU Jedi invisibility compatibility, and other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }

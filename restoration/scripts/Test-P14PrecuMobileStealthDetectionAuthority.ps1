@@ -17,6 +17,8 @@ $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $stealthPath = Join-Path $source ([string]$contract.sourceFiles.stealth)
 $xpPath = Join-Path $source ([string]$contract.sourceFiles.xp)
 $aiAggroPath = Join-Path $source ([string]$contract.sourceFiles.aiAggro)
+$combatBasePath = Join-Path $source ([string]$contract.sourceFiles.combatBase)
+$combatActionsPath = Join-Path $source ([string]$contract.sourceFiles.combatActions)
 $skillsPath = Join-Path $source ([string]$contract.sourceFiles.skills)
 $failures = [System.Collections.Generic.List[string]]::new()
 
@@ -35,7 +37,7 @@ function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker
     return $Text.Substring($start, $end - $start)
 }
 
-foreach ($path in @($stealthPath, $xpPath, $aiAggroPath, $skillsPath))
+foreach ($path in @($stealthPath, $xpPath, $aiAggroPath, $combatBasePath, $combatActionsPath, $skillsPath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) (
         "p14.mobile-stealth.source." + [System.IO.Path]::GetFileName($path) + ".exists")
@@ -46,6 +48,8 @@ Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $stealthPath).Hash
 $stealth = Get-Content -LiteralPath $stealthPath -Raw
 $xp = Get-Content -LiteralPath $xpPath -Raw
 $aiAggro = Get-Content -LiteralPath $aiAggroPath -Raw
+$combatBase = Get-Content -LiteralPath $combatBasePath -Raw
+$combatActions = Get-Content -LiteralPath $combatActionsPath -Raw
 $normal = Get-SourceSlice $stealth "public static float getDetectChance(" "public static float getDetectChanceWithDetailedOutput("
 $detailed = Get-SourceSlice $stealth "public static float getDetectChanceWithDetailedOutput(" "public static boolean activeDetectHiddenTarget("
 $detectionMethods = @($normal, $detailed)
@@ -59,6 +63,42 @@ foreach ($method in $detectionMethods)
 }
 Assert-Contract ($detectionMethods.Count -eq [int]$contract.expected.detectionMethods -and
     $adapterCalls -eq [int]$contract.expected.precuCombatLevelCalls) "p14.mobile-stealth.adapter-call-count"
+
+$theft = Get-SourceSlice $stealth "public static boolean doTheftLoot(" "public static boolean hasStealingLootTableEntry("
+$decoy = Get-SourceSlice $stealth "public static obj_id createDecoy(" "public static boolean isDecoy("
+$compatibilityMethods = @($theft, $decoy)
+$compatibilityAdapterCalls = ([regex]::Matches($theft,
+    'xp[.]getPrecuCombatLevel[(](mark|thief)[)]')).Count +
+    ([regex]::Matches($decoy, 'xp[.]getPrecuCombatLevel[(]spy[)]')).Count
+Assert-Contract ($compatibilityMethods.Count -eq [int]$contract.expected.compatibilityMethods -and
+    $compatibilityAdapterCalls -eq [int]$contract.expected.compatibilityPrecuCombatLevelCalls -and
+    -not $theft.Contains("getLevel(") -and
+    -not $decoy.Contains("getLevel(")) "p14.mobile-stealth.compatibility.precu-boundary"
+Assert-Contract ($theft.Contains("int markLevel = xp.getPrecuCombatLevel(mark);") -and
+    $theft.Contains("int thiefLevel = xp.getPrecuCombatLevel(thief);") -and
+    $theft.Contains("if (isPlayer(mark))") -and
+    $theft.Contains("STEAL_MARKED_ITEMS") -and
+    $theft.Contains("getNpcCash(mark)")) "p14.mobile-stealth.theft-compatibility-preserved"
+Assert-Contract ($decoy.Contains("int hologramLevel = xp.getPrecuCombatLevel(spy);") -and
+    $decoy.Contains('setObjVar(hologram, "intCombatDifficulty", hologramLevel)') -and
+    $decoy.Contains("setLevel(hologram, hologramLevel)") -and
+    $decoy.Contains('attachScript(hologram, "ai.spy_decoy")')) "p14.mobile-stealth.decoy-compatibility-preserved"
+
+$spyActionPredicate = Get-SourceSlice $combatBase `
+    "public static boolean isRetiredPostNgeSpyPlayerAction(" `
+    "public static boolean isRetiredPostNgeBeastMasterPlayerAction("
+$stealAction = Get-SourceSlice $combatActions "public int steal(" "public int sp_buff_invis_1("
+$decoyAction = Get-SourceSlice $combatActions "public int sp_decoy(" "public int sp_assassins_mark("
+Assert-Contract ($spyActionPredicate.Contains("if (!isPlayer(self) || actionName == null)") -and
+    $spyActionPredicate.Contains('actionName.equals("steal")') -and
+    $spyActionPredicate.Contains('actionName.startsWith("sp_")') -and
+    $stealAction.Contains('isRetiredPostNgeSpyPlayerAction(self, "steal")') -and
+    $decoyAction.Contains('isRetiredPostNgeSpyPlayerAction(self, "sp_decoy")')) `
+    "p14.mobile-stealth.player-theft-decoy-retired"
+Assert-Contract ($stealAction.Contains("stealth.canSteal(self, target)") -and
+    $stealAction.Contains("stealth.steal(self, target)") -and
+    $decoyAction.Contains("stealth.createDecoy(self)")) `
+    "p14.mobile-stealth.npc-entrypoints-preserved"
 
 $weaponLevel = Get-SourceSlice $xp "public static int getPrecuWeaponCombatLevel(" "public static int getPrecuCombatLevel("
 $combatLevel = Get-SourceSlice $xp "public static int getPrecuCombatLevel(" "public static int getPrecuCombatXpDifficulty("
