@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "feature": "p14-persisted-nge-skill-retirement",
-  "status": "ready",
-  "scope": "Retire persisted NGE class and expertise progression authority when an authoritative player creature loads, while retaining expansion quests, conversations, zones, and their independent state.",
+  "feature": "p14-persisted-nge-progression-retirement",
+  "status": "implemented-build-pending",
+  "scope": "Retire persisted NGE class, expertise, and Chronicles XP progression authority when an authoritative player creature loads, and reject future player admission through native, shared-script, Chronicles, or character-transfer entrypoints while retaining expansion quests, conversations, zones, and their independent state.",
   "diagnosis": {
     "date": "2026-08-01",
     "liveCharacter": "Icai Darkwave",
@@ -12,7 +12,10 @@
       "class_forcesensitive_phase1_novice",
       "expertise"
     ],
-    "cause": "The PRE-CU grant and expertise request guards prevented new NGE progression, but existing property-list skills survived database reload and continued to provide NGE authority."
+    "persistedRetiredExperienceTypes": [
+      "chronicles"
+    ],
+    "cause": "The PRE-CU skill and expertise guards prevented new NGE skills, but existing property-list skills and Chronicles XP survived database reload; positive Chronicles XP could also enter through shared grants, delayed messages, or character transfer."
   },
   "retainedContent": [
     "NGE and expansion quests",
@@ -22,7 +25,10 @@
   ],
   "sourceFiles": {
     "creatureObject": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp",
-    "creatureObjectHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h"
+    "creatureObjectHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
+    "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
+    "pgcLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pgc_quests.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
   },
   "expected": {
     "retiredPrefixes": [
@@ -33,12 +39,22 @@
     "retiredExactNames": [
       "expertise"
     ],
+    "retiredExactExperienceTypes": [
+      "chronicles"
+    ],
     "authoritativePlayersOnly": true,
     "databaseLoadCleanup": true,
+    "databaseLoadExperienceCleanup": true,
     "idempotent": true,
     "rebuildsSkillDerivedStateFromCleanSet": true,
     "newRetiredSkillGrantsRejected": true,
-    "newExpertiseRequestsRejected": true
+    "newExpertiseRequestsRejected": true,
+    "newPositiveRetiredExperienceRejected": true,
+    "negativeRetiredExperienceCleanupAllowed": true,
+    "sharedXpEntryPointsRejected": true,
+    "chroniclesXpAndLevelEntryPointsRejected": true,
+    "characterTransferImportRejected": true,
+    "retainedPreCuXpTypesAffected": false
   },
   "liveEvidence": {
     "date": "2026-08-01",
@@ -60,6 +76,9 @@
     "result": "passed"
   },
   "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "901b895ea94f1e8299873f85485c1ad7730bb609",
+    "nativeSourceCommit": "650c594554f71e02cebd9577466fa50c007088f4",
     "overlayPatches": [
       {
         "component": "src",
@@ -70,10 +89,19 @@
     ],
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
     "sourceSha256": {
-      "CreatureObject.cpp": "a91fe24aec17bfe2c8b6a23d7233c2d5f3d75ab0a8ae3fb1690eb7c97e777954",
-      "CreatureObject.h": "b2c844ec8861be7925af89d1f4c8bfd90aa88856d82af973d8fa9d4ff654480e"
+      "CreatureObject.cpp": "1e2e680e2a719e45533a83b53a78f5749ece8549bf99a70a0a8f83ab24f81c86",
+      "CreatureObject.h": "accc75fc11d5b3576e3707ded507b57eda8b738e96983452d22ef2be25c762c3",
+      "xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
+      "pgc_quests.java": "7957061f45d16b3739f7dec42a2c475b0ef203efd3915ae63926e73069c33bef",
+      "base_player.java": "bd61440058f9f3778290b8ef9167fe6fc05450a95e4f6f5f82cac950d4db78a6"
     },
-    "cppCompile": "passed",
+    "cppCompile": "pending",
+    "javaCompile": "focused-pass",
+    "focusedClassSha256": {
+      "xp.class": "95c4eb02a2c622022e545af4f67196bc88dab8c062a137abfbae4f61a603c3cc",
+      "pgc_quests.class": "c58467e3ae9915508b8ed189d2c4a4418c648b2f681564c146261478bf842c70",
+      "base_player.class": "2eff0b7c86e537df8be361a4cceabdd93c0fbe0b16bc506fe984f82bdaf85f8b"
+    },
     "serverGameArchiveSha256": "0c41270f0b821efcd19e0fd08ed00811c7f8edfeba2397df4d2d57d3430a6f79",
     "architecture": "x86-64",
     "buildIdSha1": "2d5816401a6d9330702a039bbd91a4e80d047c57",
@@ -84,13 +112,13 @@
     "clusterReady": true,
     "sourceAndBuildVolumeMatch": true,
     "liveProcessMatchesBinary": true,
-    "result": "passed"
+    "result": "pending"
   },
   "requiredBeforeReady": [
     "clean overlay materialization passes",
     "contract test passes against the clean materialization",
     "x64 server build passes",
     "deployed server is healthy and player-ready",
-    "Icai reload removes class_chronicles_novice, class_forcesensitive_phase1_novice, and expertise from persisted property list"
+    "Icai reload removes class_chronicles_novice, class_forcesensitive_phase1_novice, expertise, and any Chronicles XP from persisted progression state"
   ]
 }
