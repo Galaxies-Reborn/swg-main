@@ -55,6 +55,10 @@ Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retir
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying direct-source PRE-CU cosmetic-familiar authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuCosmeticFamiliarAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying post-NGE Spy player-runtime retirement against current direct source before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeSpyPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot
@@ -791,6 +795,8 @@ grep -Fq 'public static boolean isPostNgeCtsProgressionRestorationRetired()' "$w
 grep -Fq 'if (isPostNgeCtsProgressionRestorationRetired())' "$work_utils_library"
 grep -Fq 'removeObjVar(player, respec.PROF_LEVEL_ARRAY);' "$work_utils_library"
 grep -Fq 'beast_lib.retirePostNgeBeastMasterPlayerState(player);' "$work_utils_library"
+grep -Fq 'public static boolean isRetiredPostNgePlayerOwnedBeast(obj_id beast)' "$work_beast_library"
+test "$(grep -Fc 'isRetiredPostNgePlayerOwnedBeast(beast)' "$work_beast_library")" -eq 7
 cmp -s "$source_vendor" "$work_vendor"
 cmp -s "$source_meatlump_vendor" "$work_meatlump_vendor"
 cmp -s "$source_nova_orion_vendor" "$work_nova_orion_vendor"
@@ -1710,6 +1716,7 @@ javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -F
 # assets for later-content loading but retire their player combat runtime.
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'retirePostNgeBeastMasterPlayerState'
+javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isRetiredPostNgePlayerOwnedBeast'
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'bm_player_buff'
 ! javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'expertise_bm_'
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'beast_master.known_skills'

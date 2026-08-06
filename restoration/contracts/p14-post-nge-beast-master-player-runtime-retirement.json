@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-beast-master-player-runtime-retirement",
   "status": "ready",
-  "scope": "Retire post-NGE Beast Master identity, combat-pet progression, trainer grants, live-conversion reattachment, expertise arithmetic, and persisted known-skill state for players while Publish 14.1 Creature Handler tame/control runtime and retained later-content conversations, assets, templates, and data continue to load.",
+  "scope": "Retire post-NGE Beast Master identity, player-owned Beast combat XP and level progression, trainer grants, live-conversion reattachment, expertise arithmetic, and persisted known-skill state for players while Publish 14.1 Creature Handler tame/control runtime and retained later-content NPC, display, conversation, asset, template, and data content continue to load.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -17,7 +17,9 @@
       "The current NGE source retains Beast Master data and NPC-capable scripts for compatibility, but those assets must not establish player progression or combat authority.",
       "The retirement boundary is player-only; later-content NPC creatures and retained object/data loading are not deleted.",
       "The retained generated Beast Master trainer and live-conversion script formed two bypasses around the original retirement boundary: one could persist Beast abilities and the other could reattach the retired player script.",
-      "Retained Beast AI and incubation content can use authored table, station, power, and incubation values, but no player Beast Master expertise or reverse-engineered Beast skill modifier may alter those values."
+      "Retained Beast AI and incubation content can use authored table, station, power, and incubation values, but no player Beast Master expertise or reverse-engineered Beast skill modifier may alter those values.",
+      "The production combat-XP fallback could still call Beast XP and level progression for a stale player-owned NGE Beast even after player Beast Master identity, creation, login, and commands were retired.",
+      "The shared Beast XP and level entrypoints now reject only Beasts mastered by a real player, so retained NPC, unowned, and invulnerable barn-display Beast content remains available."
     ]
   },
   "expected": {
@@ -43,6 +45,13 @@
     "retainedBeastStatsUseAuthoredTablesAndIncubationOnly": true,
     "retainedBeastDisplayUsesStoredWeaponValues": true,
     "retainedBeastAbilitySlotsFromExpertise": false,
+    "playerOwnedBeastExperienceWritersReachable": false,
+    "playerOwnedBeastLevelWritersReachable": false,
+    "playerOwnedBeastLevelReadAuthority": false,
+    "playerOwnedBeastProgressionEntrypointsGuarded": 6,
+    "externalBeastProgressionCallSitesDominated": 6,
+    "retainedNpcUnownedAndDisplayBeastRuntimePreserved": true,
+    "beastAndFamiliarProgressionAuditClosed": true,
     "expertiseBmCompatibilityRows": 53,
     "bmCommandCompatibilityRows": 124,
     "bmCombatDataCompatibilityRows": 116,
@@ -65,7 +74,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "c431c281d0c1000f472bc0543a0f38ac2b576fc5",
+    "directSourceGitlink": "d79366a6c1fb003e419b6200cdde490ec43e4f7d",
     "lineEndingPolicy": "The touched legacy ai/beast.java blob was normalized to the repository-declared LF policy; no generated overlay or staging tree was created.",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/380-p14-post-nge-beast-master-player-runtime-retirement.patch",
@@ -74,14 +83,14 @@
       "role": "authenticated archival origin only; current authority is the pinned direct-source branch"
     },
     "sourceSetSha256": "98053d1c6d65270fabd09a19042c39b3eed8642dd5c03286e1566145fc4b72ca",
-    "sourceContentSha256": "9371eac0633f080ec733f225cdd8dc811f1fd0295af90ec00a7dd903fe9f39fc",
-    "currentSourceEvidenceRefreshedBy": "The direct-source player retirement now also dominates retroactive CTS Beast known-skill merging at the shared helper boundary.",
+    "sourceContentSha256": "aad67ee6915724660464124a69870d1b5e774fea5c6f66de130c6b39e360371f",
+    "currentSourceEvidenceRefreshedBy": "The direct-source player retirement now dominates retroactive CTS Beast known-skill merging and every player-owned Beast combat XP and level writer at their shared helper boundaries.",
     "sourceSha256": {
       "ai/beast.java": "77949fda3b5deecf0dcbeffab998ba5fe84d7d4a6cded6b48a06a0b6fe50652d",
       "ai/beast_control_device.java": "527fb77039e8429b38fde80d301a9950ce70f84ffc62d046bc315757d6267438",
       "ai/creature_combat.java": "578bc7d3ce98ceb2d8b3aba40f18838ac051995dbf2af2c417514a0afc992577",
       "conversation/trainer_beast_master.java": "af9a2921c9baa8c42023d196ff80352c2977428ad1ba2220d40ede653228da41",
-      "library/beast_lib.java": "ce946c880920aeb7ff6e06f086d44ba8f21c08fc1f64fd9d111eed51d59b54df",
+      "library/beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
       "library/utils.java": "3cd2ad1f66c8f447bc78ca3e8fd015f003d8432861cde0862c7f488662a5f712",
       "player/base/base_player.java": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744",
       "player/live_conversions.java": "f64f41cac33da391ea2885cd77e89a3083529181362511d2623c7120b4c4cbf9",
@@ -121,6 +130,9 @@
       "player/skill/taming.java": "e2c909b89183f9e0d63e2520209f471f0000a122873716969898554534043e6b",
       "ai/pet_master.java": "09e385857c7d429bdc5a638d52afdfbf03e03c1f1e1238a5874cf1a4d7ba07be"
     },
+    "combatXpSourceSha256": {
+      "library/xp.java": "5f59b224758477a9414231f3d3b132dd52ca8d074b86de86ce288109ad7bf55d"
+    },
     "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
     "missionSourceSha256": {
       "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
@@ -154,9 +166,9 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player Beast Master identity, active combat-beast lifecycle, known-skill persistence including retroactive CTS merging, trainer grants, live-conversion script reattachment, Beast expertise arithmetic, additional expertise ability slots, and expertise-scaled retained-beast stats/display/regen",
-    "preserved": "Publish 14.1 Creature Handler tame/control runtime plus retained Beast trainer conversation, assets, templates, compatibility rows, and authored Beast/incubation data",
-    "notClaimedComplete": "cosmetic familiar and holopet surfaces, retained later-content Beast buffs/items, and other dormant later mechanics remain in the broader PRE-CU precedence audit"
+    "closedInThisMilestone": "player Beast Master identity, active combat-beast lifecycle, combat XP and level progression, known-skill persistence including retroactive CTS merging, trainer grants, live-conversion script reattachment, Beast expertise arithmetic, additional expertise ability slots, and expertise-scaled retained-beast stats/display/regen; together with the existing cosmetic-familiar authority this closes the Beast and familiar progression audit",
+    "preserved": "Publish 14.1 Creature Handler tame/control runtime plus retained NPC, unowned, and cosmetic display Beasts, familiar and Beast trainer conversations, assets, templates, compatibility rows, and authored Beast/incubation data",
+    "notClaimedComplete": "transition compatibility, mobile stealth and theft, and other dormant later combat mechanics remain in the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }

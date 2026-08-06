@@ -136,6 +136,9 @@ $retirementPredicate = Get-SourceSlice $beastLibrary `
     "public static boolean isBeast("
 $playerPredicate = Get-SourceSlice $retirementPredicate `
     "public static boolean isRetiredPostNgeBeastMasterPlayer(" `
+    "public static boolean isRetiredPostNgePlayerOwnedBeast("
+$playerOwnedBeastPredicate = Get-SourceSlice $retirementPredicate `
+    "public static boolean isRetiredPostNgePlayerOwnedBeast(" `
     "public static boolean isRetiredPostNgeBeastMasterPlayerAction("
 $actionPredicate = Get-SourceSlice $retirementPredicate `
     "public static boolean isRetiredPostNgeBeastMasterPlayerAction(" `
@@ -147,6 +150,8 @@ $cleanup = Get-SourceSlice $retirementPredicate `
 Assert-Contract (
     $retirementPredicate.Contains("return true;") -and
     $playerPredicate.Contains("isIdValid(player) && isPlayer(player)") -and
+    $playerOwnedBeastPredicate.Contains("isIdValid(beast)") -and
+    $playerOwnedBeastPredicate.Contains("isRetiredPostNgeBeastMasterPlayer(getMaster(beast))") -and
     $actionPredicate.Contains('actionName.startsWith("bm_")')
 ) "p14.beast-retirement.player-only-action-predicate"
 Assert-Contract (
@@ -179,6 +184,37 @@ Assert-Contract (
     (Is-Before $createBeast "isRetiredPostNgeBeastMasterPlayer(player)" "isBeastMaster(player)") -and
     $verifyBeast.Contains("retirePostNgeBeastMasterPlayerState(player)")
 ) "p14.beast-retirement.central-entrypoints-fail-closed"
+
+$setBeastLevel = Get-SourceSlice $beastLibrary `
+    "public static void setBeastLevel(" `
+    "public static int getBeastLevel("
+$incrementBeastExperience = Get-SourceSlice $beastLibrary `
+    "public static void incrementBeastExperience(" `
+    "public static void incrementBeastLevel("
+$incrementBeastLevel = Get-SourceSlice $beastLibrary `
+    "public static void incrementBeastLevel(" `
+    "public static boolean canBeastLevelUp("
+$canBeastLevelUp = Get-SourceSlice $beastLibrary `
+    "public static boolean canBeastLevelUp(" `
+    "public static void grantBeastExperience("
+$grantBeastExperience = Get-SourceSlice $beastLibrary `
+    "public static void grantBeastExperience(" `
+    "public static float scaleDistanceByLevel("
+$canBeastGetLevelBasedXp = Get-SourceSlice $beastLibrary `
+    "public static boolean canBeastGetLevelBasedXP(" `
+    "public static void sendBeastMasteryDing("
+$guardedPlayerOwnedBeastProgressionEntrypoints = @(
+    Is-Before $setBeastLevel "isRetiredPostNgePlayerOwnedBeast(beast)" "setLevel(beast, level)"
+    Is-Before $incrementBeastExperience "isRetiredPostNgePlayerOwnedBeast(beast)" "getBeastExperience(beast)"
+    Is-Before $incrementBeastLevel "isRetiredPostNgePlayerOwnedBeast(beast)" "getLevel(beast)"
+    Is-Before $canBeastLevelUp "isRetiredPostNgePlayerOwnedBeast(beast)" "getBeastLevel(beast)"
+    Is-Before $grantBeastExperience "isRetiredPostNgePlayerOwnedBeast(beast)" "getBeastCanLevel(beast)"
+    Is-Before $canBeastGetLevelBasedXp "isRetiredPostNgePlayerOwnedBeast(beast)" "getBeastLevel(beast)"
+) | Where-Object { $_ }
+Assert-Contract (
+    $guardedPlayerOwnedBeastProgressionEntrypoints.Count -eq
+        [int]$contract.expected.playerOwnedBeastProgressionEntrypointsGuarded
+) "p14.beast-retirement.player-owned-xp-level-entrypoints-fail-closed"
 
 $learnSkill = Get-SourceSlice $beastLibrary `
     "public static String[] playerLearnBeastMasterSkill(obj_id player, String newSkill, boolean notify)" `
@@ -342,6 +378,15 @@ Assert-Contract (
     $beastSkillModifierReferences.Count -eq [int]$contract.expected.productionBeastMasterSkillModifierReaders
 ) "p14.beast-retirement.production-expertise-authority-absent"
 
+$externalBeastProgressionCalls = @(
+    $productionJava | Select-String -Pattern `
+        'beast_lib\.(?:setBeastLevel|incrementBeastExperience|incrementBeastLevel|canBeastLevelUp|grantBeastExperience|canBeastGetLevelBasedXP)\('
+)
+Assert-Contract (
+    $externalBeastProgressionCalls.Count -eq [int]$contract.expected.externalBeastProgressionCallSitesDominated -and
+    @($externalBeastProgressionCalls.Path | Sort-Object -Unique).Count -eq 3
+) "p14.beast-retirement.production-progression-callers-dominated"
+
 foreach ($entry in $contract.continuityEvidence.precuCreatureHandlerSourceSha256.PSObject.Properties)
 {
     $path = Join-Path $scriptRoot $entry.Name
@@ -363,6 +408,30 @@ Assert-Contract (
     $petMaster.Contains('PRECU_EMBOLDEN_BUFF = "emboldenPet"') -and
     -not $patchText.Contains("ai/pet_master.java")
 ) "p14.beast-retirement.precu-emboldenpets-preserved"
+
+foreach ($entry in $contract.continuityEvidence.combatXpSourceSha256.PSObject.Properties)
+{
+    $path = Join-Path $scriptRoot $entry.Name
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+    Assert-Contract ($hash -ceq [string]$entry.Value) "p14.beast-retirement.combat-xp-source.$($entry.Name).unchanged"
+}
+$combatXpLibrary = Get-Content -LiteralPath (Join-Path $scriptRoot "library/xp.java") -Raw
+Assert-Contract (
+    ([regex]::Matches($combatXpLibrary, 'beast_lib\.grantBeastExperience\(')).Count -eq 2 -and
+    ([regex]::Matches($combatXpLibrary, 'beast_lib\.canBeastGetLevelBasedXP\(')).Count -eq 1 -and
+    -not $combatXpLibrary.Contains("beast_lib.incrementBeastExperience(") -and
+    -not $combatXpLibrary.Contains("beast_lib.incrementBeastLevel(")
+) "p14.beast-retirement.combat-xp-fallback-uses-guarded-shared-entrypoints"
+
+$familiarContractPath = Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14PrecuCosmeticFamiliarAuthority)
+$familiarContract = Get-Content -LiteralPath $familiarContractPath -Raw | ConvertFrom-Json
+Assert-Contract (
+    [bool]$contract.expected.beastAndFamiliarProgressionAuditClosed -and
+    [string]$familiarContract.status -ceq "ready" -and
+    [int]$familiarContract.expected.directPlayerLevelReads -eq 0 -and
+    [int]$familiarContract.expected.familiarBuffApplicationCalls -eq 0
+) "p14.beast-retirement.beast-and-familiar-progression-audit-closed"
 
 foreach ($entry in $contract.continuityEvidence.missionSourceSha256.PSObject.Properties)
 {
