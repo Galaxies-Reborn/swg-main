@@ -143,14 +143,21 @@ $relativePaths = @(
     "item/tool/reverse_engineering_poweredup_item.java",
     "item/tool/reverse_engineering_tool.java",
     "library/bio_engineer.java",
+    "library/buff.java",
+    "library/collection.java",
     "library/consumable.java",
     "library/loot.java",
     "library/magic_item.java",
+    "library/player_structure.java",
     "library/reverse_engineering.java",
     "library/static_item.java",
+    "player/player_utility.java",
+    "systems/buff/buff_handler.java",
     "systems/crafting/crafting_base.java",
     "systems/crafting/clothing/crafting_base_clothing.java",
-    "systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+    "systems/crafting/weapon/component/crafting_weapon_component_attribute.java",
+    "systems/sign/special_sign.java",
+    "systems/tcg/tcg_vendor_contract.java"
 )
 $texts = @{}
 foreach ($relativePath in $relativePaths)
@@ -173,8 +180,16 @@ $craftingBase = [string]$texts["systems/crafting/crafting_base.java"]
 $craftingBaseClothing = [string]$texts[
     "systems/crafting/clothing/crafting_base_clothing.java"]
 $bioEngineer = [string]$texts["library/bio_engineer.java"]
+$buffLibrary = [string]$texts["library/buff.java"]
+$collectionLibrary = [string]$texts["library/collection.java"]
 $consumable = [string]$texts["library/consumable.java"]
+$playerStructure = [string]$texts["library/player_structure.java"]
+$playerUtility = [string]$texts["player/player_utility.java"]
+$buffHandler = [string]$texts["systems/buff/buff_handler.java"]
+$specialSign = [string]$texts["systems/sign/special_sign.java"]
+$tcgVendorContract = [string]$texts["systems/tcg/tcg_vendor_contract.java"]
 $skillBuffItem = [string]$texts["item/skill_buff/base.java"]
+$skillmodClickItem = [string]$texts["item/skillmod_click_item.java"]
 $validators = Get-FunctionSlice $staticItem `
     "public static boolean validateLevelRequired(obj_id player, int requiredLevel)" `
     "public static void decrementStaticItem("
@@ -367,7 +382,7 @@ Assert-Contract ($listedNgeStaticInventoryValid -and
 
 $retiredWriterModifierInventory = Get-FunctionSlice $staticItem `
     "public static final String[] RETIRED_NGE_ITEM_WRITER_MODIFIERS" `
-    "public static final java.text.NumberFormat"
+    "public static final String[] RETIRED_NGE_BUFF_COMBAT_MODIFIERS"
 $retiredWriterModifiers = @(
     "combat_critical_hit_reduction",
     "combat_dodge",
@@ -399,6 +414,171 @@ Assert-Contract ($retiredWriterModifiers.Count -eq
     $retiredStaticModifierPredicate.Contains(
         "for (String retiredModifier : RETIRED_NGE_ITEM_WRITER_MODIFIERS)")) `
     "p14.item-level.item-writer-retired-modifier-inventory"
+
+$retiredBuffCombatModifierInventory = Get-FunctionSlice $staticItem `
+    "public static final String[] RETIRED_NGE_BUFF_COMBAT_MODIFIERS" `
+    "public static final java.text.NumberFormat"
+$retiredBuffCombatModifiers = @(
+    "combat_add_damage_dealt",
+    "combat_add_damage_taken",
+    "combat_all_attack_avoidance",
+    "combat_all_attack_miss",
+    "combat_all_attack_miss_reduction",
+    "combat_all_attack_miss_vulnerability",
+    "combat_block_reduction",
+    "combat_critical_hit",
+    "combat_divide_damage_dealt",
+    "combat_divide_damage_taken",
+    "combat_dodge_reduction",
+    "combat_glancing",
+    "combat_glancing_blow_reduction",
+    "combat_melee_attack_avoidance",
+    "combat_melee_attack_miss",
+    "combat_melee_attack_miss_reduction",
+    "combat_melee_attack_vulnerability",
+    "combat_multiply_damage_dealt",
+    "combat_multiply_damage_taken",
+    "combat_parry_reduction",
+    "combat_ranged_attack_avoidance",
+    "combat_ranged_attack_miss",
+    "combat_ranged_attack_miss_reduction",
+    "combat_ranged_attack_vulnerability",
+    "combat_subtract_damage_dealt",
+    "combat_subtract_damage_taken"
+)
+$retiredBuffCombatInventoryValid = $true
+foreach ($modifier in $retiredBuffCombatModifiers)
+{
+    if (([regex]::Matches($retiredBuffCombatModifierInventory,
+            '"' + [regex]::Escape($modifier) + '"')).Count -ne 1)
+    {
+        $retiredBuffCombatInventoryValid = $false
+    }
+}
+Assert-Contract ($retiredBuffCombatModifiers.Count -eq
+        [int]$contract.expected.itemModifierWriters.retiredBuffCombatModifiers -and
+    $retiredBuffCombatInventoryValid -and
+    $retiredStaticModifierPredicate.Contains(
+        "for (String retiredModifier : RETIRED_NGE_BUFF_COMBAT_MODIFIERS)")) `
+    "p14.item-level.buff-combat-modifier-inventory"
+
+$parseSkillModifiers = Get-FunctionSlice $staticItem `
+    "public static dictionary parseSkillModifiers(" `
+    "public static obj_id makeDynamicObject("
+$parseFilterIndex = $parseSkillModifiers.IndexOf(
+    "if (!isRetiredNgeStaticItemSkillModifier(modsArray[0]))",
+    [StringComparison]::Ordinal)
+$parseWriteIndex = $parseSkillModifiers.IndexOf(
+    "dict.put(modsArray[0]", [StringComparison]::Ordinal)
+$parserConsumers = @($skillmodClickItem, $tcgVendorContract, $specialSign)
+$parserConsumersValid = @($parserConsumers | Where-Object {
+    $_.Contains("static_item.parseSkillModifiers(player, skillMod)") -and
+    $_.Contains("applySkillStatisticModifier(player, skillModName, skillModValue)")
+}).Count -eq [int]$contract.expected.itemModifierWriters.staticParserConsumers
+Assert-Contract ($parseFilterIndex -ge 0 -and $parseWriteIndex -gt $parseFilterIndex -and
+    $parserConsumers.Count -eq
+        [int]$contract.expected.itemModifierWriters.staticParserConsumers -and
+    $parserConsumersValid) `
+    "p14.item-level.static-parser-consumers-filtered"
+
+$buffModifierPredicate = Get-FunctionSlice $buffHandler `
+    "public boolean isRetiredNgeBuffSkillModifier(" `
+    "public void retireNgeExpertiseModifier("
+$genericBuffWriterGuards = ([regex]::Matches($buffHandler,
+    [regex]::Escape("if (isPlayer(self) && isRetiredNgeBuffSkillModifier(subtype))"))).Count
+Assert-Contract ($buffModifierPredicate.Contains(
+        "static_item.isRetiredNgeStaticItemSkillModifier(modifierName)") -and
+    $genericBuffWriterGuards -eq
+        [int]$contract.expected.itemModifierWriters.genericPlayerBuffModifierWriters -and
+    $buffHandler.Contains("else") -and
+    ([regex]::Matches($buffHandler, "addSkillModModifier\(self, effectName, subtype")).Count -ge 3 -and
+    [bool]$contract.expected.itemModifierWriters.npcBuffCompatibilityPreserved) `
+    "p14.item-level.generic-player-buff-writers-filtered-npc-preserved"
+
+$playerSkillStatisticCleanup = Get-FunctionSlice $staticItem `
+    "public static void removeRetiredNgePlayerSkillStatistics(" `
+    "public static void removeRetiredNgeStaticItemSkillModifiers("
+Assert-Contract ($buffLibrary.Contains(
+        "static_item.removeRetiredNgePlayerSkillStatistics(player);") -and
+    $playerSkillStatisticCleanup.Contains("getSkillStatModListingForPlayer(player)") -and
+    $playerSkillStatisticCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $playerSkillStatisticCleanup.Contains("getSkillStatMod(player, modifier)") -and
+    $playerSkillStatisticCleanup.Contains(
+        "applySkillStatisticModifier(player, modifier, -currentValue)") -and
+    [bool]$contract.expected.itemModifierWriters.persistentPlayerModifierCleanup) `
+    "p14.item-level.persisted-player-modifier-login-cleanup"
+
+$collectionReward = Get-FunctionSlice $collectionLibrary `
+    "public static boolean grantCollectionReward(" `
+    "public static boolean updateCraftingSlot("
+$collectionFilterIndex = $collectionReward.IndexOf(
+    "if (static_item.isRetiredNgeStaticItemSkillModifier(skillMod1))",
+    [StringComparison]::Ordinal)
+$collectionWriteIndex = $collectionReward.IndexOf(
+    "applySkillStatisticModifier(player, skillMod1, skillModAmount)",
+    [StringComparison]::Ordinal)
+Assert-Contract ($collectionFilterIndex -ge 0 -and
+    $collectionWriteIndex -gt $collectionFilterIndex) `
+    "p14.item-level.collection-reward-writer-filtered"
+
+Assert-Contract ($playerUtility.Contains(
+        "if (static_item.isRetiredNgeStaticItemSkillModifier(skillMod))") -and
+    $playerStructure.Contains(
+        "if (!static_item.isRetiredNgeStaticItemSkillModifier(skillmod) &&") -and
+    $playerStructure.Contains("removeObjVar(structure, player_structure.SPECIAL_SIGN_DECREMENT_MOD)")) `
+    "p14.item-level.stale-entitlement-reimbursement-filtered-cleanup-preserved"
+
+$effectMappingPath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+$buffTablePath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+$collectionRewardsPath = Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab"
+$effectMappingRows = @(Import-Csv -LiteralPath $effectMappingPath -Delimiter "`t" |
+    Where-Object { [string]$_.NAME -cne "s" })
+$combatSkillRows = @($effectMappingRows | Where-Object {
+    [string]$_.TYPE -ceq "skill" -and [string]$_.SUBTYPE -clike "combat_*"
+})
+$retainedPrecuCombatBuffModifiers = @("combat_haste", "combat_slow")
+$retiredMappedCombatModifiers = @($combatSkillRows | Where-Object {
+    [string]$_.SUBTYPE -notin $retainedPrecuCombatBuffModifiers
+})
+$buffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { [string]$_.NAME -cne "s" })
+Assert-Contract ($combatSkillRows.Count -eq
+        [int]$contract.expected.itemModifierWriters.mappedCombatSkillModifiers -and
+    @($combatSkillRows.SUBTYPE | Sort-Object -Unique).Count -eq $combatSkillRows.Count -and
+    $retiredMappedCombatModifiers.Count -eq
+        [int]$contract.expected.itemModifierWriters.retiredMappedCombatModifiers -and
+    @($combatSkillRows | Where-Object {
+        [string]$_.SUBTYPE -in $retainedPrecuCombatBuffModifiers
+    }).Count -eq
+        [int]$contract.expected.itemModifierWriters.retainedPrecuCombatBuffModifiers -and
+    $buffRows.Count -eq [int]$contract.expected.itemModifierWriters.retainedBuffRows) `
+    "p14.item-level.buff-effect-data-authenticated-preserved"
+
+$retiredCollectionRewards = [ordered]@{
+    heroic_axkva_min_01 = "combat_parry_reduction"
+    heroic_tusken_king_01 = "combat_critical_hit_reduction"
+    heroic_ig88_01 = "combat_strikethrough_value"
+    heroic_star_destroyer_01 = "combat_block_reduction"
+    heroic_exar_kun_01 = "combat_evasion_chance"
+}
+$collectionRows = @(Import-Csv -LiteralPath $collectionRewardsPath -Delimiter "`t" |
+    Where-Object { [string]$_.collection_name -cne "s" })
+$retiredCollectionRowsValid = $true
+foreach ($entry in $retiredCollectionRewards.GetEnumerator())
+{
+    $matching = @($collectionRows | Where-Object {
+        [string]$_.collection_name -ceq [string]$entry.Key -and
+        [string]$_.skill_mod -ceq [string]$entry.Value
+    })
+    if ($matching.Count -ne 1) { $retiredCollectionRowsValid = $false }
+}
+Assert-Contract ($retiredCollectionRewards.Count -eq
+        [int]$contract.expected.itemModifierWriters.retiredCollectionRewardModifiers -and
+    $retiredCollectionRowsValid -and $collectionRows.Count -eq 489) `
+    "p14.item-level.collection-reward-data-authenticated-preserved"
 
 $precuBasicReverseModifiers = @(
     "general_assembly",
@@ -661,6 +841,16 @@ Assert-Contract ($skills -match '(?m)^species_bothan\t.*camouflage=15' -and
 
 $sourceHashPaths = @{
     staticItem = "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java"
+    buffLibrary = "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java"
+    collectionLibrary = "dsrc/sku.0/sys.server/compiled/game/script/library/collection.java"
+    playerStructure = "dsrc/sku.0/sys.server/compiled/game/script/library/player_structure.java"
+    playerUtility = "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java"
+    buffHandler = "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
+    specialSign = "dsrc/sku.0/sys.server/compiled/game/script/systems/sign/special_sign.java"
+    tcgVendorContract = "dsrc/sku.0/sys.server/compiled/game/script/systems/tcg/tcg_vendor_contract.java"
+    effectMapping = "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+    buffTable = "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+    collectionRewards = "dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab"
     dynamicArmor = "dsrc/sku.0/sys.server/compiled/game/script/item/armor/dynamic_armor.java"
     loot = "dsrc/sku.0/sys.server/compiled/game/script/library/loot.java"
     dynamicArmorTypes = "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/armor.tab"
@@ -963,7 +1153,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed") `
         "p14.item-level.ready-evidence"
-    Assert-Contract ($compiledHashes.Count -eq 21 -and
+    Assert-Contract ($compiledHashes.Count -eq 28 -and
         @($compiledHashes | Where-Object {
             [string]$_.Value -notmatch '^[a-f0-9]{64}$'
         }).Count -eq 0) `

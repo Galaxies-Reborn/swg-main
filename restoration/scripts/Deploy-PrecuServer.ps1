@@ -297,6 +297,10 @@ source_skills="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/sk
 work_skills="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 source_buff_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
 work_buff_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+source_buff_effect_mapping="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+work_buff_effect_mapping="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+source_collection_rewards="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab"
+work_collection_rewards="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab"
 source_combat_data="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 work_combat_data="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 source_npc_combat_dir="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/combat"
@@ -640,7 +644,7 @@ source_buff_builder_response="$source_script/systems/buff_builder/buff_builder_r
 work_buff_builder_response="$work_script/systems/buff_builder/buff_builder_response.java"
 source_crafting_base="$source_script/systems/crafting/crafting_base.java"
 work_crafting_base="$work_script/systems/crafting/crafting_base.java"
-precu_item_level_paths="item/armor/dynamic_armor.java item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+precu_item_level_paths="item/armor/dynamic_armor.java item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/buff.java library/collection.java library/player_structure.java library/static_item.java player/player_utility.java systems/buff/buff_handler.java systems/crafting/weapon/component/crafting_weapon_component_attribute.java systems/sign/special_sign.java systems/tcg/tcg_vendor_contract.java"
 precu_stim_template_paths="channelled_stimpack/stimpack_a.tpf channelled_stimpack/stimpack_b.tpf channelled_stimpack/stimpack_c.tpf instant_stimpack/stimpack_a.tpf instant_stimpack/stimpack_b.tpf instant_stimpack/stimpack_c.tpf instant_stimpack/stimpack_d.tpf instant_stimpack/stimpack_e.tpf instant_stimpack/stimpack_noob.tpf instant_stimpack/stimpack_syren.tpf"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/tcg/target_creature.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/hideout/mtp_instance_entrance_cell.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
@@ -688,6 +692,8 @@ cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_buff_table" "$work_buff_table"
+cmp -s "$source_buff_effect_mapping" "$work_buff_effect_mapping"
+cmp -s "$source_collection_rewards" "$work_collection_rewards"
 cmp -s "$source_combat_data" "$work_combat_data"
 source_npc_tables="$(find "$source_npc_combat_dir" -maxdepth 1 -type f -name 'npc_*.tab' -printf '%f\n' | sort)"
 work_npc_tables="$(find "$work_npc_combat_dir" -maxdepth 1 -type f -name 'npc_*.tab' -printf '%f\n' | sort)"
@@ -1380,6 +1386,50 @@ grep -Fq 'retirePostNgeBeastMasterPlayerState(player)' "$work_script/player/live
 ! grep -Fq 'hasSkill(player, "expertise_bm_' "$work_script/systems/beast/beast_egg.java"
 for precu_item_level_path in $precu_item_level_paths; do
     cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
+done
+retired_buff_combat_modifiers="combat_add_damage_dealt combat_add_damage_taken combat_all_attack_avoidance combat_all_attack_miss combat_all_attack_miss_reduction combat_all_attack_miss_vulnerability combat_block_reduction combat_critical_hit combat_divide_damage_dealt combat_divide_damage_taken combat_dodge_reduction combat_glancing combat_glancing_blow_reduction combat_melee_attack_avoidance combat_melee_attack_miss combat_melee_attack_miss_reduction combat_melee_attack_vulnerability combat_multiply_damage_dealt combat_multiply_damage_taken combat_parry_reduction combat_ranged_attack_avoidance combat_ranged_attack_miss combat_ranged_attack_miss_reduction combat_ranged_attack_vulnerability combat_subtract_damage_dealt combat_subtract_damage_taken"
+test "$(printf '%s\n' $retired_buff_combat_modifiers | wc -l)" -eq 26
+retired_buff_modifier_inventory_source="$(sed -n '/public static final String\[\] RETIRED_NGE_BUFF_COMBAT_MODIFIERS/,/public static final java.text.NumberFormat/p' "$work_script/library/static_item.java")"
+for retired_buff_combat_modifier in $retired_buff_combat_modifiers; do
+    test "$(printf '%s\n' "$retired_buff_modifier_inventory_source" | grep -Fc "\"$retired_buff_combat_modifier\"")" -eq 1
+    awk -F '\t' -v modifier="$retired_buff_combat_modifier" '$2 == "skill" && $3 == modifier { found++ } END { if (found != 1) exit 2 }' "$work_buff_effect_mapping"
+done
+test "$(awk -F '\t' '$2 == "skill" && $3 ~ /^combat_/ { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 37
+test "$(awk -F '\t' '$2 == "skill" && ($3 == "combat_haste" || $3 == "combat_slow") { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 2
+test "$(awk -F '\t' 'NR > 2 && $1 != "" { found++ } END { print found + 0 }' "$work_buff_table")" -eq 1993
+static_modifier_predicate_source="$(sed -n '/public static boolean isRetiredNgeStaticItemSkillModifier/,/public static void removeRetiredNgePlayerSkillStatistics/p' "$work_script/library/static_item.java")"
+printf '%s\n' "$static_modifier_predicate_source" | grep -Fq 'RETIRED_NGE_BUFF_COMBAT_MODIFIERS'
+parse_skill_modifiers_source="$(sed -n '/public static dictionary parseSkillModifiers/,/public static obj_id makeDynamicObject/p' "$work_script/library/static_item.java")"
+printf '%s\n' "$parse_skill_modifiers_source" | grep -Fq 'if (!isRetiredNgeStaticItemSkillModifier(modsArray[0]))'
+test "$(printf '%s\n' "$parse_skill_modifiers_source" | grep -Fn 'isRetiredNgeStaticItemSkillModifier' | head -n 1 | cut -d: -f1)" -lt "$(printf '%s\n' "$parse_skill_modifiers_source" | grep -Fn 'dict.put' | head -n 1 | cut -d: -f1)"
+for static_parser_consumer in item/skillmod_click_item.java systems/sign/special_sign.java systems/tcg/tcg_vendor_contract.java; do
+    grep -Fq 'static_item.parseSkillModifiers(player, skillMod)' "$work_script/$static_parser_consumer"
+    grep -Fq 'applySkillStatisticModifier(player, skillModName, skillModValue)' "$work_script/$static_parser_consumer"
+done
+player_modifier_cleanup_source="$(sed -n '/public static void removeRetiredNgePlayerSkillStatistics/,/public static void removeRetiredNgeStaticItemSkillModifiers/p' "$work_script/library/static_item.java")"
+printf '%s\n' "$player_modifier_cleanup_source" | grep -Fq 'getSkillStatModListingForPlayer(player)'
+printf '%s\n' "$player_modifier_cleanup_source" | grep -Fq 'isRetiredNgeStaticItemSkillModifier(modifier)'
+printf '%s\n' "$player_modifier_cleanup_source" | grep -Fq 'applySkillStatisticModifier(player, modifier, -currentValue)'
+grep -Fq 'static_item.removeRetiredNgePlayerSkillStatistics(player);' "$work_buff_library"
+collection_reward_source="$(sed -n '/public static boolean grantCollectionReward/,/public static boolean updateCraftingSlot/p' "$work_script/library/collection.java")"
+printf '%s\n' "$collection_reward_source" | grep -Fq 'if (static_item.isRetiredNgeStaticItemSkillModifier(skillMod1))'
+test "$(printf '%s\n' "$collection_reward_source" | grep -Fn 'isRetiredNgeStaticItemSkillModifier(skillMod1)' | head -n 1 | cut -d: -f1)" -lt "$(printf '%s\n' "$collection_reward_source" | grep -Fn 'applySkillStatisticModifier(player, skillMod1, skillModAmount)' | head -n 1 | cut -d: -f1)"
+retired_collection_reward_specs="heroic_axkva_min_01:combat_parry_reduction heroic_tusken_king_01:combat_critical_hit_reduction heroic_ig88_01:combat_strikethrough_value heroic_star_destroyer_01:combat_block_reduction heroic_exar_kun_01:combat_evasion_chance"
+test "$(printf '%s\n' $retired_collection_reward_specs | wc -l)" -eq 5
+for retired_collection_reward_spec in $retired_collection_reward_specs; do
+    retired_collection_name="${retired_collection_reward_spec%%:*}"
+    retired_collection_modifier="${retired_collection_reward_spec##*:}"
+    awk -F '\t' -v collection="$retired_collection_name" -v modifier="$retired_collection_modifier" '$1 == collection && $11 == modifier { found++ } END { if (found != 1) exit 2 }' "$work_collection_rewards"
+done
+grep -Fq 'if (static_item.isRetiredNgeStaticItemSkillModifier(skillMod))' "$work_player_utility"
+grep -Fq 'if (!static_item.isRetiredNgeStaticItemSkillModifier(skillmod) &&' "$work_player_structure_library"
+grep -Fq 'removeObjVar(structure, player_structure.SPECIAL_SIGN_DECREMENT_MOD);' "$work_player_structure_library"
+buff_skill_predicate_source="$(sed -n '/public boolean isRetiredNgeBuffSkillModifier/,/public void retireNgeExpertiseModifier/p' "$work_buff_handler")"
+printf '%s\n' "$buff_skill_predicate_source" | grep -Fq 'static_item.isRetiredNgeStaticItemSkillModifier(modifierName)'
+for generic_buff_writer in skillAddBuffHandler skillPercentAddBuffHandler forcePowerAddBuffHandler; do
+    generic_buff_writer_source="$(sed -n "/public int $generic_buff_writer/,/public int .*RemoveBuffHandler/p" "$work_buff_handler")"
+    printf '%s\n' "$generic_buff_writer_source" | grep -Fq 'if (isPlayer(self) && isRetiredNgeBuffSkillModifier(subtype))'
+    printf '%s\n' "$generic_buff_writer_source" | grep -Fq 'addSkillModModifier'
 done
 item_level_cleanup_source="$(sed -n '/public static void removeLegacyNgeItemCombatLevelRequirement(/,/public static int generateStatMod(/p' "$work_script/library/static_item.java")"
 test "$(printf '%s\n' "$item_level_cleanup_source" | grep -Fc 'hasObjVar(item, "healing.combat_level_required")')" -eq 1
@@ -2511,6 +2561,7 @@ printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'bm_'
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS'
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'RETIRED_NGE_STATIC_ITEM_MODIFIERS'
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'RETIRED_NGE_ITEM_WRITER_MODIFIERS'
+printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'RETIRED_NGE_BUFF_COMBAT_MODIFIERS'
 printf '%s\n' "$static_modifier_cleanup_bytecode" | grep -Fq 'getSkillModBonuses'
 printf '%s\n' "$static_modifier_cleanup_bytecode" | grep -Fq 'setSkillModBonus'
 printf '%s\n' "$static_modifier_apply_bytecode" | grep -Fq 'removeRetiredNgeStaticItemSkillModifiers'
@@ -2525,6 +2576,34 @@ for retired_static_set_modifier in bh_dire_root bh_dire_snare combat_block_chanc
 done
 for retired_item_writer_modifier in combat_critical_hit_reduction combat_dodge combat_parry combat_evasion_chance combat_evasion_value combat_strikethrough_value commando_devastation exotic_heal_action_reduction exotic_dodge_reduction exotic_parry_reduction exotic_acid_penetration exotic_cold_penetration exotic_heat_penetration exotic_electricity_penetration; do
     printf '%s\n' "$static_item_bytecode" | grep -Fq "$retired_item_writer_modifier"
+done
+for retired_buff_combat_modifier in $retired_buff_combat_modifiers; do
+    printf '%s\n' "$static_item_bytecode" | grep -Fq "$retired_buff_combat_modifier"
+done
+parse_skill_modifiers_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static script.dictionary parseSkillModifiers/,/public static script.obj_id makeDynamicObject/p')"
+printf '%s\n' "$parse_skill_modifiers_bytecode" | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
+printf '%s\n' "$parse_skill_modifiers_bytecode" | grep -Fq 'script/dictionary.put'
+player_modifier_cleanup_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void removeRetiredNgePlayerSkillStatistics/,/public static void removeRetiredNgeStaticItemSkillModifiers/p')"
+printf '%s\n' "$player_modifier_cleanup_bytecode" | grep -Fq 'getSkillStatModListingForPlayer'
+printf '%s\n' "$player_modifier_cleanup_bytecode" | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
+printf '%s\n' "$player_modifier_cleanup_bytecode" | grep -Fq 'getSkillStatMod'
+printf '%s\n' "$player_modifier_cleanup_bytecode" | grep -Fq 'applySkillStatisticModifier'
+javap -classpath "$class_root" -c -p script.library.buff | grep -Fq 'removeRetiredNgePlayerSkillStatistics'
+javap -classpath "$class_root" -c -p script.library.collection | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
+javap -classpath "$class_root" -c -p script.library.player_structure | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
+javap -classpath "$class_root" -c -p script.player.player_utility | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
+for static_parser_consumer_class in script.item.skillmod_click_item script.systems.sign.special_sign script.systems.tcg.tcg_vendor_contract; do
+    static_parser_consumer_bytecode="$(javap -classpath "$class_root" -c -p "$static_parser_consumer_class")"
+    printf '%s\n' "$static_parser_consumer_bytecode" | grep -Fq 'parseSkillModifiers'
+    printf '%s\n' "$static_parser_consumer_bytecode" | grep -Fq 'applySkillStatisticModifier'
+done
+buff_handler_item_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+printf '%s\n' "$buff_handler_item_bytecode" | grep -Fq 'static_item.isRetiredNgeStaticItemSkillModifier'
+for generic_buff_writer in skillAddBuffHandler skillPercentAddBuffHandler forcePowerAddBuffHandler; do
+    generic_buff_writer_bytecode="$(printf '%s\n' "$buff_handler_item_bytecode" | sed -n "/public int $generic_buff_writer/,/public int .*RemoveBuffHandler/p")"
+    printf '%s\n' "$generic_buff_writer_bytecode" | grep -Fq 'isPlayer'
+    printf '%s\n' "$generic_buff_writer_bytecode" | grep -Fq 'isRetiredNgeBuffSkillModifier'
+    printf '%s\n' "$generic_buff_writer_bytecode" | grep -Fq 'addSkillModModifier'
 done
 reverse_tool_bytecode="$(javap -classpath "$class_root" -c -p script.item.tool.reverse_engineering_tool)"
 for precu_reverse_basic_modifier in general_assembly weapon_assembly armor_assembly clothing_assembly droid_assembly food_assembly; do

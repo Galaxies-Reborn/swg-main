@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-item-level-retirement",
-  "status": "ready",
-  "scope": "Remove NGE combat-level, primary-stat, expertise, profession-set, fast-attack, Beast Master, exotic, and later combat-stat authority from retained item transfer, use, effect, attribute, medicine, static and dynamic item modifier writers, reverse engineering, crafting, food, resource-sampling, market-search, weapon-core presentation, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, authored healing values, valid Publish-era item skill modifiers, and retained expansion item content.",
+  "status": "implemented-build-pending",
+  "scope": "Remove NGE combat-level, primary-stat, expertise, profession-set, fast-attack, Beast Master, exotic, and later combat-stat authority from retained item transfer, use, effect, attribute, medicine, static and dynamic item modifier writers, reverse engineering, crafting, food, resource-sampling, market-search, weapon-core presentation, dynamic-loot, static-parser consumers, collection rewards, generic player buff effects, stale entitlement reimbursement, and persisted player-stat paths while preserving PRE-CU skill ownership, HAM rules, camouflage, authored healing values, authentic Publish-era combat haste and slow, NPC/quest buff compatibility, and retained expansion content.",
   "eraEvidence": {
     "userRule": "PRE-CU has no player combat-level stat; retained content must not require one.",
     "core3Repository": "swgemu/Core3",
@@ -11,7 +11,7 @@
     "dynamicLootReference": "Publish-era skills authenticate camouflage as a PRE-CU Bothan and Ranger skill modifier; precision_modified, strength_modified, stamina_modified, constitution_modified, agility_modified, and luck_modified are later primary-stat vocabulary and are not PRE-CU dynamic-loot authority.",
     "staticConsumableReference": "Combat level is not a PRE-CU player/item admission stat. Retained expansion healing content keeps authored healing power, action-pool selection, charges, no-trade state, scripts, templates, and weapon-core quality lookup while combat-level objvars and UI/search presentation are retired.",
     "staticSkillModifierReference": "The pinned Publish 14.1 Core3 tree contains no NGE expertise system, six-stat primary-modifier vocabulary, fast_attack_line_, Beast Master incubation, later block/strikethrough, Dire, Officer cooldown/rally, or tka_armor authority. Retained static armor, weapons, jewelry, and items remain available, while their common initializer filters those NGE modifier families. Authentic PRE-CU droid_find_speed plus poison/disease/fire/bleeding resistance and absorption remain applied; Publish 14.1 Core3 uses unarmed_toughness rather than the NGE expertise listing's Innate Teras Kasi Armor.",
-    "itemWriterReference": "The retained reverse-engineering and magic-item tables mix authentic PRE-CU crafting, healing, camouflage, droid, resistance, and absorption modifiers with later NGE expertise, six-primary-stat, Beast Master, exotic, evasion, strikethrough, and combat-rating vocabulary. Runtime item writers retain the tables and expansion content but filter the later-only modifiers at generation, crafting, consumable, equip, transfer, and stale-login ingress; the six always-generated reverse-engineering slots now use authenticated PRE-CU assembly modifiers."
+    "itemWriterReference": "The retained reverse-engineering, magic-item, buff-effect, and collection-reward tables mix authentic PRE-CU crafting, healing, camouflage, droid, resistance, absorption, combat_haste, and combat_slow modifiers with later NGE expertise, six-primary-stat, Beast Master, exotic, evasion, strikethrough, damage-multiplier, attack-avoidance, and combat-rating vocabulary. Common runtime classification now filters later-only modifiers at generation, parsing, crafting, consumable, equip, transfer, player buff, collection reward, stale reimbursement, and login-cleanup ingress while retaining expansion data and NPC/quest compatibility; the six always-generated reverse-engineering slots use authenticated PRE-CU assembly modifiers."
   },
   "expected": {
     "staticItems": {
@@ -97,6 +97,16 @@
     },
     "itemModifierWriters": {
       "retiredExactNgeModifiers": 14,
+      "retiredBuffCombatModifiers": 26,
+      "mappedCombatSkillModifiers": 37,
+      "retiredMappedCombatModifiers": 35,
+      "retainedPrecuCombatBuffModifiers": 2,
+      "genericPlayerBuffModifierWriters": 3,
+      "staticParserConsumers": 3,
+      "retiredCollectionRewardModifiers": 5,
+      "retainedBuffRows": 1993,
+      "persistentPlayerModifierCleanup": true,
+      "npcBuffCompatibilityPreserved": true,
       "precuBasicReverseModifiers": 6,
       "stalePowerupCleanupPreserved": true,
       "reverseCompatibilityDataPreserved": true,
@@ -132,14 +142,21 @@
     "dsrc/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_poweredup_item.java",
     "dsrc/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_tool.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/bio_engineer.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/collection.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/loot.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/magic_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/player_structure.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/reverse_engineering.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/clothing/crafting_base_clothing.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/sign/special_sign.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/tcg/tcg_vendor_contract.java",
     "dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_mods.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_special_mods.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/magic_item/mod_cost.tab",
@@ -149,6 +166,9 @@
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/weapon_stats.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab",
     "dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab",
     "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab",
     "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
@@ -168,11 +188,21 @@
     "overlayPatchBytes": 40030,
     "overlayPatchSha256": "3817b32ae7ad21e2216c6979fea5090bcc13bb10d27ccd3889fdb59735da1369",
     "staticContract": "passed; the extended direct-source item writer contract authenticates all generation, application, stale cleanup, compatibility-data, and PRE-CU preservation boundaries",
-    "isolatedJavaCompile": "passed from pushed direct dsrc ea6770f6db92d172e8e9b44597bdbe5c4f730ea9 with Java 8 target; all eight changed item-writer classes compiled together against the canonical deployed class root and the exact /dev/shm compile directory was removed on exit",
+    "isolatedJavaCompile": "passed from pushed direct dsrc 38f391a6a90db0145143739a3536cbb5bfdaedb8 with Java 8 target; static_item, buff_handler, buff, collection, player_utility, and player_structure compiled together against the canonical deployed class root and the exact /dev/shm compile directory was removed on exit",
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "ea6770f6db92d172e8e9b44597bdbe5c4f730ea9",
+    "directSourceGitlink": "38f391a6a90db0145143739a3536cbb5bfdaedb8",
     "sourceSha256": {
-      "staticItem": "7ff823c8b1d79487ab69dd06b2b5c9de42350cf6f225b99281e4edcc6886c483",
+      "staticItem": "df4ae7565a12f972abe53fd89127b8f2611fa98e82f5f097b995fdd4611357af",
+      "buffLibrary": "e890a5d247aaa2a8d38f7c9bc1c8b78de24102297a43f93cf10069e5a959c5de",
+      "collectionLibrary": "4ed1fdcc203c64b6337771d20e3dbe75fb8ac4bab05a634622417a228a3a3820",
+      "playerStructure": "d6ea6a1a637743ea55051ce5ed82ae5433f913228d99af4ac63f43ca73ef297c",
+      "playerUtility": "1cb50a4e616d25d846881965331932cba17f7bc6471984244ca2f34bb30c5459",
+      "buffHandler": "9885c0d2783be28ec661216f7a71585f88243f7d5adcfe73cdc566bb8dc03902",
+      "specialSign": "4f75bb119a16df6b8ac852f130ad8a39663c0a182996fa0c51ad46f16edaeda5",
+      "tcgVendorContract": "ae89485f464858dbb32ff7c8efebb8f0625a20d804f17fd1d9fd99a9413eda81",
+      "effectMapping": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
+      "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
+      "collectionRewards": "7f45166db045f0f93711d216dbfcdad1c42ae2d503aa2d35830d84ea0b3fa5ad",
       "dynamicArmor": "953d06b679012eb02b6a2457d36d66c608c4bdcf1cbb2baaa97d7a022e478bc7",
       "loot": "37e3a20f4d199c20889aebe380c19babb282e934b8e29fcf61ed5f3d36b01b37",
       "dynamicArmorTypes": "a51178ffc91446cf1cb5b54f45ca96a6327027e536c05299bfc857d247a1957b",
@@ -211,9 +241,14 @@
       "instantStimNoob": "73b046af3d3d6d2b1909589423759335f10dd2bfa6f582fa72693b06ca4e5eda",
       "instantStimSyren": "e30b21e21a0b4ff3eb2694c733ca2c21b418002e763f439aac560493f8a83aa3"
     },
-    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source in a self-cleaning /dev/shm directory; eight changed classes filter static and dynamic NGE item modifiers while preserving PRE-CU assembly, camouflage, droid, tissue, medical resistance, and absorption modifiers",
+    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source in a self-cleaning /dev/shm directory; the six newly changed runtime classes close player item-proc, collection-reward, buff-effect, stale-reimbursement, and persisted-stat ingress while preserving NPC/quest compatibility and prior PRE-CU item modifier authority",
     "focusedCompiledClassSha256": {
-      "script.library.static_item": "e1663d2b13c5ea081fa883d1666d1f43af2551ed060b25551ec4a4d8c4c17cf7",
+      "script.library.static_item": "8e9ba02b83ae9b8720cdc948c3dc2d7f16769e82f4bcf27bbb0ad4fb1d48852a",
+      "script.library.buff": "a5a615b2dca20b3e236dec66f8ecd9b6474393a5bace8cbe34793bbf8d8c4bbf",
+      "script.library.collection": "42430293557469a348cb44184b49871b05f934b50b1f92ba17c319025f6aa566",
+      "script.library.player_structure": "2dafc59c777925405835e432d734dac4dd27e15b26b8531899a8c5d870fc7e41",
+      "script.player.player_utility": "af6a2549a4ad11a8849d7f878b7a614b78bf08f99449257de6d6b1d34eeca77d",
+      "script.systems.buff.buff_handler": "a35abafac6f685bf38b30404fb742bcc6a4d7e3f6606c61b4fec60b14c3a58b7",
       "script.item.skill_buff.base": "e3de611f3ea8a028e7f4191721f4d917a22643655031ede56302a0f9eb38f731",
       "script.item.tool.reverse_engineering_poweredup_item": "df73431e2dac1a36ce877d471b0c06f17daf524f7c9ab786594db3e465efb0eb",
       "script.item.tool.reverse_engineering_tool": "d357c176220436bf8ec985d778d6faae6b582ca7445144e135121f24c5a4453a",
@@ -228,7 +263,12 @@
       "script.systems.crafting.weapon.component.crafting_weapon_component_attribute": "f5cde55272aac8fa221526b94d64518505118dd822be7e5c86e5a4e155f1c95f"
     },
     "focusedCompiledClassBytes": {
-      "script.library.static_item": 39657,
+      "script.library.static_item": 41882,
+      "script.library.buff": 32096,
+      "script.library.collection": 32910,
+      "script.library.player_structure": 136257,
+      "script.player.player_utility": 87038,
+      "script.systems.buff.buff_handler": 98572,
       "script.item.armor.dynamic_armor": 6002,
       "script.item.medicine.stimpack": 2199,
       "script.item.medicine.stimpack_crafted": 2472,
@@ -236,8 +276,8 @@
       "script.systems.crafting.weapon.component.crafting_weapon_component_attribute": 10088
     },
     "dockerWorkVolume": "swg-precu-work-x64",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 direct-source Java files produced 5747 deployed classes, including all eight changed item-writer classes",
-    "fullServerBuild": "passed canonical clean x64 deployment in 860.3 seconds from pushed parent 223b999 and direct dsrc ea6770f6db92d172e8e9b44597bdbe5c4f730ea9",
+    "fullJavaCompile": "pending canonical clean compile from direct dsrc 38f391a6a90db0145143739a3536cbb5bfdaedb8",
+    "fullServerBuild": "pending canonical clean x64 deployment from the parent commit that pins direct dsrc 38f391a6a90db0145143739a3536cbb5bfdaedb8",
     "architecture": "ELF 64-bit LSB shared object, x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildIdSha1": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
@@ -281,8 +321,8 @@
       "instant_stimpack/stimpack_syren.iff": "4debbd03ea05849e5d48869e6d080fd8322a7acfff3f5bf9a0147e894e7a860d"
     },
     "currentSurveyEvidenceRefreshedBy": "Direct-source static-item modifier authority now also filters six NGE primary modifiers, nine exact later set modifiers, and the expertise_, fast_attack_line_, and bm_ families at all three common static-item initialization routes while retaining the existing Quickness-derived sampling cadence.",
-    "deploymentProbe": "passed canonical source/work parity; exact retained 1559/325/4793 table inventories; 67 additional NGE rows and 99 modifier occurrences authenticated without changing retained content; expanded source and deployed-bytecode filters; exact PRE-CU preservation checks; x64 architecture; restart/readiness; and all-process mapped-binary verification",
-    "result": "passed"
+    "deploymentProbe": "pending canonical source/work parity, expanded source and deployed-bytecode filters, exact retained data checks, x64 architecture, restart/readiness, and all-process mapped-binary verification",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-06",
@@ -300,12 +340,16 @@
     "liveBinaryMapEntries": 30,
     "liveBinaryInode": 12141386,
     "liveBinarySize": 22559720,
-    "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle-error matches; three expected Oracle bootstrap/status lines",
-    "result": "passed"
+    "postStartLogAudit": "pending current-source deployment",
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling; six later primary-stat writers on production-reachable dynamic clothing and armor loot; combat-level objvars/search/presentation on retained static and template-backed healing content; static armor, weapon, and item application of NGE primary, expertise, profession-set, fast-attack, Beast Master, later combat-stat, Dire, Officer cooldown/rally, and tka_armor modifiers; and NGE modifier generation/application through retained reverse engineering, powered-up items, magic items, gems, generic crafting, food, and legacy skill-buff items",
-    "notClaimedComplete": "retained item proc scripts and non-item combat or buff modifier writers remain under the broader PRE-CU precedence audit"
+    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling; six later primary-stat writers on production-reachable dynamic clothing and armor loot; combat-level objvars/search/presentation on retained static and template-backed healing content; static armor, weapon, and item application of NGE primary, expertise, profession-set, fast-attack, Beast Master, later combat-stat, Dire, Officer cooldown/rally, and tka_armor modifiers; NGE modifier generation/application through retained reverse engineering, powered-up items, magic items, gems, generic crafting, food, and legacy skill-buff items; all three direct static-parser consumers; five retained heroic collection reward rows; 35 later combat effect mappings on player targets; stale TCG vendor and special-sign reimbursement; and persisted base player modifier cleanup at login",
+    "notClaimedComplete": "additional retained proc-script-specific modifiers and non-generic direct modifier writers remain under the broader PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Run the canonical clean x64 deployment from the pushed parent and direct dsrc commits.",
+    "Authenticate expanded source/work parity and deployed bytecode for every newly closed modifier ingress path.",
+    "Refresh compiled hashes and current-boot runtime evidence, then rerun the item-level contract at Ready."
+  ]
 }
