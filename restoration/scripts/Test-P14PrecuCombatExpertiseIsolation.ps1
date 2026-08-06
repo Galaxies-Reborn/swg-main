@@ -75,6 +75,8 @@ $successCost = Get-BracedBlock $combatLibrary `
     "public static int[] getSuccessBasedSingleTargetActionCost("
 $hitEngine = Get-BracedBlock $combatBase `
     "public hit_result[] runHitEngine(attacker_data attackerData, weapon_data weaponData, defender_data[] defenderData, attacker_results attackerResults, defender_results[] defenderResults, combat_data actionData, boolean isTangibleAttacking, boolean isAutoAiming, int overloadDamage)"
+$glancingResolution = Get-BracedBlock $hitEngine `
+    "if (hitData[i].glancing)"
 
 foreach ($entry in @(
     @{ Name = "dictionary"; Block = $dictionaryCost },
@@ -117,6 +119,16 @@ Assert-Contract ($hitEngine.Contains("if (!precuAuthoritativeAttack)") -and
     $hitEngine.Contains("addPrecuCore3HateProcess") -and
     $hitEngine.Contains("combat.addHateProcess")) `
     "p14.combat-expertise-isolation.hit.damage-and-hate-era-gates-preserved"
+Assert-Contract ($glancingResolution.Contains("minDamage *= 0.35f") -and
+    $glancingResolution.Contains("maxDamage *= 0.35f") -and
+    $glancingResolution.Contains('new string_id("combat_effects", "glancing_blow")') -and
+    -not $glancingResolution.Contains("expertise_fs_general_alacrity_1") -and
+    -not $glancingResolution.Contains("appearance/pt_jedi_alacrity.prt") -and
+    ([regex]::Matches($hitEngine, 'expertise_fs_general_alacrity_1')).Count -eq
+        [int]$contract.expected.glancingNgeAlacritySkillReads -and
+    ([regex]::Matches($hitEngine, 'appearance/pt_jedi_alacrity[.]prt')).Count -eq
+        [int]$contract.expected.glancingNgeAlacrityEffects) `
+    "p14.combat-expertise-isolation.hit.glancing-nge-alacrity-retired"
 
 $overrides = @(Import-SwgTab -Path $paths.combatOverrides)
 $validPools = @("HEALTH", "ACTION", "MIND", "RANDOM", "MULTI", "NO_ATTRIBUTE")

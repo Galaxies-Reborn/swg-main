@@ -72,6 +72,9 @@ $outbreakAttach = Get-BracedBlock $outbreak "public int OnAttach(obj_id self)"
 $precuPrimary = Get-BracedBlock $combatBase "public int getPrecuPrimaryAttackResult("
 $precuSecondary = Get-BracedBlock $combatBase "public int getPrecuSecondaryDefenseResult("
 $resolution = Get-SourceSlice $combatBase "int precuPrimaryResult =" "switch (defResult)"
+$glancingResolution = Get-SourceSlice $combatBase `
+    "if (hitData[i].glancing)" `
+    "if (hitData[i].critical)"
 
 Assert-Contract ($wampaAttach.Contains("trial.setHp(self, trial.HP_UNCLE_JOE);") -and
     -not $wampaAttach.Contains("expertise_") -and
@@ -125,6 +128,15 @@ Assert-Contract (-not $precuPrimary.Contains("HIT_RESULT_GLANCING") -and
     ([regex]::Matches($precuSecondary, "HIT_RESULT_GLANCING")).Count -eq
         [int]$contract.expected.precuSecondaryGlancingOutcomes) `
     "p14.retained-boss-glancing.precu-results-no-glancing"
+Assert-Contract ($glancingResolution.Contains("minDamage *= 0.35f") -and
+    $glancingResolution.Contains('new string_id("combat_effects", "glancing_blow")') -and
+    -not $glancingResolution.Contains("expertise_fs_general_alacrity_1") -and
+    -not $glancingResolution.Contains("appearance/pt_jedi_alacrity.prt") -and
+    ([regex]::Matches($combatBase, 'expertise_fs_general_alacrity_1')).Count -eq
+        [int]$contract.expected.remainingGlancingAlacritySkillReads -and
+    ([regex]::Matches($combatBase, 'appearance/pt_jedi_alacrity[.]prt')).Count -eq
+        [int]$contract.expected.remainingGlancingAlacrityEffects) `
+    "p14.retained-boss-glancing.shared-alacrity-side-effect-retired"
 
 $creatureLines = Get-Content -LiteralPath $paths.creatures
 $bossRows = @($creatureLines | Where-Object {

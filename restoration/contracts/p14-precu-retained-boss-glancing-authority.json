@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-retained-boss-glancing-authority",
-  "status": "ready",
-  "scope": "Preserve the retained Echo Base Uncle Joe and Outbreak afflicted-rancor encounters while removing their NGE-only glancing-blow expertise writes from PRE-CU combat initialization.",
+  "status": "implemented-build-pending",
+  "scope": "Preserve the retained Echo Base Uncle Joe and Outbreak afflicted-rancor encounters while removing their NGE-only glancing-blow expertise writes from PRE-CU combat initialization and the unconditional Force Sensitive alacrity side effect from shared glancing resolution.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -10,11 +10,12 @@
       "Publish 14.1 primary hit resolution produces hit or miss, followed by its authored secondary defense result; it has no NGE glancing-blow result or expertise_glancing_blow_reduction statistic.",
       "The authenticated PRE-CU combat branch calls getPrecuPrimaryAttackResult and getPrecuSecondaryDefenseResult, while the later getDefenderResult/getAttackerResult hit tables are confined to the non-PRE-CU branch.",
       "Uncle Joe and the Outbreak afflicted rancor each wrote expertise_glancing_blow_reduction=100 during OnAttach even though that statistic belongs only to the later hit table.",
+      "The shared later glancing block retained its authored 35-percent damage/message behavior but also ignored an expertise_fs_general_alacrity_1 check and unconditionally played the Jedi alacrity particle; that NGE side path is now removed.",
       "Both bosses are live retained content: Uncle Joe has an Echo Base spawn and the afflicted rancor has a creature binding plus an authored Dathomir terminal/node wave-event route."
     ]
   },
   "expected": {
-    "changedGameplaySourceFiles": 2,
+    "changedGameplaySourceFiles": 3,
     "historicalBossGlancingExpertiseWriters": 2,
     "remainingBossGlancingExpertiseWriters": 0,
     "remainingLegacyGlancingExpertiseReaders": 1,
@@ -25,6 +26,8 @@
     "outbreakBossNodes": 1,
     "precuPrimaryGlancingOutcomes": 0,
     "precuSecondaryGlancingOutcomes": 0,
+    "remainingGlancingAlacritySkillReads": 0,
+    "remainingGlancingAlacrityEffects": 0,
     "retainedEncounterContentPreserved": true
   },
   "sourceFiles": {
@@ -38,12 +41,12 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "ddfdc218f8d26e2bb85c59652a4109db62f6553a",
+    "directSourceGitlink": "4ebe3f51f00eedecfb9698a34518877f3ea3458e",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "wampaBoss": "c0425c70c577ef79407a89da23ec200d87bda8420937af70e7a9b41edd696064",
       "outbreakBoss": "652504b646406b239c5706dbf4995e216e68b4fbf9529ec6951f65e673f73c0b",
-      "combatBase": "2dd5a8c395f72c8b33d2d1d8811d1f4d0d57a11d3ba9f95a0b7ed2ef769a9f22",
+      "combatBase": "bbfdb5c805904310f443355b365d58b12d09ec054336271d31d340067d3c10a4",
       "creatures": "bff5a1cce9b83f088bb330922a54ab9d6c3c6cc6341128bcbaa4658d65b2dcbe",
       "aiProfiles": "f48ba7fa193f32efd8dc02e9577249943cff07c0a99255ba4e1f7848e0021787",
       "echoBaseSpawns": "8f7969b09f0c088353dd5c7555a7054e1086d4c035e048bcc9ffe5cae8949856",
@@ -53,17 +56,19 @@
       "wampaBoss": "90105e385469ddca46395b2d2a225a31e412231958c3a9ae458ccb7d5625ac4c",
       "outbreakBoss": "e0753f358337c3e5d3174cc2ac5af2deb3e4961fd90941148e6d196bc6db0514"
     },
-    "sourceTest": "passed; both production boss routes, the PRE-CU/non-PRE-CU hit-table separation, retained encounter lifecycle, and zero boss glancing-expertise writers authenticated",
-    "focusedJavaCompile": "passed in an ephemeral in-memory directory that was removed immediately; both classes retained their encounter entrypoints and contained no expertise_glancing_blow_reduction symbol",
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 827.7 seconds from pushed parent 75d9a1c and direct dsrc 45e5aa7",
+    "focusedCombatBaseClassSha256": "543e3a3aea37cd823cc543a45c4c5d385383abfa046989c46fb27cf3c4340570",
+    "focusedCombatBaseClassBytes": 125795,
+    "sourceTest": "passed; both production boss routes, the PRE-CU/non-PRE-CU hit-table separation, retained encounter lifecycle, zero boss glancing-expertise writers, and zero shared glancing alacrity skill/effect side paths authenticated",
+    "focusedJavaCompile": "passed for current combat_base.java in an ephemeral container directory removed immediately; glancing message bytecode remains and both NGE alacrity symbols are absent",
+    "fullJavaCompile": "previous milestone passed; current shared glancing-side-effect extension pending",
+    "fullServerBuild": "previous milestone passed; current shared glancing-side-effect extension pending canonical x64 deployment",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
     "sourceWorkParity": "passed byte-for-byte for both boss sources and the changed combat dependency between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed; both emitted boss classes retain their encounter lifecycle symbols and no glancing expertise authority, while shared combat retains all player-only retirement boundaries",
-    "deploymentProbe": "passed all direct-source preflight contracts, mandatory parity and bytecode gates, x64 architecture, restart/readiness, mapped-binary verification, and clean log audit",
-    "result": "passed"
+    "bytecodeAudit": "focused pass for current combat_base.class; both retained boss classes remain covered by exact source and lifecycle authentication",
+    "deploymentProbe": "current shared glancing-side-effect extension pending",
+    "result": "current shared glancing-side-effect extension pending full build and deployment"
   },
   "runtimeEvidence": {
     "date": "2026-08-05",
@@ -91,12 +96,15 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
-    "result": "passed"
+    "result": "previous milestone passed; current shared glancing-side-effect extension pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "No retained boss OnAttach path can write the NGE glancing-blow-reduction expertise statistic into PRE-CU combat state.",
+    "closedInThisMilestone": "No retained boss OnAttach path can write the NGE glancing-blow-reduction expertise statistic into PRE-CU combat state, and shared glancing resolution can no longer invoke the Force Sensitive alacrity skill/effect side path.",
     "preserved": "Both boss creature rows, AI profiles, HP initialization, Echo Base spawn and add lifecycle, Outbreak wave-event terminal/node route, encounter timers, leash/reset logic, combat targeting, buffs, effects, loot, and completion signals remain available.",
     "notClaimedComplete": "The legacy glancing helper remains isolated for non-PRE-CU compatibility, and other retained content-specific expertise references remain subject to later reachability audits."
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "focused Java compile authenticates the changed combat class",
+    "canonical x64 deployment is healthy and player-ready"
+  ]
 }

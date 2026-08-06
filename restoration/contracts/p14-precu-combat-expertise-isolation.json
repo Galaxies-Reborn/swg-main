@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, remove the residual Force Sensitive alacrity side effect from shared glancing resolution, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -24,6 +24,7 @@
       "The NGE bh_shields action is centrally denied, but a persisted player.skill.bh_shields attachment and its buff handler could still react to damage, reattach the script, and seed shield, block, or charged buffs outside command admission.",
       "The exact four Bounty Hunter shield compatibility rows remain available to retained later-content NPCs, while player login, generic buff admission, handler attachment, script attachment/initialization, and damage callbacks now all fail closed and remove persisted state.",
       "The retained NGE Force Sensitive phase tree can persist fs_buff_def_1_1/fs_buff_ca_1 and their expertise-derived child effects independently of the centrally denied fs_* action handlers.",
+      "The shared legacy glancing-result block also probed expertise_fs_general_alacrity_1 without using its return value and then played the Jedi alacrity particle for every glancing result; the classic damage reduction and glancing message remain, while that unconditional NGE skill/effect side path is retired.",
       "Player lifecycle cleanup, generic buff admission, the stance add handler, and stance/focus query helpers now fail closed over all 34 known state names; 33 compatibility rows and one historical cleanup-only name remain retained, while the distinct PRE-CU brawler centerOfBeing/centerofbeing path is untouched."
     ]
   },
@@ -66,6 +67,8 @@
     "retainedNgeForceSensitiveStanceCompatibilityRows": 34,
     "historicalForceSensitiveStanceCleanupOnlyNames": 1,
     "forceSensitiveStanceHandlerPlayerFailClosed": true,
+    "glancingNgeAlacritySkillReads": 0,
+    "glancingNgeAlacrityEffects": 0,
     "precuCenterOfBeingPreserved": true,
     "laterQuestsZonesAndContentPreserved": true
   },
@@ -85,11 +88,11 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "901b895ea94f1e8299873f85485c1ad7730bb609",
+    "directSourceGitlink": "4ebe3f51f00eedecfb9698a34518877f3ea3458e",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "42d4ed92cbf35a52d1ae01c453888d18b4569828e24fa8a54b3c32ec9c6a05d8",
-      "combatBase": "2dd5a8c395f72c8b33d2d1d8811d1f4d0d57a11d3ba9f95a0b7ed2ef769a9f22",
+      "combatBase": "bbfdb5c805904310f443355b365d58b12d09ec054336271d31d340067d3c10a4",
       "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf",
       "basePlayer": "bd61440058f9f3778290b8ef9167fe6fc05450a95e4f6f5f82cac950d4db78a6",
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
@@ -110,17 +113,19 @@
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
-    "sourceTest": "passed; exact player-only Force Sensitive stance/focus/NGE-cloak cleanup dominates lifecycle, generic admission, stance, invisibility handler, and query paths without removing compatibility rows or PRE-CU Center of Being; the distinct post-Publish-14 invis_forceCloak path is governed by the mobile-stealth authority contract",
-    "focusedJavaCompile": "passed for current buff.java and buff_handler.java with Java 8 target in an ephemeral /dev/shm directory removed immediately",
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed; clean Docker x86-64 Release deployment completed in 764.9 seconds from pushed parent 9b3e6ba and direct dsrc 1ebf093",
+    "focusedCombatBaseClassSha256": "543e3a3aea37cd823cc543a45c4c5d385383abfa046989c46fb27cf3c4340570",
+    "focusedCombatBaseClassBytes": 125795,
+    "sourceTest": "passed; exact player-only Force Sensitive stance/focus/NGE-cloak cleanup dominates lifecycle, generic admission, stance, invisibility handler, and query paths without removing compatibility rows or PRE-CU Center of Being; shared glancing resolution retains its authored damage/message behavior with zero NGE alacrity skill reads or effects; the distinct post-Publish-14 invis_forceCloak path is governed by the mobile-stealth authority contract",
+    "focusedJavaCompile": "passed for current combat_base.java with Java 8 target in an ephemeral container directory removed immediately; glancing message bytecode remains and both NGE alacrity symbols are absent",
+    "fullJavaCompile": "previous milestone passed; current glancing-side-effect extension pending",
+    "fullServerBuild": "previous milestone passed; current glancing-side-effect extension pending canonical x64 deployment",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
     "sourceWorkParity": "passed byte-for-byte for all combat expertise sources between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed exact 35-state cleanup and pre-invisibility callback denial probes",
-    "deploymentProbe": "passed expanded preflight, parity, bytecode, x64, readiness, mapped-binary, and clean-log verification",
-    "result": "passed"
+    "bytecodeAudit": "focused pass for current combat_base.class; exact 35-state cleanup and pre-invisibility callback denial probes remain covered by the source contract",
+    "deploymentProbe": "current glancing-side-effect extension pending",
+    "result": "current glancing-side-effect extension pending full build and deployment"
   },
   "runtimeEvidence": {
     "date": "2026-08-05",
@@ -153,12 +158,15 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "previous milestone passed; current glancing-side-effect extension pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU hit-result and action-cost dispatch cannot cross into inherited NGE expertise authority, while production lifecycle and buff handlers can only remove—not recreate—NGE display-only, expertise, later primary-stat, fs_meditate_*, Bounty Hunter shield, or Force Sensitive stance/focus player state",
+    "closedInThisMilestone": "authenticated PRE-CU hit-result and action-cost dispatch cannot cross into inherited NGE expertise authority, the shared legacy glancing block cannot trigger the Force Sensitive alacrity skill/effect side path, and production lifecycle and buff handlers can only remove—not recreate—NGE display-only, expertise, later primary-stat, fs_meditate_*, Bounty Hunter shield, or Force Sensitive stance/focus player state",
     "preserved": "Core3 primary and secondary defense, authored three-pool costs, one-time area cost draining, PRE-CU block/dodge/counter/ricochet, Center of Being and ordinary PRE-CU skill buffs, all twenty-two display cleanup callbacks, retained buff rows/icons and NPC compatibility metadata, and all expansion quests/zones",
     "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "focused Java compile authenticates the changed combat class",
+    "canonical x64 deployment is healthy and player-ready"
+  ]
 }

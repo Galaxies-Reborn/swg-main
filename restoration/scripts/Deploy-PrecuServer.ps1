@@ -1032,6 +1032,9 @@ cmp -s "$source_outbreak_boss" "$work_outbreak_boss"
 cmp -s "$source_outbreak_buildout" "$work_outbreak_buildout"
 ! grep -Fq 'expertise_glancing_blow_reduction' "$work_wampa_boss"
 ! grep -Fq 'expertise_glancing_blow_reduction' "$work_outbreak_boss"
+grep -Fq 'new string_id("combat_effects", "glancing_blow")' "$work_combat_base"
+! grep -Fq 'expertise_fs_general_alacrity_1' "$work_combat_base"
+! grep -Fq 'appearance/pt_jedi_alacrity.prt' "$work_combat_base"
 grep -Fq 'trial.setHp(self, trial.HP_UNCLE_JOE);' "$work_wampa_boss"
 grep -Fq 'buff.applyBuff(self, "open_balance_buff", -1.0f);' "$work_wampa_boss"
 grep -Fq 'summon_adds' "$work_wampa_boss"
@@ -1446,6 +1449,10 @@ javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'freeshot_
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuPrimaryAttackResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuSecondaryDefenseResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getDefenderResult'
+combat_base_bytecode="$(javap -classpath "$class_root" -v script.systems.combat.combat_base)"
+printf '%s' "$combat_base_bytecode" | grep -Fq 'glancing_blow'
+! printf '%s' "$combat_base_bytecode" | grep -Fq 'expertise_fs_general_alacrity_1'
+! printf '%s' "$combat_base_bytecode" | grep -Fq 'appearance/pt_jedi_alacrity.prt'
 # Player-facing NGE profession respec entrypoints and the veteran migration
 # primary-stat buff remain link-compatible but compile behind shared denial.
 javap -classpath "$class_root" -c -p script.library.respec | grep -Fq 'retireNgePlayerRespecEntrypoint'
