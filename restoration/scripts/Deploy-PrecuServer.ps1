@@ -324,6 +324,8 @@ source_battlefield_player="$source_script/systems/gcw/player_pvp.java"
 work_battlefield_player="$work_script/systems/gcw/player_pvp.java"
 source_player_faction="$source_script/player/player_faction.java"
 work_player_faction="$work_script/player/player_faction.java"
+source_player_utility="$source_script/player/player_utility.java"
+work_player_utility="$work_script/player/player_utility.java"
 source_force_rank="$source_script/library/force_rank.java"
 work_force_rank="$work_script/library/force_rank.java"
 source_jedi_trials="$source_script/library/jedi_trials.java"
@@ -646,6 +648,10 @@ cmp -s "$source_battlefield_controller" "$work_battlefield_controller"
 cmp -s "$source_battlefield_terminal" "$work_battlefield_terminal"
 cmp -s "$source_battlefield_player" "$work_battlefield_player"
 cmp -s "$source_player_faction" "$work_player_faction"
+cmp -s "$source_player_utility" "$work_player_utility"
+grep -Fq 'cleanupRetiredCityInvasionPlayerState' "$work_gcw_library"
+test "$(grep -Fc 'gcw.cleanupRetiredCityInvasionPlayerState(self);' "$work_player_faction")" -ge 7
+test "$(grep -Fc 'gcw.cleanupRetiredCityInvasionPlayerState(self);' "$work_player_utility")" -eq 3
 cmp -s "$source_force_rank" "$work_force_rank"
 cmp -s "$source_jedi_trials" "$work_jedi_trials"
 cmp -s "$source_frs_recruiter" "$work_frs_recruiter"
@@ -1820,9 +1826,14 @@ test "$(printf '%s' "$gcw_level_authority_bytecode" | grep -Fc 'Method script/li
 test "$(printf '%s' "$gcw_level_authority_bytecode" | grep -Fc 'Method getLevel' || true)" -eq 1
 gcw_city_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeCityInvasionRetired/,/assignScanInterests/p')"
 printf '%s' "$gcw_city_retired_bytecode" | grep -Fq 'iconst_1'
+printf '%s' "$gcw_city_retired_bytecode" | grep -Fq 'cleanupRetiredCityInvasionPlayerState'
+printf '%s' "$gcw_city_retired_bytecode" | grep -Fq 'gcw.score.pid'
+printf '%s' "$gcw_city_retired_bytecode" | grep -Fq 'destroyWaypointInDatapad'
 javap -classpath "$class_root" -c -p script.systems.gcw.gcw_city | grep -Fq 'retirePostNgeCityInvasion'
 javap -classpath "$class_root" -c -p script.planet.planet_base | grep -Fq 'retirePostNgeCityInvasionState'
 ! javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'gcw.invasionRunning.bestine'
+test "$(javap -classpath "$class_root" -c -p script.player.player_faction | grep -Fc 'Method script/library/gcw.cleanupRetiredCityInvasionPlayerState' || true)" -ge 7
+test "$(javap -classpath "$class_root" -c -p script.player.player_utility | grep -Fc 'Method script/library/gcw.cleanupRetiredCityInvasionPlayerState' || true)" -eq 3
 gcw_battlefield_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeQueuedBattlefieldRetired/,/assignScanInterests/p')"
 printf '%s' "$gcw_battlefield_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -c -p script.systems.gcw.pvp_battlefield | grep -Fq 'retirePostNgeQueuedBattlefield'
