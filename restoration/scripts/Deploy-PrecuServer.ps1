@@ -463,6 +463,8 @@ source_proc_library="$source_script/library/proc.java"
 work_proc_library="$work_script/library/proc.java"
 source_expertise_library="$source_script/library/expertise.java"
 work_expertise_library="$work_script/library/expertise.java"
+source_cybernetic_library="$source_script/library/cybernetic.java"
+work_cybernetic_library="$work_script/library/cybernetic.java"
 source_transition_library="$source_script/library/transition.java"
 work_transition_library="$work_script/library/transition.java"
 source_zone_transition_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/travel/zone_transition.tab"
@@ -805,6 +807,9 @@ cmp -s "$source_proc_library" "$work_proc_library"
 cmp -s "$source_expertise_library" "$work_expertise_library"
 grep -Fq 'if (proc.isRetiredPostNgePlayerProcActor(player))' "$work_expertise_library"
 grep -Fq 'proc.retirePostNgePlayerProcState(player);' "$work_expertise_library"
+cmp -s "$source_cybernetic_library" "$work_cybernetic_library"
+grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor(player)' "$work_cybernetic_library"
+grep -Fq 'retirePostNgePlayerCyberneticCommandState(player);' "$work_cybernetic_library"
 cmp -s "$source_transition_library" "$work_transition_library"
 cmp -s "$source_zone_transition_table" "$work_zone_transition_table"
 cmp -s "$source_utils_library" "$work_utils_library"
@@ -2129,6 +2134,14 @@ expertise_cache_bytecode="$(javap -classpath "$class_root" -c script.library.exp
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcActor'
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'getSkillStatModListingForPlayer'
+cybernetic_bytecode="$(javap -classpath "$class_root" -c -p script.library.cybernetic)"
+printf '%s' "$cybernetic_bytecode" | grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor'
+printf '%s' "$cybernetic_bytecode" | grep -Fq 'retirePostNgePlayerCyberneticCommandState'
+printf '%s' "$cybernetic_bytecode" | grep -Fq 'revokeCommand'
+printf '%s' "$cybernetic_bytecode" | grep -Fq 'removeBuff'
+cybernetic_grant_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/grantSpecialCommands/,/revokeSpecialCommands/p')"
+printf '%s' "$cybernetic_grant_bytecode" | grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor'
+printf '%s' "$cybernetic_grant_bytecode" | grep -Fq 'grantCommand'
 javap -classpath "$class_root" -v script.library.utils | grep -Fq 'combat_smuggler_underworld_01'
 ! javap -classpath "$class_root" -v script.library.utils | grep -Eq 'class_(bountyhunter|commando|domestics|engineering|entertainer|forcesensitive|medic|munitions|officer|smuggler|spy|structures|trader)'
 javap -classpath "$class_root" -v script.library.ai_lib | grep -Fq 'combat_smuggler_master'
