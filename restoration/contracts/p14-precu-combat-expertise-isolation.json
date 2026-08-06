@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, remove the residual Force Sensitive alacrity side effect from shared glancing resolution, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -107,25 +107,25 @@
       "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9"
     },
     "compiledClassSha256": {
-      "combatLibrary": "7c4f1b42f32dfbe6f55af1f7cb2f7da798801e6952f038a08af8982894e4eb27",
-      "combatBase": "8a02a7206d104f27a7be87ec6081ca27615e7ed68fbb2fd274287c7095e43672",
+      "combatLibrary": "db36049f2304f472b5ca273aba144c9176f87dabc11ee5ff894bfc47f61b4979",
+      "combatBase": "0c79f1b7d9f0e9c789d5b2de2a9b255a407244b01dfebda6bf72d03bb62a9ccc",
       "basePlayer": "9df7cb0a6b558f1b53e2ee91828124595f05da9bcab29d3318ad906970969bdd",
       "buffHandler": "195a83814ec2308c41e09acc1c559091d3c78f2a12aee488c1e4274cc955014e",
       "buffLibrary": "435a4de4948f8398dfe76a0edb158ff5f9eea0a567f80a71feea77fadf060b66",
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
-    "focusedCombatBaseClassSha256": "543e3a3aea37cd823cc543a45c4c5d385383abfa046989c46fb27cf3c4340570",
-    "focusedCombatBaseClassBytes": 125795,
-    "sourceTest": "passed; exact player-only Force Sensitive stance/focus/NGE-cloak cleanup dominates lifecycle, generic admission, stance, invisibility handler, and query paths without removing compatibility rows or PRE-CU Center of Being; shared glancing resolution retains its authored damage/message behavior with zero NGE alacrity skill reads or effects; the distinct post-Publish-14 invis_forceCloak path is governed by the mobile-stealth authority contract",
-    "focusedJavaCompile": "passed for current combat_base.java with Java 8 target in an ephemeral container directory removed immediately; glancing message bytecode remains and both NGE alacrity symbols are absent",
+    "focusedCombatBaseClassSha256": "fcd7f5803d041c324f0756a3977e0e6bc6c05724611f27a82de32e3ce1c936d4",
+    "focusedCombatBaseClassBytes": 125197,
+    "sourceTest": "passed; PRE-CU hit, damage, hate, HAM, stance, shield, meditation, and glancing boundaries remain authoritative; the NGE Commando default-heavy free-cost, devastation, and passive-DOT path is absent",
+    "focusedJavaCompile": "passed current combat.java, heavyweapons.java, and combat_base.java with Java 8 target in an ephemeral /dev/shm directory removed immediately",
     "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed; canonical Docker x86-64 Release deployment completed in 805 seconds from pushed parent 930c97f and direct dsrc 4ebe3f5",
+    "fullServerBuild": "passed; canonical clean Docker x86-64 deployment completed from pushed parent bdb8934 and direct dsrc 5d0ee2951fc677476fa36184816c8e7884bfab66, followed by corrected-probe verification and restart",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "sourceWorkParity": "passed byte-for-byte for all combat expertise sources between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed; deployed combat_base.class retains glancing_blow and contains zero expertise_fs_general_alacrity_1 or appearance/pt_jedi_alacrity.prt symbols; all existing player-state retirement gates passed",
+    "bytecodeAudit": "passed; deployed combat classes retain PRE-CU glancing/damage/hate routes, omit NGE alacrity and Commando free-cost/devastation/passive-DOT symbols, and guard the retained non-player heavy-weapon resolver before getLevel",
     "deploymentProbe": "passed expanded preflight, source/work parity, bytecode, x64, readiness, mapped-binary, and clean-log verification",
     "result": "passed"
   },
@@ -134,12 +134,12 @@
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-06T13:34:38.251682094Z",
+    "containerStartedAt": "2026-08-06T15:45:17.695061338Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassSizes": {
-      "combatLibrary": 104744,
-      "combatBase": 146953,
+      "combatLibrary": 104194,
+      "combatBase": 146270,
       "basePlayer": 314928,
       "buffHandler": 131557,
       "buffLibrary": 39165,
@@ -159,11 +159,11 @@
       "PlanetServer": 15,
       "SwgGameServer": 15
     },
-    "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
+    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU hit-result and action-cost dispatch cannot cross into inherited NGE expertise authority, the shared legacy glancing block cannot trigger the Force Sensitive alacrity skill/effect side path, and production lifecycle and buff handlers can only remove—not recreate—NGE display-only, expertise, later primary-stat, fs_meditate_*, Bounty Hunter shield, or Force Sensitive stance/focus player state",
+    "closedInThisMilestone": "authenticated PRE-CU hit-result, action-cost, damage, hate, and skill-owned heavy-weapon command dispatch cannot cross into inherited NGE expertise, alacrity, Commando devastation, or automatic passive-DOT authority; cleanup paths cannot recreate retired NGE player state",
     "preserved": "Core3 primary and secondary defense, authored three-pool costs, one-time area cost draining, PRE-CU block/dodge/counter/ricochet, Center of Being and ordinary PRE-CU skill buffs, all twenty-two display cleanup callbacks, retained buff rows/icons and NPC compatibility metadata, and all expansion quests/zones",
     "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
   },
