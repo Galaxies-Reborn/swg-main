@@ -109,9 +109,24 @@ Assert-Contract ($expertiseCache.Contains("if (proc.isRetiredPostNgePlayerProcAc
 $cyberneticRetirement = Get-SourceSlice $cyberneticSource `
     "public static final String[] POST_NGE_CYBERNETIC_PLAYER_COMMANDS" `
     "public static final int CYBERNETIC_FULL_ARM_COST"
+$cyberneticModifierInventory = Get-SourceSlice $cyberneticSource `
+    "public static final String[] POST_NGE_CYBERNETIC_PLAYER_SKILL_MODIFIERS" `
+    "public static final String[] POST_NGE_CYBERNETIC_PLAYER_BUFFS"
+$cyberneticBuffInventory = Get-SourceSlice $cyberneticSource `
+    "public static final String[] POST_NGE_CYBERNETIC_PLAYER_BUFFS" `
+    "public static boolean isPostNgePlayerCyberneticCommandRuntimeRetired"
+$cyberneticRunBoost = Get-SourceSlice $cyberneticSource `
+    "public static void applyRunBoostMod" `
+    "public static void grantSpecialCommands"
 $cyberneticGrant = Get-SourceSlice $cyberneticSource `
     "public static void grantSpecialCommands" `
     "public static void revokeSpecialCommands"
+$cyberneticCombatAccessors = Get-SourceSlice $cyberneticSource `
+    "public static float getThrowRangeMod" `
+    "public static void grantCyberneticSkillMods"
+$cyberneticSkillModifiers = Get-SourceSlice $cyberneticSource `
+    "public static void grantCyberneticSkillMods" `
+    "public static void validateSkillMods"
 $cyberneticValidate = Get-SourceSlice $cyberneticSource `
     "public static void validateSkillMods" `
     "public static void revokeAllOccurancesOfCommand"
@@ -122,8 +137,32 @@ Assert-Contract ($cyberneticRetirement.Contains("return true;") -and
     $cyberneticRetirement.Contains("isIdValid(actor) && isPlayer(actor)") -and
     $cyberneticRetirement.Contains("while (hasCommand(player, retiredCommand))") -and
     $cyberneticRetirement.Contains("revokeCommand(player, retiredCommand);") -and
-    $cyberneticRetirement.Contains("buff.removeBuff(player, retiredCommand);")) `
+    $cyberneticRetirement.Contains("buff.removeBuff(player, retiredCommand);") -and
+    $cyberneticRetirement.Contains("buff.removeBuff(player, retiredBuff);") -and
+    $cyberneticRetirement.Contains("int currentValue = getSkillStatMod(player, retiredModifier);") -and
+    $cyberneticRetirement.Contains("applySkillStatisticModifier(player, retiredModifier, -currentValue);")) `
     "p14.player-proc.cybernetic-player-cleanup"
+$retiredCyberneticModifiers = @([regex]::Matches($cyberneticModifierInventory, '"([^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+$expectedCyberneticModifiers = @($contract.diagnosis.retiredCyberneticPlayerSkillModifiers |
+    ForEach-Object { [string]$_ } | Sort-Object -Unique)
+$retiredCyberneticBuffs = @([regex]::Matches($cyberneticBuffInventory, '"([^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+$expectedCyberneticBuffs = @($contract.diagnosis.retiredCyberneticPlayerBuffs |
+    ForEach-Object { [string]$_ } | Sort-Object -Unique)
+Assert-Contract (($retiredCyberneticModifiers -join ([char]0)) -ceq
+    ($expectedCyberneticModifiers -join ([char]0)) -and
+    ($retiredCyberneticBuffs -join ([char]0)) -ceq ($expectedCyberneticBuffs -join ([char]0))) `
+    "p14.player-proc.cybernetic-modifier-inventory"
+Assert-Contract ([regex]::Matches($cyberneticRunBoost,
+        'if \(isRetiredPostNgePlayerCyberneticCommandActor\(player\)\)').Count -eq 2 -and
+    [regex]::Matches($cyberneticRunBoost,
+        'retirePostNgePlayerCyberneticCommandState\(player\);').Count -eq 2 -and
+    $cyberneticRunBoost.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
+        $cyberneticRunBoost.IndexOf("dataTableGetString", [System.StringComparison]::Ordinal) -and
+    $cyberneticRunBoost.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
+        $cyberneticRunBoost.IndexOf("buff.applyBuff", [System.StringComparison]::Ordinal)) `
+    "p14.player-proc.cybernetic-movement-buff-dominated"
 Assert-Contract ($cyberneticGrant.Contains("if (isRetiredPostNgePlayerCyberneticCommandActor(player))") -and
     $cyberneticGrant.Contains("retirePostNgePlayerCyberneticCommandState(player);") -and
     $cyberneticGrant.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
@@ -131,9 +170,26 @@ Assert-Contract ($cyberneticGrant.Contains("if (isRetiredPostNgePlayerCybernetic
     $cyberneticGrant.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
         $cyberneticGrant.IndexOf("grantCommand", [System.StringComparison]::Ordinal)) `
     "p14.player-proc.cybernetic-grant-dominated"
+Assert-Contract ([regex]::Matches($cyberneticCombatAccessors,
+        'if \(isRetiredPostNgePlayerCyberneticCommandActor\(player\)\)').Count -eq 7 -and
+    [regex]::Matches($cyberneticCombatAccessors, 'return maxRange;').Count -eq 4 -and
+    [regex]::Matches($cyberneticCombatAccessors, 'return baseAccuracy;').Count -eq 4 -and
+    [regex]::Matches($cyberneticCombatAccessors, 'return baseDefense;').Count -eq 2 -and
+    $cyberneticCombatAccessors.Contains("return false;")) `
+    "p14.player-proc.cybernetic-combat-consumers-neutral"
+Assert-Contract ([regex]::Matches($cyberneticSkillModifiers,
+        'if \(isRetiredPostNgePlayerCyberneticCommandActor\(player\)\)').Count -eq 2 -and
+    [regex]::Matches($cyberneticSkillModifiers,
+        'retirePostNgePlayerCyberneticCommandState\(player\);').Count -eq 2 -and
+    $cyberneticSkillModifiers.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
+        $cyberneticSkillModifiers.IndexOf("dataTableGetRow", [System.StringComparison]::Ordinal)) `
+    "p14.player-proc.cybernetic-skill-modifier-writers-dominated"
 Assert-Contract ($cyberneticValidate.Contains("retirePostNgePlayerCyberneticCommandState(player);") -and
+    $cyberneticValidate.Contains("if (isRetiredPostNgePlayerCyberneticCommandActor(player))") -and
     $cyberneticValidate.IndexOf("retirePostNgePlayerCyberneticCommandState(player);", [System.StringComparison]::Ordinal) -lt
-        $cyberneticValidate.IndexOf("getSkillStatMod", [System.StringComparison]::Ordinal)) `
+        $cyberneticValidate.IndexOf("getSkillStatMod", [System.StringComparison]::Ordinal) -and
+    $cyberneticValidate.IndexOf("return;", [System.StringComparison]::Ordinal) -lt
+        $cyberneticValidate.IndexOf("getInstalledCybernetics", [System.StringComparison]::Ordinal)) `
     "p14.player-proc.cybernetic-login-cleanup"
 Assert-Contract ($cyberneticExecution.Contains("isRetiredPostNgePlayerCyberneticCommandActor(player)") -and
     $cyberneticExecution.Contains("isRetiredPostNgePlayerCyberneticCommand(commandName)") -and
@@ -178,6 +234,7 @@ $armorRows = @(Import-SwgTab -Path $armorDataPath)
 $weaponProcRows = @($weaponRows | Where-Object { [string]$_.proc_effect })
 $cyberneticProcRows = @($cyberneticRows | Where-Object { [string]$_.procEffectString })
 $cyberneticCommandRows = @($cyberneticRows | Where-Object { [string]$_.specialCommand })
+$cyberneticMovementBuffRows = @($cyberneticRows | Where-Object { [string]$_.moveRateBuff })
 $cyberneticCommandNames = @($cyberneticCommandRows.specialCommand | Sort-Object -Unique)
 $expectedCyberneticCommandNames = @($contract.diagnosis.retiredCyberneticPlayerCommands | ForEach-Object { [string]$_ } | Sort-Object -Unique)
 $armorReactiveRows = @($armorRows | Where-Object { [string]$_.reactive_effect })
@@ -193,6 +250,10 @@ Assert-Contract ($cyberneticCommandRows.Count -eq [int]$contract.diagnosis.cyber
     $cyberneticCommandNames.Count -eq [int]$contract.diagnosis.distinctCyberneticSpecialCommands -and
     ($cyberneticCommandNames -join ([char]0)) -ceq ($expectedCyberneticCommandNames -join ([char]0))) `
     "p14.player-proc.cybernetic-command-data-inventory"
+Assert-Contract ($cyberneticMovementBuffRows.Count -eq [int]$contract.diagnosis.cyberneticRowsWithMovementBuffs -and
+    (@($cyberneticMovementBuffRows.moveRateBuff | Sort-Object -Unique) -join ([char]0)) -ceq
+        ($expectedCyberneticBuffs -join ([char]0))) `
+    "p14.player-proc.cybernetic-movement-buff-data-inventory"
 foreach ($commandName in $expectedCyberneticCommandNames)
 {
     Assert-Contract ($cyberneticRetirement.Contains('"' + $commandName + '"')) "p14.player-proc.cybernetic-command.$commandName.retired"

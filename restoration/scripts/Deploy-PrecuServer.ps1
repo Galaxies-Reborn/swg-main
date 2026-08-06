@@ -832,6 +832,21 @@ grep -Fq 'proc.retirePostNgePlayerProcState(player);' "$work_expertise_library"
 cmp -s "$source_cybernetic_library" "$work_cybernetic_library"
 grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor(player)' "$work_cybernetic_library"
 grep -Fq 'retirePostNgePlayerCyberneticCommandState(player);' "$work_cybernetic_library"
+cybernetic_retirement_source="$(sed -n '/public static final String\[\] POST_NGE_CYBERNETIC_PLAYER_COMMANDS/,/public static final int CYBERNETIC_FULL_ARM_COST/p' "$work_cybernetic_library")"
+for retired_cybernetic_modifier in cybernetic_healing_mod cybernetic_heavy_weapon_legs cybernetic_melee_acc cybernetic_melee_def cybernetic_ranged_acc cybernetic_ranged_range cybernetic_run_buff cybernetic_throw_range; do
+    printf '%s' "$cybernetic_retirement_source" | grep -Fq "\"$retired_cybernetic_modifier\""
+done
+printf '%s' "$cybernetic_retirement_source" | grep -Fq '"cyberneticLegs"'
+printf '%s' "$cybernetic_retirement_source" | grep -Fq 'applySkillStatisticModifier(player, retiredModifier, -currentValue);'
+cybernetic_run_boost_source="$(sed -n '/public static void applyRunBoostMod/,/public static void grantSpecialCommands/p' "$work_cybernetic_library")"
+test "$(printf '%s' "$cybernetic_run_boost_source" | grep -Fc 'if (isRetiredPostNgePlayerCyberneticCommandActor(player))')" -eq 2
+cybernetic_skill_modifier_source="$(sed -n '/public static void grantCyberneticSkillMods/,/public static void validateSkillMods/p' "$work_cybernetic_library")"
+test "$(printf '%s' "$cybernetic_skill_modifier_source" | grep -Fc 'if (isRetiredPostNgePlayerCyberneticCommandActor(player))')" -eq 2
+cybernetic_combat_accessor_source="$(sed -n '/public static float getThrowRangeMod/,/public static void grantCyberneticSkillMods/p' "$work_cybernetic_library")"
+test "$(printf '%s' "$cybernetic_combat_accessor_source" | grep -Fc 'if (isRetiredPostNgePlayerCyberneticCommandActor(player))')" -eq 7
+cybernetic_validate_source="$(sed -n '/public static void validateSkillMods/,/public static void revokeAllOccurancesOfCommand/p' "$work_cybernetic_library")"
+printf '%s' "$cybernetic_validate_source" | grep -Fq 'movement.refresh(player);'
+printf '%s' "$cybernetic_validate_source" | grep -Fq 'return;'
 cmp -s "$source_transition_library" "$work_transition_library"
 cmp -s "$source_zone_transition_table" "$work_zone_transition_table"
 cmp -s "$source_utils_library" "$work_utils_library"
@@ -2418,13 +2433,30 @@ printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerP
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'getSkillStatModListingForPlayer'
 cybernetic_bytecode="$(javap -classpath "$class_root" -c -p script.library.cybernetic)"
+cybernetic_constants="$(javap -classpath "$class_root" -v script.library.cybernetic)"
 printf '%s' "$cybernetic_bytecode" | grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor'
 printf '%s' "$cybernetic_bytecode" | grep -Fq 'retirePostNgePlayerCyberneticCommandState'
 printf '%s' "$cybernetic_bytecode" | grep -Fq 'revokeCommand'
 printf '%s' "$cybernetic_bytecode" | grep -Fq 'removeBuff'
+for retired_cybernetic_modifier in cybernetic_healing_mod cybernetic_heavy_weapon_legs cybernetic_melee_acc cybernetic_melee_def cybernetic_ranged_acc cybernetic_ranged_range cybernetic_run_buff cybernetic_throw_range; do
+    printf '%s' "$cybernetic_constants" | grep -Fq "$retired_cybernetic_modifier"
+done
+printf '%s' "$cybernetic_constants" | grep -Fq 'cyberneticLegs'
+cybernetic_cleanup_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/retirePostNgePlayerCyberneticCommandState/,/installCybernetics/p')"
+printf '%s' "$cybernetic_cleanup_bytecode" | grep -Fq 'getSkillStatMod'
+printf '%s' "$cybernetic_cleanup_bytecode" | grep -Fq 'applySkillStatisticModifier'
 cybernetic_grant_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/grantSpecialCommands/,/revokeSpecialCommands/p')"
 printf '%s' "$cybernetic_grant_bytecode" | grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor'
 printf '%s' "$cybernetic_grant_bytecode" | grep -Fq 'grantCommand'
+cybernetic_run_boost_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/applyRunBoostMod/,/grantSpecialCommands/p')"
+test "$(printf '%s' "$cybernetic_run_boost_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -eq 2
+cybernetic_skill_modifier_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/grantCyberneticSkillMods/,/validateSkillMods/p')"
+test "$(printf '%s' "$cybernetic_skill_modifier_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -eq 2
+cybernetic_combat_accessor_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/getThrowRangeMod/,/grantCyberneticSkillMods/p')"
+test "$(printf '%s' "$cybernetic_combat_accessor_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -eq 7
+cybernetic_validate_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/validateSkillMods/,/revokeAllOccurancesOfCommand/p')"
+printf '%s' "$cybernetic_validate_bytecode" | grep -Fq 'movement.refresh'
+printf '%s' "$cybernetic_validate_bytecode" | grep -Fq 'getInstalledCybernetics'
 javap -classpath "$class_root" -v script.library.utils | grep -Fq 'combat_smuggler_underworld_01'
 ! javap -classpath "$class_root" -v script.library.utils | grep -Eq 'class_(bountyhunter|commando|domestics|engineering|entertainer|forcesensitive|medic|munitions|officer|smuggler|spy|structures|trader)'
 javap -classpath "$class_root" -v script.library.ai_lib | grep -Fq 'combat_smuggler_master'
