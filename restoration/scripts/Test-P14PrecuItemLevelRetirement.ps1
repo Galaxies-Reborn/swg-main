@@ -38,6 +38,53 @@ function Get-FunctionSlice([string]$Text, [string]$Start, [string]$Next)
     return $Text.Substring($startIndex, $nextIndex - $startIndex)
 }
 
+function Get-StaticItemSkillModifierProfile([string]$Path)
+{
+    $lines = [IO.File]::ReadAllLines($Path)
+    $headers = [regex]::Split([string]$lines[0], "`t")
+    $skillModsIndex = [Array]::IndexOf($headers, "skill_mods")
+    if ($skillModsIndex -lt 0)
+    {
+        throw "Static-item table has no skill_mods column: $Path"
+    }
+    $primaryRows = 0
+    $expertiseRows = 0
+    $dataRows = 0
+    $primaryModifiers = @(
+        "precision_modified",
+        "strength_modified",
+        "stamina_modified",
+        "constitution_modified",
+        "agility_modified",
+        "luck_modified"
+    )
+    foreach ($line in @($lines | Select-Object -Skip 2))
+    {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $fields = [regex]::Split([string]$line, "`t")
+        if ($fields.Count -eq 0 -or [string]::IsNullOrWhiteSpace($fields[0])) { continue }
+        $dataRows++
+        if ($fields.Count -le $skillModsIndex) { continue }
+        $skillMods = [string]$fields[$skillModsIndex]
+        $rowHasPrimary = $false
+        $rowHasExpertise = $false
+        foreach ($entry in @($skillMods -split ','))
+        {
+            $modifier = [string](($entry -split '=', 2)[0])
+            $modifier = $modifier.Trim().Trim('"')
+            if ($primaryModifiers -contains $modifier) { $rowHasPrimary = $true }
+            if ($modifier.StartsWith("expertise_")) { $rowHasExpertise = $true }
+        }
+        if ($rowHasPrimary) { $primaryRows++ }
+        if ($rowHasExpertise) { $expertiseRows++ }
+    }
+    return [pscustomobject]@{
+        dataRows = $dataRows
+        primaryRows = $primaryRows
+        expertiseRows = $expertiseRows
+    }
+}
+
 Assert-Contract ($dsrcPin.Count -eq 1 -and
     [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink -and
     $checkedOutDsrcCommit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
@@ -128,6 +175,89 @@ Assert-Contract (-not $validateWorn.Contains("validateLevelRequired") -and
     -not $canEquip.Contains("validateLevelRequired") -and
     $canEquip.Contains("utils.meetsProfessionRequirement")) `
     "p14.item-level.worn-effects-and-equip-skill-only"
+
+$retiredStaticModifierPredicate = Get-FunctionSlice $staticItem `
+    "public static boolean isRetiredNgeStaticItemSkillModifier(" `
+    "public static void removeRetiredNgeStaticItemSkillModifiers("
+$retiredStaticModifierCleanup = Get-FunctionSlice $staticItem `
+    "public static void removeRetiredNgeStaticItemSkillModifiers(" `
+    "public static void applyPrecuStaticItemSkillModifiers("
+$precuStaticModifierApplication = Get-FunctionSlice $staticItem `
+    "public static void applyPrecuStaticItemSkillModifiers(" `
+    "public static boolean initializeArmor("
+$staticArmorInitializer = Get-FunctionSlice $staticItem `
+    "public static boolean initializeArmor(" `
+    "public static boolean initializeWeapon("
+$staticWeaponInitializer = Get-FunctionSlice $staticItem `
+    "public static boolean initializeWeapon(" `
+    "public static boolean initializeItem("
+$staticItemInitializer = Get-FunctionSlice $staticItem `
+    "public static boolean initializeItem(" `
+    "public static boolean initializeStorytellerObject("
+
+Assert-Contract ($retiredStaticModifierPredicate.Contains(
+        'modifier.startsWith("expertise_")') -and
+    $retiredStaticModifierPredicate.Contains(
+        "for (String legacyPrimaryModifier : LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS)") -and
+    $retiredStaticModifierPredicate.Contains("modifier.equals(legacyPrimaryModifier)")) `
+    "p14.item-level.static-modifier-retired-families"
+Assert-Contract ($retiredStaticModifierCleanup.Contains("getSkillModBonuses(item)") -and
+    $retiredStaticModifierCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $retiredStaticModifierCleanup.Contains("setSkillModBonus(item, modifier, 0)") -and
+    -not $retiredStaticModifierCleanup.Contains('removeObjVar(item, "skillmod.bonus")')) `
+    "p14.item-level.static-modifier-persisted-exact-cleanup"
+Assert-Contract ($precuStaticModifierApplication.IndexOf(
+        "removeRetiredNgeStaticItemSkillModifiers(item)", [StringComparison]::Ordinal) -lt
+        $precuStaticModifierApplication.IndexOf(
+            "parseSkillModifiers(null, skillMods)", [StringComparison]::Ordinal) -and
+    $precuStaticModifierApplication.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $precuStaticModifierApplication.Contains("setSkillModBonus(item, modifier, 0)") -and
+    $precuStaticModifierApplication.Contains(
+        "setSkillModBonus(item, modifier, bonuses.getInt(modifier))")) `
+    "p14.item-level.static-modifier-precu-filter"
+
+$initializerSurfaces = @(
+    $staticArmorInitializer,
+    $staticWeaponInitializer,
+    $staticItemInitializer
+)
+$initializerRoutesValid = $true
+foreach ($initializerSurface in $initializerSurfaces)
+{
+    if (([regex]::Matches($initializerSurface,
+            'applyPrecuStaticItemSkillModifiers\(object, skillMods\);')).Count -ne 1 -or
+        $initializerSurface.Contains("setSkillModBonus(object,"))
+    {
+        $initializerRoutesValid = $false
+    }
+}
+$staticBaseInitialize = Get-FunctionSlice ([string]$texts["item/static_item_base.java"]) `
+    "public int OnInitialize(" "public int OnAboutToBeTransferred("
+Assert-Contract ($initializerSurfaces.Count -eq
+        [int]$contract.expected.staticSkillModifiers.initializerRoutes -and
+    $initializerRoutesValid -and
+    $staticBaseInitialize.Contains("static_item.initializeObject(self, itemData)")) `
+    "p14.item-level.static-modifier-all-initializers-and-persisted-lifecycle"
+
+$staticModifierTables = [ordered]@{
+    armor = Join-Path $source `
+        "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/armor_stats.tab"
+    weapon = Join-Path $source `
+        "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/weapon_stats.tab"
+    item = Join-Path $source `
+        "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+}
+foreach ($tableName in $staticModifierTables.Keys)
+{
+    $profile = Get-StaticItemSkillModifierProfile $staticModifierTables[$tableName]
+    Assert-Contract ($profile.dataRows -eq
+            [int]$contract.expected.staticSkillModifiers.retainedDataRows.$tableName -and
+        $profile.primaryRows -eq
+            [int]$contract.expected.staticSkillModifiers.primaryModifierRows.$tableName -and
+        $profile.expertiseRows -eq
+            [int]$contract.expected.staticSkillModifiers.expertiseModifierRows.$tableName) `
+        "p14.item-level.static-modifier-data-preserved.$tableName"
+}
 
 $legacyDynamicPrimaryModifiers = @(
     "precision_modified",
@@ -253,8 +383,10 @@ $sourceHashPaths = @{
     stimpackCrafted = "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java"
     forceMelon = "dsrc/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java"
     weaponComponentAttributes = "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+    armorStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/armor_stats.tab"
     itemStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
     masterItem = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+    weaponStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/weapon_stats.tab"
     advancedSearch = "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab"
     channelledStimA = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_a.tpf"
     channelledStimB = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_b.tpf"

@@ -1,15 +1,16 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-item-level-retirement",
-  "status": "ready",
-  "scope": "Remove NGE combat-level and primary-stat authority from retained item transfer, use, effect, attribute, medicine, static consumable metadata, resource-sampling, market-search, weapon-core presentation, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, authored healing values, and retained expansion item content.",
+  "status": "implemented-build-pending",
+  "scope": "Remove NGE combat-level, primary-stat, and expertise authority from retained item transfer, use, effect, attribute, medicine, static-item skill modifiers, resource-sampling, market-search, weapon-core presentation, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, authored healing values, valid item skill modifiers, and retained expansion item content.",
   "eraEvidence": {
     "userRule": "PRE-CU has no player combat-level stat; retained content must not require one.",
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "surveyReference": "SurveySessionImplementation.cpp and ResourceSpawner.cpp derive sampling Action cost from current Quickness as 124 - Quickness / 12.5 and never consult player combat level.",
     "dynamicLootReference": "Publish-era skills authenticate camouflage as a PRE-CU Bothan and Ranger skill modifier; precision_modified, strength_modified, stamina_modified, constitution_modified, agility_modified, and luck_modified are later primary-stat vocabulary and are not PRE-CU dynamic-loot authority.",
-    "staticConsumableReference": "Combat level is not a PRE-CU player/item admission stat. Retained expansion healing content keeps authored healing power, action-pool selection, charges, no-trade state, scripts, templates, and weapon-core quality lookup while combat-level objvars and UI/search presentation are retired."
+    "staticConsumableReference": "Combat level is not a PRE-CU player/item admission stat. Retained expansion healing content keeps authored healing power, action-pool selection, charges, no-trade state, scripts, templates, and weapon-core quality lookup while combat-level objvars and UI/search presentation are retired.",
+    "staticSkillModifierReference": "The pinned Publish 14.1 Core3 tree contains no NGE expertise system or six-stat primary-modifier vocabulary. Retained static armor, weapons, and items remain available, but their common initializer must not equip expertise_* or agility_modified, stamina_modified, constitution_modified, precision_modified, strength_modified, and luck_modified bonuses."
   },
   "expected": {
     "staticItems": {
@@ -44,6 +45,31 @@
       "retainedPrecuCamouflageModifier": true,
       "retainedDynamicContent": true
     },
+    "staticSkillModifiers": {
+      "retiredExactPrimaryModifiers": 6,
+      "retiredPrefixes": [
+        "expertise_"
+      ],
+      "initializerRoutes": 3,
+      "persistedCleanupUsesNativeZeroRemoval": true,
+      "retainedDataRows": {
+        "armor": 1559,
+        "weapon": 325,
+        "item": 4793
+      },
+      "primaryModifierRows": {
+        "armor": 1326,
+        "weapon": 126,
+        "item": 1113
+      },
+      "expertiseModifierRows": {
+        "armor": 0,
+        "weapon": 0,
+        "item": 129
+      },
+      "retiredModifiersApplied": 0,
+      "retainedModifierApplicationPreserved": true
+    },
     "staticConsumableMetadata": {
       "itemStatsCombatLevelWriters": 0,
       "templateCombatLevelWriters": 0,
@@ -73,8 +99,10 @@
     "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/armor.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/clothing.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/armor_stats.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/weapon_stats.tab",
     "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab",
     "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_a.tpf",
@@ -93,11 +121,11 @@
     "overlayPatchBytes": 40030,
     "overlayPatchSha256": "3817b32ae7ad21e2216c6979fea5090bcc13bb10d27ccd3889fdb59735da1369",
     "staticContract": "passed",
-    "isolatedJavaCompile": "passed (Java 8 target)",
+    "isolatedJavaCompile": "passed from pushed direct dsrc 39e985855fb4d98fcac55500d134f98fb41e76b9 with Java 8 target; emitted static_item.class contains the PRE-CU static-item modifier predicate, persisted cleanup, and exactly three initializer adapter calls",
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "17afe250109ae0cf2e461707c75731d25df6cf02",
+    "directSourceGitlink": "39e985855fb4d98fcac55500d134f98fb41e76b9",
     "sourceSha256": {
-      "staticItem": "7c9d32525c3b79f430ff3d945cd4ffa72c3da5feb63c48453667a1dfbafd8d76",
+      "staticItem": "5f486e62090e1d949e99ce787e2368d471e43b28d854ea2a547992dcee0dc018",
       "dynamicArmor": "953d06b679012eb02b6a2457d36d66c608c4bdcf1cbb2baaa97d7a022e478bc7",
       "loot": "37e3a20f4d199c20889aebe380c19babb282e934b8e29fcf61ed5f3d36b01b37",
       "dynamicArmorTypes": "a51178ffc91446cf1cb5b54f45ca96a6327027e536c05299bfc857d247a1957b",
@@ -107,8 +135,10 @@
       "stimpackCrafted": "0409220c896dae77d7fcf685d7714e047c1e8365771ab76e7ea9ba3c8a54527b",
       "forceMelon": "505da65c677626e518e2fcb48fda19c5783c94a2a962f52365a644528347e7c3",
       "weaponComponentAttributes": "06dad7ee49e9a1b02e33c3b303d95b0d40f4684783e33e3ec5a5101e34013428",
+      "armorStats": "a2e4c0337d050e94b14cdc2118131704f44dc9c8c2f6295566c0a5f2f3ca685d",
       "itemStats": "e83dc1529cafd1a3fb0b4f1d8aa6be6090374cd2a632779e41b460a037ea0a93",
       "masterItem": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+      "weaponStats": "e3fd89a7139ed6edad842f54f32031108faae23407e7103e67dcc3aeca82c664",
       "advancedSearch": "6ebe2fd5ac3bbc28eaecf526e9123c0a19c104f424f1fffe1cbac490f1caa7ab",
       "channelledStimA": "4b82f613f75e994b0682ebc9d35f6badd8182ae1505b8eba9660bdc1c05bc4b9",
       "channelledStimB": "ad92018df002981fbcd4839eadb5ab29e41e789d5837c39a1a296d0eefce5e09",
@@ -176,7 +206,7 @@
       "instant_stimpack/stimpack_noob.iff": "9afedbe097dc30b3d4e43c2433217c1a54a8b7d0a7c8c2ccc47c492c0ad4782b",
       "instant_stimpack/stimpack_syren.iff": "4debbd03ea05849e5d48869e6d080fd8322a7acfff3f5bf9a0147e894e7a860d"
     },
-    "currentSurveyEvidenceRefreshedBy": "Milestone 344 PRE-CU resource sampling cadence; the Quickness-derived Action cost remains unchanged and the survey class now uses the fixed Publish 14.1 25-second cadence.",
+    "currentSurveyEvidenceRefreshedBy": "Direct-source static-item modifier authority now also filters the six NGE primary modifiers and every expertise_* modifier at all three common static-item initialization routes while retaining the existing Quickness-derived sampling cadence.",
     "deploymentProbe": "passed direct-source parity, zero combat-level writers in 27 retained item-stat bindings and ten templates, 134-category market taxonomy preservation, exact 4+4+1 persisted cleanup hooks, retained weapon-core lookup, compiled IFF string audits, deployed bytecode, x64 architecture, restart/readiness, and all-process mapped-binary verification",
     "result": "passed"
   },
@@ -200,8 +230,8 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling; six later primary-stat writers on production-reachable dynamic clothing and armor loot; and combat-level objvars/search/presentation on retained static and template-backed healing content",
-    "notClaimedComplete": "quest, encounter, AI, pet, and retained expansion difficulty adapters remain under the broader PRE-CU precedence audit"
+    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling; six later primary-stat writers on production-reachable dynamic clothing and armor loot; combat-level objvars/search/presentation on retained static and template-backed healing content; and static armor, weapon, and item application of six NGE primary modifiers plus every expertise_* modifier",
+    "notClaimedComplete": "other later action-speed, cooldown, proc, Beast, and content-specific modifier families in retained static-item data remain under the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }
