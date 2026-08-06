@@ -74,7 +74,7 @@ $precuSecondary = Get-BracedBlock $combatBase "public int getPrecuSecondaryDefen
 $resolution = Get-SourceSlice $combatBase "int precuPrimaryResult =" "switch (defResult)"
 $glancingResolution = Get-SourceSlice $combatBase `
     "if (hitData[i].glancing)" `
-    "if (hitData[i].critical)"
+    "if (!precuAuthoritativeAttack && hitData[i].critical)"
 
 Assert-Contract ($wampaAttach.Contains("trial.setHp(self, trial.HP_UNCLE_JOE);") -and
     -not $wampaAttach.Contains("expertise_") -and

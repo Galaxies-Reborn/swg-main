@@ -68,6 +68,16 @@ $xp = Get-Content -LiteralPath $xpPath -Raw
 $gcw = Get-Content -LiteralPath $gcwPath -Raw
 $combatActions = Get-Content -LiteralPath $combatActionsPath -Raw
 $basePlayer = Get-Content -LiteralPath $basePlayerPath -Raw
+$precuPrimaryStart = $combat.IndexOf(
+    "public int getPrecuPrimaryAttackResult", [StringComparison]::Ordinal)
+$precuPrimaryEnd = $combat.IndexOf(
+    "public float getPrecuPrimaryHitChance", $precuPrimaryStart,
+    [StringComparison]::Ordinal)
+$precuPrimary = if ($precuPrimaryStart -ge 0 -and
+    $precuPrimaryEnd -gt $precuPrimaryStart) {
+    $combat.Substring($precuPrimaryStart,
+        $precuPrimaryEnd - $precuPrimaryStart)
+} else { "" }
 Assert-Contract ($combat.Contains('public boolean isPrecuAuthoritativeAttack(') -and
     $combat.Contains('return getPrecuCore3RawDamage(') -and
     $combat.Contains('"damage.pipeline", "PRECU_CORE3"')) "p14.damage-authority.runtime.authoritative-route"
@@ -85,6 +95,12 @@ Assert-Contract ($combat.Contains('if (!precuAuthoritativeAttack)') -and
     $combat.Contains('"damage.ngeExpertiseApplied", 0') -and
     $combat.Contains('healing.applyLifeSiphonHeal(') -and
     $combat.Contains('doKillMeterUpdate(attacker, defender, hitData.damage);')) "p14.damage-authority.runtime.nge-modifiers-contained"
+Assert-Contract ([int]$contract.expected.precuPrimaryCriticalOutcomes -eq 0 -and
+    [bool]$contract.expected.ngeCriticalEffectsCompatibilityOnly -and
+    -not $precuPrimary.Contains("HIT_RESULT_CRITICAL") -and
+    $combat.Contains("if (!precuAuthoritativeAttack && hitData[i].critical)") -and
+    ([regex]::Matches($combat, 'combat\.doCriticalHitEffect\(')).Count -eq 1) `
+    "p14.damage-authority.runtime.nge-critical-effects-contained"
 $killMeterUpdate = $combat.Substring(
     $combat.IndexOf("public void doKillMeterUpdate", [StringComparison]::Ordinal))
 $killMeterCleanupStart = $combatLibrary.IndexOf(
