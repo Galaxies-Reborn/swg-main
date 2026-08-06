@@ -280,8 +280,13 @@ $hepText = Get-Content -LiteralPath (Join-Path $scriptRoot "systems/skills/steal
 Assert-Contract (
     $stealthLibraryText.Contains('PRECU_TRAPPING_SKILL_MOD = "trapping"') -and
     $stealthLibraryText.Contains('PRECU_CAMOUFLAGE_SKILL_MOD = "camouflage"') -and
-    $hepText.Contains('queueCommand(player, getStringCrc(toLower("urbanStealth"))')
-) "p14.spy-retirement.retained-ranger-hep-boundary"
+    [bool]$contract.expected.retainedHepCompatibilityAsset -and
+    [bool]$contract.expected.hepPlayerUrbanStealthActivationRetired -and
+    $hepText.Contains('stealth.isRetiredPostP14PlayerInvisibilityAction(player, "urbanStealth")') -and
+    $hepText.Contains('queueCommand(player, getStringCrc(toLower("urbanStealth"))') -and
+    $hepText.IndexOf('stealth.isRetiredPostP14PlayerInvisibilityAction(player, "urbanStealth")') -lt
+        $hepText.IndexOf('queueCommand(player, getStringCrc(toLower("urbanStealth"))')
+) "p14.spy-retirement.retained-hep-asset-player-activation-retired"
 
 $missionMap = [ordered]@{
     "mission_terminal.java" = Join-Path $scriptRoot "systems/missions/base/mission_terminal.java"

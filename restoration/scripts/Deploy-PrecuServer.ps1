@@ -62,7 +62,7 @@ Write-Host "Verifying direct-source PRE-CU cosmetic-familiar authority before bu
 Write-Host "Verifying post-NGE Spy player-runtime retirement against current direct source before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeSpyPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot
-Write-Host "Verifying PRE-CU mobile stealth, theft, and decoy difficulty authority before build..."
+Write-Host "Verifying PRE-CU mobile stealth, theft, decoy difficulty, and post-Publish-14 player-invisibility retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuMobileStealthDetectionAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
@@ -1676,6 +1676,22 @@ test "$(printf '%s' "$stealth_theft_bytecode" | grep -Fc 'script/library/xp.getP
 stealth_decoy_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n '/public static script.obj_id createDecoy/,/public static boolean isDecoy/p')"
 test "$(printf '%s' "$stealth_decoy_bytecode" | grep -Fc 'script/library/xp.getPrecuCombatLevel')" -eq 1
 ! printf '%s' "$stealth_decoy_bytecode" | grep -Fq 'script/base_class.getLevel'
+# Publish 14.1 retains mask scent and Ranger conceal, but not the later
+# urbanStealth, wildernessStealth, or Force Cloak player action/buff family.
+post_p14_invisibility_retirement_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n '/public static boolean isRetiredPostP14PlayerInvisibilityName/,/public static void setBioProbeData/p')"
+printf '%s' "$stealth_bytecode" | grep -Fq 'urbanStealth'
+printf '%s' "$stealth_bytecode" | grep -Fq 'wildernessStealth'
+printf '%s' "$stealth_bytecode" | grep -Fq 'forceCloak'
+printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_urbanStealth'
+printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_wildernessStealth'
+printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_forceCloak'
+printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'retirePostP14PlayerInvisibilityState'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostP14PlayerInvisibilityName'
+javap -classpath "$class_root" -v script.library.jedi | grep -Fq 'isRetiredPostP14PlayerInvisibilityAction'
+javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'retirePostP14PlayerInvisibilityState'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostP14PlayerInvisibilityAction'
+javap -classpath "$class_root" -v script.systems.skills.stealth.hep | grep -Fq 'retirePostP14PlayerInvisibilityState'
+javap -classpath "$class_root" -v script.systems.skills.stealth.player_stealth | grep -Fq 'retirePostP14PlayerInvisibilityState'
 # Publish 14.1 Squad Leader remains authoritative. Retire the post-NGE Officer
 # command family and every delayed/persisted player reinforcement surface.
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeOfficerPlayerAction'

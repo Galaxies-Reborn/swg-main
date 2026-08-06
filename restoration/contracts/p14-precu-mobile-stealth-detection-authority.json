@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-mobile-stealth-detection-authority",
-  "status": "ready",
-  "scope": "Make production-reachable mobile conceal detection and retained NPC theft/decoy compatibility resolve players through the authenticated equipped-weapon PRE-CU combat level while preserving authored NPC creature levels, camouflage and detection modifiers, retained later content, and retired post-NGE Spy player gameplay.",
+  "status": "implemented-build-pending",
+  "scope": "Make production-reachable mobile conceal detection and retained NPC theft/decoy compatibility resolve players through the authenticated equipped-weapon PRE-CU combat level, and retire post-Publish-14 urban stealth, wilderness stealth, and Force Cloak gameplay for players while preserving authored NPC levels, Publish 14.1 concealment, and retained later-content data and assets.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -18,7 +18,10 @@
       "Pinned Core3 calculates that internal player value from private_<equipped weapon type>_combat_difficulty divided by 100 plus one and caps it at 25.",
       "The authenticated project helper xp.getPrecuCombatLevel already implements the same player-versus-NPC boundary and is distinct from retained-content encounter difficulty.",
       "Publish 14.1 has no player Spy theft or decoy profession actions, so those player entry points remain retired while retained NPC and expansion compatibility may continue to use their shared implementations.",
-      "Retained theft comparisons and decoy combat metadata must use the same PRE-CU player-versus-authored-NPC difficulty boundary instead of the removed NGE player-level field."
+      "Retained theft comparisons and decoy combat metadata must use the same PRE-CU player-versus-authored-NPC difficulty boundary instead of the removed NGE player-level field.",
+      "The authenticated Publish 14.1 skill table grants Scout mask scent, Ranger conceal, Jedi animalAttack at force_discipline_powers_mental_04, and no urbanStealth, wildernessStealth, or forceCloak command.",
+      "The legacy PRE-CU/NGE skill diff identifies urbanStealth and wildernessStealth as NGE-added Ranger commands, while July 2005 post-CU notes document Force Cloak after the Publish 14.1 boundary.",
+      "The three later command, buff, Jedi-action, HEP, schematic, and visual compatibility surfaces remain loadable for NPC and expansion content, but cannot grant player gameplay authority."
     ]
   },
   "diagnosis": {
@@ -59,6 +62,16 @@
     "postNgeSpyPlayerRuntimeRetired": true,
     "playerTheftAndDecoyInvocationRetired": true,
     "retainedNpcTheftAndDecoyCompatibilityPreserved": true,
+    "retiredPostP14PlayerInvisibilityNames": 6,
+    "retiredPostP14PlayerInvisibilityActions": 3,
+    "retiredPostP14PlayerInvisibilityBuffs": 3,
+    "postP14PlayerInvisibilityLifecycleCleanup": true,
+    "postP14PlayerInvisibilityGenericAdmissionDenied": true,
+    "hepPlayerUrbanStealthActivationRetired": true,
+    "retainedPostP14CommandRows": 2,
+    "retainedPostP14BuffRows": 3,
+    "retainedPostP14JediActionRows": 1,
+    "retainedPostP14CompatibilityAssetsPreserved": true,
     "laterNpcAndExpansionContentPreserved": true
   },
   "sourceFiles": {
@@ -67,15 +80,23 @@
     "aiAggro": "dsrc/sku.0/sys.server/compiled/game/script/ai/ai_aggro.java",
     "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
     "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
-    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+    "skills": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "buff": "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java",
+    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java",
+    "playerStealth": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/stealth/player_stealth.java",
+    "hep": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/stealth/hep.java",
+    "jedi": "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "jediActions": "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "7106bebc93ac8414d63f5e3e55f665a194eb96cd",
+    "directSourceGitlink": "1b66c876337955a7b1a8701b64e3c73c3600043e",
     "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
-      "stealth": "601cd99767cd1c4e66e6d0189aa6bca3d7c6ee34a341c8740c1dda0f605b02dc"
+      "stealth": "48deacf625da0047c46f2a8ba6198d95dc13055399427ca829169e049889858f"
     },
     "compiledClassSha256": {
       "stealth": "ae2452d005950f4093899c4507915d6ca468f7670b3708f78b4c944cf38b9e61"
@@ -85,7 +106,7 @@
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "5b10da1a8fe33865c4c94859c446b916cd4c20943e0d6c2b7135bc166d56fb12",
     "serverBinaryBuildId": "94b198caa2763f4572326706f027ed3429140820",
-    "sourceWorkParity": "passed byte-for-byte for stealth.java between the read-only direct source mount and writable Docker work volume at 601cd99767cd1c4e66e6d0189aa6bca3d7c6ee34a341c8740c1dda0f605b02dc",
+    "sourceWorkParity": "passed byte-for-byte for stealth.java between the read-only direct source mount and writable Docker work volume at 48deacf625da0047c46f2a8ba6198d95dc13055399427ca829169e049889858f",
     "bytecodeAudit": "passed; theft contains exactly two xp.getPrecuCombatLevel calls, decoy contains exactly one, neither compatibility method contains script.base_class.getLevel, and the two detection methods retain two PRE-CU adapter calls each",
     "deploymentProbe": "passed cumulative PRE-CU source/data/bytecode gates, focused stealth compatibility bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
     "result": "passed"
@@ -118,9 +139,9 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the production mobile conceal detector plus retained theft and decoy compatibility reads of the removed NGE player-level field",
-    "preserved": "Publish 14.1 maskscent and conceal skills, current detection probability inputs, authored NPC creature levels, Force cloak compatibility, retained expansion NPC theft and decoy behavior, and retired Spy player gameplay",
-    "notClaimedComplete": "retained HEP and wilderness invisibility semantics, authentic PRE-CU Jedi invisibility compatibility, and other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+    "closedInThisMilestone": "the production mobile conceal detector, retained theft and decoy reads of the removed NGE player-level field, and player authority for post-Publish-14 urban stealth, wilderness stealth, and Force Cloak",
+    "preserved": "Publish 14.1 mask scent, Ranger conceal, Jedi animalAttack, current detection inputs, authored NPC levels, HEP and later invisibility data/assets, and retained expansion NPC theft and decoy behavior",
+    "notClaimedComplete": "other dormant post-Publish-14 gameplay systems remain in the wider PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }

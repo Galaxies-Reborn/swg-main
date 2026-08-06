@@ -20,6 +20,14 @@ $aiAggroPath = Join-Path $source ([string]$contract.sourceFiles.aiAggro)
 $combatBasePath = Join-Path $source ([string]$contract.sourceFiles.combatBase)
 $combatActionsPath = Join-Path $source ([string]$contract.sourceFiles.combatActions)
 $skillsPath = Join-Path $source ([string]$contract.sourceFiles.skills)
+$buffPath = Join-Path $source ([string]$contract.sourceFiles.buff)
+$buffHandlerPath = Join-Path $source ([string]$contract.sourceFiles.buffHandler)
+$playerStealthPath = Join-Path $source ([string]$contract.sourceFiles.playerStealth)
+$hepPath = Join-Path $source ([string]$contract.sourceFiles.hep)
+$jediPath = Join-Path $source ([string]$contract.sourceFiles.jedi)
+$commandTablePath = Join-Path $source ([string]$contract.sourceFiles.commandTable)
+$buffTablePath = Join-Path $source ([string]$contract.sourceFiles.buffTable)
+$jediActionsPath = Join-Path $source ([string]$contract.sourceFiles.jediActions)
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Assert-Contract([bool]$Condition, [string]$Name)
@@ -37,7 +45,10 @@ function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker
     return $Text.Substring($start, $end - $start)
 }
 
-foreach ($path in @($stealthPath, $xpPath, $aiAggroPath, $combatBasePath, $combatActionsPath, $skillsPath))
+foreach ($path in @(
+    $stealthPath, $xpPath, $aiAggroPath, $combatBasePath, $combatActionsPath,
+    $skillsPath, $buffPath, $buffHandlerPath, $playerStealthPath, $hepPath,
+    $jediPath, $commandTablePath, $buffTablePath, $jediActionsPath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) (
         "p14.mobile-stealth.source." + [System.IO.Path]::GetFileName($path) + ".exists")
@@ -50,6 +61,11 @@ $xp = Get-Content -LiteralPath $xpPath -Raw
 $aiAggro = Get-Content -LiteralPath $aiAggroPath -Raw
 $combatBase = Get-Content -LiteralPath $combatBasePath -Raw
 $combatActions = Get-Content -LiteralPath $combatActionsPath -Raw
+$buff = Get-Content -LiteralPath $buffPath -Raw
+$buffHandler = Get-Content -LiteralPath $buffHandlerPath -Raw
+$playerStealth = Get-Content -LiteralPath $playerStealthPath -Raw
+$hep = Get-Content -LiteralPath $hepPath -Raw
+$jedi = Get-Content -LiteralPath $jediPath -Raw
 $normal = Get-SourceSlice $stealth "public static float getDetectChance(" "public static float getDetectChanceWithDetailedOutput("
 $detailed = Get-SourceSlice $stealth "public static float getDetectChanceWithDetailedOutput(" "public static boolean activeDetectHiddenTarget("
 $detectionMethods = @($normal, $detailed)
@@ -120,21 +136,128 @@ foreach ($method in $detectionMethods)
         $method.Contains("MIN_CHANCE_TO_DETECT_HIDDEN")) "p14.mobile-stealth.probability-inputs-preserved"
 }
 Assert-Contract ($normal.Contains("invis_forceCloak") -and $detailed.Contains("invis_forceCloak")) (
-    "p14.mobile-stealth.force-cloak-adjustment-preserved")
+    "p14.mobile-stealth.retained-content-force-cloak-adjustment-preserved")
 Assert-Contract ($aiAggro.Contains("stealth.passiveDetectHiddenTarget(target, self, 100)") -and
     $stealth.Contains("float finalChanceToDetect = getDetectChance(target, detector, baseChanceToDetect);") -and
     $stealth.Contains("return passiveDetectHiddenTarget(bubbleHolder, breacher, volume);")) (
         "p14.mobile-stealth.production-call-graph")
 
+$retiredNames = Get-SourceSlice $stealth `
+    "private static final String[] RETIRED_POST_P14_PLAYER_INVISIBILITY_NAMES" `
+    "public static final int MIN_MOVEMENT_PRIORITY"
+$retiredNameInventory = @([regex]::Matches($retiredNames, '"([^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$expectedRetiredNames = @(
+    "urbanStealth", "wildernessStealth", "forceCloak",
+    "invis_urbanStealth", "invis_wildernessStealth", "invis_forceCloak")
+Assert-Contract ($retiredNameInventory.Count -eq
+        [int]$contract.expected.retiredPostP14PlayerInvisibilityNames -and
+    @($retiredNameInventory | Select-Object -Unique).Count -eq $retiredNameInventory.Count -and
+    @($expectedRetiredNames | Where-Object { $_ -cnotin $retiredNameInventory }).Count -eq 0) `
+    "p14.mobile-stealth.post-p14-invisibility.exact-name-inventory"
+
+$retiredPredicate = Get-SourceSlice $stealth `
+    "public static boolean isRetiredPostP14PlayerInvisibilityAction(" `
+    "public static void retirePostP14PlayerInvisibilityState("
+$retiredCleanup = Get-SourceSlice $stealth `
+    "public static void retirePostP14PlayerInvisibilityState(" `
+    "public static void setBioProbeData("
+Assert-Contract ($retiredPredicate.Contains("isPlayer(actor)") -and
+    $retiredPredicate.Contains("isRetiredPostP14PlayerInvisibilityName(actionName)") -and
+    $retiredCleanup.Contains("!isPlayer(player)") -and
+    $retiredCleanup.Contains('"invis_urbanStealth"') -and
+    $retiredCleanup.Contains('"invis_wildernessStealth"') -and
+    $retiredCleanup.Contains('"invis_forceCloak"') -and
+    $retiredCleanup.Contains("utils.clearNoDropFromItem(hep)") -and
+    $retiredCleanup.Contains("removeObjVar(player, ACTIVE_HEP)") -and
+    $retiredCleanup.Contains("_makeVisible(player, null, null)")) `
+    "p14.mobile-stealth.post-p14-invisibility.player-only-state-cleanup"
+
+$guardedStealthMethods = @(
+    @("public static boolean canPerformForceCloak(", "public static boolean canPerformHide(", '"forceCloak"'),
+    @("public static void forceCloak(", "public static void hide(", '"forceCloak"'),
+    @("public static boolean canPerformUrbanStealth(", "public static void urbanStealth(", '"urbanStealth"'),
+    @("public static void urbanStealth(", "public static boolean canPerformWildernessStealth(", '"urbanStealth"'),
+    @("public static boolean canPerformWildernessStealth(", "public static void wildernessStealth(", '"wildernessStealth"'),
+    @("public static void wildernessStealth(", "public static boolean canPerformCover(", '"wildernessStealth"'),
+    @("public static boolean checkUrbanStealthUpkeep(", "public static boolean checkWildernessStealthUpkeep(", '"urbanStealth"'),
+    @("public static boolean checkWildernessStealthUpkeep(", "public static boolean checkForceCloakUpkeep(", '"wildernessStealth"'),
+    @("public static boolean checkForceCloakUpkeep(", "public static boolean checkForAndMakeVisible(", '"forceCloak"')
+)
+foreach ($guard in $guardedStealthMethods)
+{
+    $method = Get-SourceSlice $stealth $guard[0] $guard[1]
+    Assert-Contract ($method.Contains("isRetiredPostP14PlayerInvisibilityAction") -and
+        $method.Contains($guard[2]) -and
+        $method.Contains("retirePostP14PlayerInvisibilityState")) (
+            "p14.mobile-stealth.post-p14-invisibility.method." +
+            ($guardedStealthMethods.IndexOf($guard) + 1) + ".player-fail-closed")
+}
+
+$combatStandardAction = Get-SourceSlice $combatBase `
+    "public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)" `
+    "public void startDelayedAttack("
+$canApplyBuff = Get-SourceSlice $buff `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+$invisAddHandler = Get-SourceSlice $buffHandler `
+    "public void invisBuffAddBuffHandler(" `
+    "public void noBreakInvisRemoveBuffHandler("
+$performJediBuff = Get-SourceSlice $jedi `
+    "public static boolean performJediBuffCommand(" `
+    "public static boolean doBuffAction("
+$doJediBuff = Get-SourceSlice $jedi `
+    "public static boolean doBuffAction(" `
+    "public static boolean doForceRun("
+Assert-Contract ($combatStandardAction.Contains(
+        "stealth.isRetiredPostP14PlayerInvisibilityAction(self, actionName)") -and
+    $combatStandardAction.Contains("stealth.retirePostP14PlayerInvisibilityState(self)") -and
+    $canApplyBuff.Contains(
+        "stealth.isRetiredPostP14PlayerInvisibilityName(bdata.buffName)") -and
+    $invisAddHandler.Contains("stealth.isRetiredPostP14PlayerInvisibilityName(buffName)") -and
+    $invisAddHandler.Contains("stealth.retirePostP14PlayerInvisibilityState(self)") -and
+    $performJediBuff.Contains("isRetiredPostP14PlayerInvisibilityAction(player, actionName)") -and
+    $doJediBuff.Contains("isRetiredPostP14PlayerInvisibilityAction(self, actionName)")) `
+    "p14.mobile-stealth.post-p14-invisibility.central-admission-fail-closed"
+Assert-Contract ($playerStealth.Contains("stealth.retirePostP14PlayerInvisibilityState(self)") -and
+    $playerStealth.Contains("stealth.isRetiredPostP14PlayerInvisibilityName(invisBuff)") -and
+    $hep.Contains('stealth.isRetiredPostP14PlayerInvisibilityAction(player, "urbanStealth")') -and
+    $hep.Contains('queueCommand(player, getStringCrc(toLower("urbanStealth"))') -and
+    $hep.IndexOf('stealth.isRetiredPostP14PlayerInvisibilityAction(player, "urbanStealth")') -lt
+        $hep.IndexOf('queueCommand(player, getStringCrc(toLower("urbanStealth"))')) `
+    "p14.mobile-stealth.post-p14-invisibility.lifecycle-and-hep-fail-closed"
+
 $skills = @(Import-Csv -LiteralPath $skillsPath -Delimiter ([char]9))
 $scoutMovement = @($skills | Where-Object { [string]$_.NAME -ceq "outdoors_scout_movement_02" })
 $rangerMovement = @($skills | Where-Object { [string]$_.NAME -ceq "outdoors_ranger_movement_01" })
+$rangerMaster = @($skills | Where-Object { [string]$_.NAME -ceq "outdoors_ranger_master" })
+$jediMentalFour = @($skills | Where-Object { [string]$_.NAME -ceq "force_discipline_powers_mental_04" })
 Assert-Contract ($scoutMovement.Count -eq 1 -and
     [string]$scoutMovement[0].COMMANDS -match '(^|,)maskscent(,|$)' -and
     [string]$scoutMovement[0].SKILL_MODS -match '(^|,)mask_scent=20(,|$)') "p14.mobile-stealth.maskscent-skill-preserved"
 Assert-Contract ($rangerMovement.Count -eq 1 -and
     [string]$rangerMovement[0].COMMANDS -match '(^|,)conceal(,|$)' -and
     [string]$rangerMovement[0].SKILL_MODS -match '(^|,)camouflage=40(,|$)') "p14.mobile-stealth.conceal-skill-preserved"
+Assert-Contract ($rangerMaster.Count -eq 1 -and
+    [string]$rangerMaster[0].COMMANDS -notmatch '(^|,)(urbanStealth|wildernessStealth)(,|$)' -and
+    $jediMentalFour.Count -eq 1 -and
+    [string]$jediMentalFour[0].COMMANDS -match '(^|,)animalAttack(,|$)' -and
+    [string]$jediMentalFour[0].COMMANDS -notmatch '(^|,)forceCloak(,|$)') `
+    "p14.mobile-stealth.post-p14-invisibility.absent-from-p14-skills"
+
+$commandRows = @(Import-Csv -LiteralPath $commandTablePath -Delimiter ([char]9))
+$buffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter ([char]9))
+$jediActionRows = @(Import-Csv -LiteralPath $jediActionsPath -Delimiter ([char]9))
+Assert-Contract (@($commandRows | Where-Object {
+        [string]$_.commandName -in @("urbanStealth", "wildernessStealth")
+    }).Count -eq [int]$contract.expected.retainedPostP14CommandRows -and
+    @($buffRows | Where-Object {
+        [string]$_.NAME -in @("invis_urbanStealth", "invis_wildernessStealth", "invis_forceCloak")
+    }).Count -eq [int]$contract.expected.retainedPostP14BuffRows -and
+    @($jediActionRows | Where-Object {
+        [string]$_.actionName -ceq "forceCloak"
+    }).Count -eq [int]$contract.expected.retainedPostP14JediActionRows) `
+    "p14.mobile-stealth.post-p14-invisibility.compatibility-data-preserved"
 
 $spyContractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14PostNgeSpyPlayerRuntimeRetirement)
 $spyContract = Get-Content -LiteralPath $spyContractPath -Raw | ConvertFrom-Json
