@@ -84,6 +84,7 @@ foreach ($component in @("dsrc", "src"))
 $paths = [ordered]@{
     "attributes" = Join-Path $source "dsrc/.gitattributes"
     "script.library.gcw" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java"
+    "script.library.factions" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/factions.java"
     "script.player.player_faction" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/player/player_faction.java"
     "script.systems.gcw.pvp_region_bonus_controller" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_region_bonus_controller.java"
     "template.gcw.pvp_region_watcher" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/pvp_region_watcher.tpf"
@@ -162,6 +163,7 @@ foreach ($name in $paths.Keys)
 }
 
 $gcw = [string]$texts["script.library.gcw"]
+$factions = [string]$texts["script.library.factions"]
 $playerFaction = [string]$texts["script.player.player_faction"]
 $pvpRegionController = [string]$texts["script.systems.gcw.pvp_region_bonus_controller"]
 $pvpRegionWatcherTemplate = [string]$texts["template.gcw.pvp_region_watcher"]
@@ -1230,6 +1232,65 @@ Assert-Contract ($playerFaction.Contains("public int cmdPVP") -and
     $playerFaction.Contains("pvpMakeDeclared(self)") -and
     [bool]$contract.expected.precuOpenWorldPvpPreserved) `
     "p14.gcw-rating.precu-open-world-pvp-preserved"
+
+$neutralMercenaryRetired = Get-FunctionSlice $factions `
+    "public static boolean isPostNgeNeutralMercenaryRetired()" `
+    "public static void cleanupRetiredNeutralMercenaryState"
+$neutralMercenaryCleanup = Get-FunctionSlice $factions `
+    "public static void cleanupRetiredNeutralMercenaryState" `
+    "public static void goCovertWithDelay"
+$neutralMercenaryConfig = @($localOptions -split "`r?`n" | Where-Object { $_ -match '^enable(Covert|Overt)(Imperial|Rebel)Mercenary=' })
+$expectedNeutralMercenaryConfig = @(
+    "enableCovertImperialMercenary=false",
+    "enableOvertImperialMercenary=false",
+    "enableCovertRebelMercenary=false",
+    "enableOvertRebelMercenary=false"
+)
+Assert-Contract ($neutralMercenaryRetired.Contains("return true;") -and
+    $neutralMercenaryCleanup.Contains("forceCloseSUIPage(pageId)") -and
+    $neutralMercenaryCleanup.Contains('utils.removeScriptVarTree(player, "factionalHelper")') -and
+    $neutralMercenaryCleanup.Contains('removeObjVar(player, "factionalHelper")') -and
+    $neutralMercenaryCleanup.Contains("pvpNeutralSetMercenaryFaction(player, 0, false)") -and
+    [bool]$contract.expected.staleNeutralMercenaryStateScrubbed) `
+    "p14.gcw-rating.stale-neutral-mercenary-state-scrubbed"
+
+$neutralMercenaryLibraryMethods = @(
+    (Get-FunctionSlice $factions "public static boolean canChangeNeutralMercenaryStatus" "public static boolean neutralMercenaryStatusMenu"),
+    (Get-FunctionSlice $factions "public static boolean neutralMercenaryStatusMenu" "public static boolean setNeturalMercenaryCovert"),
+    (Get-FunctionSlice $factions "public static boolean setNeturalMercenaryCovert" "public static boolean setNeturalMercenaryOvert"),
+    (Get-FunctionSlice $factions "public static boolean setNeturalMercenaryOvert" "public static boolean removeNeturalMercenary"),
+    (Get-FunctionSlice $factions "public static boolean removeNeturalMercenary" "__end_of_factions__")
+)
+$neutralMercenaryPlayerMethods = @(
+    (Get-FunctionSlice $playerFaction "public int cmdFactionalHelper" "public int handleFactionalHelperChoice"),
+    (Get-FunctionSlice $playerFaction "public int handleFactionalHelperChoice" "public int executeFactionalHelperChoice"),
+    (Get-FunctionSlice $playerFaction "public int executeFactionalHelperChoice" "public int cmdGcwScore")
+)
+$neutralMercenaryLifecycle = @(
+    (Get-FunctionSlice $playerFaction "public int OnAttach" "public int OnInitialize"),
+    (Get-FunctionSlice $playerFaction "public int OnInitialize" "public int OnLogin"),
+    (Get-FunctionSlice $playerFaction "public int OnLogin" "public int cmdPVP")
+)
+Assert-Contract (@($neutralMercenaryLibraryMethods | Where-Object { -not $_.Contains("isPostNgeNeutralMercenaryRetired()") -or -not $_.Contains("cleanupRetiredNeutralMercenaryState(player)") }).Count -eq 0 -and
+    @($neutralMercenaryPlayerMethods | Where-Object { -not $_.Contains("factions.isPostNgeNeutralMercenaryRetired()") -or -not $_.Contains("factions.cleanupRetiredNeutralMercenaryState(self)") }).Count -eq 0 -and
+    @($neutralMercenaryLifecycle | Where-Object { -not $_.Contains("factions.cleanupRetiredNeutralMercenaryState(self)") }).Count -eq 0 -and
+    $neutralMercenaryConfig.Count -eq 4 -and
+    @($expectedNeutralMercenaryConfig | Where-Object { $neutralMercenaryConfig -cnotcontains $_ }).Count -eq 0 -and
+    -not [bool]$contract.expected.postNgeNeutralMercenaryStatusReachable -and
+    -not [bool]$contract.expected.postNgeNeutralMercenaryWriterReachable) `
+    "p14.gcw-rating.post-nge-neutral-mercenary-runtime-retired"
+
+Assert-Contract ($factions.Contains("public static boolean joinFaction") -and
+    $factions.Contains("pvpSetAlignedFaction(player, faction_id)") -and
+    $factions.Contains("pvpMakeCovert(player)") -and
+    $factions.Contains("public static void goCovert") -and
+    $factions.Contains("pvpMakeCovert(objPlayer)") -and
+    $factions.Contains("public static void goOvert") -and
+    $factions.Contains("pvpMakeDeclared(objPlayer)") -and
+    $factions.Contains("public static void goOnLeave") -and
+    $factions.Contains("pvpMakeOnLeave(objPlayer)") -and
+    [bool]$contract.expected.precuFactionEnlistmentTransitionsPreserved) `
+    "p14.gcw-rating.precu-faction-enlistment-transitions-preserved"
 Assert-Contract ($battlefieldLibrary.Contains("STARTING_BUILD_POINTS = 500") -and
     $battlefieldLibrary.Contains("MAXIMUM_POPULATION = 50") -and
     $battlefieldLibrary.Contains("MAXIMUM_FACTION_SIZE_DIFFERENCE = 5") -and

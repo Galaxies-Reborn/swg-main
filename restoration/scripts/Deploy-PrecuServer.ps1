@@ -656,6 +656,10 @@ cmp -s "$source_force_rank_xp" "$work_force_rank_xp"
 cmp -s "$source_force_rank_light" "$work_force_rank_light"
 cmp -s "$source_force_rank_dark" "$work_force_rank_dark"
 grep -Fxq 'enableFRS=1' "$source_local_options"
+grep -Fxq 'enableCovertImperialMercenary=false' "$source_local_options"
+grep -Fxq 'enableOvertImperialMercenary=false' "$source_local_options"
+grep -Fxq 'enableCovertRebelMercenary=false' "$source_local_options"
+grep -Fxq 'enableOvertRebelMercenary=false' "$source_local_options"
 grep -Fq 'SWG_PRECU_START_PLANETS:-tatooine,corellia,naboo,yavin4,' "$SWG_SOURCE_DIR/docker-compose.precu.yml"
 cmp -s "$source_static_master" "$work_static_master"
 cmp -s "$source_static_base_master" "$work_static_base_master"
@@ -1785,6 +1789,10 @@ test "$(printf '%s' "$stealth_detect_detailed_bytecode" | grep -Fc 'script/libra
 ! javap -classpath "$class_root" -v script.systems.missions.base.mission_base | grep -Fq 'distributeMissionXpToGroup'
 javap -classpath "$class_root" -c -p script.library.factions | grep -Fq 'awardPrecuNpcCombatFaction'
 ! javap -classpath "$class_root" -v script.library.factions | grep -Fq 'incrementGCWStanding'
+neutral_mercenary_retired_bytecode="$(javap -classpath "$class_root" -c -p script.library.factions | sed -n '/isPostNgeNeutralMercenaryRetired/,/cleanupRetiredNeutralMercenaryState/p')"
+printf '%s' "$neutral_mercenary_retired_bytecode" | grep -Fq 'iconst_1'
+javap -classpath "$class_root" -c -p script.library.factions | grep -Fq 'cleanupRetiredNeutralMercenaryState'
+javap -classpath "$class_root" -c -p script.library.factions | grep -Fq 'pvpNeutralSetMercenaryFaction'
 javap -classpath "$class_root" -c script.base_class | grep -Fq 'pvpSetPrecuFactionRank'
 javap -classpath "$class_root" -c script.library.factions | grep -Fq 'pvpSetPrecuFactionRank'
 javap -classpath "$class_root" -constants script.library.factions | grep -Fq 'FACTION_RATING_DECLARABLE_MIN = 200.0f'
@@ -1851,6 +1859,7 @@ javap -classpath "$class_root" -v script.systems.battlefield.player_battlefield 
 gcw_static_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeFixedStaticBaseRetired/,/getPub30StaticBaseControllerId/p')"
 printf '%s' "$gcw_static_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -c -p script.player.player_faction | grep -Fq 'cleanupRetiredFixedStaticBaseState'
+javap -classpath "$class_root" -c -p script.player.player_faction | grep -Fq 'cleanupRetiredNeutralMercenaryState'
 javap -classpath "$class_root" -constants script.library.force_rank | grep -Fq 'REQUEST_DEMOTION_COST = 2000'
 javap -classpath "$class_root" -constants script.library.force_rank | grep -Fq 'VOTE_CHALLENGE_COST = 1000'
 javap -classpath "$class_root" -c -p script.library.force_rank | grep -Fq 'isForceRankingEnabled'
@@ -2141,6 +2150,10 @@ set -eu
 cfg="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 grep -Fq 'clusterName=swg' "$cfg"
 grep -Fxq 'enableFRS=1' "$cfg"
+grep -Fxq 'enableCovertImperialMercenary=false' "$cfg"
+grep -Fxq 'enableOvertImperialMercenary=false' "$cfg"
+grep -Fxq 'enableCovertRebelMercenary=false' "$cfg"
+grep -Fxq 'enableOvertRebelMercenary=false' "$cfg"
 grep -Eq '^transferServerAddress=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' "$cfg"
 grep -Fq '### BEGIN Docker runtime overrides' "$cfg"
 '@
