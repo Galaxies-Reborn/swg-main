@@ -195,6 +195,10 @@ Write-Host "Verifying the direct-source PRE-CU Axkva Nandina healing authority b
 & (Join-Path $PSScriptRoot "Test-P14PrecuAxkvaNandinaHealingAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying native NGE skill and blank-ability command admission retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14NativeNgeSkillAdmissionRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 
 if (-not $SkipBuild)
 {
@@ -2268,6 +2272,11 @@ grep -Fq 'reason=script-complete' "$work_player_controller"
 grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
+grep -Fq 'isRetiredNgeProgressionCommandName' "$work_creature"
+grep -Fq 'ignored as a retired NGE progression command' "$work_creature"
+grep -Fq 'commandName == "bountycheck"' "$work_creature"
+! grep -Fq 'commandName == "groupdance"' "$work_creature"
+! grep -Fq 'commandName == "imagedesign"' "$work_creature"
 grep -Fq 'Rejected retired NGE expertise request' "$work_creature"
 grep -Fq 'clearRetiredNgeProgressionSkills' "$work_creature"
 grep -Fq 'm_skills.erase(*iter)' "$work_creature"
@@ -2304,12 +2313,14 @@ nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAt
 nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::processExpertiseRequest'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::clearRetiredNgeProgressionSkills()'
+nm -C "$server_game_archive" | grep -Fq 'CreatureObjectNamespace::isRetiredNgeProgressionCommandName'
 nm -C "$server_game_archive" | grep -Fq 'GroupObject::getSecondsLeftOnGroupPickup() const'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::startNpcConversation'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::endNpcConversation()'
 nm -C "$server_game_archive" | grep -Fq 'PlayerObject::retirePostNgeGcwRatingState()'
 strings "$server_game_archive" | grep -Fq 'recover stale-session player=%s previousNpc=%s requestedNpc=%s'
 strings "$server_game_archive" | grep -Fq 'request actor=%s target=%s sequence=%u clientItems=%u'
+strings "$server_game_archive" | grep -Fq 'ignored as a retired NGE progression command'
 strings "$binary" | grep -Fq '_pvpSetPrecuFactionRank'
 file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
 '@

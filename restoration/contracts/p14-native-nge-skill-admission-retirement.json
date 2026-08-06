@@ -1,12 +1,33 @@
 {
   "schemaVersion": 1,
-  "feature": "native-nge-skill-admission-retirement",
-  "status": "ready",
-  "scope": "Fail closed the native server expertise packet and player skill-grant surfaces so retained NGE class and expertise rows cannot bypass the Publish 14.1 Java progression boundary.",
+  "feature": "native-nge-skill-and-command-admission-retirement",
+  "status": "implemented-build-verified-live-pending",
+  "scope": "Fail closed the native server expertise packet, player skill-grant surfaces, and blank-ability commands owned only by retired NGE class/expertise rows so they cannot bypass the Publish 14.1 progression boundary.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
-    "core3Boundary": "The pinned Publish 14.1 Core3 tree has no expertise request protocol, expertise point pool, or singular class skill progression.",
-    "retainedCompatibilityBoundary": "Expertise cleanup helpers remain available for removing persisted later-era rows, but player admission fails closed at both packet dispatch and authoritative skill grant."
+    "core3Boundary": "The pinned Publish 14.1 Core3 tree has no expertise request protocol, expertise point pool, singular class skill progression, Beast Master DNA collection, Chronicles Ventriloquism, NGE bounty check, NGE Force-sensitive taunt, or entertainer expertise buff packages.",
+    "retainedCompatibilityBoundary": "Expertise cleanup helpers and later-content NPC/data compatibility remain available. Player admission fails closed at packet dispatch, authoritative skill grant, and the exact blank-ability later-era command boundary, while PRE-CU groupdance and imagedesign remain admitted."
+  },
+  "diagnosis": {
+    "retiredSkillCommands": 535,
+    "retainedSkillCommands": 1000,
+    "retiredOnlyCommands": 464,
+    "retiredOnlyBlankAbilityCommands": 11,
+    "retiredPlayerCommands": [
+      "bm_collect_dna",
+      "bountycheck",
+      "chroniclerVentriloquism",
+      "en_flush_with_success_buff_package",
+      "en_go_with_the_flow_buff_package",
+      "en_harvest_faire_buff_package",
+      "en_healer_buff_package",
+      "en_second_chance_buff_package",
+      "fs_taunt"
+    ],
+    "retainedPreCuExceptions": [
+      "groupdance",
+      "imagedesign"
+    ]
   },
   "expected": {
     "nativeExpertiseMessagesDispatched": false,
@@ -14,24 +35,32 @@
     "combatLevelDerivedExpertisePoints": 0,
     "playerClassSkillAdmission": false,
     "playerExpertiseSkillAdmission": false,
+    "blankAbilityNgeCommandAdmission": false,
+    "preCuGroupDanceAdmissionAffected": false,
+    "preCuImageDesignAdmissionAffected": false,
     "npcSkillAdmissionAffected": false,
+    "npcAndServerCommandAdmissionAffected": false,
     "persistedExpertiseCleanupRetained": true
   },
   "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "nativeSourceCommit": "cce1193b0e895e0571d18163837d7d3a49d1b8f0",
+    "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
+    "dockerWorkVolume": "swg-precu-work-x64",
     "overlayPatch": "restoration/patches/src/341-p14-native-nge-skill-admission-retirement.patch",
     "overlayPatchBytes": 8609,
     "overlayPatchSha256": "2d758ea2ac8f10f75bbf6f2b5a6da3fc24ba52f46a6413ff0a5af1c99ffcf04c",
     "sourceSha256": {
       "Client.cpp": "195a43aeb640c8241a0633d2eb41e095e7a86d19d5e5d55f7922938490371b31",
-      "CreatureObject.cpp": "0320f2b990362b9ceb0b8f231945221e9cdd518f7c48453a6be4e0d033252fec"
+      "CreatureObject.cpp": "a91fe24aec17bfe2c8b6a23d7233c2d5f3d75ab0a8ae3fb1690eb7c97e777954"
     },
-    "cppCompile": "passed",
+    "cppCompile": "pending",
     "architecture": "x86-64",
     "serverBinarySha256": "a3de42092e9b81e278758551699c011b50040f4e2c226fa8626e3119fcffb432",
     "serverGameArchiveSha256": "600ff687dc4bab74df04e3f778a9959db8e950bbb0f19a5d079ebfc6f0edd166"
   },
   "runtimeEvidence": {
-    "result": "passed",
+    "result": "pending",
     "container": "swg-precu",
     "containerStartedAt": "2026-08-01T07:30:37.215070542Z",
     "serverProcessId": 365,
@@ -39,8 +68,12 @@
     "sourceAndBuildVolumeMatch": true,
     "liveBinaryMatchesBuild": true,
     "clusterReady": true,
-    "serverHealthy": true,
+    "serverHealthy": false,
     "fatalSevereExceptionCount": 0
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "clean x86-64 native compile",
+    "source/work-volume parity verification",
+    "healthy live cluster and clean startup-log audit"
+  ]
 }

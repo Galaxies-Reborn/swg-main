@@ -8,10 +8,27 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
 $root = (Resolve-Path -LiteralPath $SourceRoot).Path
+Import-Module (Join-Path $PSScriptRoot "Restoration.Common.psm1") -Force
+$manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw | ConvertFrom-Json
+$contractPath = Join-Path $restorationRoot "contracts/p14-native-nge-skill-admission-retirement.json"
+$contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $clientPath = Join-Path $root "src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 $creaturePath = Join-Path $root "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
+$skillsPath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+$commandTablePath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 $client = Get-Content -LiteralPath $clientPath -Raw
 $creature = Get-Content -LiteralPath $creaturePath -Raw
+
+$srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
+$checkedOutSrcCommit = (& git -C (Join-Path $root "src") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or
+    [string]$manifest.sourceMode -cne "direct-branch" -or
+    $srcPin.Count -ne 1 -or
+    [string]$srcPin[0].commit -cne [string]$contract.buildEvidence.nativeSourceCommit -or
+    $checkedOutSrcCommit -cne [string]$contract.buildEvidence.nativeSourceCommit)
+{
+    throw "The native NGE admission contract is not pinned to the checked-out direct source revision."
+}
 
 function Get-BracedSurface
 {
@@ -72,6 +89,71 @@ foreach ($required in @('find("class_") == 0', 'skillName == "expertise"', 'find
     if (-not $nameGuard.Contains($required)) { throw "NGE skill-name guard is incomplete: $required" }
 }
 
+$skills = @(Import-SwgTab -Path $skillsPath)
+$commandRows = @(Import-SwgTab -Path $commandTablePath)
+$retiredCommands = @{}
+$retainedCommands = @{}
+foreach ($skill in $skills)
+{
+    $skillName = [string]$skill.NAME
+    $isRetired = $skillName.StartsWith("class_", [StringComparison]::Ordinal) -or
+        $skillName -ceq "expertise" -or
+        $skillName.StartsWith("expertise_", [StringComparison]::Ordinal) -or
+        $skillName.StartsWith("internal_expertise_", [StringComparison]::Ordinal)
+    foreach ($commandName in @(([string]$skill.COMMANDS -split ',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }))
+    {
+        if ($isRetired) { $retiredCommands[$commandName] = $true }
+        else { $retainedCommands[$commandName] = $true }
+    }
+}
+$retiredOnly = @($retiredCommands.Keys | Where-Object { -not $retainedCommands.ContainsKey($_) } | Sort-Object)
+$retiredOnlySet = @{}
+foreach ($commandName in $retiredOnly) { $retiredOnlySet[$commandName] = $true }
+$blankAbility = @($commandRows | Where-Object {
+    $retiredOnlySet.ContainsKey([string]$_.commandName) -and
+    [string]::IsNullOrWhiteSpace([string]$_.characterAbility)
+})
+$blankAbilityNames = @($blankAbility.commandName | Sort-Object)
+$retiredPlayerCommands = @($contract.diagnosis.retiredPlayerCommands | ForEach-Object { [string]$_ } | Sort-Object)
+$retainedPreCuExceptions = @($contract.diagnosis.retainedPreCuExceptions | ForEach-Object { [string]$_ } | Sort-Object)
+$classifiedBlankAbilityNames = @(($retiredPlayerCommands + $retainedPreCuExceptions) | Sort-Object)
+if ($retiredCommands.Count -ne [int]$contract.diagnosis.retiredSkillCommands -or
+    $retainedCommands.Count -ne [int]$contract.diagnosis.retainedSkillCommands -or
+    $retiredOnly.Count -ne [int]$contract.diagnosis.retiredOnlyCommands -or
+    $blankAbility.Count -ne [int]$contract.diagnosis.retiredOnlyBlankAbilityCommands -or
+    ($blankAbilityNames -join ([char]0)) -cne ($classifiedBlankAbilityNames -join ([char]0)))
+{
+    throw "The NGE-only blank-ability command inventory changed or is incompletely classified."
+}
+
+$commandGuard = Get-BracedSurface -Text $creature -Signature "bool isRetiredNgeProgressionCommandName"
+foreach ($commandName in $retiredPlayerCommands)
+{
+    if (-not $commandGuard.Contains('commandName == "' + $commandName + '"'))
+    {
+        throw "Retired blank-ability command is not denied: $commandName"
+    }
+}
+foreach ($commandName in $retainedPreCuExceptions)
+{
+    if ($commandGuard.Contains('"' + $commandName + '"'))
+    {
+        throw "Retained PRE-CU command was added to the native deny set: $commandName"
+    }
+}
+
+$warmup = Get-BracedSurface -Text $creature -Signature "void CreatureObject::doWarmupChecks"
+$retiredCommandAdmission = 'isPlayerControlled() && CreatureObjectNamespace::isRetiredNgeProgressionCommandName(command.m_commandName)'
+$abilityAdmission = 'isPlayerControlled() && command.m_characterAbility.size() && !hasCommand(command.m_characterAbility)'
+if (-not $warmup.Contains($retiredCommandAdmission) -or
+    -not $warmup.Contains('ignored as a retired NGE progression command') -or
+    -not $warmup.Contains('status = Command::CEC_Ability;') -or
+    $warmup.IndexOf($retiredCommandAdmission, [StringComparison]::Ordinal) -gt
+        $warmup.IndexOf($abilityAdmission, [StringComparison]::Ordinal))
+{
+    throw "Native NGE command admission does not fail closed before the blank character-ability bypass."
+}
+
 $grant = Get-BracedSurface -Text $creature -Signature "const bool CreatureObject::grantSkill"
 foreach ($required in @("isPlayerControlled()", "isRetiredNgeProgressionSkillName", "return false;"))
 {
@@ -107,8 +189,6 @@ if (-not $creature.Contains("bool CreatureObject::clearAllExpertises()"))
 
 if ($Expectation -eq "Ready")
 {
-    $contractPath = Join-Path $restorationRoot "contracts/p14-native-nge-skill-admission-retirement.json"
-    $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
     if ($contract.status -ne "ready" -or
         $contract.buildEvidence.cppCompile -ne "passed" -or
         $contract.buildEvidence.architecture -ne "x86-64" -or
