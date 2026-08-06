@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, preserve authored three-pool HAM costs, remove the residual Force Sensitive alacrity side effect from shared glancing resolution, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, remove the residual Force Sensitive alacrity side effect from shared glancing resolution, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -14,6 +14,8 @@
       "Publish 14.1 attack admission, primary accuracy, secondary defense, and HAM costs are skill-, weapon-, posture-, and command-authored rather than expertise-driven.",
       "All retained profession and NPC combat actions are already authenticated by precu_combat_overrides.tab, and every row supplies an explicit target pool and PRE-CU HAM-cost model.",
       "The previous dispatcher could select the inherited NGE hit tables through a fallback sentinel even after entering PRE-CU resolution; current complete family profiles made that unlikely, but the control-flow boundary was not fail-closed.",
+      "Pinned Core3 builds primary defense and weapon-matched secondary defense exclusively from named skill modifiers, private modifiers, posture, and Center of Being; it does not seed either calculation from combat level.",
+      "The inherited Java hit engine performed two unused combat-level reads on every damaging attack and seeded both authenticated PRE-CU defense calculations with defender combat level, giving an NGE statistic direct authority over hit and secondary-defense outcomes.",
       "Single-target PRE-CU actions reached the inherited success-based free-shot helper after their authored HAM cost was calculated, allowing five NGE freeshot skill modifiers to replace the cost with zero.",
       "Area costs remain drained once before the hit engine; their per-defender success-cost result must remain zero to prevent duplicate drains.",
       "The authenticated Publish-era stripped-skillmod corpus has SHA-256 b2520748b03006faef7357372ea1e7eb7adbe5e52a8abd34db604b48a3e513a3 and contains zero display_only_* combat-stat keys.",
@@ -35,6 +37,9 @@
     "authenticatedRowsWithExplicitTargetPool": 163,
     "ngeFreeshotModifierReadsBypassedForPrecu": 5,
     "precuAndNgeHitDispatchMutuallyExclusive": true,
+    "hitEngineCombatLevelReads": 0,
+    "precuPrimaryDefenseCombatLevelReads": 0,
+    "precuSecondaryDefenseCombatLevelReads": 0,
     "postNgeCommandoHeavyWeaponPlayerBonusesRetired": true,
     "precuFallbackFailsClosedToHit": true,
     "singleTargetPrecuCostUsesAuthoredHam": true,
@@ -90,11 +95,11 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "5d0ee2951fc677476fa36184816c8e7884bfab66",
+    "directSourceGitlink": "01ea83fd570746f6b499a770190644fd378f63df",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "4e3efd9e68cf583437b88e52cca75f7d132f4b6ee0f9abbfffa8e2de0ed86c4b",
-      "combatBase": "e53d575ae9b3f22a22d8bbbf1447da4509fde237b59f527758dda20949dfe843",
+      "combatBase": "eee709c20eed688765759fd8cf46b307a49591a63c2b8fbe5febf5a35f4eb33d",
       "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf",
       "basePlayer": "bd61440058f9f3778290b8ef9167fe6fc05450a95e4f6f5f82cac950d4db78a6",
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
@@ -115,19 +120,19 @@
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
-    "focusedCombatBaseClassSha256": "fcd7f5803d041c324f0756a3977e0e6bc6c05724611f27a82de32e3ce1c936d4",
-    "focusedCombatBaseClassBytes": 125197,
-    "sourceTest": "passed; PRE-CU hit, damage, hate, HAM, stance, shield, meditation, and glancing boundaries remain authoritative; the NGE Commando default-heavy free-cost, devastation, and passive-DOT path is absent",
-    "focusedJavaCompile": "passed current combat.java, heavyweapons.java, and combat_base.java with Java 8 target in an ephemeral /dev/shm directory removed immediately",
+    "focusedCombatBaseClassSha256": "9ab311fd7d9869d28cb823b97830c23007ff84a913b3ddd7a50ca4828bad9dc7",
+    "focusedCombatBaseClassBytes": 125081,
+    "sourceTest": "pending updated contract execution; source inspection confirms authenticated PRE-CU primary and secondary defense no longer reads combat level, while the NGE-only damage branch remains bounded",
+    "focusedJavaCompile": "passed current combat_base.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately",
     "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed; canonical clean Docker x86-64 deployment completed from pushed parent bdb8934 and direct dsrc 5d0ee2951fc677476fa36184816c8e7884bfab66, followed by corrected-probe verification and restart",
+    "fullServerBuild": "passed; canonical clean Docker x86-64 deployment completed from pushed parent bdb8934 and direct dsrc 01ea83fd570746f6b499a770190644fd378f63df, followed by corrected-probe verification and restart",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "sourceWorkParity": "passed byte-for-byte for all combat expertise sources between the read-only direct-source mount and Docker work volume",
     "bytecodeAudit": "passed; deployed combat classes retain PRE-CU glancing/damage/hate routes, omit NGE alacrity and Commando free-cost/devastation/passive-DOT symbols, and guard the retained non-player heavy-weapon resolver before getLevel",
     "deploymentProbe": "passed expanded preflight, source/work parity, bytecode, x64, readiness, mapped-binary, and clean-log verification",
-    "result": "passed"
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-05",
@@ -160,12 +165,15 @@
       "SwgGameServer": 15
     },
     "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "superseded-pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU hit-result, action-cost, damage, hate, and skill-owned heavy-weapon command dispatch cannot cross into inherited NGE expertise, alacrity, Commando devastation, or automatic passive-DOT authority; cleanup paths cannot recreate retired NGE player state",
-    "preserved": "Core3 primary and secondary defense, authored three-pool costs, one-time area cost draining, PRE-CU block/dodge/counter/ricochet, Center of Being and ordinary PRE-CU skill buffs, all twenty-two display cleanup callbacks, retained buff rows/icons and NPC compatibility metadata, and all expansion quests/zones",
+    "closedInThisMilestone": "authenticated PRE-CU hit-result, primary defense, secondary defense, action-cost, damage, hate, and skill-owned heavy-weapon command dispatch cannot cross into inherited NGE combat level, expertise, alacrity, Commando devastation, or automatic passive-DOT authority; cleanup paths cannot recreate retired NGE player state",
+    "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based primary and secondary defense; authored three-pool costs; one-time area cost draining; PRE-CU block/dodge/counter/ricochet; ordinary PRE-CU skill buffs; all twenty-two display cleanup callbacks; retained buff rows/icons and NPC compatibility metadata; and all expansion quests/zones",
     "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Run the canonical clean x64 deployment from direct dsrc 01ea83fd570746f6b499a770190644fd378f63df and authenticate the rebuilt combat_base.class.",
+    "Verify healthy player-ready runtime, mapped-binary identity, clean post-start logs, and source/work parity."
+  ]
 }

@@ -75,6 +75,10 @@ $successCost = Get-BracedBlock $combatLibrary `
     "public static int[] getSuccessBasedSingleTargetActionCost("
 $hitEngine = Get-BracedBlock $combatBase `
     "public hit_result[] runHitEngine(attacker_data attackerData, weapon_data weaponData, defender_data[] defenderData, attacker_results attackerResults, defender_results[] defenderResults, combat_data actionData, boolean isTangibleAttacking, boolean isAutoAiming, int overloadDamage)"
+$primaryHitChance = Get-BracedBlock $combatBase `
+    "public float getPrecuPrimaryHitChance("
+$secondaryDefense = Get-BracedBlock $combatBase `
+    "public int getPrecuSecondaryDefenseResult("
 $glancingResolution = Get-BracedBlock $hitEngine `
     "if (hitData[i].glancing)"
 
@@ -114,6 +118,19 @@ Assert-Contract ($hitEngine.Contains("precuPrimaryResult = HIT_RESULT_HIT;") -an
     $hitEngine.Contains("precuSecondaryResult = HIT_RESULT_HIT;") -and
     -not $hitEngine.Contains("precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ?")) `
     "p14.combat-expertise-isolation.hit.precu-fallback-fails-closed"
+Assert-Contract (([regex]::Matches($hitEngine, '\bgetLevel\s*\(')).Count -eq
+        [int]$contract.expected.hitEngineCombatLevelReads -and
+    ([regex]::Matches($primaryHitChance, '\bgetLevel\s*\(')).Count -eq
+        [int]$contract.expected.precuPrimaryDefenseCombatLevelReads -and
+    ([regex]::Matches($secondaryDefense, '\bgetLevel\s*\(')).Count -eq
+        [int]$contract.expected.precuSecondaryDefenseCombatLevelReads -and
+    $primaryHitChance.Contains("int defenseSkillValue = 0;") -and
+    $primaryHitChance.Contains(
+        "getEnhancedSkillStatisticModifierUncapped(defenderData.id, defenseSkill)") -and
+    $secondaryDefense.Contains("int evadeSkill = 0;") -and
+    $secondaryDefense.Contains(
+        "getEnhancedSkillStatisticModifierUncapped(defenderData.id, secondaryDefenseSkill)")) `
+    "p14.combat-expertise-isolation.hit.combat-level-defense-seeding-retired"
 Assert-Contract ($hitEngine.Contains("if (!precuAuthoritativeAttack)") -and
     [bool]$contract.expected.postNgeCommandoHeavyWeaponPlayerBonusesRetired -and
     -not $hitEngine.Contains("combat.getDevastationChance") -and
