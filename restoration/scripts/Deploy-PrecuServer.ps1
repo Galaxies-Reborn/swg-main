@@ -1486,10 +1486,15 @@ invis_buff_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/p
 printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff'
 printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'invisBuffAdded'
-# Authenticated PRE-CU DOTs persist their era route through every pulse while
-# later-content compatibility callers retain the inherited DOT path.
-javap -classpath "$class_root" -v script.library.dot | grep -Fq 'applyPrecuDotEffect'
-javap -classpath "$class_root" -v script.library.dot | grep -Fq '.precuAuthoritative'
+# Every retained ground DOT now resolves through the same PRE-CU application
+# and pulse path; no divergent era marker or NGE DOT modifier survives.
+dot_bytecode="$(javap -classpath "$class_root" -v script.library.dot)"
+printf '%s' "$dot_bytecode" | grep -Fq 'applyPrecuDotEffect'
+! printf '%s' "$dot_bytecode" | grep -Fq '.precuAuthoritative'
+! printf '%s' "$dot_bytecode" | grep -Fq 'expertise_dot_'
+! printf '%s' "$dot_bytecode" | grep -Fq 'dot_vulnerability_'
+! printf '%s' "$dot_bytecode" | grep -Fq 'combat_multiply_damage_'
+! printf '%s' "$dot_bytecode" | grep -Fq 'combat_divide_damage_'
 javap -classpath "$class_root" -v script.library.healing | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'applyPrecuDotEffect'
