@@ -1603,6 +1603,19 @@ printf '%s' "$meditation_tick_bytecode" | grep -Fq 'messageTo'
 javap -classpath "$class_root" -v script.player.skill.performcommands | grep -Fq 'isPostNgeBuffProgressionRetired'
 javap -classpath "$class_root" -v script.player.skill.performcommands | grep -Fq 'retirePostNgeBuffProgression'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'isPostNgeBuffProgressionRetired'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostNgeGcwConsumableBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeGcwConsumableBuffState'
+for retired_gcw_consumable_buff in tcg_series3_hh_15_torpedo_warhead tcg_series7_rocket_launcher gcw_mini_turret gcw_rocket_turret; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_gcw_consumable_buff"
+done
+gcw_bonus_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int gcwBonusGeneralAddBuffHandler/,/public int gcwBonusGeneralRemoveBuffHandler/p')"
+printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
+printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/utils.removeScriptVarTree'
+test "$(printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fn 'script/library/buff.isPostNgeBuffProgressionRetired' | head -n 1 | cut -d: -f1)" -lt "$(printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fn 'script/library/utils.setScriptVar' | head -n 1 | cut -d: -f1)"
+gcw_mini_turret_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int gcwMiniTurretAddBuffHandler/,/public int gcwMiniTurretRemoveBuffHandler/p')"
+printf '%s' "$gcw_mini_turret_handler_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
+printf '%s' "$gcw_mini_turret_handler_bytecode" | grep -Fq 'script/library/buff.removeBuff'
+test "$(printf '%s' "$gcw_mini_turret_handler_bytecode" | grep -Fn 'script/library/buff.isPostNgeBuffProgressionRetired' | head -n 1 | cut -d: -f1)" -lt "$(printf '%s' "$gcw_mini_turret_handler_bytecode" | grep -Fn 'script/library/advanced_turret.createTurret' | head -n 1 | cut -d: -f1)"
 javap -classpath "$class_root" -v script.systems.buff_builder.buff_builder_cancel | grep -Fq 'retirePostNgeBuffProgression'
 javap -classpath "$class_root" -v script.systems.buff_builder.buff_builder_response | grep -Fq 'retirePostNgeBuffProgression'
 javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeBuffProgression'

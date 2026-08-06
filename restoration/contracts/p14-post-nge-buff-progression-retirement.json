@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
-  "status": "ready",
-  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, and random fs_meditate_* bonuses without removing later-content data compatibility or the restored Publish 14.1 entertainer and Teras Kasi lifecycles.",
+  "status": "implemented-build-pending",
+  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, and autonomous GCW consumable turrets without removing later-content data compatibility or the restored Publish 14.1 entertainer and Teras Kasi lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -17,7 +17,9 @@
       "Publish 14.1 awards explicit profession XP types from combat, crafting, and performance activity rather than scaling them from an NGE 1-90 player level.",
       "Later buff rows and effect mappings remain compatibility data so retained expansion assets can load while their post-NGE progression handlers fail closed.",
       "Pinned Publish 14.1 Teras Kasi meditation reduces DOT strength and heals wounds; the inherited every-third-tick Force Sensitive branch that randomly granted fs_meditate_* expertise, resource-quality, or modified-primary-stat bonuses is retired.",
-      "The retained GCW banner's nine Roadmap class buffs apply NGE modified primaries, Luck, expertise modifiers, or a proc attack absent from pinned Publish 14.1 and therefore remain data-only compatibility rows."
+      "The retained GCW banner's nine Roadmap class buffs apply NGE modified primaries, Luck, expertise modifiers, or a proc attack absent from pinned Publish 14.1 and therefore remain data-only compatibility rows.",
+      "The retained TCG HH-15 and rocket-launcher consumables grant post-NGE percentage GCW-point bonuses rather than a Publish 14.1 faction-point rule and now remain non-consuming compatibility items.",
+      "The retained mini-turret consumable handlers create autonomous 250-500 damage, 5000-health faction turrets from later GCW content; their item and buff rows remain loadable while player admission and turret creation fail closed."
     ]
   },
   "expected": {
@@ -45,12 +47,26 @@
       "banner_buff_entertainer"
     ],
     "retainedGcwBannerBuffRows": 9,
+    "retiredGcwConsumableBuffCount": 4,
+    "retiredGcwConsumableBuffs": [
+      "tcg_series3_hh_15_torpedo_warhead",
+      "tcg_series7_rocket_launcher",
+      "gcw_mini_turret",
+      "gcw_rocket_turret"
+    ],
+    "retainedGcwConsumableBuffRows": 4,
+    "retainedGcwConsumableClickItems": 3,
+    "postNgeGcwConsumableBuffAdmissionReachable": false,
+    "postNgeMiniTurretCreationReachable": false,
+    "gcwConsumableItemsDecrementedOnRejectedUse": false,
+    "staleGcwBonusGeneralStateScrubbed": true,
     "randomMeditationTickGrantRetired": true,
     "retiredScriptVarTrees": [
       "performance.buildabuff",
       "buff.xpBonus",
       "buff.xpBonusGeneral",
-      "buff.general_inspiration"
+      "buff.general_inspiration",
+      "buff.gcwBonusGeneral"
     ],
     "retiredBuilderScripts": [
       "systems.buff_builder.buff_builder_response",
@@ -71,48 +87,48 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "0bbd543ce0fea0db15b8428759384dc5baa5ff83",
+    "directSourceGitlink": "5d8f77584335933d6c5da418bb74bad86ab34ea8",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "a9ae70700df8babd4c2ab8331a799f7bf2645fca897966e1d1bffe903f329624",
+    "sourceContentSha256": "67f80aca9b4078aa786727d4b721e0acd18ccf3431ba08725d14718a9a643f6d",
     "sourceSha256": {
-      "library/buff.java": "661bcae50837f2429eca1edd2ee594ff2a50291cb80eab19d8281050603fb518",
+      "library/buff.java": "e56bb357e5fe1193bc63a34bea6e6c9bbe65725a0d6256831ba42adc7caed424",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "5f59b224758477a9414231f3d3b132dd52ca8d074b86de86ce288109ad7bf55d",
       "player/base/base_player.java": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744",
       "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
-      "systems/buff/buff_handler.java": "e746c0b234dce3b2c721ed246a0c0a0fe3eaaf1109a0fa7abd08180d64dbc266",
+      "systems/buff/buff_handler.java": "0fa8bb688bade0eb534d24381088fa0df16ece25c5fbab497f5eb0687d4fe820",
       "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
       "systems/crafting/crafting_base.java": "de35b9d30117847130799743e3998dda6065971fae28e04f01d24d4310f5e83b"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct source now also retires the exact NGE invis_fs_buff_invis_1 player state before its invisibility callback while preserving authentic invis_forceCloak and NPC/content compatibility.",
+    "currentSourceEvidenceRefreshedBy": "Direct source now also rejects the exact four retained post-NGE GCW consumable buffs before generic click-item consumption, scrubs stale GCW multiplier state, and dominates autonomous mini-turret creation while preserving later-content compatibility rows and items.",
     "compiledClassSha256": {
-      "script.library.buff": "bdb8c5265e1cd0ea87d7578da580a8225612462331944295fe4dbf3ca9202938",
+      "script.library.buff": "ffc2a07538c6c75c940243fb926d3b71118200d56765ca1e746a8067b0c98490",
       "script.library.gcw": "5d3b118df19cce0fca60b773b24b04ac71f4c9caafb5189d60805a8f80284b7d",
       "script.library.xp": "42652073fafbd2c9f3ce69333575380900cf89317fd4c43be745f42d90e915f8",
       "script.player.base.base_player": "679ff45e383063d6e556b834e4c842931d9fc1a4ce703cdb27e643f4eb2e2930",
       "script.player.skill.performcommands": "5dc70349b8a928421c9f3b8ec46d0dd709f08754b830ea52b48861783d694c40",
-      "script.systems.buff.buff_handler": "92dddf5859e3ebc317f9fe33afc3999efce0a9811c7ba96bd582e177f9a67c27",
+      "script.systems.buff.buff_handler": "a6c044507c17d56151403d82ea031406401f165fce99f6a8929113b892a66bea",
       "script.systems.buff_builder.buff_builder_cancel": "23f8a8d9104312ee086af63b50bcd9d463c9e05a311bf11786a4792a77d7b0db",
       "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
       "script.systems.crafting.crafting_base": "f6f180466a08ec577270760d7a483633420bc11f64c776f9c88f9d19ca1dd148"
     },
-    "staticContract": "passed against the direct source; exact meditation and nine-name GCW banner cleanup, retired random grants/procs, fail-closed generic admission, compatibility data, PRE-CU entertainer/Teras Kasi lifecycles, independent Bounty Hunter shield and Force Sensitive stance/focus closure, and mission continuity authenticated",
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
+    "staticContract": "passed against the direct source; exact meditation, nine-name GCW banner, and four-name GCW consumable cleanup; retired random grants/procs and autonomous turrets; fail-closed generic admission before item decrement; compatibility data; PRE-CU entertainer/Teras Kasi lifecycles; independent Bounty Hunter shield and Force Sensitive stance/focus closure; and mission continuity authenticated",
+    "fullJavaCompile": "pending canonical clean materialization; isolated Java 8 compilation of library/buff.java and systems/buff/buff_handler.java passed against the deployed x64 class root",
     "cleanMaterializationPatches": 413,
     "cleanMaterializationAcceptanceFiles": 1170,
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
-    "materializedBuild": "passed in 764.9 seconds from pushed parent 9b3e6ba and direct dsrc 1ebf093 in Docker volume swg-precu-work-x64; host materialization remains retired",
+    "materializedBuild": "pending canonical x64 deployment from the pushed parent checkpoint and direct dsrc 5d8f77584335933d6c5da418bb74bad86ab34ea8; host materialization remains retired",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "deploymentProbe": "passed exact NGE Force Cloak state source/bytecode gates plus x64 architecture, readiness, mapped-binary, and clean-log verification",
-    "result": "passed"
+    "deploymentProbe": "pending exact GCW consumable source/work parity and deployed bytecode gates plus x64 architecture, readiness, mapped-binary, and clean-log verification",
+    "result": "pending canonical x64 deployment"
   },
   "continuityEvidence": {
     "precuAttributeBuffSession": "Mind/Focus/Willpower accumulation and stop-watch/stop-listen activation remain in library/performance.java and its live fixture.",
@@ -157,11 +173,16 @@
       "playerReadyMarkers": 1,
       "fatalSevereExceptionMissionErrorOrEmptyGenericMessageMatches": 0
     },
-    "result": "passed"
+    "result": "previous deployment remains healthy; refreshed GCW consumable classes pending canonical x64 deployment"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, GCW buff multipliers, persisted random fs_meditate_* bonuses, and the nine NGE Roadmap GCW banner buffs",
+    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, GCW buff multipliers and consumables, autonomous GCW consumable turrets, persisted random fs_meditate_* bonuses, and the nine NGE Roadmap GCW banner buffs",
     "notClaimedComplete": "ordinary non-progression effects in composite retained buffs, retained GCW commlink behavior, beasts and familiars, transition compatibility, stealth and theft systems beyond their generic lucky proc, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Commit and push the synchronized parent build-pending checkpoint.",
+    "Run the canonical clean x64 deployment from that pushed parent checkpoint.",
+    "Authenticate deployed GCW consumable cleanup/admission and mini-turret handler bytecode, source/work parity, process topology, readiness, and post-start logs.",
+    "Record ready evidence and push the parent checkpoint."
+  ]
 }

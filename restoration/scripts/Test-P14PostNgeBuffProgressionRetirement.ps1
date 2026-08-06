@@ -110,6 +110,12 @@ $bannerInventoryBody = Get-SourceSlice $buffText `
     "public static boolean isRetiredPostNgeGcwBannerBuff"
 $bannerCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgeGcwBannerBuffState" `
+    "private static final String[] RETIRED_POST_NGE_GCW_CONSUMABLE_BUFFS"
+$gcwConsumableInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_GCW_CONSUMABLE_BUFFS" `
+    "public static boolean isRetiredPostNgeGcwConsumableBuff"
+$gcwConsumableCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgeGcwConsumableBuffState" `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
 $buffAdmissionBody = Get-SourceSlice $buffText `
     "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
@@ -142,6 +148,18 @@ Assert-Contract ($actualBannerBuffs.Count -eq [int]$contract.expected.retiredGcw
     $cleanupBody.Contains("retirePostNgeGcwBannerBuffState(player);") -and
     (Is-Before $buffAdmissionBody "isRetiredPostNgeGcwBannerBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
     "p14.buff-progression.gcw-banner.player-state-retired"
+$expectedGcwConsumableBuffs = @($contract.expected.retiredGcwConsumableBuffs | Sort-Object)
+$actualGcwConsumableBuffs = @([regex]::Matches($gcwConsumableInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualGcwConsumableBuffs.Count -eq [int]$contract.expected.retiredGcwConsumableBuffCount -and
+    @($actualGcwConsumableBuffs | Select-Object -Unique).Count -eq $actualGcwConsumableBuffs.Count -and
+    (($actualGcwConsumableBuffs -join "`n") -ceq ($expectedGcwConsumableBuffs -join "`n")) -and
+    $gcwConsumableCleanupBody.Contains("isPlayer(player)") -and
+    $gcwConsumableCleanupBody.Contains("removeBuff(player, retiredBuff)") -and
+    $gcwConsumableCleanupBody.Contains('removeScriptVarTree(player, "buff.gcwBonusGeneral")') -and
+    $cleanupBody.Contains("retirePostNgeGcwConsumableBuffState(player);") -and
+    (Is-Before $buffAdmissionBody "isRetiredPostNgeGcwConsumableBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
+    "p14.buff-progression.gcw-consumable.player-state-and-admission-retired"
 Assert-Contract ([bool]$contract.expected.randomMeditationTickGrantRetired -and
     $meditationTickBody.Contains("meditation.trance(self)") -and
     $meditationTickBody.Contains("messageTo(self, meditation.HANDLER_MEDITATION_TICK") -and
@@ -153,7 +171,8 @@ Assert-Contract ([bool]$contract.expected.randomMeditationTickGrantRetired -and
     "p14.buff-progression.meditation.random-tick-grant-retired"
 foreach ($tree in @($contract.expected.retiredScriptVarTrees))
 {
-    Assert-Contract ($cleanupBody.Contains("removeScriptVarTree(player, `"$tree`")")) "p14.buff-progression.cleanup.scriptvar.$tree"
+    Assert-Contract (($cleanupBody + $gcwConsumableCleanupBody).Contains("removeScriptVarTree(player, `"$tree`")")) `
+        "p14.buff-progression.cleanup.scriptvar.$tree"
 }
 foreach ($scriptName in @($contract.expected.retiredBuilderScripts))
 {
@@ -211,6 +230,8 @@ $handlerText = [string]$sourceTexts["systems/buff/buff_handler.java"]
 $xpBonusBody = Get-SourceSlice $handlerText "public int xpBonusGeneralAddBuffHandler" "public int xpBonusGeneralRemoveBuffHandler"
 $xpGrantBody = Get-SourceSlice $handlerText "public int xpGrantedGeneralAddBuffHandler" "public int xpGrantedGeneralRemoveBuffHandler"
 $buildBody = Get-SourceSlice $handlerText "public int buildabuffAddBuffHandler" "public int buildabuffRemoveBuffHandler"
+$gcwBonusBody = Get-SourceSlice $handlerText "public int gcwBonusGeneralAddBuffHandler" "public int gcwBonusGeneralRemoveBuffHandler"
+$gcwMiniTurretBody = Get-SourceSlice $handlerText "public int gcwMiniTurretAddBuffHandler" "public int gcwMiniTurretRemoveBuffHandler"
 Assert-Contract ((Is-Before $xpBonusBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $xpGrantBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $buildBody "buff.isPostNgeBuffProgressionRetired()" "performance.buildabuff.buffComponentKeys") -and
@@ -220,6 +241,14 @@ Assert-Contract ($xpBonusBody.Contains('removeScriptVarTree(self, "buff.xpBonusG
     $buildBody.Contains("buildabuffRemoveBuffHandler(") -and
     $buildBody.Contains('removeScriptVarTree(self, "performance.buildabuff")')) `
     "p14.buff-progression.handlers.cleanup"
+Assert-Contract ((Is-Before $gcwBonusBody "buff.isPostNgeBuffProgressionRetired()" 'setScriptVar(self, "buff.gcwBonusGeneral.value"') -and
+    $gcwBonusBody.Contains('removeScriptVarTree(self, "buff.gcwBonusGeneral")') -and
+    (Is-Before $gcwMiniTurretBody "buff.isPostNgeBuffProgressionRetired()" "advanced_turret.createTurret(") -and
+    $gcwMiniTurretBody.Contains("buff.removeBuff(self, buffName)") -and
+    -not [bool]$contract.expected.postNgeGcwConsumableBuffAdmissionReachable -and
+    -not [bool]$contract.expected.postNgeMiniTurretCreationReachable -and
+    [bool]$contract.expected.staleGcwBonusGeneralStateScrubbed) `
+    "p14.buff-progression.gcw-consumable.handlers-fail-closed"
 
 $xpText = [string]$sourceTexts["library/xp.java"]
 $applyXpBody = Get-SourceSlice $xpText "public static int applyInspirationBuffXpModifier" "public static float getGroupXpModifier"
@@ -251,10 +280,43 @@ $bannerRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
 Assert-Contract ($bannerRows.Count -eq [int]$contract.expected.retainedGcwBannerBuffRows -and
     ((@($bannerRows.NAME | Sort-Object) -join "`n") -ceq ($expectedBannerBuffs -join "`n"))) `
     "p14.buff-progression.compatibility.gcw-banner-rows-preserved"
+$gcwConsumableRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $_.NAME -in $expectedGcwConsumableBuffs })
+Assert-Contract ($gcwConsumableRows.Count -eq [int]$contract.expected.retainedGcwConsumableBuffRows -and
+    ((@($gcwConsumableRows.NAME | Sort-Object) -join "`n") -ceq ($expectedGcwConsumableBuffs -join "`n"))) `
+    "p14.buff-progression.compatibility.gcw-consumable-buff-rows-preserved"
 foreach ($mapping in @("buildabuff`t", "xp_bonus_general`t", "xp_granted_general`t", "tcg_xp_bonus`t", "tcg_xp_granted`t"))
 {
     Assert-Contract ($effectMap.Contains($mapping)) "p14.buff-progression.compatibility.effect.$($mapping.Trim())"
 }
+Assert-Contract ($effectMap.Contains("tcg_gcw_bonus`tgcwBonusGeneral`t") -and
+    $effectMap.Contains("gcw_mini_turret`tgcwMiniTurret`t")) `
+    "p14.buff-progression.compatibility.gcw-consumable-effect-mappings-preserved"
+
+$masterItemPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+$itemStatsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+$clickItemPath = Join-Path $scriptRoot "item/buff_click_item.java"
+$masterItemText = Get-Content -LiteralPath $masterItemPath -Raw
+$itemStatsText = Get-Content -LiteralPath $itemStatsPath -Raw
+$clickItemText = Get-Content -LiteralPath $clickItemPath -Raw
+$retainedGcwConsumableItems = @(
+    @{ item = "item_tcg_loot_reward_series3_hh_15_torpedo_warhead"; buff = "tcg_series3_hh_15_torpedo_warhead" },
+    @{ item = "item_tcg_loot_reward_series7_rocket_launcher"; buff = "tcg_series7_rocket_launcher" },
+    @{ item = "item_gcw_mini_turret_consumable"; buff = "gcw_mini_turret" }
+)
+$retainedClickItems = 0
+foreach ($entry in $retainedGcwConsumableItems)
+{
+    if ($masterItemText.Contains("$($entry.item)`t") -and
+        $itemStatsText.Contains("$($entry.item)`t") -and
+        $itemStatsText.Contains("`t$($entry.buff)`t")) { $retainedClickItems++ }
+}
+$clickUseBody = Get-SourceSlice $clickItemText "if (buff.canApplyBuff(player, buffName))" "return SCRIPT_CONTINUE;`r`n    }"
+Assert-Contract ($retainedClickItems -eq [int]$contract.expected.retainedGcwConsumableClickItems -and
+    (Is-Before $clickUseBody "if (buff.canApplyBuff(player, buffName))" "static_item.decrementStaticItem(self)") -and
+    $clickUseBody.Contains("else") -and $clickUseBody.Contains("CANT_APPLY_BUFF") -and
+    -not [bool]$contract.expected.gcwConsumableItemsDecrementedOnRejectedUse) `
+    "p14.buff-progression.compatibility.gcw-click-items-preserved-without-rejected-consumption"
 
 $performancePath = Join-Path $scriptRoot "library/performance.java"
 $performanceText = Get-Content -LiteralPath $performancePath -Raw
