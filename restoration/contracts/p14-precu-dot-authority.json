@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-dot-authority",
-  "status": "ready",
-  "scope": "Keep every retained ground damage-over-time effect, including expansion and buff-table content, under classic potency, dissipation, and absorption authority without allowing inherited NGE expertise, vulnerability, armor, generic damage, or repeat pulse-resistance layers to modify it.",
+  "status": "implemented-build-pending",
+  "scope": "Keep every retained ground damage-over-time effect, including expansion and buff-table content, under classic potency, dissipation, and absorption authority without allowing inherited NGE expertise, vulnerability, armor, generic damage, repeat pulse-resistance, universal/group DOT immunity, or full-damage-immunity layers to modify players.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -16,11 +16,12 @@
       "Publish 14.1 applies authored DOT strength after an application resistance check, reduces duration through the matching dissipation skill modifier, and reduces each pulse through the matching classic absorption modifier capped at 50 percent.",
       "The pinned Publish 14.1 implementation has no NGE DOT-increase expertise, DOT vulnerability, all-DOT expertise absorption, armor-derived DOT mitigation, generic multiply/divide-damage modifiers, or second resistance roll on every pulse.",
       "The inherited shared DOT library contained all of those later layers and was reachable from authenticated PRE-CU combat actions, restored Combat Medic poison/disease medicine, retained expansion actions, and buff-table pulse handlers.",
+      "The inherited buff framework also admitted later dot_resist_* and damage_immune modifiers, universal player DOT purges, and a second application-immunity consumer family absent from the pinned Publish 14.1 implementation.",
       "Retained quests, expansion zones, and compatibility callers keep their authored DOT type, strength, duration, effects, and messaging, but now resolve through the same Publish 14.1 application and pulse rules as original content."
     ]
   },
   "expected": {
-    "changedGameplaySourceFiles": 4,
+    "changedGameplaySourceFiles": 5,
     "classicAbsorptionFamilies": 6,
     "precuCombatDotCallSites": 1,
     "precuCombatMedicDotCallSites": 1,
@@ -38,6 +39,13 @@
     "ngeArmorMitigationRemaining": 0,
     "ngeGenericDamageModifiersRemaining": 0,
     "ngeRepeatPulseResistanceRemaining": 0,
+    "playerNgeDotImmunityModifierWritersRemaining": 0,
+    "playerNgeDotImmunityConsumersRemaining": 0,
+    "playerUniversalDotPurgeHandlersRemaining": 0,
+    "playerFullDamageImmunityIngressRemaining": 0,
+    "retainedNpcAndSpecificDotImmunityHandlers": 7,
+    "classicSpecificDotResistancePreserved": true,
+    "npcExpansionDotImmunityPreserved": true,
     "retainedExpansionDotTypesPreserved": true,
     "laterQuestsZonesAndContentPreserved": true
   },
@@ -45,34 +53,37 @@
     "dot": "dsrc/sku.0/sys.server/compiled/game/script/library/dot.java",
     "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
     "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
-    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "29ca23097bc8d1fa4b4b8f514e8d25a1489cf68b",
+    "directSourceGitlink": "0e750f699d681ae9bb20047ed23dedb98921ebe3",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
-      "dot": "908fe585669ce16b03e9eb24aeee8b26449c85d96fb8015bd7f05d28377029a3",
+      "dot": "c06e6b51984aa8625b0a2bb95b992e433b0427792c6f88e129b9796c44dc5b60",
       "healing": "a861348aea77fb61fee6e9e83de35eeb9fe2aa73b90f40196e5d2557587087f2",
       "combatBase": "d2cfdc97f1a706ea6c80b1f21088d541141e911b8298e64bb61f409ea709c33f",
-      "combatActions": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59"
+      "combatActions": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
+      "buffHandler": "267029a2b35f93617d3eef2f03e2f133e90476495fe31b70099f6f17f08df230"
     },
     "compiledClassSha256": {
-      "dot": "bbf1c63e292c32d7e4e1181cfabe16e6a8cd8cbed44ca1008db84850a3655181",
+      "dot": "pending",
       "healing": "31822f57b55a12b6d7abfa8b5793130a64149c22389f2d36ca2df59419cb9c48",
       "combatBase": "f7010f76d0f1a24cf209aee5aaf29e0fbb9e7710ecdcdbf80ae021953e73de98",
-      "combatActions": "6af380cf7957b2f754fdc75d56a14addd1fd787f8ae298fd385f6be593210b43"
+      "combatActions": "6af380cf7957b2f754fdc75d56a14addd1fd787f8ae298fd385f6be593210b43",
+      "buffHandler": "pending"
     },
-    "sourceTest": "passed; every public DOT helper and both combat branches use one Publish 14.1 resolution path, classic application resistance and six-family duration dissipation remain, all six normal and eight buff-table authored absorption families retain the 50-percent cap, and NGE DOT expertise, vulnerability, armor mitigation, generic damage modifiers, repeat pulse resistance, and the divergent era marker are absent",
-    "fullJavaCompile": "passed; 5713 Java sources produced 5747 classes after a complete dependency clean",
-    "fullServerBuild": "passed through the canonical Docker build workflow",
+    "sourceTest": "pending for the extended player DOT-immunity boundary",
+    "fullJavaCompile": "pending",
+    "fullServerBuild": "pending",
     "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
-    "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
-    "sourceWorkParity": "passed byte-for-byte for DOT/healing sources and both changed combat dependencies between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed in the full clean build; all four compiled classes are authenticated and the deployment probe requires the shared PRE-CU DOT entrypoint while rejecting the retired era marker and NGE DOT modifiers",
-    "deploymentProbe": "passed source parity, compiled bytecode, native symbol, ELF x64, guarded restart, live-binary mapping, and player-readiness checks",
-    "result": "passed"
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "sourceWorkParity": "pending",
+    "bytecodeAudit": "pending",
+    "deploymentProbe": "pending",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-06",
@@ -102,12 +113,17 @@
       "SwgGameServer": 15
     },
     "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
-    "result": "passed"
+    "result": "superseded-pending-redeploy"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all retained ground DOT creation and pulse processing, including buff-table and expansion callers, can no longer cross into inherited NGE DOT expertise, vulnerability, armor, generic damage, or repeat pulse-resistance authority",
-    "preserved": "classic application resistance, duration dissipation, full authored absorption with a 50-percent cap, DOT lifecycle and messaging, authenticated combat and Combat Medic call sites, profiled original creature callbacks, and retained later-content DOT types and effects",
+    "closedInThisMilestone": "all retained ground DOT creation and pulse processing, including buff-table and expansion callers, can no longer cross into inherited NGE DOT expertise, vulnerability, armor, generic damage, repeat pulse-resistance, universal/group DOT immunity, universal purge, or full-damage-immunity player authority",
+    "preserved": "classic specific application resistance and cures, duration dissipation, full authored absorption with a 50-percent cap, DOT lifecycle and messaging, authenticated combat and Combat Medic call sites, profiled original creature callbacks, retained later-content DOT types and effects, and NPC expansion immunity behavior",
     "notClaimedComplete": "direct non-DOT combat outcome expertise and other production-reachable NGE authority remain subject to later audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Commit and push the direct-source player DOT-immunity boundary.",
+    "Run the extended source contract and a clean full Java/server build.",
+    "Pass source/work parity, compiled-bytecode, x64 binary, guarded restart, and live player-readiness probes.",
+    "Record the new direct-source pin, compiled hashes, and live deployment evidence."
+  ]
 }

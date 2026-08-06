@@ -71,6 +71,7 @@ $dot = [string]$texts.dot
 $healing = [string]$texts.healing
 $combatBase = [string]$texts.combatBase
 $combatActions = [string]$texts.combatActions
+$buffHandler = [string]$texts.buffHandler
 $normalApply = Get-BracedBlock $dot `
     "public static boolean applyDotEffect(obj_id target, obj_id attacker, String type, String dot_id, int attribute, int potency, int strength, int duration, boolean verbose, String handler)"
 $precuApply = Get-BracedBlock $dot `
@@ -79,6 +80,10 @@ $application = Get-BracedBlock $dot `
     "private static boolean applyDotEffectInternal(obj_id target, obj_id attacker, String type, String dot_id, int attribute, int potency, int strength, int duration, boolean verbose, String handler)"
 $pulse = Get-BracedBlock $dot `
     "public static boolean applyDotDamage(obj_id target, String dot_id)"
+$applicationResistance = Get-BracedBlock $dot `
+    "public static boolean attemptDotResist(obj_id target, String type, int potency, boolean showResistFlytext)"
+$laterDotImmunity = Get-BracedBlock $dot `
+    "public static boolean checkForDotImmunity(obj_id target, String type)"
 
 Assert-Contract ($normalApply.Contains("applyDotEffectInternal") -and
     $normalApply.Contains("verbose, handler)") -and
@@ -100,6 +105,51 @@ Assert-Contract (([regex]::Matches($application,
 Assert-Contract (-not $dot.Contains("VAR_PRECU_AUTHORITATIVE") -and
     -not $application.Contains("precuAuthoritative")) `
     "p14.precu-dot.application.no-divergent-era-marker"
+Assert-Contract ($applicationResistance.Contains('"resistance_bleeding"') -and
+    $applicationResistance.Contains('"resistance_poison"') -and
+    $applicationResistance.Contains('"resistance_disease"') -and
+    $applicationResistance.Contains('"resistance_fire"') -and
+    -not $applicationResistance.Contains('"dot_resist_')) `
+    "p14.precu-dot.application.classic-specific-resistance-preserved"
+$playerImmunityGuard = $laterDotImmunity.IndexOf("if (isPlayer(target))", [StringComparison]::Ordinal)
+$laterDotModifierRead = $laterDotImmunity.IndexOf('"dot_resist_"', [StringComparison]::Ordinal)
+Assert-Contract ($playerImmunityGuard -ge 0 -and
+    $laterDotImmunity.IndexOf("return false;", $playerImmunityGuard, [StringComparison]::Ordinal) -gt
+        $playerImmunityGuard -and
+    $laterDotModifierRead -gt $playerImmunityGuard) `
+    "p14.precu-dot.application.player-later-immunity-consumer-retired"
+
+$dotImmunityPredicate = Get-BracedBlock $buffHandler `
+    "public boolean isRetiredNgeDotImmunityModifier(String modifierName)"
+$buffSkillPredicate = Get-BracedBlock $buffHandler `
+    "public boolean isRetiredNgeBuffSkillModifier(String modifierName)"
+$skillWriter = Get-BracedBlock $buffHandler `
+    "public int skillAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
+Assert-Contract ($dotImmunityPredicate.Contains('modifierName.equals("damage_immune")') -and
+    $dotImmunityPredicate.Contains('modifierName.startsWith("dot_resist_")') -and
+    $buffSkillPredicate.Contains("isRetiredNgeDotImmunityModifier(modifierName)") -and
+    $skillWriter.Contains("isRetiredNgeBuffSkillModifier(subtype)")) `
+    "p14.precu-dot.buff.player-later-immunity-writers-retired"
+
+$immunityHandler = Get-BracedBlock $buffHandler `
+    "public int immunityAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
+$universalPlayerGuard = $immunityHandler.IndexOf('isPlayer(self) && subtype.equals("dot_immunity") && wholeValue == IMMUNITY_TO_ALL_DOTS', [StringComparison]::Ordinal)
+$universalDotPurge = $immunityHandler.IndexOf('buff.performBuffDotImmunity(self, "all")', [StringComparison]::Ordinal)
+Assert-Contract ($universalPlayerGuard -ge 0 -and
+    $universalDotPurge -gt $universalPlayerGuard -and
+    ([regex]::Matches($immunityHandler, [regex]::Escape("buff.performBuffDotImmunity(self,"))).Count -eq
+        [int]$contract.expected.retainedNpcAndSpecificDotImmunityHandlers) `
+    "p14.precu-dot.buff.player-universal-purge-retired-specific-and-npc-preserved"
+
+$damageImmuneHandler = Get-BracedBlock $buffHandler `
+    "public int damageImmuneAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
+$damageImmunePlayerGuard = $damageImmuneHandler.IndexOf("if (isPlayer(self))", [StringComparison]::Ordinal)
+$damageImmunePurge = $damageImmuneHandler.IndexOf('buff.performBuffDotImmunity(self, "all")', [StringComparison]::Ordinal)
+Assert-Contract ($damageImmunePlayerGuard -ge 0 -and
+    $damageImmuneHandler.Contains('removeAttribOrSkillModModifier(self, "damageImmuneDotResistAll")') -and
+    $damageImmuneHandler.Contains('removeAttribOrSkillModModifier(self, "damageImmuneDamageImmune")') -and
+    $damageImmunePurge -gt $damageImmunePlayerGuard) `
+    "p14.precu-dot.buff.player-full-damage-immunity-ingress-retired"
 
 Assert-Contract ($pulse.Contains("absorption_mod > 50") -and
     $pulse.Contains("absorption_mod = 50") -and
@@ -189,7 +239,7 @@ if ($Expectation -eq "Ready")
 }
 else
 {
-    Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -contains
+    Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready-for-live-verification", "ready") -contains
         [string]$contract.status) "p14.precu-dot.source-status"
 }
 

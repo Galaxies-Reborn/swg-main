@@ -911,6 +911,13 @@ cmp -s "$source_reverse_engineering_library" "$work_reverse_engineering_library"
 cmp -s "$source_skill_mod_listing" "$work_skill_mod_listing"
 cmp -s "$source_healing_library" "$work_healing_library"
 cmp -s "$source_dot_library" "$work_dot_library"
+dot_immunity_source="$(sed -n '/public static boolean checkForDotImmunity/,/public static int getElementalGroupResist/p' "$work_dot_library")"
+dot_immunity_player_guard_line="$(printf '%s\n' "$dot_immunity_source" | grep -Fn 'if (isPlayer(target))' | head -1 | cut -d: -f1)"
+dot_immunity_later_modifier_line="$(printf '%s\n' "$dot_immunity_source" | grep -Fn '"dot_resist_"' | head -1 | cut -d: -f1)"
+test -n "$dot_immunity_player_guard_line"
+test -n "$dot_immunity_later_modifier_line"
+test "$dot_immunity_player_guard_line" -lt "$dot_immunity_later_modifier_line"
+printf '%s\n' "$dot_immunity_source" | sed -n "${dot_immunity_player_guard_line},${dot_immunity_later_modifier_line}p" | grep -Fq 'return false;'
 cmp -s "$source_smuggler_library" "$work_smuggler_library"
 ! grep -Fq 'expertise_' "$work_smuggler_library"
 ! grep -Fq 'sm_feeling_lucky' "$work_smuggler_library"
@@ -1187,6 +1194,10 @@ done
 buff_skill_predicate_source="$(sed -n '/public boolean isRetiredNgeBuffSkillModifier/,/public void retireNgeExpertiseModifier/p' "$work_buff_handler")"
 printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgeExpertiseModifier(modifierName)'
 printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgePrimaryStatisticModifier(modifierName)'
+printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgeDotImmunityModifier(modifierName)'
+dot_immunity_predicate_source="$(sed -n '/public boolean isRetiredNgeDotImmunityModifier/,/public boolean isRetiredNgeBuffSkillModifier/p' "$work_buff_handler")"
+printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.equals("damage_immune")'
+printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.startsWith("dot_resist_")'
 skill_add_source="$(sed -n '/public int skillAddBuffHandler/,/public int skillRemoveBuffHandler/p' "$work_buff_handler")"
 skill_percent_source="$(sed -n '/public int skillPercentAddBuffHandler/,/public int skillPercentRemoveBuffHandler/p' "$work_buff_handler")"
 force_power_source="$(sed -n '/public int forcePowerAddBuffHandler/,/public int forcePowerRemoveBuffHandler/p' "$work_buff_handler")"
@@ -1195,6 +1206,20 @@ for expertise_writer_source in "$skill_add_source" "$skill_percent_source" "$for
     printf '%s' "$expertise_writer_source" | grep -Fq 'retireNgeExpertiseModifier(self, effectName)'
     printf '%s' "$expertise_writer_source" | grep -Fq 'addSkillModModifier'
 done
+dot_universal_immunity_source="$(sed -n '/public int immunityAddBuffHandler/,/public int immunityRemoveBuffHandler/p' "$work_buff_handler")"
+dot_universal_player_guard_line="$(printf '%s\n' "$dot_universal_immunity_source" | grep -Fn 'isPlayer(self) && subtype.equals("dot_immunity") && wholeValue == IMMUNITY_TO_ALL_DOTS' | head -1 | cut -d: -f1)"
+dot_universal_purge_line="$(printf '%s\n' "$dot_universal_immunity_source" | grep -Fn 'buff.performBuffDotImmunity(self, "all")' | head -1 | cut -d: -f1)"
+test -n "$dot_universal_player_guard_line"
+test -n "$dot_universal_purge_line"
+test "$dot_universal_player_guard_line" -lt "$dot_universal_purge_line"
+damage_immune_source="$(sed -n '/public int damageImmuneAddBuffHandler/,/public int damageImmuneRemoveBuffHandler/p' "$work_buff_handler")"
+damage_immune_player_guard_line="$(printf '%s\n' "$damage_immune_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+damage_immune_purge_line="$(printf '%s\n' "$damage_immune_source" | grep -Fn 'buff.performBuffDotImmunity(self, "all")' | head -1 | cut -d: -f1)"
+test -n "$damage_immune_player_guard_line"
+test -n "$damage_immune_purge_line"
+test "$damage_immune_player_guard_line" -lt "$damage_immune_purge_line"
+printf '%s\n' "$damage_immune_source" | grep -Fq 'removeAttribOrSkillModModifier(self, "damageImmuneDotResistAll")'
+printf '%s\n' "$damage_immune_source" | grep -Fq 'removeAttribOrSkillModModifier(self, "damageImmuneDamageImmune")'
 armor_break_source="$(sed -n '/public int armorBreakAddBuffHandler/,/public int armorBreakRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$armor_break_source" | grep -Fq 'retireNgeExpertiseModifier(self, effectName)'
 printf '%s' "$armor_break_source" | grep -Fq 'utils.removeScriptVar(self, INITIAL_GENERAL_PROTECTION)'
@@ -1770,6 +1795,29 @@ printf '%s' "$dot_bytecode" | grep -Fq 'applyPrecuDotEffect'
 ! printf '%s' "$dot_bytecode" | grep -Fq 'dot_vulnerability_'
 ! printf '%s' "$dot_bytecode" | grep -Fq 'combat_multiply_damage_'
 ! printf '%s' "$dot_bytecode" | grep -Fq 'combat_divide_damage_'
+dot_immunity_bytecode="$(javap -classpath "$class_root" -c -p script.library.dot | sed -n '/public static boolean checkForDotImmunity/,/public static int getElementalGroupResist/p')"
+dot_immunity_player_guard_bytecode_line="$(printf '%s\n' "$dot_immunity_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+dot_immunity_later_modifier_bytecode_line="$(printf '%s\n' "$dot_immunity_bytecode" | grep -Fn 'dot_resist_' | head -1 | cut -d: -f1)"
+test -n "$dot_immunity_player_guard_bytecode_line"
+test -n "$dot_immunity_later_modifier_bytecode_line"
+test "$dot_immunity_player_guard_bytecode_line" -lt "$dot_immunity_later_modifier_bytecode_line"
+dot_immunity_predicate_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public boolean isRetiredNgeDotImmunityModifier/,/public boolean isRetiredNgeBuffSkillModifier/p')"
+printf '%s\n' "$dot_immunity_predicate_bytecode" | grep -Fq 'damage_immune'
+printf '%s\n' "$dot_immunity_predicate_bytecode" | grep -Fq 'dot_resist_'
+dot_universal_immunity_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int immunityAddBuffHandler/,/public int immunityRemoveBuffHandler/p')"
+dot_universal_player_guard_bytecode_line="$(printf '%s\n' "$dot_universal_immunity_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+dot_universal_purge_bytecode_line="$(printf '%s\n' "$dot_universal_immunity_bytecode" | grep -Fn 'performBuffDotImmunity' | tail -1 | cut -d: -f1)"
+test -n "$dot_universal_player_guard_bytecode_line"
+test -n "$dot_universal_purge_bytecode_line"
+test "$dot_universal_player_guard_bytecode_line" -lt "$dot_universal_purge_bytecode_line"
+damage_immune_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int damageImmuneAddBuffHandler/,/public int damageImmuneRemoveBuffHandler/p')"
+damage_immune_player_guard_bytecode_line="$(printf '%s\n' "$damage_immune_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+damage_immune_purge_bytecode_line="$(printf '%s\n' "$damage_immune_bytecode" | grep -Fn 'performBuffDotImmunity' | head -1 | cut -d: -f1)"
+test -n "$damage_immune_player_guard_bytecode_line"
+test -n "$damage_immune_purge_bytecode_line"
+test "$damage_immune_player_guard_bytecode_line" -lt "$damage_immune_purge_bytecode_line"
+printf '%s\n' "$damage_immune_bytecode" | grep -Fq 'damageImmuneDotResistAll'
+printf '%s\n' "$damage_immune_bytecode" | grep -Fq 'damageImmuneDamageImmune'
 javap -classpath "$class_root" -v script.library.healing | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'applyPrecuDotEffect'
