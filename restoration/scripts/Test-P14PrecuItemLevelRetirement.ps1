@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -331,6 +334,29 @@ Assert-Contract ($itemPlayerLevelReads.Count -eq 0) `
 
 Assert-Contract ($contract.status -in @("implemented-build-pending", "ready")) `
     "p14.item-level.contract.status"
+
+if ($Expectation -eq "Ready")
+{
+    $compiledHashes = @($contract.buildEvidence.compiledClassSha256.PSObject.Properties)
+    Assert-Contract ([string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$contract.runtimeEvidence.result -ceq "passed") `
+        "p14.item-level.ready-evidence"
+    Assert-Contract ($compiledHashes.Count -eq 13 -and
+        @($compiledHashes | Where-Object {
+            [string]$_.Value -notmatch '^[a-f0-9]{64}$'
+        }).Count -eq 0) `
+        "p14.item-level.compiled-class-evidence"
+    Assert-Contract ([string]$contract.buildEvidence.architecture -like
+            "ELF 64-bit*" -and
+        [string]$contract.buildEvidence.serverBinarySha256 -match
+            '^[a-f0-9]{64}$' -and
+        [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
+        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary -and
+        [int]$contract.runtimeEvidence.liveGameProcessCount -eq
+            [int]$contract.runtimeEvidence.liveGameProcessesMappedBuiltBinary) `
+        "p14.item-level.x64-runtime-evidence"
+}
 
 if ($failures.Count -gt 0)
 {
