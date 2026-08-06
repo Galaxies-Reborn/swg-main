@@ -115,10 +115,13 @@ Assert-Contract ($hitEngine.Contains("precuPrimaryResult = HIT_RESULT_HIT;") -an
     -not $hitEngine.Contains("precuPrimaryResult == PRECU_PRIMARY_RESULT_FALLBACK ?")) `
     "p14.combat-expertise-isolation.hit.precu-fallback-fails-closed"
 Assert-Contract ($hitEngine.Contains("if (!precuAuthoritativeAttack)") -and
-    $hitEngine.Contains("combat.getDevastationChance") -and
+    [bool]$contract.expected.postNgeCommandoHeavyWeaponPlayerBonusesRetired -and
+    -not $hitEngine.Contains("combat.getDevastationChance") -and
+    -not $hitEngine.Contains("heavyweapons.getHeavyWeaponDotName") -and
+    -not $hitEngine.Contains("commando_passive_dot") -and
     $hitEngine.Contains("addPrecuCore3HateProcess") -and
     $hitEngine.Contains("combat.addHateProcess")) `
-    "p14.combat-expertise-isolation.hit.damage-and-hate-era-gates-preserved"
+    "p14.combat-expertise-isolation.hit.damage-and-hate-era-boundary-preserved"
 Assert-Contract ($glancingResolution.Contains("minDamage *= 0.35f") -and
     $glancingResolution.Contains("maxDamage *= 0.35f") -and
     $glancingResolution.Contains('new string_id("combat_effects", "glancing_blow")') -and
