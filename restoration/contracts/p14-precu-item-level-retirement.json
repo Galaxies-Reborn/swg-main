@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-item-level-retirement",
-  "status": "ready",
-  "scope": "Remove NGE combat-level, primary-stat, and expertise authority from retained item transfer, use, effect, attribute, medicine, static-item skill modifiers, resource-sampling, market-search, weapon-core presentation, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, authored healing values, valid item skill modifiers, and retained expansion item content.",
+  "status": "implemented-build-pending",
+  "scope": "Remove NGE combat-level, primary-stat, expertise, profession-set, fast-attack, Beast Master, and later combat-stat authority from retained item transfer, use, effect, attribute, medicine, static-item skill modifiers, resource-sampling, market-search, weapon-core presentation, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, authored healing values, valid Publish-era item skill modifiers, and retained expansion item content.",
   "eraEvidence": {
     "userRule": "PRE-CU has no player combat-level stat; retained content must not require one.",
     "core3Repository": "swgemu/Core3",
@@ -10,7 +10,7 @@
     "surveyReference": "SurveySessionImplementation.cpp and ResourceSpawner.cpp derive sampling Action cost from current Quickness as 124 - Quickness / 12.5 and never consult player combat level.",
     "dynamicLootReference": "Publish-era skills authenticate camouflage as a PRE-CU Bothan and Ranger skill modifier; precision_modified, strength_modified, stamina_modified, constitution_modified, agility_modified, and luck_modified are later primary-stat vocabulary and are not PRE-CU dynamic-loot authority.",
     "staticConsumableReference": "Combat level is not a PRE-CU player/item admission stat. Retained expansion healing content keeps authored healing power, action-pool selection, charges, no-trade state, scripts, templates, and weapon-core quality lookup while combat-level objvars and UI/search presentation are retired.",
-    "staticSkillModifierReference": "The pinned Publish 14.1 Core3 tree contains no NGE expertise system or six-stat primary-modifier vocabulary. Retained static armor, weapons, and items remain available, but their common initializer must not equip expertise_* or agility_modified, stamina_modified, constitution_modified, precision_modified, strength_modified, and luck_modified bonuses."
+    "staticSkillModifierReference": "The pinned Publish 14.1 Core3 tree contains no NGE expertise system, six-stat primary-modifier vocabulary, fast_attack_line_, Beast Master incubation, later block/strikethrough, Dire, Officer cooldown/rally, or tka_armor authority. Retained static armor, weapons, jewelry, and items remain available, while their common initializer filters those NGE modifier families. Authentic PRE-CU droid_find_speed plus poison/disease/fire/bleeding resistance and absorption remain applied; Publish 14.1 Core3 uses unarmed_toughness rather than the NGE expertise listing's Innate Teras Kasi Armor."
   },
   "expected": {
     "staticItems": {
@@ -48,8 +48,11 @@
     "staticSkillModifiers": {
       "retiredExactPrimaryModifiers": 6,
       "retiredPrefixes": [
-        "expertise_"
+        "expertise_",
+        "fast_attack_line_",
+        "bm_"
       ],
+      "retiredExactNgeSetModifiers": 9,
       "initializerRoutes": 3,
       "persistedCleanupUsesNativeZeroRemoval": true,
       "retainedDataRows": {
@@ -67,6 +70,27 @@
         "weapon": 0,
         "item": 129
       },
+      "additionalNgeModifierRows": {
+        "armor": 0,
+        "weapon": 0,
+        "item": 67
+      },
+      "additionalNgeModifierOccurrences": {
+        "armor": 0,
+        "weapon": 0,
+        "item": 99
+      },
+      "authenticatedPrecuModifiersPreserved": [
+        "droid_find_speed",
+        "resistance_bleeding",
+        "resistance_disease",
+        "resistance_fire",
+        "resistance_poison",
+        "absorption_bleeding",
+        "absorption_disease",
+        "absorption_fire",
+        "absorption_poison"
+      ],
       "retiredModifiersApplied": 0,
       "retainedModifierApplicationPreserved": true
     },
@@ -103,6 +127,7 @@
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/weapon_stats.tab",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab",
     "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab",
     "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_a.tpf",
@@ -121,11 +146,11 @@
     "overlayPatchBytes": 40030,
     "overlayPatchSha256": "3817b32ae7ad21e2216c6979fea5090bcc13bb10d27ccd3889fdb59735da1369",
     "staticContract": "passed",
-    "isolatedJavaCompile": "passed from pushed direct dsrc 39e985855fb4d98fcac55500d134f98fb41e76b9 with Java 8 target; emitted static_item.class contains the PRE-CU static-item modifier predicate, persisted cleanup, and exactly three initializer adapter calls",
+    "isolatedJavaCompile": "passed from pushed direct dsrc 2f085c00432a9314362b15bcc549755683e717a6 with Java 8 target; emitted static_item.class contains the expanded PRE-CU static-item modifier predicate, persisted cleanup, and exactly three initializer adapter calls",
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "39e985855fb4d98fcac55500d134f98fb41e76b9",
+    "directSourceGitlink": "2f085c00432a9314362b15bcc549755683e717a6",
     "sourceSha256": {
-      "staticItem": "5f486e62090e1d949e99ce787e2368d471e43b28d854ea2a547992dcee0dc018",
+      "staticItem": "47dcbe07de962dafd576888892dd4d3de429f9c378771775bd63309f3dad6e9a",
       "dynamicArmor": "953d06b679012eb02b6a2457d36d66c608c4bdcf1cbb2baaa97d7a022e478bc7",
       "loot": "37e3a20f4d199c20889aebe380c19babb282e934b8e29fcf61ed5f3d36b01b37",
       "dynamicArmorTypes": "a51178ffc91446cf1cb5b54f45ca96a6327027e536c05299bfc857d247a1957b",
@@ -139,6 +164,7 @@
       "itemStats": "e83dc1529cafd1a3fb0b4f1d8aa6be6090374cd2a632779e41b460a037ea0a93",
       "masterItem": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
       "weaponStats": "e3fd89a7139ed6edad842f54f32031108faae23407e7103e67dcc3aeca82c664",
+      "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "advancedSearch": "6ebe2fd5ac3bbc28eaecf526e9123c0a19c104f424f1fffe1cbac490f1caa7ab",
       "channelledStimA": "4b82f613f75e994b0682ebc9d35f6badd8182ae1505b8eba9660bdc1c05bc4b9",
       "channelledStimB": "ad92018df002981fbcd4839eadb5ab29e41e789d5837c39a1a296d0eefce5e09",
@@ -151,9 +177,9 @@
       "instantStimNoob": "73b046af3d3d6d2b1909589423759335f10dd2bfa6f582fa72693b06ca4e5eda",
       "instantStimSyren": "e30b21e21a0b4ff3eb2694c733ca2c21b418002e763f439aac560493f8a83aa3"
     },
-    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source in a fixed ephemeral /dev/shm directory removed before exit; static item filters the six exact NGE primary modifiers and expertise_ prefix at all three common initializer routes while preserving retained modifiers",
+    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source in a fixed ephemeral /dev/shm directory removed before exit; static item filters six NGE primary modifiers, nine exact later set modifiers, and the expertise_, fast_attack_line_, and bm_ prefixes at all three common initializer routes while preserving authenticated PRE-CU modifiers",
     "focusedCompiledClassSha256": {
-      "script.library.static_item": "26786e3d9892cd341c2713985354975e4a2307686b390f568af5e85c07de1618",
+      "script.library.static_item": "adc93adc242761a87e487d7f2fb7f731b2a21546816d1903519e6f68295e93c7",
       "script.item.armor.dynamic_armor": "88051725db6a37525c3a1a265b77a2dd355682bf64451caaf8d0f5236528b3a9",
       "script.item.medicine.stimpack": "bc643c61c1288c3097ced3d67d271584dd3558461ae04926d568224e8ba16185",
       "script.item.medicine.stimpack_crafted": "f411a5fe8d1a6ffcc777b8ac05aa2daa25b0e4d166785e3cfa5cf9a72f458455",
@@ -161,7 +187,7 @@
       "script.systems.crafting.weapon.component.crafting_weapon_component_attribute": "f5cde55272aac8fa221526b94d64518505118dd822be7e5c86e5a4e155f1c95f"
     },
     "focusedCompiledClassBytes": {
-      "script.library.static_item": 39180,
+      "script.library.static_item": 39657,
       "script.item.armor.dynamic_armor": 6002,
       "script.item.medicine.stimpack": 2199,
       "script.item.medicine.stimpack_crafted": 2472,
@@ -170,7 +196,7 @@
     },
     "dockerWorkVolume": "swg-precu-work-x64",
     "fullJavaCompile": "passed after deleting every compiled Java class; 5713 direct-source Java files produced 5747 classes, including the expanded item-level class set",
-    "fullServerBuild": "passed in the 886.3-second canonical clean x64 deployment from pushed parent 7915d99dba0e6cd1bf62b044962eb452251dda56 and direct dsrc 39e985855fb4d98fcac55500d134f98fb41e76b9; 5713 Java sources produced 5747 classes before authenticated restart",
+    "fullServerBuild": "pending canonical clean x64 deployment from the pushed parent implementation and direct dsrc 2f085c00432a9314362b15bcc549755683e717a6; the prior 886.3-second deployment remains the live baseline until this expanded modifier filter passes the same build and restart gates",
     "architecture": "ELF 64-bit LSB shared object, x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildIdSha1": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
@@ -206,9 +232,9 @@
       "instant_stimpack/stimpack_noob.iff": "9afedbe097dc30b3d4e43c2433217c1a54a8b7d0a7c8c2ccc47c492c0ad4782b",
       "instant_stimpack/stimpack_syren.iff": "4debbd03ea05849e5d48869e6d080fd8322a7acfff3f5bf9a0147e894e7a860d"
     },
-    "currentSurveyEvidenceRefreshedBy": "Direct-source static-item modifier authority now also filters the six NGE primary modifiers and every expertise_* modifier at all three common static-item initialization routes while retaining the existing Quickness-derived sampling cadence.",
-    "deploymentProbe": "passed direct-source parity; exact 1559/325/4793 static-item row inventories; six-primary and expertise-prefix source and deployed-bytecode filters; exactly three initializer adapter calls; persisted exact cleanup; retained modifier application; compiled IFF audits; x64 architecture; restart/readiness; and all-process mapped-binary verification",
-    "result": "passed"
+    "currentSurveyEvidenceRefreshedBy": "Direct-source static-item modifier authority now also filters six NGE primary modifiers, nine exact later set modifiers, and the expertise_, fast_attack_line_, and bm_ families at all three common static-item initialization routes while retaining the existing Quickness-derived sampling cadence.",
+    "deploymentProbe": "pending canonical source/work parity, expanded static-item source and deployed-bytecode filters, exact retained table inventories, x64 architecture, restart/readiness, and all-process mapped-binary verification",
+    "result": "build-pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-06",
@@ -230,8 +256,8 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling; six later primary-stat writers on production-reachable dynamic clothing and armor loot; combat-level objvars/search/presentation on retained static and template-backed healing content; and static armor, weapon, and item application of six NGE primary modifiers plus every expertise_* modifier",
-    "notClaimedComplete": "other later action-speed, cooldown, proc, Beast, and content-specific modifier families in retained static-item data remain under the broader PRE-CU precedence audit"
+    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling; six later primary-stat writers on production-reachable dynamic clothing and armor loot; combat-level objvars/search/presentation on retained static and template-backed healing content; and static armor, weapon, and item application of NGE primary, expertise, profession-set, fast-attack, Beast Master, later combat-stat, Dire, Officer cooldown/rally, and tka_armor modifiers",
+    "notClaimedComplete": "retained item proc scripts and non-static-item modifier writers remain under the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }

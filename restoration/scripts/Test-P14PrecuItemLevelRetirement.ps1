@@ -49,6 +49,8 @@ function Get-StaticItemSkillModifierProfile([string]$Path)
     }
     $primaryRows = 0
     $expertiseRows = 0
+    $additionalNgeRows = 0
+    $additionalNgeOccurrences = 0
     $dataRows = 0
     $primaryModifiers = @(
         "precision_modified",
@@ -57,6 +59,17 @@ function Get-StaticItemSkillModifierProfile([string]$Path)
         "constitution_modified",
         "agility_modified",
         "luck_modified"
+    )
+    $additionalExactNgeModifiers = @(
+        "bh_dire_root",
+        "bh_dire_snare",
+        "combat_block_chance",
+        "combat_block_value",
+        "combat_strikethrough_chance",
+        "cooldown_percent_of_group_buff",
+        "incubation_time_reduction",
+        "rally_point_duration",
+        "tka_armor"
     )
     foreach ($line in @($lines | Select-Object -Skip 2))
     {
@@ -68,20 +81,31 @@ function Get-StaticItemSkillModifierProfile([string]$Path)
         $skillMods = [string]$fields[$skillModsIndex]
         $rowHasPrimary = $false
         $rowHasExpertise = $false
+        $rowHasAdditionalNge = $false
         foreach ($entry in @($skillMods -split ','))
         {
             $modifier = [string](($entry -split '=', 2)[0])
             $modifier = $modifier.Trim().Trim('"')
             if ($primaryModifiers -contains $modifier) { $rowHasPrimary = $true }
             if ($modifier.StartsWith("expertise_")) { $rowHasExpertise = $true }
+            if ($additionalExactNgeModifiers -contains $modifier -or
+                $modifier.StartsWith("fast_attack_line_") -or
+                $modifier.StartsWith("bm_"))
+            {
+                $rowHasAdditionalNge = $true
+                $additionalNgeOccurrences++
+            }
         }
         if ($rowHasPrimary) { $primaryRows++ }
         if ($rowHasExpertise) { $expertiseRows++ }
+        if ($rowHasAdditionalNge) { $additionalNgeRows++ }
     }
     return [pscustomobject]@{
         dataRows = $dataRows
         primaryRows = $primaryRows
         expertiseRows = $expertiseRows
+        additionalNgeRows = $additionalNgeRows
+        additionalNgeOccurrences = $additionalNgeOccurrences
     }
 }
 
@@ -194,13 +218,50 @@ $staticWeaponInitializer = Get-FunctionSlice $staticItem `
 $staticItemInitializer = Get-FunctionSlice $staticItem `
     "public static boolean initializeItem(" `
     "public static boolean initializeStorytellerObject("
+$retiredStaticModifierInventory = Get-FunctionSlice $staticItem `
+    "public static final String[] RETIRED_NGE_STATIC_ITEM_MODIFIERS" `
+    "public static final java.text.NumberFormat"
+$retiredExactStaticModifiers = @(
+    "bh_dire_root",
+    "bh_dire_snare",
+    "combat_block_chance",
+    "combat_block_value",
+    "combat_strikethrough_chance",
+    "cooldown_percent_of_group_buff",
+    "incubation_time_reduction",
+    "rally_point_duration",
+    "tka_armor"
+)
+$retiredExactStaticInventoryValid = $true
+foreach ($modifier in $retiredExactStaticModifiers)
+{
+    if (([regex]::Matches($retiredStaticModifierInventory,
+            '"' + [regex]::Escape($modifier) + '"')).Count -ne 1)
+    {
+        $retiredExactStaticInventoryValid = $false
+    }
+}
 
 Assert-Contract ($retiredStaticModifierPredicate.Contains(
         'modifier.startsWith("expertise_")') -and
     $retiredStaticModifierPredicate.Contains(
+        'modifier.startsWith("fast_attack_line_")') -and
+    $retiredStaticModifierPredicate.Contains(
+        'modifier.startsWith("bm_")') -and
+    $retiredStaticModifierPredicate.Contains(
         "for (String legacyPrimaryModifier : LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS)") -and
-    $retiredStaticModifierPredicate.Contains("modifier.equals(legacyPrimaryModifier)")) `
+    $retiredStaticModifierPredicate.Contains("modifier.equals(legacyPrimaryModifier)") -and
+    $retiredStaticModifierPredicate.Contains(
+        "for (String retiredModifier : RETIRED_NGE_STATIC_ITEM_MODIFIERS)") -and
+    $retiredStaticModifierPredicate.Contains("modifier.equals(retiredModifier)") -and
+    $retiredExactStaticModifiers.Count -eq
+        [int]$contract.expected.staticSkillModifiers.retiredExactNgeSetModifiers -and
+    $retiredExactStaticInventoryValid) `
     "p14.item-level.static-modifier-retired-families"
+Assert-Contract (-not $retiredStaticModifierPredicate.Contains("droid_find_speed") -and
+    -not $retiredStaticModifierPredicate.Contains("resistance_") -and
+    -not $retiredStaticModifierPredicate.Contains("absorption_")) `
+    "p14.item-level.static-modifier-precu-families-preserved"
 Assert-Contract ($retiredStaticModifierCleanup.Contains("getSkillModBonuses(item)") -and
     $retiredStaticModifierCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
     $retiredStaticModifierCleanup.Contains("setSkillModBonus(item, modifier, 0)") -and
@@ -255,9 +316,34 @@ foreach ($tableName in $staticModifierTables.Keys)
         $profile.primaryRows -eq
             [int]$contract.expected.staticSkillModifiers.primaryModifierRows.$tableName -and
         $profile.expertiseRows -eq
-            [int]$contract.expected.staticSkillModifiers.expertiseModifierRows.$tableName) `
+            [int]$contract.expected.staticSkillModifiers.expertiseModifierRows.$tableName -and
+        $profile.additionalNgeRows -eq
+            [int]$contract.expected.staticSkillModifiers.additionalNgeModifierRows.$tableName -and
+        $profile.additionalNgeOccurrences -eq
+            [int]$contract.expected.staticSkillModifiers.additionalNgeModifierOccurrences.$tableName) `
         "p14.item-level.static-modifier-data-preserved.$tableName"
 }
+
+$ngeSkillModListingPath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab"
+$ngeSkillModListing = Get-Content -LiteralPath $ngeSkillModListingPath -Raw
+$listedNgeStaticModifiers = @($retiredExactStaticModifiers | Where-Object {
+    $_ -cne "rally_point_duration"
+})
+$listedNgeStaticInventoryValid = $true
+foreach ($modifier in $listedNgeStaticModifiers)
+{
+    if ($ngeSkillModListing -notmatch
+        ('(?m)^' + [regex]::Escape($modifier) + "`t"))
+    {
+        $listedNgeStaticInventoryValid = $false
+    }
+}
+Assert-Contract ($listedNgeStaticInventoryValid -and
+    $ngeSkillModListing -match '(?m)^fast_attack_line_' -and
+    $ngeSkillModListing -match '(?m)^bm_incubator_dps_armor\t' -and
+    $ngeSkillModListing -match '(?m)^tka_armor\t.*Innate Teras Kasi Armor') `
+    "p14.item-level.static-modifier-nge-listing-authenticated"
 
 $legacyDynamicPrimaryModifiers = @(
     "precision_modified",
@@ -387,6 +473,7 @@ $sourceHashPaths = @{
     itemStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
     masterItem = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
     weaponStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/weapon_stats.tab"
+    skillModListing = "dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab"
     advancedSearch = "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab"
     channelledStimA = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_a.tpf"
     channelledStimB = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_b.tpf"

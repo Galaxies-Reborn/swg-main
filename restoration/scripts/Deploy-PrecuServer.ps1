@@ -1420,7 +1420,10 @@ static_modifier_predicate_source="$(sed -n '/public static boolean isRetiredNgeS
 static_modifier_cleanup_source="$(sed -n '/public static void removeRetiredNgeStaticItemSkillModifiers(/,/public static void applyPrecuStaticItemSkillModifiers(/p' "$work_script/library/static_item.java")"
 static_modifier_apply_source="$(sed -n '/public static void applyPrecuStaticItemSkillModifiers(/,/public static boolean initializeArmor(/p' "$work_script/library/static_item.java")"
 printf '%s\n' "$static_modifier_predicate_source" | grep -Fq 'modifier.startsWith("expertise_")'
+printf '%s\n' "$static_modifier_predicate_source" | grep -Fq 'modifier.startsWith("fast_attack_line_")'
+printf '%s\n' "$static_modifier_predicate_source" | grep -Fq 'modifier.startsWith("bm_")'
 printf '%s\n' "$static_modifier_predicate_source" | grep -Fq 'LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS'
+printf '%s\n' "$static_modifier_predicate_source" | grep -Fq 'RETIRED_NGE_STATIC_ITEM_MODIFIERS'
 printf '%s\n' "$static_modifier_cleanup_source" | grep -Fq 'getSkillModBonuses(item)'
 printf '%s\n' "$static_modifier_cleanup_source" | grep -Fq 'setSkillModBonus(item, modifier, 0)'
 printf '%s\n' "$static_modifier_apply_source" | grep -Fq 'removeRetiredNgeStaticItemSkillModifiers(item)'
@@ -1430,23 +1433,28 @@ test "$(grep -Fc 'applyPrecuStaticItemSkillModifiers(object, skillMods);' "$work
 ! grep -Fq 'setSkillModBonus(object,' "$work_script/library/static_item.java"
 grep -Fq 'static_item.initializeObject(self, itemData)' "$work_script/item/static_item_base.java"
 for static_modifier_table_profile in \
-    "$work_armor_stats_table:1559:1326:0" \
-    "$work_weapon_stats_table:325:126:0" \
-    "$work_item_stats_table:4793:1113:129"
+    "$work_armor_stats_table:1559:1326:0:0:0" \
+    "$work_weapon_stats_table:325:126:0:0:0" \
+    "$work_item_stats_table:4793:1113:129:67:99"
 do
     static_modifier_table="${static_modifier_table_profile%%:*}"
     static_modifier_expected="${static_modifier_table_profile#*:}"
     static_modifier_rows="${static_modifier_expected%%:*}"
     static_modifier_expected="${static_modifier_expected#*:}"
     static_modifier_primary_rows="${static_modifier_expected%%:*}"
-    static_modifier_expertise_rows="${static_modifier_expected#*:}"
-    awk -F '\t' -v expected_rows="$static_modifier_rows" -v expected_primary="$static_modifier_primary_rows" -v expected_expertise="$static_modifier_expertise_rows" '
+    static_modifier_expected="${static_modifier_expected#*:}"
+    static_modifier_expertise_rows="${static_modifier_expected%%:*}"
+    static_modifier_expected="${static_modifier_expected#*:}"
+    static_modifier_additional_rows="${static_modifier_expected%%:*}"
+    static_modifier_additional_occurrences="${static_modifier_expected#*:}"
+    awk -F '\t' -v expected_rows="$static_modifier_rows" -v expected_primary="$static_modifier_primary_rows" -v expected_expertise="$static_modifier_expertise_rows" -v expected_additional="$static_modifier_additional_rows" -v expected_occurrences="$static_modifier_additional_occurrences" '
         NR == 1 { for (i = 1; i <= NF; i++) if ($i == "skill_mods") skillmods = i; next }
         NR == 2 { next }
         $1 != "" {
             rows++
             primary = 0
             expertise = 0
+            additional = 0
             count = split($skillmods, entries, ",")
             for (entry = 1; entry <= count; entry++) {
                 split(entries[entry], pair, "=")
@@ -1454,13 +1462,26 @@ do
                 gsub(/^"|"$/, "", modifier)
                 if (modifier == "precision_modified" || modifier == "strength_modified" || modifier == "stamina_modified" || modifier == "constitution_modified" || modifier == "agility_modified" || modifier == "luck_modified") primary = 1
                 if (index(modifier, "expertise_") == 1) expertise = 1
+                if (modifier == "bh_dire_root" || modifier == "bh_dire_snare" || modifier == "combat_block_chance" || modifier == "combat_block_value" || modifier == "combat_strikethrough_chance" || modifier == "cooldown_percent_of_group_buff" || modifier == "incubation_time_reduction" || modifier == "rally_point_duration" || modifier == "tka_armor" || index(modifier, "fast_attack_line_") == 1 || index(modifier, "bm_") == 1) {
+                    additional = 1
+                    additional_occurrences++
+                }
             }
             primary_rows += primary
             expertise_rows += expertise
+            additional_rows += additional
         }
-        END { if (!skillmods || rows != expected_rows || primary_rows != expected_primary || expertise_rows != expected_expertise) exit 2 }
+        END { if (!skillmods || rows != expected_rows || primary_rows != expected_primary || expertise_rows != expected_expertise || additional_rows != expected_additional || additional_occurrences != expected_occurrences) exit 2 }
     ' "$static_modifier_table"
 done
+for listed_nge_static_modifier in bh_dire_root bh_dire_snare combat_block_chance combat_block_value combat_strikethrough_chance cooldown_percent_of_group_buff incubation_time_reduction tka_armor; do
+    grep -Eq "^${listed_nge_static_modifier}[[:space:]]" "$work_skill_mod_listing"
+done
+grep -Eq '^fast_attack_line_[^[:space:]]+[[:space:]]' "$work_skill_mod_listing"
+grep -Eq '^bm_incubator_dps_armor[[:space:]]' "$work_skill_mod_listing"
+grep -Eq '^tka_armor[[:space:]].*Innate Teras Kasi Armor' "$work_skill_mod_listing"
+grep -Eq '^combat_bountyhunter_(master|investigation_0[1-3])[[:space:]].*droid_find_speed=' "$work_skills"
+! printf '%s\n%s\n' "$static_modifier_predicate_source" "$static_modifier_cleanup_source" | grep -Eq 'droid_find_speed|resistance_|absorption_'
 printf '%s\n' "$dynamic_generation_source" | grep -Fq 'removeLegacyNgeDynamicPrimaryModifiers(item)'
 test "$(printf '%s\n' "$dynamic_generation_source" | grep -Fc 'setObjVar(')" -eq 1
 printf '%s\n' "$dynamic_generation_source" | grep -Fq 'setObjVar(item, "skillmod.bonus.camouflage", camouflageBonus)'
@@ -2447,7 +2468,10 @@ static_modifier_predicate_bytecode="$(printf '%s\n' "$static_item_bytecode" | se
 static_modifier_cleanup_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void removeRetiredNgeStaticItemSkillModifiers(/,/public static void applyPrecuStaticItemSkillModifiers(/p')"
 static_modifier_apply_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void applyPrecuStaticItemSkillModifiers(/,/public static boolean initializeArmor(/p')"
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'expertise_'
+printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'fast_attack_line_'
+printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'bm_'
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS'
+printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'RETIRED_NGE_STATIC_ITEM_MODIFIERS'
 printf '%s\n' "$static_modifier_cleanup_bytecode" | grep -Fq 'getSkillModBonuses'
 printf '%s\n' "$static_modifier_cleanup_bytecode" | grep -Fq 'setSkillModBonus'
 printf '%s\n' "$static_modifier_apply_bytecode" | grep -Fq 'removeRetiredNgeStaticItemSkillModifiers'
@@ -2456,6 +2480,9 @@ printf '%s\n' "$static_modifier_apply_bytecode" | grep -Fq 'setSkillModBonus'
 test "$(printf '%s\n' "$static_item_bytecode" | grep -Fc 'Method applyPrecuStaticItemSkillModifiers')" -eq 3
 for retired_static_primary in precision_modified strength_modified stamina_modified constitution_modified agility_modified luck_modified; do
     printf '%s\n' "$static_item_bytecode" | grep -Fq "$retired_static_primary"
+done
+for retired_static_set_modifier in bh_dire_root bh_dire_snare combat_block_chance combat_block_value combat_strikethrough_chance cooldown_percent_of_group_buff incubation_time_reduction rally_point_duration tka_armor; do
+    printf '%s\n' "$static_item_bytecode" | grep -Fq "$retired_static_set_modifier"
 done
 ! javap -classpath "$class_root" -v script.systems.crafting.weapon.component.crafting_weapon_component_attribute | grep -E -i -q "$legacy_item_combat_level_pattern"
 javap -classpath "$class_root" -v script.systems.crafting.weapon.component.crafting_weapon_component_attribute | grep -Fq 'getWeaponCoreData'
