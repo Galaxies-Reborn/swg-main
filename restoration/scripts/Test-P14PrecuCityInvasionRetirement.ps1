@@ -265,6 +265,18 @@ $playerCleanupMarkers = @(
     'utils.removeScriptVar(player, "gcw.score.pid")',
     'forceCloseSUIPage(pid)',
     'removeObjVar(player, GCW_TUTORIAL_FLAG)',
+    'buff.removeBuff(player, BUFF_PLAYER_FATIGUE)',
+    'buff.removeBuff(player, BUFF_SPY_EXPLOSIVES)',
+    'utils.removeScriptVarTree(player, GCW_SCRIPTVAR_PARENT)',
+    'utils.removeScriptVar(player, "spyPatrolPoint")',
+    'utils.removeScriptVar(player, OBJECT_TO_REPAIR)',
+    'utils.removeScriptVar(player, GCW_REPAIR_RESOURCE_COUNT)',
+    'utils.removeScriptVar(player, GCW_REPAIR_QUEST)',
+    'utils.removeScriptVar(player, "gcw.fatigueTime")',
+    'ENTERTAIN_GCW_TROOPS_PID',
+    'TRADER_REPAIR_PID',
+    'SPY_SCOUT_PID',
+    'SPY_DESTROY_PID',
     'getWaypointsInDatapad(player)',
     '"Defense Coordinator"',
     '"Invasion Staging Area Camp"',
@@ -274,6 +286,83 @@ $playerCleanupMarkers = @(
 )
 Assert-Contract (@($playerCleanupMarkers | Where-Object { -not $playerCleanup.Contains($_) }).Count -eq 0) `
     "p14.city-invasion.stale-player-state-scrub"
+
+$guardedCityGameplayHandlers = [ordered]@{
+    canEntertainGcwNonPlayingCharacter = @("public static boolean canEntertainGcwNonPlayingCharacter", "public static boolean setEntertainGcwNonPlayerCharacter", "groundquests.isQuestActive")
+    setEntertainGcwNonPlayerCharacter = @("public static boolean setEntertainGcwNonPlayerCharacter", "public static boolean canGcwObjectBeRepaired", "sui.smartCountdownTimerSUI")
+    canGcwObjectBeRepaired = @("public static boolean canGcwObjectBeRepaired", "public static boolean useGcwObjectForQuest", "getHitpoints(object)")
+    useGcwObjectForQuest = @("public static boolean useGcwObjectForQuest", "public static boolean repairGcwObject", "sui.smartCountdownTimerSUI")
+    repairGcwObject = @("public static boolean repairGcwObject", "public static void playQuestIconParticle", "setHitpoints(object")
+    signalAllParticipantsForDamage = @("public static boolean signalAllParticipantsForDamage", "public static boolean hasConstructionOrRepairTool", "trial.addNonInstanceFactionParticipant")
+    hasConstructionOrRepairTool = @("public static boolean hasConstructionOrRepairTool", "public static boolean useConstructionOrRepairTool", "utils.playerHasItemByTemplateInInventoryOrEquipped")
+    useConstructionOrRepairTool = @("public static boolean useConstructionOrRepairTool", "public static int getGcwCityInvasionPhase", "decrementCount(toolObject)")
+    playerSystemMessageResourceNeeded = @("public static boolean playerSystemMessageResourceNeeded", "public static int getFatigueTimerMod", "sendSystemMessageProse")
+    awardGcwInvasionParticipants = @("public static boolean awardGcwInvasionParticipants", "public static boolean invasionIsValidAndEngaged", "grantUnmodifiedGcwPoints")
+    invasionIsValidAndEngaged = @("public static boolean invasionIsValidAndEngaged", "public static void gcwSetCredits", "getInvasionSequencerNearby")
+}
+foreach ($name in $guardedCityGameplayHandlers.Keys)
+{
+    $markers = $guardedCityGameplayHandlers[$name]
+    $slice = Get-FunctionSlice $gcw $markers[0] $markers[1]
+    $guardIndex = $slice.IndexOf("if (isPostNgeCityInvasionRetired())", [System.StringComparison]::Ordinal)
+    $authorityIndex = $slice.IndexOf($markers[2], [System.StringComparison]::Ordinal)
+    Assert-Contract ($guardIndex -ge 0 -and $slice.Contains("return false;") -and $authorityIndex -gt $guardIndex) `
+        "p14.city-invasion.gameplay-entrypoint.$name.retired"
+}
+
+$questIconHandlers = @(
+    (Get-FunctionSlice $gcw "public static void playQuestIconParticle" "public static void playQuestIconHandler"),
+    (Get-FunctionSlice $gcw "public static void playQuestIconHandler" "public static boolean signalAllParticipantsForDamage")
+)
+Assert-Contract (@($questIconHandlers | Where-Object {
+    -not $_.Contains("if (isPostNgeCityInvasionRetired())") -or -not $_.Contains("return;")
+}).Count -eq 0) `
+    "p14.city-invasion.quest-icon-runtime-retired"
+
+$neutralCityQueries = [ordered]@{
+    getGcwCityInvasionPhase = @("public static int getGcwCityInvasionPhase", "public static boolean playerSystemMessageResourceNeeded", "return GCW_CITY_PHASE_UNKNOWN;")
+    getFatigueTimerMod = @("public static int getFatigueTimerMod", "public static obj_id getInvasionSequencerNearby", "return 0;")
+    getInvasionSequencerNearby = @("public static obj_id getInvasionSequencerNearby", "public static String getCityFromTable", "return null;")
+    getFormattedInvasionTime = @("public static String getFormattedInvasionTime", "public static int gcwGetTimeToInvasion", 'return "";')
+    gcwGetTimeToInvasion = @("public static int gcwGetTimeToInvasion", "public static int gcwGetInvasionMaximumRunning", "return 0;")
+    gcwGetInvasionMaximumRunning = @("public static int gcwGetInvasionMaximumRunning", "public static boolean gcwIsInvasionCityOn", "return 0;")
+    gcwIsInvasionCityOn = @("public static boolean gcwIsInvasionCityOn", "public static int gcwGetNextInvasionHour", "return false;")
+    gcwGetNextInvasionHour = @("public static int gcwGetNextInvasionHour", "public static boolean gcwHasInvasionInCycle", "return -1;")
+    gcwHasInvasionInCycle = @("public static boolean gcwHasInvasionInCycle", "public static String[] gcwGetActiveCities", "return false;")
+    gcwGetActiveCities = @("public static String[] gcwGetActiveCities", "public static int gcwGetActiveCityCount", "return new String[0];")
+    gcwGetActiveCityCount = @("public static int gcwGetActiveCityCount", "public static int gcwCalculateInvasionCycle", "return 0;")
+    gcwCalculateInvasionCycle = @("public static int gcwCalculateInvasionCycle", "public static int gcwGetNextInvasionTime", "return -1;")
+    gcwGetNextInvasionTime = @("public static int gcwGetNextInvasionTime", "public static boolean gcwTutorialCheck", "return -1;")
+}
+foreach ($name in $neutralCityQueries.Keys)
+{
+    $markers = $neutralCityQueries[$name]
+    $slice = Get-FunctionSlice $gcw $markers[0] $markers[1]
+    Assert-Contract ($slice.Contains("if (isPostNgeCityInvasionRetired())") -and $slice.Contains($markers[2])) `
+        "p14.city-invasion.query.$name.neutral"
+}
+
+$setCredits = Get-FunctionSlice $gcw "public static void gcwSetCredits" "public static void gcwInvasionCreditForGCW"
+$setCreditsGuard = $setCredits.IndexOf("if (isPostNgeCityInvasionRetired())", [System.StringComparison]::Ordinal)
+$scoreWriter = $setCredits.IndexOf("gcw_score.setPlayerGcwData", [System.StringComparison]::Ordinal)
+Assert-Contract ($setCreditsGuard -ge 0 -and $setCredits.Contains("return;") -and $scoreWriter -gt $setCreditsGuard) `
+    "p14.city-invasion.score-writer-retired"
+
+$creditHandlers = [ordered]@{
+    gcwInvasionCreditForGCW = @("public static void gcwInvasionCreditForGCW", "public static void gcwInvasionCreditForPVPKill")
+    gcwInvasionCreditForPVPKill = @("public static void gcwInvasionCreditForPVPKill", "public static void gcwInvasionCreditForKill")
+    gcwInvasionCreditForKill = @("public static void gcwInvasionCreditForKill", "public static void gcwInvasionCreditForAssist")
+    gcwInvasionCreditForAssist = @("public static void gcwInvasionCreditForAssist", "public static void gcwInvasionCreditForCrafting")
+    gcwInvasionCreditForCrafting = @("public static void gcwInvasionCreditForCrafting", "public static void gcwInvasionCreditForDestroy")
+    gcwInvasionCreditForDestroy = @("public static void gcwInvasionCreditForDestroy", "public static String getFormattedInvasionTime")
+}
+foreach ($name in $creditHandlers.Keys)
+{
+    $markers = $creditHandlers[$name]
+    $slice = Get-FunctionSlice $gcw $markers[0] $markers[1]
+    Assert-Contract ($slice.Contains("invasionIsValidAndEngaged()") -and $slice.Contains("gcwSetCredits(")) `
+        "p14.city-invasion.credit-entrypoint.$name.fail-closed"
+}
 
 $tutorialCheck = Get-FunctionSlice $gcw "public static boolean gcwTutorialCheck" "public static boolean gcwCityHelpText"
 $helpText = Get-FunctionSlice $gcw "public static boolean gcwCityHelpText" "`n}"
@@ -299,6 +388,19 @@ Assert-Contract (@($utilityHandlers | Where-Object {
     -not $_.Contains("gcw.cleanupRetiredCityInvasionPlayerState(self)")
 }).Count -eq 0) `
     "p14.city-invasion.queued-player-callbacks-retired"
+
+$cityGameplayUtilityHandlers = @(
+    (Get-FunctionSlice $playerUtility "public int handleEntertainingGcwTroops" "public boolean cleanUpGuardPostNpc"),
+    (Get-FunctionSlice $playerUtility "public int handleTraderRepairQuest" "public int handleOpposingFactionScoutQuest"),
+    (Get-FunctionSlice $playerUtility "public int handleOpposingFactionScoutQuest" "public int handleOpposingFactionDestroyQuest"),
+    (Get-FunctionSlice $playerUtility "public int handleOpposingFactionDestroyQuest" "public boolean removeTraderRepairScriptVars")
+)
+Assert-Contract (@($cityGameplayUtilityHandlers | Where-Object {
+    -not $_.Contains("gcw.isPostNgeCityInvasionRetired()") -or
+    -not $_.Contains("gcw.cleanupRetiredCityInvasionPlayerState(self)")
+}).Count -eq 0 -and
+    ([regex]::Matches($playerUtility, 'gcw\.cleanupRetiredCityInvasionPlayerState\(self\);')).Count -eq 7) `
+    "p14.city-invasion.queued-gameplay-callbacks-retired"
 
 $missionTerminal = [string]$texts["retained.mission_terminal"]
 $missionBase = [string]$texts["retained.mission_base"]

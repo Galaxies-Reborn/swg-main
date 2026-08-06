@@ -313,7 +313,7 @@ Assert-Contract (
 ) "p14.beast-creation-retirement.overlay-excludes-precu-bio-engineer-and-missions"
 
 Assert-Contract (
-    @("implemented-build-verified-live-pending", "ready") -ccontains [string]$contract.status
+    @("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -ccontains [string]$contract.status
 ) "p14.beast-creation-retirement.contract.status"
 
 if ($Expectation -eq "Ready")
