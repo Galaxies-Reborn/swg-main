@@ -188,6 +188,14 @@ foreach ($property in $contract.continuityEvidence.missionSourceSha256.PSObject.
 
 Assert-Contract (@("implemented-build-pending", "ready-for-live-verification", "ready") -contains
     [string]$contract.status) "p14.retained-level.contract.status"
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+Assert-Contract ([string]$contract.buildEvidence.sourceMode -ceq "direct-branch" -and
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
+    "p14.retained-level.direct-source-pin"
+$contractText = Get-Content -LiteralPath $contractPath -Raw
+Assert-Contract (-not $contractText.Contains("/Artifacts/") -and
+    -not $contractText.Contains("/Staging/")) "p14.retained-level.no-host-staging"
 
 if ($failures.Count -gt 0)
 {

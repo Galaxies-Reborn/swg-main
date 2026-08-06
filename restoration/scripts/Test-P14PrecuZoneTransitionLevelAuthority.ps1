@@ -40,6 +40,8 @@ foreach ($property in $contract.sourceFiles.PSObject.Properties)
 {
     $sourcePaths[$property.Name] = Join-Path $source ([string]$property.Value)
 }
+Assert-Contract ($sourcePaths.Count -eq [int]$contract.expected.authenticatedSourceFiles) `
+    "p14.zone-transition.authenticated-source-count"
 $texts = @{}
 foreach ($name in $sourcePaths.Keys)
 {
@@ -75,6 +77,14 @@ Assert-Contract ($transition.Contains("public static void zonePlayer(") -and
     ([regex]::Matches($transition, 'hasPermissionForZone\(player, transit, "initialRequiredFlag"\)').Count -eq
         [int]$contract.expected.directTransitionEntryPoints)) `
     "p14.zone-transition.direct-entry-points-preserved"
+$noGateEntry = Get-SourceSlice $transition `
+    "public static void zonePlayerNoGate(" `
+    "public static void doZoneToWorld("
+Assert-Contract ([bool]$contract.expected.zonePlayerNoGateRechecksPermission -and
+    $noGateEntry.Contains('hasPermissionForZone(player, transit, "initialRequiredFlag")') -and
+    $noGateEntry.IndexOf('hasPermissionForZone(player, transit, "initialRequiredFlag")') -lt
+        $noGateEntry.IndexOf('dataTableGetString(dataTable, transit, "destination")')) `
+    "p14.zone-transition.no-gate-name-still-rechecks-permission"
 Assert-Contract ($permission.Contains('parse[0].equals("none")') -and
     $permission.Contains('groundquests.hasCompletedQuest(player, parse[1])') -and
     $permission.Contains('groundquests.isQuestActive(player, parse[1])') -and
@@ -116,8 +126,72 @@ Assert-Contract ($skill.Contains("public static int getPrecuEncounterDifficulty(
 Assert-Contract ([string]$texts.movementEntry -match 'transition\.zonePlayer\(self, player\)' -and
     [string]$texts.townshipEntry -match 'transition\.hasPermissionForZone\(player, locations\[i\], "initialRequiredFlag"\)' -and
     [string]$texts.nexusEntry -match 'transition\.hasPermissionForZone\(player, "aurillia_township", "initialRequiredFlag"\)' -and
-    [string]$texts.nexusAwayEntry -match 'transition\.hasPermissionForZone\(player, instances\[idx\], "initialRequiredFlag"\)') `
+    [string]$texts.nexusAwayEntry -match 'transition\.hasPermissionForZone\(player, instances\[idx\], "initialRequiredFlag"\)' -and
+    [string]$texts.stationNovaEntry -match 'transition\.zonePlayer\(npc, player\)') `
     "p14.zone-transition.production-consumers-preserved"
+
+$scriptRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script"
+$productionJava = @(Get-ChildItem -LiteralPath $scriptRoot -Recurse -File -Filter "*.java" |
+    Where-Object { $_.FullName -notmatch '[\\/]working[\\/]|[\\/]test[\\/]' })
+$transitionApiCalls = @($productionJava | Select-String -Pattern `
+    'transition\.(?:zonePlayer|zonePlayerNoGate|hasPermissionForZone|doZoneToWorld|doPublicInstanceZone|cleanupTempAccessFlag)\(')
+$transitionConsumerPaths = @($transitionApiCalls.Path | ForEach-Object {
+    $_.Substring($scriptRoot.Length + 1).Replace('\', '/')
+} | Sort-Object -Unique)
+$expectedTransitionConsumerPaths = @(
+    "conversation/nexus_travel.java",
+    "conversation/nexus_travel_away.java",
+    "conversation/station_nova_orion.java",
+    "library/township.java",
+    "systems/movement/zone_transition.java"
+) | Sort-Object
+$gatedAdmissionCalls = @($transitionApiCalls | Where-Object {
+    $_.Line -match 'transition\.(?:zonePlayer|zonePlayerNoGate|hasPermissionForZone)\('
+})
+$directWorldCallsOutsideMovement = @($transitionApiCalls | Where-Object {
+    $_.Line -match 'transition\.(?:doZoneToWorld|doPublicInstanceZone)\(' -and
+    -not $_.Path.EndsWith("systems\movement\zone_transition.java",
+        [System.StringComparison]::OrdinalIgnoreCase)
+})
+Assert-Contract ($transitionApiCalls.Count -eq [int]$contract.expected.productionTransitionApiCalls -and
+    $transitionConsumerPaths.Count -eq [int]$contract.expected.productionTransitionConsumerFiles -and
+    (($transitionConsumerPaths -join "`n") -ceq ($expectedTransitionConsumerPaths -join "`n")) -and
+    $gatedAdmissionCalls.Count -eq [int]$contract.expected.gatedAdmissionApiCalls -and
+    $directWorldCallsOutsideMovement.Count -eq [int]$contract.expected.ungatedExpansionAdmissionCallers) `
+    "p14.zone-transition.complete-production-api-inventory"
+
+$movement = [string]$texts.movementEntry
+$handlerStart = $movement.IndexOf("public int handleZoneTransitionRequest(",
+    [System.StringComparison]::Ordinal)
+$transitionHandler = if ($handlerStart -ge 0) { $movement.Substring($handlerStart) } else { "" }
+Assert-Contract ($transitionHandler.Contains('params.getBoolean("zoneIn")') -and
+    ([regex]::Matches($transitionHandler, 'transition\.doZoneToWorld\(player, parse\)')).Count -eq
+        [int]$contract.expected.directRryattWorldTransitionCalls -and
+    $transitionHandler.Contains("transition.zonePlayer(self, player)")) `
+    "p14.zone-transition.rryatt-callback-branches-bounded"
+
+$transitionMessages = @($productionJava | Select-String -SimpleMatch `
+    'messageTo' | Where-Object { $_.Line.Contains('"handleZoneTransitionRequest"') })
+$transitionMessagePaths = @($transitionMessages.Path | Sort-Object -Unique)
+$trustedCallerText = ($transitionMessagePaths | ForEach-Object {
+    Get-Content -LiteralPath $_ -Raw
+}) -join "`n"
+$zoneInMessages = [regex]::Matches($trustedCallerText,
+    'params\.put\("zoneIn", true\)').Count
+$zoneOutMessages = [regex]::Matches($trustedCallerText,
+    'params\.put\("zoneIn", false\)').Count
+$achonnko = [string]$texts.achonnkoReturn
+$achonnkoQuestGates = @(@("One", "Two", "Three", "Four") | Where-Object {
+    $achonnko.Contains("ep3_achonnko_condition_hasLevel$($_)(player, npc)") -and
+    $achonnko.Contains("groundquests.hasCompletedTask(player, `"ep3_rryatt_trail_mastery`", `"level$($_)`"")
+})
+Assert-Contract ($transitionMessagePaths.Count -eq [int]$contract.expected.trustedRryattMessageCallerFiles -and
+    $transitionMessages.Count -eq [int]$contract.expected.trustedRryattTransitionMessages -and
+    $zoneInMessages -eq [int]$contract.expected.trustedRryattZoneInMessages -and
+    $zoneOutMessages -eq [int]$contract.expected.gatedRryattZoneOutMessages -and
+    $achonnkoQuestGates.Count -eq 4 -and
+    [bool]$contract.expected.transitionCompatibilityAuditClosed) `
+    "p14.zone-transition.retained-rryatt-message-producers-bounded"
 Assert-Contract ([string]$texts.attributes -match '(?m)^sku\.0/sys\.server/compiled/game/script/library/transition\.java -text\r?$') `
     "p14.zone-transition.no-line-ending-bloat-policy"
 
