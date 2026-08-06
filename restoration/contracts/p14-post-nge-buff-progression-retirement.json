@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
   "status": "ready",
-  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, and post-Publish-14 absolute player control-immunity buffs without removing later-content data compatibility or the restored Publish 14.1 entertainer and Teras Kasi lifecycles.",
+  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, post-Publish-14 absolute player control-immunity buffs, and later reactive avoid-incapacitation heals without removing later-content data compatibility or the restored Publish 14.1 entertainer, Teras Kasi, and Jedi avoid-incapacitation lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -22,6 +22,8 @@
       "The retained mini-turret consumable handlers create autonomous 250-500 damage, 5000-health faction turrets from later GCW content; their item and buff rows remain loadable while player admission and turret creation fail closed.",
       "Pinned Publish 14.1 resolves combat states through accuracy versus defender state-defense skill modifiers, including the separate Jedi resistance_states roll; it does not grant timed absolute player buffs that block whole snare, root, mez, daze, armor-break, slow, or action-drain groups.",
       "The retained Mustafar movement/mez devices, treasure snare-immunity consumable, GCW critical-heal recourse, generic player immunity rows, and daze/mez/action-drain recourses remain loadable compatibility content while their player admission and stale state fail closed; boss and beast control behavior remains available.",
+      "Pinned Publish 14.1 has an authentic Jedi avoidIncapacitation command using the avoid_incapacitation skill modifier and a distinct avoid_incap buff effect; it has no generic avoid_incap_heal consumable callback that heals a player before the incapacitated posture is applied.",
+      "The five GCW reactive stim buffs, two last-man PvP buffs, and Tusken endurance heroic buff are the complete eight-row avoid_incap_heal inventory; their retained content rows remain loadable while player admission, stale state, and the pre-incap reactive-heal callback fail closed.",
       "A whole production-script inventory has exactly one caller of grantUnmodifiedXPPercentageOfLevel: xpGrantedGeneralAddBuffHandler, which returns at the central retirement gate before the call; the retained API itself also returns zero without consulting player level, class template, or the NGE level table.",
       "All ordinary and crafting inspiration-XP consumers resolve to identity or zero before retained percentage data can affect Publish 14.1 explicit XP pools, closing the deferred level-percentage buff-XP authority surface."
     ]
@@ -83,6 +85,24 @@
     "postP14PlayerControlImmunityBuffAdmissionReachable": false,
     "playerControlImmunityItemsDecrementedOnRejectedUse": false,
     "legitimateNpcControlImmunityPreserved": true,
+    "retiredPlayerAvoidIncapHealBuffCount": 8,
+    "retiredPlayerAvoidIncapHealBuffs": [
+      "gcw_base_critical_heal_a",
+      "gcw_base_critical_heal_b",
+      "gcw_base_critical_heal_c",
+      "gcw_base_critical_heal_d",
+      "gcw_base_critical_heal_e",
+      "pvp_last_man_ability",
+      "pvp_last_man_rebel_ability",
+      "tusken_endurance"
+    ],
+    "retainedPlayerAvoidIncapHealBuffRows": 8,
+    "retainedPlayerAvoidIncapHealClickItems": 6,
+    "postP14PlayerAvoidIncapHealBuffAdmissionReachable": false,
+    "postP14ReactiveCriticalHealReachable": false,
+    "playerAvoidIncapHealItemsDecrementedOnRejectedUse": false,
+    "precuJediAvoidIncapacitationBuffRows": 6,
+    "precuJediAvoidIncapacitationPreserved": true,
     "staleGcwBonusGeneralStateScrubbed": true,
     "randomMeditationTickGrantRetired": true,
     "retiredScriptVarTrees": [
@@ -116,26 +136,26 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "113b3389655f76d95fb22af47f445996ce882c62",
+    "directSourceGitlink": "06afa0759fa236aa0f90714c73ce5b94a319ea32",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "b7bf58cca81c65762fe3657c80e0854771bc39ab7ee624d934b786b90b52ce2f",
+    "sourceContentSha256": "842c5418c5c234a976cbafa025057d0d22daa435fe201ce9b10bcaeba0eed633",
     "sourceSha256": {
-      "library/buff.java": "1be4dac7b55b539ee6b1e11dda449b65fa8cc9ec5d279640434f30acc51a5fac",
+      "library/buff.java": "16c24016c59c045efc80f6bf3e181fe6b6e6a8cc7086ccdc4d3d8c6b7c13b32b",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
-      "player/base/base_player.java": "29e4e3784d1a415900e49ebf5d87d7a92918bc8ea55994e24b3c6b82877350ca",
+      "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
       "systems/buff/buff_handler.java": "267029a2b35f93617d3eef2f03e2f133e90476495fe31b70099f6f17f08df230",
       "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
       "systems/crafting/crafting_base.java": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now also rejects and cleans the exact 12-name post-Publish-14 player control-immunity inventory while preserving retained expansion item/data rows and legitimate NPC control immunity.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now also rejects and cleans the exact eight-name post-Publish-14 reactive avoid-incap-heal inventory while preserving authentic Publish 14 Jedi Avoid Incapacitation, Teras Kasi Force of Will, and retained expansion content/data rows.",
     "compiledClassSha256": {
       "script.library.buff": "ab7d4a55a6aa8c8ee506589355479370ab058851ae151118718d5e58b180b373",
       "script.library.gcw": "5d3b118df19cce0fca60b773b24b04ac71f4c9caafb5189d60805a8f80284b7d",

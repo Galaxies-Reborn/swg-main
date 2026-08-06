@@ -1332,6 +1332,35 @@ for boss_control_immunity_buff in boss_snare_immunity boss_root_immunity boss_me
     ! printf '%s' "$control_immunity_inventory_source" | grep -Fq "\"$boss_control_immunity_buff\""
     grep -Fq "buff.applyBuff(self, \"$boss_control_immunity_buff\")" "$work_script/npc/boss/boss_movement_buff.java"
 done
+avoid_incap_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_P14_PLAYER_AVOID_INCAP_HEAL_BUFFS/,/public static boolean isRetiredPostP14PlayerAvoidIncapHealBuff/p' "$work_buff_library")"
+avoid_incap_cleanup_source="$(sed -n '/public static void retirePostP14PlayerAvoidIncapHealState/,/public static boolean isRetiredPostNgeBountyHunterShieldBuff/p' "$work_buff_library")"
+retired_player_avoid_incap_buffs="gcw_base_critical_heal_a gcw_base_critical_heal_b gcw_base_critical_heal_c gcw_base_critical_heal_d gcw_base_critical_heal_e pvp_last_man_ability pvp_last_man_rebel_ability tusken_endurance"
+test "$(printf '%s\n' $retired_player_avoid_incap_buffs | wc -l)" -eq 8
+for retired_player_avoid_incap_buff in $retired_player_avoid_incap_buffs; do
+    printf '%s' "$avoid_incap_inventory_source" | grep -Fq "\"$retired_player_avoid_incap_buff\""
+    awk -F '\t' -v name="$retired_player_avoid_incap_buff" '$1 == name { found++; if ($8 != "avoid_incap_heal") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
+done
+printf '%s' "$avoid_incap_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$avoid_incap_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+grep -Fq 'retirePostP14PlayerAvoidIncapHealState(player);' "$work_buff_library"
+printf '%s' "$gcw_banner_admission_source" | grep -Fq 'isRetiredPostP14PlayerAvoidIncapHealBuff(bdata.buffName)'
+test "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'isRetiredPostP14PlayerAvoidIncapHealBuff(bdata.buffName)' | cut -d: -f1)" -lt "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'hasBuff(target, nameCrc)' | cut -d: -f1)"
+critical_heal_source="$(sed -n '/public boolean performCriticalHeal/,/public void sendSmugglerSystemBootstrap/p' "$work_base_player")"
+printf '%s' "$critical_heal_source" | grep -Fq 'buff.isPostNgeBuffProgressionRetired()'
+printf '%s' "$critical_heal_source" | grep -Fq 'buff.retirePostP14PlayerAvoidIncapHealState(self);'
+test "$(printf '%s' "$critical_heal_source" | grep -nF 'buff.isPostNgeBuffProgressionRetired()' | cut -d: -f1)" -lt "$(printf '%s' "$critical_heal_source" | grep -nF 'buff.getAllBuffs(self)' | cut -d: -f1)"
+! printf '%s' "$critical_heal_source" | grep -Fq 'avoidIncapacitation'
+awk -F '\t' '$1 ~ /^avoidIncapacitation(_[1-5])?$/ { found++; if ($8 != "avoid_incap") exit 2 } END { if (found != 6) exit 3 }' "$work_buff_table"
+grep -Fq 'buff.hasBuff(player, "avoidIncapacitation")' "$work_script/library/jedi.java"
+grep -Fq 'meditation.forceOfWill(self, delta)' "$work_script/player/skill/teraskasi.java"
+for retained_avoid_incap_item in 'item_gcw_base_reactive_critical_heal_a_03_01:gcw_base_critical_heal_a' 'item_gcw_base_reactive_critical_heal_b_03_01:gcw_base_critical_heal_b' 'item_gcw_base_reactive_critical_heal_c_03_01:gcw_base_critical_heal_c' 'item_gcw_base_reactive_critical_heal_d_03_01:gcw_base_critical_heal_d' 'item_gcw_base_reactive_critical_heal_e_04_01:gcw_base_critical_heal_e' 'item_cs_reactive_critical_heal_e_04_01:gcw_base_critical_heal_e'; do
+    retained_avoid_incap_name="${retained_avoid_incap_item%%:*}"
+    retained_avoid_incap_buff="${retained_avoid_incap_item#*:}"
+    awk -F '\t' -v name="$retained_avoid_incap_name" '$1 == name { found++ } END { if (found != 1) exit 3 }' "$work_master_item_table"
+    awk -F '\t' -v name="$retained_avoid_incap_name" -v buff="$retained_avoid_incap_buff" '$1 == name { found++; if (index($0, "\t" buff "\t") == 0) exit 2 } END { if (found != 1) exit 3 }' "$work_item_stats_table"
+done
+awk -F '\t' '$1 == "command_pvp_last_man_ability" || $1 == "command_pvp_last_man_rebel_ability" { found++ } END { if (found != 2) exit 3 }' "$work_command_table"
+grep -Fq 'buffHandler:add:tusken_endurance:player' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/tusken/cloning.tab"
 ! grep -Eq 'getPlayerProfession|getBannerBuff|buffPlayers|buff\.applyBuff' "$work_gcw_banner_manager"
 grep -Fq 'messageTo(self, "handleDeleteSelf", null, 180.0f, false);' "$work_gcw_banner_manager"
 test "$(grep -Fc 'trial.cleanupObject(self);' "$work_gcw_banner_manager")" -eq 2
@@ -2026,6 +2055,15 @@ javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostP14P
 for retired_player_control_immunity_buff in $retired_player_control_immunity_buffs; do
     javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_player_control_immunity_buff"
 done
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostP14PlayerAvoidIncapHealBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostP14PlayerAvoidIncapHealState'
+for retired_player_avoid_incap_buff in $retired_player_avoid_incap_buffs; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_player_avoid_incap_buff"
+done
+critical_heal_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/public boolean performCriticalHeal/,/public void sendSmugglerSystemBootstrap/p')"
+printf '%s' "$critical_heal_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
+printf '%s' "$critical_heal_bytecode" | grep -Fq 'script/library/buff.retirePostP14PlayerAvoidIncapHealState'
+test "$(printf '%s' "$critical_heal_bytecode" | grep -nF 'script/library/buff.isPostNgeBuffProgressionRetired' | cut -d: -f1)" -lt "$(printf '%s' "$critical_heal_bytecode" | grep -nF 'script/library/buff.getAllBuffs' | cut -d: -f1)"
 gcw_bonus_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int gcwBonusGeneralAddBuffHandler/,/public int gcwBonusGeneralRemoveBuffHandler/p')"
 printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
 printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/utils.removeScriptVarTree'

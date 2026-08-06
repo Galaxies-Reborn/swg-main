@@ -123,11 +123,19 @@ $controlImmunityInventoryBody = Get-SourceSlice $buffText `
 $controlImmunityCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostP14PlayerControlImmunityState" `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$avoidIncapInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_P14_PLAYER_AVOID_INCAP_HEAL_BUFFS" `
+    "public static boolean isRetiredPostP14PlayerAvoidIncapHealBuff"
+$avoidIncapCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostP14PlayerAvoidIncapHealState" `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
 $buffAdmissionBody = Get-SourceSlice $buffText `
     "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
     "public static boolean applyBuff(obj_id target, String name)"
 $meditationTickBody = Get-SourceSlice ([string]$sourceTexts["player/base/base_player.java"]) `
     "public int handleMeditationTick" "public int msgCoupDeGraceAuthoritativeCheck"
+$criticalHealBody = Get-SourceSlice ([string]$sourceTexts["player/base/base_player.java"]) `
+    "public boolean performCriticalHeal" "public void sendSmugglerSystemBootstrap"
 Assert-Contract ($flagBody.Contains("return true;")) "p14.buff-progression.central-flag.true"
 foreach ($buffName in @($contract.expected.retiredBuffs))
 {
@@ -178,6 +186,25 @@ Assert-Contract ($actualControlImmunityBuffs.Count -eq [int]$contract.expected.r
     $cleanupBody.Contains("retirePostP14PlayerControlImmunityState(player);") -and
     (Is-Before $buffAdmissionBody "isRetiredPostP14PlayerControlImmunityBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
     "p14.buff-progression.control-immunity.player-state-and-admission-retired"
+$expectedAvoidIncapBuffs = @($contract.expected.retiredPlayerAvoidIncapHealBuffs | Sort-Object)
+$actualAvoidIncapBuffs = @([regex]::Matches($avoidIncapInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualAvoidIncapBuffs.Count -eq [int]$contract.expected.retiredPlayerAvoidIncapHealBuffCount -and
+    @($actualAvoidIncapBuffs | Select-Object -Unique).Count -eq $actualAvoidIncapBuffs.Count -and
+    (($actualAvoidIncapBuffs -join "`n") -ceq ($expectedAvoidIncapBuffs -join "`n")) -and
+    -not [bool]$contract.expected.postP14PlayerAvoidIncapHealBuffAdmissionReachable -and
+    $avoidIncapCleanupBody.Contains("isPlayer(player)") -and
+    $avoidIncapCleanupBody.Contains("removeBuff(player, retiredBuff)") -and
+    $cleanupBody.Contains("retirePostP14PlayerAvoidIncapHealState(player);") -and
+    (Is-Before $buffAdmissionBody "isRetiredPostP14PlayerAvoidIncapHealBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
+    "p14.buff-progression.avoid-incap-heal.player-state-and-admission-retired"
+Assert-Contract (-not [bool]$contract.expected.postP14ReactiveCriticalHealReachable -and
+    $criticalHealBody.Contains("buff.isPostNgeBuffProgressionRetired()") -and
+    $criticalHealBody.Contains("buff.retirePostP14PlayerAvoidIncapHealState(self);") -and
+    (Is-Before $criticalHealBody "buff.isPostNgeBuffProgressionRetired()" "buff.getAllBuffs(self)") -and
+    (Is-Before $criticalHealBody "return false;" 'type.equals("avoid_incap_heal")') -and
+    -not $criticalHealBody.Contains("avoidIncapacitation")) `
+    "p14.buff-progression.avoid-incap-heal.reactive-heal-fails-closed"
 Assert-Contract ([bool]$contract.expected.randomMeditationTickGrantRetired -and
     $meditationTickBody.Contains("meditation.trance(self)") -and
     $meditationTickBody.Contains("messageTo(self, meditation.HANDLER_MEDITATION_TICK") -and
@@ -355,6 +382,23 @@ Assert-Contract ([bool]$contract.expected.legitimateNpcControlImmunityPreserved 
     @($bossImmunityNames | Where-Object { $actualControlImmunityBuffs -contains $_ }).Count -eq 0 -and
     @($bossImmunityNames | Where-Object { -not $bossMovementScript.Contains("buff.applyBuff(self, `"$_`")") }).Count -eq 0) `
     "p14.buff-progression.compatibility.npc-control-immunity-preserved"
+$avoidIncapRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $_.NAME -in $expectedAvoidIncapBuffs })
+Assert-Contract ($avoidIncapRows.Count -eq [int]$contract.expected.retainedPlayerAvoidIncapHealBuffRows -and
+    ((@($avoidIncapRows.NAME | Sort-Object) -join "`n") -ceq ($expectedAvoidIncapBuffs -join "`n")) -and
+    @($avoidIncapRows | Where-Object { $_.EFFECT1_PARAM -cne "avoid_incap_heal" }).Count -eq 0) `
+    "p14.buff-progression.compatibility.avoid-incap-heal-rows-preserved"
+$precuJediAvoidRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $_.NAME -match '^avoidIncapacitation(_[1-5])?$' })
+$jediLibrary = Get-Content -LiteralPath (Join-Path $scriptRoot "library/jedi.java") -Raw
+$terasKasiScript = Get-Content -LiteralPath (Join-Path $scriptRoot "player/skill/teraskasi.java") -Raw
+Assert-Contract ([bool]$contract.expected.precuJediAvoidIncapacitationPreserved -and
+    $precuJediAvoidRows.Count -eq [int]$contract.expected.precuJediAvoidIncapacitationBuffRows -and
+    @($precuJediAvoidRows | Where-Object { $_.EFFECT1_PARAM -cne "avoid_incap" }).Count -eq 0 -and
+    @($precuJediAvoidRows.NAME | Where-Object { $actualAvoidIncapBuffs -contains $_ }).Count -eq 0 -and
+    $jediLibrary.Contains('buff.hasBuff(player, "avoidIncapacitation")') -and
+    $terasKasiScript.Contains("meditation.forceOfWill(self, delta)")) `
+    "p14.buff-progression.compatibility.precu-jedi-and-teras-kasi-incapacitation-preserved"
 foreach ($mapping in @("buildabuff`t", "xp_bonus_general`t", "xp_granted_general`t", "tcg_xp_bonus`t", "tcg_xp_granted`t"))
 {
     Assert-Contract ($effectMap.Contains($mapping)) "p14.buff-progression.compatibility.effect.$($mapping.Trim())"
@@ -403,6 +447,29 @@ Assert-Contract ($retainedControlImmunityClickItems -eq [int]$contract.expected.
     (Is-Before $clickUseBody "if (buff.canApplyBuff(player, buffName))" "static_item.decrementStaticItem(self)") -and
     -not [bool]$contract.expected.playerControlImmunityItemsDecrementedOnRejectedUse) `
     "p14.buff-progression.compatibility.control-immunity-click-items-preserved-without-rejected-consumption"
+$retainedAvoidIncapItems = @(
+    @{ item = "item_gcw_base_reactive_critical_heal_a_03_01"; buff = "gcw_base_critical_heal_a" },
+    @{ item = "item_gcw_base_reactive_critical_heal_b_03_01"; buff = "gcw_base_critical_heal_b" },
+    @{ item = "item_gcw_base_reactive_critical_heal_c_03_01"; buff = "gcw_base_critical_heal_c" },
+    @{ item = "item_gcw_base_reactive_critical_heal_d_03_01"; buff = "gcw_base_critical_heal_d" },
+    @{ item = "item_gcw_base_reactive_critical_heal_e_04_01"; buff = "gcw_base_critical_heal_e" },
+    @{ item = "item_cs_reactive_critical_heal_e_04_01"; buff = "gcw_base_critical_heal_e" }
+)
+$retainedAvoidIncapClickItems = 0
+foreach ($entry in $retainedAvoidIncapItems)
+{
+    if ($masterItemText.Contains("$($entry.item)`t") -and
+        $itemStatsText.Contains("$($entry.item)`t") -and
+        $itemStatsText.Contains("`t$($entry.buff)`t")) { $retainedAvoidIncapClickItems++ }
+}
+$pvpCommandTable = Get-Content -LiteralPath (Join-Path $sharedRoot "datatables/command/command_table.tab") -Raw
+$tuskenCloningTable = Get-Content -LiteralPath (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/tusken/cloning.tab") -Raw
+Assert-Contract ($retainedAvoidIncapClickItems -eq [int]$contract.expected.retainedPlayerAvoidIncapHealClickItems -and
+    -not [bool]$contract.expected.playerAvoidIncapHealItemsDecrementedOnRejectedUse -and
+    $pvpCommandTable.Contains("command_pvp_last_man_ability`t") -and
+    $pvpCommandTable.Contains("command_pvp_last_man_rebel_ability`t") -and
+    $tuskenCloningTable.Contains("buffHandler:add:tusken_endurance:player")) `
+    "p14.buff-progression.compatibility.avoid-incap-content-preserved-without-rejected-consumption"
 
 $performancePath = Join-Path $scriptRoot "library/performance.java"
 $performanceText = Get-Content -LiteralPath $performancePath -Raw
