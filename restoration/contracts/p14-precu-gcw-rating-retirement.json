@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-gcw-rating-retirement",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Retire the post-NGE current/lifetime GCW point, PvP-kill rating-input, weekly rating conversion, decay, invasion-credit, rating-derived regional-score progression, passive combat-level/rank factional-presence writer, manual/admin and native regional-score writers and decay, false holiday point rewards, destructive point-consumable interactions, NGE percentile overwrite of planetary control, regional-score travel/spawn/space-battle/mission-terminal gameplay authority, later city/guild regional-defender membership, bonus, title, and presentation, the later fixed-base/Restuss PvP-region bonus controller, post-NGE recruiter token-vendor conversation routing, and the post-NGE civilian neutral factional-helper/mercenary status while restoring Publish 14 player-base control scores and registry lifecycle, real faction enlistment and on-leave/covert/overt transitions, recruiter rank/perk purchases, faction standing/rank, ordinary open-world PvP, the Yavin IV Force Ranking System and Jedi enclaves, ambient encounter availability, general regional presentation compatibility, and independent mission, quest, PRE-CU open-world battlefield, holiday-token, and space rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -39,6 +39,7 @@
       "The retained space kill path already awards authored Rebel/Imperial faction standing, and the space battle path awards physical faction tokens independently of later GCW-rating points.",
       "The pinned Publish 14 reference has faction standing and rank rather than the later consumable GCW-point currency; later holiday token content can remain, but it must not emit a false point-reward message or mutate the retired currency.",
       "All fourteen authored later GCW-point collection items and their metadata remain available as content, while their destructive radial consume path is retired until an explicit PRE-CU reward conversion is designed.",
+      "The day-31 Letter of Commendation is another later GCW-point consumable: its authored publish-gift and item data can remain, but its radial action must not destroy the item or claim a 10,000-point reward after the currency pipeline is retired.",
       "The retained War Terminal is a later publish-gift asset whose planetary report and factional-presence presentation can remain, but its queued-battlefield action and 30-day personal-contribution ledger are consumers of systems retired elsewhere in this contract.",
       "Persisted gcwContributionTracking state and cached terminal actions can outlive their writers, so they must be scrubbed rather than displayed as current PRE-CU progression.",
       "Four later pvp_region_watcher objects remain in the Corellia, Talus, Naboo, and Restuss buildouts; their controller scripts record deaths and feed the retired NGE regional GCW-point bonus path, which is absent from the pinned Publish 14 reference.",
@@ -120,6 +121,11 @@
     "holidayTokenRewardsPreserved": true,
     "gcwCollectionConsumeReachable": false,
     "gcwCollectionItemsPreserved": 14,
+    "gcwRecruitmentLetterPointGrantReachable": false,
+    "gcwRecruitmentLetterDestructionReachable": false,
+    "gcwRecruitmentLetterFalseSuccessLogReachable": false,
+    "gcwRecruitmentLetterItemPreserved": true,
+    "gcwRecruitmentLetterPublishDay": 31,
     "warTerminalQueuedBattlefieldActionReachable": false,
     "warTerminalPersonalContributionReachable": false,
     "staleContributionLedgerStateScrubbed": true,
@@ -181,10 +187,12 @@
     "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/flip_terminal_spawner.tpf",
     "dsrc/sku.0/sys.server/compiled/game/script/city/ship_spawner.java",
     "dsrc/sku.0/sys.server/compiled/game/script/item/publish_gift/gcw_mulit_image_painting.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/item/publish_gift/recruitment_letter.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/holiday.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/collections/collection_gcw.java",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/veteran_rewards/publish_gift.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/faction_perk/hq/hq_point_values.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/imperial/installation.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab",
@@ -240,11 +248,11 @@
         "sha256": "8b2ebb594a518e17c6e0c26d74bf1e7f1a7528cc2971a28fb46747af9129ac8a"
       }
     },
-    "directSourceCommit": "5d8f77584335933d6c5da418bb74bad86ab34ea8",
+    "directSourceCommit": "a50b235705a8a00591d51dc8da1df9e315323ac2",
     "nativeSourceCommit": "f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
     "serverConfigCommit": "4d48749e6588ed6fedc16b29d5d7c8dd6f4f21c5",
     "sourceSha256": {
-      "attributes": "9651262801f11c9e6a88732897ba7b3a8a641e23b6c8093113632921298342f6",
+      "attributes": "2dbcd9fb6d6f21fee9927850fa797e34ff4d29e450494ddb0f73b0d027130e52",
       "script.library.gcw": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "script.library.factions": "d169ef830f19a1462f296ac4d03b8ca0e58308d05bc3f68b2a6b7c557108eac7",
       "script.player.player_faction": "89f5986734f05dbf7ff9e556a01e58dacb1e78ad188c2d2bdb905d82102199d0",
@@ -273,10 +281,12 @@
       "template.gcw.flip_terminal_spawner": "8efff1e81085a82c3db6cc0ceeb4f379fabb4298c807bddc432c5bd3181a1b1a",
       "script.city.ship_spawner": "61c54bd723d738fe7e9b04e588b90c10773122086331f9763790e76074598703",
       "script.item.publish_gift.gcw_mulit_image_painting": "28338a6bf481cb4139f0a5ac8226c342038102003bf231b89b01a523f796d92f",
+      "script.item.publish_gift.recruitment_letter": "e34d636ff7c8e519b6be58eba6fb8044456c75a9bcf8791708b830a040f66a63",
       "script.library.holiday": "368272f6c085b4c329afc6a0b9c76c7e9e4e87cb33a961156fb595b6550ac31a",
       "script.systems.collections.collection_gcw": "c53903edb73dc9d2338fd00944922dda7baf0aa4b81c4f6d12390ba9032f9875",
       "datatable.item.master_item.master_item": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
       "datatable.item.master_item.item_stats": "18bc1a63d3972d2732b265e2e9fb8a59f594ab7052d8045a2a118d2bcd5bc081",
+      "datatable.veteran_rewards.publish_gift": "f73cfba1cbd8cdb21e84a608a88c34fd47ba8a72896fa11515a2d358b6150ff5",
       "datatable.faction_perk.hq.hq_point_values": "e1c4baccaa1a44f17fa8f358b8cb00ac2ec562c259bcb2ca669b2da76896abbd",
       "datatable.faction_recruiter.imperial.installation": "bab8528d3a607b7f2218e197538010d20d2cd966e56d50f30e7d03a748ce0e0c",
       "datatable.faction_recruiter.rebel.installation": "9c4a5c1b03a33b69d446f7049696715bcfb23eb1aa664ce6540dc6bfddd50b62",
@@ -314,8 +324,8 @@
       "docker.compose.precu": "c36affb750da1ff32913e6fe9e11dc6c2084bd0790f99ddaaa3989de4d912058",
       "docker.entrypoint": "63235904937028255d5e10b1c0d2a7666a69586c11c0c34607600fcd92468ac4"
     },
-    "staticContract": "passed against the locked direct source through faction-base registry lifecycle closure, direct planet-owned ratio authority, War Terminal queue/contribution retirement, stale contribution-ledger scrubbing, neutral-mercenary fail-closure and stale-state cleanup, recruiter conversation routing to the PRE-CU rank/perk inventory, and regional mission-terminal spawner retirement, followed by every overlapping faction suite and the full Phase A ready regression",
-    "isolatedJavaCompile": "passed for the latest factions.java and player_faction.java neutral-helper retirement, both generated recruiter conversations, and the cleanup-only regional mission-terminal spawner with Java 8 against the verified live x64 class set; isolated hashes were authenticated and the ephemeral /dev/shm output was deleted and verified absent",
+    "staticContract": "passed against the locked direct source through faction-base registry lifecycle closure, direct planet-owned ratio authority, War Terminal queue/contribution retirement, stale contribution-ledger scrubbing, nondestructive GCW collection and recruitment-letter retirement, neutral-mercenary fail-closure and stale-state cleanup, recruiter conversation routing to the PRE-CU rank/perk inventory, and regional mission-terminal spawner retirement",
+    "isolatedJavaCompile": "passed for the latest nondestructive recruitment_letter.java retirement with Java 8 against the verified live x64 class set; both radial entrypoints compile to immediate returns, the isolated class SHA-256 is authenticated, and the ephemeral /dev/shm output was deleted and verified absent",
     "compiledClassSha256": {
       "script.library.factions.isolated": "8640c6175dbbd27ecbfd2a81faa1a2089ae9463ad19b8e84899dd173e8b97ac2",
       "script.player.player_faction.isolated": "3f9fb13b760732b7596498a7d3b60b0dae5483e2559086ea36497d3a3c2291ac",
@@ -356,7 +366,8 @@
       "script.systems.spawning.spawn_base.deployedFullBuild": "cdb29b37f821b2075963247f985a0243a3b612e98280e94ca7305eac306e89bd",
       "script.systems.gcw.space.battle_spawner.deployedFullBuild": "f44d54811f105b538e6c9190122f8c52d1242a0145af56c019e0509259043587",
       "script.library.holiday.deployedFullBuild": "f68a2762a8b885056b7a01c783654339aa56b2318475d713739bcb30947f51b0",
-      "script.systems.collections.collection_gcw.deployedFullBuild": "51b4128b1364f9bb90945d8361633c9844f774e3899a245ec3417d97e97e9724"
+      "script.systems.collections.collection_gcw.deployedFullBuild": "51b4128b1364f9bb90945d8361633c9844f774e3899a245ec3417d97e97e9724",
+      "script.item.publish_gift.recruitment_letter.isolated": "4501389a4c19b453920858fcef9d3b0b1dbe6ee944a5143f0584f27361a95e3f"
     },
     "compiledBuildoutSha256": {
       "corellia_7_2.iff": "d3840f6261c62abfe153fa9faf3b2e930b3192a8080ff934b0e8e16e67c53b73",
@@ -373,9 +384,9 @@
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "5b10da1a8fe33865c4c94859c446b916cd4c20943e0d6c2b7135bc166d56fb12",
     "serverBinaryBuildId": "94b198caa2763f4572326706f027ed3429140820",
-    "directSourceBuild": "focused overlapping authority suites, full Phase-A ready validation, and the canonical full x64 native/Java/data build and deployment passed from synchronized direct-source commit 5d8f77584335933d6c5da418bb74bad86ab34ea8 and native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6 with no host artifact or staging tree",
-    "fullX64Build": "full build, artifact verification, and deployment passed in 758.9 seconds from direct-source commit 5d8f77584335933d6c5da418bb74bad86ab34ea8 with native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6 into the existing persistent x64 work volume",
-    "deploymentProbe": "passed synchronized-source preflight, exact source/work parity, isolated and deployed class authentication including factions/player_faction, both recruiter conversations, and the regional mission-terminal spawner, compiled template authentication, canonical runtime config rendering, x64 architecture, health/readiness, exact 15-scene process counts, fresh-log audit, and live mapped-binary verification"
+    "directSourceBuild": "pending canonical x64 build and deployment from synchronized direct-source commit a50b235705a8a00591d51dc8da1df9e315323ac2; no host artifact or staging tree is permitted",
+    "fullX64Build": "pending canonical full x64 native/Java/data build into the existing persistent x64 work volume",
+    "deploymentProbe": "pending recruitment-letter source/work parity, deployed immediate-return bytecode, compatibility-data authentication, x64 health/readiness, process counts, fresh-log audit, and live mapped-binary verification"
   },
   "runtimeEvidence": {
     "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fifteen configured SwgGameServer scene processes",
@@ -391,8 +402,8 @@
     "regionalMissionTerminalSourceWorkParity": "flip_terminal_spawner.java and object/tangible/gcw/flip_terminal_spawner.tpf matched byte-for-byte between /swg-precu-source/dsrc and /swg-precu/dsrc after the full build",
     "regionalMissionTerminalDeployedBytecode": "the deployed flip_terminal_spawner class exposes the retirement predicate, routes attach, initialize, delayed-check, and stale spawn callbacks through cleanup and self-detachment, destroys referenced stale terminals, and contains no createObject or regional-percentile reads",
     "regionalMissionTerminalCompiledTemplate": "the rebuilt object/tangible/gcw/flip_terminal_spawner.iff retains systems.gcw.gcw_data_updater for read compatibility and contains no systems.gcw.flip_terminal_spawner attachment; its SHA-256 hash is authenticated",
-    "gcwPointInteractionSourceWorkParity": "dsrc/.gitattributes, holiday.java, collection_gcw.java, master_item.tab, and item_stats.tab matched byte-for-byte between /swg-precu-source and /swg-precu after the full build",
-    "gcwPointInteractionDeployedBytecode": "holiday reward bytecode retains getEventTokens, buff.applyBuff, and play2dNonLoopingSound while omitting pvpModifyCurrentGcwPoints and SID_GCW_POINTS; collection radial handlers return immediately and its stale callback only removes the SUI PID, with no active point writer, success message, item decrement, or destruction",
+    "gcwPointInteractionSourceWorkParity": "pending refreshed parity for dsrc/.gitattributes, recruitment_letter.java, publish_gift.tab, holiday.java, collection_gcw.java, master_item.tab, and item_stats.tab",
+    "gcwPointInteractionDeployedBytecode": "pending refreshed recruitment-letter immediate-return authentication; the prior holiday and collection-item retirement probes remain passed",
     "warTerminalAndContributionSourceWorkParity": "terminal_gcw_publish_gift.java, PlayerObject.cpp, and ScriptMethodsPvp.cpp matched byte-for-byte between /swg-precu-source and /swg-precu with SHA-256 4caf393b3dc65abd4474e9785096a259cc629b39defaf78d9fc2f184dd351f5b, 1339b58e55c2581c669de31122ca60017b851633f77fda2cee876669a883918c, and b8624a68629559f245afab17fc6988393678ff88c0a7b44f9edf9379c3fefb77",
     "warTerminalDeployedBytecode": "the deployed class contains cached-action, personal-PID, and all five contribution-local cleanup keys plus report/faction-presence calls; it omits displayBattlefieldSui, the contribution JNI read, both obsolete menu strings, and the personal-contribution table header",
     "contributionLedgerNativeAuthentication": "the deployed x64 libserverScript contribution JNI symbol is exactly xor eax,eax then ret; libserverGame retains PlayerObject::retirePostNgeGcwRatingState and both stale contribution objvar keys",
@@ -405,7 +416,7 @@
     "recruiterConversationDeployedBytecode": "both deployed recruiter conversation classes delegate action_showFactionGcwRewardUi to their action_showGcwRewardsList PRE-CU rank/perk path and contain no showInventorySUI token-vendor call; deployed SHA-256 hashes are authenticated",
     "canonicalRuntimeConfig": "the rebuilt image rendered clusterName=swg twice, transferServerAddress=172.26.0.3 once, enableFRS=1 once, all four neutral-mercenary mode flags false once each, and exactly one Docker runtime override block",
     "containerImage": "sha256:666082edac4672ecfc6b908235bb34437118176f83bb71f496ed6dc997b64874",
-    "deployedDirectSourceCommit": "5d8f77584335933d6c5da418bb74bad86ab34ea8",
+    "deployedDirectSourceCommit": "pending canonical deployment of a50b235705a8a00591d51dc8da1df9e315323ac2",
     "deployedNativeSourceCommit": "f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
     "playerObjectSourceWorkSha256": "1339b58e55c2581c669de31122ca60017b851633f77fda2cee876669a883918c",
     "liveServerBinaryInode": 12141095,
@@ -423,13 +434,18 @@
     "freshLogLines": 357,
     "freshLogReadyMarkers": 1,
     "freshLogTargetedErrors": 0,
-    "fullPhaseAReady": "passed before deployment against locked dsrc 5d8f77584335933d6c5da418bb74bad86ab34ea8 and src f66cc3cce93e93c5b96a1fab9139c8cc32399ca6; all overlapping GCW, profession, buff, city, Empire Day, and Life Day source-authentication suites passed",
+    "fullPhaseAReady": "pending against locked dsrc a50b235705a8a00591d51dc8da1df9e315323ac2 before canonical deployment",
     "missionTerminalContinuity": "The user verified the live combat mission terminal before this milestone; mission source is excluded from both overlays and authenticated as retained."
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all script and native mutation entrypoints for later current/lifetime GCW points, rating inputs, weekly conversion/decay scheduling, rating-derived invasion credit, rating-derived regional score, direct holiday point rewards and false success messages, destructive collection-item point consumption, War Terminal queued-battlefield and personal-contribution actions, stale contribution-ledger state and reads, manual/admin and native regional-score adjustment queues and weekly/immediate decay, the native passive connected-player factional-presence writer, the NGE percentile overwrite of planet control, the non-base kill accumulator's planet-score mutation, later city/guild regional-defender enrollment, bonuses, titles, replicated player state, and report presentation, regional-score travel/spawn/space-battle/mission-terminal gameplay consumers, the fixed-base/Restuss PvP-region watcher registration/death/bonus runtime, obsolete recruiter token-vendor conversation callbacks, the civilian neutral factional-helper/mercenary status and its stale state, and the retained PRE-CU open-world battlefield reward/balance audit; player-base scores now use exact Publish 14 values, always-present planet-object authority, periodic absolute registry reconciliation with destroyed-row removal, direct planet-owned legacy ratio reads, raw-score winner selection, the authored 64-point difficulty delta, and recruiter rewards route through the Publish 14 rank/perk inventory",
-    "retainedContent": "PRE-CU faction standing, creature rank, real faction enlistment and on-leave/covert/overt status transitions, faction recruiters and s01-s04 perks, general regional score/category/planet-state read compatibility and later presentation, all 958 authored ambient factional spawn rows under ordinary encounter selection, all fourteen later GCW-point collection items without destructive consumption, holiday tokens/buffs/sounds, mission credits and standing, ground-quest independent item/token rewards, open-world battlefield standing, randomized two-sided space battles with standing and tokens, faction bases, later s05 assets without control authority, later zones, and authored quest content",
+    "closedInThisMilestone": "all script and native mutation entrypoints for later current/lifetime GCW points, rating inputs, weekly conversion/decay scheduling, rating-derived invasion credit, rating-derived regional score, direct holiday point rewards and false success messages, destructive collection-item and recruitment-letter point consumption, War Terminal queued-battlefield and personal-contribution actions, stale contribution-ledger state and reads, manual/admin and native regional-score adjustment queues and weekly/immediate decay, the native passive connected-player factional-presence writer, the NGE percentile overwrite of planet control, the non-base kill accumulator's planet-score mutation, later city/guild regional-defender enrollment, bonuses, titles, replicated player state, and report presentation, regional-score travel/spawn/space-battle/mission-terminal gameplay consumers, the fixed-base/Restuss PvP-region watcher registration/death/bonus runtime, obsolete recruiter token-vendor conversation callbacks, the civilian neutral factional-helper/mercenary status and its stale state, and the retained PRE-CU open-world battlefield reward/balance audit; player-base scores now use exact Publish 14 values, always-present planet-object authority, periodic absolute registry reconciliation with destroyed-row removal, direct planet-owned legacy ratio reads, raw-score winner selection, the authored 64-point difficulty delta, and recruiter rewards route through the Publish 14 rank/perk inventory",
+    "retainedContent": "PRE-CU faction standing, creature rank, real faction enlistment and on-leave/covert/overt status transitions, faction recruiters and s01-s04 perks, general regional score/category/planet-state read compatibility and later presentation, all 958 authored ambient factional spawn rows under ordinary encounter selection, all fourteen later GCW-point collection items and the day-31 recruitment-letter gift without destructive consumption, holiday tokens/buffs/sounds, mission credits and standing, ground-quest independent item/token rewards, open-world battlefield standing, randomized two-sided space battles with standing and tokens, faction bases, later s05 assets without control authority, later zones, and authored quest content",
     "notClaimedComplete": "the wider ground GCW gameplay surface remains a separate audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Commit and push the synchronized parent build-pending checkpoint.",
+    "Run the canonical clean x64 deployment from that pushed parent checkpoint.",
+    "Authenticate the deployed recruitment-letter immediate-return bytecode, source/work parity, retained day-31 gift data, process topology, readiness, and fresh logs.",
+    "Record and push ready evidence."
+  ]
 }

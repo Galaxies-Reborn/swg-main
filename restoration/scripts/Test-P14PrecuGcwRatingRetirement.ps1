@@ -111,10 +111,12 @@ $paths = [ordered]@{
     "template.gcw.flip_terminal_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/flip_terminal_spawner.tpf"
     "script.city.ship_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/city/ship_spawner.java"
     "script.item.publish_gift.gcw_mulit_image_painting" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/item/publish_gift/gcw_mulit_image_painting.java"
+    "script.item.publish_gift.recruitment_letter" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/item/publish_gift/recruitment_letter.java"
     "script.library.holiday" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/holiday.java"
     "script.systems.collections.collection_gcw" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/collections/collection_gcw.java"
     "datatable.item.master_item.master_item" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
     "datatable.item.master_item.item_stats" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+    "datatable.veteran_rewards.publish_gift" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/veteran_rewards/publish_gift.tab"
     "datatable.faction_perk.hq.hq_point_values" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/faction_perk/hq/hq_point_values.tab"
     "datatable.faction_recruiter.imperial.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/imperial/installation.tab"
     "datatable.faction_recruiter.rebel.installation" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/npc/faction_recruiter/perk_inventory/rebel/installation.tab"
@@ -194,10 +196,12 @@ $regionalMissionTerminalSpawner = [string]$texts["script.systems.gcw.flip_termin
 $regionalMissionTerminalTemplate = [string]$texts["template.gcw.flip_terminal_spawner"]
 $cityShipSpawner = [string]$texts["script.city.ship_spawner"]
 $gcwPainting = [string]$texts["script.item.publish_gift.gcw_mulit_image_painting"]
+$recruitmentLetter = [string]$texts["script.item.publish_gift.recruitment_letter"]
 $holiday = [string]$texts["script.library.holiday"]
 $collectionGcw = [string]$texts["script.systems.collections.collection_gcw"]
 $masterItems = [string]$texts["datatable.item.master_item.master_item"]
 $itemStats = [string]$texts["datatable.item.master_item.item_stats"]
+$publishGifts = [string]$texts["datatable.veteran_rewards.publish_gift"]
 $hqPointValues = [string]$texts["datatable.faction_perk.hq.hq_point_values"]
 $imperialInstallations = [string]$texts["datatable.faction_recruiter.imperial.installation"]
 $rebelInstallations = [string]$texts["datatable.faction_recruiter.rebel.installation"]
@@ -390,6 +394,29 @@ Assert-Contract ($masterItemRows -eq [int]$contract.expected.gcwCollectionItemsP
     $masterItemScriptRows -eq [int]$contract.expected.gcwCollectionItemsPreserved -and
     $itemStatRows -eq [int]$contract.expected.gcwCollectionItemsPreserved) `
     "p14.gcw-rating.gcw-point-collection-items-preserved"
+
+$letterMenuRequest = Get-FunctionSlice $recruitmentLetter `
+    "public int OnObjectMenuRequest" `
+    "public int OnObjectMenuSelect"
+$letterMenuSelect = Get-FunctionSlice $recruitmentLetter `
+    "public int OnObjectMenuSelect" `
+    "public boolean isOwner"
+Assert-Contract ($letterMenuRequest.Contains("return SCRIPT_CONTINUE;") -and
+    -not $letterMenuRequest.Contains("addRootMenu") -and
+    $letterMenuSelect.Contains("return SCRIPT_CONTINUE;") -and
+    -not $letterMenuSelect.Contains("grantUnmodifiedGcwPoints") -and
+    -not $letterMenuSelect.Contains("destroyObject") -and
+    -not $letterMenuSelect.Contains("CustomerServiceLog") -and
+    -not [bool]$contract.expected.gcwRecruitmentLetterPointGrantReachable -and
+    -not [bool]$contract.expected.gcwRecruitmentLetterDestructionReachable -and
+    -not [bool]$contract.expected.gcwRecruitmentLetterFalseSuccessLogReachable) `
+    "p14.gcw-rating.publish-gift-recruitment-letter-retired-nondestructively"
+Assert-Contract ([regex]::IsMatch($masterItems,
+        '(?m)^item_gcw_recruitment_letter_01_01\t[^\r\n]*item\.publish_gift\.recruitment_letter') -and
+    [regex]::IsMatch($publishGifts, '(?m)^item_gcw_recruitment_letter_01_01\t31\s*$') -and
+    [bool]$contract.expected.gcwRecruitmentLetterItemPreserved -and
+    [int]$contract.expected.gcwRecruitmentLetterPublishDay -eq 31) `
+    "p14.gcw-rating.publish-gift-recruitment-letter-data-preserved"
 
 $scriptRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script"
 $productionWriterCalls = 0

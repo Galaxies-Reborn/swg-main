@@ -573,6 +573,10 @@ source_performcommands="$source_script/player/skill/performcommands.java"
 work_performcommands="$work_script/player/skill/performcommands.java"
 source_buff_handler="$source_script/systems/buff/buff_handler.java"
 work_buff_handler="$work_script/systems/buff/buff_handler.java"
+source_gcw_recruitment_letter="$source_script/item/publish_gift/recruitment_letter.java"
+work_gcw_recruitment_letter="$work_script/item/publish_gift/recruitment_letter.java"
+source_publish_gifts="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/veteran_rewards/publish_gift.tab"
+work_publish_gifts="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/veteran_rewards/publish_gift.tab"
 source_player_stealth="$source_script/systems/skills/stealth/player_stealth.java"
 work_player_stealth="$work_script/systems/skills/stealth/player_stealth.java"
 source_beast_library="$source_script/library/beast_lib.java"
@@ -1061,6 +1065,8 @@ cmp -s "$source_bh_shields" "$work_bh_shields"
 cmp -s "$source_meditation_library" "$work_meditation_library"
 cmp -s "$source_performcommands" "$work_performcommands"
 cmp -s "$source_buff_handler" "$work_buff_handler"
+cmp -s "$source_gcw_recruitment_letter" "$work_gcw_recruitment_letter"
+cmp -s "$source_publish_gifts" "$work_publish_gifts"
 display_cleanup_source="$(sed -n '/public int setDisplayOnlyDefensiveMods/,/public int OnGetAttributes/p' "$work_base_player")"
 test "$(printf '%s' "$display_cleanup_source" | grep -Fc '"display_only_')" -eq 14
 test "$(printf '%s' "$display_cleanup_source" | grep -Fc 'removeAttribOrSkillModModifier(')" -eq 1
@@ -1908,6 +1914,16 @@ printf '%s' "$gcw_grant_bytecode" | grep -Fq '0: return'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'pvpModifyCurrentGcwPoints'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'gcwInvasionCreditForGCW'
 ! printf '%s' "$gcw_grant_bytecode" | grep -Fq 'grantGcwPointsToRegion'
+gcw_recruitment_letter_bytecode="$(javap -classpath "$class_root" -c -p script.item.publish_gift.recruitment_letter)"
+gcw_recruitment_letter_request="$(printf '%s' "$gcw_recruitment_letter_bytecode" | sed -n '/public int OnObjectMenuRequest/,/public int OnObjectMenuSelect/p')"
+gcw_recruitment_letter_select="$(printf '%s' "$gcw_recruitment_letter_bytecode" | sed -n '/public int OnObjectMenuSelect/,/public boolean isOwner/p')"
+printf '%s' "$gcw_recruitment_letter_request" | grep -Fq '0: iconst_1'
+printf '%s' "$gcw_recruitment_letter_request" | grep -Fq '1: ireturn'
+printf '%s' "$gcw_recruitment_letter_select" | grep -Fq '0: iconst_1'
+printf '%s' "$gcw_recruitment_letter_select" | grep -Fq '1: ireturn'
+! printf '%s' "$gcw_recruitment_letter_bytecode" | grep -Eq 'grantUnmodifiedGcwPoints|destroyObject|CustomerServiceLog|addRootMenu'
+awk -F '\t' '$1 == "item_gcw_recruitment_letter_01_01" { found++; if ($2 != "31") exit 2 } END { if (found != 1) exit 3 }' "$work_publish_gifts"
+awk -F '\t' '$1 == "item_gcw_recruitment_letter_01_01" { found++; if (index($0, "item.publish_gift.recruitment_letter") == 0) exit 2 } END { if (found != 1) exit 3 }' "$work_master_item_table"
 gcw_level_authority_bytecode="$(javap -classpath "$class_root" -c -p script.library.gcw)"
 test "$(printf '%s' "$gcw_level_authority_bytecode" | grep -Fc 'Method script/library/skill.getPrecuEncounterDifficulty' || true)" -eq 7
 test "$(printf '%s' "$gcw_level_authority_bytecode" | grep -Fc 'Method getLevel' || true)" -eq 1
