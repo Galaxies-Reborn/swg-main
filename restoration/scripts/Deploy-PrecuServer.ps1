@@ -62,6 +62,10 @@ Write-Host "Verifying direct-source PRE-CU cosmetic-familiar authority before bu
 Write-Host "Verifying post-NGE Spy player-runtime retirement against current direct source before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeSpyPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot
+Write-Host "Verifying PRE-CU mobile stealth, theft, and decoy difficulty authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuMobileStealthDetectionAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying PRE-CU Restuss admission authority against current direct source before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuRestussAdmissionAuthority.ps1") `
     -SourceRoot $repositoryRoot
