@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-dot-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Keep every retained ground damage-over-time effect, including expansion and buff-table content, under classic potency, dissipation, and absorption authority without allowing inherited NGE expertise, vulnerability, armor, generic damage, or repeat pulse-resistance layers to modify it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -58,60 +58,56 @@
       "combatActions": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59"
     },
     "compiledClassSha256": {
-      "dot": "58a49fe0fe904bf6ee0dd3f50a476c016218d7dd05f552ad6eb8b4d8efdf434d",
+      "dot": "bbf1c63e292c32d7e4e1181cfabe16e6a8cd8cbed44ca1008db84850a3655181",
       "healing": "31822f57b55a12b6d7abfa8b5793130a64149c22389f2d36ca2df59419cb9c48",
-      "combatBase": "92a8b7bf9ca00c2cb23bb0554dbf03e01ef35cf0ed052f777fa13ee15f70b333",
-      "combatActions": "9bf68c13eaea8db3cd9885e636ed984f9eb4b46101528f20a8cf8e02c962d9f1"
+      "combatBase": "f7010f76d0f1a24cf209aee5aaf29e0fbb9e7710ecdcdbf80ae021953e73de98",
+      "combatActions": "6af380cf7957b2f754fdc75d56a14addd1fd787f8ae298fd385f6be593210b43"
     },
     "sourceTest": "passed; every public DOT helper and both combat branches use one Publish 14.1 resolution path, classic application resistance and six-family duration dissipation remain, all six normal and eight buff-table authored absorption families retain the 50-percent cap, and NGE DOT expertise, vulnerability, armor mitigation, generic damage modifiers, repeat pulse resistance, and the divergent era marker are absent",
-    "fullJavaCompile": "pending",
-    "fullServerBuild": "pending",
+    "fullJavaCompile": "passed; 5713 Java sources produced 5747 classes after a complete dependency clean",
+    "fullServerBuild": "passed through the canonical Docker build workflow",
     "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
+    "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "sourceWorkParity": "passed byte-for-byte for DOT/healing sources and both changed combat dependencies between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "focused pass; dot.class and combat_base.class compiled together from the read-only direct-source mount with no persistent staging output",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "bytecodeAudit": "passed in the full clean build; all four compiled classes are authenticated and the deployment probe requires the shared PRE-CU DOT entrypoint while rejecting the retired era marker and NGE DOT modifiers",
+    "deploymentProbe": "passed source parity, compiled bytecode, native symbol, ELF x64, guarded restart, live-binary mapping, and player-readiness checks",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "2026-08-05",
+    "date": "2026-08-06",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-05T12:51:34.006443214Z",
+    "containerStartedAt": "2026-08-06T13:02:42.066820275Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassSizes": {
-      "dot": 49980,
+      "dot": 46188,
       "healing": 103955,
-      "combatBase": 147032,
-      "combatActions": 320762
+      "combatBase": 147093,
+      "combatActions": 320738
     },
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 363,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
+    "liveGameProcessPid": 375,
+    "liveBinaryInode": 12141386,
+    "liveBinarySize": 22559720,
     "liveBinaryMapEntries": 2,
     "processCounts": {
       "LoginServer": 1,
       "TaskManager": 1,
       "ConnectionServer": 1,
       "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
+      "PlanetServer": 15,
+      "SwgGameServer": 15
     },
-    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
-    "result": "previous-milestone-passed-current-change-pending"
+    "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches; three expected Oracle readiness/setup lines",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "all retained ground DOT creation and pulse processing, including buff-table and expansion callers, can no longer cross into inherited NGE DOT expertise, vulnerability, armor, generic damage, or repeat pulse-resistance authority",
     "preserved": "classic application resistance, duration dissipation, full authored absorption with a 50-percent cap, DOT lifecycle and messaging, authenticated combat and Combat Medic call sites, profiled original creature callbacks, and retained later-content DOT types and effects",
     "notClaimedComplete": "direct non-DOT combat outcome expertise and other production-reachable NGE authority remain subject to later audits"
   },
-  "requiredBeforeReady": [
-    "source contract passes against direct dsrc",
-    "full Java compile and bytecode audit pass",
-    "canonical x64 deployment is healthy and player-ready"
-  ]
+  "requiredBeforeReady": []
 }
