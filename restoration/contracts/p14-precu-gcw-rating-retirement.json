@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-gcw-rating-retirement",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Retire the post-NGE current/lifetime GCW point, PvP-kill rating-input, weekly rating conversion, decay, invasion-credit, rating-derived regional-score progression, passive combat-level/rank factional-presence writer, manual/admin and native regional-score writers and decay, false holiday point rewards, destructive point-consumable interactions, NGE percentile overwrite of planetary control, regional-score travel/spawn/space-battle gameplay authority, later city/guild regional-defender membership, bonus, title, and presentation, the later fixed-base/Restuss PvP-region bonus controller, post-NGE recruiter token-vendor conversation routing, and the post-NGE civilian neutral factional-helper/mercenary status while restoring Publish 14 player-base control scores and registry lifecycle, real faction enlistment and on-leave/covert/overt transitions, recruiter rank/perk purchases, faction standing/rank, ordinary open-world PvP, the Yavin IV Force Ranking System and Jedi enclaves, ambient encounter availability, general regional presentation compatibility, and independent mission, quest, PRE-CU open-world battlefield, holiday-token, and space rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -313,6 +313,8 @@
       "script.player.player_faction.isolated": "3f9fb13b760732b7596498a7d3b60b0dae5483e2559086ea36497d3a3c2291ac",
       "script.conversation.faction_recruiter_imperial.isolated": "ba578f5ca827692d54e1537ab706e5d09c0d66152c8f0cb28f4394fd5d5ffbfd",
       "script.conversation.faction_recruiter_rebel.isolated": "90e1609bda734ac2424eee91e1261a378df25d24cf6e9adf3e105664384e914b",
+      "script.conversation.faction_recruiter_imperial.deployedFullBuild": "370c588b1a35205b0bfb877942bdd5bdac5e8f64c8cfe832277b7a887d645916",
+      "script.conversation.faction_recruiter_rebel.deployedFullBuild": "e5c1d5bc036b61daf09c5a6ebbd5a19ffe3df34684be1afed1cb6b543f059d19",
       "script.library.factions.deployedFullBuild": "99fb342698f1ad96056bcf84f1329146423d8da08ef3444cac7362f907ee074b",
       "script.library.gcw.isolated": "2e6872f4795219b5b9a14040ca79f824693f89121f9b5621d57ed5b525dd9670",
       "script.faction_perk.hq.loader.isolated": "4011f6cc0ddf567db467de92571ff739492450b113a38f45288d4e10dc21aa4c",
@@ -360,13 +362,13 @@
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "5b10da1a8fe33865c4c94859c446b916cd4c20943e0d6c2b7135bc166d56fb12",
     "serverBinaryBuildId": "94b198caa2763f4572326706f027ed3429140820",
-    "directSourceBuild": "focused overlapping authority suites, full Phase-A ready validation, and the full x64 native/Java/data build and deployment passed from synchronized direct-source commit 4c823f1f1d1c3a47c16aa156fe17cde051442e97 and native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6 with no host artifact or staging tree",
-    "fullX64Build": "full build and artifact verification passed in 849.2 seconds from direct-source commit 4c823f1f1d1c3a47c16aa156fe17cde051442e97 with native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6; the committed runtime-render fix was then baked into the existing server image and the same persistent x64 work volume was recreated without another compile",
-    "deploymentProbe": "passed synchronized-source preflight, exact source/work parity, isolated and deployed class authentication including factions/player_faction, canonical runtime config rendering, x64 architecture, health/readiness, exact 15-scene process counts, fresh-log audit, and live mapped-binary verification"
+    "directSourceBuild": "focused overlapping authority suites, full Phase-A ready validation, and the canonical full x64 native/Java/data build and deployment passed from synchronized direct-source commit d6fc632ef1ebf11f432e8c84498dc21eac37b166 and native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6 with no host artifact or staging tree",
+    "fullX64Build": "full build, artifact verification, and deployment passed in 784.2 seconds from direct-source commit d6fc632ef1ebf11f432e8c84498dc21eac37b166 with native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6 into the existing persistent x64 work volume",
+    "deploymentProbe": "passed synchronized-source preflight, exact source/work parity, isolated and deployed class authentication including factions/player_faction and both recruiter conversations, canonical runtime config rendering, x64 architecture, health/readiness, exact 15-scene process counts, fresh-log audit, and live mapped-binary verification"
   },
   "runtimeEvidence": {
     "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fifteen configured SwgGameServer scene processes",
-    "containerStartedAt": "2026-08-06T01:38:51.48000235Z",
+    "containerStartedAt": "2026-08-06T04:51:35.443009559Z",
     "directSourceMount": "/swg-precu-source (read-only bind of the synchronized parent repository)",
     "gcwSourceWorkParity": "passed byte-for-byte for the eight current planet-control and base-lifecycle sources: gcw.java, loader.java, planet_base.java, planetary_base_register.java, gcw_data_updater.java, gcw_parent_object.java, guard_spawner.java, and gcw_spawner.java between /swg-precu-source and /swg-precu",
     "gcwDeployedBytecode": "all eight planet-control and base-lifecycle Java class hashes were authenticated after the full build; general GCW consumers and legacy ratios use planet-owned raw base totals, the legacy master object is a forwarder only, guard/spawner difficulty uses the authored 64-point score delta, and loader destruction removes its exact cluster-registry element before applying the immediate score/count decrement",
@@ -385,9 +387,11 @@
     "pvpRegionBonusCompiledBuildouts": "the four source rows retain object/tangible/gcw/pvp_region_watcher.iff with empty script fields; their rebuilt data IFF hashes are authenticated, and the rebuilt intrinsic watcher template contains zero systems.gcw.pvp_region_bonus_controller strings",
     "neutralMercenarySourceWorkParity": "factions.java and player_faction.java matched byte-for-byte between /swg-precu-source/dsrc and /swg-precu/dsrc after the full build",
     "neutralMercenaryDeployedBytecode": "factions.class returns true from isPostNgeNeutralMercenaryRetired, exposes cleanupRetiredNeutralMercenaryState, clears the native mercenary faction, and fail-closes all five library surfaces; player_faction.class invokes the cleanup on attach, initialize, login, command, SUI callback, and delayed writer callback",
+    "recruiterConversationSourceWorkParity": "faction_recruiter_imperial.java and faction_recruiter_rebel.java matched byte-for-byte between /swg-precu-source/dsrc and /swg-precu/dsrc after the full build",
+    "recruiterConversationDeployedBytecode": "both deployed recruiter conversation classes delegate action_showFactionGcwRewardUi to their action_showGcwRewardsList PRE-CU rank/perk path and contain no showInventorySUI token-vendor call; deployed SHA-256 hashes are authenticated",
     "canonicalRuntimeConfig": "the rebuilt image rendered clusterName=swg twice, transferServerAddress=172.26.0.3 once, enableFRS=1 once, all four neutral-mercenary mode flags false once each, and exactly one Docker runtime override block",
     "containerImage": "sha256:666082edac4672ecfc6b908235bb34437118176f83bb71f496ed6dc997b64874",
-    "deployedDirectSourceCommit": "4c823f1f1d1c3a47c16aa156fe17cde051442e97",
+    "deployedDirectSourceCommit": "d6fc632ef1ebf11f432e8c84498dc21eac37b166",
     "deployedNativeSourceCommit": "f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
     "playerObjectSourceWorkSha256": "1339b58e55c2581c669de31122ca60017b851633f77fda2cee876669a883918c",
     "liveServerBinaryInode": 12141095,
@@ -405,7 +409,7 @@
     "freshLogLines": 357,
     "freshLogReadyMarkers": 1,
     "freshLogTargetedErrors": 0,
-    "fullPhaseAReady": "passed before deployment against locked dsrc 4c823f1f1d1c3a47c16aa156fe17cde051442e97 and src f66cc3cce93e93c5b96a1fab9139c8cc32399ca6; all overlapping GCW, profession, buff, city, Empire Day, and Life Day source-authentication suites passed",
+    "fullPhaseAReady": "passed before deployment against locked dsrc d6fc632ef1ebf11f432e8c84498dc21eac37b166 and src f66cc3cce93e93c5b96a1fab9139c8cc32399ca6; all overlapping GCW, profession, buff, city, Empire Day, and Life Day source-authentication suites passed",
     "missionTerminalContinuity": "The user verified the live combat mission terminal before this milestone; mission source is excluded from both overlays and authenticated as retained."
   },
   "auditBoundary": {
