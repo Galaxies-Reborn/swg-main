@@ -76,41 +76,41 @@ $normalApply = Get-BracedBlock $dot `
 $precuApply = Get-BracedBlock $dot `
     "public static boolean applyPrecuDotEffect(obj_id target, obj_id attacker, String type, String dot_id, int attribute, int potency, int strength, int duration)"
 $application = Get-BracedBlock $dot `
-    "private static boolean applyDotEffectInternal(obj_id target, obj_id attacker, String type, String dot_id, int attribute, int potency, int strength, int duration, boolean verbose, String handler, boolean precuAuthoritative)"
+    "private static boolean applyDotEffectInternal(obj_id target, obj_id attacker, String type, String dot_id, int attribute, int potency, int strength, int duration, boolean verbose, String handler)"
 $pulse = Get-BracedBlock $dot `
     "public static boolean applyDotDamage(obj_id target, String dot_id)"
 
 Assert-Contract ($normalApply.Contains("applyDotEffectInternal") -and
-    $normalApply.Contains("verbose, handler, false")) `
-    "p14.precu-dot.dispatch.compatibility-helper-preserved"
+    $normalApply.Contains("verbose, handler)") -and
+    -not $normalApply.Contains("false")) `
+    "p14.precu-dot.dispatch.retained-helper-uses-precu-resolution"
 Assert-Contract ($precuApply.Contains("applyDotEffectInternal") -and
-    $precuApply.Contains("true, null, true")) `
+    $precuApply.Contains("true, null")) `
     "p14.precu-dot.dispatch.precu-helper-authenticated"
 
-$applicationExpertise = Get-SourceSlice $application `
-    "if (!precuAuthoritative)" "int dissipation_mod;"
 Assert-Contract ($application.Contains("attemptDotResist(target, type, potency, true)") -and
-    $applicationExpertise.Contains('"expertise_dot_increase"')) `
-    "p14.precu-dot.application.resistance-preserved-expertise-bounded"
+    -not $application.Contains("precuAuthoritative") -and
+    -not $application.Contains('"expertise_')) `
+    "p14.precu-dot.application.resistance-preserved-nge-expertise-retired"
 Assert-Contract (([regex]::Matches($application,
         'dissipation_mod = getEnhancedSkillStatisticModifier\(target, "dissipation_')).Count -eq
         [int]$contract.expected.classicAbsorptionFamilies -and
     $application.Contains("duration = (int)(duration * (1.0f - (dissipation_mod / 100.0f)))")) `
     "p14.precu-dot.application.classic-dissipation-preserved"
-Assert-Contract ($application.Contains("VAR_PRECU_AUTHORITATIVE, true") -and
-    $application.Contains("removeScriptVar(target, VAR_DOT_ROOT + dot_id + VAR_PRECU_AUTHORITATIVE)")) `
-    "p14.precu-dot.application.authority-persisted-and-reset"
+Assert-Contract (-not $dot.Contains("VAR_PRECU_AUTHORITATIVE") -and
+    -not $application.Contains("precuAuthoritative")) `
+    "p14.precu-dot.application.no-divergent-era-marker"
 
-Assert-Contract ($pulse.Contains("getBooleanScriptVar(target, dotScriptVar + VAR_PRECU_AUTHORITATIVE)") -and
-    $pulse.Contains("absorption_mod > 50") -and $pulse.Contains("absorption_mod = 50")) `
-    "p14.precu-dot.pulse.authority-loaded-and-classic-cap-preserved"
-$pulseSetup = Get-SourceSlice $pulse "int absorption_mod = 0;" "switch (type)"
-Assert-Contract ($pulseSetup.Contains("precuAuthoritative ? 0") -and
-    $pulseSetup.Contains('"dot_vulnerability_all"') -and
-    $pulseSetup.Contains("if (!precuAuthoritative)") -and
-    $pulseSetup.Contains("armor.getCombatArmorSpecialProtections") -and
-    $pulseSetup.Contains("armor.getCombatArmorGeneralProtection")) `
-    "p14.precu-dot.pulse.general-vulnerability-and-armor-bounded"
+Assert-Contract ($pulse.Contains("absorption_mod > 50") -and
+    $pulse.Contains("absorption_mod = 50") -and
+    -not $pulse.Contains("precuAuthoritative") -and
+    -not $pulse.Contains('"dot_vulnerability_') -and
+    -not $pulse.Contains('"expertise_') -and
+    -not $pulse.Contains("DOT_ARMOR_MITIGATION_PERCENT") -and
+    -not $pulse.Contains('"combat_multiply_damage_') -and
+    -not $pulse.Contains('"combat_divide_damage_') -and
+    -not $pulse.Contains("attemptDotResist(target, type, 100, false)")) `
+    "p14.precu-dot.pulse.nge-layers-retired-classic-cap-preserved"
 
 $families = @(
     @{ Constant = "BLEEDING"; Absorption = "bleeding"; Vulnerability = "bleed" },
@@ -124,30 +124,33 @@ foreach ($family in $families)
 {
     $case = Get-SourceSlice $pulse "case DOT_$($family.Constant):" "break;"
     Assert-Contract ($case.Contains("absorption_$($family.Absorption)") -and
-        $case.Contains("if (!precuAuthoritative)") -and
-        $case.Contains("dot_vulnerability_$($family.Vulnerability)") -and
-        $case.Contains("absorption_mod /= MOD_DIVISOR") -and
-        $case.Contains('"expertise_dot_absorption_all"') -and
-        $case.Contains("DOT_ARMOR_MITIGATION_PERCENT")) `
-        "p14.precu-dot.pulse.$($family.Absorption)-classic-absorption-nge-layers-bounded"
+        -not $case.Contains("precuAuthoritative") -and
+        -not $case.Contains("dot_vulnerability_") -and
+        -not $case.Contains("expertise_") -and
+        -not $case.Contains("DOT_ARMOR_MITIGATION_PERCENT")) `
+        "p14.precu-dot.pulse.$($family.Absorption)-classic-absorption-only"
 }
 
-$genericDamage = Get-SourceSlice $pulse `
-    "if (!precuAuthoritative && vulnerability_mod > 0)" "int dotAttribute = getDotAttribute"
-Assert-Contract ($genericDamage.Contains("if (!precuAuthoritative)") -and
-    $genericDamage.Contains('"combat_multiply_damage_taken"') -and
-    $genericDamage.Contains('"combat_divide_damage_taken"')) `
-    "p14.precu-dot.pulse.generic-damage-modifiers-bounded"
-Assert-Contract ($pulse.Contains("if (!precuAuthoritative && attemptDotResist(target, type, 100, false))")) `
-    "p14.precu-dot.pulse.repeat-resistance-bounded"
+$buffDot = Get-BracedBlock $dot `
+    "public static boolean applyBuffDotDamage(obj_id target, obj_id caster, String buffName, int strength, String type)"
+Assert-Contract (([regex]::Matches($buffDot,
+        'absorption_mod \+= getEnhancedSkillStatisticModifier\(target, "absorption_')).Count -eq
+        [int]$contract.expected.retainedBuffDotTypes -and
+    $buffDot.Contains("absorption_mod > 50") -and
+    -not $buffDot.Contains('"dot_vulnerability_') -and
+    -not $buffDot.Contains('"expertise_') -and
+    -not $buffDot.Contains("DOT_ARMOR_MITIGATION_PERCENT") -and
+    -not $buffDot.Contains('"combat_multiply_damage_') -and
+    -not $buffDot.Contains('"combat_divide_damage_')) `
+    "p14.precu-dot.buff-table.authored-types-use-precu-resolution"
 
 $wrappedDamage = Get-BracedBlock $combatBase `
     "public void doWrappedDamage(obj_id attacker, obj_id defender, weapon_data weaponData, hit_result hitData, combat_data actionData, int overloadDamage)"
-$compatibilityDot = $wrappedDamage.IndexOf("dot.applyDotEffect(", [StringComparison]::Ordinal)
-$precuDot = $wrappedDamage.IndexOf("dot.applyPrecuDotEffect(", [StringComparison]::Ordinal)
 Assert-Contract ($wrappedDamage.Contains("if (!precuAuthoritativeAttack)") -and
-    $compatibilityDot -ge 0 -and $precuDot -gt $compatibilityDot) `
-    "p14.precu-dot.callers.combat-era-branches-preserved"
+    ([regex]::Matches($wrappedDamage, [regex]::Escape("dot.applyPrecuDotEffect("))).Count -eq 2 -and
+    -not $wrappedDamage.Contains("dot.applyDotEffect(") -and
+    -not $wrappedDamage.Contains('"expertise_dot_')) `
+    "p14.precu-dot.callers.all-combat-branches-use-authored-precu-dots"
 
 $medicine = Get-BracedBlock $healing `
     "public static boolean performDotApplication(obj_id medic, obj_id target, String heal_type, obj_id med_obj)"
