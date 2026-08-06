@@ -349,7 +349,7 @@ ensure_runtime_symlinks() {
 sync_runtime_config_files() {
     if [ -d "${SWG_SOURCE_DIR}/exe/linux" ] && [ "${SWG_SOURCE_DIR}" != "${SWG_WORK_DIR}" ]; then
         mkdir -p exe/linux
-        for config_file in logServerTargets.cfg taskmanager.rc; do
+        for config_file in localOptions.cfg logServerTargets.cfg taskmanager.rc; do
             cp -f "${SWG_SOURCE_DIR}/exe/linux/${config_file}" "exe/linux/${config_file}"
             sed -i 's/\r$//' "exe/linux/${config_file}"
         done
@@ -600,8 +600,8 @@ init_server() {
     run_ant ${SWG_ANT_INIT_TARGETS}
     verify_server_architecture
     ensure_runtime_symlinks
-    write_runtime_network_config
     sync_runtime_config_files
+    write_runtime_network_config
     write_runtime_service_addresses
     apply_runtime_scene_profile
     write_client_asset_tree_config
@@ -630,8 +630,8 @@ run_server() {
     else
         run_ant update_database
         run_ant update_configs
-        write_runtime_network_config
         sync_runtime_config_files
+        write_runtime_network_config
         write_runtime_service_addresses
         apply_runtime_scene_profile
         write_client_asset_tree_config

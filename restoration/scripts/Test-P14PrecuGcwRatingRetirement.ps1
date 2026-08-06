@@ -136,6 +136,7 @@ $paths = [ordered]@{
     "datatable.pvp.force_rank_dark" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_dark.tab"
     "config.localOptions" = Join-Path $source "exe/linux/localOptions.cfg"
     "docker.compose.precu" = Join-Path $source "docker-compose.precu.yml"
+    "docker.entrypoint" = Join-Path $source "docker/entrypoint.sh"
     "script.systems.missions.base.mission_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
     "script.library.groundquests" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java"
     "script.library.battlefield" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/battlefield.java"
@@ -218,6 +219,7 @@ $forceRankLight = [string]$texts["datatable.pvp.force_rank_light"]
 $forceRankDark = [string]$texts["datatable.pvp.force_rank_dark"]
 $localOptions = [string]$texts["config.localOptions"]
 $dockerCompose = [string]$texts["docker.compose.precu"]
+$dockerEntrypoint = [string]$texts["docker.entrypoint"]
 
 $pvpRegionFlag = Get-FunctionSlice $gcw `
     "public static boolean isPostNgePvpRegionBonusRetired()" `
@@ -1048,6 +1050,15 @@ Assert-Contract ($frsConfigLines.Count -eq 1 -and
     [bool]$contract.expected.precuForceRankingSystemEnabled -and
     [bool]$contract.expected.precuFrsYavinEnclavesReachable) `
     "p14.gcw-rating.precu-frs-enabled-with-yavin-enclaves"
+
+$runtimeConfigSync = Get-FunctionSlice $dockerEntrypoint "sync_runtime_config_files()" "apply_runtime_scene_profile()"
+$runtimeInit = Get-FunctionSlice $dockerEntrypoint "init_server()" "build_server()"
+$runtimeRun = Get-FunctionSlice $dockerEntrypoint "run_server()" "mark_git_safe"
+Assert-Contract ($runtimeConfigSync.Contains("for config_file in localOptions.cfg logServerTargets.cfg taskmanager.rc") -and
+    $runtimeInit.IndexOf("sync_runtime_config_files", [System.StringComparison]::Ordinal) -lt $runtimeInit.IndexOf("write_runtime_network_config", [System.StringComparison]::Ordinal) -and
+    $runtimeRun.IndexOf("sync_runtime_config_files", [System.StringComparison]::Ordinal) -lt $runtimeRun.IndexOf("write_runtime_network_config", [System.StringComparison]::Ordinal) -and
+    [bool]$contract.expected.runtimeSceneProfileRehydratesCanonicalConfig) `
+    "p14.gcw-rating.runtime-scene-profile-rehydrates-canonical-config"
 
 $frsEnabledHelper = Get-FunctionSlice $forceRank `
     "public static boolean isForceRankingEnabled()" `
