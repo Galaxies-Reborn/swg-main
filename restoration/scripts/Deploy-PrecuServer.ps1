@@ -306,6 +306,22 @@ source_gcw_library="$source_script/library/gcw.java"
 work_gcw_library="$work_script/library/gcw.java"
 source_gcw_city="$source_script/systems/gcw/gcw_city.java"
 work_gcw_city="$work_script/systems/gcw/gcw_city.java"
+source_gcw_city_pylon="$source_script/systems/gcw/gcw_city_pylon.java"
+work_gcw_city_pylon="$work_script/systems/gcw/gcw_city_pylon.java"
+source_gcw_supply_terminal="$source_script/terminal/gcw_supply_terminal.java"
+work_gcw_supply_terminal="$work_script/terminal/gcw_supply_terminal.java"
+source_imperial_general="$source_script/conversation/imperial_general.java"
+work_imperial_general="$work_script/conversation/imperial_general.java"
+source_rebel_general="$source_script/conversation/rebel_general.java"
+work_rebel_general="$work_script/conversation/rebel_general.java"
+source_imperial_offensive_supply="$source_script/conversation/imperial_offensive_supply_terminal.java"
+work_imperial_offensive_supply="$work_script/conversation/imperial_offensive_supply_terminal.java"
+source_imperial_defensive_supply="$source_script/conversation/imperial_defensive_supply_terminal.java"
+work_imperial_defensive_supply="$work_script/conversation/imperial_defensive_supply_terminal.java"
+source_rebel_offensive_supply="$source_script/conversation/rebel_offensive_supply_terminal.java"
+work_rebel_offensive_supply="$work_script/conversation/rebel_offensive_supply_terminal.java"
+source_rebel_defensive_supply="$source_script/conversation/rebel_defensive_supply_terminal.java"
+work_rebel_defensive_supply="$work_script/conversation/rebel_defensive_supply_terminal.java"
 source_planet_base="$source_script/planet/planet_base.java"
 work_planet_base="$work_script/planet/planet_base.java"
 source_live_conversions="$source_script/player/live_conversions.java"
@@ -639,6 +655,14 @@ cmp -s "$source_gcw_library" "$work_gcw_library"
 test "$(grep -E -o 'skill\.getPrecuEncounterDifficulty[[:space:]]*\([[:space:]]*(player|killer|obj_id)[[:space:]]*\)' "$work_gcw_library" | wc -l)" -eq 7
 test "$(grep -E -o '(^|[^[:alnum:]_.])getLevel[[:space:]]*\([[:space:]]*npc[[:space:]]*\)' "$work_gcw_library" | wc -l)" -eq 1
 cmp -s "$source_gcw_city" "$work_gcw_city"
+cmp -s "$source_gcw_city_pylon" "$work_gcw_city_pylon"
+cmp -s "$source_gcw_supply_terminal" "$work_gcw_supply_terminal"
+cmp -s "$source_imperial_general" "$work_imperial_general"
+cmp -s "$source_rebel_general" "$work_rebel_general"
+cmp -s "$source_imperial_offensive_supply" "$work_imperial_offensive_supply"
+cmp -s "$source_imperial_defensive_supply" "$work_imperial_defensive_supply"
+cmp -s "$source_rebel_offensive_supply" "$work_rebel_offensive_supply"
+cmp -s "$source_rebel_defensive_supply" "$work_rebel_defensive_supply"
 cmp -s "$source_planet_base" "$work_planet_base"
 cmp -s "$source_live_conversions" "$work_live_conversions"
 cmp -s "$source_cureward" "$work_cureward"
@@ -653,7 +677,12 @@ grep -Fq 'cleanupRetiredCityInvasionPlayerState' "$work_gcw_library"
 test "$(grep -Fc 'gcw.cleanupRetiredCityInvasionPlayerState(self);' "$work_player_faction")" -ge 7
 test "$(grep -Fc 'gcw.cleanupRetiredCityInvasionPlayerState(self);' "$work_player_utility")" -eq 7
 test "$(grep -Fc 'isPostNgeCityInvasionRetired()' "$work_gcw_library")" -ge 31
-for retired_city_marker in BUFF_PLAYER_FATIGUE BUFF_SPY_EXPLOSIVES ENTERTAIN_GCW_TROOPS_PID TRADER_REPAIR_PID SPY_SCOUT_PID SPY_DESTROY_PID gcwSetCredits awardGcwInvasionParticipants gcwGetActiveCities gcwGetNextInvasionTime; do
+test "$(grep -Fc 'gcw.isPostNgeCityInvasionRetired()' "$work_gcw_city_pylon")" -eq 10
+test "$(grep -Fc 'gcw.isPostNgeCityInvasionRetired()' "$work_gcw_supply_terminal")" -eq 12
+for retired_city_conversation in "$work_imperial_general" "$work_rebel_general" "$work_imperial_offensive_supply" "$work_imperial_defensive_supply" "$work_rebel_offensive_supply" "$work_rebel_defensive_supply"; do
+    test "$(grep -Fc 'gcw.isPostNgeCityInvasionRetired()' "$retired_city_conversation")" -eq 5
+done
+for retired_city_marker in BUFF_PLAYER_FATIGUE BUFF_SPY_EXPLOSIVES ENTERTAIN_GCW_TROOPS_PID TRADER_REPAIR_PID SPY_SCOUT_PID SPY_DESTROY_PID gcwSetCredits awardGcwInvasionParticipants gcwGetActiveCities gcwGetNextInvasionTime gcw.sliceSequence gcw.terminalScanTier retiredCityQuests gcw_construct_vehicle_boss; do
     grep -Fq "$retired_city_marker" "$work_gcw_library"
 done
 cmp -s "$source_force_rank" "$work_force_rank"
@@ -1845,6 +1874,15 @@ javap -classpath "$class_root" -c -p script.planet.planet_base | grep -Fq 'retir
 ! javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'gcw.invasionRunning.bestine'
 test "$(javap -classpath "$class_root" -c -p script.player.player_faction | grep -Fc 'Method script/library/gcw.cleanupRetiredCityInvasionPlayerState' || true)" -ge 7
 test "$(javap -classpath "$class_root" -c -p script.player.player_utility | grep -Fc 'Method script/library/gcw.cleanupRetiredCityInvasionPlayerState' || true)" -eq 7
+test "$(javap -classpath "$class_root" -c -p script.systems.gcw.gcw_city_pylon | grep -Fc 'Method script/library/gcw.isPostNgeCityInvasionRetired' || true)" -eq 10
+test "$(javap -classpath "$class_root" -c -p script.terminal.gcw_supply_terminal | grep -Fc 'Method script/library/gcw.isPostNgeCityInvasionRetired' || true)" -eq 12
+retired_city_conversation_guard_count=0
+for retired_city_conversation_class in script.conversation.imperial_general script.conversation.rebel_general script.conversation.imperial_offensive_supply_terminal script.conversation.imperial_defensive_supply_terminal script.conversation.rebel_offensive_supply_terminal script.conversation.rebel_defensive_supply_terminal; do
+    conversation_guard_count="$(javap -classpath "$class_root" -c -p "$retired_city_conversation_class" | grep -Fc 'Method script/library/gcw.isPostNgeCityInvasionRetired' || true)"
+    test "$conversation_guard_count" -eq 5
+    retired_city_conversation_guard_count=$((retired_city_conversation_guard_count + conversation_guard_count))
+done
+test "$retired_city_conversation_guard_count" -eq 30
 gcw_battlefield_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeQueuedBattlefieldRetired/,/assignScanInterests/p')"
 printf '%s' "$gcw_battlefield_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -c -p script.systems.gcw.pvp_battlefield | grep -Fq 'retirePostNgeQueuedBattlefield'

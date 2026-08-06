@@ -72,6 +72,14 @@ $paths = [ordered]@{
     "script.player.base.base_player" = "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
     "script.player.player_faction" = "dsrc/sku.0/sys.server/compiled/game/script/player/player_faction.java"
     "script.player.player_utility" = "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java"
+    "script.systems.gcw.gcw_city_pylon" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_pylon.java"
+    "script.terminal.gcw_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/terminal/gcw_supply_terminal.java"
+    "script.conversation.imperial_general" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_general.java"
+    "script.conversation.rebel_general" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/rebel_general.java"
+    "script.conversation.imperial_offensive_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_offensive_supply_terminal.java"
+    "script.conversation.imperial_defensive_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_defensive_supply_terminal.java"
+    "script.conversation.rebel_offensive_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/rebel_offensive_supply_terminal.java"
+    "script.conversation.rebel_defensive_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/rebel_defensive_supply_terminal.java"
     "buildout.tatooine_4_3" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab"
     "buildout.talus_5_3" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab"
     "buildout.naboo_5_6" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
@@ -173,6 +181,8 @@ $planet = [string]$texts["script.planet.planet_base"]
 $player = [string]$texts["script.player.base.base_player"]
 $playerFaction = [string]$texts["script.player.player_faction"]
 $playerUtility = [string]$texts["script.player.player_utility"]
+$cityPylon = [string]$texts["script.systems.gcw.gcw_city_pylon"]
+$supplyTerminal = [string]$texts["script.terminal.gcw_supply_terminal"]
 
 $retiredFlag = Get-FunctionSlice $gcw `
     "public static boolean isPostNgeCityInvasionRetired()" `
@@ -273,6 +283,20 @@ $playerCleanupMarkers = @(
     'utils.removeScriptVar(player, GCW_REPAIR_RESOURCE_COUNT)',
     'utils.removeScriptVar(player, GCW_REPAIR_QUEST)',
     'utils.removeScriptVar(player, "gcw.fatigueTime")',
+    'utils.removeScriptVar(player, "gcw.tier")',
+    'utils.removeScriptVar(player, "gcw.maxTier")',
+    'utils.removeScriptVar(player, "gcw.sliceSequence")',
+    'utils.removeScriptVar(player, "gcw.slicing_idx")',
+    'utils.removeScriptVar(player, "gcw.terminalScanTier")',
+    'utils.removeScriptVar(player, "gcw.gotCbandTime")',
+    'utils.removeScriptVar(player, "scriptVar.scriptVar")',
+    'utils.removeScriptVar(player, "conversation.imperial_general.branchId")',
+    'utils.removeScriptVar(player, "conversation.rebel_general.branchId")',
+    'utils.hasScriptVar(player, "PIDvar")',
+    'String[] retiredCityQuests',
+    '"gcw_construct_barricade"',
+    '"gcw_construct_vehicle_boss"',
+    'groundquests.clearQuest(player, retiredCityQuest)',
     'ENTERTAIN_GCW_TROOPS_PID',
     'TRADER_REPAIR_PID',
     'SPY_SCOUT_PID',
@@ -401,6 +425,93 @@ Assert-Contract (@($cityGameplayUtilityHandlers | Where-Object {
 }).Count -eq 0 -and
     ([regex]::Matches($playerUtility, 'gcw\.cleanupRetiredCityInvasionPlayerState\(self\);')).Count -eq 7) `
     "p14.city-invasion.queued-gameplay-callbacks-retired"
+
+$pylonHandlers = [ordered]@{
+    OnAttach = @("public int OnAttach", "public int OnHearSpeech", 'messageTo(self, "handleSetup"')
+    OnHearSpeech = @("public int OnHearSpeech", "public void updatePylonName", "isGod(objSpeaker)")
+    handleSetup = @("public int handleSetup", "public int handleUpdateName", 'utils.hasScriptVar(self, "faction")')
+    handleUpdateName = @("public int handleUpdateName", "public int playQuestIcon", "updatePylonName(self)")
+    playQuestIcon = @("public int playQuestIcon", "public int getMaximumQuests", 'getIntObjVar(self, "gcw.constructionQuestsCompleted")')
+    OnGetAttributes = @("public int OnGetAttributes", "public String getConstructionQuest", "utils.getValidAttributeIndex(names)")
+    OnObjectMenuRequest = @("public int OnObjectMenuRequest", "public int OnObjectMenuSelect", "isIdValid(player)")
+    OnObjectMenuSelect = @("public int OnObjectMenuSelect", "public void startConstructionAttempt", "isDead(player)")
+    startConstructionAttempt = @("public void startConstructionAttempt", "public int handleConstructionAttemptResults", "stealth.testInvisCombatAction")
+    handleConstructionAttemptResults = @("public int handleConstructionAttemptResults", "__END_OF_CLASS__", "groundquests.sendSignal")
+}
+foreach ($name in $pylonHandlers.Keys)
+{
+    $markers = $pylonHandlers[$name]
+    $slice = Get-FunctionSlice $cityPylon $markers[0] $markers[1]
+    $guardIndex = $slice.IndexOf("gcw.isPostNgeCityInvasionRetired()", [System.StringComparison]::Ordinal)
+    $authorityIndex = $slice.IndexOf($markers[2], [System.StringComparison]::Ordinal)
+    Assert-Contract ($guardIndex -ge 0 -and $authorityIndex -gt $guardIndex) "p14.city-invasion.pylon-entrypoint.$name.retired"
+}
+$pylonQueuedCallback = Get-FunctionSlice $cityPylon "public int handleConstructionAttemptResults" "__END_OF_CLASS__"
+Assert-Contract ($pylonQueuedCallback.Contains("gcw.cleanupRetiredCityInvasionPlayerState(player)") -and
+    $pylonQueuedCallback.Contains("forceCloseSUIPage(pid)") -and
+    $pylonQueuedCallback.Contains("getIntObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR) == pid") -and
+    $pylonQueuedCallback.Contains("detachScript(player, sui.COUNTDOWNTIMER_PLAYER_SCRIPT)") -and
+    ([regex]::Matches($cityPylon, 'gcw\.isPostNgeCityInvasionRetired\(\)')).Count -eq 10) "p14.city-invasion.pylon-queued-callback-cleanup"
+
+$terminalHandlers = [ordered]@{
+    OnInitialize = @("public int OnInitialize", "public void initiateSlicing", 'messageTo(self, "decreaseSliced"')
+    initiateSlicing = @("public void initiateSlicing", "public void makeSliceSequence", 'utils.setScriptVar(player, "gcw.tier"')
+    makeSliceSequence = @("public void makeSliceSequence", "public int startSlicing", "new int[10]")
+    startSlicing = @("public int startSlicing", "public void correctChoice", "hasQuest(player)")
+    correctChoice = @("public void correctChoice", "public void applyFatigue", "static_item.createNewItemFunction")
+    applyFatigue = @("public void applyFatigue", "public int slicingChoice", 'buff.applyBuffWithStackCount(player, "gcw_fatigue"')
+    slicingChoice = @("public int slicingChoice", "public int handleSlicingAttemptResults", "sui.getIntButtonPressed(params)")
+    handleSlicingAttemptResults = @("public int handleSlicingAttemptResults", "public String getText", "correctChoice(self, player)")
+    getText = @("public String getText", "public int decreaseSliced", "if (!isIdValid(player)")
+    decreaseSliced = @("public int decreaseSliced", "public boolean hasQuest", 'getIntObjVar(self, "gcw.contraband")')
+    hasQuest = @("public boolean hasQuest", "public void stageMenu", "groundquests.isQuestActive")
+    stageMenu = @("public void stageMenu", "public void closeOldWindow", "closeOldWindow(player, scriptVar)")
+}
+foreach ($name in $terminalHandlers.Keys)
+{
+    $markers = $terminalHandlers[$name]
+    $slice = Get-FunctionSlice $supplyTerminal $markers[0] $markers[1]
+    $guardIndex = $slice.IndexOf("gcw.isPostNgeCityInvasionRetired()", [System.StringComparison]::Ordinal)
+    $authorityIndex = $slice.IndexOf($markers[2], [System.StringComparison]::Ordinal)
+    Assert-Contract ($guardIndex -ge 0 -and $authorityIndex -gt $guardIndex) "p14.city-invasion.supply-terminal-entrypoint.$name.retired"
+}
+$terminalQueuedCallback = Get-FunctionSlice $supplyTerminal "public int handleSlicingAttemptResults" "public String getText"
+Assert-Contract ($terminalQueuedCallback.Contains("gcw.cleanupRetiredCityInvasionPlayerState(player)") -and
+    $terminalQueuedCallback.Contains("forceCloseSUIPage(pid)") -and
+    $terminalQueuedCallback.Contains("getIntObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR) == pid") -and
+    $terminalQueuedCallback.Contains("detachScript(player, sui.COUNTDOWNTIMER_PLAYER_SCRIPT)") -and
+    ([regex]::Matches($supplyTerminal, 'gcw\.isPostNgeCityInvasionRetired\(\)')).Count -eq 12) "p14.city-invasion.supply-terminal-queued-callback-cleanup"
+
+$conversationSources = [ordered]@{
+    imperialGeneral = [string]$texts["script.conversation.imperial_general"]
+    rebelGeneral = [string]$texts["script.conversation.rebel_general"]
+    imperialOffensiveSupply = [string]$texts["script.conversation.imperial_offensive_supply_terminal"]
+    imperialDefensiveSupply = [string]$texts["script.conversation.imperial_defensive_supply_terminal"]
+    rebelOffensiveSupply = [string]$texts["script.conversation.rebel_offensive_supply_terminal"]
+    rebelDefensiveSupply = [string]$texts["script.conversation.rebel_defensive_supply_terminal"]
+}
+foreach ($name in $conversationSources.Keys)
+{
+    $conversation = [string]$conversationSources[$name]
+    $initialize = Get-FunctionSlice $conversation "public int OnInitialize" "public int OnAttach"
+    $attach = Get-FunctionSlice $conversation "public int OnAttach" "public int OnObjectMenuRequest"
+    $menu = Get-FunctionSlice $conversation "public int OnObjectMenuRequest" "public int OnStartNpcConversation"
+    $start = Get-FunctionSlice $conversation "public int OnStartNpcConversation" "public int OnNpcConversationResponse"
+    $response = Get-FunctionSlice $conversation "public int OnNpcConversationResponse" "__END_OF_CLASS__"
+    Assert-Contract ($initialize.Contains("gcw.isPostNgeCityInvasionRetired()") -and
+        $attach.Contains("gcw.isPostNgeCityInvasionRetired()") -and
+        $menu.Contains("gcw.cleanupRetiredCityInvasionPlayerState(player)") -and
+        $start.Contains("gcw.cleanupRetiredCityInvasionPlayerState(player)") -and
+        $start.Contains("return SCRIPT_OVERRIDE;") -and
+        $response.Contains("gcw.cleanupRetiredCityInvasionPlayerState(player)") -and
+        ([regex]::Matches($conversation, 'gcw\.isPostNgeCityInvasionRetired\(\)')).Count -eq 5) "p14.city-invasion.conversation-entrypoints.$name.retired"
+}
+Assert-Contract ($conversationSources.imperialGeneral.Contains("groundquests.grantQuest") -and
+    $conversationSources.rebelGeneral.Contains("groundquests.grantQuest") -and
+    $conversationSources.imperialOffensiveSupply.Contains("static_item.createNewItemFunction") -and
+    $conversationSources.imperialDefensiveSupply.Contains("static_item.createNewItemFunction") -and
+    $conversationSources.rebelOffensiveSupply.Contains("static_item.createNewItemFunction") -and
+    $conversationSources.rebelDefensiveSupply.Contains("static_item.createNewItemFunction")) "p14.city-invasion.preserved-conversation-content-is-runtime-inert"
 
 $missionTerminal = [string]$texts["retained.mission_terminal"]
 $missionBase = [string]$texts["retained.mission_base"]
