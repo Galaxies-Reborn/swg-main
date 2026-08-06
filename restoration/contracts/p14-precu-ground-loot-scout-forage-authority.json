@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-precu-ground-loot-scout-forage-authority",
   "status": "ready",
-  "scope": "Restore Publish 14.1 authored creature loot and Scout foraging while preventing global NGE reward systems from taking precedence over ordinary ground kills.",
+  "scope": "Restore Publish 14.1 authored creature loot and Scout foraging while preventing global NGE reward systems or visible combat-level rules from taking precedence over ordinary ground kills and retained treasure-map content.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -17,7 +17,8 @@
       "Normal creature loot is selected from the defeated creature's authored loot groups; it is not supplemented by player-level RLS chests, Beast Master enzymes, Chronicles fragments, or scheduled TCG cards.",
       "Scout forage is a single delayed task, costs Quickness-adjusted Action, fails if the player moves more than two meters or enters combat, and exhausts a ten-meter area after three attempts for thirty minutes.",
       "Scout forage chance is min(100, 15 + foraging * 0.8), tested against a random roll from zero through eighty.",
-      "Successful forage awards authored food on rolls 0-159, bait on 160-199, and a treasure map on 200, with independent bonus-item chances at Scout Camps III and Scout Master."
+      "Successful forage awards authored food on rolls 0-159, bait on 160-199, and a treasure map on 200, with independent bonus-item chances at Scout Camps III and Scout Master.",
+      "The nine later treasure-map bands are retained content, not PRE-CU player progression: selection and ambush scaling consume the hidden PRE-CU combat-skill difficulty adapter and expose no combat-level stat or language."
     ]
   },
   "expected": {
@@ -48,6 +49,9 @@
     "foodRollRange": "0-159",
     "baitRollRange": "160-199",
     "treasureMapRoll": 200,
+    "treasureMapBandRows": 9,
+    "treasureMapBandRange": "1-90 retained content",
+    "treasureMapVisibleCombatLevel": false,
     "authoredFoodEntries": 14,
     "authoredBaitEntries": 4,
     "campThreeBonusRoll": "1 in 6",
@@ -58,7 +62,11 @@
   "sourceFiles": [
     "dsrc/sku.0/sys.server/compiled/game/script/library/loot.java",
     "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java",
-    "dsrc/sku.0/sys.server/compiled/game/script/ai/ai.java"
+    "dsrc/sku.0/sys.server/compiled/game/script/ai/ai.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/treasure_map/base/treasure_map.java",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/treasure_map/treasure_map.tab"
   ],
   "buildEvidence": {
     "overlayPatch": "restoration/patches/dsrc/361-p14-precu-ground-loot-scout-forage-authority.patch",
@@ -74,7 +82,11 @@
     "sourceSha256": {
       "script.library.loot": "37e3a20f4d199c20889aebe380c19babb282e934b8e29fcf61ed5f3d36b01b37",
       "script.player.player_utility": "af0bc05ef04e910870869dc1d7cd947210d0d27bfe67a286d90958a3c1a9897c",
-      "script.ai.ai": "bc20464e5d5f78022166f43f5b173cf7508aee79abc093e38ae4fa48003d052f"
+      "script.ai.ai": "bc20464e5d5f78022166f43f5b173cf7508aee79abc093e38ae4fa48003d052f",
+      "script.systems.treasure_map.base.treasure_map": "e3a847a1abf169ad1a6be62246ed03fa619baf0ae51089f219ddab21fb576806",
+      "datatables.item.master_item.item_stats": "e83dc1529cafd1a3fb0b4f1d8aa6be6090374cd2a632779e41b460a037ea0a93",
+      "datatables.item.master_item.master_item": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+      "datatables.treasure_map.treasure_map": "3c3b7724419dd27cc1153354f660cda5234ad5a9d794ef0e37c613d51e8ea1b2"
     },
     "fullJavaCompile": "passed (Milestone 311 clean x64 build plus captured incremental Ant compile exit 0)",
     "compiledClassSha256": {
@@ -114,9 +126,9 @@
     "missionTerminalContinuity": "user confirmed mission terminals working in-world after running into interaction range; authenticated mission sources remained unchanged through deployment"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "ordinary ground-corpse loot injection and the Scout forage command/reward loop",
+    "closedInThisMilestone": "ordinary ground-corpse loot injection, the Scout forage command/reward loop, and retained treasure-map band selection/ambush authority",
     "retainedContent": "authored creature loot, cash, collections, quest-created rewards, persisted later-era reward items, and the explicitly configured golden-ticket event",
-    "notClaimedComplete": "loot rarity, treasure-map bands, and other dormant later reward mechanics remain in the broader PRE-CU precedence audit"
+    "notClaimedComplete": "other dormant later reward mechanics remain in the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }

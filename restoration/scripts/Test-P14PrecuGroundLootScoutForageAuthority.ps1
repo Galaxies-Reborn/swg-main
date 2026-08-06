@@ -45,6 +45,10 @@ $paths = [ordered]@{
     "script.library.loot" = Join-Path $scriptRoot "library/loot.java"
     "script.player.player_utility" = Join-Path $scriptRoot "player/player_utility.java"
     "script.ai.ai" = Join-Path $scriptRoot "ai/ai.java"
+    "script.systems.treasure_map.base.treasure_map" = Join-Path $scriptRoot "systems/treasure_map/base/treasure_map.java"
+    "datatables.item.master_item.item_stats" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+    "datatables.item.master_item.master_item" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+    "datatables.treasure_map.treasure_map" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/treasure_map/treasure_map.tab"
 }
 $texts = @{}
 foreach ($name in $paths.Keys)
@@ -63,6 +67,10 @@ foreach ($name in $paths.Keys)
 $loot = [string]$texts["script.library.loot"]
 $playerUtility = [string]$texts["script.player.player_utility"]
 $ai = [string]$texts["script.ai.ai"]
+$treasureMap = [string]$texts["script.systems.treasure_map.base.treasure_map"]
+$treasureItemStats = [string]$texts["datatables.item.master_item.item_stats"]
+$treasureMasterItems = [string]$texts["datatables.item.master_item.master_item"]
+$treasureTable = [string]$texts["datatables.treasure_map.treasure_map"]
 
 $addLoot = Get-FunctionSlice $loot `
     "public static boolean addLoot(obj_id target)" `
@@ -93,6 +101,52 @@ $treasureBand = Get-FunctionSlice $loot `
 Assert-Contract ($treasureBand.Contains("skill.getPrecuEncounterDifficulty(player)") -and
     -not $treasureBand.Contains("getLevel(player)")) `
     "p14.ground-loot-forage.treasure-map-hidden-skill-authority"
+
+$treasureBands = @(
+    @{ Name = "1_10"; Min = 1; Max = 10 },
+    @{ Name = "11_20"; Min = 11; Max = 20 },
+    @{ Name = "21_30"; Min = 21; Max = 30 },
+    @{ Name = "31_40"; Min = 31; Max = 40 },
+    @{ Name = "41_50"; Min = 41; Max = 50 },
+    @{ Name = "51_60"; Min = 51; Max = 60 },
+    @{ Name = "61_70"; Min = 61; Max = 70 },
+    @{ Name = "71_80"; Min = 71; Max = 80 },
+    @{ Name = "81_90"; Min = 81; Max = 90 }
+)
+$bandContentValid = $true
+foreach ($band in $treasureBands)
+{
+    $itemName = "item_treasure_map_$($band.Name)"
+    if ($treasureBand -notmatch [regex]::Escape('"' + $band.Name + '"') -or
+        $treasureItemStats -notmatch ('(?m)^' + [regex]::Escape($itemName) +
+            '\t[^\r\n]*int:min=' + $band.Min + ',int:max=' + $band.Max +
+            ',string:mob=treasure_guard_') -or
+        $treasureMasterItems -notmatch ('(?m)^' + [regex]::Escape($itemName) +
+            '\tobject/tangible/treasure_map/treasure_map_base\.iff\t'))
+    {
+        $bandContentValid = $false
+    }
+}
+$treasureRows = @(ConvertFrom-Csv -InputObject $treasureTable -Delimiter ([char]9) |
+    Where-Object { [string]$_.map_level_min -match '^\d+$' })
+Assert-Contract ($treasureBands.Count -eq [int]$contract.expected.treasureMapBandRows -and
+    $treasureRows.Count -eq $treasureBands.Count -and
+    $bandContentValid) `
+    "p14.ground-loot-forage.retained-treasure-band-content-complete"
+
+$mapGroupDifficulty = Get-FunctionSlice $treasureMap `
+    "public boolean setPlayerGroupLevel(" `
+    "public int findAmbushNearBy("
+$mapNearbyDifficulty = Get-FunctionSlice $treasureMap `
+    "public int findAmbushNearBy(" `
+    "public int getEnemyReCount("
+Assert-Contract ($mapGroupDifficulty.Contains("skill.getPrecuEncounterDifficulty(player)") -and
+    $mapGroupDifficulty.Contains("skill.getPrecuEncounterDifficulty(groupOid)") -and
+    $mapNearbyDifficulty.Contains("skill.getPrecuEncounterDifficulty(playersNear[i])") -and
+    -not $treasureMap.Contains("getLevel(") -and
+    $treasureMap -notmatch '(?i)combat level|player level' -and
+    -not [bool]$contract.expected.treasureMapVisibleCombatLevel) `
+    "p14.ground-loot-forage.treasure-encounter-precu-authority-and-language"
 
 $corpsePrepared = Get-FunctionSlice $ai `
     "public int aiCorpsePrepared(obj_id self, dictionary params)" `
