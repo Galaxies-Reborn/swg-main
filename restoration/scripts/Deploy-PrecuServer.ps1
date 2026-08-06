@@ -1527,9 +1527,21 @@ javap -classpath "$class_root" -v script.library.performance | grep -Fq 'isNgeIn
 javap -classpath "$class_root" -v script.library.performance | grep -Fq 'holographicCleanup'
 javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'precuHamCostModel'
 javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'freeshot_case_miss'
-javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuPrimaryAttackResult'
-javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuSecondaryDefenseResult'
-javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getDefenderResult'
+combat_base_code="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
+printf '%s' "$combat_base_code" | grep -Fq 'getPrecuPrimaryAttackResult'
+printf '%s' "$combat_base_code" | grep -Fq 'getPrecuSecondaryDefenseResult'
+printf '%s' "$combat_base_code" | grep -Fq 'getDefenderResult'
+# Authenticated PRE-CU hit resolution is skill-modifier based. Combat level may
+# remain in later-content helpers, but it cannot enter these three live methods.
+hit_engine_bytecode="$(printf '%s' "$combat_base_code" | sed -n '/public script.combat_engine\$hit_result\[\] runHitEngine(.*boolean, boolean, int)/,/public void applyPrecuWounds/p')"
+precu_primary_bytecode="$(printf '%s' "$combat_base_code" | sed -n '/public float getPrecuPrimaryHitChance/,/private int getPrecuActionAccuracyBonus/p')"
+precu_secondary_bytecode="$(printf '%s' "$combat_base_code" | sed -n '/public int getPrecuSecondaryDefenseResult(script.combat_engine\$attacker_data/,/public int getPrecuSecondaryDefenseResultCode/p')"
+for precu_hit_block in "$hit_engine_bytecode" "$precu_primary_bytecode" "$precu_secondary_bytecode"; do
+    test -n "$precu_hit_block"
+    ! printf '%s' "$precu_hit_block" | grep -Fq 'Method getLevel'
+done
+printf '%s' "$precu_primary_bytecode" | grep -Fq 'getEnhancedSkillStatisticModifierUncapped'
+printf '%s' "$precu_secondary_bytecode" | grep -Fq 'getEnhancedSkillStatisticModifierUncapped'
 combat_base_bytecode="$(javap -classpath "$class_root" -v script.systems.combat.combat_base)"
 printf '%s' "$combat_base_bytecode" | grep -Fq 'glancing_blow'
 ! printf '%s' "$combat_base_bytecode" | grep -Fq 'expertise_fs_general_alacrity_1'
