@@ -93,11 +93,17 @@ $paths = [ordered]@{
     "script.conversation.faction_recruiter_rebel" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/conversation/faction_recruiter_rebel.java"
     "script.systems.gcw.gcw_parent_object" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_parent_object.java"
     "script.systems.gcw.gcw_data_updater" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_data_updater.java"
+    "script.systems.gcw.factional_dungeon_parent" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/factional_dungeon_parent.java"
+    "script.systems.gcw.factional_dungeon_grandparent" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/factional_dungeon_grandparent.java"
     "script.planet.planet_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/planet/planet_base.java"
     "script.city.guard_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/city/guard_spawner.java"
     "script.theme_park.script_spawner.spawner_methods.gcw_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/theme_park/script_spawner/spawner_methods/gcw_spawner.java"
     "script.faction_perk.hq.loader" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/loader.java"
     "script.faction_perk.hq.planetary_base_register" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/planetary_base_register.java"
+    "script.library.hq" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/hq.java"
+    "script.faction_perk.hq.terminal" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/faction_perk/hq/terminal.java"
+    "script.item.gcw_buff_banner.banner_buff_manager" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/banner_buff_manager.java"
+    "script.item.gcw_buff_banner.pvp_lieutenant_comm_link" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/item/gcw_buff_banner/pvp_lieutenant_comm_link.java"
     "script.library.guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/guild.java"
     "script.player.player_guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/player/player_guild.java"
     "script.player.player_utility" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java"
@@ -178,11 +184,17 @@ $imperialRecruiterConversation = [string]$texts["script.conversation.faction_rec
 $rebelRecruiterConversation = [string]$texts["script.conversation.faction_recruiter_rebel"]
 $gcwParent = [string]$texts["script.systems.gcw.gcw_parent_object"]
 $gcwDataUpdater = [string]$texts["script.systems.gcw.gcw_data_updater"]
+$factionalDungeonParent = [string]$texts["script.systems.gcw.factional_dungeon_parent"]
+$factionalDungeonGrandparent = [string]$texts["script.systems.gcw.factional_dungeon_grandparent"]
 $planetBase = [string]$texts["script.planet.planet_base"]
 $guardSpawner = [string]$texts["script.city.guard_spawner"]
 $gcwSpawner = [string]$texts["script.theme_park.script_spawner.spawner_methods.gcw_spawner"]
 $hqLoader = [string]$texts["script.faction_perk.hq.loader"]
 $baseRegister = [string]$texts["script.faction_perk.hq.planetary_base_register"]
+$hqLibrary = [string]$texts["script.library.hq"]
+$hqTerminal = [string]$texts["script.faction_perk.hq.terminal"]
+$bannerBuffManager = [string]$texts["script.item.gcw_buff_banner.banner_buff_manager"]
+$lieutenantComlink = [string]$texts["script.item.gcw_buff_banner.pvp_lieutenant_comm_link"]
 $guildLibrary = [string]$texts["script.library.guild"]
 $playerGuild = [string]$texts["script.player.player_guild"]
 $playerUtility = [string]$texts["script.player.player_utility"]
@@ -829,6 +841,33 @@ foreach ($template in $expectedBaseValues.Keys)
 }
 Assert-Contract ($baseValuesMatch -and -not $hqPointValues.Contains("hq_s05")) `
     "p14.gcw-rating.exact-precu-player-base-point-values"
+
+$overloadCountdown = Get-FunctionSlice $hqTerminal `
+    "private void startCountdown" `
+    "private void abortCountdown"
+$baseDestructionReward = Get-FunctionSlice $gcw `
+    "public static void grantBaseDestructionPoints" `
+    "public static int getGcwGroundQuestAward"
+Assert-Contract ($hqLibrary.Contains("VULNERABILITY_CYCLE = 172800.0f") -and
+    $hqLibrary.Contains("VULNERABILITY_LENGTH = 10800.0f") -and
+    [int]$contract.expected.precuPlayerBaseVulnerabilityCycleSeconds -eq 172800 -and
+    [int]$contract.expected.precuPlayerBaseVulnerabilityLengthSeconds -eq 10800) `
+    "p14.gcw-rating.precu-player-base-vulnerability-timing"
+Assert-Contract ($hqTerminal.Contains('now > stamp + 1209600') -and
+    [int]$contract.expected.precuPlayerBaseResetIntervalSeconds -eq 1209600) `
+    "p14.gcw-rating.precu-player-base-owner-reset-interval"
+Assert-Contract ($overloadCountdown.Contains('getSkillStatMod(player, "group_melee_defense")') -and
+    $overloadCountdown.Contains('getSkillStatMod(player, "group_range_defense")') -and
+    $overloadCountdown.Contains("float delay = 300.0f + 300.0f * mod") -and
+    [int]$contract.expected.precuPlayerBaseOverloadMinimumSeconds -eq 300 -and
+    [int]$contract.expected.precuPlayerBaseOverloadMaximumSeconds -eq 600 -and
+    [bool]$contract.expected.precuPlayerBaseOverloadSquadLeaderDefenseScaling) `
+    "p14.gcw-rating.precu-player-base-overload-countdown"
+Assert-Contract ($hqLoader.Contains("gcw.grantBaseDestructionPoints(self)") -and
+    $baseDestructionReward.Contains("grantModifiedGcwPoints") -and
+    $grant.Contains("return;") -and
+    -not [bool]$contract.expected.postNgeBaseDestructionGcwPointRewardReachable) `
+    "p14.gcw-rating.base-destruction-personal-gcw-points-retired"
 $requiredRecruiterBaseTiers = @("hq_s01", "hq_s02", "hq_s03", "hq_s04")
 Assert-Contract ((@($requiredRecruiterBaseTiers | Where-Object {
         -not $imperialInstallations.Contains($_) -or -not $rebelInstallations.Contains($_)
@@ -1301,6 +1340,21 @@ Assert-Contract ($groundquests.Contains("money.bankTo(money.ACCT_NEW_PLAYER_QUES
     $groundquests.Contains("factions.setFactionStanding(player, factionName, currentFactionStanding + factionAmount)") -and
     $groundquests.Contains("static_item.createNewItemFunction(grantGcwRebReward, playerInv)")) `
     "p14.gcw-rating.groundquest-independent-rewards-retained"
+Assert-Contract ($groundquests.Contains("gcw._grantGcwPoints(null, player, gcwGroundQuestValue") -and
+    $groundquests.Contains("gcw._grantGcwPoints(null, player, grantGcwOverwriteAmt") -and
+    $grant.Contains("return;") -and
+    -not [bool]$contract.expected.groundQuestGcwPointRewardReachable) `
+    "p14.gcw-rating.groundquest-later-gcw-points-route-no-op"
+$factionalDungeonRuntime = $factionalDungeonParent + $factionalDungeonGrandparent
+Assert-Contract ($factionalDungeonParent.Contains("factions.shiftPointsTo(factions.FACTION_REBEL, intPoints)") -and
+    $factionalDungeonParent.Contains("factions.shiftPointsTo(factions.FACTION_IMPERIAL, intPoints)") -and
+    $factionalDungeonGrandparent.Contains("factions.changeFactionPoints(strFaction, intPoints)") -and
+    -not $factionalDungeonRuntime.Contains("pvpModifyCurrentGcwPoints") -and
+    -not $factionalDungeonRuntime.Contains("_grantGcwPoints") -and
+    -not $factionalDungeonRuntime.Contains("grantModifiedGcwPoints") -and
+    [bool]$contract.expected.precuFactionalDungeonLegacyPointPoolPreserved -and
+    -not [bool]$contract.expected.factionalDungeonCurrentGcwPointAuthority) `
+    "p14.gcw-rating.precu-factional-dungeon-legacy-pool-retained"
 Assert-Contract ($battlefield.Contains("factions.addFactionStanding(self, faction, standing)") -and
     -not $battlefield.Contains("item_battlefield_rebel_token_") -and
     -not $battlefield.Contains("item_battlefield_imperial_token_")) `
@@ -1382,6 +1436,29 @@ Assert-Contract ($imperialRewardUi.Contains("faction_recruiter_imperial_action_s
     -not [bool]$contract.expected.postNgeRecruiterTokenVendorConversationReachable -and
     [bool]$contract.expected.precuRecruiterRankPerkConversationPreserved) `
     "p14.gcw-rating.recruiter-conversations-route-precu-rank-perks"
+$reinforcementSpawn = Get-FunctionSlice $factionPerk `
+    "public static boolean spawnTroopers(obj_id player, String faction, int rank)" `
+    "__end_of_faction_perk__"
+Assert-Contract ($lieutenantComlink.Contains("factions.isRebel(player)") -and
+    $lieutenantComlink.Contains("factions.isImperial(player)") -and
+    $lieutenantComlink.Contains("factions.isDeclared(player)") -and
+    $lieutenantComlink.Contains("queueCommand(player, (-447180069)") -and
+    $reinforcementSpawn.Contains("pvpGetCurrentGcwRank(player)") -and
+    $reinforcementSpawn.Contains("PRECU_COMM_LINK_MIN_RANK") -and
+    $reinforcementSpawn.Contains("PRECU_COMM_LINK_MAX_TEMPLATE_RANK") -and
+    $reinforcementSpawn.Contains("skill.getPrecuEncounterDifficulty(player)") -and
+    -not $reinforcementSpawn.Contains("getLevel(") -and
+    [bool]$contract.expected.retainedLieutenantComlinkPrecuAuthority) `
+    "p14.gcw-rating.retained-lieutenant-comlink-uses-precu-authority"
+Assert-Contract ($bannerBuffManager.Contains('messageTo(self, "handleDeleteSelf", null, 180.0f, false)') -and
+    $bannerBuffManager.Contains("trial.cleanupObject(self)") -and
+    -not $bannerBuffManager.Contains("buff.applyBuff") -and
+    -not $bannerBuffManager.Contains("addBuff") -and
+    -not $bannerBuffManager.Contains("removeBuff") -and
+    -not [bool]$contract.expected.retainedBannerBuffGameplayAuthority) `
+    "p14.gcw-rating.retained-captain-banner-is-visual-only"
+Assert-Contract ([bool]$contract.expected.widerGroundGcwAuditClosed) `
+    "p14.gcw-rating.wider-ground-gcw-audit-closed"
 Assert-Contract ($battlefieldLibrary.Contains("STARTING_BUILD_POINTS = 500") -and
     $battlefieldLibrary.Contains("MAXIMUM_POPULATION = 50") -and
     $battlefieldLibrary.Contains("MAXIMUM_FACTION_SIZE_DIFFERENCE = 5") -and
