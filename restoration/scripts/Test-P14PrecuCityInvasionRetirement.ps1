@@ -80,6 +80,27 @@ $paths = [ordered]@{
     "script.conversation.imperial_defensive_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_defensive_supply_terminal.java"
     "script.conversation.rebel_offensive_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/rebel_offensive_supply_terminal.java"
     "script.conversation.rebel_defensive_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/rebel_defensive_supply_terminal.java"
+    "script.systems.gcw.gcw_barricade" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_barricade.java"
+    "script.systems.gcw.gcw_damaged_vehicle" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_damaged_vehicle.java"
+    "script.systems.gcw.gcw_npc_hurt" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_npc_hurt.java"
+    "script.systems.gcw.gcw_turret" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_turret.java"
+    "script.systems.gcw.gcw_patrol" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_patrol.java"
+    "script.systems.gcw.gcw_vehicle_patrol" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_vehicle_patrol.java"
+    "script.systems.gcw.gcw_vehicle_boss_patrol" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_vehicle_boss_patrol.java"
+    "script.systems.gcw.gcw_smuggler_device" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_smuggler_device.java"
+    "script.systems.gcw.gcw_tower" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_tower.java"
+    "script.systems.gcw.gcw_defensive_general_boss" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_defensive_general_boss.java"
+    "script.systems.gcw.gcw_entertainer_faction_quest" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_entertainer_faction_quest.java"
+    "script.systems.gcw.gcw_city_kit_barricade" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_barricade.java"
+    "script.systems.gcw.gcw_city_kit_damaged_vehicle" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_damaged_vehicle.java"
+    "script.systems.gcw.gcw_city_kit_entertainer" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_entertainer.java"
+    "script.systems.gcw.gcw_city_kit_medic" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_medic.java"
+    "script.systems.gcw.gcw_city_kit_patrol" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_patrol.java"
+    "script.systems.gcw.gcw_city_kit_tower" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_tower.java"
+    "script.systems.gcw.gcw_city_kit_turret" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_turret.java"
+    "script.systems.gcw.gcw_city_kit_vehicle" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_vehicle.java"
+    "script.systems.gcw.gcw_city_kit_vehicle_boss" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_kit_vehicle_boss.java"
+    "script.systems.gcw.gcw_patrol_point_npc_ai" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_patrol_point_npc_ai.java"
     "buildout.tatooine_4_3" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3.tab"
     "buildout.talus_5_3" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3.tab"
     "buildout.naboo_5_6" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6.tab"
@@ -308,7 +329,8 @@ $playerCleanupMarkers = @(
     '"Staging Area Camp"',
     'destroyWaypointInDatapad(waypoint, player)'
 )
-Assert-Contract (@($playerCleanupMarkers | Where-Object { -not $playerCleanup.Contains($_) }).Count -eq 0) `
+Assert-Contract (@($playerCleanupMarkers | Where-Object { -not $playerCleanup.Contains($_) }).Count -eq 0 -and
+    $playerCleanup.Contains("!isPlayer(player)")) `
     "p14.city-invasion.stale-player-state-scrub"
 
 $guardedCityGameplayHandlers = [ordered]@{
@@ -512,6 +534,49 @@ Assert-Contract ($conversationSources.imperialGeneral.Contains("groundquests.gra
     $conversationSources.imperialDefensiveSupply.Contains("static_item.createNewItemFunction") -and
     $conversationSources.rebelOffensiveSupply.Contains("static_item.createNewItemFunction") -and
     $conversationSources.rebelDefensiveSupply.Contains("static_item.createNewItemFunction")) "p14.city-invasion.preserved-conversation-content-is-runtime-inert"
+
+$cityAssetSources = [ordered]@{
+    "script.systems.gcw.gcw_barricade" = @(9, "groundquests.grantQuest")
+    "script.systems.gcw.gcw_damaged_vehicle" = @(8, "groundquests.grantQuest")
+    "script.systems.gcw.gcw_npc_hurt" = @(7, "groundquests.grantQuest")
+    "script.systems.gcw.gcw_turret" = @(7, "groundquests.grantQuest")
+    "script.systems.gcw.gcw_patrol" = @(11, "groundquests.grantQuest")
+    "script.systems.gcw.gcw_vehicle_patrol" = @(8, "createSchedulerNPC")
+    "script.systems.gcw.gcw_vehicle_boss_patrol" = @(4, "createSchedulerNPC")
+    "script.systems.gcw.gcw_smuggler_device" = @(5, "groundquests.grantQuest")
+    "script.systems.gcw.gcw_tower" = @(9, "groundquests.grantQuest")
+    "script.systems.gcw.gcw_defensive_general_boss" = @(5, "trial.addNonInstanceFactionParticipant")
+    "script.systems.gcw.gcw_entertainer_faction_quest" = @(3, 'messageTo(parent, "createFightingNpc"')
+    "retained.gcw_city_kit" = @(5, 'createObject("object/tangible/destructible/gcw_city_construction_beacon.iff"')
+    "script.systems.gcw.gcw_city_kit_barricade" = @(2, "createObject")
+    "script.systems.gcw.gcw_city_kit_damaged_vehicle" = @(3, "create.staticObject")
+    "script.systems.gcw.gcw_city_kit_entertainer" = @(3, "create.object")
+    "script.systems.gcw.gcw_city_kit_medic" = @(3, "create.staticObject")
+    "script.systems.gcw.gcw_city_kit_patrol" = @(2, "createObject")
+    "script.systems.gcw.gcw_city_kit_tower" = @(2, "createObject")
+    "script.systems.gcw.gcw_city_kit_turret" = @(2, "advanced_turret.createTurret")
+    "script.systems.gcw.gcw_city_kit_vehicle" = @(2, "createObject")
+    "script.systems.gcw.gcw_city_kit_vehicle_boss" = @(2, "createObject")
+    "script.systems.gcw.gcw_patrol_point_npc_ai" = @(2, "create.object")
+}
+$cityAssetGuardTotal = 0
+foreach ($name in $cityAssetSources.Keys)
+{
+    $sourceText = [string]$texts[$name]
+    $expectedGuardCount = [int]$cityAssetSources[$name][0]
+    $authorityMarker = [string]$cityAssetSources[$name][1]
+    $guardIndex = $sourceText.IndexOf("gcw.isPostNgeCityInvasionRetired()", [System.StringComparison]::Ordinal)
+    $authorityIndex = $sourceText.IndexOf($authorityMarker, [System.StringComparison]::Ordinal)
+    $guardCount = ([regex]::Matches($sourceText, 'gcw\.isPostNgeCityInvasionRetired\(\)')).Count
+    $cityAssetGuardTotal += $guardCount
+    Assert-Contract ($guardCount -eq $expectedGuardCount -and $guardIndex -ge 0 -and $authorityIndex -gt $guardIndex) `
+        "p14.city-invasion.persisted-city-asset.$name.retired-content-preserved"
+}
+Assert-Contract ($cityAssetSources.Count -eq [int]$contract.expected.retiredCityAssetRuntimeSources -and
+    $cityAssetGuardTotal -eq [int]$contract.expected.retiredCityAssetRuntimeGuards -and
+    -not [bool]$contract.expected.persistedCityAssetGameplayReachable -and
+    -not [bool]$contract.expected.persistedCityKitSpawnRuntimeReachable) `
+    "p14.city-invasion.persisted-city-asset-runtime-complete"
 
 $missionTerminal = [string]$texts["retained.mission_terminal"]
 $missionBase = [string]$texts["retained.mission_base"]
