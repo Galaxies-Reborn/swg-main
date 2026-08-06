@@ -324,6 +324,24 @@ source_battlefield_player="$source_script/systems/gcw/player_pvp.java"
 work_battlefield_player="$work_script/systems/gcw/player_pvp.java"
 source_player_faction="$source_script/player/player_faction.java"
 work_player_faction="$work_script/player/player_faction.java"
+source_force_rank="$source_script/library/force_rank.java"
+work_force_rank="$work_script/library/force_rank.java"
+source_jedi_trials="$source_script/library/jedi_trials.java"
+work_jedi_trials="$work_script/library/jedi_trials.java"
+source_frs_recruiter="$source_script/npc/faction_recruiter/player_recruiter.java"
+work_frs_recruiter="$work_script/npc/faction_recruiter/player_recruiter.java"
+source_player_force_rank="$source_script/systems/gcw/player_force_rank.java"
+work_player_force_rank="$work_script/systems/gcw/player_force_rank.java"
+source_enclave_controller="$source_script/systems/gcw/enclave_controller.java"
+work_enclave_controller="$work_script/systems/gcw/enclave_controller.java"
+source_knight_trials="$source_script/theme_park/jedi_trials/knight_trials.java"
+work_knight_trials="$work_script/theme_park/jedi_trials/knight_trials.java"
+source_force_rank_xp="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_xp.tab"
+work_force_rank_xp="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_xp.tab"
+source_force_rank_light="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank.tab"
+work_force_rank_light="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank.tab"
+source_force_rank_dark="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_dark.tab"
+work_force_rank_dark="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_dark.tab"
 source_static_master="$source_script/systems/gcw/static_base/master.java"
 work_static_master="$work_script/systems/gcw/static_base/master.java"
 source_static_base_master="$source_script/systems/gcw/static_base/base_master.java"
@@ -628,6 +646,17 @@ cmp -s "$source_battlefield_controller" "$work_battlefield_controller"
 cmp -s "$source_battlefield_terminal" "$work_battlefield_terminal"
 cmp -s "$source_battlefield_player" "$work_battlefield_player"
 cmp -s "$source_player_faction" "$work_player_faction"
+cmp -s "$source_force_rank" "$work_force_rank"
+cmp -s "$source_jedi_trials" "$work_jedi_trials"
+cmp -s "$source_frs_recruiter" "$work_frs_recruiter"
+cmp -s "$source_player_force_rank" "$work_player_force_rank"
+cmp -s "$source_enclave_controller" "$work_enclave_controller"
+cmp -s "$source_knight_trials" "$work_knight_trials"
+cmp -s "$source_force_rank_xp" "$work_force_rank_xp"
+cmp -s "$source_force_rank_light" "$work_force_rank_light"
+cmp -s "$source_force_rank_dark" "$work_force_rank_dark"
+grep -Fxq 'enableFRS=1' "$source_local_options"
+grep -Fq 'SWG_PRECU_START_PLANETS:-tatooine,corellia,naboo,yavin4,' "$SWG_SOURCE_DIR/docker-compose.precu.yml"
 cmp -s "$source_static_master" "$work_static_master"
 cmp -s "$source_static_base_master" "$work_static_base_master"
 cmp -s "$source_static_base_spawner" "$work_static_base_spawner"
@@ -1822,6 +1851,13 @@ javap -classpath "$class_root" -v script.systems.battlefield.player_battlefield 
 gcw_static_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeFixedStaticBaseRetired/,/getPub30StaticBaseControllerId/p')"
 printf '%s' "$gcw_static_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -c -p script.player.player_faction | grep -Fq 'cleanupRetiredFixedStaticBaseState'
+javap -classpath "$class_root" -constants script.library.force_rank | grep -Fq 'REQUEST_DEMOTION_COST = 2000'
+javap -classpath "$class_root" -constants script.library.force_rank | grep -Fq 'VOTE_CHALLENGE_COST = 1000'
+javap -classpath "$class_root" -c -p script.library.force_rank | grep -Fq 'isForceRankingEnabled'
+javap -classpath "$class_root" -c -p script.systems.gcw.player_force_rank | grep -Fq 'getEnclaveObjId'
+javap -classpath "$class_root" -c -p script.systems.gcw.enclave_controller | grep -Fq 'performEnclaveMaintenance'
+javap -classpath "$class_root" -c -p script.library.jedi_trials | grep -Fq 'isForceRankingEnabled'
+javap -classpath "$class_root" -c -p script.theme_park.jedi_trials.knight_trials | grep -Fq 'isForceRankingEnabled'
 javap -classpath "$class_root" -c -p script.systems.gcw.static_base.master | grep -Fq 'cleanupRetiredFixedStaticBase'
 javap -classpath "$class_root" -c -p script.systems.gcw.static_base.base_master | grep -Fq 'cleanupRetiredFixedStaticBase'
 javap -classpath "$class_root" -c -p script.systems.gcw.static_base.base_spawner | grep -Fq 'cleanupRetiredFixedStaticBaseSpawns'
@@ -2047,6 +2083,9 @@ test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/mob/precu_creature_combat_profiles.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_xp.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/pvp/force_rank.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_dark.iff"
 nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'
 nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::processExpertiseRequest'
@@ -2101,6 +2140,7 @@ $runtimeConfigProbe = @'
 set -eu
 cfg="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 grep -Fq 'clusterName=swg' "$cfg"
+grep -Fxq 'enableFRS=1' "$cfg"
 grep -Eq '^transferServerAddress=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' "$cfg"
 grep -Fq '### BEGIN Docker runtime overrides' "$cfg"
 '@

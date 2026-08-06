@@ -15,6 +15,7 @@ $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
 $manifestDsrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
 $manifestSrc = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
+$manifestExe = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "exe" })
 $indexedDsrcCommit = (& git -C $repositoryRoot rev-parse ":dsrc").Trim()
 if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed dsrc gitlink." }
 $checkedOutDsrcCommit = (& git -C (Join-Path $repositoryRoot "dsrc") rev-parse HEAD).Trim()
@@ -23,6 +24,10 @@ $indexedSrcCommit = (& git -C $repositoryRoot rev-parse ":src").Trim()
 if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed src gitlink." }
 $checkedOutSrcCommit = (& git -C (Join-Path $repositoryRoot "src") rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out src commit." }
+$indexedExeCommit = (& git -C $repositoryRoot rev-parse ":exe").Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the parent repository's indexed exe gitlink." }
+$checkedOutExeCommit = (& git -C (Join-Path $repositoryRoot "exe") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw "Unable to resolve the checked-out exe commit." }
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
@@ -56,6 +61,11 @@ Assert-Contract ($manifestSrc.Count -eq 1 -and
     $indexedSrcCommit -ceq [string]$contract.buildEvidence.nativeSourceCommit -and
     $checkedOutSrcCommit -ceq [string]$contract.buildEvidence.nativeSourceCommit) `
     "p14.gcw-rating.native-source-commit-synchronized"
+Assert-Contract ($manifestExe.Count -eq 1 -and
+    [string]$manifestExe[0].commit -ceq [string]$contract.buildEvidence.serverConfigCommit -and
+    $indexedExeCommit -ceq [string]$contract.buildEvidence.serverConfigCommit -and
+    $checkedOutExeCommit -ceq [string]$contract.buildEvidence.serverConfigCommit) `
+    "p14.gcw-rating.server-config-commit-synchronized"
 
 foreach ($component in @("dsrc", "src"))
 {
@@ -115,6 +125,17 @@ $paths = [ordered]@{
     "buildout.talus_2_3" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_2_3.tab"
     "buildout.rori_7_7" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_7_7.tab"
     "buildout.naboo_5_4" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab"
+    "script.library.force_rank" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/force_rank.java"
+    "script.library.jedi_trials" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/jedi_trials.java"
+    "script.npc.faction_recruiter.player_recruiter" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/player_recruiter.java"
+    "script.systems.gcw.player_force_rank" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_force_rank.java"
+    "script.systems.gcw.enclave_controller" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/enclave_controller.java"
+    "script.theme_park.jedi_trials.knight_trials" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/theme_park/jedi_trials/knight_trials.java"
+    "datatable.pvp.force_rank_xp" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_xp.tab"
+    "datatable.pvp.force_rank_light" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank.tab"
+    "datatable.pvp.force_rank_dark" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_dark.tab"
+    "config.localOptions" = Join-Path $source "exe/linux/localOptions.cfg"
+    "docker.compose.precu" = Join-Path $source "docker-compose.precu.yml"
     "script.systems.missions.base.mission_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java"
     "script.library.groundquests" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/groundquests.java"
     "script.library.battlefield" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/battlefield.java"
@@ -186,6 +207,17 @@ $battlefieldAssault = [string]$texts["script.systems.battlefield.game_assault"]
 $battlefieldUtility = [string]$texts["script.systems.battlefield.battlefield_utility"]
 $spaceCombat = [string]$texts["script.library.space_combat"]
 $spaceBattle = [string]$texts["script.systems.gcw.space.battle_spawner"]
+$forceRank = [string]$texts["script.library.force_rank"]
+$jediTrials = [string]$texts["script.library.jedi_trials"]
+$factionRecruiterPlayer = [string]$texts["script.npc.faction_recruiter.player_recruiter"]
+$playerForceRank = [string]$texts["script.systems.gcw.player_force_rank"]
+$enclaveController = [string]$texts["script.systems.gcw.enclave_controller"]
+$knightTrials = [string]$texts["script.theme_park.jedi_trials.knight_trials"]
+$forceRankXp = [string]$texts["datatable.pvp.force_rank_xp"]
+$forceRankLight = [string]$texts["datatable.pvp.force_rank_light"]
+$forceRankDark = [string]$texts["datatable.pvp.force_rank_dark"]
+$localOptions = [string]$texts["config.localOptions"]
+$dockerCompose = [string]$texts["docker.compose.precu"]
 
 $pvpRegionFlag = Get-FunctionSlice $gcw `
     "public static boolean isPostNgePvpRegionBonusRetired()" `
@@ -1001,6 +1033,173 @@ Assert-Contract ($terminalGcw.Contains("getGcwGroupImperialScorePercentile(strSu
     $gcwPainting.Contains("getGcwGroupImperialScorePercentile") -and
     [bool]$contract.expected.regionalScorePresentationReadCompatibilityPreserved) `
     "p14.gcw-rating.regional-score-presentation-remains-read-only"
+
+$frsConfigLines = @($localOptions -split "`r?`n" | Where-Object { $_ -match '^enableFRS=' })
+$startPlanetLines = @($dockerCompose -split "`r?`n" | Where-Object { $_.Contains('SWG_START_PLANETS: ${SWG_PRECU_START_PLANETS:-') })
+$defaultPlanets = @()
+if ($startPlanetLines.Count -eq 1)
+{
+    $defaultPlanets = @((($startPlanetLines[0] -split ':-', 2)[1].Trim().TrimEnd('}')) -split ',')
+}
+Assert-Contract ($frsConfigLines.Count -eq 1 -and
+    $frsConfigLines[0] -ceq "enableFRS=1" -and
+    $startPlanetLines.Count -eq 1 -and
+    @($defaultPlanets | Where-Object { $_ -ceq "yavin4" }).Count -eq 1 -and
+    [bool]$contract.expected.precuForceRankingSystemEnabled -and
+    [bool]$contract.expected.precuFrsYavinEnclavesReachable) `
+    "p14.gcw-rating.precu-frs-enabled-with-yavin-enclaves"
+
+$frsEnabledHelper = Get-FunctionSlice $forceRank `
+    "public static boolean isForceRankingEnabled()" `
+    "public static boolean addToForceRankSystem"
+$frsAddPlayer = Get-FunctionSlice $forceRank `
+    "public static boolean addToForceRankSystem" `
+    "public static boolean removeFromForceRankSystem"
+Assert-Contract ($frsEnabledHelper.Contains('getConfigSetting("GameServer", "enableFRS")') -and
+    $frsEnabledHelper.Contains('config.equals("1")') -and
+    $frsAddPlayer.Contains("if (!isForceRankingEnabled())") -and
+    $frsAddPlayer.Contains("setJediState(player, JEDI_STATE_FORCE_RANKED_LIGHT)") -and
+    $frsAddPlayer.Contains('pvpSetAlignedFaction(player, getFactionId("Rebel"))') -and
+    $frsAddPlayer.Contains('pvpSetAlignedFaction(player, getFactionId("Imperial"))') -and
+    $frsAddPlayer.Contains("pvpMakeDeclared(player)") -and
+    $frsAddPlayer.Contains("grantSkill(player, rank_skill)")) `
+    "p14.gcw-rating.precu-frs-enrollment-and-faction-authority"
+
+$frsPlayerInitialize = Get-FunctionSlice $playerForceRank `
+    "public int OnInitialize" `
+    "public int OnAttach"
+$frsPlayerAttach = Get-FunctionSlice $playerForceRank `
+    "public int OnAttach" `
+    "public int OnDetach"
+$frsPlayerLogin = Get-FunctionSlice $playerForceRank `
+    "public int OnLogin" `
+    "public int OnSkillRevoked"
+$frsPlayerValidate = Get-FunctionSlice $playerForceRank `
+    "public int msgValidateFRSPlayerData" `
+    "public int cmdShowCouncilRank"
+Assert-Contract ($frsPlayerInitialize.Contains("force_rank.isForceRankingEnabled()") -and
+    $frsPlayerInitialize.Contains('force_rank.getEnclaveObjId(self, force_rank.getCouncilAffiliation(self), "enclaveIdResponse")') -and
+    $frsPlayerInitialize.Contains("return SCRIPT_CONTINUE;") -and
+    $frsPlayerAttach.Contains("force_rank.isForceRankingEnabled()") -and
+    $frsPlayerAttach.Contains("force_rank.getEnclaveObjId") -and
+    $frsPlayerLogin.Contains("force_rank.isForceRankingEnabled()") -and
+    $frsPlayerLogin.Contains("force_rank.requestExperienceDebt(self)") -and
+    $frsPlayerValidate.Contains("force_rank.isForceRankingEnabled()") -and
+    $frsPlayerValidate.Contains("force_rank.resyncForceRankSkills(self)") -and
+    $frsPlayerValidate.Contains("pvpMakeDeclared(self)") -and
+    -not $frsPlayerValidate.Contains("removeFromForceRankSystem") -and
+    [bool]$contract.expected.precuFrsPlayerLifecycleRetained) `
+    "p14.gcw-rating.precu-frs-player-lifecycle-restored"
+
+$enclaveInitializeDisabledBoundary = Get-FunctionSlice $enclaveController `
+    "public int OnInitialize" `
+    'LOG("force_rank", "enclave_controller.OnInitialize -- " + self)'
+$enclavePulse = Get-FunctionSlice $enclaveController `
+    "public int msgEnclavePulse" `
+    "public int msgValidateFRSPlayerData"
+Assert-Contract ($enclaveInitializeDisabledBoundary.Contains("force_rank.isForceRankingEnabled()") -and
+    $enclaveInitializeDisabledBoundary.Contains("force_rank.makeAllCellsPublic(self)") -and
+    -not $enclaveInitializeDisabledBoundary.Contains("removeObjVar") -and
+    -not $enclaveInitializeDisabledBoundary.Contains("resetEnclaveData") -and
+    -not $enclaveInitializeDisabledBoundary.Contains("resetClusterData") -and
+    -not $enclaveInitializeDisabledBoundary.Contains("createEnclaveTerminals") -and
+    $enclavePulse.Contains("force_rank.isForceRankingEnabled()") -and
+    $enclavePulse.Contains("force_rank.performEnclaveMaintenance(self)") -and
+    [bool]$contract.expected.precuFrsPersistentCouncilDataPreservedWhenDisabled) `
+    "p14.gcw-rating.precu-frs-disabled-boundary-preserves-council-data"
+
+$playerCovert = Get-FunctionSlice $playerFaction "public int msgGoCovert" "public int msgGoOnLeave"
+$playerOnLeave = Get-FunctionSlice $playerFaction "public int msgGoOnLeave" "public int msgGoOvert"
+$playerOvert = Get-FunctionSlice $playerFaction "public int msgGoOvert" "public int gcwStatus"
+$recruiterCovert = Get-FunctionSlice $factionRecruiterPlayer "public int msgGoCovert" "public int msgFactionTrainingTypeSelected"
+$rankedJediFactionBoundaries = $playerCovert + $playerOnLeave + $playerOvert + $recruiterCovert
+Assert-Contract ($playerCovert.Contains('hasSkill(self, "force_rank_light_novice")') -and
+    $playerOnLeave.Contains('hasSkill(self, "force_rank_light_novice")') -and
+    $playerOvert.Contains('hasSkill(self, "force_rank_light_novice")') -and
+    $recruiterCovert.Contains('hasSkill(self, "force_rank_light_novice")') -and
+    -not $rankedJediFactionBoundaries.Contains('hasScript(self, "force_rank_') -and
+    [bool]$contract.expected.precuFrsRankedJediFactionStatusEnforced) `
+    "p14.gcw-rating.precu-frs-ranked-jedi-remain-overt"
+
+$jediTrialEligibility = Get-FunctionSlice $jediTrials `
+    "public static boolean isEligibleForJediKnightTrials" `
+    "public static int isEligibleForJediKnightTrialsPointsRemaining"
+$knightTrialInitialize = Get-FunctionSlice $knightTrials `
+    "public int OnInitialize" `
+    "public int handleForceShrineTrialMessage"
+Assert-Contract ($jediTrialEligibility.Contains("force_rank.isForceRankingEnabled()") -and
+    $knightTrialInitialize.Contains("force_rank.isForceRankingEnabled()") -and
+    -not ($jediTrialEligibility + $knightTrialInitialize).Contains('getConfigSetting("GameServer", "enableFRS")') -and
+    [bool]$contract.expected.precuFrsJediTrialsEnabled) `
+    "p14.gcw-rating.precu-frs-jedi-trials-use-authoritative-enable-gate"
+
+Assert-Contract ($forceRank.Contains("REQUEST_DEMOTION_COST = 2000") -and
+    $forceRank.Contains("VOTE_CHALLENGE_COST = 1000") -and
+    [int]$contract.expected.precuFrsRequestDemotionCost -eq 2000 -and
+    [int]$contract.expected.precuFrsVoteChallengeCost -eq 1000) `
+    "p14.gcw-rating.precu-frs-publish14-costs"
+
+$expectedFrsRows = [ordered]@{
+    "nj_xp_gain" = @(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    "nj_xp_loss" = @(1000, 1250, 1759, 2250, 3000, 3750, 4750, 5500, 6750, 7750, 8750, 10000)
+    "bh_xp_gain" = @(500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500)
+    "bh_xp_loss" = @(1000, 1250, 1759, 2250, 3000, 3750, 4750, 5500, 6750, 7750, 8750, 10000)
+    "pw_xp_gain" = @(200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200)
+    "pw_xp_loss" = @(500, 650, 1000, 1250, 1750, 2250, 2750, 2350, 4000, 4500, 5000, 6000)
+    "r0_xp_gain" = @(750, 750, 750, 750, 750, 750, 750, 750, 750, 750, 750, 750)
+    "r0_xp_loss" = @(250, 500, 750, 1000, 1500, 2000, 2500, 3000, 3750, 4250, 5000, 5750)
+    "r1_xp_gain" = @(900, 900, 900, 900, 900, 900, 900, 900, 900, 900, 900, 900)
+    "r1_xp_loss" = @(100, 250, 500, 900, 1300, 1750, 2250, 2750, 3500, 4150, 4750, 5500)
+}
+$rankGain = @(1250, 2250, 3000, 3750, 4500, 5500, 6500, 7500, 8750, 9750)
+$genericRankLoss = @(100, 250, 500, 900, 1300, 1750, 2250, 2750, 3500, 4150, 4750, 5500)
+for ($rank = 2; $rank -le 11; ++$rank)
+{
+    $expectedFrsRows["r${rank}_xp_gain"] = @($rankGain[$rank - 2]) * 12
+    $expectedFrsRows["r${rank}_xp_loss"] = $genericRankLoss
+}
+$frsXpLines = @($forceRankXp -split "`r?`n" | Where-Object { $_.Length -gt 0 })
+$actualFrsRows = @{}
+for ($row = 2; $row -lt $frsXpLines.Count; ++$row)
+{
+    $columns = @($frsXpLines[$row] -split "`t")
+    if ($columns.Count -eq 13)
+    {
+        $actualFrsRows[$columns[0]] = @($columns[1..12] | ForEach-Object { [int]$_ })
+    }
+}
+$frsMatrixExact = $frsXpLines.Count -eq 32 -and $actualFrsRows.Count -eq $expectedFrsRows.Count
+foreach ($key in $expectedFrsRows.Keys)
+{
+    $frsMatrixExact = $frsMatrixExact -and $actualFrsRows.ContainsKey($key) -and
+        (($actualFrsRows[$key] -join ',') -ceq ($expectedFrsRows[$key] -join ','))
+}
+Assert-Contract ($frsMatrixExact -and [bool]$contract.expected.precuFrsExperienceMatrixExact) `
+    "p14.gcw-rating.precu-frs-publish14-experience-matrix"
+
+$rankXp = @(0, 5000, 15000, 25000, 35000, 50000, 70000, 90000, 130000, 180000, 250000, 400000)
+$rankCaps = @(-1, 10, 10, 10, 10, 9, 9, 9, 8, 8, 11, 1)
+$frsRankDataExact = $true
+foreach ($table in @(@{ Text = $forceRankLight; Prefix = "force_rank_light_" }, @{ Text = $forceRankDark; Prefix = "force_rank_dark_" }))
+{
+    $lines = @($table.Text -split "`r?`n" | Where-Object { $_.Length -gt 0 })
+    $frsRankDataExact = $frsRankDataExact -and $lines.Count -eq 14
+    for ($rank = 0; $rank -le 11; ++$rank)
+    {
+        $columns = @($lines[$rank + 2] -split "`t")
+        $expectedSkill = if ($rank -eq 0) { "$($table.Prefix)novice" } elseif ($rank -eq 11) { "$($table.Prefix)master" } else { "$($table.Prefix)rank_$($rank.ToString('00'))" }
+        $frsRankDataExact = $frsRankDataExact -and $columns.Count -eq 4 -and
+            [int]$columns[0] -eq $rank -and $columns[1] -ceq $expectedSkill -and
+            [int]$columns[2] -eq $rankCaps[$rank] -and [int]$columns[3] -eq $rankXp[$rank]
+    }
+}
+Assert-Contract ($frsRankDataExact -and [bool]$contract.expected.precuFrsRankDataExact) `
+    "p14.gcw-rating.precu-frs-publish14-rank-data"
+
+$frsRuntime = $forceRank + $jediTrials + $playerForceRank + $enclaveController + $knightTrials
+$frsNgeDependencies = [regex]::Matches($frsRuntime, 'getLevel\s*\(|getSkillTemplate\s*\(|utils\.isProfession\s*\(|expertise', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase).Count
+Assert-Contract ($frsNgeDependencies -eq [int]$contract.expected.precuFrsRuntimeNgeProgressionDependencies) `
+    "p14.gcw-rating.precu-frs-no-nge-progression-authority"
 
 Assert-Contract ($mission.Contains("transferBankCreditsFromNamedAccount(money.ACCT_MISSION_DYNAMIC, recipient, intReward") -and
     $mission.Contains("factions.awardFactionStanding(objPlayer, strFaction, intFactionReward)") -and

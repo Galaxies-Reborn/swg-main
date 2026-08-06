@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-gcw-rating-retirement",
-  "status": "ready",
-  "scope": "Retire the post-NGE current/lifetime GCW point, PvP-kill rating-input, weekly rating conversion, decay, invasion-credit, rating-derived regional-score progression, passive combat-level/rank factional-presence writer, manual/admin and native regional-score writers and decay, false holiday point rewards, destructive point-consumable interactions, NGE percentile overwrite of planetary control, regional-score travel/spawn/space-battle gameplay authority, later city/guild regional-defender membership, bonus, title, and presentation, and the later fixed-base/Restuss PvP-region bonus controller while restoring Publish 14 player-base control scores and registry lifecycle, faction standing/rank, ordinary open-world PvP, ambient encounter availability, general regional presentation compatibility, and independent mission, quest, PRE-CU open-world battlefield, holiday-token, and space rewards.",
+  "status": "implemented-build-pending",
+  "scope": "Retire the post-NGE current/lifetime GCW point, PvP-kill rating-input, weekly rating conversion, decay, invasion-credit, rating-derived regional-score progression, passive combat-level/rank factional-presence writer, manual/admin and native regional-score writers and decay, false holiday point rewards, destructive point-consumable interactions, NGE percentile overwrite of planetary control, regional-score travel/spawn/space-battle gameplay authority, later city/guild regional-defender membership, bonus, title, and presentation, and the later fixed-base/Restuss PvP-region bonus controller while restoring Publish 14 player-base control scores and registry lifecycle, faction standing/rank, ordinary open-world PvP, the Yavin IV Force Ranking System and Jedi enclaves, ambient encounter availability, general regional presentation compatibility, and independent mission, quest, PRE-CU open-world battlefield, holiday-token, and space rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -15,7 +15,9 @@
       "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/factionPerkData.lua",
       "MMOCoreORB/bin/scripts/screenplays/gcw/newsnet.lua",
       "MMOCoreORB/bin/scripts/screenplays/gcw/recruiters/recruiterScreenplay.lua",
-      "MMOCoreORB/bin/scripts/screenplays/space/conversations/rebel/havoc_squadron/viopaConvoHandler.lua"
+      "MMOCoreORB/bin/scripts/screenplays/space/conversations/rebel/havoc_squadron/viopaConvoHandler.lua",
+      "MMOCoreORB/bin/scripts/managers/jedi/frs_manager.lua",
+      "MMOCoreORB/src/server/zone/managers/frs/FrsManagerImplementation.cpp"
     ],
     "findings": [
       "Publish 14 uses faction standing and the independently persisted creature faction rank; the pinned Publish 14 reference does not contain the later current/lifetime GCW point or weekly rating/decay progression system.",
@@ -38,7 +40,10 @@
       "The retained War Terminal is a later publish-gift asset whose planetary report and factional-presence presentation can remain, but its queued-battlefield action and 30-day personal-contribution ledger are consumers of systems retired elsewhere in this contract.",
       "Persisted gcwContributionTracking state and cached terminal actions can outlive their writers, so they must be scrubbed rather than displayed as current PRE-CU progression.",
       "Four later pvp_region_watcher objects remain in the Corellia, Talus, Naboo, and Restuss buildouts; their controller scripts record deaths and feed the retired NGE regional GCW-point bonus path, which is absent from the pinned Publish 14 reference.",
-      "The watcher scenery can remain as inert authored content, but its buildout scripts, planet registrations, cycle state, persisted player activity flag, death callback, and bonus callback must be unreachable while ordinary open-world PvP and PRE-CU battlefields remain intact."
+      "The watcher scenery can remain as inert authored content, but its buildout scripts, planet registrations, cycle state, persisted player activity flag, death callback, and bonus callback must be unreachable while ordinary open-world PvP and PRE-CU battlefields remain intact.",
+      "The pinned Publish 14 reference explicitly enables the Force Ranking System, initializes it only when Yavin IV is running, persists both council rosters, configures rank rooms and maintenance, and uses the exact 12-rank experience matrix restored here.",
+      "Publish 14 Force Ranking members are aligned Light-to-Rebel or Dark-to-Imperial and remain overt; rank ownership is a skill predicate, not a script-attachment predicate.",
+      "A disabled Force Ranking configuration may make enclave cells public and stop maintenance, but must not erase persisted council rosters, voting state, cluster data, or rank membership."
     ]
   },
   "expected": {
@@ -118,6 +123,17 @@
     "stalePvpRegionPlayerStateScrubbed": true,
     "pvpRegionWatcherSceneryPreserved": 4,
     "precuOpenWorldPvpPreserved": true,
+    "precuForceRankingSystemEnabled": true,
+    "precuFrsYavinEnclavesReachable": true,
+    "precuFrsPlayerLifecycleRetained": true,
+    "precuFrsPersistentCouncilDataPreservedWhenDisabled": true,
+    "precuFrsRankedJediFactionStatusEnforced": true,
+    "precuFrsJediTrialsEnabled": true,
+    "precuFrsRequestDemotionCost": 2000,
+    "precuFrsVoteChallengeCost": 1000,
+    "precuFrsExperienceMatrixExact": true,
+    "precuFrsRankDataExact": true,
+    "precuFrsRuntimeNgeProgressionDependencies": 0,
     "missionTerminalSourceChanged": false
   },
   "sourceFiles": [
@@ -162,7 +178,18 @@
     "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_7_2.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_2_3.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_7_7.tab",
-    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab"
+    "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/force_rank.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/jedi_trials.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/npc/faction_recruiter/player_recruiter.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_force_rank.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/enclave_controller.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/theme_park/jedi_trials/knight_trials.java",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_xp.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_dark.tab",
+    "exe/linux/localOptions.cfg",
+    "docker-compose.precu.yml"
   ],
   "directSourceExtensions": [
     "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/pvp_region_watcher.tpf"
@@ -191,12 +218,13 @@
         "sha256": "8b2ebb594a518e17c6e0c26d74bf1e7f1a7528cc2971a28fb46747af9129ac8a"
       }
     },
-    "directSourceCommit": "49ac4fb5d81be76da3397ac6e26be7b3221a87d5",
+    "directSourceCommit": "9668466a912267e8e4280b608077d54b074622d2",
     "nativeSourceCommit": "f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
+    "serverConfigCommit": "1b4a01f3f5d394e34c5758dafff996aca574a222",
     "sourceSha256": {
-      "attributes": "4ab5214b107502a4ed671b2191010210a4e45b152c2e70dc0717a27735ee5af8",
+      "attributes": "0cbc0b0f0747b27a35593013fb6d1a1ea49c78294a0cbc4e01101c29334f2a00",
       "script.library.gcw": "bd0635f0e3929e604572bdc6c2425637eade8fda1f0a6e9cab7773cb224f17fb",
-      "script.player.player_faction": "651ca9e9b0bf9d27820a7218224f08aaa7d45f8da7b57577db72a99eec2f0eb7",
+      "script.player.player_faction": "1bbdfa7eb86eed909952c6f2c873fc7a344c2d5796bf1e2d42c9e34e3cf886c5",
       "script.systems.gcw.pvp_region_bonus_controller": "80900bfbee53a8c325134b3cc07d36bc69c48504a6c72949210ecd1d5c3072f2",
       "template.gcw.pvp_region_watcher": "859cf41e4872035c06306585380a5e58890a414e841c3713a3c169335cb8d8d1",
       "script.library.faction_perk": "7baf89bd7af8946652592ac55756c29ae4f57c3a620b51f1b7323943fd943f99",
@@ -245,7 +273,18 @@
       "buildout.corellia_7_2": "e72ffac1023d2f3c97814fb0ad7825ed4916fcab8639a37bb389b3be63fa1536",
       "buildout.talus_2_3": "f281be4d04f45e8fec3b7c9a6e0abbf7d73e632a5365afad69647a94b54ae1a8",
       "buildout.rori_7_7": "1f2bad458e29d2ac1782ff9bf907a49707c76f79d7868fe39302ab9e3cbd6847",
-      "buildout.naboo_5_4": "ade376a7b0ed356c4450108fde304cd469f474d11a94a4cddd99a60121c8abc5"
+      "buildout.naboo_5_4": "ade376a7b0ed356c4450108fde304cd469f474d11a94a4cddd99a60121c8abc5",
+      "script.library.force_rank": "2dc73346030554ce9b5fa8a997262312e557f258b1056eec58907abb22f155bf",
+      "script.library.jedi_trials": "9cf8fbb37c8c6216dff774a417887666b2394849dc1b075853a08520e13b6fe5",
+      "script.npc.faction_recruiter.player_recruiter": "511f6cbffc65c4e84ef04aef0e95007971e96c9798c49d7383468127e079a8f7",
+      "script.systems.gcw.player_force_rank": "c1fcbcf291b5aaa6f4a377d230cda44c6461774cd9157f77cd27b767a5bbf049",
+      "script.systems.gcw.enclave_controller": "93f7befd24cc4e301d6846b4b680b92a092b6cc811b8170ff8828b46997066bd",
+      "script.theme_park.jedi_trials.knight_trials": "ecae8510f5923e11d071c1bd6202bb616805d62f283acb7c91f2b90bffe11dfc",
+      "datatable.pvp.force_rank_xp": "5311e564ceb53a2eb0e359a5ff5396e29f37c616f8efee69aff7a4fdd26169e3",
+      "datatable.pvp.force_rank_light": "cdebce09e9e2baa3fe32d481ed4ce4ab5dbb352ad83c59e26f026e836e6e9807",
+      "datatable.pvp.force_rank_dark": "aa7dbddaac723ef925191b8f3e02f65da3fbb2461525d5b74f48d64619a11731",
+      "config.localOptions": "15ac071ad5e5b920cb875d436419593d6995c48aa67fe1e44c127880e1fad95a",
+      "docker.compose.precu": "c36affb750da1ff32913e6fe9e11dc6c2084bd0790f99ddaaa3989de4d912058"
     },
     "staticContract": "passed against the locked direct source through faction-base registry lifecycle closure, direct planet-owned ratio authority, War Terminal queue/contribution retirement, and stale contribution-ledger scrubbing, followed by the full Phase A ready regression",
     "isolatedJavaCompile": "passed for the latest gcw.java and faction-base loader.java lifecycle changes with javac -source 8 -target 8 against the verified live x64 class set; the ephemeral /dev/shm output was deleted and verified absent",
@@ -296,8 +335,8 @@
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "5b10da1a8fe33865c4c94859c446b916cd4c20943e0d6c2b7135bc166d56fb12",
     "serverBinaryBuildId": "94b198caa2763f4572326706f027ed3429140820",
-    "directSourceBuild": "focused overlapping authority suites, full Phase-A ready validation, and the full x64 native/Java/data deployment passed from synchronized direct-source commit 49ac4fb5d81be76da3397ac6e26be7b3221a87d5 and native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6 with no host artifact or staging tree",
-    "fullX64Build": "passed and deployed in 824.8 seconds from direct-source commit 49ac4fb5d81be76da3397ac6e26be7b3221a87d5 with native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
+    "directSourceBuild": "focused overlapping authority suites, full Phase-A ready validation, and the full x64 native/Java/data deployment passed from synchronized direct-source commit 9668466a912267e8e4280b608077d54b074622d2 and native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6 with no host artifact or staging tree",
+    "fullX64Build": "passed and deployed in 824.8 seconds from direct-source commit 9668466a912267e8e4280b608077d54b074622d2 with native commit f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
     "deploymentProbe": "passed synchronized-source preflight, exact eight-file planet-control and base-lifecycle source/work parity, eight isolated and eight deployed class hashes, ten-planet persisted control-state audit, seven-binary x64 architecture, health/readiness, exact process counts, fresh-log audit, and live mapped-binary verification"
   },
   "runtimeEvidence": {
@@ -319,7 +358,7 @@
     "pvpRegionBonusSourceWorkParity": "dsrc/.gitattributes and object/tangible/gcw/pvp_region_watcher.tpf matched byte-for-byte between /swg-precu-source and /swg-precu in the current deployment; the guarded controller, player cleanup, and four watcher buildouts also passed the synchronized-source preflight",
     "pvpRegionBonusDeployedBytecode": "gcw.class returns true from isPostNgePvpRegionBonusRetired and fail-closes the nine regional registration, status, death, and credit surfaces; player_faction.class cleans the stale activity flag on attach, initialize, login, and bonus callback; pvp_region_bonus_controller.class bumps its session, removes matching planet registration and controller state, detaches, and guards attach, initialize, cycle, and death callbacks",
     "pvpRegionBonusCompiledBuildouts": "the four source rows retain object/tangible/gcw/pvp_region_watcher.iff with empty script fields; their rebuilt data IFF hashes are authenticated, and the rebuilt intrinsic watcher template contains zero systems.gcw.pvp_region_bonus_controller strings",
-    "deployedDirectSourceCommit": "49ac4fb5d81be76da3397ac6e26be7b3221a87d5",
+    "deployedDirectSourceCommit": "9668466a912267e8e4280b608077d54b074622d2",
     "deployedNativeSourceCommit": "f66cc3cce93e93c5b96a1fab9139c8cc32399ca6",
     "playerObjectSourceWorkSha256": "1339b58e55c2581c669de31122ca60017b851633f77fda2cee876669a883918c",
     "liveServerBinaryInode": 12141095,
@@ -337,7 +376,7 @@
     "freshLogLines": 344,
     "freshLogReadyMarkers": 1,
     "freshLogTargetedErrors": 0,
-    "fullPhaseAReady": "passed before deployment against locked dsrc 49ac4fb5d81be76da3397ac6e26be7b3221a87d5 and src f66cc3cce93e93c5b96a1fab9139c8cc32399ca6; all overlapping GCW, profession, buff, city, Empire Day, and Life Day source-authentication suites passed",
+    "fullPhaseAReady": "passed before deployment against locked dsrc 9668466a912267e8e4280b608077d54b074622d2 and src f66cc3cce93e93c5b96a1fab9139c8cc32399ca6; all overlapping GCW, profession, buff, city, Empire Day, and Life Day source-authentication suites passed",
     "missionTerminalContinuity": "The user verified the live combat mission terminal before this milestone; mission source is excluded from both overlays and authenticated as retained."
   },
   "auditBoundary": {
