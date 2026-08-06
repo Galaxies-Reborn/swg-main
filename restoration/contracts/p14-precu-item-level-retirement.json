@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-item-level-retirement",
-  "status": "ready",
-  "scope": "Remove the remaining NGE combat-level authority from retained item transfer, use, effect, attribute, medicine, and resource-sampling paths while preserving PRE-CU skill ownership and HAM rules.",
+  "status": "implemented-build-pending",
+  "scope": "Remove NGE combat-level and primary-stat authority from retained item transfer, use, effect, attribute, medicine, resource-sampling, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, and retained expansion item content.",
   "eraEvidence": {
     "userRule": "PRE-CU has no player combat-level stat; retained content must not require one.",
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
-    "surveyReference": "SurveySessionImplementation.cpp and ResourceSpawner.cpp derive sampling Action cost from current Quickness as 124 - Quickness / 12.5 and never consult player combat level."
+    "surveyReference": "SurveySessionImplementation.cpp and ResourceSpawner.cpp derive sampling Action cost from current Quickness as 124 - Quickness / 12.5 and never consult player combat level.",
+    "dynamicLootReference": "Publish-era skills authenticate camouflage as a PRE-CU Bothan and Ranger skill modifier; precision_modified, strength_modified, stamina_modified, constitution_modified, agility_modified, and luck_modified are later primary-stat vocabulary and are not PRE-CU dynamic-loot authority."
   },
   "expected": {
     "staticItems": {
@@ -33,9 +34,18 @@
       "actionCostFormula": "max(0, 124 - currentQuickness / 12.5)",
       "actionDrainPreserved": true,
       "samplingLoopPreserved": true
+    },
+    "dynamicLoot": {
+      "productionCreatorReachable": true,
+      "legacyNgePrimaryModifierInventory": 6,
+      "remainingNgePrimaryWriters": 0,
+      "persistedCleanupLifecycleHooks": 3,
+      "retainedPrecuCamouflageModifier": true,
+      "retainedDynamicContent": true
     }
   },
   "sourceFiles": [
+    "dsrc/sku.0/sys.server/compiled/game/script/item/armor/dynamic_armor.java",
     "dsrc/sku.0/sys.server/compiled/game/script/item/buff_beast_click_item.java",
     "dsrc/sku.0/sys.server/compiled/game/script/item/buff_click_item.java",
     "dsrc/sku.0/sys.server/compiled/game/script/item/full_heal_item.java",
@@ -46,7 +56,11 @@
     "dsrc/sku.0/sys.server/compiled/game/script/item/skillmod_click_item.java",
     "dsrc/sku.0/sys.server/compiled/game/script/item/static_item_base.java",
     "dsrc/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java",
-    "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java"
+    "dsrc/sku.0/sys.server/compiled/game/script/library/loot.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/armor.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/clothing.tab",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
   ],
   "buildEvidence": {
     "overlayPatch": "restoration/patches/dsrc/356-p14-precu-item-level-retirement.patch",
@@ -55,13 +69,30 @@
     "staticContract": "passed",
     "isolatedJavaCompile": "passed (Java 8 target)",
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "ddfdc218f8d26e2bb85c59652a4109db62f6553a",
+    "directSourceGitlink": "9dad392c2c2a5b2c76ff0189f009085276d95389",
+    "sourceSha256": {
+      "staticItem": "5c8292d89b8c9f2ff3fd7c948c64f8059d2f1298d69e5b81d5ee1217930bcd62",
+      "dynamicArmor": "953d06b679012eb02b6a2457d36d66c608c4bdcf1cbb2baaa97d7a022e478bc7",
+      "loot": "37e3a20f4d199c20889aebe380c19babb282e934b8e29fcf61ed5f3d36b01b37",
+      "dynamicArmorTypes": "a51178ffc91446cf1cb5b54f45ca96a6327027e536c05299bfc857d247a1957b",
+      "dynamicClothingTypes": "9b6273c74324e334dbd290d694c90c94a1e79c38ce9807960985d539afc89c45",
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
+    },
+    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source; dynamic generation bytecode writes only camouflage, cleanup bytecode removes exact stale leaves, and dynamic armor bytecode contains all three lifecycle cleanup hooks",
+    "focusedCompiledClassSha256": {
+      "script.library.static_item": "db7f9017739097252dc6cd0ea22278de6d568e0def4f4ae3cf05952605d23ffc",
+      "script.item.armor.dynamic_armor": "88051725db6a37525c3a1a265b77a2dd355682bf64451caaf8d0f5236528b3a9"
+    },
+    "focusedCompiledClassBytes": {
+      "script.library.static_item": 38604,
+      "script.item.armor.dynamic_armor": 6002
+    },
     "dockerWorkVolume": "swg-precu-work-x64",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and survey_tool_script.class was emitted 2026-08-04T20:13:53Z",
-    "fullServerBuild": "passed in 718.9 seconds from pushed parent 120d870 and direct dsrc 4c2da2e17",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildIdSha1": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "fullJavaCompile": "pending canonical clean deployment",
+    "fullServerBuild": "pending canonical clean deployment",
+    "architecture": "pending canonical clean deployment",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildIdSha1": "pending",
     "compiledClassSha256": {
       "script.item.buff_beast_click_item": "ea83a6e8909a65f68b634fdac1b4df1e6ecfc8fd3c75a7b15c457173c471ef5e",
       "script.item.buff_click_item": "3fbca2076a6af9bb985cca04284e24faca3606f5de93099beafce4097c34a4ac",
@@ -73,30 +104,35 @@
       "script.item.skillmod_click_item": "e2ffc02ab073f02d29605e11ac7c997af04a0bc51793ee405fa608b3b30f8978",
       "script.item.static_item_base": "100735d0a5433500af8a098928d87b6b0184f14dc4515f14a41040cb39b267d0",
       "script.item.survey_tool.survey_tool_script": "f000baf40c6b0861712e27c8e172a2abccda8df870846996b953f4d9e4abd872",
-      "script.library.static_item": "89628d1a14d2ced86b7ca32d08688c7319674cbe63ce4501659583b6807bbce8"
+      "script.library.static_item": "pending",
+      "script.item.armor.dynamic_armor": "pending"
     },
     "currentSurveyEvidenceRefreshedBy": "Milestone 344 PRE-CU resource sampling cadence; the Quickness-derived Action cost remains unchanged and the survey class now uses the fixed Publish 14.1 25-second cadence.",
-    "deploymentProbe": "passed direct-source parity, item-level source gates, fixed survey-cadence source and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "deploymentProbe": "pending canonical direct-source parity, dynamic-loot source and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
+    "result": "pending"
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
-    "containerStartedAt": "2026-08-04T20:20:11.295955075Z",
+    "date": null,
+    "containerStartedAt": null,
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 363,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
-    "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
-    "result": "passed"
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": null,
+    "liveBinaryInode": null,
+    "liveBinarySize": null,
+    "postStartLogAudit": "pending",
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling",
+    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling plus six later primary-stat writers on production-reachable dynamic clothing and armor loot",
     "notClaimedComplete": "quest, encounter, AI, pet, and retained expansion difficulty adapters remain under the broader PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical clean Docker x64 build and deployment",
+    "deployed static_item and dynamic_armor bytecode probes",
+    "healthy player-ready runtime and mapped-binary verification"
+  ]
 }

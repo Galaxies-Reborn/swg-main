@@ -127,6 +127,9 @@ Write-Host "Verifying the direct-source PRE-CU resource sampling cadence authori
 & (Join-Path $PSScriptRoot "Test-P14PrecuResourceSamplingCadenceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU item-level and dynamic-loot authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuItemLevelRetirement.ps1") `
+    -SourceRoot $repositoryRoot
 Write-Host "Verifying the direct-source PRE-CU player-vendor maintenance authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuPlayerVendorMaintenanceAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -625,7 +628,7 @@ source_buff_builder_response="$source_script/systems/buff_builder/buff_builder_r
 work_buff_builder_response="$work_script/systems/buff_builder/buff_builder_response.java"
 source_crafting_base="$source_script/systems/crafting/crafting_base.java"
 work_crafting_base="$work_script/systems/crafting/crafting_base.java"
-precu_item_level_paths="item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
+precu_item_level_paths="item/armor/dynamic_armor.java item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/tcg/target_creature.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/hideout/mtp_instance_entrance_cell.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
 precu_cosmetic_familiar_paths="ai/familiar.java"
@@ -1348,6 +1351,28 @@ grep -Fq 'retirePostNgeBeastMasterPlayerState(player)' "$work_script/player/live
 for precu_item_level_path in $precu_item_level_paths; do
     cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
 done
+dynamic_generation_source="$(sed -n '/public static void generateItemStatBonuses(/,/public static void removeLegacyNgeDynamicPrimaryModifiers(/p' "$work_script/library/static_item.java")"
+dynamic_cleanup_source="$(sed -n '/public static void removeLegacyNgeDynamicPrimaryModifiers(/,/public static int generateStatMod(/p' "$work_script/library/static_item.java")"
+dynamic_suffix_source="$(sed -n '/public static String getArmorNameSuffix(/,/public static void setupJunkDealerPrice(/p' "$work_script/library/static_item.java")"
+printf '%s\n' "$dynamic_generation_source" | grep -Fq 'removeLegacyNgeDynamicPrimaryModifiers(item)'
+test "$(printf '%s\n' "$dynamic_generation_source" | grep -Fc 'setObjVar(')" -eq 1
+printf '%s\n' "$dynamic_generation_source" | grep -Fq 'setObjVar(item, "skillmod.bonus.camouflage", camouflageBonus)'
+printf '%s\n' "$dynamic_cleanup_source" | grep -Fq 'for (String modifier : LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS)'
+printf '%s\n' "$dynamic_cleanup_source" | grep -Fq 'removeObjVar(item, objVar)'
+! printf '%s\n' "$dynamic_cleanup_source" | grep -Fq 'removeObjVar(item, "skillmod.bonus")'
+printf '%s\n' "$dynamic_suffix_source" | grep -Fq 'removeLegacyNgeDynamicPrimaryModifiers(item)'
+printf '%s\n' "$dynamic_suffix_source" | grep -Fq '"camouflage"'
+for legacy_dynamic_primary in precision_modified strength_modified stamina_modified constitution_modified agility_modified luck_modified; do
+    test "$(grep -Fc "\"$legacy_dynamic_primary\"" "$work_script/library/static_item.java")" -eq 1
+    ! printf '%s\n' "$dynamic_generation_source" | grep -Fq "$legacy_dynamic_primary"
+    ! printf '%s\n' "$dynamic_suffix_source" | grep -Fq "$legacy_dynamic_primary"
+done
+test "$(grep -Fc 'static_item.removeLegacyNgeDynamicPrimaryModifiers(self);' "$work_script/item/armor/dynamic_armor.java")" -eq 3
+grep -Fq 'static_item.makeDynamicObject(strLootToMake, objContainer, intLevel)' "$work_script/library/loot.java"
+grep -Fq 'dynamic_armor_standard' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/armor.tab"
+grep -Fq 'dynamic_clothing_standard' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/clothing.tab"
+grep -Eq '^species_bothan[[:space:]].*camouflage=15' "$work_skills"
+grep -Eq '^outdoors_ranger_(master|movement_01)[[:space:]].*camouflage=' "$work_skills"
 for precu_encounter_difficulty_path in $precu_encounter_difficulty_paths; do
     cmp -s "$source_script/$precu_encounter_difficulty_path" "$work_script/$precu_encounter_difficulty_path"
 done
@@ -2269,6 +2294,18 @@ javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq
 ! javap -classpath "$class_root" -v script.item.medicine.stimpack_crafted | grep -Fq 'combat_level_required'
 javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'healing.combat_level_required'
 javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'removeObjVar'
+static_item_bytecode="$(javap -classpath "$class_root" -c -p script.library.static_item)"
+dynamic_generation_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void generateItemStatBonuses(/,/public static void removeLegacyNgeDynamicPrimaryModifiers(/p')"
+dynamic_cleanup_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void removeLegacyNgeDynamicPrimaryModifiers(/,/public static int generateStatMod(/p')"
+printf '%s\n' "$dynamic_generation_bytecode" | grep -Fq 'skillmod.bonus.camouflage'
+printf '%s\n' "$dynamic_generation_bytecode" | grep -Fq 'removeLegacyNgeDynamicPrimaryModifiers'
+printf '%s\n' "$dynamic_cleanup_bytecode" | grep -Fq 'removeObjVar'
+for legacy_dynamic_primary in precision_modified strength_modified stamina_modified constitution_modified agility_modified luck_modified; do
+    printf '%s\n' "$static_item_bytecode" | grep -Fq "$legacy_dynamic_primary"
+    ! printf '%s\n' "$dynamic_generation_bytecode" | grep -Fq "$legacy_dynamic_primary"
+done
+test "$(javap -classpath "$class_root" -c -p script.item.armor.dynamic_armor | grep -Fc 'removeLegacyNgeDynamicPrimaryModifiers')" -eq 3
+javap -classpath "$class_root" -c -p script.library.loot | grep -Fq 'makeDynamicObject'
 javap -classpath "$class_root" -constants script.library.pet_lib | grep -Fq 'MAX_NONCH_PET_LEVEL = 10'
 javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'canCallCreaturePet'
 javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'outdoors_creaturehandler_novice'
