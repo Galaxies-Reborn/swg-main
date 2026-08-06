@@ -69,7 +69,8 @@ $relativePaths = @(
     "item/static_item_base.java",
     "item/survey_tool/survey_tool_script.java",
     "library/loot.java",
-    "library/static_item.java"
+    "library/static_item.java",
+    "systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
 )
 $texts = @{}
 foreach ($relativePath in $relativePaths)
@@ -248,6 +249,23 @@ $sourceHashPaths = @{
     dynamicArmorTypes = "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/armor.tab"
     dynamicClothingTypes = "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/clothing.tab"
     skills = "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+    stimpack = "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java"
+    stimpackCrafted = "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java"
+    forceMelon = "dsrc/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java"
+    weaponComponentAttributes = "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+    itemStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+    masterItem = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+    advancedSearch = "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab"
+    channelledStimA = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_a.tpf"
+    channelledStimB = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_b.tpf"
+    channelledStimC = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_c.tpf"
+    instantStimA = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_a.tpf"
+    instantStimB = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_b.tpf"
+    instantStimC = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_c.tpf"
+    instantStimD = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_d.tpf"
+    instantStimE = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_e.tpf"
+    instantStimNoob = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_noob.tpf"
+    instantStimSyren = "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_syren.tpf"
 }
 $sourceHashesCurrent = $true
 foreach ($entry in $sourceHashPaths.GetEnumerator())
@@ -259,7 +277,7 @@ foreach ($entry in $sourceHashPaths.GetEnumerator())
         $sourceHashesCurrent = $false
     }
 }
-Assert-Contract $sourceHashesCurrent "p14.item-level.dynamic-loot-source-hashes"
+Assert-Contract $sourceHashesCurrent "p14.item-level.source-hashes"
 
 $clickPaths = @(
     "item/buff_beast_click_item.java",
@@ -295,6 +313,9 @@ Assert-Contract (-not $levelUpOrb.Contains("getLevel(") -and
 
 $stim = [string]$texts["item/medicine/stimpack.java"]
 $craftedStim = [string]$texts["item/medicine/stimpack_crafted.java"]
+$itemCombatLevelCleanup = Get-FunctionSlice $staticItem `
+    "public static void removeLegacyNgeItemCombatLevelRequirement(" `
+    "public static int generateStatMod("
 Assert-Contract (-not $stim.Contains("combat_level_required") -and
     -not $stim.Contains("getLevel(") -and
     $stim.Contains('buff.hasBuff(player, "feign_death")') -and
@@ -306,11 +327,179 @@ Assert-Contract (-not $craftedStim.Contains("combat_level_required") -and
     $craftedStim.Contains('buff.hasBuff(player, "recent_heal")') -and
     $craftedStim.Contains("healing.useChannelHealItem")) `
     "p14.item-level.crafted-stim-level-retired"
+Assert-Contract (([regex]::Matches($stim,
+        "static_item\.removeLegacyNgeItemCombatLevelRequirement\(self\);")).Count -eq 4 -and
+    ([regex]::Matches($craftedStim,
+        "static_item\.removeLegacyNgeItemCombatLevelRequirement\(self\);")).Count -eq 4 -and
+    $itemCombatLevelCleanup.Contains(
+        'hasObjVar(item, "healing.combat_level_required")') -and
+    ([regex]::Matches($itemCombatLevelCleanup,
+        'removeObjVar\(item, "healing\.combat_level_required"\)')).Count -eq 1 -and
+    -not $itemCombatLevelCleanup.Contains('removeObjVar(item, "healing")')) `
+    "p14.item-level.persisted-stim-exact-level-cleanup"
 
 $forceMelon = [string]$texts["item/plant/force_melon.java"]
-Assert-Contract ($forceMelon.Contains('removeObjVar(self, "healing.combat_level_required")') -and
+Assert-Contract (([regex]::Matches($forceMelon,
+        "static_item\.removeLegacyNgeItemCombatLevelRequirement\(self\);")).Count -eq 1 -and
     -not $forceMelon.Contains('setObjVar(self, "healing.combat_level_required"')) `
     "p14.item-level.force-melon-stale-level-cleanup"
+
+$legacyCombatLevelPattern =
+    '(?i)required[_ ]combat[_ ]level|combat[_ ]level[_ ]required|healing_combat_level_required|healing\.combat_level_required'
+$itemStatsPath = Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+$masterItemPath = Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+$advancedSearchPath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab"
+$itemStatsLines = @(Get-Content -LiteralPath $itemStatsPath)
+$masterItemLines = @(Get-Content -LiteralPath $masterItemPath)
+$advancedSearchLines = @(Get-Content -LiteralPath $advancedSearchPath)
+$expectedHealingPower = [ordered]@{
+    item_stimpack_a_02_01 = 700
+    item_stimpack_b_02_01 = 1600
+    item_stimpack_c_02_01 = 2800
+    item_stimpack_d_02_01 = 4000
+    item_stimpack_e_02_01 = 4800
+    item_tow_commander_stim_04_01 = 1500
+    item_content_stim_donuts_02_01 = 485
+    item_content_stim_fish_02_01 = 485
+    item_content_stim_dragonet_steak_02_01 = 485
+    item_content_stimpack_high_03_01 = 4500
+    item_content_stimpack_high_04_01 = 4500
+    item_gcw_base_health_a_03_01 = 3500
+    item_gcw_base_health_b_03_01 = 4000
+    item_gcw_base_health_c_03_01 = 4500
+    item_gcw_base_health_d_03_01 = 5000
+    item_gcw_base_health_e_04_01 = 5500
+    item_gcw_base_action_a_03_01 = 1750
+    item_gcw_base_action_b_03_01 = 2000
+    item_gcw_base_action_c_03_01 = 2250
+    item_gcw_base_action_d_03_01 = 2500
+    item_gcw_base_action_e_04_01 = 2750
+    item_off_temp_stimpack_02_01 = 945
+    item_off_temp_stimpack_02_02 = 1505
+    item_off_temp_stimpack_02_03 = 1910
+    item_off_temp_stimpack_02_04 = 2485
+    item_off_temp_stimpack_02_05 = 2975
+    item_off_temp_stimpack_02_06 = 3465
+}
+$retainedStimRowsValid = $true
+$retainedStimBindingsValid = $true
+$retainedActionPoolRows = 0
+foreach ($entry in $expectedHealingPower.GetEnumerator())
+{
+    $itemRows = @($itemStatsLines | Where-Object {
+        [string]($_ -split "`t", 2)[0] -ceq [string]$entry.Key
+    })
+    if ($itemRows.Count -ne 1)
+    {
+        $retainedStimRowsValid = $false
+    }
+    else
+    {
+        $fields = [regex]::Split([string]$itemRows[0], "`t")
+        $objvars = if ($fields.Count -gt 3) { [string]$fields[3] } else { "" }
+        if (-not $objvars.Contains("int:healing.power=$($entry.Value)") -or
+            $objvars -match $legacyCombatLevelPattern)
+        {
+            $retainedStimRowsValid = $false
+        }
+        if ([string]$entry.Key -like "item_gcw_base_action_*")
+        {
+            if ($objvars.Contains("int:healing.pool=2")) { $retainedActionPoolRows++ }
+            else { $retainedStimRowsValid = $false }
+        }
+    }
+    $masterRows = @($masterItemLines | Where-Object {
+        [string]($_ -split "`t", 2)[0] -ceq [string]$entry.Key
+    })
+    if ($masterRows.Count -ne 1)
+    {
+        $retainedStimBindingsValid = $false
+    }
+    else
+    {
+        $masterFields = [regex]::Split([string]$masterRows[0], "`t")
+        if ($masterFields.Count -le 10 -or
+            [string]$masterFields[10] -notmatch
+                '(^|,)item\.medicine\.stimpack(,|$)')
+        {
+            $retainedStimBindingsValid = $false
+        }
+    }
+}
+Assert-Contract ($expectedHealingPower.Count -eq 27 -and
+    $retainedStimRowsValid -and $retainedActionPoolRows -eq 5 -and
+    @($itemStatsLines | Where-Object {
+        $_ -match $legacyCombatLevelPattern
+    }).Count -eq 0) `
+    "p14.item-level.static-stim-metadata-retired-content-preserved"
+Assert-Contract $retainedStimBindingsValid `
+    "p14.item-level.static-stim-master-bindings-preserved"
+
+$templateRelativePaths = @(
+    "channelled_stimpack/stimpack_a.tpf",
+    "channelled_stimpack/stimpack_b.tpf",
+    "channelled_stimpack/stimpack_c.tpf",
+    "instant_stimpack/stimpack_a.tpf",
+    "instant_stimpack/stimpack_b.tpf",
+    "instant_stimpack/stimpack_c.tpf",
+    "instant_stimpack/stimpack_d.tpf",
+    "instant_stimpack/stimpack_e.tpf",
+    "instant_stimpack/stimpack_noob.tpf",
+    "instant_stimpack/stimpack_syren.tpf"
+)
+$templateRoot = Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine"
+$templateTexts = @{}
+foreach ($relativePath in $templateRelativePaths)
+{
+    $path = Join-Path $templateRoot $relativePath
+    Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
+        "p14.item-level.template.$relativePath"
+    $templateTexts[$relativePath] = Get-Content -LiteralPath $path -Raw
+}
+$templateCombatLevelWriters = @($templateTexts.Values | Where-Object {
+    [string]$_ -match $legacyCombatLevelPattern
+})
+Assert-Contract ($templateRelativePaths.Count -eq 10 -and
+    $templateCombatLevelWriters.Count -eq 0 -and
+    [string]$templateTexts["channelled_stimpack/stimpack_a.tpf"] -match
+        'objvars =\+ \["healing\.power" = 1000\]' -and
+    [string]$templateTexts["channelled_stimpack/stimpack_b.tpf"] -match
+        'objvars =\+ \["healing\.power" = 2000\]' -and
+    [string]$templateTexts["channelled_stimpack/stimpack_c.tpf"] -match
+        'objvars =\+ \["healing\.power" = 4000\]' -and
+    @($templateTexts.Values | Where-Object {
+        [string]$_ -match 'scripts = \["item\.medicine\.stimpack_crafted"\]'
+    }).Count -eq 3 -and
+    [string]$templateTexts["instant_stimpack/stimpack_noob.tpf"] -match
+        'objvars =\+ \["noTrade" = 1\]' -and
+    [string]$templateTexts["instant_stimpack/stimpack_syren.tpf"] -match
+        'objvars =\+ \["healing\.power" = 1500, "charges" = 3\]') `
+    "p14.item-level.stim-template-level-retired-content-preserved"
+
+$advancedCategories = @($advancedSearchLines | Select-Object -Skip 2 |
+    Where-Object { -not [string]::IsNullOrWhiteSpace(
+        [string]($_ -split "`t", 2)[0]) })
+$wearableCategoryRows = @($advancedSearchLines | Where-Object {
+    $_ -match '^misc_container_wearable\tbio_link\t'
+})
+Assert-Contract (@($advancedSearchLines | Where-Object {
+        $_ -match $legacyCombatLevelPattern
+    }).Count -eq 0 -and
+    $advancedCategories.Count -eq 134 -and
+    $wearableCategoryRows.Count -eq 1) `
+    "p14.item-level.market-combat-level-filters-retired-taxonomy-preserved"
+
+$weaponComponentAttributes = [string]$texts[
+    "systems/crafting/weapon/component/crafting_weapon_component_attribute.java"]
+Assert-Contract (-not ($weaponComponentAttributes -match $legacyCombatLevelPattern) -and
+    $weaponComponentAttributes.Contains("int coreLevel = 0") -and
+    $weaponComponentAttributes.Contains('"coreLevel"') -and
+    $weaponComponentAttributes.Contains("weapons.getWeaponCoreData(coreLevel)")) `
+    "p14.item-level.weapon-core-false-level-presentation-retired"
 
 $survey = [string]$texts["item/survey_tool/survey_tool_script.java"]
 $sampleLoop = Get-FunctionSlice $survey "public int sampleLoop(" `
@@ -342,7 +531,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed") `
         "p14.item-level.ready-evidence"
-    Assert-Contract ($compiledHashes.Count -eq 13 -and
+    Assert-Contract ($compiledHashes.Count -eq 14 -and
         @($compiledHashes | Where-Object {
             [string]$_.Value -notmatch '^[a-f0-9]{64}$'
         }).Count -eq 0) `

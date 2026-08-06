@@ -572,6 +572,12 @@ source_heroic_random_stat_item="$source_script/item/heroic_random_stat_item.java
 work_heroic_random_stat_item="$work_script/item/heroic_random_stat_item.java"
 source_master_item_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
 work_master_item_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
+source_item_stats_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+work_item_stats_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
+source_advanced_search_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab"
+work_advanced_search_table="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab"
+source_medicine_template_root="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine"
+work_medicine_template_root="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine"
 source_heroic_drops="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/loot/loot_items/dungeon/heroic_drops.tab"
 work_heroic_drops="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/loot/loot_items/dungeon/heroic_drops.tab"
 source_reverse_engineering_tool="$source_script/item/tool/reverse_engineering_tool.java"
@@ -628,7 +634,8 @@ source_buff_builder_response="$source_script/systems/buff_builder/buff_builder_r
 work_buff_builder_response="$work_script/systems/buff_builder/buff_builder_response.java"
 source_crafting_base="$source_script/systems/crafting/crafting_base.java"
 work_crafting_base="$work_script/systems/crafting/crafting_base.java"
-precu_item_level_paths="item/armor/dynamic_armor.java item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java"
+precu_item_level_paths="item/armor/dynamic_armor.java item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/static_item.java systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+precu_stim_template_paths="channelled_stimpack/stimpack_a.tpf channelled_stimpack/stimpack_b.tpf channelled_stimpack/stimpack_c.tpf instant_stimpack/stimpack_a.tpf instant_stimpack/stimpack_b.tpf instant_stimpack/stimpack_c.tpf instant_stimpack/stimpack_d.tpf instant_stimpack/stimpack_e.tpf instant_stimpack/stimpack_noob.tpf instant_stimpack/stimpack_syren.tpf"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/tcg/target_creature.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/hideout/mtp_instance_entrance_cell.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
 precu_cosmetic_familiar_paths="ai/familiar.java"
@@ -1051,6 +1058,11 @@ test "$(grep -Fc 'object/tangible/quest/outbreak/group_boss_fight_terminal.iff' 
 test "$(grep -Fc 'outbreak_afflicted_rancor' "$work_outbreak_buildout")" -eq 1
 cmp -s "$source_heroic_random_stat_item" "$work_heroic_random_stat_item"
 cmp -s "$source_master_item_table" "$work_master_item_table"
+cmp -s "$source_item_stats_table" "$work_item_stats_table"
+cmp -s "$source_advanced_search_table" "$work_advanced_search_table"
+for precu_stim_template_path in $precu_stim_template_paths; do
+    cmp -s "$source_medicine_template_root/$precu_stim_template_path" "$work_medicine_template_root/$precu_stim_template_path"
+done
 cmp -s "$source_heroic_drops" "$work_heroic_drops"
 cmp -s "$source_skills_table" "$work_skills_table"
 cmp -s "$source_queue" "$work_queue"
@@ -1351,6 +1363,38 @@ grep -Fq 'retirePostNgeBeastMasterPlayerState(player)' "$work_script/player/live
 for precu_item_level_path in $precu_item_level_paths; do
     cmp -s "$source_script/$precu_item_level_path" "$work_script/$precu_item_level_path"
 done
+item_level_cleanup_source="$(sed -n '/public static void removeLegacyNgeItemCombatLevelRequirement(/,/public static int generateStatMod(/p' "$work_script/library/static_item.java")"
+test "$(printf '%s\n' "$item_level_cleanup_source" | grep -Fc 'hasObjVar(item, "healing.combat_level_required")')" -eq 1
+test "$(printf '%s\n' "$item_level_cleanup_source" | grep -Fc 'removeObjVar(item, "healing.combat_level_required")')" -eq 1
+! printf '%s\n' "$item_level_cleanup_source" | grep -Fq 'removeObjVar(item, "healing")'
+test "$(grep -Fc 'static_item.removeLegacyNgeItemCombatLevelRequirement(self);' "$work_script/item/medicine/stimpack.java")" -eq 4
+test "$(grep -Fc 'static_item.removeLegacyNgeItemCombatLevelRequirement(self);' "$work_script/item/medicine/stimpack_crafted.java")" -eq 4
+test "$(grep -Fc 'static_item.removeLegacyNgeItemCombatLevelRequirement(self);' "$work_script/item/plant/force_melon.java")" -eq 1
+legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
+! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
+! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
+for precu_stim_template_path in $precu_stim_template_paths; do
+    ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_medicine_template_root/$precu_stim_template_path"
+done
+retained_stim_rows='item_stimpack_a_02_01=700 item_stimpack_b_02_01=1600 item_stimpack_c_02_01=2800 item_stimpack_d_02_01=4000 item_stimpack_e_02_01=4800 item_tow_commander_stim_04_01=1500 item_content_stim_donuts_02_01=485 item_content_stim_fish_02_01=485 item_content_stim_dragonet_steak_02_01=485 item_content_stimpack_high_03_01=4500 item_content_stimpack_high_04_01=4500 item_gcw_base_health_a_03_01=3500 item_gcw_base_health_b_03_01=4000 item_gcw_base_health_c_03_01=4500 item_gcw_base_health_d_03_01=5000 item_gcw_base_health_e_04_01=5500 item_gcw_base_action_a_03_01=1750 item_gcw_base_action_b_03_01=2000 item_gcw_base_action_c_03_01=2250 item_gcw_base_action_d_03_01=2500 item_gcw_base_action_e_04_01=2750 item_off_temp_stimpack_02_01=945 item_off_temp_stimpack_02_02=1505 item_off_temp_stimpack_02_03=1910 item_off_temp_stimpack_02_04=2485 item_off_temp_stimpack_02_05=2975 item_off_temp_stimpack_02_06=3465'
+for retained_stim_row in $retained_stim_rows; do
+    retained_stim_name="${retained_stim_row%%=*}"
+    retained_stim_power="${retained_stim_row#*=}"
+    awk -F '\t' -v name="$retained_stim_name" -v power="$retained_stim_power" '$1 == name { found++; if (index($4, "int:healing.power=" power) == 0) exit 2 } END { if (found != 1) exit 3 }' "$work_item_stats_table"
+    awk -F '\t' -v name="$retained_stim_name" '$1 == name { found++; if ($11 !~ /(^|,)item[.]medicine[.]stimpack(,|$)/) exit 2 } END { if (found != 1) exit 3 }' "$work_master_item_table"
+done
+awk -F '\t' '$1 ~ /^item_gcw_base_action_[a-e]_/ { found++; if (index($4, "int:healing.pool=2") == 0) exit 2 } END { if (found != 5) exit 3 }' "$work_item_stats_table"
+awk -F '\t' 'NR > 2 && $1 != "" { found++ } END { if (found != 134) exit 2 }' "$work_advanced_search_table"
+test "$(awk -F '\t' '$1 == "misc_container_wearable" && $2 == "bio_link" { found++ } END { print found + 0 }' "$work_advanced_search_table")" -eq 1
+grep -Fq 'objvars =+ ["healing.power" = 1000]' "$work_medicine_template_root/channelled_stimpack/stimpack_a.tpf"
+grep -Fq 'objvars =+ ["healing.power" = 2000]' "$work_medicine_template_root/channelled_stimpack/stimpack_b.tpf"
+grep -Fq 'objvars =+ ["healing.power" = 4000]' "$work_medicine_template_root/channelled_stimpack/stimpack_c.tpf"
+test "$(grep -Fh 'scripts = ["item.medicine.stimpack_crafted"]' "$work_medicine_template_root"/channelled_stimpack/stimpack_?.tpf | wc -l)" -eq 3
+grep -Fq 'objvars =+ ["noTrade" = 1]' "$work_medicine_template_root/instant_stimpack/stimpack_noob.tpf"
+grep -Fq 'objvars =+ ["healing.power" = 1500, "charges" = 3]' "$work_medicine_template_root/instant_stimpack/stimpack_syren.tpf"
+! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+grep -Fq 'int coreLevel = 0' "$work_script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+grep -Fq 'weapons.getWeaponCoreData(coreLevel)' "$work_script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
 dynamic_generation_source="$(sed -n '/public static void generateItemStatBonuses(/,/public static void removeLegacyNgeDynamicPrimaryModifiers(/p' "$work_script/library/static_item.java")"
 dynamic_cleanup_source="$(sed -n '/public static void removeLegacyNgeDynamicPrimaryModifiers(/,/public static int generateStatMod(/p' "$work_script/library/static_item.java")"
 dynamic_suffix_source="$(sed -n '/public static String getArmorNameSuffix(/,/public static void setupJunkDealerPrice(/p' "$work_script/library/static_item.java")"
@@ -2292,9 +2336,26 @@ javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq
 javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq 'detachScript'
 ! javap -classpath "$class_root" -v script.item.medicine.stimpack | grep -Fq 'combat_level_required'
 ! javap -classpath "$class_root" -v script.item.medicine.stimpack_crafted | grep -Fq 'combat_level_required'
-javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'healing.combat_level_required'
-javap -classpath "$class_root" -v script.item.plant.force_melon | grep -Fq 'removeObjVar'
+test "$(javap -classpath "$class_root" -c -p script.item.medicine.stimpack | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 4
+test "$(javap -classpath "$class_root" -c -p script.item.medicine.stimpack_crafted | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 4
+test "$(javap -classpath "$class_root" -c -p script.item.plant.force_melon | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 1
 static_item_bytecode="$(javap -classpath "$class_root" -c -p script.library.static_item)"
+item_level_cleanup_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void removeLegacyNgeItemCombatLevelRequirement(/,/public static int generateStatMod(/p')"
+printf '%s\n' "$item_level_cleanup_bytecode" | grep -Fq 'healing.combat_level_required'
+printf '%s\n' "$item_level_cleanup_bytecode" | grep -Fq 'removeObjVar'
+! javap -classpath "$class_root" -v script.systems.crafting.weapon.component.crafting_weapon_component_attribute | grep -E -i -q "$legacy_item_combat_level_pattern"
+javap -classpath "$class_root" -v script.systems.crafting.weapon.component.crafting_weapon_component_attribute | grep -Fq 'getWeaponCoreData'
+compiled_item_stats="$class_root/datatables/item/master_item/item_stats.iff"
+compiled_advanced_search="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.iff"
+test -f "$compiled_item_stats"
+test -f "$compiled_advanced_search"
+! strings "$compiled_item_stats" | grep -E -i -q "$legacy_item_combat_level_pattern"
+! strings "$compiled_advanced_search" | grep -E -i -q "$legacy_item_combat_level_pattern"
+for precu_stim_template_path in $precu_stim_template_paths; do
+    compiled_stim_template="$class_root/object/tangible/medicine/${precu_stim_template_path%.tpf}.iff"
+    test -f "$compiled_stim_template"
+    ! strings "$compiled_stim_template" | grep -E -i -q "$legacy_item_combat_level_pattern"
+done
 dynamic_generation_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void generateItemStatBonuses(/,/public static void removeLegacyNgeDynamicPrimaryModifiers(/p')"
 dynamic_cleanup_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void removeLegacyNgeDynamicPrimaryModifiers(/,/public static int generateStatMod(/p')"
 printf '%s\n' "$dynamic_generation_bytecode" | grep -Fq 'skillmod.bonus.camouflage'

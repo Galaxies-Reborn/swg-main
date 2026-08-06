@@ -1,14 +1,15 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-item-level-retirement",
-  "status": "ready",
-  "scope": "Remove NGE combat-level and primary-stat authority from retained item transfer, use, effect, attribute, medicine, resource-sampling, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, and retained expansion item content.",
+  "status": "implemented-build-pending",
+  "scope": "Remove NGE combat-level and primary-stat authority from retained item transfer, use, effect, attribute, medicine, static consumable metadata, resource-sampling, market-search, weapon-core presentation, and dynamic-loot paths while preserving PRE-CU skill ownership, HAM rules, camouflage, authored healing values, and retained expansion item content.",
   "eraEvidence": {
     "userRule": "PRE-CU has no player combat-level stat; retained content must not require one.",
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "surveyReference": "SurveySessionImplementation.cpp and ResourceSpawner.cpp derive sampling Action cost from current Quickness as 124 - Quickness / 12.5 and never consult player combat level.",
-    "dynamicLootReference": "Publish-era skills authenticate camouflage as a PRE-CU Bothan and Ranger skill modifier; precision_modified, strength_modified, stamina_modified, constitution_modified, agility_modified, and luck_modified are later primary-stat vocabulary and are not PRE-CU dynamic-loot authority."
+    "dynamicLootReference": "Publish-era skills authenticate camouflage as a PRE-CU Bothan and Ranger skill modifier; precision_modified, strength_modified, stamina_modified, constitution_modified, agility_modified, and luck_modified are later primary-stat vocabulary and are not PRE-CU dynamic-loot authority.",
+    "staticConsumableReference": "Combat level is not a PRE-CU player/item admission stat. Retained expansion healing content keeps authored healing power, action-pool selection, charges, no-trade state, scripts, templates, and weapon-core quality lookup while combat-level objvars and UI/search presentation are retired."
   },
   "expected": {
     "staticItems": {
@@ -42,6 +43,17 @@
       "persistedCleanupLifecycleHooks": 3,
       "retainedPrecuCamouflageModifier": true,
       "retainedDynamicContent": true
+    },
+    "staticConsumableMetadata": {
+      "itemStatsCombatLevelWriters": 0,
+      "templateCombatLevelWriters": 0,
+      "marketCombatLevelPresentations": 0,
+      "persistedCleanupLifecycleHooks": 9,
+      "retainedMasterItemBindings": 27,
+      "retainedAuthoredHealingPowers": 27,
+      "retainedActionPoolOverrides": 5,
+      "retainedAdvancedSearchCategories": 134,
+      "weaponCoreQualityLookupPreserved": true
     }
   },
   "sourceFiles": [
@@ -58,9 +70,23 @@
     "dsrc/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/loot.java",
     "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/armor.tab",
     "dsrc/sku.0/sys.server/compiled/game/datatables/item/dynamic_item/types/clothing.tab",
-    "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab",
+    "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_a.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_b.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/channelled_stimpack/stimpack_c.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_a.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_b.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_c.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_d.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_e.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_noob.tpf",
+    "dsrc/sku.0/sys.server/compiled/game/object/tangible/medicine/instant_stimpack/stimpack_syren.tpf"
   ],
   "buildEvidence": {
     "overlayPatch": "restoration/patches/dsrc/356-p14-precu-item-level-retirement.patch",
@@ -69,71 +95,102 @@
     "staticContract": "passed",
     "isolatedJavaCompile": "passed (Java 8 target)",
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "9dad392c2c2a5b2c76ff0189f009085276d95389",
+    "directSourceGitlink": "3d103be164965373268e28563c40e7bb378b2c2b",
     "sourceSha256": {
-      "staticItem": "5c8292d89b8c9f2ff3fd7c948c64f8059d2f1298d69e5b81d5ee1217930bcd62",
+      "staticItem": "7c9d32525c3b79f430ff3d945cd4ffa72c3da5feb63c48453667a1dfbafd8d76",
       "dynamicArmor": "953d06b679012eb02b6a2457d36d66c608c4bdcf1cbb2baaa97d7a022e478bc7",
       "loot": "37e3a20f4d199c20889aebe380c19babb282e934b8e29fcf61ed5f3d36b01b37",
       "dynamicArmorTypes": "a51178ffc91446cf1cb5b54f45ca96a6327027e536c05299bfc857d247a1957b",
       "dynamicClothingTypes": "9b6273c74324e334dbd290d694c90c94a1e79c38ce9807960985d539afc89c45",
-      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
+      "skills": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
+      "stimpack": "af5716db282dcbca8b3ae318ff349dbc0a686f3cfb4f3206dd5915305f144250",
+      "stimpackCrafted": "0409220c896dae77d7fcf685d7714e047c1e8365771ab76e7ea9ba3c8a54527b",
+      "forceMelon": "505da65c677626e518e2fcb48fda19c5783c94a2a962f52365a644528347e7c3",
+      "weaponComponentAttributes": "06dad7ee49e9a1b02e33c3b303d95b0d40f4684783e33e3ec5a5101e34013428",
+      "itemStats": "e83dc1529cafd1a3fb0b4f1d8aa6be6090374cd2a632779e41b460a037ea0a93",
+      "masterItem": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+      "advancedSearch": "6ebe2fd5ac3bbc28eaecf526e9123c0a19c104f424f1fffe1cbac490f1caa7ab",
+      "channelledStimA": "4b82f613f75e994b0682ebc9d35f6badd8182ae1505b8eba9660bdc1c05bc4b9",
+      "channelledStimB": "ad92018df002981fbcd4839eadb5ab29e41e789d5837c39a1a296d0eefce5e09",
+      "channelledStimC": "f950d75384fdf2af9e322bddbd4b5096602d0ddcdad704bde4acdf1cce5bdf51",
+      "instantStimA": "907491b6330508eb5924625c71870b354486a0cd798a19b5d889b8e866428b4a",
+      "instantStimB": "d5d3d68026e95cea24f3fe355c9182c76135d72ede9a8c1b1136301ded139f43",
+      "instantStimC": "f7695ee0ab763955825b12ca81d4c8f3927b2f7973393a345c157328beda9d9e",
+      "instantStimD": "e81cc245533f7a80e31669fb16cbaff6ee87187d4d78bcf082d2c8e347568d31",
+      "instantStimE": "1a009da87c8b139769a9747da6a317bed6e5ad69eb2720eef68c95756185dc37",
+      "instantStimNoob": "73b046af3d3d6d2b1909589423759335f10dd2bfa6f582fa72693b06ca4e5eda",
+      "instantStimSyren": "e30b21e21a0b4ff3eb2694c733ca2c21b418002e763f439aac560493f8a83aa3"
     },
-    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source; dynamic generation bytecode writes only camouflage, cleanup bytecode removes exact stale leaves, and dynamic armor bytecode contains all three lifecycle cleanup hooks",
+    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source; static item removes the exact stale combat-level leaf, stim scripts expose nine cleanup hooks with force melon, weapon-core lookup remains compiled without false combat-level presentation, dynamic generation writes only camouflage, and dynamic armor retains all three lifecycle cleanup hooks",
     "focusedCompiledClassSha256": {
-      "script.library.static_item": "db7f9017739097252dc6cd0ea22278de6d568e0def4f4ae3cf05952605d23ffc",
-      "script.item.armor.dynamic_armor": "88051725db6a37525c3a1a265b77a2dd355682bf64451caaf8d0f5236528b3a9"
+      "script.library.static_item": "889ffbb8a8f82e2faa6d8d87094da6ac113319c7dcaa151e5c25ede2d93ca72d",
+      "script.item.armor.dynamic_armor": "88051725db6a37525c3a1a265b77a2dd355682bf64451caaf8d0f5236528b3a9",
+      "script.item.medicine.stimpack": "bc643c61c1288c3097ced3d67d271584dd3558461ae04926d568224e8ba16185",
+      "script.item.medicine.stimpack_crafted": "f411a5fe8d1a6ffcc777b8ac05aa2daa25b0e4d166785e3cfa5cf9a72f458455",
+      "script.item.plant.force_melon": "6a14f72088f351da89b4cfcbb628f5d1de2b7b6146be2365c57d2e7e55a0d080",
+      "script.systems.crafting.weapon.component.crafting_weapon_component_attribute": "f5cde55272aac8fa221526b94d64518505118dd822be7e5c86e5a4e155f1c95f"
     },
     "focusedCompiledClassBytes": {
-      "script.library.static_item": 38604,
-      "script.item.armor.dynamic_armor": 6002
+      "script.library.static_item": 38766,
+      "script.item.armor.dynamic_armor": 6002,
+      "script.item.medicine.stimpack": 2199,
+      "script.item.medicine.stimpack_crafted": 2472,
+      "script.item.plant.force_melon": 905,
+      "script.systems.crafting.weapon.component.crafting_weapon_component_attribute": 10088
     },
     "dockerWorkVolume": "swg-precu-work-x64",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 direct-source Java files produced 5747 classes, including static_item.class at 2026-08-06T14:00:56Z and dynamic_armor.class at 2026-08-06T14:00:55Z",
-    "fullServerBuild": "passed in 753.9 seconds from pushed parent 82e656ad3af924567260e63d16d71afd66a291c6 and direct dsrc 9dad392c2c2a5b2c76ff0189f009085276d95389",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
-    "serverBinaryBuildIdSha1": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
+    "fullJavaCompile": "pending clean canonical deployment from direct dsrc 3d103be164965373268e28563c40e7bb378b2c2b",
+    "fullServerBuild": "pending clean canonical x64 deployment",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildIdSha1": "pending",
     "compiledClassSha256": {
-      "script.item.buff_beast_click_item": "ea83a6e8909a65f68b634fdac1b4df1e6ecfc8fd3c75a7b15c457173c471ef5e",
-      "script.item.buff_click_item": "3fbca2076a6af9bb985cca04284e24faca3606f5de93099beafce4097c34a4ac",
-      "script.item.full_heal_item": "f8a1da83deb310f54933c537610325a1dae5fdd0e0b4c6e6a6b882f67679776a",
-      "script.item.levelup_orb.levelup_orb": "3f184e45adfcb91622fc278063e886522bed75336b4ae2fac0b78cacec5f3fa4",
-      "script.item.medicine.stimpack": "e37bab56ad2f3bc162863370605092e894c31e5ce5588918ae4edeecd19b8cd0",
-      "script.item.medicine.stimpack_crafted": "ddd381335ae1280cb2c9a68917dc0d6d578228dd2ee9e06f353e9f28c4f90675",
-      "script.item.plant.force_melon": "6240790e5c880d7ad7dfaacf16fdfaf7edbe5e2d64ac37ec33bd4246afe55460",
-      "script.item.skillmod_click_item": "e2ffc02ab073f02d29605e11ac7c997af04a0bc51793ee405fa608b3b30f8978",
-      "script.item.static_item_base": "100735d0a5433500af8a098928d87b6b0184f14dc4515f14a41040cb39b267d0",
-      "script.item.survey_tool.survey_tool_script": "f000baf40c6b0861712e27c8e172a2abccda8df870846996b953f4d9e4abd872",
-      "script.library.static_item": "6a8acb766b79e0db547bd8f7f58479b734c63cd0c10a40bf680e5c9bf7d19df3",
-      "script.item.armor.dynamic_armor": "3b365da87835f0e1e4650a01a084a85015d93ae32136b4419747e705f6a0b955",
-      "script.library.loot": "f3753772038da4452b4c65c2c7065e90172999e06ab2575d6142adeb5deecac0"
+      "script.item.buff_beast_click_item": "pending",
+      "script.item.buff_click_item": "pending",
+      "script.item.full_heal_item": "pending",
+      "script.item.levelup_orb.levelup_orb": "pending",
+      "script.item.medicine.stimpack": "pending",
+      "script.item.medicine.stimpack_crafted": "pending",
+      "script.item.plant.force_melon": "pending",
+      "script.item.skillmod_click_item": "pending",
+      "script.item.static_item_base": "pending",
+      "script.item.survey_tool.survey_tool_script": "pending",
+      "script.library.static_item": "pending",
+      "script.item.armor.dynamic_armor": "pending",
+      "script.library.loot": "pending",
+      "script.systems.crafting.weapon.component.crafting_weapon_component_attribute": "pending"
     },
     "currentSurveyEvidenceRefreshedBy": "Milestone 344 PRE-CU resource sampling cadence; the Quickness-derived Action cost remains unchanged and the survey class now uses the fixed Publish 14.1 25-second cadence.",
-    "deploymentProbe": "passed direct-source parity, exact legacy modifier inventory, PRE-CU camouflage-only generation, exact stale-leaf cleanup, three persisted-item lifecycle hooks, production loot reachability, deployed method-scoped bytecode, x64 architecture, restart/readiness, and all-process mapped-binary verification",
-    "result": "passed"
+    "deploymentProbe": "pending expanded direct-source, compiled data/template, bytecode, x64 architecture, restart/readiness, and all-process mapped-binary verification",
+    "result": "pending"
   },
   "runtimeEvidence": {
-    "date": "2026-08-06",
-    "containerStartedAt": "2026-08-06T14:08:21.077818326Z",
+    "date": "pending",
+    "containerStartedAt": "pending",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 409,
-    "liveGameProcessCount": 15,
-    "liveGameProcessesMappedBuiltBinary": 15,
-    "livePlanetProcessCount": 15,
-    "liveBinaryMapEntries": 30,
-    "liveBinaryInode": 12141386,
-    "liveBinarySize": 22559720,
-    "postStartLogAudit": "357 lines; one exact player-ready marker after 16 expected pre-ready polls; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches; four expected Oracle bootstrap/status lines",
-    "result": "passed"
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveGameProcessCount": 0,
+    "liveGameProcessesMappedBuiltBinary": 0,
+    "livePlanetProcessCount": 0,
+    "liveBinaryMapEntries": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "postStartLogAudit": "pending",
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling plus six later primary-stat writers on production-reachable dynamic clothing and armor loot",
+    "closedInThisMilestone": "player combat-level authority in retained items and resource sampling; six later primary-stat writers on production-reachable dynamic clothing and armor loot; and combat-level objvars/search/presentation on retained static and template-backed healing content",
     "notClaimedComplete": "quest, encounter, AI, pet, and retained expansion difficulty adapters remain under the broader PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "pass expanded source contract",
+    "pass clean canonical x64 deployment",
+    "authenticate deployed classes and compiled data/templates",
+    "observe healthy player-ready runtime with every game process mapped to the built binary"
+  ]
 }
