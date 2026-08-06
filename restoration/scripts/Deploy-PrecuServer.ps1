@@ -339,6 +339,18 @@ source_battlefield_terminal="$source_script/systems/gcw/battlefield_terminal.jav
 work_battlefield_terminal="$work_script/systems/gcw/battlefield_terminal.java"
 source_battlefield_player="$source_script/systems/gcw/player_pvp.java"
 work_battlefield_player="$work_script/systems/gcw/player_pvp.java"
+source_battlefield_imperial_vendor="$source_script/conversation/imperial_pvp_bf_vendor.java"
+work_battlefield_imperial_vendor="$work_script/conversation/imperial_pvp_bf_vendor.java"
+source_battlefield_rebel_vendor="$source_script/conversation/rebel_pvp_bf_vendor.java"
+work_battlefield_rebel_vendor="$work_script/conversation/rebel_pvp_bf_vendor.java"
+source_dsrc_attributes="$SWG_SOURCE_DIR/dsrc/.gitattributes"
+work_dsrc_attributes="$SWG_WORK_DIR/dsrc/.gitattributes"
+source_creatures_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+work_creatures_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+source_talus_vendor_buildout="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_3_6.tab"
+work_talus_vendor_buildout="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_3_6.tab"
+source_rori_vendor_buildout="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_6_1.tab"
+work_rori_vendor_buildout="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_6_1.tab"
 source_player_faction="$source_script/player/player_faction.java"
 work_player_faction="$work_script/player/player_faction.java"
 source_player_utility="$source_script/player/player_utility.java"
@@ -696,6 +708,12 @@ cmp -s "$source_trap_base" "$work_trap_base"
 cmp -s "$source_battlefield_controller" "$work_battlefield_controller"
 cmp -s "$source_battlefield_terminal" "$work_battlefield_terminal"
 cmp -s "$source_battlefield_player" "$work_battlefield_player"
+cmp -s "$source_battlefield_imperial_vendor" "$work_battlefield_imperial_vendor"
+cmp -s "$source_battlefield_rebel_vendor" "$work_battlefield_rebel_vendor"
+cmp -s "$source_dsrc_attributes" "$work_dsrc_attributes"
+cmp -s "$source_creatures_table" "$work_creatures_table"
+cmp -s "$source_talus_vendor_buildout" "$work_talus_vendor_buildout"
+cmp -s "$source_rori_vendor_buildout" "$work_rori_vendor_buildout"
 cmp -s "$source_player_faction" "$work_player_faction"
 cmp -s "$source_player_utility" "$work_player_utility"
 grep -Fq 'cleanupRetiredCityInvasionPlayerState' "$work_gcw_library"
@@ -1967,6 +1985,20 @@ printf '%s' "$gcw_battlefield_retired_bytecode" | grep -Fq 'iconst_1'
 javap -classpath "$class_root" -c -p script.systems.gcw.pvp_battlefield | grep -Fq 'retirePostNgeQueuedBattlefield'
 javap -classpath "$class_root" -c -p script.systems.gcw.battlefield_terminal | grep -Fq 'retirePostNgeQueuedBattlefieldTerminal'
 javap -classpath "$class_root" -c -p script.systems.gcw.player_pvp | grep -Fq 'retirePostNgeQueuedBattlefieldPlayer'
+for battlefield_vendor_class in imperial_pvp_bf_vendor rebel_pvp_bf_vendor; do
+    battlefield_vendor_bytecode="$(javap -classpath "$class_root" -c -p "script.conversation.$battlefield_vendor_class")"
+    printf '%s' "$battlefield_vendor_bytecode" | grep -Fq 'retirePostNgeQueuedBattlefieldVendor'
+    printf '%s' "$battlefield_vendor_bytecode" | grep -Fq 'Method script/library/gcw.isPostNgeQueuedBattlefieldRetired'
+    printf '%s' "$battlefield_vendor_bytecode" | grep -Fq 'item.vendor.container_list'
+    printf '%s' "$battlefield_vendor_bytecode" | grep -Fq 'npc.vendor.vendor'
+    printf '%s' "$battlefield_vendor_bytecode" | grep -Fq 'destroyObject'
+    ! printf '%s' "$battlefield_vendor_bytecode" | grep -Fq 'showInventorySUI'
+done
+test "$(grep -Ec '^pvp_bf_(imperial|rebel)_vendor[[:space:]]' "$work_creatures_table")" -eq 2
+grep -E '^pvp_bf_imperial_vendor[[:space:]].*imperial_pvp_bf_rewards.*npc\.vendor\.vendor,conversation\.imperial_pvp_bf_vendor' "$work_creatures_table" >/dev/null
+grep -E '^pvp_bf_rebel_vendor[[:space:]].*rebel_pvp_bf_rewards.*npc\.vendor\.vendor,conversation\.rebel_pvp_bf_vendor' "$work_creatures_table" >/dev/null
+grep -E 'strName\|4\|pvp_bf_imp_vendor.*strSpawns\|4\|pvp_bf_imperial_vendor' "$work_talus_vendor_buildout" >/dev/null
+grep -E 'strName\|4\|rebel_pvp_bf_vendor.*strSpawns\|4\|pvp_bf_rebel_vendor' "$work_rori_vendor_buildout" >/dev/null
 javap -classpath "$class_root" -c -p script.player.base.base_player | grep -Fq 'retirePostNgeQueuedBattlefieldPlayerState'
 javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'systems.gcw.player_pvp'
 javap -classpath "$class_root" -constants script.player.live_conversions | grep -Fq 'POST_NGE_PLAYER_MIGRATION_RUNTIME_RETIRED = true'

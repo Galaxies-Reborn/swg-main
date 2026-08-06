@@ -76,6 +76,7 @@ if (Test-Path -LiteralPath $patchPath -PathType Leaf)
 }
 
 $paths = [ordered]@{
+    "attributes" = "dsrc/.gitattributes"
     "script.library.gcw" = "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java"
     "script.player.base.base_player" = "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
     "script.player.live_conversions" = "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java"
@@ -85,6 +86,11 @@ $paths = [ordered]@{
     "template.gcw.battlefield_terminal" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/battlefield_terminal.tpf"
     "template.gcw.battlefield_beacon" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/battlefield_beacon.tpf"
     "script.terminal.terminal_gcw_publish_gift" = "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java"
+    "script.conversation.imperial_pvp_bf_vendor" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_pvp_bf_vendor.java"
+    "script.conversation.rebel_pvp_bf_vendor" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/rebel_pvp_bf_vendor.java"
+    "datatable.mob.creatures" = "dsrc/sku.0/sys.server/compiled/game/datatables/mob/creatures.tab"
+    "buildout.talus_3_6" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_3_6.tab"
+    "buildout.rori_6_1" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_6_1.tab"
     "buildout.endor_1_1" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_1.tab"
     "buildout.endor_1_8" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/endor/endor_1_8.tab"
     "buildout.yavin4_3_1" = "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/yavin4/yavin4_3_1.tab"
@@ -120,6 +126,11 @@ $battlefieldBeaconTemplate = [string]$texts["template.gcw.battlefield_beacon"]
 $warTerminal = [string]$texts["script.terminal.terminal_gcw_publish_gift"]
 $conversions = [string]$texts["script.player.live_conversions"]
 $basePlayer = [string]$texts["script.player.base.base_player"]
+$imperialTokenVendor = [string]$texts["script.conversation.imperial_pvp_bf_vendor"]
+$rebelTokenVendor = [string]$texts["script.conversation.rebel_pvp_bf_vendor"]
+$creatures = [string]$texts["datatable.mob.creatures"]
+$talusVendorBuildout = [string]$texts["buildout.talus_3_6"]
+$roriVendorBuildout = [string]$texts["buildout.rori_6_1"]
 
 $retiredFlag = Get-FunctionSlice $gcw `
     "public static boolean isPostNgeQueuedBattlefieldRetired()" `
@@ -224,6 +235,58 @@ Assert-Contract ($warTerminalMenuRequest.Contains("SERVER_MENU6, SID_MENU_GCW_RE
     $warTerminalMenuSelect.Contains("openSui(player);") -and
     [bool]$contract.expected.warTerminalReportPreserved) `
     "p14.queued-battlefield.war-terminal-report-preserved"
+
+$tokenVendorCases = [ordered]@{
+    imperial = @($imperialTokenVendor, "imperial_pvp_bf_vendor_action_showTokenVendorUI")
+    rebel = @($rebelTokenVendor, "rebel_pvp_bf_vendor_action_showTokenVendorUI")
+}
+foreach ($faction in $tokenVendorCases.Keys)
+{
+    $vendorText = [string]$tokenVendorCases[$faction][0]
+    $actionName = [string]$tokenVendorCases[$faction][1]
+    $retireVendor = Get-FunctionSlice $vendorText `
+        "private void retirePostNgeQueuedBattlefieldVendor" `
+        "public boolean"
+    $showVendor = Get-FunctionSlice $vendorText `
+        "public void $actionName" `
+        "public int OnInitialize"
+    $initializeVendor = Get-FunctionSlice $vendorText `
+        "public int OnInitialize" `
+        "public int OnAttach"
+    $attachVendor = Get-FunctionSlice $vendorText `
+        "public int OnAttach" `
+        "public int OnObjectMenuRequest"
+    $startConversation = Get-FunctionSlice $vendorText `
+        "public int OnStartNpcConversation" `
+        "public int OnNpcConversationResponse"
+    Assert-Contract ($retireVendor.Contains("gcw.isPostNgeQueuedBattlefieldRetired()") -and
+        $retireVendor.Contains('hasObjVar(self, "item.vendor.container_list")') -and
+        $retireVendor.Contains("destroyObject(container)") -and
+        $retireVendor.Contains('removeObjVar(self, "item.vendor.container_list")') -and
+        $retireVendor.Contains('detachScript(self, "npc.vendor.vendor")') -and
+        $showVendor.Contains("retirePostNgeQueuedBattlefieldVendor(npc)") -and
+        -not $showVendor.Contains("showInventorySUI") -and
+        $initializeVendor.Contains("retirePostNgeQueuedBattlefieldVendor(self)") -and
+        $attachVendor.Contains("retirePostNgeQueuedBattlefieldVendor(self)") -and
+        $startConversation.Contains("$actionName(player, npc)") -and
+        $startConversation.Contains("chat.chat(npc, player, message)") -and
+        -not $vendorText.Contains("showInventorySUI")) `
+        "p14.queued-battlefield.token-vendor.$faction.inventory-retired-conversation-preserved"
+}
+Assert-Contract (-not [bool]$contract.expected.queuedBattlefieldTokenVendorUiReachable -and
+    -not [bool]$contract.expected.queuedBattlefieldTokenVendorRuntimeAttached -and
+    [bool]$contract.expected.queuedBattlefieldTokenVendorStaleInventoryScrubbed -and
+    [int]$contract.expected.queuedBattlefieldTokenVendorConversationsPreserved -eq 2) `
+    "p14.queued-battlefield.token-vendor-runtime-retired"
+Assert-Contract ([regex]::IsMatch($creatures,
+        '(?m)^pvp_bf_imperial_vendor\t.*string:item\.vendor\.vendor_table=imperial_pvp_bf_rewards.*npc\.vendor\.vendor,conversation\.imperial_pvp_bf_vendor') -and
+    [regex]::IsMatch($creatures,
+        '(?m)^pvp_bf_rebel_vendor\t.*string:item\.vendor\.vendor_table=rebel_pvp_bf_rewards.*npc\.vendor\.vendor,conversation\.rebel_pvp_bf_vendor') -and
+    [regex]::IsMatch($talusVendorBuildout, '(?m)^.*strName\|4\|pvp_bf_imp_vendor.*strSpawns\|4\|pvp_bf_imperial_vendor') -and
+    [regex]::IsMatch($roriVendorBuildout, '(?m)^.*strName\|4\|rebel_pvp_bf_vendor.*strSpawns\|4\|pvp_bf_rebel_vendor') -and
+    [int]$contract.expected.queuedBattlefieldTokenVendorCreatureRowsPreserved -eq 2 -and
+    [int]$contract.expected.queuedBattlefieldTokenVendorNpcSpawnersPreserved -eq 2) `
+    "p14.queued-battlefield.token-vendor-npcs-and-authored-data-preserved"
 
 $addPlayerScripts = Get-FunctionSlice $conversions "public void addPlayerScripts" "public void addPlayerCommandScripts"
 Assert-Contract ($addPlayerScripts.Contains("gcw.isPostNgeQueuedBattlefieldRetired()") -and
