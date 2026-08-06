@@ -411,6 +411,10 @@ source_static_buildout_naboo="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/gam
 work_static_buildout_naboo="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_4.tab"
 source_faction_recruiter="$source_script/npc/faction_recruiter/faction_recruiter.java"
 work_faction_recruiter="$work_script/npc/faction_recruiter/faction_recruiter.java"
+source_faction_recruiter_imperial_conversation="$source_script/conversation/faction_recruiter_imperial.java"
+work_faction_recruiter_imperial_conversation="$work_script/conversation/faction_recruiter_imperial.java"
+source_faction_recruiter_rebel_conversation="$source_script/conversation/faction_recruiter_rebel.java"
+work_faction_recruiter_rebel_conversation="$work_script/conversation/faction_recruiter_rebel.java"
 source_camp_controlpanel="$source_script/systems/camping/camp_controlpanel.java"
 work_camp_controlpanel="$work_script/systems/camping/camp_controlpanel.java"
 source_pclib_library="$source_script/library/pclib.java"
@@ -742,6 +746,8 @@ cmp -s "$source_static_buildout_corellia" "$work_static_buildout_corellia"
 cmp -s "$source_static_buildout_talus" "$work_static_buildout_talus"
 cmp -s "$source_static_buildout_naboo" "$work_static_buildout_naboo"
 cmp -s "$source_faction_recruiter" "$work_faction_recruiter"
+cmp -s "$source_faction_recruiter_imperial_conversation" "$work_faction_recruiter_imperial_conversation"
+cmp -s "$source_faction_recruiter_rebel_conversation" "$work_faction_recruiter_rebel_conversation"
 cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
@@ -1862,6 +1868,12 @@ javap -classpath "$class_root" -v script.library.faction_perk | grep -Fq 'datata
 ! javap -classpath "$class_root" -v script.library.faction_perk | grep -Fq 'money.requestPayment'
 javap -classpath "$class_root" -v script.npc.faction_recruiter.faction_recruiter | grep -Fq 'npc.vendor.vendor'
 javap -classpath "$class_root" -v script.npc.faction_recruiter.faction_recruiter | grep -Fq 'displayItemPurchaseSUI'
+imperial_recruiter_reward_bytecode="$(javap -classpath "$class_root" -c script.conversation.faction_recruiter_imperial | sed -n '/faction_recruiter_imperial_action_showFactionGcwRewardUi/,/faction_recruiter_imperial_action_enablePVPTimer/p')"
+printf '%s' "$imperial_recruiter_reward_bytecode" | grep -Fq 'faction_recruiter_imperial_action_showGcwRewardsList'
+! printf '%s' "$imperial_recruiter_reward_bytecode" | grep -Fq 'showInventorySUI'
+rebel_recruiter_reward_bytecode="$(javap -classpath "$class_root" -c script.conversation.faction_recruiter_rebel | sed -n '/faction_recruiter_rebel_action_showFactionGcwRewardUi/,/faction_recruiter_rebel_action_enablePVPTimer/p')"
+printf '%s' "$rebel_recruiter_reward_bytecode" | grep -Fq 'faction_recruiter_rebel_action_showGcwRewardsList'
+! printf '%s' "$rebel_recruiter_reward_bytecode" | grep -Fq 'showInventorySUI'
 ! javap -classpath "$class_root" -v script.systems.camping.camp_controlpanel | grep -Fq 'faction_perk'
 gcw_grant_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/public static void _grantGcwPoints/,/public static void doGcwPointCsLogging/p')"
 printf '%s' "$gcw_grant_bytecode" | grep -Fq '0: return'

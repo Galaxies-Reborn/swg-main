@@ -89,6 +89,8 @@ $paths = [ordered]@{
     "script.systems.gcw.pvp_region_bonus_controller" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_region_bonus_controller.java"
     "template.gcw.pvp_region_watcher" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/pvp_region_watcher.tpf"
     "script.library.faction_perk" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/faction_perk.java"
+    "script.conversation.faction_recruiter_imperial" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/conversation/faction_recruiter_imperial.java"
+    "script.conversation.faction_recruiter_rebel" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/conversation/faction_recruiter_rebel.java"
     "script.systems.gcw.gcw_parent_object" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_parent_object.java"
     "script.systems.gcw.gcw_data_updater" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_data_updater.java"
     "script.planet.planet_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/planet/planet_base.java"
@@ -168,6 +170,8 @@ $playerFaction = [string]$texts["script.player.player_faction"]
 $pvpRegionController = [string]$texts["script.systems.gcw.pvp_region_bonus_controller"]
 $pvpRegionWatcherTemplate = [string]$texts["template.gcw.pvp_region_watcher"]
 $factionPerk = [string]$texts["script.library.faction_perk"]
+$imperialRecruiterConversation = [string]$texts["script.conversation.faction_recruiter_imperial"]
+$rebelRecruiterConversation = [string]$texts["script.conversation.faction_recruiter_rebel"]
 $gcwParent = [string]$texts["script.systems.gcw.gcw_parent_object"]
 $gcwDataUpdater = [string]$texts["script.systems.gcw.gcw_data_updater"]
 $planetBase = [string]$texts["script.planet.planet_base"]
@@ -1294,6 +1298,19 @@ Assert-Contract ($factions.Contains("public static boolean joinFaction") -and
     $factions.Contains("pvpMakeOnLeave(objPlayer)") -and
     [bool]$contract.expected.precuFactionEnlistmentTransitionsPreserved) `
     "p14.gcw-rating.precu-faction-enlistment-transitions-preserved"
+
+$imperialRewardUi = Get-FunctionSlice $imperialRecruiterConversation `
+    "public void faction_recruiter_imperial_action_showFactionGcwRewardUi" `
+    "public void faction_recruiter_imperial_action_enablePVPTimer"
+$rebelRewardUi = Get-FunctionSlice $rebelRecruiterConversation `
+    "public void faction_recruiter_rebel_action_showFactionGcwRewardUi" `
+    "public void faction_recruiter_rebel_action_enablePVPTimer"
+Assert-Contract ($imperialRewardUi.Contains("faction_recruiter_imperial_action_showGcwRewardsList(player, npc)") -and
+    $rebelRewardUi.Contains("faction_recruiter_rebel_action_showGcwRewardsList(player, npc)") -and
+    -not ($imperialRewardUi + $rebelRewardUi).Contains('messageTo(npc, "showInventorySUI"') -and
+    -not [bool]$contract.expected.postNgeRecruiterTokenVendorConversationReachable -and
+    [bool]$contract.expected.precuRecruiterRankPerkConversationPreserved) `
+    "p14.gcw-rating.recruiter-conversations-route-precu-rank-perks"
 Assert-Contract ($battlefieldLibrary.Contains("STARTING_BUILD_POINTS = 500") -and
     $battlefieldLibrary.Contains("MAXIMUM_POPULATION = 50") -and
     $battlefieldLibrary.Contains("MAXIMUM_FACTION_SIZE_DIFFERENCE = 5") -and
