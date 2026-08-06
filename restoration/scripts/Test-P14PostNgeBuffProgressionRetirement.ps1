@@ -258,6 +258,34 @@ Assert-Contract ((Is-Before $applyXpBody "buff.isPostNgeBuffProgressionRetired()
     (Is-Before $getXpBody "buff.isPostNgeBuffProgressionRetired()" 'hasScriptVar(target, "buff.xpBonus.types")') -and
     $getXpBody.Contains("return 1.0f;")) "p14.buff-progression.general-xp.identity"
 
+$percentageApiBody = Get-SourceSlice $xpText `
+    "public static int grantUnmodifiedXPPercentageOfLevel" `
+    "public static void applyHealingCredit"
+$percentageCallers = [System.Collections.Generic.List[string]]::new()
+$scriptRootPrefix = $scriptRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+foreach ($javaFile in @(Get-ChildItem -LiteralPath $scriptRoot -Recurse -File -Filter "*.java"))
+{
+    $relativeJavaPath = $javaFile.FullName.Substring($scriptRootPrefix.Length).Replace('\', '/')
+    if ($relativeJavaPath.StartsWith("test/", [System.StringComparison]::Ordinal)) { continue }
+    $javaText = Get-Content -LiteralPath $javaFile.FullName -Raw
+    $occurrences = ([regex]::Matches($javaText, 'grantUnmodifiedXPPercentageOfLevel\s*\(')).Count
+    if ($relativeJavaPath -ceq "library/xp.java") { $occurrences-- }
+    for ($index = 0; $index -lt $occurrences; $index++) { $percentageCallers.Add($relativeJavaPath) }
+}
+Assert-Contract ($percentageApiBody.Contains("return 0;") -and
+    -not $percentageApiBody.Contains("getLevel(") -and
+    -not $percentageApiBody.Contains("getSkillTemplate") -and
+    -not $percentageApiBody.Contains("player_level.iff") -and
+    [bool]$contract.expected.percentageOfLevelXpApiReturnsZero) `
+    "p14.buff-progression.percentage-of-level-api-fails-closed"
+Assert-Contract ($percentageCallers.Count -eq [int]$contract.expected.productionPercentageOfLevelXpCallers -and
+    $percentageCallers.Count -eq 1 -and
+    $percentageCallers[0] -ceq [string]$contract.expected.productionPercentageOfLevelXpCaller -and
+    (Is-Before $xpGrantBody "buff.isPostNgeBuffProgressionRetired()" "xp.grantUnmodifiedXPPercentageOfLevel(") -and
+    -not [bool]$contract.expected.levelPercentageBuffXpWriterReachable -and
+    [bool]$contract.expected.levelPercentageBuffXpAuditClosed) `
+    "p14.buff-progression.production-level-percentage-xp-surface-closed"
+
 $craftingText = [string]$sourceTexts["systems/crafting/crafting_base.java"]
 $craftingBody = Get-SourceSlice $craftingText "public int getInspirationBuffXpBonus" "public int OnManufactureObject"
 Assert-Contract ((Is-Before $craftingBody "buff.isPostNgeBuffProgressionRetired()" 'hasScriptVar(self, "buff.general_inspiration.value")') -and

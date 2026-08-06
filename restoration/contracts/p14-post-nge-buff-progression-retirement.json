@@ -19,7 +19,9 @@
       "Pinned Publish 14.1 Teras Kasi meditation reduces DOT strength and heals wounds; the inherited every-third-tick Force Sensitive branch that randomly granted fs_meditate_* expertise, resource-quality, or modified-primary-stat bonuses is retired.",
       "The retained GCW banner's nine Roadmap class buffs apply NGE modified primaries, Luck, expertise modifiers, or a proc attack absent from pinned Publish 14.1 and therefore remain data-only compatibility rows.",
       "The retained TCG HH-15 and rocket-launcher consumables grant post-NGE percentage GCW-point bonuses rather than a Publish 14.1 faction-point rule and now remain non-consuming compatibility items.",
-      "The retained mini-turret consumable handlers create autonomous 250-500 damage, 5000-health faction turrets from later GCW content; their item and buff rows remain loadable while player admission and turret creation fail closed."
+      "The retained mini-turret consumable handlers create autonomous 250-500 damage, 5000-health faction turrets from later GCW content; their item and buff rows remain loadable while player admission and turret creation fail closed.",
+      "A whole production-script inventory has exactly one caller of grantUnmodifiedXPPercentageOfLevel: xpGrantedGeneralAddBuffHandler, which returns at the central retirement gate before the call; the retained API itself also returns zero without consulting player level, class template, or the NGE level table.",
+      "All ordinary and crafting inspiration-XP consumers resolve to identity or zero before retained percentage data can affect Publish 14.1 explicit XP pools, closing the deferred level-percentage buff-XP authority surface."
     ]
   },
   "expected": {
@@ -80,6 +82,11 @@
     "craftingInspirationXpBonus": 0,
     "gcwPointModifier": "identity",
     "directPlayerLevelReadsInRetiredHandlers": 0,
+    "productionPercentageOfLevelXpCallers": 1,
+    "productionPercentageOfLevelXpCaller": "systems/buff/buff_handler.java",
+    "percentageOfLevelXpApiReturnsZero": true,
+    "levelPercentageBuffXpWriterReachable": false,
+    "levelPercentageBuffXpAuditClosed": true,
     "precuEntertainerAttributeSessionPreserved": true,
     "compatibilityBuffRowsPreserved": true,
     "compatibilityEffectMappingsPreserved": true,
@@ -118,7 +125,7 @@
       "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
       "script.systems.crafting.crafting_base": "f6f180466a08ec577270760d7a483633420bc11f64c776f9c88f9d19ca1dd148"
     },
-    "staticContract": "passed against the direct source; exact meditation, nine-name GCW banner, and four-name GCW consumable cleanup; retired random grants/procs and autonomous turrets; fail-closed generic admission before item decrement; compatibility data; PRE-CU entertainer/Teras Kasi lifecycles; independent Bounty Hunter shield and Force Sensitive stance/focus closure; and mission continuity authenticated",
+    "staticContract": "passed against the direct source; exact meditation, nine-name GCW banner, and four-name GCW consumable cleanup; retired random grants/procs and autonomous turrets; fail-closed generic admission before item decrement; whole-production percentage-of-level XP caller inventory and zero-return API; identity/zero XP modifiers; compatibility data; PRE-CU entertainer/Teras Kasi lifecycles; independent Bounty Hunter shield and Force Sensitive stance/focus closure; and mission continuity authenticated",
     "fullJavaCompile": "passed in the canonical clean x64 materialization; the prior isolated Java 8 compilation of library/buff.java and systems/buff/buff_handler.java also passed against the deployed class root",
     "cleanMaterializationPatches": 413,
     "cleanMaterializationAcceptanceFiles": 1170,
@@ -179,8 +186,8 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, GCW buff multipliers and consumables, autonomous GCW consumable turrets, persisted random fs_meditate_* bonuses, and the nine NGE Roadmap GCW banner buffs",
-    "notClaimedComplete": "ordinary non-progression effects in composite retained buffs, retained GCW commlink behavior, beasts and familiars, transition compatibility, stealth and theft systems beyond their generic lucky proc, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
+    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, the complete production level-percentage buff-XP caller surface, GCW buff multipliers and consumables, autonomous GCW consumable turrets, persisted random fs_meditate_* bonuses, and the nine NGE Roadmap GCW banner buffs",
+    "notClaimedComplete": "ordinary non-progression effects in composite retained buffs, beasts and familiars, transition compatibility, stealth and theft systems beyond their generic lucky proc, and dormant later combat mechanics remain in the broader PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
 }
