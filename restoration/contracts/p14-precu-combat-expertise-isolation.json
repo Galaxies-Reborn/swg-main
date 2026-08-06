@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, remove the residual Force Sensitive alacrity side effect from shared glancing resolution, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -113,7 +113,7 @@
     },
     "compiledClassSha256": {
       "combatLibrary": "db36049f2304f472b5ca273aba144c9176f87dabc11ee5ff894bfc47f61b4979",
-      "combatBase": "0c79f1b7d9f0e9c789d5b2de2a9b255a407244b01dfebda6bf72d03bb62a9ccc",
+      "combatBase": "e6d89b182f750f61498c20e639773ce6296c66d5e74eb6088d60fe7861ee918b",
       "basePlayer": "9df7cb0a6b558f1b53e2ee91828124595f05da9bcab29d3318ad906970969bdd",
       "buffHandler": "195a83814ec2308c41e09acc1c559091d3c78f2a12aee488c1e4274cc955014e",
       "buffLibrary": "435a4de4948f8398dfe76a0edb158ff5f9eea0a567f80a71feea77fadf060b66",
@@ -122,29 +122,29 @@
     },
     "focusedCombatBaseClassSha256": "9ab311fd7d9869d28cb823b97830c23007ff84a913b3ddd7a50ca4828bad9dc7",
     "focusedCombatBaseClassBytes": 125081,
-    "sourceTest": "pending updated contract execution; source inspection confirms authenticated PRE-CU primary and secondary defense no longer reads combat level, while the NGE-only damage branch remains bounded",
+    "sourceTest": "passed; authenticated PRE-CU hit-engine, primary-defense, and secondary-defense blocks contain zero combat-level reads and retain their named skill-modifier inputs, while later-content NGE helpers remain bounded",
     "focusedJavaCompile": "passed current combat_base.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately",
     "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed; canonical clean Docker x86-64 deployment completed from pushed parent bdb8934 and direct dsrc 01ea83fd570746f6b499a770190644fd378f63df, followed by corrected-probe verification and restart",
+    "fullServerBuild": "passed; canonical clean Docker x86-64 deployment completed in 765.3 seconds from pushed parent 25b3cd8 and direct dsrc 01ea83fd570746f6b499a770190644fd378f63df, followed by a 447.3-second verification-only deployment from pushed parent 8a0ea30 with the new bounded bytecode probe",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
-    "sourceWorkParity": "passed byte-for-byte for all combat expertise sources between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed; deployed combat classes retain PRE-CU glancing/damage/hate routes, omit NGE alacrity and Commando free-cost/devastation/passive-DOT symbols, and guard the retained non-player heavy-weapon resolver before getLevel",
-    "deploymentProbe": "passed expanded preflight, source/work parity, bytecode, x64, readiness, mapped-binary, and clean-log verification",
-    "result": "pending"
+    "sourceWorkParity": "passed byte-for-byte between the read-only direct-source mount and Docker work volume; combat_base.java SHA-256 eee709c20eed688765759fd8cf46b307a49591a63c2b8fbe5febf5a35f4eb33d on both mounts",
+    "bytecodeAudit": "passed; deployed combat_base.class SHA-256 e6d89b182f750f61498c20e639773ce6296c66d5e74eb6088d60fe7861ee918b retains PRE-CU skill-modifier resolution and has zero getLevel calls in runHitEngine, getPrecuPrimaryHitChance, and getPrecuSecondaryDefenseResult; retained later-content helpers remain outside those bounded methods",
+    "deploymentProbe": "passed expanded preflight, source/work parity, bounded combat-level bytecode, x64, readiness, mapped-binary, and clean-log verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "2026-08-05",
+    "date": "2026-08-06",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-06T15:45:17.695061338Z",
+    "containerStartedAt": "2026-08-06T16:25:04.887401842Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassSizes": {
       "combatLibrary": 104194,
-      "combatBase": 146270,
+      "combatBase": 146102,
       "basePlayer": 314928,
       "buffHandler": 131557,
       "buffLibrary": 39165,
@@ -152,7 +152,7 @@
       "bountyHunterShieldScript": 1763
     },
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 375,
+    "liveGameProcessPid": 374,
     "liveBinaryInode": 12141386,
     "liveBinarySize": 22559720,
     "liveBinaryMapEntries": 2,
@@ -164,16 +164,13 @@
       "PlanetServer": 15,
       "SwgGameServer": 15
     },
-    "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "superseded-pending"
+    "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "authenticated PRE-CU hit-result, primary defense, secondary defense, action-cost, damage, hate, and skill-owned heavy-weapon command dispatch cannot cross into inherited NGE combat level, expertise, alacrity, Commando devastation, or automatic passive-DOT authority; cleanup paths cannot recreate retired NGE player state",
     "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based primary and secondary defense; authored three-pool costs; one-time area cost draining; PRE-CU block/dodge/counter/ricochet; ordinary PRE-CU skill buffs; all twenty-two display cleanup callbacks; retained buff rows/icons and NPC compatibility metadata; and all expansion quests/zones",
     "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
   },
-  "requiredBeforeReady": [
-    "Run the canonical clean x64 deployment from direct dsrc 01ea83fd570746f6b499a770190644fd378f63df and authenticate the rebuilt combat_base.class.",
-    "Verify healthy player-ready runtime, mapped-binary identity, clean post-start logs, and source/work parity."
-  ]
+  "requiredBeforeReady": []
 }
