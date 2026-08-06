@@ -2358,8 +2358,9 @@ javap -classpath "$class_root" -v script.player.species_innate | grep -Fq 'priva
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'private_innate_roar'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'wookieeRoar'
 species_retirement_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base | sed -n '/public static boolean isRetiredPostNgeSpeciesPlayerAction/,/public static boolean isRetiredPostNgeSpyPlayerAction/p')"
+species_retirement_constants="$(javap -classpath "$class_root" -v script.systems.combat.combat_base)"
 for retired_species_action in human_ability_1 wookiee_ability_1 rodian_ability_1 bothan_ability_1 ithorian_ability_1 twilek_ability_1 sullustan_ability_1 moncal_ability_1 trandoshan_ability_1 zabrak_ability_1; do
-    printf '%s' "$species_retirement_bytecode" | grep -Fq "$retired_species_action"
+    printf '%s' "$species_retirement_constants" | grep -Fq "$retired_species_action"
 done
 printf '%s' "$species_retirement_bytecode" | grep -Fq 'Method hasCommand'
 printf '%s' "$species_retirement_bytecode" | grep -Fq 'Method revokeCommand'
