@@ -1844,10 +1844,10 @@ javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -F
 ! javap -classpath "$class_root" -v script.library.combat | grep -Eq 'isCommandoBonus|getDevastationChance'
 ! javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Eq 'commando_passive_dot|commando_devastation|expertise_devastation_bonus|getHeavyWeaponDotName'
 heavy_weapon_dot_bytecode="$(javap -classpath "$class_root" -c -p script.library.heavyweapons | sed -n '/getHeavyWeaponDotName(script.obj_id, int, boolean)/,/^$/p')"
-printf '%s' "$heavy_weapon_dot_bytecode" | grep -Fq 'Method script/base_class.isPlayer'
-printf '%s' "$heavy_weapon_dot_bytecode" | grep -Fq 'Method script/base_class.getLevel'
-heavy_weapon_player_guard_line="$(printf '%s\n' "$heavy_weapon_dot_bytecode" | grep -nF 'Method script/base_class.isPlayer' | head -n1 | cut -d: -f1)"
-heavy_weapon_level_line="$(printf '%s\n' "$heavy_weapon_dot_bytecode" | grep -nF 'Method script/base_class.getLevel' | head -n1 | cut -d: -f1)"
+printf '%s' "$heavy_weapon_dot_bytecode" | grep -Fq 'Method isPlayer:'
+printf '%s' "$heavy_weapon_dot_bytecode" | grep -Fq 'Method getLevel:'
+heavy_weapon_player_guard_line="$(printf '%s\n' "$heavy_weapon_dot_bytecode" | grep -nF 'Method isPlayer:' | head -n1 | cut -d: -f1)"
+heavy_weapon_level_line="$(printf '%s\n' "$heavy_weapon_dot_bytecode" | grep -nF 'Method getLevel:' | head -n1 | cut -d: -f1)"
 test -n "$heavy_weapon_player_guard_line"
 test -n "$heavy_weapon_level_line"
 test "$heavy_weapon_player_guard_line" -lt "$heavy_weapon_level_line"
