@@ -1307,6 +1307,31 @@ grep -Fq 'retirePostNgeGcwBannerBuffState(player);' "$work_buff_library"
 gcw_banner_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
 printf '%s' "$gcw_banner_admission_source" | grep -Fq 'isRetiredPostNgeGcwBannerBuff(bdata.buffName)'
 test "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'isRetiredPostNgeGcwBannerBuff(bdata.buffName)' | cut -d: -f1)" -lt "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'hasBuff(target, nameCrc)' | cut -d: -f1)"
+control_immunity_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_P14_PLAYER_CONTROL_IMMUNITY_BUFFS/,/public static boolean isRetiredPostP14PlayerControlImmunityBuff/p' "$work_buff_library")"
+control_immunity_cleanup_source="$(sed -n '/public static void retirePostP14PlayerControlImmunityState/,/public static boolean isRetiredPostNgeBountyHunterShieldBuff/p' "$work_buff_library")"
+retired_player_control_immunity_buffs="action_drain_immunity dazeBlockDebuff gcw_base_critical_heal_recourse mezBlockDebuff player_armor_break_immunity player_mez_immunity player_root_immunity player_slow_immunity player_snare_immunity towHk47MoveImmuneItem towMafosaMezImmune treasure_bonus_snare_immunity"
+test "$(printf '%s\n' $retired_player_control_immunity_buffs | wc -l)" -eq 12
+for retired_player_control_immunity_buff in $retired_player_control_immunity_buffs; do
+    printf '%s' "$control_immunity_inventory_source" | grep -Fq "\"$retired_player_control_immunity_buff\""
+    awk -F '\t' -v name="$retired_player_control_immunity_buff" '$1 == name { found++ } END { if (found != 1) exit 3 }' "$work_buff_table"
+done
+printf '%s' "$control_immunity_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$control_immunity_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+grep -Fq 'retirePostP14PlayerControlImmunityState(player);' "$work_buff_library"
+printf '%s' "$gcw_banner_admission_source" | grep -Fq 'isRetiredPostP14PlayerControlImmunityBuff(bdata.buffName)'
+test "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'isRetiredPostP14PlayerControlImmunityBuff(bdata.buffName)' | cut -d: -f1)" -lt "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'hasBuff(target, nameCrc)' | cut -d: -f1)"
+awk -F '\t' '$1 == "towHk47MoveImmuneItem" { found++; if ($2 != "snare" || $3 != "root" || $4 != "nullification") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
+awk -F '\t' '$1 == "towMafosaMezImmune" { found++; if ($2 != "mez" || $3 != "root" || $4 != "nullification") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
+for retained_control_item in 'item_tow_hk47_move_immune_06_01:towHk47MoveImmuneItem' 'item_tow_mafosa_mez_immune_06_01:towMafosaMezImmune' 'item_treasure_map_bonus_consumable_04_03:treasure_bonus_snare_immunity'; do
+    retained_control_name="${retained_control_item%%:*}"
+    retained_control_buff="${retained_control_item#*:}"
+    awk -F '\t' -v name="$retained_control_name" '$1 == name { found++ } END { if (found != 1) exit 3 }' "$work_master_item_table"
+    awk -F '\t' -v name="$retained_control_name" -v buff="$retained_control_buff" '$1 == name { found++; if (index($0, "\t" buff "\t") == 0) exit 2 } END { if (found != 1) exit 3 }' "$work_item_stats_table"
+done
+for boss_control_immunity_buff in boss_snare_immunity boss_root_immunity boss_mez_immunity; do
+    ! printf '%s' "$control_immunity_inventory_source" | grep -Fq "\"$boss_control_immunity_buff\""
+    grep -Fq "buff.applyBuff(self, \"$boss_control_immunity_buff\")" "$work_script/npc/boss/boss_movement_buff.java"
+done
 ! grep -Eq 'getPlayerProfession|getBannerBuff|buffPlayers|buff\.applyBuff' "$work_gcw_banner_manager"
 grep -Fq 'messageTo(self, "handleDeleteSelf", null, 180.0f, false);' "$work_gcw_banner_manager"
 test "$(grep -Fc 'trial.cleanupObject(self);' "$work_gcw_banner_manager")" -eq 2
@@ -1995,6 +2020,11 @@ javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostN
 javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeGcwConsumableBuffState'
 for retired_gcw_consumable_buff in tcg_series3_hh_15_torpedo_warhead tcg_series7_rocket_launcher gcw_mini_turret gcw_rocket_turret; do
     javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_gcw_consumable_buff"
+done
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostP14PlayerControlImmunityBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostP14PlayerControlImmunityState'
+for retired_player_control_immunity_buff in $retired_player_control_immunity_buffs; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_player_control_immunity_buff"
 done
 gcw_bonus_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int gcwBonusGeneralAddBuffHandler/,/public int gcwBonusGeneralRemoveBuffHandler/p')"
 printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'

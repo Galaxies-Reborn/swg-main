@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
   "status": "ready",
-  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, and autonomous GCW consumable turrets without removing later-content data compatibility or the restored Publish 14.1 entertainer and Teras Kasi lifecycles.",
+  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, and post-Publish-14 absolute player control-immunity buffs without removing later-content data compatibility or the restored Publish 14.1 entertainer and Teras Kasi lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -20,6 +20,8 @@
       "The retained GCW banner's nine Roadmap class buffs apply NGE modified primaries, Luck, expertise modifiers, or a proc attack absent from pinned Publish 14.1 and therefore remain data-only compatibility rows.",
       "The retained TCG HH-15 and rocket-launcher consumables grant post-NGE percentage GCW-point bonuses rather than a Publish 14.1 faction-point rule and now remain non-consuming compatibility items.",
       "The retained mini-turret consumable handlers create autonomous 250-500 damage, 5000-health faction turrets from later GCW content; their item and buff rows remain loadable while player admission and turret creation fail closed.",
+      "Pinned Publish 14.1 resolves combat states through accuracy versus defender state-defense skill modifiers, including the separate Jedi resistance_states roll; it does not grant timed absolute player buffs that block whole snare, root, mez, daze, armor-break, slow, or action-drain groups.",
+      "The retained Mustafar movement/mez devices, treasure snare-immunity consumable, GCW critical-heal recourse, generic player immunity rows, and daze/mez/action-drain recourses remain loadable compatibility content while their player admission and stale state fail closed; boss and beast control behavior remains available.",
       "A whole production-script inventory has exactly one caller of grantUnmodifiedXPPercentageOfLevel: xpGrantedGeneralAddBuffHandler, which returns at the central retirement gate before the call; the retained API itself also returns zero without consulting player level, class template, or the NGE level table.",
       "All ordinary and crafting inspiration-XP consumers resolve to identity or zero before retained percentage data can affect Publish 14.1 explicit XP pools, closing the deferred level-percentage buff-XP authority surface."
     ]
@@ -61,6 +63,26 @@
     "postNgeGcwConsumableBuffAdmissionReachable": false,
     "postNgeMiniTurretCreationReachable": false,
     "gcwConsumableItemsDecrementedOnRejectedUse": false,
+    "retiredPlayerControlImmunityBuffCount": 12,
+    "retiredPlayerControlImmunityBuffs": [
+      "action_drain_immunity",
+      "dazeBlockDebuff",
+      "gcw_base_critical_heal_recourse",
+      "mezBlockDebuff",
+      "player_armor_break_immunity",
+      "player_mez_immunity",
+      "player_root_immunity",
+      "player_slow_immunity",
+      "player_snare_immunity",
+      "towHk47MoveImmuneItem",
+      "towMafosaMezImmune",
+      "treasure_bonus_snare_immunity"
+    ],
+    "retainedPlayerControlImmunityBuffRows": 12,
+    "retainedPlayerControlImmunityClickItems": 3,
+    "postP14PlayerControlImmunityBuffAdmissionReachable": false,
+    "playerControlImmunityItemsDecrementedOnRejectedUse": false,
+    "legitimateNpcControlImmunityPreserved": true,
     "staleGcwBonusGeneralStateScrubbed": true,
     "randomMeditationTickGrantRetired": true,
     "retiredScriptVarTrees": [
@@ -94,16 +116,16 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "0e750f699d681ae9bb20047ed23dedb98921ebe3",
+    "directSourceGitlink": "113b3389655f76d95fb22af47f445996ce882c62",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "f840a55a891eb79da02c1fe37c0b47e197169df7efeebf7bafa71ff35ccc0ed3",
+    "sourceContentSha256": "b7bf58cca81c65762fe3657c80e0854771bc39ab7ee624d934b786b90b52ce2f",
     "sourceSha256": {
-      "library/buff.java": "e890a5d247aaa2a8d38f7c9bc1c8b78de24102297a43f93cf10069e5a959c5de",
+      "library/buff.java": "1be4dac7b55b539ee6b1e11dda449b65fa8cc9ec5d279640434f30acc51a5fac",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
       "player/base/base_player.java": "29e4e3784d1a415900e49ebf5d87d7a92918bc8ea55994e24b3c6b82877350ca",

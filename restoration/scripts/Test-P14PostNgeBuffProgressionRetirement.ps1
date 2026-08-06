@@ -117,6 +117,12 @@ $gcwConsumableInventoryBody = Get-SourceSlice $buffText `
 $gcwConsumableCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgeGcwConsumableBuffState" `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$controlImmunityInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_P14_PLAYER_CONTROL_IMMUNITY_BUFFS" `
+    "public static boolean isRetiredPostP14PlayerControlImmunityBuff"
+$controlImmunityCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostP14PlayerControlImmunityState" `
+    "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
 $buffAdmissionBody = Get-SourceSlice $buffText `
     "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
     "public static boolean applyBuff(obj_id target, String name)"
@@ -160,6 +166,18 @@ Assert-Contract ($actualGcwConsumableBuffs.Count -eq [int]$contract.expected.ret
     $cleanupBody.Contains("retirePostNgeGcwConsumableBuffState(player);") -and
     (Is-Before $buffAdmissionBody "isRetiredPostNgeGcwConsumableBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
     "p14.buff-progression.gcw-consumable.player-state-and-admission-retired"
+$expectedControlImmunityBuffs = @($contract.expected.retiredPlayerControlImmunityBuffs | Sort-Object)
+$actualControlImmunityBuffs = @([regex]::Matches($controlImmunityInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualControlImmunityBuffs.Count -eq [int]$contract.expected.retiredPlayerControlImmunityBuffCount -and
+    @($actualControlImmunityBuffs | Select-Object -Unique).Count -eq $actualControlImmunityBuffs.Count -and
+    (($actualControlImmunityBuffs -join "`n") -ceq ($expectedControlImmunityBuffs -join "`n")) -and
+    -not [bool]$contract.expected.postP14PlayerControlImmunityBuffAdmissionReachable -and
+    $controlImmunityCleanupBody.Contains("isPlayer(player)") -and
+    $controlImmunityCleanupBody.Contains("removeBuff(player, retiredBuff)") -and
+    $cleanupBody.Contains("retirePostP14PlayerControlImmunityState(player);") -and
+    (Is-Before $buffAdmissionBody "isRetiredPostP14PlayerControlImmunityBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
+    "p14.buff-progression.control-immunity.player-state-and-admission-retired"
 Assert-Contract ([bool]$contract.expected.randomMeditationTickGrantRetired -and
     $meditationTickBody.Contains("meditation.trance(self)") -and
     $meditationTickBody.Contains("messageTo(self, meditation.HANDLER_MEDITATION_TICK") -and
@@ -313,6 +331,30 @@ $gcwConsumableRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
 Assert-Contract ($gcwConsumableRows.Count -eq [int]$contract.expected.retainedGcwConsumableBuffRows -and
     ((@($gcwConsumableRows.NAME | Sort-Object) -join "`n") -ceq ($expectedGcwConsumableBuffs -join "`n"))) `
     "p14.buff-progression.compatibility.gcw-consumable-buff-rows-preserved"
+$controlImmunityRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $_.NAME -in $expectedControlImmunityBuffs })
+Assert-Contract ($controlImmunityRows.Count -eq [int]$contract.expected.retainedPlayerControlImmunityBuffRows -and
+    ((@($controlImmunityRows.NAME | Sort-Object) -join "`n") -ceq ($expectedControlImmunityBuffs -join "`n"))) `
+    "p14.buff-progression.compatibility.control-immunity-rows-preserved"
+$towMoveRow = @($controlImmunityRows | Where-Object { $_.NAME -ceq "towHk47MoveImmuneItem" })
+$towMezRow = @($controlImmunityRows | Where-Object { $_.NAME -ceq "towMafosaMezImmune" })
+$treasureSnareRow = @($controlImmunityRows | Where-Object { $_.NAME -ceq "treasure_bonus_snare_immunity" })
+Assert-Contract ($towMoveRow.Count -eq 1 -and $towMoveRow[0].GROUP1 -ceq "snare" -and
+    $towMoveRow[0].GROUP2 -ceq "root" -and $towMoveRow[0].BLOCK -ceq "nullification" -and
+    $towMezRow.Count -eq 1 -and $towMezRow[0].GROUP1 -ceq "mez" -and
+    $towMezRow[0].GROUP2 -ceq "root" -and $towMezRow[0].BLOCK -ceq "nullification" -and
+    $treasureSnareRow.Count -eq 1 -and $treasureSnareRow[0].EFFECT1_PARAM -ceq "movement" -and
+    [float]$treasureSnareRow[0].EFFECT1_VALUE -eq 0.0) `
+    "p14.buff-progression.compatibility.expansion-control-items-authenticated"
+$bossImmunityNames = @("boss_snare_immunity", "boss_root_immunity", "boss_mez_immunity")
+$bossImmunityRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $_.NAME -in $bossImmunityNames })
+$bossMovementScript = Get-Content -LiteralPath (Join-Path $scriptRoot "npc/boss/boss_movement_buff.java") -Raw
+Assert-Contract ([bool]$contract.expected.legitimateNpcControlImmunityPreserved -and
+    $bossImmunityRows.Count -eq 3 -and
+    @($bossImmunityNames | Where-Object { $actualControlImmunityBuffs -contains $_ }).Count -eq 0 -and
+    @($bossImmunityNames | Where-Object { -not $bossMovementScript.Contains("buff.applyBuff(self, `"$_`")") }).Count -eq 0) `
+    "p14.buff-progression.compatibility.npc-control-immunity-preserved"
 foreach ($mapping in @("buildabuff`t", "xp_bonus_general`t", "xp_granted_general`t", "tcg_xp_bonus`t", "tcg_xp_granted`t"))
 {
     Assert-Contract ($effectMap.Contains($mapping)) "p14.buff-progression.compatibility.effect.$($mapping.Trim())"
@@ -345,6 +387,22 @@ Assert-Contract ($retainedClickItems -eq [int]$contract.expected.retainedGcwCons
     $clickUseBody.Contains("else") -and $clickUseBody.Contains("CANT_APPLY_BUFF") -and
     -not [bool]$contract.expected.gcwConsumableItemsDecrementedOnRejectedUse) `
     "p14.buff-progression.compatibility.gcw-click-items-preserved-without-rejected-consumption"
+$retainedControlImmunityItems = @(
+    @{ item = "item_tow_hk47_move_immune_06_01"; buff = "towHk47MoveImmuneItem" },
+    @{ item = "item_tow_mafosa_mez_immune_06_01"; buff = "towMafosaMezImmune" },
+    @{ item = "item_treasure_map_bonus_consumable_04_03"; buff = "treasure_bonus_snare_immunity" }
+)
+$retainedControlImmunityClickItems = 0
+foreach ($entry in $retainedControlImmunityItems)
+{
+    if ($masterItemText.Contains("$($entry.item)`t") -and
+        $itemStatsText.Contains("$($entry.item)`t") -and
+        $itemStatsText.Contains("`t$($entry.buff)`t")) { $retainedControlImmunityClickItems++ }
+}
+Assert-Contract ($retainedControlImmunityClickItems -eq [int]$contract.expected.retainedPlayerControlImmunityClickItems -and
+    (Is-Before $clickUseBody "if (buff.canApplyBuff(player, buffName))" "static_item.decrementStaticItem(self)") -and
+    -not [bool]$contract.expected.playerControlImmunityItemsDecrementedOnRejectedUse) `
+    "p14.buff-progression.compatibility.control-immunity-click-items-preserved-without-rejected-consumption"
 
 $performancePath = Join-Path $scriptRoot "library/performance.java"
 $performanceText = Get-Content -LiteralPath $performancePath -Raw
