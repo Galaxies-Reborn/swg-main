@@ -1922,7 +1922,7 @@ printf '%s' "$gcw_recruitment_letter_request" | grep -Fq '1: ireturn'
 printf '%s' "$gcw_recruitment_letter_select" | grep -Fq '0: iconst_1'
 printf '%s' "$gcw_recruitment_letter_select" | grep -Fq '1: ireturn'
 ! printf '%s' "$gcw_recruitment_letter_bytecode" | grep -Eq 'grantUnmodifiedGcwPoints|destroyObject|CustomerServiceLog|addRootMenu'
-awk -F '\t' '$1 == "item_gcw_recruitment_letter_01_01" { found++; if ($2 != "31") exit 2 } END { if (found != 1) exit 3 }' "$work_publish_gifts"
+awk -F '\t' '$1 == "item_gcw_recruitment_letter_01_01" { found++; if ($2 + 0 != 31) exit 2 } END { if (found != 1) exit 3 }' "$work_publish_gifts"
 awk -F '\t' '$1 == "item_gcw_recruitment_letter_01_01" { found++; if (index($0, "item.publish_gift.recruitment_letter") == 0) exit 2 } END { if (found != 1) exit 3 }' "$work_master_item_table"
 gcw_level_authority_bytecode="$(javap -classpath "$class_root" -c -p script.library.gcw)"
 test "$(printf '%s' "$gcw_level_authority_bytecode" | grep -Fc 'Method script/library/skill.getPrecuEncounterDifficulty' || true)" -eq 7
