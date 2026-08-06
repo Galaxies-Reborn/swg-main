@@ -115,6 +115,7 @@ $blankAbility = @($commandRows | Where-Object {
 })
 $blankAbilityNames = @($blankAbility.commandName | Sort-Object)
 $retiredPlayerCommands = @($contract.diagnosis.retiredPlayerCommands | ForEach-Object { [string]$_ } | Sort-Object)
+$retiredDirectGrantPlayerCommands = @($contract.diagnosis.retiredDirectGrantPlayerCommands | ForEach-Object { [string]$_ } | Sort-Object)
 $retainedPreCuExceptions = @($contract.diagnosis.retainedPreCuExceptions | ForEach-Object { [string]$_ } | Sort-Object)
 $classifiedBlankAbilityNames = @(($retiredPlayerCommands + $retainedPreCuExceptions) | Sort-Object)
 if ($retiredCommands.Count -ne [int]$contract.diagnosis.retiredSkillCommands -or
@@ -132,6 +133,13 @@ foreach ($commandName in $retiredPlayerCommands)
     if (-not $commandGuard.Contains('commandName == "' + $commandName + '"'))
     {
         throw "Retired blank-ability command is not denied: $commandName"
+    }
+}
+foreach ($commandName in $retiredDirectGrantPlayerCommands)
+{
+    if (-not $commandGuard.Contains('commandName == "' + $commandName + '"'))
+    {
+        throw "Retired direct-grant command is not denied: $commandName"
     }
 }
 foreach ($commandName in $retainedPreCuExceptions)

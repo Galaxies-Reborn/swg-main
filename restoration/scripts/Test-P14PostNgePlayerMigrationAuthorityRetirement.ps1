@@ -44,8 +44,10 @@ $relativeSourceMap = [ordered]@{
     "cureward/cureward.java" = "cureward/cureward.java"
     "library/skill.java" = "library/skill.java"
     "library/utils.java" = "library/utils.java"
+    "library/respec.java" = "library/respec.java"
     "player/base/base_player.java" = "player/base/base_player.java"
     "player/live_conversions.java" = "player/live_conversions.java"
+    "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
 }
 Assert-Contract ($relativeSourceMap.Count -eq [int]$contract.expected.authoritativeSourceFiles) `
     "p14.player-migration.direct-source.target-count"
@@ -133,6 +135,16 @@ Assert-Contract (
     $cleanup.Contains('setWorkingSkill(player, "")') -and
     $cleanup.Contains('removeObjVar(player, "combatLevel")') -and
     $cleanup.Contains('removeObjVar(player, "clickRespec")') -and
+    $cleanup.Contains('removeObjVar(player, "respec")') -and
+    $cleanup.Contains('removeObjVar(player, "respecToken")') -and
+    $cleanup.Contains('removeObjVar(player, "expertise_reset")') -and
+    $cleanup.Contains('removeObjVar(player, respec.EXPERTISE_VERSION_OBJVAR)') -and
+    $cleanup.Contains('revokeCommand(player, "veteranPlayerBuff")') -and
+    $cleanup.Contains('buff.removeBuff(player, "veteranPlayerBuff")') -and
+    $cleanup.Contains('"systems.respec.click_combat_respec"') -and
+    $cleanup.Contains('respec.SCRIPT_GRANT_ON_LOGIN') -and
+    $cleanup.Contains('respec.SCRIPT_GRANT_SINGLE_ON_LOGIN') -and
+    $cleanup.Contains('respec.SCRIPT_CHECK_INFORM') -and
     $cleanup.Contains('detachScript(player, "cureward.cureward")') -and
     $cleanup.Contains('detachScript(player, "player.live_conversions")')
 ) "p14.player-migration.persisted-state-cleanup"
@@ -145,6 +157,32 @@ Assert-Contract (
     -not $conversionCallbacks.Contains("updateCollectionSlots(") -and
     [regex]::Matches($conversionCallbacks, [regex]::Escape('detachScript(self, "player.live_conversions")')).Count -eq 3
 ) "p14.player-migration.automatic-callbacks-retired"
+
+$respec = [string]$sourceTexts["library/respec.java"]
+Assert-Contract (
+    $respec.Contains("NGE_PLAYER_RESPEC_RUNTIME_RETIRED = true") -and
+    $respec.Contains("private static boolean retireNgePlayerRespecEntrypoint") -and
+    $respec.Contains("live_conversions.retirePostNgePlayerMigrationState(player)") -and
+    [regex]::Matches($respec, [regex]::Escape("if (retireNgePlayerRespecEntrypoint(player))")).Count -eq 5 -and
+    $respec.Contains("public static boolean autoLevelPlayer") -and
+    $respec.Contains("public static void grantProfessionSkills")
+) "p14.player-migration.player-respec-library-entrypoints-retired"
+$elderBuff = Get-SourceSlice $conversions "public void grantElderBuff" "public int handleBirthDateCallBack"
+$birthDate = Get-SourceSlice $conversions "public int handleBirthDateCallBack" "public void validateSkills"
+Assert-Contract (
+    $elderBuff.IndexOf("if (isPostNgePlayerMigrationRuntimeRetired())", [System.StringComparison]::Ordinal) -ge 0 -and
+    $elderBuff.IndexOf('grantCommand(player, "veteranPlayerBuff")', [System.StringComparison]::Ordinal) -gt $elderBuff.IndexOf("if (isPostNgePlayerMigrationRuntimeRetired())", [System.StringComparison]::Ordinal) -and
+    $elderBuff.Contains("retirePostNgePlayerMigrationState(player)") -and
+    $birthDate.IndexOf("if (isPostNgePlayerMigrationRuntimeRetired())", [System.StringComparison]::Ordinal) -ge 0 -and
+    $birthDate.IndexOf('grantCommand(player, "veteranPlayerBuff")', [System.StringComparison]::Ordinal) -gt $birthDate.IndexOf("if (isPostNgePlayerMigrationRuntimeRetired())", [System.StringComparison]::Ordinal) -and
+    $birthDate.Contains("retirePostNgePlayerMigrationState(self)")
+) "p14.player-migration.veteran-command-grants-retired"
+$combatBase = [string]$sourceTexts["systems/combat/combat_base.java"]
+Assert-Contract (
+    $combatBase.Contains("public static boolean isRetiredPostNgeMigrationPlayerAction") -and
+    $combatBase.Contains('actionName.equals("veteranPlayerBuff")') -and
+    $combatBase.Contains("if (isRetiredPostNgeMigrationPlayerAction(self, actionName))")
+) "p14.player-migration.veteran-combat-action-retired"
 
 $cuReward = [string]$sourceTexts["cureward/cureward.java"]
 Assert-Contract (

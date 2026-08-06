@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "feature": "native-nge-skill-and-command-admission-retirement",
   "status": "ready",
-  "scope": "Fail closed the native server expertise packet, player skill-grant surfaces, and blank-ability commands owned only by retired NGE class/expertise rows so they cannot bypass the Publish 14.1 progression boundary.",
+  "scope": "Fail closed the native server expertise packet, player skill-grant surfaces, blank-ability commands owned only by retired NGE class/expertise rows, and the directly granted NGE veteran migration buff command so they cannot bypass the Publish 14.1 progression boundary.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
-    "core3Boundary": "The pinned Publish 14.1 Core3 tree has no expertise request protocol, expertise point pool, singular class skill progression, Beast Master DNA collection, Chronicles Ventriloquism, NGE bounty check, NGE Force-sensitive taunt, or entertainer expertise buff packages.",
-    "retainedCompatibilityBoundary": "Expertise cleanup helpers and later-content NPC/data compatibility remain available. Player admission fails closed at packet dispatch, authoritative skill grant, and the exact blank-ability later-era command boundary, while PRE-CU groupdance and imagedesign remain admitted."
+    "core3Boundary": "The pinned Publish 14.1 Core3 tree has no expertise request protocol, expertise point pool, singular class skill progression, Beast Master DNA collection, Chronicles Ventriloquism, NGE bounty check, NGE Force-sensitive taunt, entertainer expertise buff packages, or veteran migration primary-stat buff command.",
+    "retainedCompatibilityBoundary": "Expertise cleanup helpers and later-content NPC/data compatibility remain available. Player admission fails closed at packet dispatch, authoritative skill grant, exact blank-ability later-era commands, and the direct-grant veteran migration command, while PRE-CU groupdance and imagedesign remain admitted."
   },
   "diagnosis": {
     "retiredSkillCommands": 535,
@@ -24,6 +24,9 @@
       "en_second_chance_buff_package",
       "fs_taunt"
     ],
+    "retiredDirectGrantPlayerCommands": [
+      "veteranPlayerBuff"
+    ],
     "retainedPreCuExceptions": [
       "groupdance",
       "imagedesign"
@@ -36,6 +39,7 @@
     "playerClassSkillAdmission": false,
     "playerExpertiseSkillAdmission": false,
     "blankAbilityNgeCommandAdmission": false,
+    "directGrantNgeMigrationCommandAdmission": false,
     "preCuGroupDanceAdmissionAffected": false,
     "preCuImageDesignAdmissionAffected": false,
     "npcSkillAdmissionAffected": false,
@@ -44,7 +48,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "nativeSourceCommit": "cce1193b0e895e0571d18163837d7d3a49d1b8f0",
+    "nativeSourceCommit": "07f3827f244cf187bbddf4d73eb982692acda2b8",
     "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
     "overlayPatch": "restoration/patches/src/341-p14-native-nge-skill-admission-retirement.patch",
@@ -52,11 +56,11 @@
     "overlayPatchSha256": "2d758ea2ac8f10f75bbf6f2b5a6da3fc24ba52f46a6413ff0a5af1c99ffcf04c",
     "sourceSha256": {
       "Client.cpp": "195a43aeb640c8241a0633d2eb41e095e7a86d19d5e5d55f7922938490371b31",
-      "CreatureObject.cpp": "a91fe24aec17bfe2c8b6a23d7233c2d5f3d75ab0a8ae3fb1690eb7c97e777954"
+      "CreatureObject.cpp": "3b8248987c24bcb2ff5d96fc6ba49e90fc5528af68a0211bc92f5ed8051c22d1"
     },
     "cppCompile": "passed",
     "cppCompileEvidence": "compiled from the pushed direct native source revision",
-    "fullServerBuild": "passed; canonical clean Docker x86-64 Release build, data/Java compile, artifact gates, restart, and readiness completed in 784.5 seconds from pushed parent 51aaa716deb35a26b1015ecf3a2386a71038c888 and native source cce1193b0e895e0571d18163837d7d3a49d1b8f0",
+    "fullServerBuild": "passed; canonical clean Docker x86-64 Release build, data/Java compile, artifact gates, restart, and readiness completed in 784.5 seconds from pushed parent 51aaa716deb35a26b1015ecf3a2386a71038c888 and native source 07f3827f244cf187bbddf4d73eb982692acda2b8",
     "architecture": "x86-64",
     "serverBinarySha256": "995b82f258f43f6033d5c0f4bc26c06f81c4bc0ce5f8fec5e794a87076f68d40",
     "serverBinaryBuildId": "75ae5b032dfa31d82e5ef2e3a04c727af7eda6cb",
@@ -93,7 +97,7 @@
     "fatalSevereExceptionCount": 0
   },
   "auditBoundary": {
-    "closedInThisMilestone": "native player admission for the nine blank-character-ability commands owned only by retired NGE class/expertise rows, including bountycheck's direct NPC-kill/fugitive hook",
+    "closedInThisMilestone": "native player admission for the nine blank-character-ability commands owned only by retired NGE class/expertise rows, including bountycheck's direct NPC-kill/fugitive hook, plus the directly granted veteran migration primary-stat buff command",
     "preserved": "Publish 14.1 groupdance and imagedesign command admission, ordinary skill-box/quest/item command ownership, non-player command execution, retained expansion data, quests, conversations, zones, and NPC compatibility",
     "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },

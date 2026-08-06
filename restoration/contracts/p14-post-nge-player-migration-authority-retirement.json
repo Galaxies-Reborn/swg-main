@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-player-migration-authority-retirement",
   "status": "ready",
-  "scope": "Make PRE-CU skill boxes and XP authoritative across login and character transfer while retiring automatic NGE live conversions, roadmap/template/combat-level restoration, raw command injection, respec state, and Combat Upgrade reward creation. Retained expansion quests, collections, zones, items, credits, waypoints, and mission state continue to transfer.",
+  "scope": "Make PRE-CU skill boxes and XP authoritative across login and character transfer while retiring automatic NGE live conversions, roadmap/template/combat-level restoration, raw command injection, player-facing profession respec authority, the veteran migration stat-buff command, stale respec state, and Combat Upgrade reward creation. Retained expansion quests, collections, zones, items, credits, waypoints, and mission state continue to transfer.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -13,11 +13,13 @@
     ]
   },
   "expected": {
-    "authoritativeSourceFiles": 5,
+    "authoritativeSourceFiles": 7,
     "archivedOverlayChangedSourceFiles": 4,
     "automaticLiveConversionsReachable": false,
     "combatUpgradeRewardsReachable": false,
     "staleNgeProgressionStateRemovedOnInitializeLoginAndTransfer": true,
+    "playerFacingNgeRespecEntrypointsReachable": false,
+    "veteranMigrationCommandAndBuffReachable": false,
     "ctsRequiresNgeTemplateOrWorkingSkill": false,
     "ctsSerializesNgeTemplateWorkingSkillOrCombatLevel": false,
     "ctsRestoresNgeTemplateWorkingSkillOrCombatLevel": false,
@@ -39,18 +41,20 @@
       "sha256": "5ef952081af1cfc6b42f2891fea1761b17f444e022ec5816c8c694848cab91f5"
     },
     "sourceSetSha256": "144e351cd1fea535855fb1b58a629b7d271ca4c9344f86b28b6c7a1f0f066e66",
-    "sourceContentSha256": "92b83a365cca1a60eba39b0080bcdf0c8b8ee441177b554af8a5b307df4ed896",
+    "sourceContentSha256": "ee7c7165acab66c0c6e16f873d5200641d7e252044245762498fe7af3a70d1d1",
     "sourceSha256": {
       "cureward/cureward.java": "a88949e633f1f4c4ce393b95ed13faaa04bcff5dbf53cf2b61c927077e55fbb2",
       "library/skill.java": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
       "library/utils.java": "3cd2ad1f66c8f447bc78ca3e8fd015f003d8432861cde0862c7f488662a5f712",
+      "library/respec.java": "b24248616509197101c86b837c641500ffc0f186115c0c76e410a8289f6ce33b",
       "player/base/base_player.java": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744",
-      "player/live_conversions.java": "f64f41cac33da391ea2885cd77e89a3083529181362511d2623c7120b4c4cbf9"
+      "player/live_conversions.java": "d632d33735d943cf63906cfd7c4a5c976a4a04b02ee9039a1e802740288924cd",
+      "systems/combat/combat_base.java": "48a4c1bb769d2971b62049a1a2dc0be3164948703d4db693544e0bd8286c28c1"
     },
     "staticContract": "passed",
     "fullJavaCompile": "passed; clean 2026-08-05 Docker build processed 5713 Java sources and emitted 5747 classes from pushed parent b867fe3 and direct dsrc 094183e",
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "1b66c876337955a7b1a8701b64e3c73c3600043e",
+    "directSourceGitlink": "db144d526b91fa53c91736b91e48943bd6a98772",
     "hostMaterializationWorkflow": "retired; host Artifacts and Staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
     "directSourceBuild": "passed from the read-only direct repository mount into the dedicated Docker work volume",
@@ -61,8 +65,10 @@
       "cureward/cureward.class": "61bb2bbb4c72e5461a45f95225758d38fd6280a5cabeefe079b2f7f8cc7ac162",
       "library/skill.class": "a44487dd93cf152afe771ea6db661c29761c1978f3231c3f63bac2fd074855f3",
       "library/utils.class": "6c8d3265bb469ede0b631a9e1af0f40f20de73f4585f0854fb2ae59a72a83771",
+      "library/respec.class": "957214b346a92b16dfd39d284b5e6472b836742b50191521a30065ac6f07afc3",
       "player/base/base_player.class": "f32e6416dd0a18020f1d3f28d7e720478f5670eef7d2ab26c27e4e5265326e85",
-      "player/live_conversions.class": "1f0848e10c6f589ffb12a00a91123c34642e2f6f715b788a56ce81b4d5c9c2f2"
+      "player/live_conversions.class": "1f0848e10c6f589ffb12a00a91123c34642e2f6f715b788a56ce81b4d5c9c2f2",
+      "systems/combat/combat_base.class": "a24f8110963bf4fc8f09577bb9517953886040bb95c54d6384bf85bd2f8fd659"
     },
     "deploymentProbe": "passed direct source/work parity for all five authoritative Java files, CTS respec/Beast fail-closed bytecode ordering, compiled-class hashes, six-binary x64 architecture, read-only source mount, health/readiness, live mapped-binary identity, and post-start log audit",
     "result": "passed"
@@ -108,7 +114,7 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "automatic NGE live conversions, Combat Upgrade reward creation, stale roadmap/respec state, CTS NGE template/working-skill/combat-level authority, retired NGE skill restoration, raw command restoration, and retroactive CTS profession autolevel/Beast-skill restoration at the shared helper boundary",
+    "closedInThisMilestone": "automatic NGE live conversions, Combat Upgrade reward creation, stale roadmap/respec state, public player-facing NGE respec entrypoints, the veteran migration primary-stat command/buff, CTS NGE template/working-skill/combat-level authority, retired NGE skill restoration, raw command restoration, and retroactive CTS profession autolevel/Beast-skill restoration at the shared helper boundary",
     "preserved": "PRE-CU skill boxes and XP plus retained expansion quests, collections, zones, objects, items, credits, waypoints, space state, and user-verified mission-terminal behavior",
     "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider precedence audit"
   },

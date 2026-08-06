@@ -13,6 +13,9 @@ $files = [ordered]@{
     "auto_level.java" = "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/auto_level.java"
     "base_player.java" = "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
     "utils.java" = "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java"
+    "respec.java" = "dsrc/sku.0/sys.server/compiled/game/script/library/respec.java"
+    "live_conversions.java" = "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java"
+    "combat_base.java" = "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
 }
 $text = [ordered]@{}
 foreach ($entry in $files.GetEnumerator())
@@ -56,6 +59,58 @@ if (-not $utils.Contains("public static boolean isPostNgeCtsProgressionRestorati
     -not $ctsRespec.Contains("removeObjVar(player, respec.PROF_LEVEL_ARRAY)"))
 {
     throw "CTS retroactive profession-level restoration is not fail-closed."
+}
+$respec = $text["respec.java"]
+if (-not $respec.Contains("NGE_PLAYER_RESPEC_RUNTIME_RETIRED = true") -or
+    -not $respec.Contains("private static boolean retireNgePlayerRespecEntrypoint") -or
+    -not $respec.Contains("live_conversions.retirePostNgePlayerMigrationState(player)") -or
+    ([regex]::Matches($respec, [regex]::Escape("if (retireNgePlayerRespecEntrypoint(player))"))).Count -ne 5 -or
+    -not $respec.Contains("public static boolean autoLevelPlayer") -or
+    -not $respec.Contains("public static void grantProfessionSkills"))
+{
+    throw "Shared player-facing NGE respec authority is not fail-closed while compatibility helpers remain available."
+}
+$conversions = $text["live_conversions.java"]
+$cleanupStart = $conversions.IndexOf("public static void retirePostNgePlayerMigrationState", [StringComparison]::Ordinal)
+$cleanupEnd = $conversions.IndexOf("public int OnAttach", $cleanupStart, [StringComparison]::Ordinal)
+$cleanup = $conversions.Substring($cleanupStart, $cleanupEnd - $cleanupStart)
+foreach ($required in @(
+    'removeObjVar(player, "respec")',
+    'removeObjVar(player, "respecToken")',
+    'removeObjVar(player, "expertise_reset")',
+    'removeObjVar(player, respec.EXPERTISE_VERSION_OBJVAR)',
+    'revokeCommand(player, "veteranPlayerBuff")',
+    'buff.removeBuff(player, "veteranPlayerBuff")',
+    '"systems.respec.click_combat_respec"',
+    'respec.SCRIPT_GRANT_ON_LOGIN',
+    'respec.SCRIPT_GRANT_SINGLE_ON_LOGIN',
+    'respec.SCRIPT_CHECK_INFORM'))
+{
+    if (-not $cleanup.Contains($required))
+    {
+        throw "Persisted NGE respec/veteran state cleanup is missing: $required"
+    }
+}
+$elderStart = $conversions.IndexOf("public void grantElderBuff", [StringComparison]::Ordinal)
+$birthStart = $conversions.IndexOf("public int handleBirthDateCallBack", $elderStart, [StringComparison]::Ordinal)
+$validateStart = $conversions.IndexOf("public void validateSkills", $birthStart, [StringComparison]::Ordinal)
+$elder = $conversions.Substring($elderStart, $birthStart - $elderStart)
+$birth = $conversions.Substring($birthStart, $validateStart - $birthStart)
+foreach ($surface in @($elder, $birth))
+{
+    $guard = $surface.IndexOf("if (isPostNgePlayerMigrationRuntimeRetired())", [StringComparison]::Ordinal)
+    $grant = $surface.IndexOf('grantCommand(player, "veteranPlayerBuff")', [StringComparison]::Ordinal)
+    if ($guard -lt 0 -or $grant -le $guard -or -not $surface.Contains("retirePostNgePlayerMigrationState"))
+    {
+        throw "A direct veteran migration command grant remains reachable."
+    }
+}
+$combatBase = $text["combat_base.java"]
+if (-not $combatBase.Contains("public static boolean isRetiredPostNgeMigrationPlayerAction") -or
+    -not $combatBase.Contains('actionName.equals("veteranPlayerBuff")') -or
+    -not $combatBase.Contains("if (isRetiredPostNgeMigrationPlayerAction(self, actionName))"))
+{
+    throw "Java combat admission does not reject the NGE veteran migration action for players."
 }
 $base = $text["base_player.java"]
 foreach ($forbidden in @(

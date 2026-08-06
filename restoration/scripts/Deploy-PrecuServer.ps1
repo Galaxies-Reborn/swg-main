@@ -195,6 +195,12 @@ Write-Host "Verifying the direct-source PRE-CU Axkva Nandina healing authority b
 & (Join-Path $PSScriptRoot "Test-P14PrecuAxkvaNandinaHealingAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying player-facing NGE respec and veteran migration retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14RespecAutolevelEntrypointRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
+& (Join-Path $PSScriptRoot "Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1") `
+    -SourceRoot $repositoryRoot
 Write-Host "Verifying native NGE skill and blank-ability command admission retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14NativeNgeSkillAdmissionRetirement.ps1") `
     -SourceRoot $repositoryRoot `
@@ -339,6 +345,8 @@ source_planet_base="$source_script/planet/planet_base.java"
 work_planet_base="$work_script/planet/planet_base.java"
 source_live_conversions="$source_script/player/live_conversions.java"
 work_live_conversions="$work_script/player/live_conversions.java"
+source_respec="$source_script/library/respec.java"
+work_respec="$work_script/library/respec.java"
 source_cureward="$source_script/cureward/cureward.java"
 work_cureward="$work_script/cureward/cureward.java"
 source_open_world_battlefield="$source_script/library/battlefield.java"
@@ -714,6 +722,7 @@ done
 test "$retired_city_asset_source_guard_count" -eq 104
 cmp -s "$source_planet_base" "$work_planet_base"
 cmp -s "$source_live_conversions" "$work_live_conversions"
+cmp -s "$source_respec" "$work_respec"
 cmp -s "$source_cureward" "$work_cureward"
 cmp -s "$source_open_world_battlefield" "$work_open_world_battlefield"
 cmp -s "$source_trap_base" "$work_trap_base"
@@ -1432,6 +1441,14 @@ javap -classpath "$class_root" -c -p script.library.combat | grep -Fq 'freeshot_
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuPrimaryAttackResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getPrecuSecondaryDefenseResult'
 javap -classpath "$class_root" -c -p script.systems.combat.combat_base | grep -Fq 'getDefenderResult'
+# Player-facing NGE profession respec entrypoints and the veteran migration
+# primary-stat buff remain link-compatible but compile behind shared denial.
+javap -classpath "$class_root" -c -p script.library.respec | grep -Fq 'retireNgePlayerRespecEntrypoint'
+javap -classpath "$class_root" -v script.library.respec | grep -Fq 'retirePostNgePlayerMigrationState'
+javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'veteranPlayerBuff'
+javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'revokeCommand'
+javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'removeBuff'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeMigrationPlayerAction'
 # Production callbacks retain a persisted-state cleanup path for the NGE
 # display-only combat statistics, but the PRE-CU player never recreates them.
 display_cleanup_bytecode="$(javap -classpath "$class_root" -c -p script.player.base.base_player | sed -n '/public int setDisplayOnlyDefensiveMods/,/public int OnGetAttributes/p')"
