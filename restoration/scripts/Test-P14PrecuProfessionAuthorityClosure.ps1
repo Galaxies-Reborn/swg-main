@@ -209,6 +209,8 @@ $commandoRuntimeSources = [ordered]@{
         "systems/combat/combat_actions.java"
     "sku.0/sys.server/compiled/game/script/library/combat.java" =
         "library/combat.java"
+    "sku.0/sys.server/compiled/game/script/library/heavyweapons.java" =
+        "library/heavyweapons.java"
     "sku.0/sys.server/compiled/game/script/library/gcw.java" =
         "library/gcw.java"
     "sku.0/sys.server/compiled/game/script/library/xp.java" =
@@ -569,6 +571,7 @@ Assert-Contract ($commandoHandlers.Count -eq
     $directCommandoGuarded) `
     "p14.profession-closure.commando-runtime.all-player-actions-covered"
 $commandoCombat = [string]$commandoTexts["library/combat.java"]
+$commandoHeavyWeapons = [string]$commandoTexts["library/heavyweapons.java"]
 $commandoCombatBase = [string]$commandoTexts["systems/combat/combat_base.java"]
 $commandoCombatActions = [string]$commandoTexts["systems/combat/combat_actions.java"]
 $commandoGcw = [string]$commandoTexts["library/gcw.java"]
@@ -612,6 +615,31 @@ Assert-Contract ($centralKillMeterWriterCount -eq
     $killMeterDamageUpdate.Contains("boolean compatibleDefender = !playerDefender") -and
     [bool]$contract.expected.nonPlayerCommandoKillMeterCompatibilityPreserved) `
     "p14.profession-closure.commando-runtime.kill-meter-writers-player-bounded"
+$heavyWeaponDotResolver = Get-FunctionSlice $commandoHeavyWeapons `
+    "public static String getHeavyWeaponDotName(obj_id player, int elementalDamageType" `
+    "__no_later_heavy_weapon_dot_method__"
+$heavyWeaponPlayerGuardIndex = $heavyWeaponDotResolver.IndexOf(
+    "if (isPlayer(player))", [System.StringComparison]::Ordinal)
+$heavyWeaponLevelIndex = $heavyWeaponDotResolver.IndexOf(
+    "int playerLevel = getLevel(player);", [System.StringComparison]::Ordinal)
+$retiredCommandoHeavyWeaponRuntime = $commandoCombat + $commandoCombatBase
+$retiredCommandoHeavyWeaponMatches = @(
+    @("isCommandoBonus", "getDevastationChance", "commando_passive_dot",
+        "commando_devastation", "expertise_devastation_bonus",
+        "heavyweapons.getHeavyWeaponDotName(attackerData.id") |
+        Where-Object { $retiredCommandoHeavyWeaponRuntime.Contains($_) }
+)
+Assert-Contract ([bool]$contract.expected.postNgeCommandoHeavyWeaponPlayerBonusesRetired -and
+    $retiredCommandoHeavyWeaponMatches.Count -eq 0 -and
+    $heavyWeaponPlayerGuardIndex -ge 0 -and
+    $heavyWeaponDotResolver.Contains("return null;") -and
+    $heavyWeaponLevelIndex -gt $heavyWeaponPlayerGuardIndex) `
+    "p14.profession-closure.commando-runtime.nge-heavy-weapon-player-bonuses-retired"
+Assert-Contract ([bool]$contract.expected.nonPlayerCommandoDotTierCompatibilityPreserved -and
+    $commandoHeavyWeapons.Contains('ATTACK_NAME_BASE_SINGLE = "co_hw_dot_"') -and
+    $commandoHeavyWeapons.Contains('ATTACK_NAME_BASE_AREA = "co_ae_hw_dot_"') -and
+    $heavyWeaponDotResolver.Contains("getLevel(player)")) `
+    "p14.profession-closure.commando-runtime.non-player-dot-tier-compatibility-preserved"
 
 $medicPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeMedicPlayerAction" `
@@ -897,6 +925,9 @@ $precuCommandoRows = @($skillRows | Where-Object {
 $precuCommandoCommands = @($precuCommandoRows | ForEach-Object {
     ([string]$_.COMMANDS).Trim('"') -split ','
 } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$precuCommandoFlameCommands = @(
+    "flameSingle1", "flameSingle2", "flameCone1", "flameCone2"
+)
 Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_commando_').Count -eq
         [int]$contract.expected.retainedCommandoClassSkillRows) -and
     ([regex]::Matches($officerSkillsTable, '(?m)^expertise_co_').Count -eq
@@ -909,6 +940,9 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_commando_').
         [int]$contract.expected.retainedCommandoCommandSeriesRows) -and
     $precuCommandoRows.Count -eq [int]$contract.expected.precuCommandoSkillRows -and
     $precuCommandoCommands.Count -eq [int]$contract.expected.precuCommandoCommands -and
+    @($precuCommandoFlameCommands | Where-Object {
+        $precuCommandoCommands -contains $_
+    }).Count -eq [int]$contract.expected.precuCommandoFlameDotCommands -and
     @($precuCommandoCommands | Where-Object { $_ -match '^co_' }).Count -eq
         [int]$contract.expected.precuCommandoCoCommands) `
     "p14.profession-closure.commando-runtime.data-and-precu-command-boundary"

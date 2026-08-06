@@ -48,6 +48,7 @@ $relativeSourceMap = [ordered]@{
     "systems/buff/buff_handler.java" = "systems/buff/buff_handler.java"
     "systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
     "library/combat.java" = "library/combat.java"
+    "library/heavyweapons.java" = "library/heavyweapons.java"
     "library/gcw.java" = "library/gcw.java"
     "library/xp.java" = "library/xp.java"
     "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
@@ -99,6 +100,7 @@ $buffLibrary = [string]$sourceTexts["library/buff.java"]
 $buffHandler = [string]$sourceTexts["systems/buff/buff_handler.java"]
 $combatActions = [string]$sourceTexts["systems/combat/combat_actions.java"]
 $combatLibrary = [string]$sourceTexts["library/combat.java"]
+$heavyWeapons = [string]$sourceTexts["library/heavyweapons.java"]
 $gcw = [string]$sourceTexts["library/gcw.java"]
 $xp = [string]$sourceTexts["library/xp.java"]
 $combatBase = [string]$sourceTexts["systems/combat/combat_base.java"]
@@ -159,6 +161,31 @@ Assert-Contract ([bool]$contract.expected.nonPlayerKillMeterCompatibilityPreserv
     $killMeterDamageUpdate.Contains('"km.damage_done"') -and
     $killMeterDamageUpdate.Contains('"km.damage_taken"')) `
     "p14.passive-profession.commando-kill-meter.non-player-compatibility-preserved"
+$heavyWeaponDotResolver = Get-SourceSlice $heavyWeapons `
+    "public static String getHeavyWeaponDotName(obj_id player, int elementalDamageType" `
+    "__no_later_heavy_weapon_dot_method__"
+$heavyWeaponPlayerGuardIndex = $heavyWeaponDotResolver.IndexOf(
+    "if (isPlayer(player))", [System.StringComparison]::Ordinal)
+$heavyWeaponLevelIndex = $heavyWeaponDotResolver.IndexOf(
+    "int playerLevel = getLevel(player);", [System.StringComparison]::Ordinal)
+$retiredCommandoHeavyWeaponRuntime = $combatLibrary + $combatBase
+$retiredCommandoHeavyWeaponMatches = @(
+    @("isCommandoBonus", "getDevastationChance", "commando_passive_dot",
+        "commando_devastation", "expertise_devastation_bonus",
+        "heavyweapons.getHeavyWeaponDotName(attackerData.id") |
+        Where-Object { $retiredCommandoHeavyWeaponRuntime.Contains($_) }
+)
+Assert-Contract ([bool]$contract.expected.postNgeCommandoHeavyWeaponPlayerBonusesRetired -and
+    $retiredCommandoHeavyWeaponMatches.Count -eq 0 -and
+    $heavyWeaponPlayerGuardIndex -ge 0 -and
+    $heavyWeaponDotResolver.Contains("return null;") -and
+    $heavyWeaponLevelIndex -gt $heavyWeaponPlayerGuardIndex) `
+    "p14.passive-profession.commando-heavy-weapon.player-bonuses-retired"
+Assert-Contract ([bool]$contract.expected.nonPlayerCommandoDotTierCompatibilityPreserved -and
+    $heavyWeapons.Contains('ATTACK_NAME_BASE_SINGLE = "co_hw_dot_"') -and
+    $heavyWeapons.Contains('ATTACK_NAME_BASE_AREA = "co_ae_hw_dot_"') -and
+    $heavyWeaponDotResolver.Contains("getLevel(player)")) `
+    "p14.passive-profession.commando-heavy-weapon.non-player-compatibility-preserved"
 $stanceInventory = Get-SourceSlice $buffLibrary `
     "private static final String[] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS" `
     "public static boolean isRetiredPostNgeForceSensitiveStanceBuff"

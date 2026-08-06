@@ -500,6 +500,8 @@ source_player_vendor="$source_script/terminal/vendor.java"
 work_player_vendor="$work_script/terminal/vendor.java"
 source_combat_library="$source_script/library/combat.java"
 work_combat_library="$work_script/library/combat.java"
+source_heavyweapons_library="$source_script/library/heavyweapons.java"
+work_heavyweapons_library="$work_script/library/heavyweapons.java"
 source_reverse_engineering_library="$source_script/library/reverse_engineering.java"
 work_reverse_engineering_library="$work_script/library/reverse_engineering.java"
 source_skill_mod_listing="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab"
@@ -870,6 +872,16 @@ grep -Fq 'hasSkill(owner, "crafting_merchant_sales_02")' "$work_player_vendor"
 grep -Fq 'cost += 6 * loops;' "$work_player_vendor"
 grep -Fq 'cost += 6;' "$work_player_vendor"
 cmp -s "$source_combat_library" "$work_combat_library"
+cmp -s "$source_heavyweapons_library" "$work_heavyweapons_library"
+! grep -Fq 'isCommandoBonus' "$work_combat_library"
+! grep -Fq 'getDevastationChance' "$work_combat_library"
+! grep -Eq 'commando_passive_dot|commando_devastation|expertise_devastation_bonus|heavyweapons\.getHeavyWeaponDotName' "$work_combat_base"
+heavy_weapon_dot_guard="$(sed -n '/public static String getHeavyWeaponDotName(obj_id player, int elementalDamageType/,+8p' "$work_heavyweapons_library")"
+printf '%s' "$heavy_weapon_dot_guard" | grep -Fq 'if (isPlayer(player))'
+printf '%s' "$heavy_weapon_dot_guard" | grep -Fq 'return null;'
+printf '%s' "$heavy_weapon_dot_guard" | grep -Fq 'int playerLevel = getLevel(player);'
+grep -Fq 'ATTACK_NAME_BASE_SINGLE = "co_hw_dot_"' "$work_heavyweapons_library"
+grep -Fq 'ATTACK_NAME_BASE_AREA = "co_ae_hw_dot_"' "$work_heavyweapons_library"
 cmp -s "$source_reverse_engineering_library" "$work_reverse_engineering_library"
 cmp -s "$source_skill_mod_listing" "$work_skill_mod_listing"
 cmp -s "$source_healing_library" "$work_healing_library"
@@ -1829,6 +1841,18 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'co_kill_trap_1'
+! javap -classpath "$class_root" -v script.library.combat | grep -Eq 'isCommandoBonus|getDevastationChance'
+! javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Eq 'commando_passive_dot|commando_devastation|expertise_devastation_bonus|getHeavyWeaponDotName'
+heavy_weapon_dot_bytecode="$(javap -classpath "$class_root" -c -p script.library.heavyweapons | sed -n '/getHeavyWeaponDotName(script.obj_id, int, boolean)/,/^$/p')"
+printf '%s' "$heavy_weapon_dot_bytecode" | grep -Fq 'Method script/base_class.isPlayer'
+printf '%s' "$heavy_weapon_dot_bytecode" | grep -Fq 'Method script/base_class.getLevel'
+heavy_weapon_player_guard_line="$(printf '%s\n' "$heavy_weapon_dot_bytecode" | grep -nF 'Method script/base_class.isPlayer' | head -n1 | cut -d: -f1)"
+heavy_weapon_level_line="$(printf '%s\n' "$heavy_weapon_dot_bytecode" | grep -nF 'Method script/base_class.getLevel' | head -n1 | cut -d: -f1)"
+test -n "$heavy_weapon_player_guard_line"
+test -n "$heavy_weapon_level_line"
+test "$heavy_weapon_player_guard_line" -lt "$heavy_weapon_level_line"
+javap -classpath "$class_root" -constants script.library.heavyweapons | grep -Fq 'ATTACK_NAME_BASE_SINGLE = "co_hw_dot_"'
+javap -classpath "$class_root" -constants script.library.heavyweapons | grep -Fq 'ATTACK_NAME_BASE_AREA = "co_ae_hw_dot_"'
 kill_meter_cleanup_bytecode="$(javap -classpath "$class_root" -c -p script.library.combat | sed -n '/retirePostNgeKillMeterPlayerState/,/setKillMeter/p')"
 printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'getKillMeter'
 printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'incrementKillMeter'

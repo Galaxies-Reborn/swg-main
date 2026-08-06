@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-passive-profession-runtime-retirement",
-  "status": "ready",
-  "scope": "Retire automatic and persisted NGE Force Sensitive stance/focus, Smuggler Underworld expertise passives, and Commando kill-meter player state while preserving Publish 14.1 skill-box progression, the distinct PRE-CU brawler Center of Being lifecycle, Smuggler title/reward quests, NPC behavior, and retained expansion data.",
+  "status": "implemented-build-pending",
+  "scope": "Retire automatic and persisted NGE Force Sensitive stance/focus, Smuggler Underworld expertise passives, Commando kill-meter player state, and Commando default-heavy-attack bonuses while preserving Publish 14.1 skill-box progression, PRE-CU heavy-weapon commands and DOTs, the distinct PRE-CU brawler Center of Being lifecycle, Smuggler title/reward quests, NPC behavior, and retained expansion data.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -11,13 +11,14 @@
       "The inherited automatic fs_buff_ca_1/fs_buff_def_1_1 and sm_underworld_* application paths read NGE expertise modifiers and are not Publish 14.1 profession passives.",
       "The NGE stance handler can rehydrate expertise-derived child buffs and modifiers from persisted parent state even when every fs_* player action is centrally denied.",
       "The inherited NGE Commando kill meter has independent native, damage, XP-kill, GCW-kill, and command writers; retained compatibility attacks could mutate a restored PRE-CU Commando defender unless player identity is denied at the meter boundary.",
+      "The inherited Commando default-heavy-attack path grants free action cost, expertise devastation damage, and an automatic player-level-tiered co_hw_dot_* proc; authenticated Publish 14.1 heavy weapons instead use skill-owned flame, acid, and lightning commands with authored HAM, cadence, damage, and DOT data.",
       "The authenticated PRE-CU Center of Being uses the separate centerOfBeing command, centerofbeing buff, and brawler efficacy/duration skill modifiers; it does not use either NGE Force Sensitive stance parent.",
       "Later buff, effect-mapping, quest, and zone data can remain loadable for NPC and expansion compatibility without granting player progression authority."
     ]
   },
   "expected": {
     "changedSourceFiles": 3,
-    "authoritativeSourceFiles": 10,
+    "authoritativeSourceFiles": 11,
     "retiredPassiveBuffs": 43,
     "retiredForceSensitiveStanceStateBuffs": 35,
     "retainedForceSensitiveStanceCompatibilityRows": 34,
@@ -37,6 +38,8 @@
     "centralizedKillMeterWriterCallSites": 7,
     "productionDirectKillMeterWriterFiles": 1,
     "nonPlayerKillMeterCompatibilityPreserved": true,
+    "postNgeCommandoHeavyWeaponPlayerBonusesRetired": true,
+    "nonPlayerCommandoDotTierCompatibilityPreserved": true,
     "skillAcquisitionFeedbackUsesCombatLevel": false,
     "smugglerTitlesAndRewardQuestsPreserved": true,
     "compatibilityBuffRowsPreserved": true,
@@ -45,10 +48,10 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceCommit": "3d103be164965373268e28563c40e7bb378b2c2b",
+    "directSourceCommit": "5d0ee2951fc677476fa36184816c8e7884bfab66",
     "hostMaterializationWorkflow": "retired; host Artifacts and Staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
-    "sourceContentSha256": "d7a17d4dd40327fbb61c565437d7538903a3cc7c60e9959353b7f3233745f162",
+    "sourceContentSha256": "69f5f0e0bdc6f511866a3977e96e0117f5e07ac8116f77f730818e9314d88b2d",
     "sourceSha256": {
       "library/factions.java": "d169ef830f19a1462f296ac4d03b8ca0e58308d05bc3f68b2a6b7c557108eac7",
       "library/skill.java": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
@@ -56,13 +59,14 @@
       "library/buff.java": "94b5a624f34bf59428b49b2e91e95de4706ec0f553698a3927375d480108c0e6",
       "systems/buff/buff_handler.java": "9f24e015652cd2b71fbcb6de93579d65d5b502bd895b67d5d8c0fae800f839b3",
       "systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
-      "library/combat.java": "42d4ed92cbf35a52d1ae01c453888d18b4569828e24fa8a54b3c32ec9c6a05d8",
+      "library/combat.java": "4e3efd9e68cf583437b88e52cca75f7d132f4b6ee0f9abbfffa8e2de0ed86c4b",
+      "library/heavyweapons.java": "909b438b2f8cad2ddd1968bf8a36764e66fed26bdd3e831d61e41044f6ffdd53",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
-      "systems/combat/combat_base.java": "bbfdb5c805904310f443355b365d58b12d09ec054336271d31d340067d3c10a4"
+      "systems/combat/combat_base.java": "e53d575ae9b3f22a22d8bbbf1447da4509fde237b59f527758dda20949dfe843"
     },
-    "fullJavaCompile": "passed clean dependency rebuild: 5713 Java sources produced 5747 classes",
-    "fullServerBuild": "passed clean x64 deployment in 779.9 seconds from pushed parent a2d145b and direct dsrc 3bad7bb22",
+    "fullJavaCompile": "pending canonical clean dependency rebuild",
+    "fullServerBuild": "pending canonical clean x64 deployment from direct dsrc 5d0ee2951fc677476fa36184816c8e7884bfab66",
     "compiledClassSha256": {
       "library/factions.class": "99fb342698f1ad96056bcf84f1329146423d8da08ef3444cac7362f907ee074b",
       "library/skill.class": "a44487dd93cf152afe771ea6db661c29761c1978f3231c3f63bac2fd074855f3",
@@ -79,10 +83,10 @@
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
     "focusedJavaCompile": "passed all six changed kill-meter sources with Java 8 target in an ephemeral /dev/shm directory removed immediately",
-    "sourceWorkParity": "passed byte-for-byte for all ten authoritative sources, including all six edited kill-meter paths",
-    "bytecodeAudit": "passed: cleanup is present in combat and base_player; all four centralized writer classes call modifyKillMeter and contain no direct incrementKillMeter reference",
-    "deploymentProbe": "passed x64 architecture, healthy player-ready cluster, mapped/disk SwgGameServer inode identity, and clean post-start log audit",
-    "result": "passed"
+    "sourceWorkParity": "pending byte-for-byte verification for all eleven authoritative sources",
+    "bytecodeAudit": "pending clean-build verification of kill-meter and Commando heavy-weapon player-boundary probes",
+    "deploymentProbe": "pending x64 architecture, player-ready cluster, mapped/disk binary identity, and clean post-start log audit",
+    "result": "build-pending"
   },
   "continuityEvidence": {
     "buffDataSha256": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
@@ -118,7 +122,7 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "previous-deployment-superseded"
   },
   "requiredBeforeReady": []
 }
