@@ -107,6 +107,8 @@ $paths = [ordered]@{
     "script.terminal.terminal_guild" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_guild.java"
     "script.library.travel" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/travel.java"
     "script.systems.spawning.spawn_base" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/spawning/spawn_base.java"
+    "script.systems.gcw.flip_terminal_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/flip_terminal_spawner.java"
+    "template.gcw.flip_terminal_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/flip_terminal_spawner.tpf"
     "script.city.ship_spawner" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/city/ship_spawner.java"
     "script.item.publish_gift.gcw_mulit_image_painting" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/item/publish_gift/gcw_mulit_image_painting.java"
     "script.library.holiday" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/holiday.java"
@@ -188,6 +190,8 @@ $terminalGcw = [string]$texts["script.terminal.terminal_gcw_publish_gift"]
 $terminalGuild = [string]$texts["script.terminal.terminal_guild"]
 $travel = [string]$texts["script.library.travel"]
 $ambientSpawn = [string]$texts["script.systems.spawning.spawn_base"]
+$regionalMissionTerminalSpawner = [string]$texts["script.systems.gcw.flip_terminal_spawner"]
+$regionalMissionTerminalTemplate = [string]$texts["template.gcw.flip_terminal_spawner"]
 $cityShipSpawner = [string]$texts["script.city.ship_spawner"]
 $gcwPainting = [string]$texts["script.item.publish_gift.gcw_mulit_image_painting"]
 $holiday = [string]$texts["script.library.holiday"]
@@ -1036,6 +1040,46 @@ Assert-Contract ($spaceBattleStart.Contains('rand(0, 1) == 0 ? "imperial" : "reb
     -not $spaceBattleStart.Contains("getGcw") -and
     -not [bool]$contract.expected.regionalScoreSpaceBattleSideAuthority) `
     "p14.gcw-rating.regional-score-space-battle-side-authority-retired"
+
+$regionalMissionTerminalRetirement = Get-FunctionSlice $regionalMissionTerminalSpawner `
+    "public void retireSpawner" `
+    "public int OnDestroy"
+$regionalMissionTerminalAttach = Get-FunctionSlice $regionalMissionTerminalSpawner `
+    "public int OnAttach" `
+    "public int OnInitialize"
+$regionalMissionTerminalInitialize = Get-FunctionSlice $regionalMissionTerminalSpawner `
+    "public int OnInitialize" `
+    "public void checkDestroy"
+$regionalMissionTerminalCheck = Get-FunctionSlice $regionalMissionTerminalSpawner `
+    "public int checkTerminal" `
+    "public void spawnTerminal"
+$regionalMissionTerminalSpawn = Get-FunctionSlice $regionalMissionTerminalSpawner `
+    "public void spawnTerminal" `
+    "public void __no_later_method__"
+Assert-Contract ($regionalMissionTerminalSpawner.Contains("public static boolean isPostNgeRegionalMissionTerminalRetired()") -and
+    $regionalMissionTerminalSpawner.Contains("return true;") -and
+    $regionalMissionTerminalSpawner.Contains('utils.hasScriptVar(self, "terminal")') -and
+    $regionalMissionTerminalSpawner.Contains('hasObjVar(self, "terminal")') -and
+    $regionalMissionTerminalSpawner.Contains('utils.removeScriptVar(self, "terminal")') -and
+    $regionalMissionTerminalSpawner.Contains('removeObjVar(self, "terminal")') -and
+    $regionalMissionTerminalSpawner.Contains("destroyRetiredTerminal") -and
+    $regionalMissionTerminalRetirement.Contains("checkDestroy(self);") -and
+    $regionalMissionTerminalRetirement.Contains('utils.removeScriptVar(self, "lastCheckTime")') -and
+    $regionalMissionTerminalRetirement.Contains("detachScript(self, SCRIPT_NAME);") -and
+    $regionalMissionTerminalAttach.Contains("retireSpawner(self);") -and
+    $regionalMissionTerminalInitialize.Contains("retireSpawner(self);") -and
+    $regionalMissionTerminalCheck.Contains("retireSpawner(self);") -and
+    $regionalMissionTerminalSpawn.Contains("retireSpawner(self);") -and
+    -not $regionalMissionTerminalSpawner.Contains("getImperialPercentileByRegion") -and
+    -not $regionalMissionTerminalSpawner.Contains("getRebelPercentileByRegion") -and
+    -not $regionalMissionTerminalSpawner.Contains("createObject") -and
+    -not $regionalMissionTerminalSpawner.Contains("terminal_mission_") -and
+    -not $regionalMissionTerminalTemplate.Contains("systems.gcw.flip_terminal_spawner") -and
+    $regionalMissionTerminalTemplate.Contains("systems.gcw.gcw_data_updater") -and
+    -not [bool]$contract.expected.regionalScoreMissionTerminalSpawnAuthority -and
+    [bool]$contract.expected.persistedRegionalMissionTerminalStateScrubbed -and
+    -not [bool]$contract.expected.regionalMissionTerminalTemplateScriptAttached) `
+    "p14.gcw-rating.regional-score-mission-terminal-authority-retired"
 Assert-Contract ($terminalGcw.Contains("getGcwGroupImperialScorePercentile(strSubCategory)") -and
     $cityShipSpawner.Contains("getGcwImperialScorePercentile") -and
     $gcwPainting.Contains("getGcwGroupImperialScorePercentile") -and

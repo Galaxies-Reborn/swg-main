@@ -415,6 +415,10 @@ source_faction_recruiter_imperial_conversation="$source_script/conversation/fact
 work_faction_recruiter_imperial_conversation="$work_script/conversation/faction_recruiter_imperial.java"
 source_faction_recruiter_rebel_conversation="$source_script/conversation/faction_recruiter_rebel.java"
 work_faction_recruiter_rebel_conversation="$work_script/conversation/faction_recruiter_rebel.java"
+source_regional_mission_terminal_spawner="$source_script/systems/gcw/flip_terminal_spawner.java"
+work_regional_mission_terminal_spawner="$work_script/systems/gcw/flip_terminal_spawner.java"
+source_regional_mission_terminal_template="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/flip_terminal_spawner.tpf"
+work_regional_mission_terminal_template="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/flip_terminal_spawner.tpf"
 source_camp_controlpanel="$source_script/systems/camping/camp_controlpanel.java"
 work_camp_controlpanel="$work_script/systems/camping/camp_controlpanel.java"
 source_pclib_library="$source_script/library/pclib.java"
@@ -748,6 +752,8 @@ cmp -s "$source_static_buildout_naboo" "$work_static_buildout_naboo"
 cmp -s "$source_faction_recruiter" "$work_faction_recruiter"
 cmp -s "$source_faction_recruiter_imperial_conversation" "$work_faction_recruiter_imperial_conversation"
 cmp -s "$source_faction_recruiter_rebel_conversation" "$work_faction_recruiter_rebel_conversation"
+cmp -s "$source_regional_mission_terminal_spawner" "$work_regional_mission_terminal_spawner"
+cmp -s "$source_regional_mission_terminal_template" "$work_regional_mission_terminal_template"
 cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
@@ -1736,6 +1742,15 @@ javap -classpath "$class_root" -c script.corpse.ai_corpse | grep -Fq 'corpse.can
 ! javap -classpath "$class_root" -v script.systems.combat.combat_player | grep -Fq 'expertise_of_last_words_1'
 javap -classpath "$class_root" -c script.library.travel | grep -Fq 'rejected retired NGE group-pickup travel'
 javap -classpath "$class_root" -v script.player.player_travel | grep -Fq 'Ignored retired NGE group-pickup travel request'
+regional_mission_terminal_bytecode="$(javap -classpath "$class_root" -c -p script.systems.gcw.flip_terminal_spawner)"
+printf '%s' "$regional_mission_terminal_bytecode" | grep -Fq 'isPostNgeRegionalMissionTerminalRetired'
+printf '%s' "$regional_mission_terminal_bytecode" | grep -Fq 'retireSpawner'
+printf '%s' "$regional_mission_terminal_bytecode" | grep -Fq 'detachScript'
+! printf '%s' "$regional_mission_terminal_bytecode" | grep -Fq 'createObject'
+! printf '%s' "$regional_mission_terminal_bytecode" | grep -Fq 'getImperialPercentileByRegion'
+! printf '%s' "$regional_mission_terminal_bytecode" | grep -Fq 'getRebelPercentileByRegion'
+strings "$class_root/object/tangible/gcw/flip_terminal_spawner.iff" | grep -Fq 'systems.gcw.gcw_data_updater'
+! strings "$class_root/object/tangible/gcw/flip_terminal_spawner.iff" | grep -Fq 'systems.gcw.flip_terminal_spawner'
 ! grep -R -Fq 'class_' "$work_conversation"
 javap -classpath "$class_root" -v script.conversation.ep3_myyydril_weaponsmith | grep -Fq 'crafting_weaponsmith_novice'
 javap -classpath "$class_root" -v script.conversation.ep3_kachirho_missing_son | grep -Fq 'combat_smuggler_underworld_01'
