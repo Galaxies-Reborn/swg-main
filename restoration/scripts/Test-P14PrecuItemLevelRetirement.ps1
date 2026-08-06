@@ -136,11 +136,20 @@ $relativePaths = @(
     "item/medicine/stimpack.java",
     "item/medicine/stimpack_crafted.java",
     "item/plant/force_melon.java",
+    "item/skill_buff/base.java",
     "item/skillmod_click_item.java",
     "item/static_item_base.java",
     "item/survey_tool/survey_tool_script.java",
+    "item/tool/reverse_engineering_poweredup_item.java",
+    "item/tool/reverse_engineering_tool.java",
+    "library/bio_engineer.java",
+    "library/consumable.java",
     "library/loot.java",
+    "library/magic_item.java",
+    "library/reverse_engineering.java",
     "library/static_item.java",
+    "systems/crafting/crafting_base.java",
+    "systems/crafting/clothing/crafting_base_clothing.java",
     "systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
 )
 $texts = @{}
@@ -155,6 +164,17 @@ foreach ($relativePath in $relativePaths)
 $staticItem = [string]$texts["library/static_item.java"]
 $dynamicArmor = [string]$texts["item/armor/dynamic_armor.java"]
 $loot = [string]$texts["library/loot.java"]
+$reverseEngineeringTool = [string]$texts["item/tool/reverse_engineering_tool.java"]
+$reverseEngineeringPoweredItem = [string]$texts[
+    "item/tool/reverse_engineering_poweredup_item.java"]
+$reverseEngineering = [string]$texts["library/reverse_engineering.java"]
+$magicItem = [string]$texts["library/magic_item.java"]
+$craftingBase = [string]$texts["systems/crafting/crafting_base.java"]
+$craftingBaseClothing = [string]$texts[
+    "systems/crafting/clothing/crafting_base_clothing.java"]
+$bioEngineer = [string]$texts["library/bio_engineer.java"]
+$consumable = [string]$texts["library/consumable.java"]
+$skillBuffItem = [string]$texts["item/skill_buff/base.java"]
 $validators = Get-FunctionSlice $staticItem `
     "public static boolean validateLevelRequired(obj_id player, int requiredLevel)" `
     "public static void decrementStaticItem("
@@ -345,6 +365,187 @@ Assert-Contract ($listedNgeStaticInventoryValid -and
     $ngeSkillModListing -match '(?m)^tka_armor\t.*Innate Teras Kasi Armor') `
     "p14.item-level.static-modifier-nge-listing-authenticated"
 
+$retiredWriterModifierInventory = Get-FunctionSlice $staticItem `
+    "public static final String[] RETIRED_NGE_ITEM_WRITER_MODIFIERS" `
+    "public static final java.text.NumberFormat"
+$retiredWriterModifiers = @(
+    "combat_critical_hit_reduction",
+    "combat_dodge",
+    "combat_parry",
+    "combat_evasion_chance",
+    "combat_evasion_value",
+    "combat_strikethrough_value",
+    "commando_devastation",
+    "exotic_heal_action_reduction",
+    "exotic_dodge_reduction",
+    "exotic_parry_reduction",
+    "exotic_acid_penetration",
+    "exotic_cold_penetration",
+    "exotic_heat_penetration",
+    "exotic_electricity_penetration"
+)
+$retiredWriterInventoryValid = $true
+foreach ($modifier in $retiredWriterModifiers)
+{
+    if (([regex]::Matches($retiredWriterModifierInventory,
+            '"' + [regex]::Escape($modifier) + '"')).Count -ne 1)
+    {
+        $retiredWriterInventoryValid = $false
+    }
+}
+Assert-Contract ($retiredWriterModifiers.Count -eq
+        [int]$contract.expected.itemModifierWriters.retiredExactNgeModifiers -and
+    $retiredWriterInventoryValid -and
+    $retiredStaticModifierPredicate.Contains(
+        "for (String retiredModifier : RETIRED_NGE_ITEM_WRITER_MODIFIERS)")) `
+    "p14.item-level.item-writer-retired-modifier-inventory"
+
+$precuBasicReverseModifiers = @(
+    "general_assembly",
+    "weapon_assembly",
+    "armor_assembly",
+    "clothing_assembly",
+    "droid_assembly",
+    "food_assembly"
+)
+$reverseBasicInventory = Get-FunctionSlice $reverseEngineeringTool `
+    "public static final String[] BASIC_MOD_LIST" `
+    "public static final String[] FINAL_ATTACHMENT_TEMPLATE"
+$reverseBasicInventoryValid = $true
+foreach ($modifier in $precuBasicReverseModifiers)
+{
+    if (([regex]::Matches($reverseBasicInventory,
+            '"' + [regex]::Escape($modifier) + '"')).Count -ne 1)
+    {
+        $reverseBasicInventoryValid = $false
+    }
+}
+$retiredPrimaryModifiers = @(
+    "precision_modified", "strength_modified", "stamina_modified",
+    "constitution_modified", "agility_modified", "luck_modified"
+)
+$reverseToolPrimaryFree = $true
+foreach ($modifier in $retiredPrimaryModifiers)
+{
+    if ($reverseEngineeringTool.Contains('"' + $modifier + '"'))
+    {
+        $reverseToolPrimaryFree = $false
+    }
+}
+Assert-Contract ($precuBasicReverseModifiers.Count -eq
+        [int]$contract.expected.itemModifierWriters.precuBasicReverseModifiers -and
+    $reverseBasicInventoryValid -and $reverseToolPrimaryFree -and
+    $reverseBasicInventory.Contains('"camouflage"') -and
+    $reverseBasicInventory.Contains('"droid_find_speed"')) `
+    "p14.item-level.reverse-basic-modifiers-precu"
+
+$reversePowerBit = Get-FunctionSlice $reverseEngineeringTool `
+    "public void generatePowerBit(" "public void generateModifierBit("
+$reverseModifierBit = Get-FunctionSlice $reverseEngineeringTool `
+    "public void generateModifierBit(" "public boolean isJunk("
+$reverseInputItem = Get-FunctionSlice $reverseEngineeringTool `
+    "public boolean isItemWithNPEMod(" "public int getPowerBitType("
+$reverseInputBit = Get-FunctionSlice $reverseEngineeringTool `
+    "public boolean isModifierBit(" "public int getFinalAttachmentLevel("
+Assert-Contract ($reversePowerBit.Contains(
+        "!static_item.isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $reverseModifierBit.Contains(
+        "!static_item.isRetiredNgeStaticItemSkillModifier(candidateModifier)") -and
+    $reverseInputItem.Contains("getSkillModBonuses(item)") -and
+    $reverseInputItem.Contains(
+        "!static_item.isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $reverseInputBit.Contains(
+        "!static_item.isRetiredNgeStaticItemSkillModifier(modifier)")) `
+    "p14.item-level.reverse-generation-and-input-filtered"
+
+$reverseApplyEquipped = Get-FunctionSlice $reverseEngineering `
+    "public static void applyPowerupItemEquipped(" `
+    "public static boolean isPoweredUpItem("
+$reverseAdd = Get-FunctionSlice $reverseEngineering `
+    "public static void addModsAndScript(obj_id player, obj_id powerUp, obj_id itemToPowerUp, float" `
+    "public static void removeModsAndScript("
+$reverseAttached = Get-FunctionSlice $reverseEngineering `
+    "public static void powerUpAttached(" "public static boolean canMakePowerUp("
+$reverseRetirement = Get-FunctionSlice $reverseEngineering `
+    "public static boolean isRetiredNgePowerupModifier(" `
+    "public static boolean canStaticItemBeReversedEngineered("
+Assert-Contract ($reverseApplyEquipped.IndexOf(
+        "isRetiredNgePowerupModifier(itemWithPowerUp)") -lt
+        $reverseApplyEquipped.IndexOf("addSkillModModifier(") -and
+    $reverseAdd.IndexOf("isRetiredNgePowerupModifier(powerUp)") -lt
+        $reverseAdd.IndexOf("setObjVar(itemToPowerUp, ENGINEERING_MODIFIER") -and
+    $reverseAttached.IndexOf("isRetiredNgePowerupModifier(itemWithPowerUp)") -lt
+        $reverseAttached.IndexOf("addSkillModModifier(") -and
+    $reverseRetirement.Contains("removeAttribOrSkillModModifier(") -and
+    $reverseRetirement.Contains("removeModsAndScript(player, item)") -and
+    $reverseRetirement.Contains("recalcPoolsIfNeeded(player, modifier)")) `
+    "p14.item-level.reverse-application-and-stale-cleanup"
+Assert-Contract (([regex]::Matches($reverseEngineeringPoweredItem,
+        "reverse_engineering\.isRetiredNgePowerupModifier\(self\)")).Count -eq 2 -and
+    ([regex]::Matches($reverseEngineeringPoweredItem,
+        "reverse_engineering\.retireNgePowerupModifier\(player, self\)")).Count -eq 2 -and
+    ([regex]::Matches($reverseEngineeringPoweredItem,
+        "addSkillModModifier\(")).Count -eq 2) `
+    "p14.item-level.powered-item-lifecycle-filtered"
+
+$magicAppearance = Get-FunctionSlice $magicItem `
+    "public static Vector getAppearanceMagicMods(" "public static obj_id makeGem("
+$magicGemMods = Get-FunctionSlice $magicItem `
+    "public static String[] getGemMods(" "public static String[] getPrecuMagicItemMods("
+$magicFilter = Get-FunctionSlice $magicItem `
+    "public static String[] getPrecuMagicItemMods(" "`n}"
+Assert-Contract ($magicItem.Contains(
+        "static_item.removeRetiredNgeStaticItemSkillModifiers(item)") -and
+    $magicAppearance.Contains("getPrecuMagicItemMods(mods)") -and
+    $magicGemMods.Contains(
+        'getPrecuMagicItemMods(dataTableGetStringColumn(TBL_COST, "MOD"))') -and
+    $magicFilter.Contains(
+        "!static_item.isRetiredNgeStaticItemSkillModifier(modifierName)")) `
+    "p14.item-level.magic-item-and-gem-filtered"
+
+$craftingSkillModifierWriter = Get-FunctionSlice $craftingBase `
+    "public boolean calcAndSetPrototypeProperty(" `
+    "public void calcAndSetPrototypeProperties(obj_id prototype, draft_schematic.attribute[] itemAttributes, dictionary"
+$skillBuffLegacyHandler = Get-FunctionSlice $skillBuffItem `
+    "public int handleUseSkillBuff(" "public String formatTime("
+Assert-Contract ($craftingSkillModifierWriter.IndexOf(
+        "static_item.isRetiredNgeStaticItemSkillModifier(modifier)") -lt
+        $craftingSkillModifierWriter.IndexOf(
+            "setSkillModBonus(prototype, modifier, (int)itemAttribute.currentValue)") -and
+    $consumable.IndexOf(
+        "static_item.isRetiredNgeStaticItemSkillModifier(mod_name)") -lt
+        $consumable.IndexOf(
+            "addSkillModModifier(target, mod_id, mod_name, amount, duration") -and
+    ([regex]::Matches($skillBuffLegacyHandler,
+        "static_item\.isRetiredNgeStaticItemSkillModifier\(skill[12]\)")).Count -eq 2 -and
+    $skillBuffLegacyHandler.Contains("if (!applied)")) `
+    "p14.item-level.crafting-consumable-and-legacy-buff-filtered"
+Assert-Contract ($craftingBaseClothing.Contains(
+        "bio_engineer.BIO_COMP_EFFECT_SKILL_MODS") -and
+    $craftingBaseClothing.Contains(
+        "setSkillModBonus(prototype, skill_mod, mod_val[i])") -and
+    $bioEngineer.Contains('"healing_efficiency"') -and
+    $consumable.Contains('"resistance_poison"') -and
+    $consumable.Contains('"absorption_poison"') -and
+    $consumable.Contains('"resistance_disease"') -and
+    $consumable.Contains('"absorption_disease"')) `
+    "p14.item-level.precu-tissue-and-medical-modifiers-preserved"
+
+$reverseMods = Get-Content -LiteralPath (Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_mods.tab") -Raw
+$reverseSpecialMods = Get-Content -LiteralPath (Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_special_mods.tab") -Raw
+$magicModCosts = Get-Content -LiteralPath (Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/datatables/magic_item/mod_cost.tab") -Raw
+Assert-Contract ($reverseMods -match '(?m)^expertise_damage_weapon_0\t' -and
+    $reverseMods -match '(?m)^general_assembly\t' -and
+    $reverseMods -match '(?m)^resistance_poison\t' -and
+    $reverseSpecialMods -match '(?m)^bm_xp_mod_boost\t' -and
+    $reverseSpecialMods -match '(?m)^armor_assembly\t' -and
+    $magicModCosts -match '(?m)^precision_modified\t' -and
+    $magicModCosts -match '(?m)^weapon_assembly\t') `
+    "p14.item-level.compatibility-modifier-data-preserved-runtime-filtered"
+
 $legacyDynamicPrimaryModifiers = @(
     "precision_modified",
     "strength_modified",
@@ -468,7 +669,19 @@ $sourceHashPaths = @{
     stimpack = "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java"
     stimpackCrafted = "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java"
     forceMelon = "dsrc/sku.0/sys.server/compiled/game/script/item/plant/force_melon.java"
+    skillBuffItem = "dsrc/sku.0/sys.server/compiled/game/script/item/skill_buff/base.java"
+    reverseEngineeringPoweredItem = "dsrc/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_poweredup_item.java"
+    reverseEngineeringTool = "dsrc/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_tool.java"
+    bioEngineer = "dsrc/sku.0/sys.server/compiled/game/script/library/bio_engineer.java"
+    consumable = "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java"
+    magicItem = "dsrc/sku.0/sys.server/compiled/game/script/library/magic_item.java"
+    reverseEngineering = "dsrc/sku.0/sys.server/compiled/game/script/library/reverse_engineering.java"
+    craftingBase = "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java"
+    craftingBaseClothing = "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/clothing/crafting_base_clothing.java"
     weaponComponentAttributes = "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/weapon/component/crafting_weapon_component_attribute.java"
+    reverseEngineeringMods = "dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_mods.tab"
+    reverseEngineeringSpecialMods = "dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_special_mods.tab"
+    magicItemModCost = "dsrc/sku.0/sys.server/compiled/game/datatables/magic_item/mod_cost.tab"
     armorStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/armor_stats.tab"
     itemStats = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/item_stats.tab"
     masterItem = "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
@@ -750,7 +963,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed") `
         "p14.item-level.ready-evidence"
-    Assert-Contract ($compiledHashes.Count -eq 14 -and
+    Assert-Contract ($compiledHashes.Count -eq 21 -and
         @($compiledHashes | Where-Object {
             [string]$_.Value -notmatch '^[a-f0-9]{64}$'
         }).Count -eq 0) `

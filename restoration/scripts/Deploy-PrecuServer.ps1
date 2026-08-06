@@ -1432,6 +1432,44 @@ printf '%s\n' "$static_modifier_apply_source" | grep -Fq 'setSkillModBonus(item,
 test "$(grep -Fc 'applyPrecuStaticItemSkillModifiers(object, skillMods);' "$work_script/library/static_item.java")" -eq 3
 ! grep -Fq 'setSkillModBonus(object,' "$work_script/library/static_item.java"
 grep -Fq 'static_item.initializeObject(self, itemData)' "$work_script/item/static_item_base.java"
+printf '%s\n' "$static_modifier_predicate_source" | grep -Fq 'RETIRED_NGE_ITEM_WRITER_MODIFIERS'
+for retired_item_writer_modifier in combat_critical_hit_reduction combat_dodge combat_parry combat_evasion_chance combat_evasion_value combat_strikethrough_value commando_devastation exotic_heal_action_reduction exotic_dodge_reduction exotic_parry_reduction exotic_acid_penetration exotic_cold_penetration exotic_heat_penetration exotic_electricity_penetration; do
+    test "$(grep -Fc "\"$retired_item_writer_modifier\"" "$work_script/library/static_item.java")" -eq 1
+done
+reverse_basic_modifier_source="$(sed -n '/public static final String\[\] BASIC_MOD_LIST/,/public static final String\[\] FINAL_ATTACHMENT_TEMPLATE/p' "$work_script/item/tool/reverse_engineering_tool.java")"
+for precu_reverse_basic_modifier in general_assembly weapon_assembly armor_assembly clothing_assembly droid_assembly food_assembly; do
+    test "$(printf '%s\n' "$reverse_basic_modifier_source" | grep -Fc "\"$precu_reverse_basic_modifier\"")" -eq 1
+done
+printf '%s\n' "$reverse_basic_modifier_source" | grep -Fq '"camouflage"'
+printf '%s\n' "$reverse_basic_modifier_source" | grep -Fq '"droid_find_speed"'
+for retired_reverse_primary in precision_modified strength_modified stamina_modified constitution_modified agility_modified luck_modified; do
+    ! grep -Fq "\"$retired_reverse_primary\"" "$work_script/item/tool/reverse_engineering_tool.java"
+done
+test "$(grep -Fc 'static_item.isRetiredNgeStaticItemSkillModifier' "$work_script/item/tool/reverse_engineering_tool.java")" -eq 4
+test "$(grep -Fc 'isRetiredNgePowerupModifier' "$work_script/library/reverse_engineering.java")" -eq 4
+grep -Fq 'removeAttribOrSkillModModifier(player, slotName + "_powerup")' "$work_script/library/reverse_engineering.java"
+grep -Fq 'removeModsAndScript(player, item)' "$work_script/library/reverse_engineering.java"
+test "$(grep -Fc 'reverse_engineering.isRetiredNgePowerupModifier(self)' "$work_script/item/tool/reverse_engineering_poweredup_item.java")" -eq 2
+test "$(grep -Fc 'reverse_engineering.retireNgePowerupModifier(player, self)' "$work_script/item/tool/reverse_engineering_poweredup_item.java")" -eq 2
+grep -Fq 'getPrecuMagicItemMods(mods)' "$work_script/library/magic_item.java"
+grep -Fq 'getPrecuMagicItemMods(dataTableGetStringColumn(TBL_COST, "MOD"))' "$work_script/library/magic_item.java"
+grep -Fq '!static_item.isRetiredNgeStaticItemSkillModifier(modifierName)' "$work_script/library/magic_item.java"
+grep -Fq 'static_item.isRetiredNgeStaticItemSkillModifier(modifier)' "$work_script/systems/crafting/crafting_base.java"
+grep -Fq 'static_item.isRetiredNgeStaticItemSkillModifier(mod_name)' "$work_script/library/consumable.java"
+test "$(grep -Ec 'static_item.isRetiredNgeStaticItemSkillModifier\(skill[12]\)' "$work_script/item/skill_buff/base.java")" -eq 2
+grep -Fq 'bio_engineer.BIO_COMP_EFFECT_SKILL_MODS' "$work_script/systems/crafting/clothing/crafting_base_clothing.java"
+grep -Fq 'setSkillModBonus(prototype, skill_mod, mod_val[i])' "$work_script/systems/crafting/clothing/crafting_base_clothing.java"
+for precu_medical_item_modifier in resistance_poison absorption_poison resistance_disease absorption_disease; do
+    grep -Fq "\"$precu_medical_item_modifier\"" "$work_script/library/consumable.java"
+done
+grep -Eq '^expertise_damage_weapon_0[[:space:]]' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_mods.tab"
+grep -Eq '^general_assembly[[:space:]]' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_mods.tab"
+grep -Eq '^bm_xp_mod_boost[[:space:]]' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_special_mods.tab"
+grep -Eq '^armor_assembly[[:space:]]' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/crafting/reverse_engineering_special_mods.tab"
+grep -Eq '^precision_modified[[:space:]]' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/magic_item/mod_cost.tab"
+for item_writer_parity_path in item/skill_buff/base.java item/tool/reverse_engineering_poweredup_item.java item/tool/reverse_engineering_tool.java library/consumable.java library/magic_item.java library/reverse_engineering.java library/static_item.java systems/crafting/crafting_base.java systems/crafting/clothing/crafting_base_clothing.java; do
+    cmp -s "$source_script/$item_writer_parity_path" "$work_script/$item_writer_parity_path"
+done
 for static_modifier_table_profile in \
     "$work_armor_stats_table:1559:1326:0:0:0" \
     "$work_weapon_stats_table:325:126:0:0:0" \
@@ -2472,6 +2510,7 @@ printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'fast_attack_line
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'bm_'
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS'
 printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'RETIRED_NGE_STATIC_ITEM_MODIFIERS'
+printf '%s\n' "$static_modifier_predicate_bytecode" | grep -Fq 'RETIRED_NGE_ITEM_WRITER_MODIFIERS'
 printf '%s\n' "$static_modifier_cleanup_bytecode" | grep -Fq 'getSkillModBonuses'
 printf '%s\n' "$static_modifier_cleanup_bytecode" | grep -Fq 'setSkillModBonus'
 printf '%s\n' "$static_modifier_apply_bytecode" | grep -Fq 'removeRetiredNgeStaticItemSkillModifiers'
@@ -2484,6 +2523,26 @@ done
 for retired_static_set_modifier in bh_dire_root bh_dire_snare combat_block_chance combat_block_value combat_strikethrough_chance cooldown_percent_of_group_buff incubation_time_reduction rally_point_duration tka_armor; do
     printf '%s\n' "$static_item_bytecode" | grep -Fq "$retired_static_set_modifier"
 done
+for retired_item_writer_modifier in combat_critical_hit_reduction combat_dodge combat_parry combat_evasion_chance combat_evasion_value combat_strikethrough_value commando_devastation exotic_heal_action_reduction exotic_dodge_reduction exotic_parry_reduction exotic_acid_penetration exotic_cold_penetration exotic_heat_penetration exotic_electricity_penetration; do
+    printf '%s\n' "$static_item_bytecode" | grep -Fq "$retired_item_writer_modifier"
+done
+reverse_tool_bytecode="$(javap -classpath "$class_root" -c -p script.item.tool.reverse_engineering_tool)"
+for precu_reverse_basic_modifier in general_assembly weapon_assembly armor_assembly clothing_assembly droid_assembly food_assembly; do
+    printf '%s\n' "$reverse_tool_bytecode" | grep -Fq "$precu_reverse_basic_modifier"
+done
+test "$(printf '%s\n' "$reverse_tool_bytecode" | grep -Fc 'isRetiredNgeStaticItemSkillModifier')" -eq 4
+reverse_engineering_bytecode="$(javap -classpath "$class_root" -c -p script.library.reverse_engineering)"
+printf '%s\n' "$reverse_engineering_bytecode" | grep -Fq 'isRetiredNgePowerupModifier'
+printf '%s\n' "$reverse_engineering_bytecode" | grep -Fq 'retireNgePowerupModifier'
+printf '%s\n' "$reverse_engineering_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
+powered_item_bytecode="$(javap -classpath "$class_root" -c -p script.item.tool.reverse_engineering_poweredup_item)"
+test "$(printf '%s\n' "$powered_item_bytecode" | grep -Fc 'isRetiredNgePowerupModifier')" -eq 2
+test "$(printf '%s\n' "$powered_item_bytecode" | grep -Fc 'retireNgePowerupModifier')" -eq 2
+javap -classpath "$class_root" -c -p script.library.magic_item | grep -Fq 'getPrecuMagicItemMods'
+javap -classpath "$class_root" -c -p script.systems.crafting.crafting_base | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
+javap -classpath "$class_root" -c -p script.library.consumable | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
+test "$(javap -classpath "$class_root" -c -p script.item.skill_buff.base | grep -Fc 'isRetiredNgeStaticItemSkillModifier')" -eq 2
+javap -classpath "$class_root" -v script.systems.crafting.clothing.crafting_base_clothing | grep -Fq 'BIO_COMP_EFFECT_SKILL_MODS'
 ! javap -classpath "$class_root" -v script.systems.crafting.weapon.component.crafting_weapon_component_attribute | grep -E -i -q "$legacy_item_combat_level_pattern"
 javap -classpath "$class_root" -v script.systems.crafting.weapon.component.crafting_weapon_component_attribute | grep -Fq 'getWeaponCoreData'
 compiled_item_stats="$class_root/datatables/item/master_item/item_stats.iff"
