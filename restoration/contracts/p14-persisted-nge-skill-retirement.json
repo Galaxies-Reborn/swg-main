@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-persisted-nge-progression-retirement",
-  "status": "implemented-build-pending",
+  "status": "ready-for-live-verification",
   "scope": "Retire persisted NGE class, expertise, and Chronicles XP progression authority when an authoritative player creature loads, and reject future player admission through native, shared-script, Chronicles, or character-transfer entrypoints while retaining expansion quests, conversations, zones, and their independent state.",
   "diagnosis": {
     "date": "2026-08-01",
@@ -57,23 +57,46 @@
     "retainedPreCuXpTypesAffected": false
   },
   "liveEvidence": {
-    "date": "2026-08-01",
-    "character": "Icai Darkwave",
-    "characterObject": 39008597,
-    "clientProcessId": 12892,
-    "clientInWorld": true,
-    "oracleAfterReload": {
-      "retiredClassOrExpertiseRows": 0,
-      "noviceScoutRows": 0
+    "priorSuccessfulSkillCleanup": {
+      "date": "2026-08-01",
+      "character": "Icai Darkwave",
+      "characterObject": 39008597,
+      "clientProcessId": 12892,
+      "clientInWorld": true,
+      "oracleAfterReload": {
+        "retiredClassOrExpertiseRows": 0,
+        "noviceScoutRows": 0
+      },
+      "result": "passed"
     },
-    "remainingOfflineRows": [
-      {
-        "characterObject": 44003778,
-        "skill": "class_chronicles_novice",
-        "disposition": "retired automatically on that character's next authoritative database load"
-      }
-    ],
-    "result": "passed"
+    "currentBuildDatabaseSnapshot": {
+      "capturedAtUtc": "2026-08-06T12:11:56.037Z",
+      "characters": [
+        {
+          "character": "Icai Darkwave",
+          "characterObject": 39008597,
+          "lastLoginAt": "2026-08-02T01:31:10",
+          "retiredClassOrExpertiseRows": 0,
+          "chroniclesExperienceRows": 0,
+          "positiveChroniclesExperiencePoints": 0,
+          "currentBuildReloadObserved": false
+        },
+        {
+          "character": "PrecuRuntime",
+          "characterObject": 44003778,
+          "lastLoginAt": "2026-07-28T19:37:59",
+          "retiredClassOrExpertiseRows": 1,
+          "retiredSkills": [
+            "class_chronicles_novice"
+          ],
+          "chroniclesExperienceRows": 0,
+          "positiveChroniclesExperiencePoints": 0,
+          "currentBuildReloadObserved": false,
+          "disposition": "dirty persisted fixture available for the next authoritative current-build reload"
+        }
+      ]
+    },
+    "result": "build-and-database-snapshot-passed-current-build-reload-pending"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
@@ -95,30 +118,33 @@
       "pgc_quests.java": "7957061f45d16b3739f7dec42a2c475b0ef203efd3915ae63926e73069c33bef",
       "base_player.java": "bd61440058f9f3778290b8ef9167fe6fc05450a95e4f6f5f82cac950d4db78a6"
     },
-    "cppCompile": "pending",
-    "javaCompile": "focused-pass",
+    "cppCompile": "passed",
+    "cppCompileEvidence": "compiled from pushed native source 650c594554f71e02cebd9577466fa50c007088f4 during the canonical clean Docker x86-64 Release build",
+    "javaCompile": "full-pass; 5713 sources compiled and 5747 classes emitted",
     "focusedClassSha256": {
       "xp.class": "95c4eb02a2c622022e545af4f67196bc88dab8c062a137abfbae4f61a603c3cc",
       "pgc_quests.class": "c58467e3ae9915508b8ed189d2c4a4418c648b2f681564c146261478bf842c70",
       "base_player.class": "2eff0b7c86e537df8be361a4cceabdd93c0fbe0b16bc506fe984f82bdaf85f8b"
     },
-    "serverGameArchiveSha256": "0c41270f0b821efcd19e0fd08ed00811c7f8edfeba2397df4d2d57d3430a6f79",
+    "deployedClassSha256": {
+      "xp.class": "8ff68d8158fde12d9f976692b2ef87a9f370a569116c6c530a0ab8132a2d312b",
+      "pgc_quests.class": "f12578a929612fbd0f621518e0299e12b9dedc3401ff38b94db986892ad0bd17",
+      "base_player.class": "9df7cb0a6b558f1b53e2ee91828124595f05da9bcab29d3318ad906970969bdd"
+    },
+    "fullServerBuild": "passed; canonical clean Docker x86-64 Release deployment completed in 860 seconds from pushed parent 41f10ca, direct dsrc 901b895ea94f1e8299873f85485c1ad7730bb609, and native source 650c594554f71e02cebd9577466fa50c007088f4",
+    "serverGameArchiveSha256": "3fafc5a7b05e2347c30f06a5266211b5919d8ace079a5ae7b7895485e5e39b8d",
     "architecture": "x86-64",
-    "buildIdSha1": "2d5816401a6d9330702a039bbd91a4e80d047c57",
-    "serverBinarySha256": "2bccde8ae18dc4a66908ce978c53203c03e76d6f3f7bfd2e106a690249b580d3",
+    "buildIdSha1": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
+    "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "container": "swg-precu",
-    "containerStartedAt": "2026-08-01T18:41:43.989642891Z",
+    "containerStartedAt": "2026-08-06T12:03:40.763781141Z",
     "containerHealthy": true,
     "clusterReady": true,
     "sourceAndBuildVolumeMatch": true,
     "liveProcessMatchesBinary": true,
-    "result": "pending"
+    "result": "passed"
   },
   "requiredBeforeReady": [
-    "clean overlay materialization passes",
-    "contract test passes against the clean materialization",
-    "x64 server build passes",
-    "deployed server is healthy and player-ready",
-    "Icai reload removes class_chronicles_novice, class_forcesensitive_phase1_novice, expertise, and any Chronicles XP from persisted progression state"
+    "an authoritative current-build reload of the dirty PrecuRuntime fixture removes class_chronicles_novice and leaves zero positive Chronicles XP in persisted progression state"
   ]
 }
