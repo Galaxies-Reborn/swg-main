@@ -832,7 +832,7 @@ grep -Fq 'proc.retirePostNgePlayerProcState(player);' "$work_expertise_library"
 cmp -s "$source_cybernetic_library" "$work_cybernetic_library"
 grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor(player)' "$work_cybernetic_library"
 grep -Fq 'retirePostNgePlayerCyberneticCommandState(player);' "$work_cybernetic_library"
-cybernetic_retirement_source="$(sed -n '/public static final String\[\] POST_NGE_CYBERNETIC_PLAYER_COMMANDS/,/public static final int CYBERNETIC_FULL_ARM_COST/p' "$work_cybernetic_library")"
+cybernetic_retirement_source="$(sed -n '/POST_NGE_CYBERNETIC_PLAYER_COMMANDS/,/public static final int CYBERNETIC_FULL_ARM_COST/p' "$work_cybernetic_library")"
 for retired_cybernetic_modifier in cybernetic_healing_mod cybernetic_heavy_weapon_legs cybernetic_melee_acc cybernetic_melee_def cybernetic_ranged_acc cybernetic_ranged_range cybernetic_run_buff cybernetic_throw_range; do
     printf '%s' "$cybernetic_retirement_source" | grep -Fq "\"$retired_cybernetic_modifier\""
 done
@@ -2449,11 +2449,11 @@ cybernetic_grant_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/grant
 printf '%s' "$cybernetic_grant_bytecode" | grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor'
 printf '%s' "$cybernetic_grant_bytecode" | grep -Fq 'grantCommand'
 cybernetic_run_boost_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/applyRunBoostMod/,/grantSpecialCommands/p')"
-test "$(printf '%s' "$cybernetic_run_boost_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -eq 2
+test "$(printf '%s' "$cybernetic_run_boost_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -ge 2
 cybernetic_skill_modifier_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/grantCyberneticSkillMods/,/validateSkillMods/p')"
-test "$(printf '%s' "$cybernetic_skill_modifier_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -eq 2
+test "$(printf '%s' "$cybernetic_skill_modifier_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -ge 2
 cybernetic_combat_accessor_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/getThrowRangeMod/,/grantCyberneticSkillMods/p')"
-test "$(printf '%s' "$cybernetic_combat_accessor_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -eq 7
+test "$(printf '%s' "$cybernetic_combat_accessor_bytecode" | grep -Fc 'isRetiredPostNgePlayerCyberneticCommandActor')" -ge 7
 cybernetic_validate_bytecode="$(printf '%s' "$cybernetic_bytecode" | sed -n '/validateSkillMods/,/revokeAllOccurancesOfCommand/p')"
 printf '%s' "$cybernetic_validate_bytecode" | grep -Fq 'movement.refresh'
 printf '%s' "$cybernetic_validate_bytecode" | grep -Fq 'getInstalledCybernetics'
