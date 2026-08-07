@@ -33,14 +33,42 @@ function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker
     return $Text.Substring($start, $end - $start)
 }
 
+function Is-Before([string]$Text, [string]$First, [string]$Second)
+{
+    $firstIndex = $Text.IndexOf($First, [System.StringComparison]::Ordinal)
+    $secondIndex = $Text.IndexOf($Second, [System.StringComparison]::Ordinal)
+    return $firstIndex -ge 0 -and $secondIndex -ge 0 -and $firstIndex -lt $secondIndex
+}
+
+function Get-JavaHandlerSlice([string]$Text, [string]$Name)
+{
+    $marker = "public int $Name("
+    $start = $Text.IndexOf($marker, [System.StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $next = $Text.IndexOf("public int ", $start + $marker.Length, [System.StringComparison]::Ordinal)
+    if ($next -lt 0) { return $Text.Substring($start) }
+    return $Text.Substring($start, $next - $start)
+}
+
 $procPath = Join-Path $serverGame "script/library/proc.java"
 $expertisePath = Join-Path $serverGame "script/library/expertise.java"
 $cyberneticPath = Join-Path $serverGame "script/library/cybernetic.java"
+$buffPath = Join-Path $serverGame "script/library/buff.java"
+$combatActionsPath = Join-Path $serverGame "script/systems/combat/combat_actions.java"
+$combatBasePath = Join-Path $serverGame "script/systems/combat/combat_base.java"
 $procDataPath = Join-Path $serverGame "datatables/proc/proc.tab"
 $cyberneticDataPath = Join-Path $serverGame "datatables/cybernetic/cybernetic.tab"
 $weaponDataPath = Join-Path $serverGame "datatables/item/master_item/weapon_stats.tab"
 $armorDataPath = Join-Path $serverGame "datatables/item/master_item/armor_stats.tab"
-foreach ($path in @($procPath, $expertisePath, $cyberneticPath, $procDataPath, $cyberneticDataPath, $weaponDataPath, $armorDataPath))
+$sharedGame = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game"
+$buffDataPath = Join-Path $sharedGame "datatables/buff/buff.tab"
+$commandDataPath = Join-Path $sharedGame "datatables/command/command_table.tab"
+$combatDataPath = Join-Path $sharedGame "datatables/combat/combat_data.tab"
+$authoritativeSourcePaths = @($procPath, $expertisePath, $cyberneticPath, $buffPath, $combatActionsPath, $combatBasePath)
+Assert-Contract ($authoritativeSourcePaths.Count -eq [int]$contract.expected.authoritativeSourceFiles) `
+    "p14.player-proc.authoritative-source-count"
+foreach ($path in @($authoritativeSourcePaths + @($procDataPath, $cyberneticDataPath, $weaponDataPath, $armorDataPath,
+    $buffDataPath, $commandDataPath, $combatDataPath)))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) "p14.player-proc.source.$([IO.Path]::GetFileName($path)).exists"
 }
@@ -51,14 +79,29 @@ $expertiseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $expertisePath).Ha
 Assert-Contract ($expertiseHash -ceq [string]$contract.buildEvidence.sourceSha256."library/expertise.java") "p14.player-proc.expertise-source.authenticated"
 $cyberneticHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $cyberneticPath).Hash.ToLowerInvariant()
 Assert-Contract ($cyberneticHash -ceq [string]$contract.buildEvidence.sourceSha256."library/cybernetic.java") "p14.player-proc.cybernetic-source.authenticated"
+$buffHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $buffPath).Hash.ToLowerInvariant()
+Assert-Contract ($buffHash -ceq [string]$contract.buildEvidence.sourceSha256."library/buff.java") "p14.player-proc.buff-source.authenticated"
+$combatActionsHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $combatActionsPath).Hash.ToLowerInvariant()
+Assert-Contract ($combatActionsHash -ceq [string]$contract.buildEvidence.sourceSha256."systems/combat/combat_actions.java") "p14.player-proc.combat-actions-source.authenticated"
+$combatBaseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $combatBasePath).Hash.ToLowerInvariant()
+Assert-Contract ($combatBaseHash -ceq [string]$contract.buildEvidence.sourceSha256."systems/combat/combat_base.java") "p14.player-proc.combat-base-source.authenticated"
 $procSource = Get-Content -LiteralPath $procPath -Raw
 $expertiseSource = Get-Content -LiteralPath $expertisePath -Raw
 $cyberneticSource = Get-Content -LiteralPath $cyberneticPath -Raw
+$buffSource = Get-Content -LiteralPath $buffPath -Raw
+$combatActionsSource = Get-Content -LiteralPath $combatActionsPath -Raw
+$combatBaseSource = Get-Content -LiteralPath $combatBasePath -Raw
 $retirementFlag = Get-SourceSlice $procSource `
     "public static boolean isPostNgePlayerProcRuntimeRetired" `
     "public static boolean isRetiredPostNgePlayerProcActor"
 $actorPredicate = Get-SourceSlice $procSource `
     "public static boolean isRetiredPostNgePlayerProcActor" `
+    "private static boolean isPostNgePlayerProcEffectParameter"
+$procBuffPredicate = Get-SourceSlice $procSource `
+    "private static boolean isPostNgePlayerProcEffectParameter" `
+    "public static boolean isRetiredPostNgePlayerProcAction"
+$procActionPredicate = Get-SourceSlice $procSource `
+    "public static boolean isRetiredPostNgePlayerProcAction" `
     "public static void retirePostNgePlayerProcState"
 $cleanup = Get-SourceSlice $procSource `
     "public static void retirePostNgePlayerProcState" `
@@ -76,11 +119,40 @@ $buildReac = Get-SourceSlice $procSource `
 Assert-Contract ($retirementFlag.Contains("return true;")) "p14.player-proc.retirement-flag"
 Assert-Contract ($actorPredicate.Contains("isPostNgePlayerProcRuntimeRetired()") -and
     $actorPredicate.Contains("isIdValid(actor) && isPlayer(actor)")) "p14.player-proc.player-only-boundary"
+Assert-Contract ($procBuffPredicate.Contains('"proc_buff".equals(effectParameter)') -and
+    $procBuffPredicate.Contains('"reac_buff".equals(effectParameter)') -and
+    ([regex]::Matches($procBuffPredicate, 'isPostNgePlayerProcEffectParameter\(data\.effect[1-5]Param\)').Count -eq 5) -and
+    $procBuffPredicate.Contains("isRetiredPostNgePlayerProcActor(player)")) `
+    "p14.player-proc.buff-predicate.player-only"
+Assert-Contract ($procActionPredicate.Contains("isRetiredPostNgePlayerProcActor(actor)") -and
+    $procActionPredicate.Contains("dataTableGetRow(PROC_TABLE, actionName) != null")) `
+    "p14.player-proc.action-predicate.player-only"
 foreach ($scriptVar in @("expertiseProcReacList", "currentProcList", "currentReacList", "procBuffEffects", "reacBuffEffects"))
 {
     Assert-Contract ($cleanup.Contains('"' + $scriptVar + '"')) "p14.player-proc.cleanup.$scriptVar"
 }
 Assert-Contract ($cleanup.Contains('utils.removeScriptVarTree(player, "reactive_proc");')) "p14.player-proc.cleanup.reactive-cooldowns"
+Assert-Contract ([bool]$contract.expected.persistedPlayerProcBuffsCleaned -and
+    $cleanup.Contains("buff.getAllBuffs(player)") -and
+    $cleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $cleanup.Contains("isRetiredPostNgePlayerProcBuff(player, data)") -and
+    $cleanup.Contains("buff.removeBuff(player, activeBuff)")) `
+    "p14.player-proc.cleanup.active-proc-buffs"
+
+$buffAdmission = Get-SourceSlice $buffSource `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+Assert-Contract (-not [bool]$contract.expected.playerProcBuffAdmissionReachable -and
+    (Is-Before $buffAdmission "proc.isRetiredPostNgePlayerProcBuff(target, bdata)" "hasBuff(target, nameCrc)")) `
+    "p14.player-proc.buff-admission.generic-retirement"
+
+$standardAction = Get-SourceSlice $combatBaseSource `
+    "public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)" `
+    "combat.revealPrecuFeignDeath(self, `"combatCommand`")"
+Assert-Contract (-not [bool]$contract.expected.playerProcCombatActionAdmissionReachable -and
+    $standardAction.Contains("proc.isRetiredPostNgePlayerProcAction(self, actionName)") -and
+    $standardAction.Contains("proc.retirePostNgePlayerProcState(self)")) `
+    "p14.player-proc.combat-action.generic-retirement"
 Assert-Contract ($execute.Contains("retirePostNgePlayerProcState(attacker);") -and
     $execute.Contains("retirePostNgePlayerProcState(defender);") -and
     $execute.IndexOf("retirePostNgePlayerProcState(attacker);", [System.StringComparison]::Ordinal) -lt
@@ -228,6 +300,9 @@ Assert-Contract ($expertiseCacheSites -eq [int]$contract.diagnosis.directExperti
     "p14.player-proc.expertise-cache-inventory"
 
 $procRows = @(Import-SwgTab -Path $procDataPath)
+$buffRows = @(Import-SwgTab -Path $buffDataPath)
+$commandRows = @(Import-SwgTab -Path $commandDataPath)
+$combatRows = @(Import-SwgTab -Path $combatDataPath)
 $cyberneticRows = @(Import-SwgTab -Path $cyberneticDataPath)
 $weaponRows = @(Import-SwgTab -Path $weaponDataPath)
 $armorRows = @(Import-SwgTab -Path $armorDataPath)
@@ -238,9 +313,63 @@ $cyberneticMovementBuffRows = @($cyberneticRows | Where-Object { [string]$_.move
 $cyberneticCommandNames = @($cyberneticCommandRows.specialCommand | Sort-Object -Unique)
 $expectedCyberneticCommandNames = @($contract.diagnosis.retiredCyberneticPlayerCommands | ForEach-Object { [string]$_ } | Sort-Object -Unique)
 $armorReactiveRows = @($armorRows | Where-Object { [string]$_.reactive_effect })
+$procCommands = @($procRows.procString | Sort-Object -Unique)
+$procBuffRows = @($buffRows | Where-Object {
+    @([string]$_.EFFECT1_PARAM, [string]$_.EFFECT2_PARAM, [string]$_.EFFECT3_PARAM,
+        [string]$_.EFFECT4_PARAM, [string]$_.EFFECT5_PARAM) |
+        Where-Object { $_ -ceq "proc_buff" -or $_ -ceq "reac_buff" }
+})
+$procEffectParameters = @($procBuffRows | ForEach-Object {
+    @([string]$_.EFFECT1_PARAM, [string]$_.EFFECT2_PARAM, [string]$_.EFFECT3_PARAM,
+        [string]$_.EFFECT4_PARAM, [string]$_.EFFECT5_PARAM)
+} | Where-Object { $_ -ceq "proc_buff" -or $_ -ceq "reac_buff" } | Sort-Object -Unique)
+$procCommandRows = @($commandRows | Where-Object { $procCommands -ccontains [string]$_.commandName })
+$procCombatRows = @($combatRows | Where-Object { $procCommands -ccontains [string]$_.actionName })
 Assert-Contract ($procRows.Count -eq [int]$contract.diagnosis.procTableRows -and
-    @($procRows.procString | Sort-Object -Unique).Count -eq [int]$contract.diagnosis.distinctProcCommands -and
+    $procCommands.Count -eq [int]$contract.diagnosis.distinctProcCommands -and
     @($procRows | Where-Object { [string]$_.procChance -ceq "100" }).Count -eq [int]$contract.diagnosis.guaranteedProcRows) "p14.player-proc.proc-data-inventory"
+Assert-Contract ($procBuffRows.Count -eq [int]$contract.diagnosis.procBuffRows -and
+    @($procBuffRows.NAME | Sort-Object -Unique).Count -eq [int]$contract.diagnosis.distinctProcBuffNames -and
+    $procEffectParameters.Count -eq [int]$contract.diagnosis.procEffectParameters -and
+    (($procEffectParameters -join ([char]0)) -ceq ((@("proc_buff", "reac_buff") | Sort-Object) -join ([char]0)))) `
+    "p14.player-proc.buff-data-inventory"
+Assert-Contract ($procCommandRows.Count -eq [int]$contract.diagnosis.retainedProcCommandRows -and
+    @($procCommandRows.commandName | Sort-Object -Unique).Count -eq $procCommands.Count -and
+    $procCombatRows.Count -eq [int]$contract.diagnosis.retainedProcCombatRows -and
+    @($procCombatRows.actionName | Sort-Object -Unique).Count -eq $procCommands.Count) `
+    "p14.player-proc.command-combat-data-preserved"
+
+$standardHandlerCount = 0
+$directHandlerCount = 0
+$uncoveredHandlers = [System.Collections.Generic.List[string]]::new()
+foreach ($procCommand in $procCommands)
+{
+    $handler = Get-JavaHandlerSlice $combatActionsSource $procCommand
+    if ($handler.Contains('combatStandardAction("' + $procCommand + '"'))
+    {
+        $standardHandlerCount++
+    }
+    elseif ($procCommand -ceq "expertise_fs_flurry_charge_proc" -and
+        $handler.Contains('proc.isRetiredPostNgePlayerProcAction(self, "expertise_fs_flurry_charge_proc")') -and
+        $handler.Contains("proc.retirePostNgePlayerProcState(self)") -and
+        (Is-Before $handler "proc.isRetiredPostNgePlayerProcAction" "buff.isInStance(self)"))
+    {
+        $directHandlerCount++
+    }
+    else
+    {
+        $uncoveredHandlers.Add($procCommand)
+    }
+}
+Assert-Contract ([bool]$contract.expected.allProcCombatHandlersCovered -and
+    $procCommands.Count -eq [int]$contract.diagnosis.procCombatActionHandlers -and
+    $standardHandlerCount -eq [int]$contract.diagnosis.procStandardActionHandlers -and
+    $directHandlerCount -eq [int]$contract.diagnosis.procDirectActionHandlers -and
+    $uncoveredHandlers.Count -eq 0) "p14.player-proc.combat-handler-inventory"
+Assert-Contract ([bool]$contract.expected.nonPlayerProcBuffAndActionCompatibilityPreserved -and
+    $actorPredicate.Contains("isIdValid(actor) && isPlayer(actor)") -and
+    $execute.Contains("if (!isMob(attacker))") -and $execute.Contains("if (!isMob(defender))")) `
+    "p14.player-proc.non-player-compatibility.preserved"
 Assert-Contract ($weaponProcRows.Count -eq [int]$contract.diagnosis.weaponRowsWithProcEffects -and
     @($weaponProcRows.proc_effect | Sort-Object -Unique).Count -eq [int]$contract.diagnosis.distinctWeaponProcEffects) "p14.player-proc.weapon-data-inventory"
 Assert-Contract ($cyberneticRows.Count -eq [int]$contract.diagnosis.cyberneticRows -and
@@ -261,6 +390,9 @@ foreach ($commandName in $expectedCyberneticCommandNames)
 
 foreach ($evidence in @(
     @{ Path = $procDataPath; Hash = [string]$contract.continuityEvidence.procDataSha256; Name = "proc-data" },
+    @{ Path = $buffDataPath; Hash = [string]$contract.continuityEvidence.buffDataSha256; Name = "buff-data" },
+    @{ Path = $commandDataPath; Hash = [string]$contract.continuityEvidence.commandDataSha256; Name = "command-data" },
+    @{ Path = $combatDataPath; Hash = [string]$contract.continuityEvidence.combatDataSha256; Name = "combat-data" },
     @{ Path = $cyberneticDataPath; Hash = [string]$contract.continuityEvidence.cyberneticDataSha256; Name = "cybernetic-data" },
     @{ Path = $weaponDataPath; Hash = [string]$contract.continuityEvidence.weaponDataSha256; Name = "weapon-data" },
     @{ Path = $armorDataPath; Hash = [string]$contract.continuityEvidence.armorDataSha256; Name = "armor-data" }
@@ -282,9 +414,16 @@ if ($Expectation -eq "Ready")
         [string]$contract.runtimeEvidence.result -ceq "passed") "p14.player-proc.ready-evidence"
     Assert-Contract ($dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceCommit) "p14.player-proc.direct-source-pin"
-    Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256."library/proc.class" -cne "pending" -and
-        [string]$contract.buildEvidence.compiledClassSha256."library/expertise.class" -cne "pending" -and
-        [string]$contract.buildEvidence.compiledClassSha256."library/cybernetic.class" -cne "pending" -and
+    $compiledEvidence = @(
+        [string]$contract.buildEvidence.compiledClassSha256."library/proc.class",
+        [string]$contract.buildEvidence.compiledClassSha256."library/expertise.class",
+        [string]$contract.buildEvidence.compiledClassSha256."library/cybernetic.class",
+        [string]$contract.buildEvidence.compiledClassSha256."library/buff.class",
+        [string]$contract.buildEvidence.compiledClassSha256."systems/combat/combat_actions.class",
+        [string]$contract.buildEvidence.compiledClassSha256."systems/combat/combat_base.class"
+    )
+    Assert-Contract ($compiledEvidence.Count -eq [int]$contract.expected.authoritativeSourceFiles -and
+        @($compiledEvidence | Where-Object { [string]::IsNullOrWhiteSpace($_) -or $_ -ceq "pending" }).Count -eq 0 -and
         [string]$contract.buildEvidence.fullJavaCompile -like "passed*") "p14.player-proc.compiled-evidence"
     Assert-Contract ([bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) "p14.player-proc.live-evidence"

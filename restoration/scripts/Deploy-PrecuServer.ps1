@@ -303,6 +303,8 @@ source_collection_rewards="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/d
 work_collection_rewards="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab"
 source_combat_data="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 work_combat_data="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
+source_proc_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/proc/proc.tab"
+work_proc_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/proc/proc.tab"
 source_npc_combat_dir="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/combat"
 work_npc_combat_dir="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/combat"
 source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
@@ -829,6 +831,55 @@ cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
 cmp -s "$source_proc_library" "$work_proc_library"
+cmp -s "$source_proc_table" "$work_proc_table"
+test "$(awk -F '\t' 'NR > 2 { count++ } END { print count + 0 }' "$work_proc_table")" -eq 97
+test "$(awk -F '\t' 'NR > 2 { proc[$1] = 1 } END { for (name in proc) count++; print count + 0 }' "$work_proc_table")" -eq 96
+awk -F '\t' 'NR > 2 {
+    matched = 0
+    for (column = 8; column <= 16; column += 2)
+        if ($column == "proc_buff" || $column == "reac_buff") matched = 1
+    count += matched
+} END { if (count != 72) exit 3 }' "$work_buff_table"
+awk -F '\t' 'NR == FNR {
+    if (FNR > 2) proc[$1] = 1
+    next
+} FNR > 2 && ($1 in proc) { command[$1]++ }
+END {
+    for (name in command) commandCount++
+    if (commandCount != 96) exit 2
+    for (name in proc) if (command[name] != 1) exit 3
+}' "$work_proc_table" "$work_command_table"
+awk -F '\t' 'NR == FNR {
+    if (FNR > 2) proc[$1] = 1
+    next
+} FNR > 2 && ($1 in proc) { combat[$1]++ }
+END {
+    for (name in combat) combatCount++
+    if (combatCount != 96) exit 2
+    for (name in proc) if (combat[name] != 1) exit 3
+}' "$work_proc_table" "$work_combat_data"
+proc_buff_predicate_source="$(sed -n '/private static boolean isPostNgePlayerProcEffectParameter/,/public static boolean isRetiredPostNgePlayerProcAction/p' "$work_proc_library")"
+printf '%s' "$proc_buff_predicate_source" | grep -Fq '"proc_buff".equals(effectParameter)'
+printf '%s' "$proc_buff_predicate_source" | grep -Fq '"reac_buff".equals(effectParameter)'
+test "$(printf '%s' "$proc_buff_predicate_source" | grep -Ec 'isPostNgePlayerProcEffectParameter\(data\.effect[1-5]Param\)')" -eq 5
+printf '%s' "$proc_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerProcActor(player)'
+proc_action_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProcAction/,/public static void retirePostNgePlayerProcState/p' "$work_proc_library")"
+printf '%s' "$proc_action_predicate_source" | grep -Fq 'isRetiredPostNgePlayerProcActor(actor)'
+printf '%s' "$proc_action_predicate_source" | grep -Fq 'dataTableGetRow(PROC_TABLE, actionName) != null'
+proc_cleanup_source="$(sed -n '/public static void retirePostNgePlayerProcState/,/public static void executeProcEffects/p' "$work_proc_library")"
+printf '%s' "$proc_cleanup_source" | grep -Fq 'buff.getAllBuffs(player)'
+printf '%s' "$proc_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$proc_cleanup_source" | grep -Fq 'isRetiredPostNgePlayerProcBuff(player, data)'
+printf '%s' "$proc_cleanup_source" | grep -Fq 'buff.removeBuff(player, activeBuff)'
+proc_standard_action_source="$(sed -n '/public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)/,/combat.revealPrecuFeignDeath(self, "combatCommand")/p' "$work_combat_base")"
+printf '%s' "$proc_standard_action_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction(self, actionName)'
+printf '%s' "$proc_standard_action_source" | grep -Fq 'proc.retirePostNgePlayerProcState(self);'
+proc_direct_action_source="$(sed -n '/public int expertise_fs_flurry_charge_proc/,/public int meleeHit/p' "$work_combat_actions")"
+printf '%s' "$proc_direct_action_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction(self, "expertise_fs_flurry_charge_proc")'
+printf '%s' "$proc_direct_action_source" | grep -Fq 'proc.retirePostNgePlayerProcState(self);'
+proc_direct_gate_line="$(printf '%s\n' "$proc_direct_action_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcAction' | head -1 | cut -d: -f1)"
+proc_direct_effect_line="$(printf '%s\n' "$proc_direct_action_source" | grep -Fn 'buff.isInStance(self)' | head -1 | cut -d: -f1)"
+test "$proc_direct_gate_line" -lt "$proc_direct_effect_line"
 cmp -s "$source_expertise_library" "$work_expertise_library"
 grep -Fq 'if (proc.isRetiredPostNgePlayerProcActor(player))' "$work_expertise_library"
 grep -Fq 'proc.retirePostNgePlayerProcState(player);' "$work_expertise_library"
@@ -1427,9 +1478,12 @@ grep -Fq 'retirePostNgeBountyHunterShieldState(player);' "$work_buff_library"
 can_apply_buff_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
+proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$proc_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
 force_sensitive_stance_visual_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.playStanceVisual(self, effectName);' | head -1 | cut -d: -f1)"
@@ -2588,6 +2642,21 @@ expertise_cache_bytecode="$(javap -classpath "$class_root" -c script.library.exp
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcActor'
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 printf '%s' "$expertise_cache_bytecode" | grep -Fq 'getSkillStatModListingForPlayer'
+proc_bytecode="$(javap -classpath "$class_root" -c -p script.library.proc)"
+printf '%s' "$proc_bytecode" | grep -Fq 'isRetiredPostNgePlayerProcBuff'
+printf '%s' "$proc_bytecode" | grep -Fq 'isRetiredPostNgePlayerProcAction'
+proc_cleanup_bytecode="$(printf '%s' "$proc_bytecode" | sed -n '/retirePostNgePlayerProcState/,/executeProcEffects/p')"
+printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.getAllBuffs'
+printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.removeBuff'
+buff_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/applyBuff(script.obj_id, java.lang.String)/p')"
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff'
+combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
+printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
+printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
+proc_direct_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/expertise_fs_flurry_charge_proc/,/meleeHit/p')"
+printf '%s' "$proc_direct_action_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
+printf '%s' "$proc_direct_action_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 cybernetic_bytecode="$(javap -classpath "$class_root" -c -p script.library.cybernetic)"
 cybernetic_constants="$(javap -classpath "$class_root" -v script.library.cybernetic)"
 printf '%s' "$cybernetic_bytecode" | grep -Fq 'isRetiredPostNgePlayerCyberneticCommandActor'
