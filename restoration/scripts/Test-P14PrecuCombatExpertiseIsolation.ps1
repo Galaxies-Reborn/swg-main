@@ -371,6 +371,150 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
+$expectedDamageDealtOverrideBuffValues = [ordered]@{
+    bm_enrage = "2"
+    kun_one_sacrifice = "1.25"
+    kun_two_sacrifice = "1.5"
+    kun_three_sacrifice = "1.75"
+    kun_four_sacrifice = "2"
+    kun_five_sacrifice = "2.25"
+    kun_six_sacrifice = "2.5"
+    kun_seven_sacrifice = "2.75"
+    kun_eight_sacrifice = "3"
+    minder_add_debuff = "0.5"
+    open_add_debuff = "0.9"
+}
+$damageDealtEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "damageDealtMod" })
+$damageDealtBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq "damage_dealt_mod"
+    }).Count -gt 0
+})
+$damageDealtInventoryMatches = @($damageDealtBuffRows | Where-Object {
+    $expectedDamageDealtOverrideBuffValues.Contains([string]$_.NAME) -and
+    [string]$_.EFFECT1_PARAM -ceq "damage_dealt_mod" -and
+    [string]$_.EFFECT1_VALUE -ceq
+        [string]$expectedDamageDealtOverrideBuffValues[[string]$_.NAME] -and
+    [string]$_.IS_PERSISTENT -ceq "1"
+})
+Assert-Contract ($damageDealtEffectMappings.Count -eq
+        [int]$contract.expected.retainedNgeDamageDealtOverrideEffectMappingRows -and
+    [string]$damageDealtEffectMappings[0].NAME -ceq "damage_dealt_mod" -and
+    [string]$damageDealtEffectMappings[0].SUBTYPE -ceq "damage_dealt_mod" -and
+    $damageDealtBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeDamageDealtOverrideBuffRows -and
+    $damageDealtInventoryMatches.Count -eq
+        [int]$contract.expected.retainedNgeDamageDealtOverrideBuffRows) `
+    "p14.combat-expertise-isolation.buff.damage-dealt-override-data-inventory-authenticated"
+
+$damageDealtEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageDealtOverrideEffect(String effectName)"
+$damageDealtBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageDealtOverrideBuff(obj_id target, buff_data data)"
+$damageDealtRestore = Get-BracedBlock $buffLibrary `
+    "public static void restorePostNgePlayerDamageDealtOverride(obj_id player)"
+$damageDealtCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerDamageDealtOverrideState(obj_id player)"
+$damageDealtProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$damageDealtCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$damageDealtAdmissionGate = $damageDealtCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerDamageDealtOverrideBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$damageDealtExistingBuffReturn = $damageDealtCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$damageDealtScaleRead = $damageDealtRestore.IndexOf(
+    'utils.getFloatScriptVar(player, "damageDealtMod.scale")',
+    [StringComparison]::Ordinal)
+$damageDealtStateClear = $damageDealtRestore.IndexOf(
+    'utils.removeScriptVarTree(player, "damageDealtMod")',
+    [StringComparison]::Ordinal)
+$damageDealtScaleRestore = $damageDealtRestore.IndexOf(
+    "setScale(player, recordedScale)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_DAMAGE_DEALT_OVERRIDE_EFFECT = "damage_dealt_mod"') -and
+    $damageDealtEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_DAMAGE_DEALT_OVERRIDE_EFFECT") -and
+    $damageDealtBuffPredicate.Contains("!isPlayer(target)") -and
+    $damageDealtBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $damageDealtBuffPredicate.Contains(
+        "isRetiredPostNgePlayerDamageDealtOverrideEffect(getEffectParam(data, effect))") -and
+    $damageDealtCleanup.Contains("!isPlayer(player)") -and
+    $damageDealtCleanup.Contains("getAllBuffs(player)") -and
+    $damageDealtCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $damageDealtCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $damageDealtCleanup.Contains("restorePostNgePlayerDamageDealtOverride(player)") -and
+    $damageDealtProgressionCleanup.Contains(
+        "retirePostNgePlayerDamageDealtOverrideState(player);") -and
+    $damageDealtAdmissionGate -ge 0 -and
+    $damageDealtExistingBuffReturn -gt $damageDealtAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeDamageDealtOverrideBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeDamageDealtOverrideStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeDamageDealtOverrideCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.player-damage-dealt-override-admission-and-persistence-fail-closed"
+Assert-Contract ($damageDealtRestore.Contains("!isPlayer(player)") -and
+    $damageDealtRestore.Contains(
+        'utils.hasScriptVar(player, "damageDealtMod.value")') -and
+    $damageDealtRestore.Contains(
+        'utils.hasScriptVar(player, "damageDealtMod.scale")') -and
+    $damageDealtScaleRead -ge 0 -and
+    $damageDealtStateClear -gt $damageDealtScaleRead -and
+    $damageDealtScaleRestore -gt $damageDealtStateClear -and
+    $damageDealtRestore.Contains("recordedScale > 0.0f") -and
+    [bool]$contract.expected.recordedPlayerScaleRestoredFromCapturedState) `
+    "p14.combat-expertise-isolation.buff.player-damage-dealt-override-scale-restoration-bounded"
+
+$damageDealtHandlerNames = @(
+    "damageDealtModAddBuffHandler",
+    "damageDealtModRemoveBuffHandler"
+)
+$guardedDamageDealtHandlers = 0
+foreach ($handlerName in $damageDealtHandlerNames)
+{
+    $handler = Get-BracedBlock $buffHandler ("public int " + $handlerName + "(")
+    $playerGuard = $handler.IndexOf("if (isPlayer(self))", [StringComparison]::Ordinal)
+    $cleanup = $handler.IndexOf(
+        "buff.restorePostNgePlayerDamageDealtOverride(self);",
+        [StringComparison]::Ordinal)
+    $playerReturn = $handler.IndexOf("return SCRIPT_CONTINUE;", $cleanup,
+        [StringComparison]::Ordinal)
+    $retainedPath = if ($handlerName -ceq "damageDealtModAddBuffHandler") {
+        $handler.IndexOf('utils.setScriptVar(self, "damageDealtMod.value", value)',
+            [StringComparison]::Ordinal)
+    } else {
+        $handler.IndexOf('utils.getFloatScriptVar(self, "damageDealtMod.scale")',
+            [StringComparison]::Ordinal)
+    }
+    if ($playerGuard -ge 0 -and $cleanup -gt $playerGuard -and
+        $playerReturn -gt $cleanup -and $retainedPath -gt $playerReturn)
+    {
+        ++$guardedDamageDealtHandlers
+    }
+}
+Assert-Contract ($guardedDamageDealtHandlers -eq
+        [int]$contract.expected.productionDamageDealtOverrideHandlersGuarded) `
+    "p14.combat-expertise-isolation.buff.damage-dealt-override-handlers-player-fail-closed"
+
+$rawDamage = Get-BracedBlock $combatBase "public dictionary getRawDamage("
+$damageDealtConsumerPlayerGuard = $rawDamage.IndexOf(
+    "if (isPlayer(attacker))", [StringComparison]::Ordinal)
+$damageDealtConsumerCleanup = $rawDamage.IndexOf(
+    "buff.restorePostNgePlayerDamageDealtOverride(attacker);",
+    [StringComparison]::Ordinal)
+$damageDealtConsumerRead = $rawDamage.IndexOf(
+    'utils.getFloatScriptVar(attacker, "damageDealtMod.value")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($damageDealtConsumerPlayerGuard -ge 0 -and
+    $damageDealtConsumerCleanup -gt $damageDealtConsumerPlayerGuard -and
+    $damageDealtConsumerRead -gt $damageDealtConsumerCleanup -and
+    $rawDamage.Contains("minDamage *= enragedMod") -and
+    $rawDamage.Contains("maxDamage *= enragedMod") -and
+    [bool]$contract.expected.playerDamageConsumerClearsOverrideBeforeRead) `
+    "p14.combat-expertise-isolation.hit.player-damage-dealt-override-cleared-before-consumer"
+
 $weaponSpeedEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object { [string]$_.TYPE -ceq "weaponSpeedMod" })
 $weaponSpeedBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {

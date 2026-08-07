@@ -1353,6 +1353,76 @@ printf '%s' "$command_grant_remove_source" | grep -Fq 'isPlayer(self)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'while (hasCommand(self, subType))'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'revokeCommand(self, subType)'
+awk -F '\t' '$1 == "damage_dealt_mod" && $2 == "damageDealtMod" && $3 == "damage_dealt_mod" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+BEGIN {
+    expected["bm_enrage"] = "2"
+    expected["kun_one_sacrifice"] = "1.25"
+    expected["kun_two_sacrifice"] = "1.5"
+    expected["kun_three_sacrifice"] = "1.75"
+    expected["kun_four_sacrifice"] = "2"
+    expected["kun_five_sacrifice"] = "2.25"
+    expected["kun_six_sacrifice"] = "2.5"
+    expected["kun_seven_sacrifice"] = "2.75"
+    expected["kun_eight_sacrifice"] = "3"
+    expected["minder_add_debuff"] = "0.5"
+    expected["open_add_debuff"] = "0.9"
+}
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2) {
+        if ($parameterColumn == "damage_dealt_mod") ownsEffect = 1
+    }
+    if (ownsEffect) {
+        rows++
+        seen[$1]++
+        if (!($1 in expected) || $8 != "damage_dealt_mod" || $9 != expected[$1] || $30 != "1") exit 2
+    }
+}
+END {
+    if (rows != 11) exit 3
+    for (name in expected) if (seen[name] != 1) exit 4
+}
+' "$work_buff_table"
+damage_dealt_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerDamageDealtOverrideEffect/,/public static boolean isRetiredPostNgePlayerDamageDealtOverrideBuff/p' "$work_buff_library")"
+printf '%s' "$damage_dealt_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_DAMAGE_DEALT_OVERRIDE_EFFECT'
+grep -Fq 'RETIRED_POST_NGE_PLAYER_DAMAGE_DEALT_OVERRIDE_EFFECT = "damage_dealt_mod"' "$work_buff_library"
+damage_dealt_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerDamageDealtOverrideBuff/,/public static void restorePostNgePlayerDamageDealtOverride/p' "$work_buff_library")"
+printf '%s' "$damage_dealt_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$damage_dealt_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$damage_dealt_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerDamageDealtOverrideEffect(getEffectParam(data, effect))'
+damage_dealt_restore_source="$(sed -n '/public static void restorePostNgePlayerDamageDealtOverride/,/public static void retirePostNgePlayerDamageDealtOverrideState/p' "$work_buff_library")"
+damage_dealt_scale_read_line="$(printf '%s\n' "$damage_dealt_restore_source" | grep -Fn 'utils.getFloatScriptVar(player, "damageDealtMod.scale")' | head -1 | cut -d: -f1)"
+damage_dealt_state_clear_line="$(printf '%s\n' "$damage_dealt_restore_source" | grep -Fn 'utils.removeScriptVarTree(player, "damageDealtMod")' | head -1 | cut -d: -f1)"
+damage_dealt_scale_restore_line="$(printf '%s\n' "$damage_dealt_restore_source" | grep -Fn 'setScale(player, recordedScale)' | head -1 | cut -d: -f1)"
+test "$damage_dealt_scale_read_line" -lt "$damage_dealt_state_clear_line"
+test "$damage_dealt_state_clear_line" -lt "$damage_dealt_scale_restore_line"
+printf '%s' "$damage_dealt_restore_source" | grep -Fq 'recordedScale > 0.0f'
+damage_dealt_cleanup_source="$(sed -n '/public static void retirePostNgePlayerDamageDealtOverrideState/,/private static final String RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT/p' "$work_buff_library")"
+printf '%s' "$damage_dealt_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$damage_dealt_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$damage_dealt_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s' "$damage_dealt_cleanup_source" | grep -Fq 'restorePostNgePlayerDamageDealtOverride(player)'
+grep -Fq 'retirePostNgePlayerDamageDealtOverrideState(player);' "$work_buff_library"
+damage_dealt_add_source="$(sed -n '/public int damageDealtModAddBuffHandler/,/public int damageDealtModRemoveBuffHandler/p' "$work_buff_handler")"
+damage_dealt_remove_source="$(sed -n '/public int damageDealtModRemoveBuffHandler/,/public int weaponSpeedModAddBuffHandler/p' "$work_buff_handler")"
+for damage_dealt_handler_source in "$damage_dealt_add_source" "$damage_dealt_remove_source"; do
+    damage_dealt_player_guard_line="$(printf '%s\n' "$damage_dealt_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+    damage_dealt_player_restore_line="$(printf '%s\n' "$damage_dealt_handler_source" | grep -Fn 'buff.restorePostNgePlayerDamageDealtOverride(self);' | head -1 | cut -d: -f1)"
+    damage_dealt_player_return_line="$(printf '%s\n' "$damage_dealt_handler_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)"
+    test "$damage_dealt_player_guard_line" -lt "$damage_dealt_player_restore_line"
+    test "$damage_dealt_player_restore_line" -lt "$damage_dealt_player_return_line"
+done
+test "$damage_dealt_player_return_line" -lt "$(printf '%s\n' "$damage_dealt_remove_source" | grep -Fn 'utils.getFloatScriptVar(self, "damageDealtMod.scale")' | head -1 | cut -d: -f1)"
+test "$(printf '%s\n' "$damage_dealt_add_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$damage_dealt_add_source" | grep -Fn 'utils.setScriptVar(self, "damageDealtMod.value", value)' | head -1 | cut -d: -f1)"
+raw_damage_source="$(sed -n '/public dictionary getRawDamage(/,/public dictionary getPrecuCore3RawDamage(/p' "$work_combat_base")"
+damage_dealt_consumer_guard_line="$(printf '%s\n' "$raw_damage_source" | grep -Fn 'if (isPlayer(attacker))' | head -1 | cut -d: -f1)"
+damage_dealt_consumer_cleanup_line="$(printf '%s\n' "$raw_damage_source" | grep -Fn 'buff.restorePostNgePlayerDamageDealtOverride(attacker);' | head -1 | cut -d: -f1)"
+damage_dealt_consumer_read_line="$(printf '%s\n' "$raw_damage_source" | grep -Fn 'utils.getFloatScriptVar(attacker, "damageDealtMod.value")' | head -1 | cut -d: -f1)"
+test "$damage_dealt_consumer_guard_line" -lt "$damage_dealt_consumer_cleanup_line"
+test "$damage_dealt_consumer_cleanup_line" -lt "$damage_dealt_consumer_read_line"
+printf '%s' "$raw_damage_source" | grep -Fq 'minDamage *= enragedMod'
+printf '%s' "$raw_damage_source" | grep -Fq 'maxDamage *= enragedMod'
 awk -F '\t' '$1 == "weapon_speed_mod" && $2 == "weaponSpeedMod" && $3 == "weapon_speed_mod" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
 awk -F '\t' '
 NR > 2 {
@@ -1705,12 +1775,14 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeForceSensitiveS
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerDamageDealtOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
 command_grant_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)' | head -1 | cut -d: -f1)"
+damage_dealt_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerDamageDealtOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 weapon_speed_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 critical_override_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
@@ -1718,6 +1790,7 @@ generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$proc_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$command_grant_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$damage_dealt_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$weapon_speed_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$critical_override_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
@@ -2889,6 +2962,7 @@ printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.removeBuff'
 buff_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/applyBuff(script.obj_id, java.lang.String)/p')"
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageDealtOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
@@ -2904,6 +2978,21 @@ printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'combat_engine.get
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'hasCommand'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'revokeCommand'
+buff_damage_dealt_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageDealtOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerDamageDealtOverrideBuff/p')"
+printf '%s' "$buff_damage_dealt_effect_predicate_bytecode" | grep -Fq 'damage_dealt_mod'
+buff_damage_dealt_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageDealtOverrideBuff/,/restorePostNgePlayerDamageDealtOverride/p')"
+printf '%s' "$buff_damage_dealt_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_damage_dealt_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageDealtOverrideEffect'
+buff_damage_dealt_restore_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/restorePostNgePlayerDamageDealtOverride/,/retirePostNgePlayerDamageDealtOverrideState/p')"
+printf '%s' "$buff_damage_dealt_restore_bytecode" | grep -Fq 'damageDealtMod.value'
+printf '%s' "$buff_damage_dealt_restore_bytecode" | grep -Fq 'damageDealtMod.scale'
+printf '%s' "$buff_damage_dealt_restore_bytecode" | grep -Fq 'utils.removeScriptVarTree'
+printf '%s' "$buff_damage_dealt_restore_bytecode" | grep -Fq 'setScale'
+buff_damage_dealt_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerDamageDealtOverrideState/,/isRetiredPostNgePlayerWeaponSpeedOverrideEffect/p')"
+printf '%s' "$buff_damage_dealt_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_damage_dealt_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_damage_dealt_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_damage_dealt_cleanup_bytecode" | grep -Fq 'restorePostNgePlayerDamageDealtOverride'
 buff_weapon_speed_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerWeaponSpeedOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerWeaponSpeedOverrideBuff/p')"
 printf '%s' "$buff_weapon_speed_effect_predicate_bytecode" | grep -Fq 'weapon_speed_mod'
 buff_weapon_speed_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerWeaponSpeedOverrideBuff/,/restorePostNgePlayerWeaponSpeedOverride/p')"
@@ -2936,6 +3025,16 @@ printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'combat_engine
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+damage_dealt_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/damageDealtModAddBuffHandler/,/damageDealtModRemoveBuffHandler/p')"
+printf '%s' "$damage_dealt_add_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$damage_dealt_add_bytecode" | grep -Fq 'buff.restorePostNgePlayerDamageDealtOverride'
+printf '%s' "$damage_dealt_add_bytecode" | grep -Fq 'damageDealtMod.value'
+printf '%s' "$damage_dealt_add_bytecode" | grep -Fq 'setScale'
+damage_dealt_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/damageDealtModRemoveBuffHandler/,/weaponSpeedModAddBuffHandler/p')"
+printf '%s' "$damage_dealt_remove_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$damage_dealt_remove_bytecode" | grep -Fq 'buff.restorePostNgePlayerDamageDealtOverride'
+printf '%s' "$damage_dealt_remove_bytecode" | grep -Fq 'damageDealtMod.scale'
+printf '%s' "$damage_dealt_remove_bytecode" | grep -Fq 'setScale'
 weapon_speed_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/weaponSpeedModAddBuffHandler/,/weaponSpeedModRemoveBuffHandler/p')"
 printf '%s' "$weapon_speed_add_bytecode" | grep -Fq 'isPlayer'
 printf '%s' "$weapon_speed_add_bytecode" | grep -Fq 'buff.restorePostNgePlayerWeaponSpeedOverride'
@@ -2971,6 +3070,11 @@ combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.comb
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 test "$(printf '%s' "$combat_base_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 2
+raw_damage_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/getRawDamage(script.obj_id, script.obj_id, script.combat_engine\$weapon_data/,/getPrecuCore3RawDamage/p')"
+damage_dealt_bytecode_cleanup_line="$(printf '%s\n' "$raw_damage_bytecode" | grep -Fn 'buff.restorePostNgePlayerDamageDealtOverride' | head -1 | cut -d: -f1)"
+damage_dealt_bytecode_read_line="$(printf '%s\n' "$raw_damage_bytecode" | grep -Fn 'damageDealtMod.value' | head -1 | cut -d: -f1)"
+test "$damage_dealt_bytecode_cleanup_line" -lt "$damage_dealt_bytecode_read_line"
+printf '%s' "$raw_damage_bytecode" | grep -Fq 'isPlayer'
 proc_direct_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/expertise_fs_flurry_charge_proc/,/meleeHit/p')"
 printf '%s' "$proc_direct_action_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$proc_direct_action_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'

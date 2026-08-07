@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, direct weapon-speed override, or critical-override buffs from becoming player combat authority through admission, refresh, persistence, effect handlers, stale script variables, or mutated weapon state while retaining expansion data and non-player compatibility.",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, direct damage-dealt multiplier, direct weapon-speed override, or critical-override buffs from becoming player combat authority through admission, refresh, persistence, effect handlers, stale script variables, mutated player scale or weapon state, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -32,6 +32,8 @@
       "The retained 1,993-row buff catalog contains 966 compatibility rows with 187 distinct NGE expertise, modified-primary-stat, Beast Master, fast-attack, DOT-immunity, item-writer, or later combat-modifier effect parameters; 166 rows mix one of those parameters with another content effect, so effect-writer guards alone could still leave misleading persisted player state.",
       "All 187 later-era effect parameters remain mapped by 195 retained effect-mapping rows. A shared five-slot predicate now denies or removes the entire data-driven buff only for player targets, before an existing buff can be refreshed, while retained rows and non-player expansion encounter behavior remain available.",
       "Eight retained commandGrant mappings are referenced by ten buff rows, including two rows that contain no retired NGE modifier. Shared player-only admission, lifecycle cleanup, and add/remove handler guards now deny or revoke all eight commands while retaining the rows and non-player content path.",
+      "The only damageDealtMod mapping is damage_dealt_mod, referenced by eleven persistent rows: the NGE Beast Master bm_enrage player buff, eight Exar Kun sacrifice stages, and two heroic add mechanics. Its handler writes an unconditional raw-damage multiplier and enlarges the target by 30 percent, while the raw-damage consumer previously read that state for players and NPCs alike.",
+      "Pinned Core3 has no damage_dealt_mod, damageDealtMod, or bm_enrage override. Player-only generic admission, lifecycle cleanup, both handler guards, recorded-scale repair, and cleanup immediately before the raw-damage read now retire that inherited player authority while retaining every row and the non-player expansion encounter path.",
       "The only weaponSpeedMod mapping is weapon_speed_mod, owned only by the persistent NGE Beast Master bm_frenzy buff. Its handler directly mutates the equipped weapon attack speed and marks that weapon as a creature weapon, so stale player state could bypass authenticated Publish-era cadence even after Beast Master skill admission was retired.",
       "Pinned Core3 has ordinary skill-mod-driven weapon-speed calculations but no bm_frenzy, weapon_speed_mod, weaponSpeedMod, or recordedAttackSpeed compatibility state. Player-only admission and handler guards now fail closed, lifecycle cleanup removes persisted state, and an ownership-bounded repair restores the recorded positive speed before clearing stale markers.",
       "Four retained critical-override effect mappings are used only by three NGE Smuggler expertise buffs. They bypassed both modifier and proc classification, and their critDoubleDamage and critRoot script variables were consumed unconditionally by the inherited damage wrapper even for authenticated PRE-CU attacks.",
@@ -72,6 +74,15 @@
     "playerNgeModifierBuffAdmissionReachable": false,
     "persistedPlayerNgeModifierBuffStateRemoved": true,
     "nonPlayerNgeModifierBuffCompatibilityPreserved": true,
+    "retiredNgePlayerDamageDealtOverrideEffects": 1,
+    "retainedNgeDamageDealtOverrideEffectMappingRows": 1,
+    "retainedNgeDamageDealtOverrideBuffRows": 11,
+    "productionDamageDealtOverrideHandlersGuarded": 2,
+    "playerNgeDamageDealtOverrideBuffAdmissionReachable": false,
+    "persistedPlayerNgeDamageDealtOverrideStateRemoved": true,
+    "recordedPlayerScaleRestoredFromCapturedState": true,
+    "playerDamageConsumerClearsOverrideBeforeRead": true,
+    "nonPlayerNgeDamageDealtOverrideCompatibilityPreserved": true,
     "retiredNgePlayerWeaponSpeedOverrideEffects": 1,
     "retainedNgeWeaponSpeedOverrideEffectMappingRows": 1,
     "retainedNgeWeaponSpeedOverrideBuffRows": 1,
@@ -131,18 +142,18 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "4a85fb84f890533698b6101895f9fcfce95da8a2",
+    "directSourceGitlink": "6e915c9b54d40498919022b2e883d1470e1e25ac",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "4e3efd9e68cf583437b88e52cca75f7d132f4b6ee0f9abbfffa8e2de0ed86c4b",
-      "combatBase": "af9ff2f168defde4312be4153fec9426e762c55e5a06eb439bc4d3795830a3a4",
+      "combatBase": "e6f48a2f7a9c8e3a1c8f18d2c1a046ca9506e88600052e7d611e2baa289153ee",
       "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf",
       "basePlayer": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "e5dc80a38bef39394819fdc987e1bb66a734040cb0a04f61fef0fb523f126945",
-      "buffHandler": "4dfa1e8ba6d2103f04e684e86fa54edb046e93ded59f0377125f2b2e99d4453f",
-      "buffLibrary": "9d3eec4830b852518716ae22003e395fd1b9bc10781e0a118d93a75cc0061b2e",
+      "buffHandler": "03e62e048e333436a1da695e91b427361c5bb0d824aaf1d743153268fb776c25",
+      "buffLibrary": "ff209d86dbe85578a08955d42f777f0178f51e23834e7e9eaf56b7af940a2d67",
       "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
       "bountyHunterShieldScript": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7",
       "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
@@ -160,19 +171,19 @@
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
-    "focusedCombatBaseClassSha256": "0e5bc243d423b01f9e93d8debc23b282dd4b615ddcbcb1128e94ee9ab5df687a",
-    "focusedCombatBaseClassBytes": 148567,
-    "sourceTest": "passed; exact one-mapping/one-persistent-buff weapon-speed inventory, player-only generic admission and handler guards, lifecycle removal, stale record cleanup, ownership-bounded weapon restoration, and retained non-player behavior are authenticated alongside the existing PRE-CU combat boundaries",
-    "focusedJavaCompile": "passed buff.java and buff_handler.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately",
-    "fullJavaCompile": "passed; canonical clean Java dependency rebuild compiled 5,713 sources into 5,747 classes from direct dsrc 4a85fb84f890533698b6101895f9fcfce95da8a2 after removing every prior compiled Java class",
-    "fullServerBuild": "passed in the 894.9-second canonical clean Docker x86-64 deployment from pushed parent e4adf8080f715502675f6f37e2238c4184201a32 and direct dsrc 4a85fb84f890533698b6101895f9fcfce95da8a2, including clean Java/C++ build, exact source/data/bytecode authentication, guarded restart, readiness, mapped-binary verification, and clean post-start audit",
+    "focusedCombatBaseClassSha256": "2176c852b27e176762e47e6503f723e911ef6cb359b740df4281edb85f4cd61f",
+    "focusedCombatBaseClassBytes": 127470,
+    "sourceTest": "passed; exact one-mapping/eleven-persistent-row damage-dealt inventory, player-only generic admission and handler guards, lifecycle removal, captured-scale repair, cleanup-before-raw-damage read, and retained non-player behavior are authenticated alongside the existing PRE-CU combat boundaries",
+    "focusedJavaCompile": "passed buff.java, buff_handler.java, and combat_base.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately",
+    "fullJavaCompile": "pending canonical clean Java dependency rebuild from direct dsrc 6e915c9b54d40498919022b2e883d1470e1e25ac after removing every prior compiled Java class",
+    "fullServerBuild": "pending canonical clean Docker x86-64 deployment from pushed direct-source and parent commits",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
-    "sourceWorkParity": "passed byte-for-byte between the read-only direct-source mount and Docker work volume for CreatureObject.cpp, buff.java 9d3eec4830b852518716ae22003e395fd1b9bc10781e0a118d93a75cc0061b2e, buff_handler.java 4dfa1e8ba6d2103f04e684e86fa54edb046e93ded59f0377125f2b2e99d4453f, buff.tab 235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9, and effect_mapping.tab d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
-    "bytecodeAudit": "passed; deployed buff.class authenticates player-only generic admission, five-slot weapon-speed ownership classification, persisted-buff removal, read-before-clear stale-record repair, owned positive-speed restoration, weapon-data refresh, and stale marker cleanup; deployed buff_handler.class authenticates both player guards before retained non-player weapon-speed mutation paths",
-    "deploymentProbe": "passed exact one-mapping/one-persistent-buff weapon-speed inventory, source/work parity, compiled admission/restore/handler bytecode, ELF x86-64, guarded restart, readiness, mapped-binary, and clean-log verification",
-    "result": "passed"
+    "sourceWorkParity": "pending canonical clean deployment",
+    "bytecodeAudit": "pending canonical clean deployment",
+    "deploymentProbe": "pending exact one-mapping/eleven-persistent-row damage-dealt inventory, source/work parity, compiled admission/restore/handler/consumer bytecode, ELF x86-64, guarded restart, readiness, mapped-binary, and clean-log verification",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-07",
@@ -209,12 +220,16 @@
       "SwgGameServer": 15
     },
     "postStartLogAudit": "321 lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, direct weapon-speed override, or critical-override authority through generic player buff admission, refresh, persistence, effect writers, stale script variables, or mutated owned weapons",
+    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, direct damage-dealt multiplier, direct weapon-speed override, or critical-override authority through generic player buff admission, refresh, persistence, effect writers, stale script variables, mutated player scale or owned weapons, or unconditional raw-damage consumers",
     "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based combat; ordinary PRE-CU skill and HAM buffs; all retained buff and effect-mapping rows; non-player expansion encounter compatibility; and all expansion quests, conversations, and zones",
-    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, weaponSpeedMod, and critical-override boundaries remain subject to later reachability audits"
+    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, damageDealtMod, weaponSpeedMod, and critical-override boundaries remain subject to later reachability audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical clean x64 deployment",
+    "compiled-bytecode authentication",
+    "healthy live cluster and clean post-start log audit"
+  ]
 }
