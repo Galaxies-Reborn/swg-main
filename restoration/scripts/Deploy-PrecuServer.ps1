@@ -1962,6 +1962,72 @@ printf '%s' "$force_throw_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s' "$force_throw_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s' "$force_throw_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
 grep -Fq 'retirePostNgePlayerForceThrowState(player);' "$work_buff_library"
+damage_reduction_modifiers="expertise_damage_decrease_chance expertise_sm_rank_damage_bonus expertise_damage_reduce_anticipate_aggression damage_decrease_percentage area_damage_decrease_percentage area_damage_resist_full_percentage expertise_damage_decrease_percentage"
+test "$(printf '%s\n' $damage_reduction_modifiers | wc -l)" -eq 7
+awk -F '\t' '
+$1 ~ /^(expertise_damage_decrease_chance|expertise_sm_rank_damage_bonus|expertise_damage_reduce_anticipate_aggression|damage_decrease_percentage|area_damage_decrease_percentage|area_damage_resist_full_percentage|expertise_damage_decrease_percentage)$/ {
+    found++
+    if (($1 == "damage_decrease_percentage" && $2 == "skill" && $3 == "damage_decrease_percentage") ||
+        ($1 == "expertise_damage_decrease_chance" && $2 == "skill" && $3 == "expertise_damage_decrease_chance") ||
+        ($1 == "expertise_damage_decrease_percentage" && $2 == "expertiseDamageDecrease" && $3 == "expertise_damage_decrease_percentage") ||
+        ($1 == "expertise_damage_reduce_anticipate_aggression" && $2 == "skill" && $3 == "expertise_damage_reduce_anticipate_aggression") ||
+        ($1 == "expertise_sm_rank_damage_bonus" && $2 == "skill" && $3 == "expertise_sm_rank_damage_bonus")) valid++
+}
+END { if (found != 5 || valid != 5) exit 3 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+{
+    relevant = 0
+    for (i = 1; i <= NF; i++) {
+        if ($i ~ /^(expertise_damage_decrease_chance|expertise_sm_rank_damage_bonus|expertise_damage_reduce_anticipate_aggression|damage_decrease_percentage|area_damage_decrease_percentage|area_damage_resist_full_percentage|expertise_damage_decrease_percentage)$/) relevant = 1
+    }
+    if (relevant) {
+        if ($1 !~ /^(co_stand_fast|fs_anticipate_aggression_[12]|sm_spot_a_sucker_[1-4]_[67]|sm_underworld_damage_[1-3])$/) exit 2
+        found++
+    }
+}
+END { if (found != 14) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+{
+    relevant = 0
+    for (i = 1; i <= NF; i++) {
+        value = $i
+        gsub(/^"|"$/, "", value)
+        count = split(value, parts, ",")
+        for (part = 1; part <= count; part++) {
+            if (parts[part] ~ /^(damage_decrease_percentage|area_damage_resist_full_percentage|expertise_damage_decrease_percentage)=/) relevant = 1
+        }
+    }
+    if (relevant) {
+        if ($1 !~ /^expertise_(co_(blast_resistance_[1-4]|deflective_armor_[1-4]|stand_fast_1|imp_stand_fast_[1-3])|sm_general_idiot_proof_plan_[12])$/) exit 2
+        found++
+    }
+}
+END { if (found != 14) exit 3 }
+' "$work_skills_table"
+damage_reduction_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_DAMAGE_REDUCTION_MODIFIERS/,/public static boolean isRetiredPostNgePlayerDamageReductionModifier/p' "$work_buff_library")"
+damage_reduction_modifier_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerDamageReductionModifier/,/public static boolean isRetiredPostNgePlayerDamageReductionBuff/p' "$work_buff_library")"
+damage_reduction_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerDamageReductionBuff/,/public static void clearPostNgePlayerDamageReductionState/p' "$work_buff_library")"
+damage_reduction_clear_source="$(sed -n '/public static void clearPostNgePlayerDamageReductionState/,/public static void retirePostNgePlayerDamageReductionState/p' "$work_buff_library")"
+damage_reduction_retire_source="$(sed -n '/public static void retirePostNgePlayerDamageReductionState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+for damage_reduction_modifier in $damage_reduction_modifiers; do
+    printf '%s' "$damage_reduction_inventory_source" | grep -Fq "\"$damage_reduction_modifier\""
+done
+test "$(printf '%s' "$damage_reduction_inventory_source" | grep -Ec '^        "[^"]+"[,]?$')" -eq 7
+printf '%s' "$damage_reduction_modifier_predicate_source" | grep -Fq 'modifierName.equals(retiredModifier)'
+printf '%s' "$damage_reduction_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$damage_reduction_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$damage_reduction_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerDamageReductionModifier(getEffectParam(data, effect))'
+printf '%s' "$damage_reduction_clear_source" | grep -Fq 'removeAttribOrSkillModModifier(player, retiredModifier)'
+printf '%s' "$damage_reduction_clear_source" | grep -Fq 'retiredModifier + "_" + effect'
+printf '%s' "$damage_reduction_clear_source" | grep -Fq 'applySkillStatisticModifier(player, retiredModifier, -currentValue)'
+printf '%s' "$damage_reduction_clear_source" | grep -Fq 'junkDealerDamageDecrease'
+printf '%s' "$damage_reduction_retire_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$damage_reduction_retire_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$damage_reduction_retire_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s' "$damage_reduction_retire_source" | grep -Fq 'clearPostNgePlayerDamageReductionState(player)'
+grep -Fq 'retirePostNgePlayerDamageReductionState(player);' "$work_buff_library"
 passive_profession_cleanup_source="$(sed -n '/private void retirePostNgePassiveProfessionState/,/private void retirePostNgeQueuedBattlefieldPlayerState/p' "$work_base_player")"
 printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'buff.retirePostNgeForceSensitiveStanceState(self);'
 printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'combat.retirePostNgeKillMeterPlayerState(self);'
@@ -2151,6 +2217,7 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerLuckHitOv
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerForceThrowBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerDamageReductionBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
@@ -2162,8 +2229,12 @@ luck_hit_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 
 forsake_fear_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)' | head -1 | cut -d: -f1)"
 radar_invisibility_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)' | head -1 | cut -d: -f1)"
 force_throw_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerForceThrowBuff(target, bdata)' | head -1 | cut -d: -f1)"
+damage_reduction_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerDamageReductionBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$damage_reduction_generic_gate_line"
+test -n "$modifier_generic_gate_line"
+test -n "$generic_existing_buff_line"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$proc_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$command_grant_generic_gate_line" -lt "$generic_existing_buff_line"
@@ -2174,6 +2245,7 @@ test "$luck_hit_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$forsake_fear_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$radar_invisibility_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$force_throw_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$damage_reduction_generic_gate_line" -lt "$modifier_generic_gate_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
@@ -2196,6 +2268,43 @@ movement_add_return_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'ret
 movement_add_writer_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'movement.applyMovementModifier(self, effectName, value);' | head -1 | cut -d: -f1)"
 test "$movement_add_guard_line" -lt "$movement_add_return_line"
 test "$movement_add_return_line" -lt "$movement_add_writer_line"
+damage_reduction_add_source="$(sed -n '/public int expertiseDamageDecreaseAddBuffHandler/,/public int expertiseDamageDecreaseRemoveBuffHandler/p' "$work_buff_handler")"
+damage_reduction_remove_source="$(sed -n '/public int expertiseDamageDecreaseRemoveBuffHandler/,/public int onAttackRemoveAddBuffHandler/p' "$work_buff_handler")"
+damage_reduction_add_guard_line="$(printf '%s\n' "$damage_reduction_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+damage_reduction_add_cleanup_line="$(printf '%s\n' "$damage_reduction_add_source" | grep -Fn 'buff.retirePostNgePlayerDamageReductionState(self);' | head -1 | cut -d: -f1)"
+damage_reduction_add_return_line="$(printf '%s\n' "$damage_reduction_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+damage_reduction_add_read_line="$(printf '%s\n' "$damage_reduction_add_source" | grep -Fn 'getSkillStatisticModifier(self, "expertise_damage_decrease_percentage")' | head -1 | cut -d: -f1)"
+damage_reduction_remove_guard_line="$(printf '%s\n' "$damage_reduction_remove_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+damage_reduction_remove_cleanup_line="$(printf '%s\n' "$damage_reduction_remove_source" | grep -Fn 'buff.clearPostNgePlayerDamageReductionState(self);' | head -1 | cut -d: -f1)"
+damage_reduction_remove_return_line="$(printf '%s\n' "$damage_reduction_remove_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+damage_reduction_remove_truncation_line="$(printf '%s\n' "$damage_reduction_remove_source" | grep -Fn 'effectName.lastIndexOf("_")' | head -1 | cut -d: -f1)"
+damage_reduction_remove_read_line="$(printf '%s\n' "$damage_reduction_remove_source" | grep -Fn 'getSkillStatisticModifier(self, "expertise_damage_decrease_percentage")' | head -1 | cut -d: -f1)"
+for damage_reduction_source_line in "$damage_reduction_add_guard_line" "$damage_reduction_add_cleanup_line" "$damage_reduction_add_return_line" "$damage_reduction_add_read_line" "$damage_reduction_remove_guard_line" "$damage_reduction_remove_cleanup_line" "$damage_reduction_remove_return_line" "$damage_reduction_remove_truncation_line" "$damage_reduction_remove_read_line"; do
+    test -n "$damage_reduction_source_line"
+done
+test "$damage_reduction_add_guard_line" -lt "$damage_reduction_add_cleanup_line"
+test "$damage_reduction_add_cleanup_line" -lt "$damage_reduction_add_return_line"
+test "$damage_reduction_add_return_line" -lt "$damage_reduction_add_read_line"
+test "$damage_reduction_remove_guard_line" -lt "$damage_reduction_remove_cleanup_line"
+test "$damage_reduction_remove_cleanup_line" -lt "$damage_reduction_remove_return_line"
+test "$damage_reduction_remove_return_line" -lt "$damage_reduction_remove_truncation_line"
+test "$damage_reduction_remove_truncation_line" -lt "$damage_reduction_remove_read_line"
+damage_reduction_combat_source="$(sed -n '/public int expertiseDamageModify/,/public void doWrappedDamage/p' "$work_combat_base")"
+damage_reduction_attacker_guard_line="$(printf '%s\n' "$damage_reduction_combat_source" | grep -Fn 'if (isPlayer(attacker))' | head -1 | cut -d: -f1)"
+damage_reduction_attacker_cleanup_line="$(printf '%s\n' "$damage_reduction_combat_source" | grep -Fn 'buff.clearPostNgePlayerDamageReductionState(attacker);' | head -1 | cut -d: -f1)"
+damage_reduction_defender_guard_line="$(printf '%s\n' "$damage_reduction_combat_source" | grep -Fn 'if (isPlayer(defender) && defender != attacker)' | head -1 | cut -d: -f1)"
+damage_reduction_defender_cleanup_line="$(printf '%s\n' "$damage_reduction_combat_source" | grep -Fn 'buff.clearPostNgePlayerDamageReductionState(defender);' | head -1 | cut -d: -f1)"
+damage_reduction_first_read_line="$(printf '%s\n' "$damage_reduction_combat_source" | grep -Fn 'getSkillStatisticModifier(attacker, "expertise_damage_decrease_chance")' | head -1 | cut -d: -f1)"
+for damage_reduction_source_line in "$damage_reduction_attacker_guard_line" "$damage_reduction_attacker_cleanup_line" "$damage_reduction_defender_guard_line" "$damage_reduction_defender_cleanup_line" "$damage_reduction_first_read_line"; do
+    test -n "$damage_reduction_source_line"
+done
+test "$damage_reduction_attacker_guard_line" -lt "$damage_reduction_attacker_cleanup_line"
+test "$damage_reduction_attacker_cleanup_line" -lt "$damage_reduction_defender_guard_line"
+test "$damage_reduction_defender_guard_line" -lt "$damage_reduction_defender_cleanup_line"
+test "$damage_reduction_defender_cleanup_line" -lt "$damage_reduction_first_read_line"
+for damage_reduction_combat_modifier in expertise_damage_decrease_chance expertise_sm_rank_damage_bonus expertise_damage_reduce_anticipate_aggression damage_decrease_percentage area_damage_decrease_percentage area_damage_resist_full_percentage; do
+    printf '%s' "$damage_reduction_combat_source" | grep -Fq "\"$damage_reduction_combat_modifier\""
+done
 bounty_hunter_shield_handler_source="$(sed -n '/public int bhShieldsAddBuffHandler/,/public int bhShieldsRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'if (isPlayer(self))'
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'buff.retirePostNgeBountyHunterShieldState(self);'
@@ -4233,8 +4342,39 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerLuckHit
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerChannelHealBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageReductionBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+for damage_reduction_modifier in $damage_reduction_modifiers; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "$damage_reduction_modifier"
+done
+damage_reduction_modifier_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageReductionModifier(java.lang.String)/,/isRetiredPostNgePlayerDamageReductionBuff/p')"
+printf '%s' "$damage_reduction_modifier_predicate_bytecode" | grep -Fq 'java/lang/String.equals'
+damage_reduction_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageReductionBuff/,/clearPostNgePlayerDamageReductionState/p')"
+printf '%s' "$damage_reduction_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$damage_reduction_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageReductionModifier'
+damage_reduction_clear_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerDamageReductionState/,/retirePostNgePlayerDamageReductionState/p')"
+printf '%s' "$damage_reduction_clear_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$damage_reduction_clear_bytecode" | grep -Fq 'Method hasSkillModModifier'
+printf '%s' "$damage_reduction_clear_bytecode" | grep -Fq 'Method removeAttribOrSkillModModifier'
+printf '%s' "$damage_reduction_clear_bytecode" | grep -Fq 'Method getSkillStatMod'
+printf '%s' "$damage_reduction_clear_bytecode" | grep -Fq 'Method applySkillStatisticModifier'
+printf '%s' "$damage_reduction_clear_bytecode" | grep -Fq 'junkDealerDamageDecrease'
+damage_reduction_retire_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerDamageReductionState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$damage_reduction_retire_bytecode" | grep -Fq 'Method getAllBuffs'
+printf '%s' "$damage_reduction_retire_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$damage_reduction_retire_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$damage_reduction_retire_bytecode" | grep -Fq 'clearPostNgePlayerDamageReductionState'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerDamageReductionState'
+damage_reduction_admission_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/getGroups/p')"
+damage_reduction_admission_line="$(printf '%s\n' "$damage_reduction_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerDamageReductionBuff' | head -1 | cut -d: -f1)"
+damage_reduction_modifier_gate_line="$(printf '%s\n' "$damage_reduction_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerModifierBuff' | head -1 | cut -d: -f1)"
+damage_reduction_existing_line="$(printf '%s\n' "$damage_reduction_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$damage_reduction_admission_line"
+test -n "$damage_reduction_modifier_gate_line"
+test -n "$damage_reduction_existing_line"
+test "$damage_reduction_admission_line" -lt "$damage_reduction_modifier_gate_line"
+test "$damage_reduction_modifier_gate_line" -lt "$damage_reduction_existing_line"
 buff_command_grant_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerBuffCommandGrant(java.lang.String)/,/isRetiredPostNgePlayerCommandGrantBuff/p')"
 printf '%s' "$buff_command_grant_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_BUFF_COMMAND_GRANTS'
 buff_command_grant_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandGrantBuff/,/retirePostNgePlayerCommandGrantBuffState/p')"
@@ -4406,6 +4546,27 @@ printf '%s' "$buff_cooldown_execution_cleanup_bytecode" | grep -Fq 'combat_engin
 printf '%s' "$buff_cooldown_execution_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerCooldownExecutionState'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+damage_reduction_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/expertiseDamageDecreaseAddBuffHandler/,/expertiseDamageDecreaseRemoveBuffHandler/p')"
+damage_reduction_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/expertiseDamageDecreaseRemoveBuffHandler/,/onAttackRemoveAddBuffHandler/p')"
+damage_reduction_add_guard_bytecode_line="$(printf '%s\n' "$damage_reduction_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+damage_reduction_add_cleanup_bytecode_line="$(printf '%s\n' "$damage_reduction_add_bytecode" | grep -Fn 'retirePostNgePlayerDamageReductionState' | head -1 | cut -d: -f1)"
+damage_reduction_add_return_bytecode_line="$(printf '%s\n' "$damage_reduction_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+damage_reduction_add_read_bytecode_line="$(printf '%s\n' "$damage_reduction_add_bytecode" | grep -Fn 'Method getSkillStatisticModifier' | head -1 | cut -d: -f1)"
+damage_reduction_remove_guard_bytecode_line="$(printf '%s\n' "$damage_reduction_remove_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+damage_reduction_remove_cleanup_bytecode_line="$(printf '%s\n' "$damage_reduction_remove_bytecode" | grep -Fn 'clearPostNgePlayerDamageReductionState' | head -1 | cut -d: -f1)"
+damage_reduction_remove_return_bytecode_line="$(printf '%s\n' "$damage_reduction_remove_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+damage_reduction_remove_truncation_bytecode_line="$(printf '%s\n' "$damage_reduction_remove_bytecode" | grep -Fn 'java/lang/String.lastIndexOf' | head -1 | cut -d: -f1)"
+damage_reduction_remove_read_bytecode_line="$(printf '%s\n' "$damage_reduction_remove_bytecode" | grep -Fn 'Method getSkillStatisticModifier' | head -1 | cut -d: -f1)"
+for damage_reduction_bytecode_line in "$damage_reduction_add_guard_bytecode_line" "$damage_reduction_add_cleanup_bytecode_line" "$damage_reduction_add_return_bytecode_line" "$damage_reduction_add_read_bytecode_line" "$damage_reduction_remove_guard_bytecode_line" "$damage_reduction_remove_cleanup_bytecode_line" "$damage_reduction_remove_return_bytecode_line" "$damage_reduction_remove_truncation_bytecode_line" "$damage_reduction_remove_read_bytecode_line"; do
+    test -n "$damage_reduction_bytecode_line"
+done
+test "$damage_reduction_add_guard_bytecode_line" -lt "$damage_reduction_add_cleanup_bytecode_line"
+test "$damage_reduction_add_cleanup_bytecode_line" -lt "$damage_reduction_add_return_bytecode_line"
+test "$damage_reduction_add_return_bytecode_line" -lt "$damage_reduction_add_read_bytecode_line"
+test "$damage_reduction_remove_guard_bytecode_line" -lt "$damage_reduction_remove_cleanup_bytecode_line"
+test "$damage_reduction_remove_cleanup_bytecode_line" -lt "$damage_reduction_remove_return_bytecode_line"
+test "$damage_reduction_remove_return_bytecode_line" -lt "$damage_reduction_remove_truncation_bytecode_line"
+test "$damage_reduction_remove_truncation_bytecode_line" -lt "$damage_reduction_remove_read_bytecode_line"
 channel_heal_damage_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/OnCreatureDamaged/,/attribAddBuffHandler/p')"
 channel_heal_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelHealAddBuffHandler/,/channelHealRemoveBuffHandler/p')"
 channel_heal_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelHealRemoveBuffHandler/,/getAttributeType/p')"
@@ -4830,6 +4991,22 @@ combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.comb
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 test "$(printf '%s' "$combat_base_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 2
+damage_reduction_combat_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/public int expertiseDamageModify/,/public void doWrappedDamage/p')"
+damage_reduction_combat_first_guard_line="$(printf '%s\n' "$damage_reduction_combat_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+damage_reduction_combat_first_cleanup_line="$(printf '%s\n' "$damage_reduction_combat_bytecode" | grep -Fn 'clearPostNgePlayerDamageReductionState' | head -1 | cut -d: -f1)"
+damage_reduction_combat_second_cleanup_line="$(printf '%s\n' "$damage_reduction_combat_bytecode" | grep -Fn 'clearPostNgePlayerDamageReductionState' | tail -1 | cut -d: -f1)"
+damage_reduction_combat_first_read_line="$(printf '%s\n' "$damage_reduction_combat_bytecode" | grep -Fn 'String expertise_damage_decrease_chance' | head -1 | cut -d: -f1)"
+test -n "$damage_reduction_combat_first_guard_line"
+test -n "$damage_reduction_combat_first_cleanup_line"
+test -n "$damage_reduction_combat_second_cleanup_line"
+test -n "$damage_reduction_combat_first_read_line"
+test "$(printf '%s' "$damage_reduction_combat_bytecode" | grep -Fc 'clearPostNgePlayerDamageReductionState')" -eq 2
+test "$damage_reduction_combat_first_guard_line" -lt "$damage_reduction_combat_first_cleanup_line"
+test "$damage_reduction_combat_first_cleanup_line" -lt "$damage_reduction_combat_second_cleanup_line"
+test "$damage_reduction_combat_second_cleanup_line" -lt "$damage_reduction_combat_first_read_line"
+for damage_reduction_combat_modifier in expertise_damage_decrease_chance expertise_sm_rank_damage_bonus expertise_damage_reduce_anticipate_aggression damage_decrease_percentage area_damage_decrease_percentage area_damage_resist_full_percentage; do
+    printf '%s' "$damage_reduction_combat_bytecode" | grep -Fq "String $damage_reduction_combat_modifier"
+done
 elemental_vulnerability_consumer_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/^  public void doWrappedDamage(.*combat_data, int)/,/^  public script.obj_id\[\] truncateTargetArray/p')"
 elemental_vulnerability_consumer_guard_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
 elemental_vulnerability_consumer_cleanup_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'retirePostNgePlayerElementalVulnerabilityState' | head -1 | cut -d: -f1)"

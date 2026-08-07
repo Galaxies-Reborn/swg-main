@@ -1893,6 +1893,222 @@ Assert-Contract ($forceThrowAddGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeForceThrowCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.force-throw-control-handlers-player-fail-closed"
 
+$damageReductionModifiers = @(
+    "expertise_damage_decrease_chance",
+    "expertise_sm_rank_damage_bonus",
+    "expertise_damage_reduce_anticipate_aggression",
+    "damage_decrease_percentage",
+    "area_damage_decrease_percentage",
+    "area_damage_resist_full_percentage",
+    "expertise_damage_decrease_percentage"
+)
+$damageReductionMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $damageReductionModifiers -ccontains [string]$_.NAME })
+$damageReductionMappingSignatures = @($damageReductionMappings | ForEach-Object {
+    "{0}|{1}|{2}" -f [string]$_.NAME, [string]$_.TYPE, [string]$_.SUBTYPE
+} | Sort-Object)
+$expectedDamageReductionMappingSignatures = @(
+    "damage_decrease_percentage|skill|damage_decrease_percentage",
+    "expertise_damage_decrease_chance|skill|expertise_damage_decrease_chance",
+    "expertise_damage_decrease_percentage|expertiseDamageDecrease|expertise_damage_decrease_percentage",
+    "expertise_damage_reduce_anticipate_aggression|skill|expertise_damage_reduce_anticipate_aggression",
+    "expertise_sm_rank_damage_bonus|skill|expertise_sm_rank_damage_bonus"
+) | Sort-Object
+$damageReductionBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        $damageReductionModifiers -ccontains [string]$row.("EFFECT$($_)_PARAM")
+    }).Count -gt 0
+})
+$damageReductionBuffNames = @($damageReductionBuffRows |
+    Select-Object -ExpandProperty NAME | Sort-Object)
+$expectedDamageReductionBuffNames = @(
+    "co_stand_fast",
+    "fs_anticipate_aggression_1",
+    "fs_anticipate_aggression_2",
+    "sm_spot_a_sucker_1_6",
+    "sm_spot_a_sucker_1_7",
+    "sm_spot_a_sucker_2_6",
+    "sm_spot_a_sucker_2_7",
+    "sm_spot_a_sucker_3_6",
+    "sm_spot_a_sucker_3_7",
+    "sm_spot_a_sucker_4_6",
+    "sm_spot_a_sucker_4_7",
+    "sm_underworld_damage_1",
+    "sm_underworld_damage_2",
+    "sm_underworld_damage_3"
+) | Sort-Object
+$damageReductionSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    $skillMods = ([string]$_.SKILL_MODS).Trim('"') -split ','
+    @($skillMods | Where-Object {
+        $modifierName = ($_ -split '=', 2)[0]
+        $damageReductionModifiers -ccontains $modifierName
+    }).Count -gt 0
+})
+$damageReductionSkillNames = @($damageReductionSkillRows |
+    Select-Object -ExpandProperty NAME | Sort-Object)
+$expectedDamageReductionSkillNames = @(
+    "expertise_co_blast_resistance_1",
+    "expertise_co_blast_resistance_2",
+    "expertise_co_blast_resistance_3",
+    "expertise_co_blast_resistance_4",
+    "expertise_co_deflective_armor_1",
+    "expertise_co_deflective_armor_2",
+    "expertise_co_deflective_armor_3",
+    "expertise_co_deflective_armor_4",
+    "expertise_co_imp_stand_fast_1",
+    "expertise_co_imp_stand_fast_2",
+    "expertise_co_imp_stand_fast_3",
+    "expertise_co_stand_fast_1",
+    "expertise_sm_general_idiot_proof_plan_1",
+    "expertise_sm_general_idiot_proof_plan_2"
+) | Sort-Object
+Assert-Contract ($damageReductionMappings.Count -eq
+        [int]$contract.expected.retainedNgeDamageReductionEffectMappingRows -and
+    ($damageReductionMappingSignatures -join "`n") -ceq
+        ($expectedDamageReductionMappingSignatures -join "`n") -and
+    $damageReductionBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeDamageReductionBuffRows -and
+    ($damageReductionBuffNames -join "`n") -ceq
+        ($expectedDamageReductionBuffNames -join "`n") -and
+    $damageReductionSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeDamageReductionSkillRows -and
+    ($damageReductionSkillNames -join "`n") -ceq
+        ($expectedDamageReductionSkillNames -join "`n")) `
+    "p14.combat-expertise-isolation.buff.damage-reduction-data-inventory-authenticated"
+
+$damageReductionModifierInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_DAMAGE_REDUCTION_MODIFIERS"
+$damageReductionInventoryNames = @([regex]::Matches(
+    $damageReductionModifierInventory, '"([^"]+)"') | ForEach-Object {
+        $_.Groups[1].Value
+    } | Sort-Object)
+$damageReductionModifierPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageReductionModifier(String modifierName)"
+$damageReductionBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageReductionBuff(obj_id target, buff_data data)"
+$damageReductionStateClear = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerDamageReductionState(obj_id player)"
+$damageReductionStateRetire = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerDamageReductionState(obj_id player)"
+$damageReductionProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$damageReductionAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$damageReductionAdmissionGate = $damageReductionAdmission.IndexOf(
+    "isRetiredPostNgePlayerDamageReductionBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$damageReductionGenericModifierGate = $damageReductionAdmission.IndexOf(
+    "isRetiredPostNgePlayerModifierBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$damageReductionExistingBuffReturn = $damageReductionAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($damageReductionInventoryNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerDamageReductionModifiers -and
+    ($damageReductionInventoryNames -join "`n") -ceq
+        (($damageReductionModifiers | Sort-Object) -join "`n") -and
+    $damageReductionModifierPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_DAMAGE_REDUCTION_MODIFIERS") -and
+    $damageReductionModifierPredicate.Contains("modifierName.equals(retiredModifier)") -and
+    $damageReductionBuffPredicate.Contains("!isPlayer(target)") -and
+    $damageReductionBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $damageReductionBuffPredicate.Contains(
+        "isRetiredPostNgePlayerDamageReductionModifier(getEffectParam(data, effect))") -and
+    $damageReductionAdmissionGate -ge 0 -and
+    $damageReductionGenericModifierGate -gt $damageReductionAdmissionGate -and
+    $damageReductionExistingBuffReturn -gt $damageReductionGenericModifierGate -and
+    -not [bool]$contract.expected.playerNgeDamageReductionBuffAdmissionReachable -and
+    [bool]$contract.expected.nonPlayerNgeDamageReductionCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.damage-reduction-admission-player-fail-closed"
+Assert-Contract ($damageReductionStateClear.Contains("!isPlayer(player)") -and
+    $damageReductionStateClear.Contains("hasSkillModModifier(player, retiredModifier)") -and
+    $damageReductionStateClear.Contains("removeAttribOrSkillModModifier(player, retiredModifier)") -and
+    $damageReductionStateClear.Contains('retiredModifier + "_" + effect') -and
+    $damageReductionStateClear.Contains("getSkillStatMod(player, retiredModifier)") -and
+    $damageReductionStateClear.Contains(
+        "applySkillStatisticModifier(player, retiredModifier, -currentValue)") -and
+    $damageReductionStateClear.Contains('"junkDealerDamageDecrease"') -and
+    $damageReductionStateRetire.Contains("getAllBuffs(player)") -and
+    $damageReductionStateRetire.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $damageReductionStateRetire.Contains(
+        "isRetiredPostNgePlayerDamageReductionBuff(player, data)") -and
+    $damageReductionStateRetire.Contains("removeBuff(player, activeBuff)") -and
+    $damageReductionStateRetire.Contains("clearPostNgePlayerDamageReductionState(player)") -and
+    $damageReductionProgressionCleanup.Contains(
+        "retirePostNgePlayerDamageReductionState(player);") -and
+    [bool]$contract.expected.persistedPlayerNgeDamageReductionStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeDamageReductionModifiersRemoved) `
+    "p14.combat-expertise-isolation.buff.damage-reduction-persistence-and-stale-state-retired"
+
+$damageReductionAdd = Get-BracedBlock $buffHandler `
+    "public int expertiseDamageDecreaseAddBuffHandler("
+$damageReductionRemove = Get-BracedBlock $buffHandler `
+    "public int expertiseDamageDecreaseRemoveBuffHandler("
+$damageReductionAddGuard = $damageReductionAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$damageReductionAddCleanup = $damageReductionAdd.IndexOf(
+    "buff.retirePostNgePlayerDamageReductionState(self);", [StringComparison]::Ordinal)
+$damageReductionAddReturn = $damageReductionAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$damageReductionAddRead = $damageReductionAdd.IndexOf(
+    'getSkillStatisticModifier(self, "expertise_damage_decrease_percentage")',
+    [StringComparison]::Ordinal)
+$damageReductionRemoveGuard = $damageReductionRemove.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$damageReductionRemoveCleanup = $damageReductionRemove.IndexOf(
+    "buff.clearPostNgePlayerDamageReductionState(self);", [StringComparison]::Ordinal)
+$damageReductionRemoveReturn = $damageReductionRemove.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$damageReductionRemoveTruncation = $damageReductionRemove.IndexOf(
+    'effectName.lastIndexOf("_")', [StringComparison]::Ordinal)
+$damageReductionRemoveRead = $damageReductionRemove.IndexOf(
+    'getSkillStatisticModifier(self, "expertise_damage_decrease_percentage")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($damageReductionAddGuard -ge 0 -and
+    $damageReductionAddCleanup -gt $damageReductionAddGuard -and
+    $damageReductionAddReturn -gt $damageReductionAddCleanup -and
+    $damageReductionAddRead -gt $damageReductionAddReturn -and
+    $damageReductionRemoveGuard -ge 0 -and
+    $damageReductionRemoveCleanup -gt $damageReductionRemoveGuard -and
+    $damageReductionRemoveReturn -gt $damageReductionRemoveCleanup -and
+    $damageReductionRemoveTruncation -gt $damageReductionRemoveReturn -and
+    $damageReductionRemoveRead -gt $damageReductionRemoveTruncation -and
+    [int]$contract.expected.productionDamageReductionHandlersGuarded -eq 2 -and
+    [bool]$contract.expected.nonPlayerNgeDamageReductionCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.damage-reduction-handlers-player-fail-closed"
+
+$damageReductionAttackerGuard = $expertiseDamageModify.IndexOf(
+    "if (isPlayer(attacker))", [StringComparison]::Ordinal)
+$damageReductionAttackerCleanup = $expertiseDamageModify.IndexOf(
+    "buff.clearPostNgePlayerDamageReductionState(attacker);", [StringComparison]::Ordinal)
+$damageReductionDefenderGuard = $expertiseDamageModify.IndexOf(
+    "if (isPlayer(defender) && defender != attacker)", [StringComparison]::Ordinal)
+$damageReductionDefenderCleanup = $expertiseDamageModify.IndexOf(
+    "buff.clearPostNgePlayerDamageReductionState(defender);", [StringComparison]::Ordinal)
+$damageReductionFirstAttackerRead = $expertiseDamageModify.IndexOf(
+    'getSkillStatisticModifier(attacker, "expertise_damage_decrease_chance")',
+    [StringComparison]::Ordinal)
+$damageReductionFirstDefenderRead = $expertiseDamageModify.IndexOf(
+    'getSkillStatisticModifier(defender, "expertise_damage_reduce_anticipate_aggression")',
+    [StringComparison]::Ordinal)
+$damageReductionCombatReadNames = @([regex]::Matches(
+    $expertiseDamageModify,
+    'getSkillStatisticModifier\((?:attacker|defender),\s*"([^"]+)"\)') |
+    ForEach-Object { $_.Groups[1].Value } | Where-Object {
+        $damageReductionModifiers -ccontains $_
+    })
+Assert-Contract ($damageReductionAttackerGuard -ge 0 -and
+    $damageReductionAttackerCleanup -gt $damageReductionAttackerGuard -and
+    $damageReductionDefenderGuard -gt $damageReductionAttackerCleanup -and
+    $damageReductionDefenderCleanup -gt $damageReductionDefenderGuard -and
+    $damageReductionFirstAttackerRead -gt $damageReductionDefenderCleanup -and
+    $damageReductionFirstDefenderRead -gt $damageReductionFirstAttackerRead -and
+    $damageReductionCombatReadNames.Count -eq 6 -and
+    @($damageReductionCombatReadNames | Sort-Object -Unique).Count -eq 6 -and
+    -not [bool]$contract.expected.playerNgeDamageReductionCombatReadsReachable -and
+    [bool]$contract.expected.nonPlayerNgeDamageReductionCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.damage.damage-reduction-player-reads-cleared-before-consumption"
+
 $pistolWhipControlEffect = "sm_pistol_whip"
 $pistolWhipControlMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object { [string]$_.NAME -ceq $pistolWhipControlEffect })
