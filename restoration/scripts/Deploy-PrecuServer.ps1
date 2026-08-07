@@ -1353,6 +1353,78 @@ printf '%s' "$command_grant_remove_source" | grep -Fq 'isPlayer(self)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'while (hasCommand(self, subType))'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'revokeCommand(self, subType)'
+retired_critical_override_effects="expertise_next_hit_crit expertise_crit_double_damage expertise_crit_root expertise_crit_remove_buff"
+test "$(printf '%s\n' $retired_critical_override_effects | wc -l)" -eq 4
+for retired_critical_override_effect in $retired_critical_override_effects; do
+    case "$retired_critical_override_effect" in
+        expertise_next_hit_crit) expected_critical_override_type=nextHitCrit ;;
+        expertise_crit_double_damage) expected_critical_override_type=critDoubleDamage ;;
+        expertise_crit_root) expected_critical_override_type=critRoot ;;
+        expertise_crit_remove_buff) expected_critical_override_type=critOnce ;;
+        *) exit 3 ;;
+    esac
+    awk -F '\t' -v effect="$retired_critical_override_effect" -v type="$expected_critical_override_type" '$1 == effect && $2 == type { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+done
+awk -F '\t' -v effects="$retired_critical_override_effects" '
+BEGIN {
+    split(effects, effectList, " ")
+    for (effectIndex in effectList) retired[effectList[effectIndex]] = 1
+}
+NR > 2 {
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2) {
+        if ($parameterColumn in retired) {
+            rows++
+            names[$1] = 1
+            break
+        }
+    }
+}
+END {
+    if (!("sm_off_the_cuff" in names) || !("sm_end_of_the_line" in names) || !("sm_nerf_herder" in names)) exit 2
+    for (name in names) distinctNames++
+    if (rows != 3 || distinctNames != 3) exit 3
+}' "$work_buff_table"
+critical_override_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS/,/public static boolean isRetiredPostNgePlayerCriticalOverrideEffect/p' "$work_buff_library")"
+for retired_critical_override_effect in $retired_critical_override_effects; do
+    test "$(printf '%s' "$critical_override_inventory_source" | grep -Fc "\"$retired_critical_override_effect\"")" -eq 1
+done
+critical_override_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCriticalOverrideEffect/,/public static boolean isRetiredPostNgePlayerCriticalOverrideBuff/p' "$work_buff_library")"
+printf '%s' "$critical_override_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS'
+critical_override_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCriticalOverrideBuff/,/public static void clearPostNgePlayerCriticalOverrideScriptVars/p' "$work_buff_library")"
+printf '%s' "$critical_override_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$critical_override_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$critical_override_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideEffect(getEffectParam(data, effect))'
+critical_override_script_var_cleanup_source="$(sed -n '/public static void clearPostNgePlayerCriticalOverrideScriptVars/,/public static void retirePostNgePlayerCriticalOverrideState/p' "$work_buff_library")"
+printf '%s' "$critical_override_script_var_cleanup_source" | grep -Fq '!isPlayer(player)'
+for retired_critical_override_script_var in nextCritHit critDoubleDamage critRoot critRemoveBuffNames; do
+    test "$(printf '%s' "$critical_override_script_var_cleanup_source" | grep -Fc "utils.removeScriptVarTree(player, \"$retired_critical_override_script_var\")")" -eq 1
+done
+critical_override_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCriticalOverrideState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s' "$critical_override_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$critical_override_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$critical_override_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s' "$critical_override_cleanup_source" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars(player)'
+grep -Fq 'retirePostNgePlayerCriticalOverrideState(player);' "$work_buff_library"
+for critical_override_handler in nextHitCritAddBuffHandler nextHitCritRemoveBuffHandler critDoubleDamageAddBuffHandler critDoubleDamageRemoveBuffHandler critRootAddBuffHandler critRootRemoveBuffHandler critOnceAddBuffHandler critOnceRemoveBuffHandler; do
+    critical_override_handler_source="$(sed -n "/public int $critical_override_handler(/,/^    }/p" "$work_buff_handler")"
+    critical_override_handler_guard_line="$(printf '%s\n' "$critical_override_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+    critical_override_handler_cleanup_line="$(printf '%s\n' "$critical_override_handler_source" | grep -Fn 'buff.clearPostNgePlayerCriticalOverrideScriptVars(self);' | head -1 | cut -d: -f1)"
+    critical_override_handler_return_line="$(printf '%s\n' "$critical_override_handler_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)"
+    critical_override_handler_writer_line="$(printf '%s\n' "$critical_override_handler_source" | grep -Fn 'utils.' | head -1 | cut -d: -f1)"
+    test "$critical_override_handler_guard_line" -lt "$critical_override_handler_cleanup_line"
+    test "$critical_override_handler_cleanup_line" -lt "$critical_override_handler_return_line"
+    test "$critical_override_handler_return_line" -lt "$critical_override_handler_writer_line"
+done
+critical_override_hit_cleanup_line="$(grep -Fn 'buff.clearPostNgePlayerCriticalOverrideScriptVars(attackerData.id);' "$work_combat_base" | head -1 | cut -d: -f1)"
+critical_override_next_hit_read_line="$(grep -Fn '"nextCritHit"' "$work_combat_base" | head -1 | cut -d: -f1)"
+critical_override_remove_read_line="$(grep -Fn '"critRemoveBuffNames"' "$work_combat_base" | head -1 | cut -d: -f1)"
+critical_override_damage_cleanup_line="$(grep -Fn 'buff.clearPostNgePlayerCriticalOverrideScriptVars(attacker);' "$work_combat_base" | head -1 | cut -d: -f1)"
+critical_override_double_read_line="$(grep -Fn '"critDoubleDamage"' "$work_combat_base" | head -1 | cut -d: -f1)"
+critical_override_root_read_line="$(grep -Fn '"critRoot"' "$work_combat_base" | head -1 | cut -d: -f1)"
+test "$critical_override_hit_cleanup_line" -lt "$critical_override_next_hit_read_line"
+test "$critical_override_hit_cleanup_line" -lt "$critical_override_remove_read_line"
+test "$critical_override_damage_cleanup_line" -lt "$critical_override_double_read_line"
+test "$critical_override_damage_cleanup_line" -lt "$critical_override_root_read_line"
 dot_immunity_predicate_source="$(sed -n '/public boolean isRetiredNgeDotImmunityModifier/,/public boolean isRetiredNgeBuffSkillModifier/p' "$work_buff_handler")"
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.equals("damage_immune")'
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.startsWith("dot_resist_")'
@@ -1584,15 +1656,18 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeForceSensitiveS
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
 command_grant_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)' | head -1 | cut -d: -f1)"
+critical_override_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$proc_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$command_grant_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$critical_override_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
@@ -2762,6 +2837,7 @@ printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.removeBuff'
 buff_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/applyBuff(script.obj_id, java.lang.String)/p')"
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
 buff_command_grant_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerBuffCommandGrant(java.lang.String)/,/isRetiredPostNgePlayerCommandGrantBuff/p')"
@@ -2775,7 +2851,28 @@ printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'combat_engine.get
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'hasCommand'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'revokeCommand'
+buff_critical_override_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCriticalOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerCriticalOverrideBuff/p')"
+printf '%s' "$buff_critical_override_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS'
+buff_critical_override_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCriticalOverrideBuff/,/clearPostNgePlayerCriticalOverrideScriptVars/p')"
+printf '%s' "$buff_critical_override_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_critical_override_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideEffect'
+buff_critical_override_script_var_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerCriticalOverrideScriptVars/,/retirePostNgePlayerCriticalOverrideState/p')"
+printf '%s' "$buff_critical_override_script_var_cleanup_bytecode" | grep -Fq 'isPlayer'
+for retired_critical_override_script_var in nextCritHit critDoubleDamage critRoot critRemoveBuffNames; do
+    printf '%s' "$buff_critical_override_script_var_cleanup_bytecode" | grep -Fq "$retired_critical_override_script_var"
+done
+buff_critical_override_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCriticalOverrideState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+critical_override_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/nextHitCritAddBuffHandler/,/junkDealerAddBuffHandler/p')"
+test "$(printf '%s' "$critical_override_handler_bytecode" | grep -Fc 'isPlayer')" -eq 8
+test "$(printf '%s' "$critical_override_handler_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 8
+for retired_critical_override_script_var in nextCritHit critDoubleDamage critRoot critRemoveBuffNames; do
+    printf '%s' "$critical_override_handler_bytecode" | grep -Fq "$retired_critical_override_script_var"
+done
 command_grant_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandGrantAddBuffHandler/,/commandGrantRemoveBuffHandler/p')"
 printf '%s' "$command_grant_add_bytecode" | grep -Fq 'isPlayer'
 printf '%s' "$command_grant_add_bytecode" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant'
@@ -2796,6 +2893,7 @@ printf '%s' "$buff_modifier_cleanup_bytecode" | grep -Fq 'removeBuff'
 combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
+test "$(printf '%s' "$combat_base_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 2
 proc_direct_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/expertise_fs_flurry_charge_proc/,/meleeHit/p')"
 printf '%s' "$proc_direct_action_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$proc_direct_action_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'

@@ -80,6 +80,8 @@ $primaryHitChance = Get-BracedBlock $combatBase `
     "public float getPrecuPrimaryHitChance("
 $secondaryDefense = Get-BracedBlock $combatBase `
     "public int getPrecuSecondaryDefenseResult("
+$expertiseDamageModify = Get-BracedBlock $combatBase `
+    "public int expertiseDamageModify(obj_id attacker, obj_id defender, hit_result hitData, combat_data actionData)"
 $glancingResolution = Get-BracedBlock $hitEngine `
     "if (hitData[i].glancing)"
 
@@ -140,6 +142,26 @@ Assert-Contract ($hitEngine.Contains("if (!precuAuthoritativeAttack)") -and
     $hitEngine.Contains("addPrecuCore3HateProcess") -and
     $hitEngine.Contains("combat.addHateProcess")) `
     "p14.combat-expertise-isolation.hit.damage-and-hate-era-boundary-preserved"
+$hitCriticalCleanup = $hitEngine.IndexOf(
+    "buff.clearPostNgePlayerCriticalOverrideScriptVars(attackerData.id);",
+    [StringComparison]::Ordinal)
+$nextCriticalRead = $hitEngine.IndexOf('"nextCritHit"', [StringComparison]::Ordinal)
+$criticalRemovalRead = $hitEngine.IndexOf('"critRemoveBuffNames"', [StringComparison]::Ordinal)
+$damageCriticalCleanup = $expertiseDamageModify.IndexOf(
+    "buff.clearPostNgePlayerCriticalOverrideScriptVars(attacker);",
+    [StringComparison]::Ordinal)
+$criticalDoubleRead = $expertiseDamageModify.IndexOf(
+    '"critDoubleDamage"', [StringComparison]::Ordinal)
+$criticalRootRead = $expertiseDamageModify.IndexOf(
+    '"critRoot"', [StringComparison]::Ordinal)
+Assert-Contract ($hitCriticalCleanup -ge 0 -and
+    $nextCriticalRead -gt $hitCriticalCleanup -and
+    $criticalRemovalRead -gt $hitCriticalCleanup -and
+    $damageCriticalCleanup -ge 0 -and
+    $criticalDoubleRead -gt $damageCriticalCleanup -and
+    $criticalRootRead -gt $damageCriticalCleanup -and
+    -not [bool]$contract.expected.playerNgeCriticalOverrideCombatReadsReachable) `
+    "p14.combat-expertise-isolation.hit.player-critical-overrides-cleared-before-consumers"
 Assert-Contract ($glancingResolution.Contains("minDamage *= 0.35f") -and
     $glancingResolution.Contains("maxDamage *= 0.35f") -and
     $glancingResolution.Contains('new string_id("combat_effects", "glancing_blow")') -and
@@ -348,6 +370,130 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.persistedPlayerNgeModifierBuffStateRemoved -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
+
+$retiredCriticalEffects = @(
+    "expertise_next_hit_crit",
+    "expertise_crit_double_damage",
+    "expertise_crit_root",
+    "expertise_crit_remove_buff"
+)
+$expectedCriticalEffectTypes = [ordered]@{
+    expertise_next_hit_crit = "nextHitCrit"
+    expertise_crit_double_damage = "critDoubleDamage"
+    expertise_crit_root = "critRoot"
+    expertise_crit_remove_buff = "critOnce"
+}
+$criticalEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $retiredCriticalEffects -ccontains [string]$_.NAME })
+$unexpectedCriticalMappings = @($criticalEffectMappings | Where-Object {
+    [string]$_.TYPE -cne [string]$expectedCriticalEffectTypes[[string]$_.NAME]
+})
+$criticalBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        $retiredCriticalEffects -ccontains [string]$row.("EFFECT$($_)_PARAM")
+    }).Count -gt 0
+})
+$expectedCriticalBuffNames = @("sm_end_of_the_line", "sm_nerf_herder", "sm_off_the_cuff")
+$actualCriticalBuffNames = @($criticalBuffRows.NAME | Sort-Object)
+$criticalSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    @("sm_end_of_the_line", "sm_nerf_herder", "sm_off_the_cuff") -ccontains
+        [string]$_.COMMANDS
+})
+Assert-Contract ($retiredCriticalEffects.Count -eq
+        [int]$contract.expected.retiredNgePlayerCriticalOverrideEffects -and
+    $criticalEffectMappings.Count -eq
+        [int]$contract.expected.retainedNgeCriticalOverrideEffectMappingRows -and
+    $unexpectedCriticalMappings.Count -eq 0 -and
+    $criticalBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeCriticalOverrideBuffRows -and
+    ($actualCriticalBuffNames -join ([char]0)) -ceq
+        ($expectedCriticalBuffNames -join ([char]0)) -and
+    $criticalSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeCriticalOverrideExpertiseSkillRows -and
+    @($criticalSkillRows | Where-Object {
+        -not ([string]$_.NAME).StartsWith("expertise_sm_general_", [StringComparison]::Ordinal)
+    }).Count -eq 0) `
+    "p14.combat-expertise-isolation.buff.critical-override-data-inventory-authenticated"
+
+$criticalInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS"
+$criticalEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCriticalOverrideEffect(String effectName)"
+$criticalBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCriticalOverrideBuff(obj_id target, buff_data data)"
+$criticalScriptVarCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerCriticalOverrideScriptVars(obj_id player)"
+$criticalBuffCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerCriticalOverrideState(obj_id player)"
+$criticalBuffProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$criticalCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$criticalAdmissionGate = $criticalCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$criticalExistingBuffReturn = $criticalCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$criticalInventoryNames = @([regex]::Matches($criticalInventory,
+        '"([A-Za-z0-9_]+)"') | ForEach-Object { $_.Groups[1].Value })
+$criticalScriptVarNames = @([regex]::Matches($criticalScriptVarCleanup,
+        'removeScriptVarTree\(player, "([A-Za-z0-9_]+)"\)') |
+    ForEach-Object { $_.Groups[1].Value })
+Assert-Contract ($criticalInventoryNames.Count -eq $retiredCriticalEffects.Count -and
+    @($retiredCriticalEffects | Where-Object {
+        $criticalInventoryNames -ccontains $_
+    }).Count -eq $retiredCriticalEffects.Count -and
+    $criticalEffectPredicate.Contains("RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS") -and
+    $criticalBuffPredicate.Contains("!isPlayer(target)") -and
+    $criticalBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $criticalBuffPredicate.Contains(
+        "isRetiredPostNgePlayerCriticalOverrideEffect(getEffectParam(data, effect))") -and
+    $criticalScriptVarCleanup.Contains("!isPlayer(player)") -and
+    $criticalScriptVarNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerCriticalOverrideScriptVars -and
+    $criticalBuffCleanup.Contains("getAllBuffs(player)") -and
+    $criticalBuffCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $criticalBuffCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $criticalBuffCleanup.Contains("clearPostNgePlayerCriticalOverrideScriptVars(player)") -and
+    $criticalBuffProgressionCleanup.Contains(
+        "retirePostNgePlayerCriticalOverrideState(player);") -and
+    $criticalAdmissionGate -ge 0 -and
+    $criticalExistingBuffReturn -gt $criticalAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeCriticalOverrideBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeCriticalOverrideStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeCriticalOverrideCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.player-critical-override-admission-and-persistence-fail-closed"
+
+$criticalHandlerSignatures = @(
+    "nextHitCritAddBuffHandler",
+    "nextHitCritRemoveBuffHandler",
+    "critDoubleDamageAddBuffHandler",
+    "critDoubleDamageRemoveBuffHandler",
+    "critRootAddBuffHandler",
+    "critRootRemoveBuffHandler",
+    "critOnceAddBuffHandler",
+    "critOnceRemoveBuffHandler"
+)
+$guardedCriticalHandlers = 0
+foreach ($handlerName in $criticalHandlerSignatures)
+{
+    $handler = Get-BracedBlock $buffHandler ("public int " + $handlerName + "(")
+    $playerGuard = $handler.IndexOf("if (isPlayer(self))", [StringComparison]::Ordinal)
+    $cleanup = $handler.IndexOf(
+        "buff.clearPostNgePlayerCriticalOverrideScriptVars(self);",
+        [StringComparison]::Ordinal)
+    $retainedWriter = $handler.IndexOf("utils.", $cleanup + 1, [StringComparison]::Ordinal)
+    if ($playerGuard -ge 0 -and $cleanup -gt $playerGuard -and $retainedWriter -gt $cleanup -and
+        $handler.IndexOf("return SCRIPT_CONTINUE;", $cleanup,
+            [StringComparison]::Ordinal) -lt $retainedWriter)
+    {
+        ++$guardedCriticalHandlers
+    }
+}
+Assert-Contract ($guardedCriticalHandlers -eq
+        [int]$contract.expected.productionCriticalOverrideHandlersGuarded) `
+    "p14.combat-expertise-isolation.buff.critical-override-handlers-player-fail-closed"
 
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
