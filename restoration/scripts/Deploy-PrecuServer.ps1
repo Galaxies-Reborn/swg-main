@@ -2905,7 +2905,7 @@ printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'hasCommand'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'revokeCommand'
 buff_weapon_speed_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerWeaponSpeedOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerWeaponSpeedOverrideBuff/p')"
-printf '%s' "$buff_weapon_speed_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT'
+printf '%s' "$buff_weapon_speed_effect_predicate_bytecode" | grep -Fq 'weapon_speed_mod'
 buff_weapon_speed_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerWeaponSpeedOverrideBuff/,/restorePostNgePlayerWeaponSpeedOverride/p')"
 printf '%s' "$buff_weapon_speed_predicate_bytecode" | grep -Fq 'isPlayer'
 printf '%s' "$buff_weapon_speed_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideEffect'
