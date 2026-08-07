@@ -3070,7 +3070,7 @@ combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.comb
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 test "$(printf '%s' "$combat_base_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 2
-raw_damage_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/getRawDamage(script.obj_id, script.obj_id, script.combat_engine\$weapon_data/,/getPrecuCore3RawDamage/p')"
+raw_damage_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/^  public script.dictionary getRawDamage(/,/^  public script.dictionary getPrecuCore3RawDamage(/p')"
 damage_dealt_bytecode_cleanup_line="$(printf '%s\n' "$raw_damage_bytecode" | grep -Fn 'buff.restorePostNgePlayerDamageDealtOverride' | head -1 | cut -d: -f1)"
 damage_dealt_bytecode_read_line="$(printf '%s\n' "$raw_damage_bytecode" | grep -Fn 'damageDealtMod.value' | head -1 | cut -d: -f1)"
 test "$damage_dealt_bytecode_cleanup_line" -lt "$damage_dealt_bytecode_read_line"
