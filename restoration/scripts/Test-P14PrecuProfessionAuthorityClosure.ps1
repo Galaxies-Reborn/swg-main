@@ -313,12 +313,14 @@ $forceSensitivePredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeSmugglerPlayerAction"
 Assert-Contract ($forceSensitivePredicate.Contains("isPlayer(self)") -and
     $forceSensitivePredicate.Contains('actionName.startsWith("fs_")') -and
+    $forceSensitivePredicate.Contains('actionName.equals("forceThrow")') -and
+    -not $forceSensitivePredicate.Contains('actionName.startsWith("forceThrow")') -and
     $combatBase.Contains("if (isRetiredPostNgeForceSensitivePlayerAction(self, actionName))")) `
     "p14.profession-closure.force-sensitive-runtime.central-player-action-gate"
 
 $forceSensitiveHandlers = @([regex]::Matches(
     $combatActions,
-    '(?ms)^\s*public int (fs_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+    '(?ms)^\s*public int (fs_[A-Za-z0-9_]+|forceThrow)\(.*?(?=^\s*public int |\z)'))
 $standardForceSensitiveHandlers = @($forceSensitiveHandlers | Where-Object {
     $_.Value.Contains("combatStandardAction(")
 })
@@ -831,10 +833,17 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_forcesensiti
         [int]$contract.expected.retainedForceSensitiveCombatRows) -and
     ([regex]::Matches($commandSeries, '(?m)^fs_').Count -eq
         [int]$contract.expected.retainedForceSensitiveCommandSeriesRows) -and
+    ([regex]::Matches($commandTable, '(?m)^forceThrow\t').Count -eq
+        [int]$contract.expected.retainedForceSensitiveUnnumberedForceThrowCommandRows) -and
+    ([regex]::Matches($combatTable, '(?m)^forceThrow\t').Count -eq
+        [int]$contract.expected.retainedForceSensitiveUnnumberedForceThrowCombatRows) -and
     $precuJediAndVillageRows.Count -eq [int]$contract.expected.precuJediAndVillageSkillRows -and
     $precuJediAndVillageCommands.Count -eq [int]$contract.expected.precuJediAndVillageCommands -and
     @($precuJediAndVillageCommands | Where-Object { $_ -match '^fs_' }).Count -eq
-        [int]$contract.expected.precuJediAndVillageFsCommands) `
+        [int]$contract.expected.precuJediAndVillageFsCommands -and
+    @($precuJediAndVillageCommands | Where-Object { $_ -cmatch '^forceThrow[12]$' }).Count -eq
+        [int]$contract.expected.precuJediForceThrowCommands -and
+    -not ($precuJediAndVillageCommands -ccontains "forceThrow")) `
     "p14.profession-closure.force-sensitive-runtime.data-and-precu-command-boundary"
 
 $buffTablePath = Join-Path $dsrc `

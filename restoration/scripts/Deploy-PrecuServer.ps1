@@ -1942,6 +1942,25 @@ printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'utils.removeScr
 printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "stance.expertise_stance")'
 printf '%s' "$force_sensitive_stance_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "stance.expertise_focus")'
 grep -Fq 'retirePostNgeForceSensitiveStanceState(player);' "$work_buff_library"
+awk -F '\t' '$1 == "forceThrow" && $2 == "forceThrow" && $3 == "forceThrow" { found++ } END { if (found != 2) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '$1 ~ /^(forceThrow|fs_force_throw_[1-4]|fs_force_throw_root)$/ { found++ } END { if (found != 6) exit 3 }' "$work_buff_table"
+awk -F '\t' '{ for (i = 1; i <= NF; i++) if ($i == "forceThrow1" || $i == "forceThrow2") { found++; break } } END { if (found != 5) exit 3 }' "$work_skills_table"
+awk -F '\t' '{ for (i = 1; i <= NF; i++) if ($i == "fs_buff_ca_1,forceThrow") { found++; break } } END { if (found != 1) exit 3 }' "$work_skills_table"
+force_throw_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerForceThrowEffect/,/public static boolean isRetiredPostNgePlayerForceThrowBuffName/p' "$work_buff_library")"
+force_throw_name_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerForceThrowBuffName/,/public static boolean isRetiredPostNgePlayerForceThrowBuff(obj_id/p' "$work_buff_library")"
+force_throw_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerForceThrowBuff(obj_id/,/public static void retirePostNgePlayerForceThrowState/p' "$work_buff_library")"
+force_throw_cleanup_source="$(sed -n '/public static void retirePostNgePlayerForceThrowState/,/private static final String RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF/p' "$work_buff_library")"
+printf '%s' "$force_throw_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_FORCE_THROW_EFFECT'
+printf '%s' "$force_throw_name_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_FORCE_THROW_CONTROL_BUFF_PREFIX'
+printf '%s' "$force_throw_name_predicate_source" | grep -Fq 'buffName.startsWith'
+printf '%s' "$force_throw_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$force_throw_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerForceThrowBuffName(data.buffName)'
+printf '%s' "$force_throw_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$force_throw_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$force_throw_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$force_throw_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$force_throw_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerForceThrowState(player);' "$work_buff_library"
 passive_profession_cleanup_source="$(sed -n '/private void retirePostNgePassiveProfessionState/,/private void retirePostNgeQueuedBattlefieldPlayerState/p' "$work_base_player")"
 printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'buff.retirePostNgeForceSensitiveStanceState(self);'
 printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'combat.retirePostNgeKillMeterPlayerState(self);'
@@ -2130,6 +2149,7 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCriticalO
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerForceThrowBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
@@ -2140,6 +2160,7 @@ critical_override_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | 
 luck_hit_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 forsake_fear_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)' | head -1 | cut -d: -f1)"
 radar_invisibility_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)' | head -1 | cut -d: -f1)"
+force_throw_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerForceThrowBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
@@ -2151,6 +2172,7 @@ test "$critical_override_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$luck_hit_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$forsake_fear_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$radar_invisibility_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$force_throw_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
@@ -2161,6 +2183,18 @@ force_sensitive_invis_handler_source="$(sed -n '/public void invisBuffAddBuffHan
 force_sensitive_invis_handler_gate_line="$(printf '%s\n' "$force_sensitive_invis_handler_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_invis_handler_effect_line="$(printf '%s\n' "$force_sensitive_invis_handler_source" | grep -Fn 'stealth.invisBuffAdded(self, effectName);' | head -1 | cut -d: -f1)"
 test "$force_sensitive_invis_handler_gate_line" -lt "$force_sensitive_invis_handler_effect_line"
+force_throw_add_source="$(sed -n '/public int forceThrowAddBuffHandler/,/public int forceThrowRemoveBuffHandler/p' "$work_buff_handler")"
+movement_add_source="$(sed -n '/public int movementAddBuffHandler/,/public int movementRemoveBuffHandler/p' "$work_buff_handler")"
+force_throw_add_guard_line="$(printf '%s\n' "$force_throw_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerForceThrowEffect(effectName))' | head -1 | cut -d: -f1)"
+force_throw_add_return_line="$(printf '%s\n' "$force_throw_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+force_throw_owner_read_line="$(printf '%s\n' "$force_throw_add_source" | grep -Fn 'utils.getObjIdScriptVar(self, "buffOwner." + buffCrc)' | head -1 | cut -d: -f1)"
+test "$force_throw_add_guard_line" -lt "$force_throw_add_return_line"
+test "$force_throw_add_return_line" -lt "$force_throw_owner_read_line"
+movement_add_guard_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerForceThrowBuffName(buffName))' | head -1 | cut -d: -f1)"
+movement_add_return_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+movement_add_writer_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'movement.applyMovementModifier(self, effectName, value);' | head -1 | cut -d: -f1)"
+test "$movement_add_guard_line" -lt "$movement_add_return_line"
+test "$movement_add_return_line" -lt "$movement_add_writer_line"
 bounty_hunter_shield_handler_source="$(sed -n '/public int bhShieldsAddBuffHandler/,/public int bhShieldsRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'if (isPlayer(self))'
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'buff.retirePostNgeBountyHunterShieldState(self);'
@@ -2195,10 +2229,15 @@ test "$(grep -Fc 'retirePostNgeOfficerSupplyDrop(self, owner)' "$work_script/sys
 grep -Fq 'isPlayer(owner)' "$work_script/systems/combat/combat_supply_drop_controller.java"
 grep -Fq 'isPlayer(transferer)' "$work_script/systems/combat/combat_supply_drop_crate.java"
 grep -Fq 'retirePostNgeOfficerSupplyCrate(self)' "$work_script/systems/combat/combat_supply_drop_crate.java"
-grep -Fq 'actionName.startsWith("fs_")' "$work_script/systems/combat/combat_base.java"
+force_sensitive_action_predicate_source="$(sed -n '/public static boolean isRetiredPostNgeForceSensitivePlayerAction/,/public static boolean isRetiredPostNgeSmugglerPlayerAction/p' "$work_script/systems/combat/combat_base.java")"
+printf '%s' "$force_sensitive_action_predicate_source" | grep -Fq 'actionName.startsWith("fs_")'
+printf '%s' "$force_sensitive_action_predicate_source" | grep -Fq 'actionName.equals("forceThrow")'
+! printf '%s' "$force_sensitive_action_predicate_source" | grep -Fq 'actionName.startsWith("forceThrow")'
 grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeForceSensitivePlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 1
 grep -Fq 'buff.removeBuff(self, "fs_dot_immunity_recourse")' "$work_script/systems/combat/combat_actions.java"
+force_throw_action_source="$(sed -n '/public int forceThrow(/,/public int ambush(/p' "$work_script/systems/combat/combat_actions.java")"
+printf '%s' "$force_throw_action_source" | grep -Fq 'combatStandardAction("forceThrow"'
 grep -Fq 'actionName.startsWith("sm_")' "$work_script/systems/combat/combat_base.java"
 grep -Fq 'isRetiredPostNgeSmugglerPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeSmugglerPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 6
@@ -3418,6 +3457,18 @@ invis_buff_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/p
 printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff'
 printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$invis_buff_handler_bytecode" | grep -Fq 'invisBuffAdded'
+force_throw_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int forceThrowAddBuffHandler/,/public int forceThrowRemoveBuffHandler/p')"
+force_throw_add_player_line="$(printf '%s\n' "$force_throw_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+force_throw_add_predicate_line="$(printf '%s\n' "$force_throw_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceThrowEffect' | head -1 | cut -d: -f1)"
+force_throw_add_owner_line="$(printf '%s\n' "$force_throw_add_bytecode" | grep -Fn 'buffOwner.' | head -1 | cut -d: -f1)"
+test "$force_throw_add_player_line" -lt "$force_throw_add_predicate_line"
+test "$force_throw_add_predicate_line" -lt "$force_throw_add_owner_line"
+movement_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int movementAddBuffHandler/,/public int movementRemoveBuffHandler/p')"
+movement_add_player_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+movement_add_predicate_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceThrowBuffName' | head -1 | cut -d: -f1)"
+movement_add_writer_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'applyMovementModifier' | head -1 | cut -d: -f1)"
+test "$movement_add_player_line" -lt "$movement_add_predicate_line"
+test "$movement_add_predicate_line" -lt "$movement_add_writer_line"
 # Every retained ground DOT now resolves through the same PRE-CU application
 # and pulse path; no divergent era marker or NGE DOT modifier survives.
 dot_bytecode="$(javap -classpath "$class_root" -v script.library.dot)"
@@ -3602,6 +3653,21 @@ javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgeF
 for retired_force_sensitive_stance_buff in $retired_force_sensitive_stance_buffs; do
     javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_force_sensitive_stance_buff"
 done
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostNgePlayerForceThrowBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgePlayerForceThrowState'
+buff_library_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+force_throw_buff_predicate_bytecode="$(printf '%s' "$buff_library_bytecode" | sed -n '/public static boolean isRetiredPostNgePlayerForceThrowBuff(script.obj_id, script.combat_engine.buff_data)/,/public static void retirePostNgePlayerForceThrowState/p')"
+printf '%s' "$force_throw_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$force_throw_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerForceThrowBuffName'
+printf '%s' "$force_throw_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerForceThrowEffect'
+force_throw_cleanup_bytecode="$(printf '%s' "$buff_library_bytecode" | sed -n '/public static void retirePostNgePlayerForceThrowState/,/public static boolean isRetiredPostNgePlayerMedicDoomBuff/p')"
+printf '%s' "$force_throw_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$force_throw_cleanup_bytecode" | grep -Fq 'getBuffData'
+printf '%s' "$force_throw_cleanup_bytecode" | grep -Fq 'removeBuff'
+force_throw_admission_bytecode="$(printf '%s' "$buff_library_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+force_throw_admission_line="$(printf '%s\n' "$force_throw_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceThrowBuff' | head -1 | cut -d: -f1)"
+force_throw_existing_line="$(printf '%s\n' "$force_throw_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test "$force_throw_admission_line" -lt "$force_throw_existing_line"
 javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeForceSensitiveStanceState'
 center_of_being_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/public int centerOfBeing/,/public int forceFocus/p')"
 printf '%s' "$center_of_being_bytecode" | grep -Fq 'combat_brawler_novice'
@@ -3718,11 +3784,18 @@ javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_contr
 javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_crate | grep -Fq 'retirePostNgeOfficerSupplyCrate'
 javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_crate | grep -Fq 'no_access_not_in_group'
 # Publish 14.1 Jedi and Village rows use their classic force*, saber*, heal*,
-# mindBlast*, and jediMindTrick commands; fs_* is retained NGE compatibility.
-javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction'
-javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'fs_'
+# mindBlast*, and jediMindTrick commands. The fs_* family and exact unnumbered
+# forceThrow action are retained NGE compatibility; forceThrow1/2 stay classic.
+combat_base_actions_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
+force_sensitive_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeForceSensitivePlayerAction/,/public static boolean isRetiredPostNgeSmugglerPlayerAction/p')"
+printf '%s' "$force_sensitive_action_bytecode" | grep -Fq 'fs_'
+printf '%s' "$force_sensitive_action_bytecode" | grep -Fq 'forceThrow'
+! printf '%s' "$force_sensitive_action_bytecode" | grep -Eq 'forceThrow[12]'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'fs_dot_immunity_recourse'
+force_throw_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/public int forceThrow(/,/public int ambush(/p')"
+printf '%s' "$force_throw_action_bytecode" | grep -Fq 'forceThrow'
+printf '%s' "$force_throw_action_bytecode" | grep -Fq 'combatStandardAction'
 # Publish 14.1 Smuggler uses combat_smuggler skill boxes and classic named
 # commands; sm_* remains retained NGE compatibility without player authority.
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeSmugglerPlayerAction'

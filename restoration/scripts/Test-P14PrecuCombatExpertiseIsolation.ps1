@@ -1737,6 +1737,162 @@ Assert-Contract ($saberInterceptHandlerGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeSaberInterceptCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.saber-intercept-handler-player-fail-closed"
 
+$forceThrowCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { [string]$_.commandName -ceq "forceThrow" })
+$forceThrowCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { [string]$_.actionName -ceq "forceThrow" })
+$forceThrowMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq "forceThrow" })
+$forceThrowBuffNames = @(
+    "forceThrow",
+    "fs_force_throw_1",
+    "fs_force_throw_2",
+    "fs_force_throw_3",
+    "fs_force_throw_4",
+    "fs_force_throw_root"
+)
+$forceThrowBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { $forceThrowBuffNames -ccontains [string]$_.NAME })
+$forceThrowBuffSignatures = @($forceThrowBuffRows | ForEach-Object {
+    @(
+        [string]$_.NAME,
+        [string]$_.GROUP1,
+        [string]$_.DURATION,
+        [string]$_.EFFECT1_PARAM,
+        [string]$_.EFFECT1_VALUE,
+        [string]$_.DEBUFF,
+        [string]$_.IS_PERSISTENT
+    ) -join "|"
+} | Sort-Object)
+$expectedForceThrowBuffSignatures = @(
+    "forceThrow|forceThrowHandler|15|forceThrow|0|1|1",
+    "fs_force_throw_1|forceThrowSnare|15|movement|60|1|1",
+    "fs_force_throw_2|forceThrowSnare|15|movement|65|1|1",
+    "fs_force_throw_3|forceThrowSnare|15|movement|70|1|1",
+    "fs_force_throw_4|forceThrowSnare|15|movement|75|1|1",
+    "fs_force_throw_root|forceThrowRoot|15|movement|0|1|1"
+) | Sort-Object
+$forceThrowNgeSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        [string]$_.NAME -ceq "class_forcesensitive_phase1_02" -or
+            [string]$_.NAME -cmatch '^expertise_fs_general_improved_(?:force_throw_[12]|crippling_accuracy_[123])$'
+    })
+$precuForceThrowSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        [string]$_.NAME -cmatch '^(?:jedi_|force_discipline_)' -and
+            (([string]$_.COMMANDS).Trim('"') -split ',' -cmatch '^forceThrow[12]$').Count -gt 0
+    })
+$precuForceThrowCommands = @($precuForceThrowSkillRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+} | Where-Object { $_ -cmatch '^forceThrow[12]$' } | Sort-Object -Unique)
+Assert-Contract ($forceThrowCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeForceThrowCommandRows -and
+    [string]$forceThrowCommandRows[0].scriptHook -ceq "forceThrow" -and
+    [string]$forceThrowCommandRows[0].displayGroup -ceq "combat" -and
+    [string]$forceThrowCommandRows[0].addToCombatQueue -ceq "1" -and
+    $forceThrowCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeForceThrowCombatRows -and
+    [string]$forceThrowCombatRows[0].hitType -ceq "DELAY_ATTACK" -and
+    [string]$forceThrowCombatRows[0].validTarget -ceq "STANDARD" -and
+    [string]$forceThrowCombatRows[0].percentAddFromWeapon -ceq "1" -and
+    $forceThrowMappings.Count -eq
+        [int]$contract.expected.retainedNgeForceThrowEffectMappingRows -and
+    @($forceThrowMappings | Where-Object {
+        [string]$_.TYPE -ceq "forceThrow" -and
+            [string]$_.SUBTYPE -ceq "forceThrow"
+    }).Count -eq $forceThrowMappings.Count -and
+    $forceThrowBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeForceThrowBuffRows -and
+    (($forceThrowBuffSignatures -join "`n") -ceq
+        ($expectedForceThrowBuffSignatures -join "`n")) -and
+    $forceThrowNgeSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeForceThrowSkillRows -and
+    $precuForceThrowSkillRows.Count -eq 5 -and
+    $precuForceThrowCommands.Count -eq
+        [int]$contract.expected.precuForceThrowCommandsPreserved -and
+    ($precuForceThrowCommands -join "`n") -ceq "forceThrow1`nforceThrow2") `
+    "p14.combat-expertise-isolation.buff.force-throw-data-and-precu-boundary-authenticated"
+
+$forceThrowEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerForceThrowEffect(String effectName)"
+$forceThrowNamePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerForceThrowBuffName(String buffName)"
+$forceThrowBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerForceThrowBuff(obj_id target, buff_data data)"
+$forceThrowCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerForceThrowState(obj_id player)"
+$forceThrowProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$forceThrowAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$forceThrowAdmissionGate = $forceThrowAdmission.IndexOf(
+    "isRetiredPostNgePlayerForceThrowBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$forceThrowExistingBuffReturn = $forceThrowAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$forceThrowAction = Get-BracedBlock $combatActions "public int forceThrow("
+$forceThrowAdd = Get-BracedBlock $buffHandler "public int forceThrowAddBuffHandler("
+$movementAdd = Get-BracedBlock $buffHandler "public int movementAddBuffHandler("
+$forceThrowAddGuard = $forceThrowAdd.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$forceThrowAddPredicate = $forceThrowAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerForceThrowEffect(effectName)",
+    [StringComparison]::Ordinal)
+$forceThrowAddReturn = $forceThrowAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$forceThrowOwnerRead = $forceThrowAdd.IndexOf(
+    'utils.getObjIdScriptVar(self, "buffOwner." + buffCrc)',
+    [StringComparison]::Ordinal)
+$movementAddGuard = $movementAdd.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$movementAddPredicate = $movementAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerForceThrowBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$movementAddReturn = $movementAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$movementAddWriter = $movementAdd.IndexOf(
+    "movement.applyMovementModifier(self, effectName, value);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($forceSensitivePlayerAction.Contains('actionName.equals("forceThrow")') -and
+    -not $forceSensitivePlayerAction.Contains('actionName.startsWith("forceThrow")') -and
+    $forceThrowAction.Contains('combatStandardAction("forceThrow"') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeForceSensitivePlayerAction(self, actionName)") -and
+    $forceThrowEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_FORCE_THROW_EFFECT") -and
+    $forceThrowNamePredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_FORCE_THROW_CONTROL_BUFF_PREFIX") -and
+    $forceThrowNamePredicate.Contains("buffName.startsWith") -and
+    $forceThrowBuffPredicate.Contains("!isPlayer(target)") -and
+    $forceThrowBuffPredicate.Contains(
+        "isRetiredPostNgePlayerForceThrowBuffName(data.buffName)") -and
+    $forceThrowBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $forceThrowCleanup.Contains("!isPlayer(player)") -and
+    $forceThrowCleanup.Contains("getAllBuffs(player)") -and
+    $forceThrowCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $forceThrowCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $forceThrowProgressionCleanup.Contains(
+        "retirePostNgePlayerForceThrowState(player);") -and
+    $forceThrowAdmissionGate -ge 0 -and
+    $forceThrowExistingBuffReturn -gt $forceThrowAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeForceThrowActionReachable -and
+    -not [bool]$contract.expected.playerNgeForceThrowBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeForceThrowStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeForceThrowCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.force-throw-action-admission-and-persistence-fail-closed"
+Assert-Contract ($forceThrowAddGuard -ge 0 -and
+    $forceThrowAddPredicate -gt $forceThrowAddGuard -and
+    $forceThrowAddReturn -gt $forceThrowAddPredicate -and
+    $forceThrowOwnerRead -gt $forceThrowAddReturn -and
+    $movementAddGuard -ge 0 -and
+    $movementAddPredicate -gt $movementAddGuard -and
+    $movementAddReturn -gt $movementAddPredicate -and
+    $movementAddWriter -gt $movementAddReturn -and
+    [int]$contract.expected.productionForceThrowControlHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerNgeForceThrowMovementControlReachable -and
+    [bool]$contract.expected.nonPlayerNgeForceThrowCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.force-throw-control-handlers-player-fail-closed"
+
 $pistolWhipControlEffect = "sm_pistol_whip"
 $pistolWhipControlMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object { [string]$_.NAME -ceq $pistolWhipControlEffect })
