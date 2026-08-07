@@ -2364,7 +2364,7 @@ radar_invisibility_buff_predicate_source="$(sed -n '/public static boolean isRet
 printf '%s\n' "$radar_invisibility_buff_predicate_source" | grep -Fq '!isPlayer(target)'
 printf '%s\n' "$radar_invisibility_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
 printf '%s\n' "$radar_invisibility_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityEffect(getEffectParam(data, effect))'
-radar_invisibility_cleanup_source="$(sed -n '/public static void retirePostNgePlayerRadarInvisibilityState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+radar_invisibility_cleanup_source="$(sed -n '/public static void retirePostNgePlayerRadarInvisibilityState/,/public static boolean isRetiredPostNgePlayerCooldownExecutionEffect/p' "$work_buff_library")"
 printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fq '!isPlayer(player)'
 printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
@@ -2393,6 +2393,49 @@ radar_invisibility_retained_restore_line="$(printf '%s\n' "$radar_invisibility_r
 test "$radar_invisibility_remove_guard_line" -lt "$radar_invisibility_remove_repair_line"
 test "$radar_invisibility_remove_repair_line" -lt "$radar_invisibility_remove_return_line"
 test "$radar_invisibility_remove_return_line" -lt "$radar_invisibility_retained_restore_line"
+awk -F '\t' '$1 == "cooldown_execute_all" { found++; if ($2 != "cooldownModify" || $3 != "cooldown_execute_all") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2)
+        if ($parameterColumn == "cooldown_execute_all") ownsEffect = 1
+    if (ownsEffect) {
+        rows++
+        seen[$1]++
+        actual = $1 "|" $7 "|" $30 "|" $8 "|" $9 "|" $10 "|" $11 "|" $12 "|" $13 "|" $14 "|" $15 "|" $16 "|" $17
+        if ($1 == "jedi_statue_dark_debuff_dark" && actual != "jedi_statue_dark_debuff_dark|30|1|cooldown_execute_all|12|expertise_damage_to_healing_fs_ae_dm_cc|100|private_armor_break|100|combat_parry_reduction|-150|expertise_block_chance|-15") exit 2
+        if ($1 == "lelli_stun" && actual != "lelli_stun|15|1|cooldown_execute_all|15||0||0||0||0") exit 2
+        if ($1 == "sp_fld_debuff_ca" && actual != "sp_fld_debuff_ca|3|1|cooldown_execute_all|3|stifle|3||0||0||0") exit 2
+    }
+}
+END {
+    if (rows != 3 || seen["jedi_statue_dark_debuff_dark"] != 1 || seen["lelli_stun"] != 1 || seen["sp_fld_debuff_ca"] != 1) exit 3
+}' "$work_buff_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_COOLDOWN_EXECUTION_EFFECT = "cooldown_execute_all"' "$work_buff_library"
+cooldown_execution_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCooldownExecutionEffect/,/public static boolean isRetiredPostNgePlayerCooldownExecutionBuff/p' "$work_buff_library")"
+printf '%s\n' "$cooldown_execution_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_COOLDOWN_EXECUTION_EFFECT'
+cooldown_execution_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCooldownExecutionBuff/,/public static void retirePostNgePlayerCooldownExecutionState/p' "$work_buff_library")"
+printf '%s\n' "$cooldown_execution_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$cooldown_execution_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$cooldown_execution_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerCooldownExecutionEffect(getEffectParam(data, effect))'
+cooldown_execution_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCooldownExecutionState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$cooldown_execution_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$cooldown_execution_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$cooldown_execution_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$cooldown_execution_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerCooldownExecutionState(player);' "$work_buff_library"
+cooldown_execution_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+cooldown_execution_admission_gate_line="$(printf '%s\n' "$cooldown_execution_admission_source" | grep -Fn 'isRetiredPostNgePlayerCooldownExecutionBuff(target, bdata)' | head -1 | cut -d: -f1)"
+cooldown_execution_existing_return_line="$(printf '%s\n' "$cooldown_execution_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$cooldown_execution_admission_gate_line" -lt "$cooldown_execution_existing_return_line"
+cooldown_execution_add_source="$(sed -n '/public int cooldownModifyAddBuffHandler/,/public int cooldownModifyRemoveBuffHandler/p' "$work_buff_handler")"
+cooldown_execution_guard_line="$(printf '%s\n' "$cooldown_execution_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+cooldown_execution_return_line="$(printf '%s\n' "$cooldown_execution_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+cooldown_execution_retained_subtype_line="$(printf '%s\n' "$cooldown_execution_add_source" | grep -Fn 'subtype.equals("cooldown_execute_all")' | head -1 | cut -d: -f1)"
+cooldown_execution_retained_writer_line="$(printf '%s\n' "$cooldown_execution_add_source" | grep -Fn 'sendCooldownGroupTimingOnly(self, groupCrc, value);' | head -1 | cut -d: -f1)"
+test "$cooldown_execution_guard_line" -lt "$cooldown_execution_return_line"
+test "$cooldown_execution_return_line" -lt "$cooldown_execution_retained_subtype_line"
+test "$cooldown_execution_retained_subtype_line" -lt "$cooldown_execution_retained_writer_line"
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -3596,12 +3639,22 @@ printf '%s' "$buff_radar_invisibility_effect_predicate_bytecode" | grep -Fq 'rad
 buff_radar_invisibility_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerRadarInvisibilityBuff/,/retirePostNgePlayerRadarInvisibilityState/p')"
 printf '%s' "$buff_radar_invisibility_predicate_bytecode" | grep -Fq 'isPlayer'
 printf '%s' "$buff_radar_invisibility_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityEffect'
-buff_radar_invisibility_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerRadarInvisibilityState/,/isRetiredPostNgePlayerModifierBuff/p')"
+buff_radar_invisibility_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerRadarInvisibilityState/,/isRetiredPostNgePlayerCooldownExecutionEffect/p')"
 printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'getAllBuffs'
 printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'setVisibleOnMapAndRadar'
 printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerRadarInvisibilityState'
+buff_cooldown_execution_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCooldownExecutionEffect(java.lang.String)/,/isRetiredPostNgePlayerCooldownExecutionBuff/p')"
+printf '%s' "$buff_cooldown_execution_effect_predicate_bytecode" | grep -Fq 'cooldown_execute_all'
+buff_cooldown_execution_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCooldownExecutionBuff/,/retirePostNgePlayerCooldownExecutionState/p')"
+printf '%s' "$buff_cooldown_execution_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_cooldown_execution_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerCooldownExecutionEffect'
+buff_cooldown_execution_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCooldownExecutionState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_cooldown_execution_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_cooldown_execution_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_cooldown_execution_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerCooldownExecutionState'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
 channel_heal_damage_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/OnCreatureDamaged/,/attribAddBuffHandler/p')"
 channel_heal_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelHealAddBuffHandler/,/channelHealRemoveBuffHandler/p')"
@@ -3636,6 +3689,12 @@ for radar_invisibility_handler_bytecode in "$radar_invisibility_add_bytecode" "$
     test "$radar_invisibility_first_visibility_bytecode_line" -lt "$radar_invisibility_player_return_bytecode_line"
     test "$radar_invisibility_player_return_bytecode_line" -lt "$radar_invisibility_retained_visibility_bytecode_line"
 done
+cooldown_execution_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/cooldownModifyAddBuffHandler/,/cooldownModifyRemoveBuffHandler/p')"
+cooldown_execution_guard_bytecode_line="$(printf '%s\n' "$cooldown_execution_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+cooldown_execution_player_return_bytecode_line="$(printf '%s\n' "$cooldown_execution_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+cooldown_execution_retained_writer_bytecode_line="$(printf '%s\n' "$cooldown_execution_add_bytecode" | grep -Fn 'Method getCommandListingForPlayer' | head -1 | cut -d: -f1)"
+test "$cooldown_execution_guard_bytecode_line" -lt "$cooldown_execution_player_return_bytecode_line"
+test "$cooldown_execution_player_return_bytecode_line" -lt "$cooldown_execution_retained_writer_bytecode_line"
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
 action_drain_guard_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | head -n "$action_drain_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"

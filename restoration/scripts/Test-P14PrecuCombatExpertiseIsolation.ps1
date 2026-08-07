@@ -1546,6 +1546,103 @@ Assert-Contract ($radarInvisibilityAddGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeRadarInvisibilityCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.radar-invisibility-handlers-player-fail-closed"
 
+$cooldownExecutionEffect = "cooldown_execute_all"
+$cooldownExecutionMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq $cooldownExecutionEffect })
+$cooldownExecutionBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq $cooldownExecutionEffect
+    }).Count -gt 0
+})
+$cooldownExecutionSignatures = @($cooldownExecutionBuffRows | ForEach-Object {
+    $row = $_
+    @(
+        [string]$row.NAME,
+        [string]$row.DURATION,
+        [string]$row.IS_PERSISTENT,
+        [string]$row.EFFECT1_PARAM,
+        [string]$row.EFFECT1_VALUE,
+        [string]$row.EFFECT2_PARAM,
+        [string]$row.EFFECT2_VALUE,
+        [string]$row.EFFECT3_PARAM,
+        [string]$row.EFFECT3_VALUE,
+        [string]$row.EFFECT4_PARAM,
+        [string]$row.EFFECT4_VALUE,
+        [string]$row.EFFECT5_PARAM,
+        [string]$row.EFFECT5_VALUE
+    ) -join "|"
+} | Sort-Object)
+$expectedCooldownExecutionSignatures = @(
+    "jedi_statue_dark_debuff_dark|30|1|cooldown_execute_all|12|expertise_damage_to_healing_fs_ae_dm_cc|100|private_armor_break|100|combat_parry_reduction|-150|expertise_block_chance|-15",
+    "lelli_stun|15|1|cooldown_execute_all|15||0||0||0||0",
+    "sp_fld_debuff_ca|3|1|cooldown_execute_all|3|stifle|3||0||0||0"
+)
+Assert-Contract ($cooldownExecutionMappings.Count -eq
+        [int]$contract.expected.retainedNgeCooldownExecutionEffectMappingRows -and
+    [string]$cooldownExecutionMappings[0].TYPE -ceq "cooldownModify" -and
+    [string]$cooldownExecutionMappings[0].SUBTYPE -ceq $cooldownExecutionEffect -and
+    $cooldownExecutionBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeCooldownExecutionBuffRows -and
+    (($cooldownExecutionSignatures -join "`n") -ceq
+        ($expectedCooldownExecutionSignatures -join "`n"))) `
+    "p14.combat-expertise-isolation.buff.cooldown-execution-data-inventory-authenticated"
+
+$cooldownExecutionEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCooldownExecutionEffect(String effectName)"
+$cooldownExecutionBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCooldownExecutionBuff(obj_id target, buff_data data)"
+$cooldownExecutionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerCooldownExecutionState(obj_id player)"
+$cooldownExecutionProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$cooldownExecutionCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$cooldownExecutionAdmissionGate = $cooldownExecutionCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerCooldownExecutionBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$cooldownExecutionExistingBuffReturn = $cooldownExecutionCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_COOLDOWN_EXECUTION_EFFECT = "cooldown_execute_all"') -and
+    $cooldownExecutionEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_COOLDOWN_EXECUTION_EFFECT") -and
+    $cooldownExecutionBuffPredicate.Contains("!isPlayer(target)") -and
+    $cooldownExecutionBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $cooldownExecutionBuffPredicate.Contains(
+        "isRetiredPostNgePlayerCooldownExecutionEffect(getEffectParam(data, effect))") -and
+    $cooldownExecutionCleanup.Contains("!isPlayer(player)") -and
+    $cooldownExecutionCleanup.Contains("getAllBuffs(player)") -and
+    $cooldownExecutionCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $cooldownExecutionCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $cooldownExecutionProgressionCleanup.Contains(
+        "retirePostNgePlayerCooldownExecutionState(player);") -and
+    $cooldownExecutionAdmissionGate -ge 0 -and
+    $cooldownExecutionExistingBuffReturn -gt $cooldownExecutionAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeCooldownExecutionBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeCooldownExecutionStateRemoved) `
+    "p14.combat-expertise-isolation.buff.player-cooldown-execution-admission-and-persistence-fail-closed"
+
+$cooldownExecutionAddHandler = Get-BracedBlock $buffHandler `
+    "public int cooldownModifyAddBuffHandler("
+$cooldownExecutionHandlerGuard = $cooldownExecutionAddHandler.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$cooldownExecutionHandlerReturn = $cooldownExecutionAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$cooldownExecutionRetainedSubtype = $cooldownExecutionAddHandler.IndexOf(
+    'subtype.equals("cooldown_execute_all")', [StringComparison]::Ordinal)
+$cooldownExecutionRetainedWriter = $cooldownExecutionAddHandler.IndexOf(
+    "sendCooldownGroupTimingOnly(self, groupCrc, value);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($cooldownExecutionHandlerGuard -ge 0 -and
+    $cooldownExecutionHandlerReturn -gt $cooldownExecutionHandlerGuard -and
+    $cooldownExecutionRetainedSubtype -gt $cooldownExecutionHandlerReturn -and
+    $cooldownExecutionRetainedWriter -gt $cooldownExecutionRetainedSubtype -and
+    [int]$contract.expected.productionCooldownExecutionHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.globalPlayerCooldownExecutionReachable -and
+    [bool]$contract.expected.nonPlayerNgeCooldownExecutionCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.cooldown-execution-handler-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and
