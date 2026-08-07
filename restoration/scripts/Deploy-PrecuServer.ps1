@@ -3899,8 +3899,9 @@ test "$pistol_whip_control_predicate_bytecode_line" -lt "$pistol_whip_control_pl
 test "$pistol_whip_control_player_return_bytecode_line" -lt "$pistol_whip_control_expertise_bytecode_line"
 test "$pistol_whip_control_expertise_bytecode_line" -lt "$pistol_whip_control_retained_writer_bytecode_line"
 buff_smuggler_trick_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerSmugglerTrickEffect(java.lang.String)/,/isRetiredPostNgePlayerSmugglerTrickBuff/p')"
-printf '%s' "$buff_smuggler_trick_effect_predicate_bytecode" | grep -Fq 'expertise_sly_lie'
-printf '%s' "$buff_smuggler_trick_effect_predicate_bytecode" | grep -Fq 'expertise_fast_talk'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'expertise_sly_lie'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'expertise_fast_talk'
+printf '%s' "$buff_smuggler_trick_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_SMUGGLER_TRICK_EFFECTS'
 buff_smuggler_trick_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerSmugglerTrickBuff/,/clearPostNgePlayerSmugglerTrickModifiers/p')"
 printf '%s' "$buff_smuggler_trick_predicate_bytecode" | grep -Fq 'isPlayer'
 printf '%s' "$buff_smuggler_trick_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerSmugglerTrickEffect'
