@@ -4056,7 +4056,7 @@ test "$aggro_channel_apply_bytecode_line" -lt "$aggro_channel_script_var_bytecod
 aggro_channel_consumer_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/addHateProcess(script.obj_id, script.obj_id, script.combat_engine[$]hit_result, script.combat_engine[$]combat_data)/,/canSee(script.obj_id, script.obj_id)/p')"
 aggro_channel_consumer_cleanup_bytecode_line="$(printf '%s\n' "$aggro_channel_consumer_bytecode" | grep -Fn 'retirePostNgePlayerAggroChannelState' | head -1 | cut -d: -f1)"
 aggro_channel_consumer_expertise_bytecode_line="$(printf '%s\n' "$aggro_channel_consumer_bytecode" | grep -Fn 'expertise_aggro_channel' | head -1 | cut -d: -f1)"
-aggro_channel_consumer_transfer_bytecode_line="$(printf '%s\n' "$aggro_channel_consumer_bytecode" | grep -Fn 'Method addHate' | head -1 | cut -d: -f1)"
+aggro_channel_consumer_transfer_bytecode_line="$(printf '%s\n' "$aggro_channel_consumer_bytecode" | grep -Fn 'Method addHate' | awk -F: -v expertise="$aggro_channel_consumer_expertise_bytecode_line" '$1 > expertise { print $1; exit }')"
 printf '%s' "$aggro_channel_consumer_bytecode" | grep -Fq 'Method isPlayer'
 printf '%s' "$aggro_channel_consumer_bytecode" | grep -Fq 'aggroBuffTransfer'
 test "$aggro_channel_consumer_cleanup_bytecode_line" -lt "$aggro_channel_consumer_expertise_bytecode_line"
