@@ -2473,6 +2473,57 @@ saber_intercept_return_line="$(printf '%s\n' "$saber_intercept_add_source" | gre
 saber_intercept_retained_writer_line="$(printf '%s\n' "$saber_intercept_add_source" | grep -Fn 'utils.setScriptVar(self, combat.DAMAGE_REDIRECT, caster);' | head -1 | cut -d: -f1)"
 test "$saber_intercept_guard_line" -lt "$saber_intercept_return_line"
 test "$saber_intercept_return_line" -lt "$saber_intercept_retained_writer_line"
+awk -F '\t' '$1 == "sm_pistol_whip" { found++; if ($2 != "pistolWhip" || $3 != "sm_pistol_whip") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2)
+        if ($parameterColumn == "sm_pistol_whip") ownsEffect = 1
+    if (ownsEffect) {
+        rows++
+        actual = $1 "|" $7 "|" $23 "|" $30 "|" $8 "|" $9
+        if (actual != "sm_pistol_whip|2|1|1|sm_pistol_whip|0") exit 2
+    }
+}
+END { if (rows != 1) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+NR > 2 {
+    ngeOwner = index($22, "sm_pistol_whip_1") > 0 ||
+        index($23, "expertise_stun_line_sm_pistol_whip=") > 0 ||
+        index($23, "expertise_buff_duration_line_sm_pistol_whip=") > 0
+    if (ngeOwner) ngeRows++
+    precuOwner = ($1 == "combat_pistol_support_01" && index($22, "pistolMeleeDefense1") > 0) ||
+        ($1 == "combat_pistol_support_03" && index($22, "pistolMeleeDefense2") > 0)
+    if (precuOwner) precuRows++
+}
+END { if (ngeRows != 5 || precuRows != 2) exit 3 }
+' "$work_skills_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_PISTOL_WHIP_CONTROL_EFFECT = "sm_pistol_whip"' "$work_buff_library"
+pistol_whip_control_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerPistolWhipControlEffect/,/public static boolean isRetiredPostNgePlayerPistolWhipControlBuff/p' "$work_buff_library")"
+printf '%s\n' "$pistol_whip_control_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_PISTOL_WHIP_CONTROL_EFFECT'
+pistol_whip_control_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerPistolWhipControlBuff/,/public static void retirePostNgePlayerPistolWhipControlState/p' "$work_buff_library")"
+printf '%s\n' "$pistol_whip_control_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$pistol_whip_control_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$pistol_whip_control_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerPistolWhipControlEffect(getEffectParam(data, effect))'
+pistol_whip_control_cleanup_source="$(sed -n '/public static void retirePostNgePlayerPistolWhipControlState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$pistol_whip_control_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$pistol_whip_control_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$pistol_whip_control_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$pistol_whip_control_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerPistolWhipControlState(player);' "$work_buff_library"
+pistol_whip_control_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+pistol_whip_control_admission_gate_line="$(printf '%s\n' "$pistol_whip_control_admission_source" | grep -Fn 'isRetiredPostNgePlayerPistolWhipControlBuff(target, bdata)' | head -1 | cut -d: -f1)"
+pistol_whip_control_existing_return_line="$(printf '%s\n' "$pistol_whip_control_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$pistol_whip_control_admission_gate_line" -lt "$pistol_whip_control_existing_return_line"
+pistol_whip_control_add_source="$(sed -n '/public int pistolWhipAddBuffHandler/,/public int pistolWhipRemoveBuffHandler/p' "$work_buff_handler")"
+pistol_whip_control_guard_line="$(printf '%s\n' "$pistol_whip_control_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerPistolWhipControlEffect(effectName))' | head -1 | cut -d: -f1)"
+pistol_whip_control_return_line="$(printf '%s\n' "$pistol_whip_control_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+pistol_whip_control_expertise_line="$(printf '%s\n' "$pistol_whip_control_add_source" | grep -Fn 'getSkillStatisticModifier(caster, "expertise_stun_line_sm_pistol_whip")' | head -1 | cut -d: -f1)"
+pistol_whip_control_retained_writer_line="$(printf '%s\n' "$pistol_whip_control_add_source" | grep -Fn 'movementAddBuffHandler(self, effectName, subtype, duration, value, buffName, caster);' | head -1 | cut -d: -f1)"
+test "$pistol_whip_control_guard_line" -lt "$pistol_whip_control_return_line"
+test "$pistol_whip_control_return_line" -lt "$pistol_whip_control_expertise_line"
+test "$pistol_whip_control_expertise_line" -lt "$pistol_whip_control_retained_writer_line"
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -3750,6 +3801,26 @@ saber_intercept_retained_writer_bytecode_line="$(printf '%s\n' "$saber_intercept
 test "$saber_intercept_guard_bytecode_line" -lt "$saber_intercept_predicate_bytecode_line"
 test "$saber_intercept_predicate_bytecode_line" -lt "$saber_intercept_player_return_bytecode_line"
 test "$saber_intercept_player_return_bytecode_line" -lt "$saber_intercept_retained_writer_bytecode_line"
+buff_pistol_whip_control_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerPistolWhipControlEffect(java.lang.String)/,/isRetiredPostNgePlayerPistolWhipControlBuff/p')"
+printf '%s' "$buff_pistol_whip_control_effect_predicate_bytecode" | grep -Fq 'sm_pistol_whip'
+buff_pistol_whip_control_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerPistolWhipControlBuff/,/retirePostNgePlayerPistolWhipControlState/p')"
+printf '%s' "$buff_pistol_whip_control_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_pistol_whip_control_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerPistolWhipControlEffect'
+buff_pistol_whip_control_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerPistolWhipControlState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_pistol_whip_control_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_pistol_whip_control_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_pistol_whip_control_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerPistolWhipControlState'
+pistol_whip_control_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/pistolWhipAddBuffHandler/,/pistolWhipRemoveBuffHandler/p')"
+pistol_whip_control_guard_bytecode_line="$(printf '%s\n' "$pistol_whip_control_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+pistol_whip_control_predicate_bytecode_line="$(printf '%s\n' "$pistol_whip_control_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerPistolWhipControlEffect' | head -1 | cut -d: -f1)"
+pistol_whip_control_player_return_bytecode_line="$(printf '%s\n' "$pistol_whip_control_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+pistol_whip_control_expertise_bytecode_line="$(printf '%s\n' "$pistol_whip_control_add_bytecode" | grep -Fn 'Method getSkillStatisticModifier' | head -1 | cut -d: -f1)"
+pistol_whip_control_retained_writer_bytecode_line="$(printf '%s\n' "$pistol_whip_control_add_bytecode" | grep -Fn 'Method movementAddBuffHandler' | head -1 | cut -d: -f1)"
+test "$pistol_whip_control_guard_bytecode_line" -lt "$pistol_whip_control_predicate_bytecode_line"
+test "$pistol_whip_control_predicate_bytecode_line" -lt "$pistol_whip_control_player_return_bytecode_line"
+test "$pistol_whip_control_player_return_bytecode_line" -lt "$pistol_whip_control_expertise_bytecode_line"
+test "$pistol_whip_control_expertise_bytecode_line" -lt "$pistol_whip_control_retained_writer_bytecode_line"
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
 action_drain_guard_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | head -n "$action_drain_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"

@@ -1736,6 +1736,119 @@ Assert-Contract ($saberInterceptHandlerGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeSaberInterceptCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.saber-intercept-handler-player-fail-closed"
 
+$pistolWhipControlEffect = "sm_pistol_whip"
+$pistolWhipControlMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq $pistolWhipControlEffect })
+$pistolWhipControlBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq $pistolWhipControlEffect
+    }).Count -gt 0
+})
+$pistolWhipControlSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+    $skillMods = ([string]$_.SKILL_MODS).Trim('"') -split ','
+    $commands -ccontains "sm_pistol_whip_1" -or
+        @($skillMods | Where-Object {
+            $_ -match '^expertise_(stun|buff_duration)_line_sm_pistol_whip='
+        }).Count -gt 0
+})
+$precuPistolMeleeDefenseSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+    $commands -ccontains "pistolMeleeDefense1" -or
+        $commands -ccontains "pistolMeleeDefense2"
+})
+Assert-Contract ($pistolWhipControlMappings.Count -eq
+        [int]$contract.expected.retainedNgePistolWhipControlEffectMappingRows -and
+    [string]$pistolWhipControlMappings[0].TYPE -ceq "pistolWhip" -and
+    [string]$pistolWhipControlMappings[0].SUBTYPE -ceq $pistolWhipControlEffect -and
+    $pistolWhipControlBuffRows.Count -eq
+        [int]$contract.expected.retainedNgePistolWhipControlBuffRows -and
+    [string]$pistolWhipControlBuffRows[0].NAME -ceq "sm_pistol_whip" -and
+    [string]$pistolWhipControlBuffRows[0].DURATION -ceq "2" -and
+    [string]$pistolWhipControlBuffRows[0].DEBUFF -ceq "1" -and
+    [string]$pistolWhipControlBuffRows[0].IS_PERSISTENT -ceq "1" -and
+    $pistolWhipControlSkillRows.Count -eq
+        [int]$contract.expected.retainedNgePistolWhipControlSkillRows -and
+    $precuPistolMeleeDefenseSkillRows.Count -eq
+        [int]$contract.expected.retainedPrecuPistolMeleeDefenseSkillRows -and
+    @($precuPistolMeleeDefenseSkillRows | Select-Object -ExpandProperty NAME) -contains
+        "combat_pistol_support_01" -and
+    @($precuPistolMeleeDefenseSkillRows | Select-Object -ExpandProperty NAME) -contains
+        "combat_pistol_support_03" -and
+    [bool]$contract.expected.precuPistolMeleeDefensePreserved) `
+    "p14.combat-expertise-isolation.buff.pistol-whip-control-data-and-precu-boundary-authenticated"
+
+$pistolWhipControlEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerPistolWhipControlEffect(String effectName)"
+$pistolWhipControlBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerPistolWhipControlBuff(obj_id target, buff_data data)"
+$pistolWhipControlCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerPistolWhipControlState(obj_id player)"
+$pistolWhipControlProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$pistolWhipControlCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$pistolWhipControlAdmissionGate = $pistolWhipControlCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerPistolWhipControlBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$pistolWhipControlExistingBuffReturn = $pistolWhipControlCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$smugglerPlayerAction = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeSmugglerPlayerAction(obj_id self, String actionName)"
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_PISTOL_WHIP_CONTROL_EFFECT = "sm_pistol_whip"') -and
+    $pistolWhipControlEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_PISTOL_WHIP_CONTROL_EFFECT") -and
+    $pistolWhipControlBuffPredicate.Contains("!isPlayer(target)") -and
+    $pistolWhipControlBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $pistolWhipControlBuffPredicate.Contains(
+        "isRetiredPostNgePlayerPistolWhipControlEffect(getEffectParam(data, effect))") -and
+    $pistolWhipControlCleanup.Contains("!isPlayer(player)") -and
+    $pistolWhipControlCleanup.Contains("getAllBuffs(player)") -and
+    $pistolWhipControlCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $pistolWhipControlCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $pistolWhipControlProgressionCleanup.Contains(
+        "retirePostNgePlayerPistolWhipControlState(player);") -and
+    $pistolWhipControlAdmissionGate -ge 0 -and
+    $pistolWhipControlExistingBuffReturn -gt $pistolWhipControlAdmissionGate -and
+    $smugglerPlayerAction.Contains('actionName.startsWith("sm_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeSmugglerPlayerAction(self, actionName)") -and
+    -not [bool]$contract.expected.playerNgePistolWhipCommandExecutionReachable -and
+    -not [bool]$contract.expected.playerNgePistolWhipBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgePistolWhipStateRemoved) `
+    "p14.combat-expertise-isolation.buff.pistol-whip-control-admission-persistence-and-command-fail-closed"
+
+$pistolWhipControlAddHandler = Get-BracedBlock $buffHandler `
+    "public int pistolWhipAddBuffHandler("
+$pistolWhipControlRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int pistolWhipRemoveBuffHandler("
+$pistolWhipControlHandlerGuard = $pistolWhipControlAddHandler.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$pistolWhipControlHandlerPredicate = $pistolWhipControlAddHandler.IndexOf(
+    "buff.isRetiredPostNgePlayerPistolWhipControlEffect(effectName)",
+    [StringComparison]::Ordinal)
+$pistolWhipControlHandlerReturn = $pistolWhipControlAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$pistolWhipControlExpertiseRead = $pistolWhipControlAddHandler.IndexOf(
+    'getSkillStatisticModifier(caster, "expertise_stun_line_sm_pistol_whip")',
+    [StringComparison]::Ordinal)
+$pistolWhipControlRetainedWriter = $pistolWhipControlAddHandler.IndexOf(
+    "movementAddBuffHandler(self, effectName, subtype, duration, value, buffName, caster);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($pistolWhipControlHandlerGuard -ge 0 -and
+    $pistolWhipControlHandlerPredicate -gt $pistolWhipControlHandlerGuard -and
+    $pistolWhipControlHandlerReturn -gt $pistolWhipControlHandlerPredicate -and
+    $pistolWhipControlExpertiseRead -gt $pistolWhipControlHandlerReturn -and
+    $pistolWhipControlRetainedWriter -gt $pistolWhipControlExpertiseRead -and
+    $pistolWhipControlRemoveHandler.Contains(
+        "movementRemoveBuffHandler(self, effectName, subtype, duration, value, buffName, caster);") -and
+    [int]$contract.expected.productionPistolWhipControlHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgePistolWhipMovementControlReachable -and
+    [bool]$contract.expected.nonPlayerNgePistolWhipCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.pistol-whip-control-handler-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and
