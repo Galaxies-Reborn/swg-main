@@ -1353,6 +1353,55 @@ printf '%s' "$command_grant_remove_source" | grep -Fq 'isPlayer(self)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'while (hasCommand(self, subType))'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'revokeCommand(self, subType)'
+awk -F '\t' '$1 == "weapon_speed_mod" && $2 == "weaponSpeedMod" && $3 == "weapon_speed_mod" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2) {
+        if ($parameterColumn == "weapon_speed_mod") ownsEffect = 1
+    }
+    if (ownsEffect) {
+        rows++
+        if ($1 != "bm_frenzy" || $8 != "weapon_speed_mod" || $9 != "40" || $30 != "1") exit 2
+    }
+}
+END { if (rows != 1) exit 3 }
+' "$work_buff_table"
+weapon_speed_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideEffect/,/public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideBuff/p' "$work_buff_library")"
+printf '%s' "$weapon_speed_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT'
+printf '%s' "$weapon_speed_effect_predicate_source" | grep -Fq 'weapon_speed_mod'
+weapon_speed_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideBuff/,/public static void restorePostNgePlayerWeaponSpeedOverride/p' "$work_buff_library")"
+printf '%s' "$weapon_speed_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$weapon_speed_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$weapon_speed_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideEffect(getEffectParam(data, effect))'
+weapon_speed_restore_source="$(sed -n '/public static void restorePostNgePlayerWeaponSpeedOverride/,/public static void retirePostNgePlayerWeaponSpeedOverrideState/p' "$work_buff_library")"
+weapon_speed_record_read_line="$(printf '%s\n' "$weapon_speed_restore_source" | grep -Fn 'utils.getStringScriptVar(player, "recordedAttackSpeed")' | head -1 | cut -d: -f1)"
+weapon_speed_record_clear_line="$(printf '%s\n' "$weapon_speed_restore_source" | grep -Fn 'utils.removeScriptVar(player, "recordedAttackSpeed")' | head -1 | cut -d: -f1)"
+weapon_speed_record_parse_line="$(printf '%s\n' "$weapon_speed_restore_source" | grep -Fn "split(weaponRecord, '-')" | head -1 | cut -d: -f1)"
+test "$weapon_speed_record_read_line" -lt "$weapon_speed_record_clear_line"
+test "$weapon_speed_record_clear_line" -lt "$weapon_speed_record_parse_line"
+printf '%s' "$weapon_speed_restore_source" | grep -Fq 'utils.isNestedWithin(weapon, player)'
+printf '%s' "$weapon_speed_restore_source" | grep -Fq 'weaponSpeed <= 0.0f'
+printf '%s' "$weapon_speed_restore_source" | grep -Fq 'setWeaponAttackSpeed(weapon, weaponSpeed)'
+printf '%s' "$weapon_speed_restore_source" | grep -Fq 'weapons.setWeaponData(weapon)'
+printf '%s' "$weapon_speed_restore_source" | grep -Fq 'utils.removeScriptVar(weapon, "isCreatureWeapon")'
+weapon_speed_cleanup_source="$(sed -n '/public static void retirePostNgePlayerWeaponSpeedOverrideState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS/p' "$work_buff_library")"
+printf '%s' "$weapon_speed_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$weapon_speed_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$weapon_speed_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s' "$weapon_speed_cleanup_source" | grep -Fq 'restorePostNgePlayerWeaponSpeedOverride(player)'
+grep -Fq 'retirePostNgePlayerWeaponSpeedOverrideState(player);' "$work_buff_library"
+weapon_speed_add_source="$(sed -n '/public int weaponSpeedModAddBuffHandler/,/public int weaponSpeedModRemoveBuffHandler/p' "$work_buff_handler")"
+weapon_speed_remove_source="$(sed -n '/public int weaponSpeedModRemoveBuffHandler/,/public int commandGrantAddBuffHandler/p' "$work_buff_handler")"
+for weapon_speed_handler_source in "$weapon_speed_add_source" "$weapon_speed_remove_source"; do
+    weapon_speed_player_guard_line="$(printf '%s\n' "$weapon_speed_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+    weapon_speed_player_restore_line="$(printf '%s\n' "$weapon_speed_handler_source" | grep -Fn 'buff.restorePostNgePlayerWeaponSpeedOverride(self);' | head -1 | cut -d: -f1)"
+    weapon_speed_player_return_line="$(printf '%s\n' "$weapon_speed_handler_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)"
+    test "$weapon_speed_player_guard_line" -lt "$weapon_speed_player_restore_line"
+    test "$weapon_speed_player_restore_line" -lt "$weapon_speed_player_return_line"
+done
+test "$weapon_speed_player_return_line" -lt "$(printf '%s\n' "$weapon_speed_remove_source" | grep -Fn 'utils.hasScriptVar(self, "recordedAttackSpeed")' | head -1 | cut -d: -f1)"
+test "$(printf '%s\n' "$weapon_speed_add_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$weapon_speed_add_source" | grep -Fn 'getCurrentWeapon(self)' | head -1 | cut -d: -f1)"
 retired_critical_override_effects="expertise_next_hit_crit expertise_crit_double_damage expertise_crit_root expertise_crit_remove_buff"
 test "$(printf '%s\n' $retired_critical_override_effects | wc -l)" -eq 4
 for retired_critical_override_effect in $retired_critical_override_effects; do
@@ -1656,17 +1705,20 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeForceSensitiveS
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
 command_grant_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)' | head -1 | cut -d: -f1)"
+weapon_speed_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 critical_override_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$proc_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$command_grant_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$weapon_speed_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$critical_override_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
@@ -2837,6 +2889,7 @@ printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.removeBuff'
 buff_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/applyBuff(script.obj_id, java.lang.String)/p')"
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
@@ -2851,6 +2904,22 @@ printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'combat_engine.get
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'hasCommand'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'revokeCommand'
+buff_weapon_speed_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerWeaponSpeedOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerWeaponSpeedOverrideBuff/p')"
+printf '%s' "$buff_weapon_speed_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT'
+buff_weapon_speed_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerWeaponSpeedOverrideBuff/,/restorePostNgePlayerWeaponSpeedOverride/p')"
+printf '%s' "$buff_weapon_speed_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_weapon_speed_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideEffect'
+buff_weapon_speed_restore_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/restorePostNgePlayerWeaponSpeedOverride/,/retirePostNgePlayerWeaponSpeedOverrideState/p')"
+printf '%s' "$buff_weapon_speed_restore_bytecode" | grep -Fq 'recordedAttackSpeed'
+printf '%s' "$buff_weapon_speed_restore_bytecode" | grep -Fq 'utils.isNestedWithin'
+printf '%s' "$buff_weapon_speed_restore_bytecode" | grep -Fq 'setWeaponAttackSpeed'
+printf '%s' "$buff_weapon_speed_restore_bytecode" | grep -Fq 'weapons.setWeaponData'
+printf '%s' "$buff_weapon_speed_restore_bytecode" | grep -Fq 'isCreatureWeapon'
+buff_weapon_speed_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerWeaponSpeedOverrideState/,/RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS/p')"
+printf '%s' "$buff_weapon_speed_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_weapon_speed_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_weapon_speed_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_weapon_speed_cleanup_bytecode" | grep -Fq 'restorePostNgePlayerWeaponSpeedOverride'
 buff_critical_override_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCriticalOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerCriticalOverrideBuff/p')"
 printf '%s' "$buff_critical_override_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_CRITICAL_OVERRIDE_EFFECTS'
 buff_critical_override_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCriticalOverrideBuff/,/clearPostNgePlayerCriticalOverrideScriptVars/p')"
@@ -2867,6 +2936,14 @@ printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'combat_engine
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+weapon_speed_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/weaponSpeedModAddBuffHandler/,/weaponSpeedModRemoveBuffHandler/p')"
+printf '%s' "$weapon_speed_add_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$weapon_speed_add_bytecode" | grep -Fq 'buff.restorePostNgePlayerWeaponSpeedOverride'
+printf '%s' "$weapon_speed_add_bytecode" | grep -Fq 'setWeaponAttackSpeed'
+weapon_speed_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/weaponSpeedModRemoveBuffHandler/,/commandGrantAddBuffHandler/p')"
+printf '%s' "$weapon_speed_remove_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$weapon_speed_remove_bytecode" | grep -Fq 'buff.restorePostNgePlayerWeaponSpeedOverride'
+printf '%s' "$weapon_speed_remove_bytecode" | grep -Fq 'setWeaponAttackSpeed'
 critical_override_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/nextHitCritAddBuffHandler/,/junkDealerAddBuffHandler/p')"
 test "$(printf '%s' "$critical_override_handler_bytecode" | grep -Fc 'isPlayer')" -eq 8
 test "$(printf '%s' "$critical_override_handler_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 8

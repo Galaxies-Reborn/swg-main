@@ -371,6 +371,114 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
+$weaponSpeedEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "weaponSpeedMod" })
+$weaponSpeedBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq "weapon_speed_mod"
+    }).Count -gt 0
+})
+Assert-Contract ($weaponSpeedEffectMappings.Count -eq
+        [int]$contract.expected.retainedNgeWeaponSpeedOverrideEffectMappingRows -and
+    [string]$weaponSpeedEffectMappings[0].NAME -ceq "weapon_speed_mod" -and
+    [string]$weaponSpeedEffectMappings[0].SUBTYPE -ceq "weapon_speed_mod" -and
+    $weaponSpeedBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeWeaponSpeedOverrideBuffRows -and
+    [string]$weaponSpeedBuffRows[0].NAME -ceq "bm_frenzy" -and
+    [string]$weaponSpeedBuffRows[0].EFFECT1_PARAM -ceq "weapon_speed_mod" -and
+    [string]$weaponSpeedBuffRows[0].EFFECT1_VALUE -ceq "40" -and
+    [string]$weaponSpeedBuffRows[0].IS_PERSISTENT -ceq "1") `
+    "p14.combat-expertise-isolation.buff.weapon-speed-override-data-inventory-authenticated"
+
+$weaponSpeedEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideEffect(String effectName)"
+$weaponSpeedBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideBuff(obj_id target, buff_data data)"
+$weaponSpeedRestore = Get-BracedBlock $buffLibrary `
+    "public static void restorePostNgePlayerWeaponSpeedOverride(obj_id player)"
+$weaponSpeedCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerWeaponSpeedOverrideState(obj_id player)"
+$weaponSpeedProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$weaponSpeedCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$weaponSpeedAdmissionGate = $weaponSpeedCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$weaponSpeedExistingBuffReturn = $weaponSpeedCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$weaponRecordRead = $weaponSpeedRestore.IndexOf(
+    'utils.getStringScriptVar(player, "recordedAttackSpeed")',
+    [StringComparison]::Ordinal)
+$weaponRecordClear = $weaponSpeedRestore.IndexOf(
+    'utils.removeScriptVar(player, "recordedAttackSpeed")',
+    [StringComparison]::Ordinal)
+$weaponRecordParse = $weaponSpeedRestore.IndexOf(
+    "split(weaponRecord, '-')", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT = "weapon_speed_mod"') -and
+    $weaponSpeedEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT") -and
+    $weaponSpeedBuffPredicate.Contains("!isPlayer(target)") -and
+    $weaponSpeedBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $weaponSpeedBuffPredicate.Contains(
+        "isRetiredPostNgePlayerWeaponSpeedOverrideEffect(getEffectParam(data, effect))") -and
+    $weaponSpeedCleanup.Contains("!isPlayer(player)") -and
+    $weaponSpeedCleanup.Contains("getAllBuffs(player)") -and
+    $weaponSpeedCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $weaponSpeedCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $weaponSpeedCleanup.Contains("restorePostNgePlayerWeaponSpeedOverride(player)") -and
+    $weaponSpeedProgressionCleanup.Contains(
+        "retirePostNgePlayerWeaponSpeedOverrideState(player);") -and
+    $weaponSpeedAdmissionGate -ge 0 -and
+    $weaponSpeedExistingBuffReturn -gt $weaponSpeedAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeWeaponSpeedOverrideBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeWeaponSpeedOverrideStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeWeaponSpeedOverrideCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.player-weapon-speed-override-admission-and-persistence-fail-closed"
+Assert-Contract ($weaponSpeedRestore.Contains("!isPlayer(player)") -and
+    $weaponSpeedRestore.Contains('utils.hasScriptVar(player, "recordedAttackSpeed")') -and
+    $weaponRecordRead -ge 0 -and $weaponRecordClear -gt $weaponRecordRead -and
+    $weaponRecordParse -gt $weaponRecordClear -and
+    $weaponSpeedRestore.Contains("parse.length != 2") -and
+    $weaponSpeedRestore.Contains("utils.isNestedWithin(weapon, player)") -and
+    $weaponSpeedRestore.Contains("weaponSpeed <= 0.0f") -and
+    $weaponSpeedRestore.Contains("setWeaponAttackSpeed(weapon, weaponSpeed)") -and
+    $weaponSpeedRestore.Contains("weapons.setWeaponData(weapon)") -and
+    $weaponSpeedRestore.Contains('utils.removeScriptVar(weapon, "isCreatureWeapon")')) `
+    "p14.combat-expertise-isolation.buff.player-weapon-speed-override-restoration-bounded"
+
+$weaponSpeedHandlerNames = @(
+    "weaponSpeedModAddBuffHandler",
+    "weaponSpeedModRemoveBuffHandler"
+)
+$guardedWeaponSpeedHandlers = 0
+foreach ($handlerName in $weaponSpeedHandlerNames)
+{
+    $handler = Get-BracedBlock $buffHandler ("public int " + $handlerName + "(")
+    $playerGuard = $handler.IndexOf("if (isPlayer(self))", [StringComparison]::Ordinal)
+    $cleanup = $handler.IndexOf(
+        "buff.restorePostNgePlayerWeaponSpeedOverride(self);",
+        [StringComparison]::Ordinal)
+    $playerReturn = $handler.IndexOf("return SCRIPT_CONTINUE;", $cleanup,
+        [StringComparison]::Ordinal)
+    $retainedPath = if ($handlerName -ceq "weaponSpeedModAddBuffHandler") {
+        $handler.IndexOf("getCurrentWeapon(self)", [StringComparison]::Ordinal)
+    } else {
+        $handler.IndexOf('utils.hasScriptVar(self, "recordedAttackSpeed")',
+            [StringComparison]::Ordinal)
+    }
+    if ($playerGuard -ge 0 -and $cleanup -gt $playerGuard -and
+        $playerReturn -gt $cleanup -and $retainedPath -gt $playerReturn)
+    {
+        ++$guardedWeaponSpeedHandlers
+    }
+}
+Assert-Contract ($guardedWeaponSpeedHandlers -eq
+        [int]$contract.expected.productionWeaponSpeedOverrideHandlersGuarded) `
+    "p14.combat-expertise-isolation.buff.weapon-speed-override-handlers-player-fail-closed"
+
 $retiredCriticalEffects = @(
     "expertise_next_hit_crit",
     "expertise_crit_double_damage",
