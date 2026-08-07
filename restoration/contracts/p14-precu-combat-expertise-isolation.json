@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, radar-invisibility, global command-cooldown-execution, Force Sensitive saber-intercept, Smuggler pistol-whip control, Smuggler trick-derived modifier buffs, Officer Aggro Channel hate transfer, Commando kill-meter/snare-armor expertise, or prefixless Medic expertise fire/poison DOT procs from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, radar-invisibility, global command-cooldown-execution, Force Sensitive saber-intercept, Smuggler pistol-whip control, Smuggler trick-derived modifier buffs, Officer Aggro Channel hate transfer, Commando kill-meter/snare-armor expertise, prefixless Medic expertise fire/poison DOT procs, or prefixless Entertainer Build-a-Buff reactive heals from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -63,7 +63,9 @@
       "The retained NGE Commando reaction surface has exactly three kill_meter_co_* combat actions and one expertise_co_* proc. You'll Regret That is the only commandoSnareBonus mapping and owns one persistent thirty-second co_youll_regret_that buff plus four expertise ranks; its add handler checks snare state, reads expertise_youll_regret_that, and attempts to write an expertise_innate_protection_all modifier under the transient commandoInnateArmorBonus label.",
       "Pinned Core3 contains none of the four deferred Commando actions, commando_snare_bonus effect, co_youll_regret_that buff, expertise_youll_regret_that statistic, or transient armor modifier. The player-only Commando action gate now covers co_*, kill_meter_co_*, and expertise_co_* while exact five-slot buff admission, lifecycle and orphan-modifier cleanup, and a pre-snare/pre-expertise add-handler guard close direct injection and persistence; all retained rows and non-player expansion compatibility remain available.",
       "The retained NGE Medic expertise surface has exactly two server-only deferred DOT actions: expertise_dueterium_rounds_proc performs a six-second fire DOT and expertise_poison_knuckle_proc performs a six-second poison DOT, each at fifty-five percent weapon damage and five-percent proc chance. Their inherited names omit the me_ prefix, so the generic proc-table gate denied them but the Medic ownership predicate did not independently fail closed.",
-      "Pinned Core3 contains neither deferred Medic DOT action, either expertise grant, nor either proc-table entry. The player-only Medic action gate now names both exact actions in addition to me_* while the earlier generic proc gate remains dominant; retained action, command, combat, proc, and expertise rows remain available to non-player expansion content, and the distinct Publish 14.1 science_combatmedic applyPoison and applyDisease commands remain unchanged."
+      "Pinned Core3 contains neither deferred Medic DOT action, either expertise grant, nor either proc-table entry. The player-only Medic action gate now names both exact actions in addition to me_* while the earlier generic proc gate remains dominant; retained action, command, combat, proc, and expertise rows remain available to non-player expansion content, and the distinct Publish 14.1 science_combatmedic applyPoison and applyDisease commands remain unchanged.",
+      "The retained NGE Entertainer Build-a-Buff surface has exactly three server-only reactive-heal proc actions. They heal Health for 200, 400, or 800 at inherited level bands, each has an eight-percent proc-table chance, and all three names omit the en_ prefix. The earlier generic proc gate and the already-dominant Build-a-Buff progression guard denied ordinary player execution and modifier creation, but the Entertainer ownership predicate did not independently fail closed.",
+      "Pinned Core3 contains no Build-a-Buff inspiration, reactive_second_chance modifier, or expertise_buildabuff_* action. The player-only Entertainer action gate now owns both en_* and expertise_buildabuff_* while retained command, combat, proc, buff, mapping, handler, and non-player expansion rows remain available; the distinct Publish 14.1 social_entertainer, social_dancer, and social_musician dance, music, flourish, and wound-healing progression remains unchanged."
     ]
   },
   "expected": {
@@ -254,6 +256,16 @@
     "genericPlayerProcGateStillDominatesMedicOwnershipGate": true,
     "nonPlayerNgeMedicDeferredDotProcCompatibilityPreserved": true,
     "precuCombatMedicDotCommandsPreserved": 2,
+    "retainedNgeEntertainerBuildabuffReactiveHealCommandRows": 3,
+    "retainedNgeEntertainerBuildabuffReactiveHealCombatRows": 3,
+    "retainedNgeEntertainerBuildabuffReactiveHealProcRows": 3,
+    "retainedNgeEntertainerBuildabuffReactiveHealActionHandlers": 3,
+    "playerNgeEntertainerBuildabuffReactiveHealExecutionReachable": false,
+    "genericPlayerProcGateStillDominatesEntertainerOwnershipGate": true,
+    "buildabuffModifierWriterStillFailsClosedBeforePlayerStateReads": true,
+    "nonPlayerNgeEntertainerBuildabuffReactiveHealCompatibilityPreserved": true,
+    "precuEntertainerCoreSkillRowsPreserved": 6,
+    "precuEntertainerCoreCommandRowsPreserved": 5,
     "armorBreakNgeExpertiseReads": 0,
     "armorBreakNgeExpertiseWrites": 0,
     "directStanceExpertiseWriters": 0,
@@ -299,11 +311,11 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "d5b3fb3fbea21fc12fbbb6bb4678f0d2397ca0e9",
+    "directSourceGitlink": "bd0b61660884e90873c3bfee498a8bb5284b132f",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "6663ea12e996eaa0e3e93de1ece90e3666196eaf65c642d38ebe3ea1f76a7cc7",
-      "combatBase": "df39e2f06a2d48d90661fce294fb2175ffe45e34418ba14adf607ddae448c767",
+      "combatBase": "95ca05a107f3f34c6e9f96014b5885245e92a3eca597d7a4328e0b0af776ff69",
       "combatActions": "a7cc776d599724cc3f21e068dd8420503478909b51a1dcef081ac9bc45cd4f08",
       "combatOverrides": "57629b565fc2086c71f18bb27d6c9a778f313c153eaf1840aa1638be7b1849bf",
       "commandTable": "0fcdb7cddd7f4b692fd8bd4535ab88f18ddd2af2e840ba337775858fc162d519",
@@ -332,16 +344,16 @@
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
-    "focusedCombatBaseClassSha256": "7cb491dccd5642f83e6a752ce4e95b4d885934f3f01aa1ed38049ac1d9bcfb12",
-    "focusedCombatBaseClassBytes": 127648,
+    "focusedCombatBaseClassSha256": "d80dcd26692bc8e7059b127427fd4210af71214d602e0e1023c99590f5f17bd1",
+    "focusedCombatBaseClassBytes": 127697,
     "focusedBuffLibraryClassSha256": "6fab5bdabc9027bfb77da0851ebd90dee2dd9e1790e8964073917ece7ec29a79",
     "focusedBuffLibraryClassBytes": 58156,
     "focusedBuffHandlerClassSha256": "e0eed98928997183b9336e6da22e3a9a2cf30922e88236b41731848139b0698b",
     "focusedBuffHandlerClassBytes": 132912,
     "focusedCombatLibraryClassSha256": "1188fbacd109db3b95950b364199f9fb3aa96cbb1c55c6ee7b33219da0ca8a42",
     "focusedCombatLibraryClassBytes": 88492,
-    "sourceTest": "passed exact inventory and properties for two retained server-only Medic deferred-DOT commands, two combat rows, two proc rows, two expertise grants, and two combat handlers; authenticated exact player-only Medic action denial, earlier generic proc denial, non-player expansion compatibility, and unchanged PRE-CU applyPoison/applyDisease ownership",
-    "focusedJavaCompile": "passed from exact pushed direct source d5b3fb3fbea21fc12fbbb6bb4678f0d2397ca0e9 with Java 8 source/target compatibility against the deployed x64 class set for combat_base.java; isolated bytecode contains both exact Medic deferred-DOT action literals and the player predicate, emitted 127,648 bytes with SHA-256 7cb491dccd5642f83e6a752ce4e95b4d885934f3f01aa1ed38049ac1d9bcfb12, and the exact ephemeral /dev/shm output directories were removed and verified absent",
+    "sourceTest": "passed exact Entertainer Build-a-Buff reactive-heal command, combat, proc, handler, player-only ownership, generic-proc dominance, modifier-writer fail-closed, cleanup, non-player compatibility, and PRE-CU Entertainer continuity validation",
+    "focusedJavaCompile": "passed Java 8 compatibility compile of the updated combat_base.java with -implicit:none in the exact ephemeral container path /dev/shm/precu-entertainer-buildabuff-compile-20260807; emitted 127,697-byte class d80dcd26692bc8e7059b127427fd4210af71214d602e0e1023c99590f5f17bd1, authenticated isPlayer plus en_ and expertise_buildabuff_ bytecode, and removed the compile path on exit",
     "fullJavaCompile": "passed canonical clean dependency rebuild from 5,713 exact pushed direct-source Java files at dsrc d5b3fb3fbea21fc12fbbb6bb4678f0d2397ca0e9 after removing every prior compiled Java class; 5,747 classes were emitted",
     "fullServerBuild": "passed canonical clean Docker x86-64 build, full source/data/bytecode/binary audit, controlled restart, and readiness probes in the 930-second deployment from direct dsrc d5b3fb3fbea21fc12fbbb6bb4678f0d2397ca0e9 and parent source checkpoint bc53511e33b0dcb3d1221db69f8f2f6863e8b9fd",
     "architecture": "ELF 64-bit LSB x86-64",
@@ -351,7 +363,7 @@
     "sourceWorkParity": "passed exact byte parity and matching SHA-256 values between the read-only source mount and writable Docker work volume for combat_base.java, buff_handler.java, and buff.java",
     "bytecodeAudit": "passed for deployed player-only Commando co_*, kill_meter_co_*, and expertise_co_* action denial; commando_snare_bonus admission, cleanup, and handler denial; exact Medic me_* plus expertise_dueterium_rounds_proc and expertise_poison_knuckle_proc player action denial; both retained Medic handlers routing through combatStandardAction; and preserved non-player expansion behavior",
     "deploymentProbe": "passed canonical source/data/bytecode and clean x64 build gates, healthy readiness, one stable TransferServer listener on native port 50005, mapped-binary identity, exact process topology, zero shared-memory residue, zero core files, and fresh-log verification",
-    "result": "passed"
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-07",
@@ -395,9 +407,9 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear action-channel, player channelled-stim healing, player radar-invisibility, global player command-cooldown execution, Force Sensitive saber-intercept damage-redirection, Smuggler pistol-whip movement-control, Smuggler Sly Lie/Fast Talk trick-modifier, Officer Aggro Channel hate-transfer, Commando kill-meter/snare-armor expertise, or prefixless Medic expertise fire/poison DOT proc authority through player action admission, generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, or unconditional raw-damage consumers",
+    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear action-channel, player channelled-stim healing, player radar-invisibility, global player command-cooldown execution, Force Sensitive saber-intercept damage-redirection, Smuggler pistol-whip movement-control, Smuggler Sly Lie/Fast Talk trick-modifier, Officer Aggro Channel hate-transfer, Commando kill-meter/snare-armor expertise, prefixless Medic expertise fire/poison DOT proc, or prefixless Entertainer Build-a-Buff reactive-heal authority through player action admission, generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, or unconditional raw-damage consumers",
     "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based combat; ordinary PRE-CU skill and HAM buffs; all retained buff and effect-mapping rows; non-player expansion encounter compatibility; and all expansion quests, conversations, and zones",
-    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, critical-override, Luck-hit, Forsake Fear, player channelled-stim, radar-invisibility, global cooldown-execution, saber-intercept, Smuggler pistol-whip control, Smuggler Sly Lie/Fast Talk trick, Officer Aggro Channel, Commando kill-meter/snare-armor, and Medic deferred-DOT proc boundaries remain subject to later reachability audits"
+    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, critical-override, Luck-hit, Forsake Fear, player channelled-stim, radar-invisibility, global cooldown-execution, saber-intercept, Smuggler pistol-whip control, Smuggler Sly Lie/Fast Talk trick, Officer Aggro Channel, Commando kill-meter/snare-armor, Medic deferred-DOT proc, and Entertainer Build-a-Buff reactive-heal boundaries remain subject to later reachability audits"
   },
   "requiredBeforeReady": []
 }

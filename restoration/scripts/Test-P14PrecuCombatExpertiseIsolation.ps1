@@ -2475,6 +2475,144 @@ Assert-Contract ($literalExpertiseWriters -eq
         $buildABuff.IndexOf("performance.buildabuff.buffComponentKeys", [StringComparison]::Ordinal)) `
     "p14.combat-expertise-isolation.buff.remaining-literals-fail-closed"
 
+$entertainerBuildabuffReactiveHealActions = @(
+    "expertise_buildabuff_heal_1_reac",
+    "expertise_buildabuff_heal_2_reac",
+    "expertise_buildabuff_heal_3_reac"
+)
+$entertainerBuildabuffReactiveHealCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object {
+        $entertainerBuildabuffReactiveHealActions -ccontains [string]$_.commandName
+    })
+$entertainerBuildabuffReactiveHealCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object {
+        $entertainerBuildabuffReactiveHealActions -ccontains [string]$_.actionName
+    })
+$entertainerBuildabuffReactiveHealProcRows = @(Import-SwgTab -Path $paths.procTable |
+    Where-Object {
+        $entertainerBuildabuffReactiveHealActions -ccontains [string]$_.procString
+    })
+$entertainerBuildabuffReactiveHealHandlers = @($entertainerBuildabuffReactiveHealActions |
+    ForEach-Object { Get-BracedBlock $combatActions "public int $_(" })
+$entertainerBuildabuffExpectedHeal = [ordered]@{
+    "expertise_buildabuff_heal_1_reac" = "200"
+    "expertise_buildabuff_heal_2_reac" = "400"
+    "expertise_buildabuff_heal_3_reac" = "800"
+}
+$entertainerBuildabuffExpectedComment = [ordered]@{
+    "expertise_buildabuff_heal_1_reac" = "Buildabuffreactiveheallvl10"
+    "expertise_buildabuff_heal_2_reac" = "Buildabuffreactiveheallvl40"
+    "expertise_buildabuff_heal_3_reac" = "Buildabuffreactiveheallvl70"
+}
+$entertainerBuildabuffExpectedExplanation = [ordered]@{
+    "expertise_buildabuff_heal_1_reac" = "Buildabuff Reactive Heal (level 10)"
+    "expertise_buildabuff_heal_2_reac" = "Buildabuff Reactive Heal (level 40)"
+    "expertise_buildabuff_heal_3_reac" = "Buildabuff Reactive Heal (level 70)"
+}
+$precuEntertainerCoreSkillNames = @(
+    "social_entertainer_novice", "social_entertainer_master",
+    "social_dancer_novice", "social_dancer_master",
+    "social_musician_novice", "social_musician_master"
+)
+$precuEntertainerCoreSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object { $precuEntertainerCoreSkillNames -ccontains [string]$_.NAME })
+$precuEntertainerCoreCommandHooks = [ordered]@{
+    "startDance" = "cmdStartDance"
+    "startMusic" = "cmdStartMusic"
+    "stopDance" = "cmdStopDance"
+    "stopMusic" = "cmdStopMusic"
+    "flourish" = "cmdFlourish"
+}
+$precuEntertainerCoreCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object {
+        $precuEntertainerCoreCommandHooks.Keys -ccontains [string]$_.commandName
+    })
+$precuEntertainerNovice = @($precuEntertainerCoreSkillRows |
+    Where-Object { [string]$_.NAME -ceq "social_entertainer_novice" })
+Assert-Contract ($entertainerBuildabuffReactiveHealCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerBuildabuffReactiveHealCommandRows -and
+    @($entertainerBuildabuffReactiveHealCommandRows | Where-Object {
+        [string]$_.scriptHook -ceq [string]$_.commandName -and
+        [string]$_.failScriptHook -ceq "failProc" -and
+        [string]$_.displayGroup -ceq "combat" -and
+        [string]$_.addToCombatQueue -ceq "0" -and
+        [string]$_.cooldownGroup -ceq "reac_heal" -and
+        [string]$_.cooldownTime -ceq "3" -and
+        [string]$_.toolbarOnly -ceq "1" -and
+        [string]$_.fromServerOnly -ceq "1"
+    }).Count -eq $entertainerBuildabuffReactiveHealCommandRows.Count -and
+    $entertainerBuildabuffReactiveHealCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerBuildabuffReactiveHealCombatRows -and
+    @($entertainerBuildabuffReactiveHealCombatRows | Where-Object {
+        [string]$_.validTarget -ceq "NONE" -and
+        [string]$_.hitType -ceq "HEAL" -and
+        [string]$_.healAttrib -ceq "HEALTH" -and
+        [string]$_.attackType -ceq "SINGLE_TARGET" -and
+        [string]$_.percentAddFromWeapon -ceq "0" -and
+        [string]$_.specialLine -ceq "no_proc" -and
+        [string]$_.addedDamage -ceq
+            [string]$entertainerBuildabuffExpectedHeal[[string]$_.actionName] -and
+        [string]$_.comments -ceq
+            [string]$entertainerBuildabuffExpectedComment[[string]$_.actionName]
+    }).Count -eq $entertainerBuildabuffReactiveHealCombatRows.Count -and
+    $entertainerBuildabuffReactiveHealProcRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerBuildabuffReactiveHealProcRows -and
+    @($entertainerBuildabuffReactiveHealProcRows | Where-Object {
+        [string]$_.procChance -ceq "8" -and
+        [string]$_.explanation -ceq
+            [string]$entertainerBuildabuffExpectedExplanation[[string]$_.procString]
+    }).Count -eq $entertainerBuildabuffReactiveHealProcRows.Count -and
+    $entertainerBuildabuffReactiveHealHandlers.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerBuildabuffReactiveHealActionHandlers -and
+    @($entertainerBuildabuffReactiveHealHandlers | Where-Object {
+        $_.Contains("combatStandardAction(")
+    }).Count -eq $entertainerBuildabuffReactiveHealHandlers.Count -and
+    $precuEntertainerCoreSkillRows.Count -eq
+        [int]$contract.expected.precuEntertainerCoreSkillRowsPreserved -and
+    $precuEntertainerCoreCommandRows.Count -eq
+        [int]$contract.expected.precuEntertainerCoreCommandRowsPreserved -and
+    @($precuEntertainerCoreCommandRows | Where-Object {
+        [string]$_.scriptHook -ceq
+            [string]$precuEntertainerCoreCommandHooks[[string]$_.commandName]
+    }).Count -eq $precuEntertainerCoreCommandRows.Count -and
+    $precuEntertainerNovice.Count -eq 1 -and
+    [string]$precuEntertainerNovice[0].COMMANDS -match '(^|,)startDance(,|$)' -and
+    [string]$precuEntertainerNovice[0].COMMANDS -match '(^|,)startMusic(,|$)' -and
+    [string]$precuEntertainerNovice[0].COMMANDS -match '(^|,)flourish\+1(,|$)' -and
+    [string]$precuEntertainerNovice[0].SKILL_MODS -match
+        '(^|,)healing_dance_wound=5(,|$)' -and
+    [string]$precuEntertainerNovice[0].SKILL_MODS -match
+        '(^|,)healing_music_wound=5(,|$)') `
+    "p14.combat-expertise-isolation.entertainer-buildabuff-reactive-heal-data-and-precu-continuity-authenticated"
+
+$entertainerPlayerAction = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeEntertainerPlayerAction(obj_id self, String actionName)"
+$entertainerActionGate = $standardCombatAction.IndexOf(
+    "isRetiredPostNgeEntertainerPlayerAction(self, actionName)",
+    [StringComparison]::Ordinal)
+$buildABuffRemove = Get-BracedBlock $buffHandler "public int buildabuffRemoveBuffHandler("
+Assert-Contract ($entertainerPlayerAction.Contains('actionName.startsWith("en_")') -and
+    $entertainerPlayerAction.Contains(
+        'actionName.startsWith("expertise_buildabuff_")') -and
+    $genericProcGate -ge 0 -and
+    $entertainerActionGate -gt $genericProcGate -and
+    $buildABuff.IndexOf("buff.isPostNgeBuffProgressionRetired()",
+        [StringComparison]::Ordinal) -ge 0 -and
+    $buildABuff.IndexOf("buff.isPostNgeBuffProgressionRetired()",
+        [StringComparison]::Ordinal) -lt
+        $buildABuff.IndexOf("performance.buildabuff.buffComponentKeys",
+            [StringComparison]::Ordinal) -and
+    @($entertainerBuildabuffReactiveHealActions | Where-Object {
+        -not $buildABuff.Contains('addSkillModModifier(self, "' + $_ + '"') -or
+        -not $buildABuffRemove.Contains(
+            'removeAttribOrSkillModModifier(self, "' + $_ + '")')
+    }).Count -eq 0 -and
+    -not [bool]$contract.expected.playerNgeEntertainerBuildabuffReactiveHealExecutionReachable -and
+    [bool]$contract.expected.genericPlayerProcGateStillDominatesEntertainerOwnershipGate -and
+    [bool]$contract.expected.buildabuffModifierWriterStillFailsClosedBeforePlayerStateReads -and
+    [bool]$contract.expected.nonPlayerNgeEntertainerBuildabuffReactiveHealCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.entertainer-buildabuff-reactive-heal-player-action-and-writer-fail-closed"
+
 $buffProgressionCleanup = Get-BracedBlock $buffLibrary `
     "public static void retirePostNgeBuffProgression(obj_id player)"
 $meditationBuffCleanup = Get-BracedBlock $buffLibrary `

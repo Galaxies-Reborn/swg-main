@@ -2083,9 +2083,17 @@ printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.startsWith(
 printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.startsWith("expertise_co_")'
 printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.equals("banner_buff_commando")'
 buildabuff_source="$(sed -n '/public int buildabuffAddBuffHandler/,/public int buildabuffRemoveBuffHandler/p' "$work_buff_handler")"
+buildabuff_remove_source="$(sed -n '/public int buildabuffRemoveBuffHandler/,/public int meDoomAddBuffHandler/p' "$work_buff_handler")"
 test "$(grep -Ec 'addSkillModModifier\(self, *"expertise_' "$work_buff_handler")" -eq 3
 test "$(printf '%s' "$buildabuff_source" | grep -Ec 'addSkillModModifier\(self, *"expertise_')" -eq 3
 printf '%s' "$buildabuff_source" | grep -Fq 'buff.isPostNgeBuffProgressionRetired()'
+buildabuff_guard_line="$(printf '%s\n' "$buildabuff_source" | grep -Fn 'buff.isPostNgeBuffProgressionRetired()' | head -1 | cut -d: -f1)"
+buildabuff_state_read_line="$(printf '%s\n' "$buildabuff_source" | grep -Fn 'performance.buildabuff.buffComponentKeys' | head -1 | cut -d: -f1)"
+test "$buildabuff_guard_line" -lt "$buildabuff_state_read_line"
+for buildabuff_reactive_heal_action in expertise_buildabuff_heal_1_reac expertise_buildabuff_heal_2_reac expertise_buildabuff_heal_3_reac; do
+    printf '%s' "$buildabuff_source" | grep -Fq "addSkillModModifier(self, \"$buildabuff_reactive_heal_action\""
+    printf '%s' "$buildabuff_remove_source" | grep -Fq "removeAttribOrSkillModModifier(self, \"$buildabuff_reactive_heal_action\")"
+done
 meditation_cleanup_source="$(sed -n '/public static void retirePostNgeMeditationBuffs/,/public static final String DOT_BLEEDING/p' "$work_buff_library")"
 printf '%s' "$meditation_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
 test "$(printf '%s' "$meditation_cleanup_source" | grep -Ec '"fs_meditate_[123]"')" -eq 3
@@ -2211,6 +2219,7 @@ grep -Fq 'actionName.equals("expertise_poison_knuckle_proc")' "$work_script/syst
 grep -Fq 'isRetiredPostNgeMedicPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeMedicPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 17
 grep -Fq 'actionName.startsWith("en_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'actionName.startsWith("expertise_buildabuff_")' "$work_script/systems/combat/combat_base.java"
 grep -Fq 'isRetiredPostNgeEntertainerPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeEntertainerPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 2
 ! grep -R -F 'expertise_bm_' "$work_script" --include='*.java' --exclude-dir=working --exclude-dir=test
@@ -2793,6 +2802,94 @@ printf '%s\n' "$medic_player_action_source" | grep -Fq 'actionName.equals("exper
 generic_proc_gate_line="$(grep -Fn 'if (proc.isRetiredPostNgePlayerProcAction(self, actionName))' "$work_combat_base" | head -1 | cut -d: -f1)"
 medic_action_gate_line="$(grep -Fn 'if (isRetiredPostNgeMedicPlayerAction(self, actionName))' "$work_combat_base" | head -1 | cut -d: -f1)"
 test "$generic_proc_gate_line" -lt "$medic_action_gate_line"
+entertainer_buildabuff_reactive_heal_specs='expertise_buildabuff_heal_1_reac:200:Buildabuffreactiveheallvl10:Buildabuff_Reactive_Heal_(level_10) expertise_buildabuff_heal_2_reac:400:Buildabuffreactiveheallvl40:Buildabuff_Reactive_Heal_(level_40) expertise_buildabuff_heal_3_reac:800:Buildabuffreactiveheallvl70:Buildabuff_Reactive_Heal_(level_70)'
+for entertainer_buildabuff_reactive_heal_spec in $entertainer_buildabuff_reactive_heal_specs; do
+    entertainer_buildabuff_reactive_heal_action="${entertainer_buildabuff_reactive_heal_spec%%:*}"
+    entertainer_buildabuff_reactive_heal_fields="${entertainer_buildabuff_reactive_heal_spec#*:}"
+    entertainer_buildabuff_reactive_heal_damage="${entertainer_buildabuff_reactive_heal_fields%%:*}"
+    entertainer_buildabuff_reactive_heal_fields="${entertainer_buildabuff_reactive_heal_fields#*:}"
+    entertainer_buildabuff_reactive_heal_comment="${entertainer_buildabuff_reactive_heal_fields%%:*}"
+    entertainer_buildabuff_reactive_heal_explanation="${entertainer_buildabuff_reactive_heal_fields#*:}"
+    entertainer_buildabuff_reactive_heal_explanation="$(printf '%s' "$entertainer_buildabuff_reactive_heal_explanation" | tr '_' ' ')"
+    awk -F '\t' -v name="$entertainer_buildabuff_reactive_heal_action" '
+    NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+    NR > 2 && $(fieldIndex["commandName"]) == name {
+        found++
+        if ($(fieldIndex["scriptHook"]) != name || $(fieldIndex["failScriptHook"]) != "failProc" ||
+            $(fieldIndex["displayGroup"]) != "combat" || $(fieldIndex["addToCombatQueue"]) != 0 ||
+            $(fieldIndex["cooldownGroup"]) != "reac_heal" || $(fieldIndex["cooldownTime"]) != 3 ||
+            $(fieldIndex["toolbarOnly"]) != 1 || $(fieldIndex["fromServerOnly"]) != 1) exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_command_table"
+    awk -F '\t' -v name="$entertainer_buildabuff_reactive_heal_action" -v damage="$entertainer_buildabuff_reactive_heal_damage" -v comment="$entertainer_buildabuff_reactive_heal_comment" '
+    NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+    NR > 2 && $(fieldIndex["actionName"]) == name {
+        found++
+        if ($(fieldIndex["comments"]) != comment || $(fieldIndex["validTarget"]) != "NONE" ||
+            $(fieldIndex["hitType"]) != "HEAL" || $(fieldIndex["healAttrib"]) != "HEALTH" ||
+            $(fieldIndex["attackType"]) != "SINGLE_TARGET" || $(fieldIndex["addedDamage"]) != damage ||
+            $(fieldIndex["percentAddFromWeapon"]) != 0 || $(fieldIndex["specialLine"]) != "no_proc") exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_combat_data"
+    awk -F '\t' -v name="$entertainer_buildabuff_reactive_heal_action" -v expected="$entertainer_buildabuff_reactive_heal_explanation" '
+    NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+    NR > 2 && $(fieldIndex["procString"]) == name {
+        found++
+        explanation = $(fieldIndex["explanation"])
+        sub(/\r$/, "", explanation)
+        if ($(fieldIndex["procChance"]) != 8 || explanation != expected) exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_proc_table"
+    entertainer_buildabuff_reactive_heal_handler_source="$(sed -n "/public int $entertainer_buildabuff_reactive_heal_action(/,/return SCRIPT_CONTINUE;/p" "$work_combat_actions")"
+    printf '%s' "$entertainer_buildabuff_reactive_heal_handler_source" | grep -Fq "public int $entertainer_buildabuff_reactive_heal_action("
+    printf '%s' "$entertainer_buildabuff_reactive_heal_handler_source" | grep -Fq 'combatStandardAction('
+done
+test "$(grep -Ec '^    public int expertise_buildabuff_heal_[123]_reac\(' "$work_combat_actions")" -eq 3
+precu_entertainer_core_skills='social_entertainer_novice social_entertainer_master social_dancer_novice social_dancer_master social_musician_novice social_musician_master'
+for precu_entertainer_core_skill in $precu_entertainer_core_skills; do
+    awk -F '\t' -v name="$precu_entertainer_core_skill" '
+    NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+    NR > 2 && $(fieldIndex["NAME"]) == name { found++ }
+    END { if (found != 1) exit 3 }
+    ' "$work_skills_table"
+done
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+NR > 2 && $(fieldIndex["NAME"]) == "social_entertainer_novice" {
+    found++
+    commands = $(fieldIndex["COMMANDS"])
+    skillMods = $(fieldIndex["SKILL_MODS"])
+    gsub(/^"|"$/, "", commands)
+    gsub(/^"|"$/, "", skillMods)
+    commands = "," commands ","
+    skillMods = "," skillMods ","
+    if (commands !~ /,startDance,/ || commands !~ /,startMusic,/ || commands !~ /,flourish\+1,/ ||
+        skillMods !~ /,healing_dance_wound=5,/ || skillMods !~ /,healing_music_wound=5,/) exit 2
+}
+END { if (found != 1) exit 3 }
+' "$work_skills_table"
+precu_entertainer_core_command_specs='startDance:cmdStartDance startMusic:cmdStartMusic stopDance:cmdStopDance stopMusic:cmdStopMusic flourish:cmdFlourish'
+for precu_entertainer_core_command_spec in $precu_entertainer_core_command_specs; do
+    precu_entertainer_core_command="${precu_entertainer_core_command_spec%%:*}"
+    precu_entertainer_core_hook="${precu_entertainer_core_command_spec#*:}"
+    awk -F '\t' -v name="$precu_entertainer_core_command" -v hook="$precu_entertainer_core_hook" '
+    NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+    NR > 2 && $(fieldIndex["commandName"]) == name {
+        found++
+        if ($(fieldIndex["scriptHook"]) != hook) exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_command_table"
+done
+entertainer_player_action_source="$(sed -n '/public static boolean isRetiredPostNgeEntertainerPlayerAction/,/private static final String\[\] RETIRED_POST_NGE_PVP_REWARD_PLAYER_ACTIONS/p' "$work_combat_base")"
+printf '%s\n' "$entertainer_player_action_source" | grep -Fq 'return isPlayer(self)'
+printf '%s\n' "$entertainer_player_action_source" | grep -Fq 'actionName.startsWith("en_")'
+printf '%s\n' "$entertainer_player_action_source" | grep -Fq 'actionName.startsWith("expertise_buildabuff_")'
+entertainer_action_gate_line="$(grep -Fn 'if (isRetiredPostNgeEntertainerPlayerAction(self, actionName))' "$work_combat_base" | head -1 | cut -d: -f1)"
+test "$generic_proc_gate_line" -lt "$entertainer_action_gate_line"
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -4198,6 +4295,24 @@ for medic_deferred_dot_proc_action in expertise_dueterium_rounds_proc expertise_
     medic_deferred_dot_proc_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n "/public int $medic_deferred_dot_proc_action(/,/ireturn/p")"
     printf '%s' "$medic_deferred_dot_proc_handler_bytecode" | grep -Fq "String $medic_deferred_dot_proc_action"
     printf '%s' "$medic_deferred_dot_proc_handler_bytecode" | grep -Fq 'Method combatStandardAction'
+done
+entertainer_player_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base | sed -n '/isRetiredPostNgeEntertainerPlayerAction/,/isRetiredPostNgePvpRewardPlayerAction/p')"
+printf '%s' "$entertainer_player_action_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$entertainer_player_action_bytecode" | grep -Fq 'String en_'
+printf '%s' "$entertainer_player_action_bytecode" | grep -Fq 'String expertise_buildabuff_'
+for entertainer_buildabuff_reactive_heal_action in expertise_buildabuff_heal_1_reac expertise_buildabuff_heal_2_reac expertise_buildabuff_heal_3_reac; do
+    entertainer_buildabuff_reactive_heal_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n "/public int $entertainer_buildabuff_reactive_heal_action(/,/ireturn/p")"
+    printf '%s' "$entertainer_buildabuff_reactive_heal_handler_bytecode" | grep -Fq "String $entertainer_buildabuff_reactive_heal_action"
+    printf '%s' "$entertainer_buildabuff_reactive_heal_handler_bytecode" | grep -Fq 'Method combatStandardAction'
+done
+buildabuff_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/buildabuffAddBuffHandler/,/buildabuffRemoveBuffHandler/p')"
+buildabuff_add_guard_bytecode_line="$(printf '%s\n' "$buildabuff_add_bytecode" | grep -Fn 'isPostNgeBuffProgressionRetired' | head -1 | cut -d: -f1)"
+buildabuff_add_state_read_bytecode_line="$(printf '%s\n' "$buildabuff_add_bytecode" | grep -Fn 'performance.buildabuff.buffComponentKeys' | head -1 | cut -d: -f1)"
+test "$buildabuff_add_guard_bytecode_line" -lt "$buildabuff_add_state_read_bytecode_line"
+buildabuff_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/buildabuffRemoveBuffHandler/,/meDoomAddBuffHandler/p')"
+for entertainer_buildabuff_reactive_heal_action in expertise_buildabuff_heal_1_reac expertise_buildabuff_heal_2_reac expertise_buildabuff_heal_3_reac; do
+    printf '%s' "$buildabuff_add_bytecode" | grep -Fq "String $entertainer_buildabuff_reactive_heal_action"
+    printf '%s' "$buildabuff_remove_bytecode" | grep -Fq "String $entertainer_buildabuff_reactive_heal_action"
 done
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commando_snare_bonus'
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commandoInnateArmorBonus'
