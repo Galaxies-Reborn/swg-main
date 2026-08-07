@@ -2100,7 +2100,7 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 for retired_pvp_reward_action in $retired_pvp_reward_actions; do
     javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq "$retired_pvp_reward_action"
 done
-pvp_reward_standard_action_bytecode="$(javap -classpath "$class_root" -c script.systems.combat.combat_base | sed -n '/public boolean combatStandardAction(java.lang.String, script.obj_id, script.obj_id, script.obj_id, java.lang.String, script.combat_data, boolean, boolean, int)/,/public boolean/p')"
+pvp_reward_standard_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base | sed -n '/public boolean combatStandardAction(java.lang.String, script.obj_id, script.obj_id, script.obj_id, java.lang.String, script.combat_engine.combat_data, boolean, boolean, int)/,/public boolean/p')"
 printf '%s' "$pvp_reward_standard_action_bytecode" | grep -Fq 'isRetiredPostNgePvpRewardPlayerAction'
 printf '%s' "$pvp_reward_standard_action_bytecode" | grep -Fq 'script/library/factions.retirePostNgePvpRewardState'
 test "$(javap -classpath "$class_root" -c script.player.gcw.pvp_aura_buff_controller | grep -Fc 'script/library/factions.retirePostNgePvpRewardState')" -eq 3
