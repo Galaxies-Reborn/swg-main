@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, or Forsake Fear channel-heal buffs from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -200,7 +200,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "7b98102915af04e3c73423df2bccd70a1a7bc80e",
+    "directSourceGitlink": "b43c14d9a05215d9902cfd7492deb3f66de4b7ff",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "20c67a8021862be5be978311ac551ec6ecd2be5d0951c1da596cf8574819f663",
@@ -210,8 +210,8 @@
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "e5dc80a38bef39394819fdc987e1bb66a734040cb0a04f61fef0fb523f126945",
-      "buffHandler": "17011854900de827171cea7c61f093d8bae7ab5720ff2919b56f5542a130ef60",
-      "buffLibrary": "0ac3f3d03150f54fbe48287859556c00864e7fe8fc770df417bf83fd29ec3c20",
+      "buffHandler": "bfa1be73e3f01fce9b2ccf051f6d69565405ccae09ac40a9e90dcfd74697e56c",
+      "buffLibrary": "cf0b8bf8ca1794b4e3ee68be595c782a017a4ba21d893b84d4913ce8b0b2ebf3",
       "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
       "bountyHunterShieldScript": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7",
       "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
@@ -238,17 +238,17 @@
     "focusedCombatLibraryClassSha256": "1188fbacd109db3b95950b364199f9fb3aa96cbb1c55c6ee7b33219da0ca8a42",
     "focusedCombatLibraryClassBytes": 88492,
     "sourceTest": "passed; the exact one-mapping/one-row/one-skill Forsake Fear channel family, five stale state keys, ownership-bounded countdown cleanup, player-only admission and lifecycle cleanup, five handler/callback guards, existing fs_* command denial, and retained non-player behavior are authenticated alongside the existing PRE-CU combat boundaries",
-    "focusedJavaCompile": "passed buff.java and buff_handler.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately and verified absent afterward",
-    "fullJavaCompile": "passed; canonical clean Java dependency rebuild compiled 5,713 sources into 5,747 classes from direct dsrc 7b98102915af04e3c73423df2bccd70a1a7bc80e after removing every prior compiled Java class",
-    "fullServerBuild": "passed in the 859.6-second canonical clean Docker x86-64 deployment from pushed parent 56b1c7c439de859de1066ef6312c3c1dd4ff9f6c and direct dsrc 7b98102915af04e3c73423df2bccd70a1a7bc80e, including clean Java/C++ build, exact source/data/bytecode authentication, guarded restart, readiness, mapped-binary verification, and clean post-start audit",
+    "focusedJavaCompile": "pending refreshed focused evidence for the channel-heal retirement source checkpoint",
+    "fullJavaCompile": "pending canonical clean Java dependency rebuild from direct dsrc b43c14d9a05215d9902cfd7492deb3f66de4b7ff after removing every prior compiled Java class",
+    "fullServerBuild": "pending canonical clean Docker x86-64 deployment from pushed direct-source and parent commits",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "serverGameArchiveSha256": "3fafc5a7b05e2347c30f06a5266211b5919d8ace079a5ae7b7895485e5e39b8d",
-    "sourceWorkParity": "passed byte-for-byte between the read-only direct-source mount and Docker work volume for buff.java 0ac3f3d03150f54fbe48287859556c00864e7fe8fc770df417bf83fd29ec3c20, buff_handler.java 17011854900de827171cea7c61f093d8bae7ab5720ff2919b56f5542a130ef60, combat.java 20c67a8021862be5be978311ac551ec6ecd2be5d0951c1da596cf8574819f663, buff.tab 235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9, and effect_mapping.tab d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
-    "bytecodeAudit": "passed; deployed buff.class authenticates exact player-only Forsake Fear effect ownership, generic admission, persisted-buff removal, five stale-state removals, countdown-PID ownership validation, and central lifecycle cleanup; deployed buff_handler.class authenticates player guards before both add/remove handlers and all three delayed channel callbacks while retaining the non-player expansion path",
-    "deploymentProbe": "passed exact one-mapping/one-persistent-row/one-skill Forsake Fear inventory, source/work parity, compiled admission/cleanup/five-handler-and-callback bytecode, ELF x86-64, guarded restart, readiness, mapped-binary, and clean-log verification",
-    "result": "passed"
+    "sourceWorkParity": "pending canonical source/work parity verification",
+    "bytecodeAudit": "pending deployed channel-heal admission, persistence, callback, handler, and immediate medicine adapter verification",
+    "deploymentProbe": "pending canonical source/data/bytecode, clean x64 build, readiness, mapped-binary, and fresh-log verification",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-07",
@@ -285,7 +285,7 @@
       "SwgGameServer": 15
     },
     "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
   "auditBoundary": {
     "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, or Forsake Fear channel-heal authority through generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, or unconditional raw-damage consumers",

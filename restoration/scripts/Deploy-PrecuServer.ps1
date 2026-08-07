@@ -650,7 +650,7 @@ source_buff_builder_response="$source_script/systems/buff_builder/buff_builder_r
 work_buff_builder_response="$work_script/systems/buff_builder/buff_builder_response.java"
 source_crafting_base="$source_script/systems/crafting/crafting_base.java"
 work_crafting_base="$work_script/systems/crafting/crafting_base.java"
-precu_item_level_paths="item/armor/dynamic_armor.java item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/buff.java library/collection.java library/player_structure.java library/static_item.java player/player_utility.java systems/buff/buff_handler.java systems/crafting/weapon/component/crafting_weapon_component_attribute.java systems/sign/special_sign.java systems/tcg/tcg_vendor_contract.java"
+precu_item_level_paths="item/armor/dynamic_armor.java item/buff_beast_click_item.java item/buff_click_item.java item/full_heal_item.java item/levelup_orb/levelup_orb.java item/medicine/stimpack.java item/medicine/stimpack_crafted.java item/plant/force_melon.java item/skillmod_click_item.java item/static_item_base.java item/survey_tool/survey_tool_script.java library/buff.java library/collection.java library/healing.java library/player_structure.java library/static_item.java player/player_utility.java systems/buff/buff_handler.java systems/crafting/weapon/component/crafting_weapon_component_attribute.java systems/sign/special_sign.java systems/tcg/tcg_vendor_contract.java"
 precu_stim_template_paths="channelled_stimpack/stimpack_a.tpf channelled_stimpack/stimpack_b.tpf channelled_stimpack/stimpack_c.tpf instant_stimpack/stimpack_a.tpf instant_stimpack/stimpack_b.tpf instant_stimpack/stimpack_c.tpf instant_stimpack/stimpack_d.tpf instant_stimpack/stimpack_e.tpf instant_stimpack/stimpack_noob.tpf instant_stimpack/stimpack_syren.tpf"
 precu_encounter_difficulty_paths="ai/ai.java quest/task/ground/spawn.java quest/util/dynamic_mob_opponent.java quest/utility/dynamic_spawn_off_quest_item.java systems/spawning/spawn_base.java systems/tcg/target_creature.java systems/treasure_map/base/treasure_map.java theme_park/meatlump/hideout/mtp_instance_entrance_cell.java theme_park/meatlump/quest_shuttle_comlink.java theme_park/outbreak/dynamic_spawn_off_quest_item.java"
 precu_retained_system_level_paths="ai/imperial_presence/harass.java city/imperial_crackdown/imperial_trouble.java event/ewok_festival/loveday_reward_crossbow.java event/halloween/song_book.java event/lost_squadron/stolen_fighter.java library/collection.java library/groundquests.java library/npe.java library/performance.java library/smuggler.java library/space_combat.java library/township.java npc/static_quest/quest_convo.java"
@@ -1848,7 +1848,7 @@ printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'forceCloseSUIPage(f
 printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'removeObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR)'
 printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, sui.COUNTDOWNTIMER_VAR)'
 printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'detachScript(player, sui.COUNTDOWNTIMER_PLAYER_SCRIPT)'
-forsake_fear_lifecycle_cleanup_source="$(sed -n '/public static void retirePostNgePlayerForsakeFearChannelState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+forsake_fear_lifecycle_cleanup_source="$(sed -n '/public static void retirePostNgePlayerForsakeFearChannelState/,/public static boolean isRetiredPostNgePlayerChannelHealEffect/p' "$work_buff_library")"
 printf '%s' "$forsake_fear_lifecycle_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s' "$forsake_fear_lifecycle_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s' "$forsake_fear_lifecycle_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
@@ -2268,6 +2268,74 @@ test "$(printf '%s\n' "$item_level_cleanup_source" | grep -Fc 'removeObjVar(item
 test "$(grep -Fc 'static_item.removeLegacyNgeItemCombatLevelRequirement(self);' "$work_script/item/medicine/stimpack.java")" -eq 4
 test "$(grep -Fc 'static_item.removeLegacyNgeItemCombatLevelRequirement(self);' "$work_script/item/medicine/stimpack_crafted.java")" -eq 4
 test "$(grep -Fc 'static_item.removeLegacyNgeItemCombatLevelRequirement(self);' "$work_script/item/plant/force_melon.java")" -eq 1
+crafted_stim_source="$(cat "$work_script/item/medicine/stimpack_crafted.java")"
+! printf '%s\n' "$crafted_stim_source" | grep -Fq 'buff.hasBuff(player, "recent_heal")'
+! printf '%s\n' "$crafted_stim_source" | grep -Fq 'healing.useChannelHealItem'
+test "$(printf '%s\n' "$crafted_stim_source" | grep -Fc 'healing.useHealDamageItem')" -eq 2
+printf '%s\n' "$crafted_stim_source" | grep -Fq 'hasObjVar(self, "healing.pool")'
+awk -F '\t' '$1 == "channel_heal_health" { found++; if ($2 != "channelHeal" || $3 != "health") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '$1 == "channel_healing" { found++; if ($7 != 12 || $8 != "channel_heal_health" || $9 != 0 || $30 != 1) exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_CHANNEL_HEAL_EFFECT = "channel_heal_health"' "$work_buff_library"
+channel_heal_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerChannelHealBuff/,/public static void clearPostNgePlayerChannelHealState/p' "$work_buff_library")"
+printf '%s\n' "$channel_heal_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$channel_heal_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$channel_heal_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerChannelHealEffect(getEffectParam(data, effect))'
+channel_heal_state_cleanup_source="$(sed -n '/public static void clearPostNgePlayerChannelHealState/,/public static void retirePostNgePlayerChannelHealState/p' "$work_buff_library")"
+printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'utils.getIntScriptVar(player, "channelHeal.suiPid")'
+printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'getIntObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR) == channelHealSuiPid'
+printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "channelHeal")'
+printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'if (ownsCountdown)'
+printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'forceCloseSUIPage(channelHealSuiPid)'
+channel_heal_lifecycle_cleanup_source="$(sed -n '/public static void retirePostNgePlayerChannelHealState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$channel_heal_lifecycle_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$channel_heal_lifecycle_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$channel_heal_lifecycle_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$channel_heal_lifecycle_cleanup_source" | grep -Fq 'clearPostNgePlayerChannelHealState(player)'
+grep -Fq 'retirePostNgePlayerChannelHealState(player);' "$work_buff_library"
+channel_heal_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+channel_heal_admission_gate_line="$(printf '%s\n' "$channel_heal_admission_source" | grep -Fn 'isRetiredPostNgePlayerChannelHealBuff(target, bdata)' | head -1 | cut -d: -f1)"
+channel_heal_existing_return_line="$(printf '%s\n' "$channel_heal_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$channel_heal_admission_gate_line" -lt "$channel_heal_existing_return_line"
+channel_heal_adapter_source="$(sed -n '/public static boolean useChannelHealItem(obj_id user, obj_id item, int attrib)/,/public static boolean useHealPetItem/p' "$work_healing_library")"
+channel_heal_adapter_guard_line="$(printf '%s\n' "$channel_heal_adapter_source" | grep -Fn 'if (isIdValid(user) && exists(user) && isPlayer(user))' | head -1 | cut -d: -f1)"
+channel_heal_adapter_cleanup_line="$(printf '%s\n' "$channel_heal_adapter_source" | grep -Fn 'buff.retirePostNgePlayerChannelHealState(user);' | head -1 | cut -d: -f1)"
+channel_heal_adapter_return_line="$(printf '%s\n' "$channel_heal_adapter_source" | grep -Fn 'return useHealDamageItem(user, item, attrib);' | head -1 | cut -d: -f1)"
+channel_heal_adapter_message_line="$(printf '%s\n' "$channel_heal_adapter_source" | grep -Fn 'messageTo(user, "channelHeal"' | head -1 | cut -d: -f1)"
+channel_heal_adapter_decrement_line="$(printf '%s\n' "$channel_heal_adapter_source" | grep -Fn 'decrementCount(item);' | head -1 | cut -d: -f1)"
+test "$channel_heal_adapter_guard_line" -lt "$channel_heal_adapter_cleanup_line"
+test "$channel_heal_adapter_cleanup_line" -lt "$channel_heal_adapter_return_line"
+test "$channel_heal_adapter_return_line" -lt "$channel_heal_adapter_message_line"
+test "$channel_heal_adapter_return_line" -lt "$channel_heal_adapter_decrement_line"
+channel_heal_callback_source="$(sed -n '/public int channelHeal(obj_id self, dictionary params)/,/public int residentLinkFalse/p' "$work_player_utility")"
+channel_heal_callback_guard_line="$(printf '%s\n' "$channel_heal_callback_source" | grep -Fn 'if (isPlayer(self) && buff.isPostNgeBuffProgressionRetired())' | head -1 | cut -d: -f1)"
+channel_heal_callback_cleanup_line="$(printf '%s\n' "$channel_heal_callback_source" | grep -Fn 'buff.retirePostNgePlayerChannelHealState(self);' | head -1 | cut -d: -f1)"
+channel_heal_callback_writer_line="$(printf '%s\n' "$channel_heal_callback_source" | grep -Fn 'healing.healDamage(self, self, attrib, healPerTick);' | head -1 | cut -d: -f1)"
+channel_heal_callback_requeue_line="$(printf '%s\n' "$channel_heal_callback_source" | grep -Fn 'messageTo(self, "channelHeal"' | head -1 | cut -d: -f1)"
+test "$channel_heal_callback_guard_line" -lt "$channel_heal_callback_cleanup_line"
+test "$channel_heal_callback_cleanup_line" -lt "$channel_heal_callback_writer_line"
+test "$channel_heal_callback_cleanup_line" -lt "$channel_heal_callback_requeue_line"
+channel_heal_damage_source="$(sed -n '/public int OnCreatureDamaged/,/public int attribAddBuffHandler/p' "$work_buff_handler")"
+channel_heal_add_source="$(sed -n '/public void channelHealAddBuffHandler/,/public void channelHealRemoveBuffHandler/p' "$work_buff_handler")"
+channel_heal_remove_source="$(sed -n '/public void channelHealRemoveBuffHandler/,/public int getAttributeType/p' "$work_buff_handler")"
+for channel_heal_handler_spec in damage:retirePostNgePlayerChannelHealState:hasBuff add:retirePostNgePlayerChannelHealState:useChannelHealItem remove:clearPostNgePlayerChannelHealState:getIntScriptVar; do
+    channel_heal_handler_name="${channel_heal_handler_spec%%:*}"
+    channel_heal_handler_fields="${channel_heal_handler_spec#*:}"
+    channel_heal_handler_cleanup="${channel_heal_handler_fields%%:*}"
+    channel_heal_handler_writer="${channel_heal_handler_fields##*:}"
+    case "$channel_heal_handler_name" in
+        damage) channel_heal_handler_source="$channel_heal_damage_source" ;;
+        add) channel_heal_handler_source="$channel_heal_add_source" ;;
+        remove) channel_heal_handler_source="$channel_heal_remove_source" ;;
+        *) exit 1 ;;
+    esac
+    channel_heal_handler_guard_line="$(printf '%s\n' "$channel_heal_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+    channel_heal_handler_cleanup_line="$(printf '%s\n' "$channel_heal_handler_source" | grep -Fn "$channel_heal_handler_cleanup" | head -1 | cut -d: -f1)"
+    channel_heal_handler_writer_line="$(printf '%s\n' "$channel_heal_handler_source" | grep -Fn "$channel_heal_handler_writer" | head -1 | cut -d: -f1)"
+    test "$channel_heal_handler_guard_line" -lt "$channel_heal_handler_cleanup_line"
+    test "$channel_heal_handler_cleanup_line" -lt "$channel_heal_handler_writer_line"
+    printf '%s\n' "$channel_heal_handler_source" | head -n "$channel_heal_handler_writer_line" | tail -n "+$channel_heal_handler_cleanup_line" | grep -Eq 'return( SCRIPT_CONTINUE)?;'
+done
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -3313,6 +3381,7 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponS
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerChannelHealBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
 buff_command_grant_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerBuffCommandGrant(java.lang.String)/,/isRetiredPostNgePlayerCommandGrantBuff/p')"
@@ -3440,12 +3509,52 @@ printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'forceCloseSU
 printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'removeObjVar'
 printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'removeScriptVarTree'
 printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'detachScript'
-buff_forsake_fear_lifecycle_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerForsakeFearChannelState/,/isRetiredPostNgePlayerModifierBuff/p')"
+buff_forsake_fear_lifecycle_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerForsakeFearChannelState/,/isRetiredPostNgePlayerChannelHealEffect/p')"
 printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'getAllBuffs'
 printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerForsakeFearChannelState'
+buff_channel_heal_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerChannelHealEffect(java.lang.String)/,/isRetiredPostNgePlayerChannelHealBuff/p')"
+printf '%s' "$buff_channel_heal_effect_predicate_bytecode" | grep -Fq 'channel_heal_health'
+buff_channel_heal_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerChannelHealBuff/,/clearPostNgePlayerChannelHealState/p')"
+printf '%s' "$buff_channel_heal_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_channel_heal_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerChannelHealEffect'
+buff_channel_heal_state_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerChannelHealState/,/retirePostNgePlayerChannelHealState/p')"
+printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'channelHeal.suiPid'
+printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'countdown_sui.sui_pid'
+printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'removeScriptVarTree'
+printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'forceCloseSUIPage'
+printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'removeObjVar'
+printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'detachScript'
+buff_channel_heal_lifecycle_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerChannelHealState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerChannelHealState'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerChannelHealState'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+channel_heal_damage_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/OnCreatureDamaged/,/attribAddBuffHandler/p')"
+channel_heal_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelHealAddBuffHandler/,/channelHealRemoveBuffHandler/p')"
+channel_heal_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelHealRemoveBuffHandler/,/getAttributeType/p')"
+for channel_heal_handler_spec in damage:retirePostNgePlayerChannelHealState:hasBuff add:retirePostNgePlayerChannelHealState:useChannelHealItem remove:clearPostNgePlayerChannelHealState:getIntScriptVar; do
+    channel_heal_handler_name="${channel_heal_handler_spec%%:*}"
+    channel_heal_handler_fields="${channel_heal_handler_spec#*:}"
+    channel_heal_handler_cleanup="${channel_heal_handler_fields%%:*}"
+    channel_heal_handler_writer="${channel_heal_handler_fields##*:}"
+    case "$channel_heal_handler_name" in
+        damage) channel_heal_handler_bytecode="$channel_heal_damage_bytecode" ;;
+        add) channel_heal_handler_bytecode="$channel_heal_add_bytecode" ;;
+        remove) channel_heal_handler_bytecode="$channel_heal_remove_bytecode" ;;
+        *) exit 1 ;;
+    esac
+    channel_heal_handler_guard_bytecode_line="$(printf '%s\n' "$channel_heal_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+    channel_heal_handler_cleanup_bytecode_line="$(printf '%s\n' "$channel_heal_handler_bytecode" | grep -Fn "$channel_heal_handler_cleanup" | head -1 | cut -d: -f1)"
+    channel_heal_handler_writer_bytecode_line="$(printf '%s\n' "$channel_heal_handler_bytecode" | grep -Fn "$channel_heal_handler_writer" | head -1 | cut -d: -f1)"
+    test "$channel_heal_handler_guard_bytecode_line" -lt "$channel_heal_handler_cleanup_bytecode_line"
+    test "$channel_heal_handler_cleanup_bytecode_line" -lt "$channel_heal_handler_writer_bytecode_line"
+    printf '%s\n' "$channel_heal_handler_bytecode" | head -n "$channel_heal_handler_writer_bytecode_line" | tail -n "+$channel_heal_handler_cleanup_bytecode_line" | grep -Eq '[[:space:]]return$'
+done
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
 action_drain_guard_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | head -n "$action_drain_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"
@@ -3725,7 +3834,31 @@ javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq
 ! javap -classpath "$class_root" -v script.item.medicine.stimpack | grep -Fq 'combat_level_required'
 ! javap -classpath "$class_root" -v script.item.medicine.stimpack_crafted | grep -Fq 'combat_level_required'
 test "$(javap -classpath "$class_root" -c -p script.item.medicine.stimpack | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 4
-test "$(javap -classpath "$class_root" -c -p script.item.medicine.stimpack_crafted | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 4
+crafted_stim_bytecode="$(javap -classpath "$class_root" -c -p script.item.medicine.stimpack_crafted)"
+test "$(printf '%s\n' "$crafted_stim_bytecode" | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 4
+! printf '%s\n' "$crafted_stim_bytecode" | grep -Fq 'recent_heal'
+! printf '%s\n' "$crafted_stim_bytecode" | grep -Fq 'useChannelHealItem'
+test "$(printf '%s\n' "$crafted_stim_bytecode" | grep -Fc 'Method script/library/healing.useHealDamageItem')" -eq 2
+healing_bytecode="$(javap -classpath "$class_root" -c -p script.library.healing)"
+channel_heal_adapter_bytecode="$(printf '%s\n' "$healing_bytecode" | sed -n '/useChannelHealItem(script.obj_id, script.obj_id, int)/,/useHealPetItem/p')"
+channel_heal_adapter_guard_bytecode_line="$(printf '%s\n' "$channel_heal_adapter_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+channel_heal_adapter_cleanup_bytecode_line="$(printf '%s\n' "$channel_heal_adapter_bytecode" | grep -Fn 'retirePostNgePlayerChannelHealState' | head -1 | cut -d: -f1)"
+channel_heal_adapter_return_bytecode_line="$(printf '%s\n' "$channel_heal_adapter_bytecode" | grep -Fn 'useHealDamageItem' | head -1 | cut -d: -f1)"
+channel_heal_adapter_message_bytecode_line="$(printf '%s\n' "$channel_heal_adapter_bytecode" | grep -Fn 'String channelHeal' | head -1 | cut -d: -f1)"
+channel_heal_adapter_decrement_bytecode_line="$(printf '%s\n' "$channel_heal_adapter_bytecode" | grep -Fn 'Method decrementCount' | head -1 | cut -d: -f1)"
+test "$channel_heal_adapter_guard_bytecode_line" -lt "$channel_heal_adapter_cleanup_bytecode_line"
+test "$channel_heal_adapter_cleanup_bytecode_line" -lt "$channel_heal_adapter_return_bytecode_line"
+test "$channel_heal_adapter_return_bytecode_line" -lt "$channel_heal_adapter_message_bytecode_line"
+test "$channel_heal_adapter_return_bytecode_line" -lt "$channel_heal_adapter_decrement_bytecode_line"
+player_utility_bytecode="$(javap -classpath "$class_root" -c -p script.player.player_utility)"
+channel_heal_callback_bytecode="$(printf '%s\n' "$player_utility_bytecode" | sed -n '/channelHeal(script.obj_id, script.dictionary)/,/residentLinkFalse/p')"
+channel_heal_callback_guard_bytecode_line="$(printf '%s\n' "$channel_heal_callback_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+channel_heal_callback_cleanup_bytecode_line="$(printf '%s\n' "$channel_heal_callback_bytecode" | grep -Fn 'retirePostNgePlayerChannelHealState' | head -1 | cut -d: -f1)"
+channel_heal_callback_writer_bytecode_line="$(printf '%s\n' "$channel_heal_callback_bytecode" | grep -Fn 'Method script/library/healing.healDamage' | head -1 | cut -d: -f1)"
+channel_heal_callback_requeue_bytecode_line="$(printf '%s\n' "$channel_heal_callback_bytecode" | grep -Fn 'String channelHeal' | tail -1 | cut -d: -f1)"
+test "$channel_heal_callback_guard_bytecode_line" -lt "$channel_heal_callback_cleanup_bytecode_line"
+test "$channel_heal_callback_cleanup_bytecode_line" -lt "$channel_heal_callback_writer_bytecode_line"
+test "$channel_heal_callback_cleanup_bytecode_line" -lt "$channel_heal_callback_requeue_bytecode_line"
 test "$(javap -classpath "$class_root" -c -p script.item.plant.force_melon | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 1
 static_item_bytecode="$(javap -classpath "$class_root" -c -p script.library.static_item)"
 printf '%s\n' "$static_item_bytecode" | sed -n '/public static boolean isRetiredNgeBuffSkillModifier/,/public static void removeRetiredNgePlayerSkillStatistics/p' | grep -Fq 'isRetiredNgeStaticItemSkillModifier'

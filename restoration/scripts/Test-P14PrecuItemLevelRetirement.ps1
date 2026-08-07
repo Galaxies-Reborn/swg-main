@@ -146,6 +146,7 @@ $relativePaths = @(
     "library/buff.java",
     "library/collection.java",
     "library/consumable.java",
+    "library/healing.java",
     "library/loot.java",
     "library/magic_item.java",
     "library/player_structure.java",
@@ -183,6 +184,7 @@ $bioEngineer = [string]$texts["library/bio_engineer.java"]
 $buffLibrary = [string]$texts["library/buff.java"]
 $collectionLibrary = [string]$texts["library/collection.java"]
 $consumable = [string]$texts["library/consumable.java"]
+$healing = [string]$texts["library/healing.java"]
 $playerStructure = [string]$texts["library/player_structure.java"]
 $playerUtility = [string]$texts["player/player_utility.java"]
 $buffHandler = [string]$texts["systems/buff/buff_handler.java"]
@@ -545,6 +547,27 @@ $retiredMappedCombatModifiers = @($combatSkillRows | Where-Object {
 })
 $buffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
     Where-Object { [string]$_.NAME -cne "s" })
+$channelHealEffectRows = @($effectMappingRows | Where-Object {
+    [string]$_.NAME -ceq "channel_heal_health"
+})
+$channelHealBuffRows = @($buffRows | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq "channel_heal_health"
+    }).Count -gt 0
+})
+Assert-Contract ($channelHealEffectRows.Count -eq
+        [int]$contract.expected.medicine.retainedChannelHealEffectMappings -and
+    [string]$channelHealEffectRows[0].TYPE -ceq "channelHeal" -and
+    [string]$channelHealEffectRows[0].SUBTYPE -ceq "health" -and
+    $channelHealBuffRows.Count -eq
+        [int]$contract.expected.medicine.retainedChannelHealBuffRows -and
+    [string]$channelHealBuffRows[0].NAME -ceq "channel_healing" -and
+    [string]$channelHealBuffRows[0].DURATION -ceq "12" -and
+    [string]$channelHealBuffRows[0].IS_PERSISTENT -ceq "1" -and
+    [string]$channelHealBuffRows[0].EFFECT1_PARAM -ceq "channel_heal_health" -and
+    [string]$channelHealBuffRows[0].EFFECT1_VALUE -ceq "0") `
+    "p14.item-level.channel-heal-data-inventory-authenticated"
 Assert-Contract ($combatSkillRows.Count -eq
         [int]$contract.expected.itemModifierWriters.mappedCombatSkillModifiers -and
     @($combatSkillRows.SUBTYPE | Sort-Object -Unique).Count -eq $combatSkillRows.Count -and
@@ -864,6 +887,7 @@ $sourceHashPaths = @{
     reverseEngineeringTool = "dsrc/sku.0/sys.server/compiled/game/script/item/tool/reverse_engineering_tool.java"
     bioEngineer = "dsrc/sku.0/sys.server/compiled/game/script/library/bio_engineer.java"
     consumable = "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java"
+    healing = "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java"
     magicItem = "dsrc/sku.0/sys.server/compiled/game/script/library/magic_item.java"
     reverseEngineering = "dsrc/sku.0/sys.server/compiled/game/script/library/reverse_engineering.java"
     craftingBase = "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java"
@@ -946,8 +970,11 @@ Assert-Contract (-not $stim.Contains("combat_level_required") -and
 Assert-Contract (-not $craftedStim.Contains("combat_level_required") -and
     -not $craftedStim.Contains("getLevel(") -and
     $craftedStim.Contains('buff.hasBuff(player, "feign_death")') -and
-    $craftedStim.Contains('buff.hasBuff(player, "recent_heal")') -and
-    $craftedStim.Contains("healing.useChannelHealItem")) `
+    -not $craftedStim.Contains('buff.hasBuff(player, "recent_heal")') -and
+    -not $craftedStim.Contains("healing.useChannelHealItem") -and
+    ([regex]::Matches($craftedStim, "healing[.]useHealDamageItem")).Count -eq 2 -and
+    $craftedStim.Contains('hasObjVar(self, "healing.pool")') -and
+    [bool]$contract.expected.medicine.channelledStimImmediateHealAdapter) `
     "p14.item-level.crafted-stim-level-retired"
 Assert-Contract (([regex]::Matches($stim,
         "static_item\.removeLegacyNgeItemCombatLevelRequirement\(self\);")).Count -eq 4 -and
@@ -959,6 +986,140 @@ Assert-Contract (([regex]::Matches($stim,
         'removeObjVar\(item, "healing\.combat_level_required"\)')).Count -eq 1 -and
     -not $itemCombatLevelCleanup.Contains('removeObjVar(item, "healing")')) `
     "p14.item-level.persisted-stim-exact-level-cleanup"
+
+$channelHealEffectPredicate = Get-FunctionSlice $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerChannelHealEffect(" `
+    "public static boolean isRetiredPostNgePlayerChannelHealBuff("
+$channelHealBuffPredicate = Get-FunctionSlice $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerChannelHealBuff(" `
+    "public static void clearPostNgePlayerChannelHealState("
+$channelHealStateCleanup = Get-FunctionSlice $buffLibrary `
+    "public static void clearPostNgePlayerChannelHealState(" `
+    "public static void retirePostNgePlayerChannelHealState("
+$channelHealLifecycleCleanup = Get-FunctionSlice $buffLibrary `
+    "public static void retirePostNgePlayerChannelHealState(" `
+    "public static boolean isRetiredPostNgePlayerModifierBuff("
+$channelHealProgressionCleanup = Get-FunctionSlice $buffLibrary `
+    "public static void retirePostNgeBuffProgression(" `
+    "public static boolean canApplyBuff("
+$channelHealAdmission = Get-FunctionSlice $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static int[] getGroups("
+$channelHealAdmissionGate = $channelHealAdmission.IndexOf(
+    "isRetiredPostNgePlayerChannelHealBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$channelHealExistingBuffReturn = $channelHealAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_CHANNEL_HEAL_EFFECT = "channel_heal_health"') -and
+    $channelHealBuffPredicate.Contains("!isPlayer(target)") -and
+    $channelHealBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $channelHealStateCleanup.Contains("!isPlayer(player)") -and
+    $channelHealStateCleanup.Contains(
+        'utils.getIntScriptVar(player, "channelHeal.suiPid")') -and
+    $channelHealStateCleanup.Contains(
+        "getIntObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR) == channelHealSuiPid") -and
+    $channelHealStateCleanup.Contains("if (ownsCountdown)") -and
+    $channelHealStateCleanup.Contains('utils.removeScriptVarTree(player, "channelHeal")') -and
+    $channelHealStateCleanup.Contains("forceCloseSUIPage(channelHealSuiPid)") -and
+    $channelHealLifecycleCleanup.Contains("getAllBuffs(player)") -and
+    $channelHealLifecycleCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $channelHealLifecycleCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $channelHealLifecycleCleanup.Contains("clearPostNgePlayerChannelHealState(player)") -and
+    $channelHealProgressionCleanup.Contains("retirePostNgePlayerChannelHealState(player);") -and
+    $channelHealAdmissionGate -ge 0 -and
+    $channelHealExistingBuffReturn -gt $channelHealAdmissionGate -and
+    -not [bool]$contract.expected.medicine.postCombatBalanceChannelHealPlayerReachable) `
+    "p14.item-level.channel-heal-admission-persistence-and-state-fail-closed"
+
+$channelHealAdapter = Get-FunctionSlice $healing `
+    "public static boolean useChannelHealItem(obj_id user, obj_id item, int attrib)" `
+    "public static boolean useHealPetItem("
+$channelHealAdapterGuard = $channelHealAdapter.IndexOf(
+    "if (isIdValid(user) && exists(user) && isPlayer(user))",
+    [StringComparison]::Ordinal)
+$channelHealAdapterCleanup = $channelHealAdapter.IndexOf(
+    "buff.retirePostNgePlayerChannelHealState(user);",
+    [StringComparison]::Ordinal)
+$channelHealAdapterReturn = $channelHealAdapter.IndexOf(
+    "return useHealDamageItem(user, item, attrib);",
+    [StringComparison]::Ordinal)
+$channelHealLegacyMessage = $channelHealAdapter.IndexOf(
+    'messageTo(user, "channelHeal"', [StringComparison]::Ordinal)
+$channelHealLegacyDecrement = $channelHealAdapter.IndexOf(
+    "decrementCount(item);", [StringComparison]::Ordinal)
+$channelHealCallback = Get-FunctionSlice $playerUtility `
+    "public int channelHeal(obj_id self, dictionary params)" `
+    "public int residentLinkFalse("
+$channelHealCallbackGuard = $channelHealCallback.IndexOf(
+    "if (isPlayer(self) && buff.isPostNgeBuffProgressionRetired())",
+    [StringComparison]::Ordinal)
+$channelHealCallbackCleanup = $channelHealCallback.IndexOf(
+    "buff.retirePostNgePlayerChannelHealState(self);",
+    [StringComparison]::Ordinal)
+$channelHealCallbackReturn = $channelHealCallback.IndexOf(
+    "return SCRIPT_CONTINUE;", $channelHealCallbackCleanup,
+    [StringComparison]::Ordinal)
+$channelHealCallbackWriter = $channelHealCallback.IndexOf(
+    "healing.healDamage(self, self, attrib, healPerTick);",
+    [StringComparison]::Ordinal)
+$channelHealCallbackRequeue = $channelHealCallback.IndexOf(
+    'messageTo(self, "channelHeal"', [StringComparison]::Ordinal)
+Assert-Contract ($channelHealAdapterGuard -ge 0 -and
+    $channelHealAdapterCleanup -gt $channelHealAdapterGuard -and
+    $channelHealAdapterReturn -gt $channelHealAdapterCleanup -and
+    $channelHealLegacyMessage -gt $channelHealAdapterReturn -and
+    $channelHealLegacyDecrement -gt $channelHealAdapterReturn -and
+    $channelHealCallbackGuard -ge 0 -and
+    $channelHealCallbackCleanup -gt $channelHealCallbackGuard -and
+    $channelHealCallbackReturn -gt $channelHealCallbackCleanup -and
+    $channelHealCallbackWriter -gt $channelHealCallbackReturn -and
+    $channelHealCallbackRequeue -gt $channelHealCallbackReturn -and
+    [bool]$contract.expected.medicine.channelHealNonPlayerCompatibilityPreserved) `
+    "p14.item-level.channel-heal-player-adapter-and-callback-fail-closed"
+
+$channelHealHandlerExpectations = @(
+    [pscustomobject]@{
+        Slice = Get-FunctionSlice $buffHandler "public int OnCreatureDamaged(" `
+            "public int attribAddBuffHandler("
+        Cleanup = "buff.retirePostNgePlayerChannelHealState(self);"
+        Return = "return SCRIPT_CONTINUE;"
+        RetainedWriter = 'buff.hasBuff(self, "channel_healing")'
+    },
+    [pscustomobject]@{
+        Slice = Get-FunctionSlice $buffHandler "public void channelHealAddBuffHandler(" `
+            "public void channelHealRemoveBuffHandler("
+        Cleanup = "buff.retirePostNgePlayerChannelHealState(self);"
+        Return = "return;"
+        RetainedWriter = "healing.useChannelHealItem(self, self, myAttribute)"
+    },
+    [pscustomobject]@{
+        Slice = Get-FunctionSlice $buffHandler "public void channelHealRemoveBuffHandler(" `
+            "public int getAttributeType("
+        Cleanup = "buff.clearPostNgePlayerChannelHealState(self);"
+        Return = "return;"
+        RetainedWriter = 'utils.getIntScriptVar(self, "channelHeal.suiPid")'
+    }
+)
+$guardedChannelHealHandlers = 0
+foreach ($handlerExpectation in $channelHealHandlerExpectations)
+{
+    $guard = $handlerExpectation.Slice.IndexOf("if (isPlayer(self))",
+        [StringComparison]::Ordinal)
+    $cleanup = $handlerExpectation.Slice.IndexOf($handlerExpectation.Cleanup,
+        [StringComparison]::Ordinal)
+    $playerReturn = $handlerExpectation.Slice.IndexOf($handlerExpectation.Return, $cleanup,
+        [StringComparison]::Ordinal)
+    $retainedWriter = $handlerExpectation.Slice.IndexOf($handlerExpectation.RetainedWriter,
+        [StringComparison]::Ordinal)
+    if ($guard -ge 0 -and $cleanup -gt $guard -and
+        $playerReturn -gt $cleanup -and $retainedWriter -gt $playerReturn)
+    {
+        ++$guardedChannelHealHandlers
+    }
+}
+Assert-Contract ($guardedChannelHealHandlers -eq 3) `
+    "p14.item-level.channel-heal-handlers-player-fail-closed"
 
 $forceMelon = [string]$texts["item/plant/force_melon.java"]
 Assert-Contract (([regex]::Matches($forceMelon,
@@ -1095,7 +1256,7 @@ Assert-Contract ($templateRelativePaths.Count -eq 10 -and
         'objvars =\+ \["healing\.power" = 4000\]' -and
     @($templateTexts.Values | Where-Object {
         [string]$_ -match 'scripts = \["item\.medicine\.stimpack_crafted"\]'
-    }).Count -eq 3 -and
+    }).Count -eq [int]$contract.expected.medicine.retainedChannelledStimTemplates -and
     [string]$templateTexts["instant_stimpack/stimpack_noob.tpf"] -match
         'objvars =\+ \["noTrade" = 1\]' -and
     [string]$templateTexts["instant_stimpack/stimpack_syren.tpf"] -match
@@ -1153,7 +1314,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed") `
         "p14.item-level.ready-evidence"
-    Assert-Contract ($compiledHashes.Count -eq 28 -and
+    Assert-Contract ($compiledHashes.Count -eq 29 -and
         @($compiledHashes | Where-Object {
             [string]$_.Value -notmatch '^[a-f0-9]{64}$'
         }).Count -eq 0) `
