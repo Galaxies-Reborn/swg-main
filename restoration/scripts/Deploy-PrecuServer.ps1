@@ -1369,7 +1369,7 @@ END { if (rows != 1) exit 3 }
 ' "$work_buff_table"
 weapon_speed_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideEffect/,/public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideBuff/p' "$work_buff_library")"
 printf '%s' "$weapon_speed_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT'
-printf '%s' "$weapon_speed_effect_predicate_source" | grep -Fq 'weapon_speed_mod'
+grep -Fq 'RETIRED_POST_NGE_PLAYER_WEAPON_SPEED_OVERRIDE_EFFECT = "weapon_speed_mod"' "$work_buff_library"
 weapon_speed_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerWeaponSpeedOverrideBuff/,/public static void restorePostNgePlayerWeaponSpeedOverride/p' "$work_buff_library")"
 printf '%s' "$weapon_speed_buff_predicate_source" | grep -Fq '!isPlayer(target)'
 printf '%s' "$weapon_speed_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
