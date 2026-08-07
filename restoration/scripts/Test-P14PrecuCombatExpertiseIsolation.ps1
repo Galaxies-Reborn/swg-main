@@ -1849,6 +1849,176 @@ Assert-Contract ($pistolWhipControlHandlerGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgePistolWhipCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.pistol-whip-control-handler-player-fail-closed"
 
+$smugglerTrickEffects = @("expertise_sly_lie", "expertise_fast_talk")
+$smugglerTrickMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $smugglerTrickEffects -ccontains [string]$_.NAME })
+$smugglerTrickBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        $smugglerTrickEffects -ccontains [string]$row.("EFFECT$($_)_PARAM")
+    }).Count -gt 0
+})
+$smugglerTrickSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+    $skillMods = ([string]$_.SKILL_MODS).Trim('"') -split ','
+    $commands -ccontains "sm_sly_lie" -or
+        $commands -ccontains "sm_fast_talk" -or
+        @($skillMods | Where-Object {
+            $_ -match '^expertise_(half_truth|innocent_cargo|fake_id|sly_lie_(bonus|rank)|fast_talk_(bonus|rank))='
+        }).Count -gt 0
+})
+$precuSmugglerCommands = @(
+    "slice_containers",
+    "slice_terminals",
+    "slice_weaponsbasic",
+    "slice_armor",
+    "slice_weaponsadvanced",
+    "feignDeath",
+    "panicShot",
+    "lowBlow",
+    "lastDitch"
+)
+$precuSmugglerSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+    @($precuSmugglerCommands | Where-Object { $commands -ccontains $_ }).Count -gt 0
+})
+$slyLieMapping = @($smugglerTrickMappings | Where-Object {
+    [string]$_.NAME -ceq "expertise_sly_lie"
+})
+$fastTalkMapping = @($smugglerTrickMappings | Where-Object {
+    [string]$_.NAME -ceq "expertise_fast_talk"
+})
+Assert-Contract ($smugglerTrickMappings.Count -eq
+        [int]$contract.expected.retainedNgeSmugglerTrickEffectMappingRows -and
+    $slyLieMapping.Count -eq 1 -and
+    [string]$slyLieMapping[0].TYPE -ceq "slyLie" -and
+    [string]$slyLieMapping[0].SUBTYPE -ceq "expertise_sly_lie" -and
+    $fastTalkMapping.Count -eq 1 -and
+    [string]$fastTalkMapping[0].TYPE -ceq "fastTalk" -and
+    [string]$fastTalkMapping[0].SUBTYPE -ceq "expertise_fast_talk" -and
+    $smugglerTrickBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeSmugglerTrickBuffRows -and
+    @($smugglerTrickBuffRows | Select-Object -ExpandProperty NAME) -contains
+        "sm_sly_lie" -and
+    @($smugglerTrickBuffRows | Select-Object -ExpandProperty NAME) -contains
+        "sm_fast_talk" -and
+    @($smugglerTrickBuffRows | Where-Object {
+        [string]$_.DURATION -ceq "600" -and [string]$_.IS_PERSISTENT -ceq "1"
+    }).Count -eq 2 -and
+    $smugglerTrickSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeSmugglerTrickSkillRows -and
+    @($smugglerTrickSkillRows | Select-Object -ExpandProperty NAME) -contains
+        "class_smuggler_phase1_04" -and
+    @($smugglerTrickSkillRows | Select-Object -ExpandProperty NAME) -contains
+        "class_smuggler_phase1_master" -and
+    $precuSmugglerSkillRows.Count -eq
+        [int]$contract.expected.retainedPrecuSmugglerSkillRows -and
+    [bool]$contract.expected.precuSmugglerCommandsPreserved) `
+    "p14.combat-expertise-isolation.buff.smuggler-trick-data-and-precu-boundary-authenticated"
+
+$smugglerTrickEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerSmugglerTrickEffect(String effectName)"
+$smugglerTrickBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerSmugglerTrickBuff(obj_id target, buff_data data)"
+$smugglerTrickModifierCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerSmugglerTrickModifiers(obj_id player)"
+$smugglerTrickStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerSmugglerTrickState(obj_id player)"
+$smugglerTrickProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$smugglerTrickCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$smugglerTrickAdmissionGate = $smugglerTrickCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerSmugglerTrickBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$smugglerTrickExistingBuffReturn = $smugglerTrickCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        "RETIRED_POST_NGE_PLAYER_SMUGGLER_TRICK_EFFECTS") -and
+    $buffLibrary.Contains('"expertise_sly_lie"') -and
+    $buffLibrary.Contains('"expertise_fast_talk"') -and
+    $smugglerTrickEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_SMUGGLER_TRICK_EFFECTS") -and
+    $smugglerTrickBuffPredicate.Contains("!isPlayer(target)") -and
+    $smugglerTrickBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $smugglerTrickBuffPredicate.Contains(
+        "isRetiredPostNgePlayerSmugglerTrickEffect(getEffectParam(data, effect))") -and
+    $smugglerTrickModifierCleanup.Contains('"slyLieDodge"') -and
+    $smugglerTrickModifierCleanup.Contains('"innocentCargoStrikethrough"') -and
+    $smugglerTrickModifierCleanup.Contains('"fastTalkAgility"') -and
+    $smugglerTrickModifierCleanup.Contains("removeAttribOrSkillModModifier") -and
+    $smugglerTrickStateCleanup.Contains("!isPlayer(player)") -and
+    $smugglerTrickStateCleanup.Contains("getAllBuffs(player)") -and
+    $smugglerTrickStateCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $smugglerTrickStateCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $smugglerTrickStateCleanup.Contains(
+        "clearPostNgePlayerSmugglerTrickModifiers(player);") -and
+    $smugglerTrickProgressionCleanup.Contains(
+        "retirePostNgePlayerSmugglerTrickState(player);") -and
+    $smugglerTrickAdmissionGate -ge 0 -and
+    $smugglerTrickExistingBuffReturn -gt $smugglerTrickAdmissionGate -and
+    $smugglerPlayerAction.Contains('actionName.startsWith("sm_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeSmugglerPlayerAction(self, actionName)") -and
+    -not [bool]$contract.expected.playerNgeSmugglerTrickCommandExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeSmugglerTrickBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeSmugglerTrickStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeSmugglerTrickModifiersRemoved) `
+    "p14.combat-expertise-isolation.buff.smuggler-trick-admission-persistence-and-command-fail-closed"
+
+$slyLieAddHandler = Get-BracedBlock $buffHandler "public int slyLieAddBuffHandler("
+$slyLieRemoveHandler = Get-BracedBlock $buffHandler "public int slyLieRemoveBuffHandler("
+$fastTalkAddHandler = Get-BracedBlock $buffHandler "public int fastTalkAddBuffHandler("
+$fastTalkRemoveHandler = Get-BracedBlock $buffHandler "public int fastTalkRemoveBuffHandler("
+$slyLieGuard = $slyLieAddHandler.IndexOf("if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$slyLiePredicate = $slyLieAddHandler.IndexOf(
+    "buff.isRetiredPostNgePlayerSmugglerTrickEffect(effectName)", [StringComparison]::Ordinal)
+$slyLieCleanup = $slyLieAddHandler.IndexOf(
+    "buff.clearPostNgePlayerSmugglerTrickModifiers(self);", [StringComparison]::Ordinal)
+$slyLieReturn = $slyLieAddHandler.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$slyLieDodgeRead = $slyLieAddHandler.IndexOf(
+    'getSkillStatisticModifier(self, "expertise_half_truth")', [StringComparison]::Ordinal)
+$slyLieDodgeWrite = $slyLieAddHandler.IndexOf(
+    'skillAddBuffHandler(self, "slyLieDodge", "combat_dodge"', [StringComparison]::Ordinal)
+$slyLieStrikeRead = $slyLieAddHandler.IndexOf(
+    'getSkillStatisticModifier(self, "expertise_innocent_cargo")', [StringComparison]::Ordinal)
+$slyLieStrikeWrite = $slyLieAddHandler.IndexOf(
+    'skillAddBuffHandler(self, "innocentCargoStrikethrough", "combat_strikethrough_chance"',
+    [StringComparison]::Ordinal)
+$fastTalkGuard = $fastTalkAddHandler.IndexOf("if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$fastTalkPredicate = $fastTalkAddHandler.IndexOf(
+    "buff.isRetiredPostNgePlayerSmugglerTrickEffect(effectName)", [StringComparison]::Ordinal)
+$fastTalkCleanup = $fastTalkAddHandler.IndexOf(
+    "buff.clearPostNgePlayerSmugglerTrickModifiers(self);", [StringComparison]::Ordinal)
+$fastTalkReturn = $fastTalkAddHandler.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$fastTalkExpertiseRead = $fastTalkAddHandler.IndexOf(
+    'getSkillStatisticModifier(self, "expertise_fake_id")', [StringComparison]::Ordinal)
+$fastTalkWriter = $fastTalkAddHandler.IndexOf(
+    'skillAddBuffHandler(self, "fastTalkAgility", "agility_modified"', [StringComparison]::Ordinal)
+Assert-Contract ($slyLieGuard -ge 0 -and
+    $slyLiePredicate -gt $slyLieGuard -and
+    $slyLieCleanup -gt $slyLiePredicate -and
+    $slyLieReturn -gt $slyLieCleanup -and
+    $slyLieDodgeRead -gt $slyLieReturn -and
+    $slyLieDodgeWrite -gt $slyLieDodgeRead -and
+    $slyLieStrikeRead -gt $slyLieDodgeWrite -and
+    $slyLieStrikeWrite -gt $slyLieStrikeRead -and
+    $fastTalkGuard -ge 0 -and
+    $fastTalkPredicate -gt $fastTalkGuard -and
+    $fastTalkCleanup -gt $fastTalkPredicate -and
+    $fastTalkReturn -gt $fastTalkCleanup -and
+    $fastTalkExpertiseRead -gt $fastTalkReturn -and
+    $fastTalkWriter -gt $fastTalkExpertiseRead -and
+    $slyLieRemoveHandler.Contains('removeAttribOrSkillModModifier(self, "slyLieDodge")') -and
+    $slyLieRemoveHandler.Contains(
+        'removeAttribOrSkillModModifier(self, "innocentCargoStrikethrough")') -and
+    $fastTalkRemoveHandler.Contains(
+        'removeAttribOrSkillModModifier(self, "fastTalkAgility")') -and
+    [int]$contract.expected.productionSmugglerTrickHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerNgeSmugglerTrickModifierWritesReachable -and
+    [bool]$contract.expected.nonPlayerNgeSmugglerTrickCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.smuggler-trick-handlers-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and

@@ -2524,6 +2524,84 @@ pistol_whip_control_retained_writer_line="$(printf '%s\n' "$pistol_whip_control_
 test "$pistol_whip_control_guard_line" -lt "$pistol_whip_control_return_line"
 test "$pistol_whip_control_return_line" -lt "$pistol_whip_control_expertise_line"
 test "$pistol_whip_control_expertise_line" -lt "$pistol_whip_control_retained_writer_line"
+awk -F '\t' '
+$1 == "expertise_sly_lie" { found++; if ($2 != "slyLie" || $3 != "expertise_sly_lie") exit 2 }
+$1 == "expertise_fast_talk" { found++; if ($2 != "fastTalk" || $3 != "expertise_fast_talk") exit 2 }
+END { if (found != 2) exit 3 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2)
+        if ($parameterColumn == "expertise_sly_lie" || $parameterColumn == "expertise_fast_talk") ownsEffect = 1
+    if (ownsEffect) {
+        rows++
+        actual = $1 "|" $7 "|" $23 "|" $30 "|" $8 "|" $9
+        expected = $1 == "sm_sly_lie" ? "sm_sly_lie|600|1|1|expertise_sly_lie|0" :
+            ($1 == "sm_fast_talk" ? "sm_fast_talk|600|1|1|expertise_fast_talk|0" : "")
+        if (actual != expected) exit 2
+    }
+}
+END { if (rows != 2) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+NR > 2 {
+    ngeOwner = index($22, "sm_sly_lie") > 0 || index($22, "sm_fast_talk") > 0 ||
+        index($23, "expertise_half_truth=") > 0 || index($23, "expertise_innocent_cargo=") > 0 ||
+        index($23, "expertise_fake_id=") > 0 || index($23, "expertise_sly_lie_bonus=") > 0 ||
+        index($23, "expertise_sly_lie_rank=") > 0 || index($23, "expertise_fast_talk_bonus=") > 0 ||
+        index($23, "expertise_fast_talk_rank=") > 0
+    if (ngeOwner) ngeRows++
+    precuOwner = ($1 == "combat_smuggler_novice" && index($22, "slice_containers") > 0) ||
+        ($1 == "combat_smuggler_slicing_01" && index($22, "slice_terminals") > 0) ||
+        ($1 == "combat_smuggler_slicing_02" && index($22, "slice_weaponsbasic") > 0) ||
+        ($1 == "combat_smuggler_slicing_03" && index($22, "slice_armor") > 0) ||
+        ($1 == "combat_smuggler_slicing_04" && index($22, "slice_weaponsadvanced") > 0) ||
+        ($1 == "combat_smuggler_combat_01" && index($22, "feignDeath") > 0) ||
+        ($1 == "combat_smuggler_combat_02" && index($22, "panicShot") > 0) ||
+        ($1 == "combat_smuggler_combat_03" && index($22, "lowBlow") > 0) ||
+        ($1 == "combat_smuggler_combat_04" && index($22, "lastDitch") > 0)
+    if (precuOwner) precuRows++
+}
+END { if (ngeRows != 2 || precuRows != 9) exit 3 }
+' "$work_skills_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_SMUGGLER_TRICK_EFFECTS' "$work_buff_library"
+grep -Fq '"expertise_sly_lie"' "$work_buff_library"
+grep -Fq '"expertise_fast_talk"' "$work_buff_library"
+smuggler_trick_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerSmugglerTrickEffect/,/public static boolean isRetiredPostNgePlayerSmugglerTrickBuff/p' "$work_buff_library")"
+printf '%s\n' "$smuggler_trick_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_SMUGGLER_TRICK_EFFECTS'
+smuggler_trick_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerSmugglerTrickBuff/,/public static void clearPostNgePlayerSmugglerTrickModifiers/p' "$work_buff_library")"
+printf '%s\n' "$smuggler_trick_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$smuggler_trick_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$smuggler_trick_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerSmugglerTrickEffect(getEffectParam(data, effect))'
+smuggler_trick_modifier_cleanup_source="$(sed -n '/public static void clearPostNgePlayerSmugglerTrickModifiers/,/public static void retirePostNgePlayerSmugglerTrickState/p' "$work_buff_library")"
+for smuggler_trick_modifier in slyLieDodge innocentCargoStrikethrough fastTalkAgility; do
+    printf '%s\n' "$smuggler_trick_modifier_cleanup_source" | grep -Fq "$smuggler_trick_modifier"
+done
+printf '%s\n' "$smuggler_trick_modifier_cleanup_source" | grep -Fq 'removeAttribOrSkillModModifier'
+smuggler_trick_state_cleanup_source="$(sed -n '/public static void retirePostNgePlayerSmugglerTrickState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$smuggler_trick_state_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$smuggler_trick_state_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$smuggler_trick_state_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$smuggler_trick_state_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$smuggler_trick_state_cleanup_source" | grep -Fq 'clearPostNgePlayerSmugglerTrickModifiers(player);'
+grep -Fq 'retirePostNgePlayerSmugglerTrickState(player);' "$work_buff_library"
+smuggler_trick_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+smuggler_trick_admission_gate_line="$(printf '%s\n' "$smuggler_trick_admission_source" | grep -Fn 'isRetiredPostNgePlayerSmugglerTrickBuff(target, bdata)' | head -1 | cut -d: -f1)"
+smuggler_trick_existing_return_line="$(printf '%s\n' "$smuggler_trick_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$smuggler_trick_admission_gate_line" -lt "$smuggler_trick_existing_return_line"
+for smuggler_trick_handler in slyLie fastTalk; do
+    smuggler_trick_add_source="$(sed -n "/public int ${smuggler_trick_handler}AddBuffHandler/,/public int ${smuggler_trick_handler}RemoveBuffHandler/p" "$work_buff_handler")"
+    smuggler_trick_guard_line="$(printf '%s\n' "$smuggler_trick_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerSmugglerTrickEffect(effectName))' | head -1 | cut -d: -f1)"
+    smuggler_trick_cleanup_line="$(printf '%s\n' "$smuggler_trick_add_source" | grep -Fn 'buff.clearPostNgePlayerSmugglerTrickModifiers(self);' | head -1 | cut -d: -f1)"
+    smuggler_trick_return_line="$(printf '%s\n' "$smuggler_trick_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+    smuggler_trick_expertise_line="$(printf '%s\n' "$smuggler_trick_add_source" | grep -Fn 'getSkillStatisticModifier' | head -1 | cut -d: -f1)"
+    smuggler_trick_writer_line="$(printf '%s\n' "$smuggler_trick_add_source" | grep -Fn 'skillAddBuffHandler' | head -1 | cut -d: -f1)"
+    test "$smuggler_trick_guard_line" -lt "$smuggler_trick_cleanup_line"
+    test "$smuggler_trick_cleanup_line" -lt "$smuggler_trick_return_line"
+    test "$smuggler_trick_return_line" -lt "$smuggler_trick_expertise_line"
+    test "$smuggler_trick_expertise_line" -lt "$smuggler_trick_writer_line"
+done
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -3821,6 +3899,37 @@ test "$pistol_whip_control_guard_bytecode_line" -lt "$pistol_whip_control_predic
 test "$pistol_whip_control_predicate_bytecode_line" -lt "$pistol_whip_control_player_return_bytecode_line"
 test "$pistol_whip_control_player_return_bytecode_line" -lt "$pistol_whip_control_expertise_bytecode_line"
 test "$pistol_whip_control_expertise_bytecode_line" -lt "$pistol_whip_control_retained_writer_bytecode_line"
+buff_smuggler_trick_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerSmugglerTrickEffect(java.lang.String)/,/isRetiredPostNgePlayerSmugglerTrickBuff/p')"
+printf '%s' "$buff_smuggler_trick_effect_predicate_bytecode" | grep -Fq 'expertise_sly_lie'
+printf '%s' "$buff_smuggler_trick_effect_predicate_bytecode" | grep -Fq 'expertise_fast_talk'
+buff_smuggler_trick_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerSmugglerTrickBuff/,/clearPostNgePlayerSmugglerTrickModifiers/p')"
+printf '%s' "$buff_smuggler_trick_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_smuggler_trick_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerSmugglerTrickEffect'
+buff_smuggler_trick_modifier_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerSmugglerTrickModifiers/,/retirePostNgePlayerSmugglerTrickState/p')"
+for smuggler_trick_modifier in slyLieDodge innocentCargoStrikethrough fastTalkAgility; do
+    printf '%s' "$buff_smuggler_trick_modifier_cleanup_bytecode" | grep -Fq "$smuggler_trick_modifier"
+done
+printf '%s' "$buff_smuggler_trick_modifier_cleanup_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
+buff_smuggler_trick_state_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerSmugglerTrickState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_smuggler_trick_state_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_smuggler_trick_state_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_smuggler_trick_state_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_smuggler_trick_state_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerSmugglerTrickModifiers'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerSmugglerTrickState'
+for smuggler_trick_handler in slyLie fastTalk; do
+    smuggler_trick_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n "/${smuggler_trick_handler}AddBuffHandler/,/${smuggler_trick_handler}RemoveBuffHandler/p")"
+    smuggler_trick_guard_bytecode_line="$(printf '%s\n' "$smuggler_trick_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+    smuggler_trick_predicate_bytecode_line="$(printf '%s\n' "$smuggler_trick_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerSmugglerTrickEffect' | head -1 | cut -d: -f1)"
+    smuggler_trick_cleanup_bytecode_line="$(printf '%s\n' "$smuggler_trick_add_bytecode" | grep -Fn 'clearPostNgePlayerSmugglerTrickModifiers' | head -1 | cut -d: -f1)"
+    smuggler_trick_player_return_bytecode_line="$(printf '%s\n' "$smuggler_trick_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+    smuggler_trick_expertise_bytecode_line="$(printf '%s\n' "$smuggler_trick_add_bytecode" | grep -Fn 'Method getSkillStatisticModifier' | head -1 | cut -d: -f1)"
+    smuggler_trick_writer_bytecode_line="$(printf '%s\n' "$smuggler_trick_add_bytecode" | grep -Fn 'Method skillAddBuffHandler' | head -1 | cut -d: -f1)"
+    test "$smuggler_trick_guard_bytecode_line" -lt "$smuggler_trick_predicate_bytecode_line"
+    test "$smuggler_trick_predicate_bytecode_line" -lt "$smuggler_trick_cleanup_bytecode_line"
+    test "$smuggler_trick_cleanup_bytecode_line" -lt "$smuggler_trick_player_return_bytecode_line"
+    test "$smuggler_trick_player_return_bytecode_line" -lt "$smuggler_trick_expertise_bytecode_line"
+    test "$smuggler_trick_expertise_bytecode_line" -lt "$smuggler_trick_writer_bytecode_line"
+done
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
 action_drain_guard_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | head -n "$action_drain_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"
