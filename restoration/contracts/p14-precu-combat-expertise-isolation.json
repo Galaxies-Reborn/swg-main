@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier buffs from becoming player combat authority through admission, refresh, persistence, or alternate effect handlers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -127,11 +127,11 @@
     },
     "compiledClassSha256": {
       "combatLibrary": "db36049f2304f472b5ca273aba144c9176f87dabc11ee5ff894bfc47f61b4979",
-      "combatBase": "08a94d338f49e4422a797ad7a0bcaf572ee90a56d482a5ff3dbe9b62bfee0383",
-      "basePlayer": "33819b9d9e0b27af07b6969a40ea9a33f17a44830c71613513d673952a490ec5",
-      "buffHandler": "build-pending",
-      "buffLibrary": "build-pending",
-      "staticItemLibrary": "build-pending",
+      "combatBase": "15b99e1f49e53ccacf028c3ecdb3040ffe6b33d3bced08653f3b2b4fbeeda928",
+      "basePlayer": "389d23400375051af881a2abca987b5ff50fbd0763b6b6a4909c0730617b45c5",
+      "buffHandler": "322d3c21f354498bbed245060274c42dbb31c6ccce9d86fa0d4101d06dfaeeab",
+      "buffLibrary": "69a1a5648537c59a9a996cd319dc1067c11028c86935539aff30c7f565c2f8d9",
+      "staticItemLibrary": "e4547b9f155746ffdc83070729ccc81ea37efc3eaf4c19e0555ced42988b4cf1",
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
@@ -139,35 +139,36 @@
     "focusedCombatBaseClassBytes": 125081,
     "sourceTest": "passed; authenticated PRE-CU hit-engine, primary-defense, and secondary-defense blocks contain zero combat-level reads and retain their named skill-modifier inputs, while later-content NGE helpers remain bounded",
     "focusedJavaCompile": "passed static_item.java, buff.java, and buff_handler.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately",
-    "fullJavaCompile": "pending canonical clean deployment",
-    "fullServerBuild": "pending canonical clean Docker x86-64 deployment from pushed direct-source and parent commits",
+    "fullJavaCompile": "passed; canonical clean Java dependency rebuild completed from direct dsrc 4dabfed268f9be976380bde857903b67a9c9c716 after removing every prior compiled Java class",
+    "fullServerBuild": "passed in the 977.8-second canonical clean Docker x86-64 build from pushed parent 7e527738e8ec2289310fe7169672d482572fbb05 and direct dsrc 4dabfed268f9be976380bde857903b67a9c9c716; pushed parent a4efb8b aligned one stale bytecode assertion with the new shared predicate, then the completed build passed the full 574-second artifact, restart, readiness, and live-binary authentication path without rebuilding",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
-    "sourceWorkParity": "passed byte-for-byte between the read-only direct-source mount and Docker work volume; combat_base.java SHA-256 8d3d9eaac255055409cc54aa59b1701c3f3768e20ccb078c7aedfc83f5154bae on both mounts",
-    "bytecodeAudit": "passed; deployed combat_base.class SHA-256 08a94d338f49e4422a797ad7a0bcaf572ee90a56d482a5ff3dbe9b62bfee0383 retains PRE-CU skill-modifier resolution, explicitly gates the inherited NGE critical-effect call behind the compatibility route, and has zero getLevel calls in runHitEngine, getPrecuPrimaryHitChance, and getPrecuSecondaryDefenseResult; retained later-content helpers remain outside those bounded methods",
-    "deploymentProbe": "pending",
-    "result": "pending"
+    "sourceWorkParity": "passed byte-for-byte between the read-only direct-source mount and Docker work volume for static_item.java 1057ff58dcf923b9fa3e14c6a532322941d793c67326886c6ecf4bc5cfc8b6fe, buff.java 9df73e38ab5e46b780588e4f9762cf43efdc5d90db42691bc409357eb799f209, buff_handler.java d179e98cfbce462ebb57f3be3bd7906ac4d097aaaf3ea0f682fc6f71e2c0cd3d, buff.tab 235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9, and effect_mapping.tab d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
+    "bytecodeAudit": "passed; deployed static_item.class e4547b9f155746ffdc83070729ccc81ea37efc3eaf4c19e0555ced42988b4cf1 exposes the shared retired NGE buff-modifier predicate, buff.class 69a1a5648537c59a9a996cd319dc1067c11028c86935539aff30c7f565c2f8d9 enforces player-only admission-before-refresh and persisted-state removal, and buff_handler.class 322d3c21f354498bbed245060274c42dbb31c6ccce9d86fa0d4101d06dfaeeab delegates all generic player modifier writers to that shared predicate",
+    "deploymentProbe": "passed expanded preflight, exact 966-row/187-parameter/195-mapping-row inventory, source/work parity, compiled modifier admission and cleanup bytecode, ELF x86-64, guarded restart, readiness, mapped-binary, and clean-log verification",
+    "result": "passed"
   },
   "runtimeEvidence": {
     "date": "2026-08-06",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-06T19:49:43.665521335Z",
+    "containerStartedAt": "2026-08-07T02:48:26.622324329Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassSizes": {
       "combatLibrary": 104194,
-      "combatBase": 147186,
-      "basePlayer": 315029,
-      "buffHandler": 131557,
-      "buffLibrary": 39165,
+      "combatBase": 148490,
+      "basePlayer": 315149,
+      "buffHandler": 131823,
+      "buffLibrary": 41829,
+      "staticItemLibrary": 50308,
       "meditationLibrary": 11841,
       "bountyHunterShieldScript": 1763
     },
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 371,
+    "liveGameProcessPid": 374,
     "liveBinaryInode": 12141386,
     "liveBinarySize": 22559720,
     "liveBinaryMapEntries": 2,
@@ -180,16 +181,12 @@
       "SwgGameServer": 15
     },
     "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "pending"
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, or later combat-modifier authority through generic player buff admission, refresh, persistence, or effect writers",
     "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based combat; ordinary PRE-CU skill and HAM buffs; all retained buff and effect-mapping rows; non-player expansion encounter compatibility; and all expansion quests, conversations, and zones",
     "notClaimedComplete": "other data-driven effect families outside the authenticated 187-parameter modifier boundary remain subject to later reachability audits"
   },
-  "requiredBeforeReady": [
-    "canonical clean x64 deployment",
-    "compiled-bytecode authentication",
-    "healthy live cluster and clean post-start log audit"
-  ]
+  "requiredBeforeReady": []
 }
