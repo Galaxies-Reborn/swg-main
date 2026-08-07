@@ -2327,6 +2327,120 @@ Assert-Contract ($commandoSnareArmorValidity -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeCommandoSnareArmorCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.commando-snare-armor-handler-player-fail-closed"
 
+$medicDeferredDotProcActions = @(
+    "expertise_dueterium_rounds_proc",
+    "expertise_poison_knuckle_proc"
+)
+$medicDeferredDotProcCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { $medicDeferredDotProcActions -ccontains [string]$_.commandName })
+$medicDeferredDotProcCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { $medicDeferredDotProcActions -ccontains [string]$_.actionName })
+$medicDeferredDotProcRows = @(Import-SwgTab -Path $paths.procTable |
+    Where-Object { $medicDeferredDotProcActions -ccontains [string]$_.procString })
+$medicDeferredDotProcSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object { [string]$_.NAME -cmatch '^expertise_me_(dueterium_rounds|poison_knuckle)_1$' })
+$medicDeferredDotProcHandlers = @([regex]::Matches($combatActions,
+        'public int expertise_(?:dueterium_rounds|poison_knuckle)_proc\('))
+$precuCombatMedicDotCommands = @("applyPoison", "applyDisease")
+$precuCombatMedicDotCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { $precuCombatMedicDotCommands -ccontains [string]$_.commandName })
+$precuCombatMedicDotSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object { @(
+        "science_combatmedic_novice",
+        "science_combatmedic_healing_range_02"
+    ) -ccontains [string]$_.NAME })
+Assert-Contract ($medicDeferredDotProcCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDeferredDotProcCommandRows -and
+    @($medicDeferredDotProcCommandRows | Where-Object {
+        [string]$_.scriptHook -ceq [string]$_.commandName -and
+        [string]$_.failScriptHook -ceq "failProc" -and
+        [string]$_.displayGroup -ceq "combat" -and
+        [string]$_.addToCombatQueue -ceq "0" -and
+        [string]$_.toolbarOnly -ceq "1" -and
+        [string]$_.fromServerOnly -ceq "1"
+    }).Count -eq $medicDeferredDotProcCommandRows.Count -and
+    $medicDeferredDotProcCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDeferredDotProcCombatRows -and
+    @($medicDeferredDotProcCombatRows | Where-Object {
+        [string]$_.commandType -ceq "LEFT_CLICK_DEFAULT" -and
+        [string]$_.validTarget -ceq "STANDARD" -and
+        [string]$_.hitType -ceq "ATTACK" -and
+        [string]$_.percentAddFromWeapon -ceq "0.55" -and
+        [string]$_.dotIntensity -ceq "0" -and
+        [string]$_.dotDuration -ceq "6" -and
+        [string]$_.specialLine -ceq "no_proc"
+    }).Count -eq $medicDeferredDotProcCombatRows.Count -and
+    @($medicDeferredDotProcCombatRows | Where-Object {
+        [string]$_.actionName -ceq "expertise_dueterium_rounds_proc" -and
+        [string]$_.comments -ceq "Medic:ProcFireDoT" -and
+        [string]$_.dotType -ceq "fire"
+    }).Count -eq 1 -and
+    @($medicDeferredDotProcCombatRows | Where-Object {
+        [string]$_.actionName -ceq "expertise_poison_knuckle_proc" -and
+        [string]$_.comments -ceq "Medic:ProcPoisonDoT" -and
+        [string]$_.dotType -ceq "poison"
+    }).Count -eq 1 -and
+    $medicDeferredDotProcRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDeferredDotProcRows -and
+    @($medicDeferredDotProcRows | Where-Object {
+        [string]$_.procChance -ceq "5" -and
+        [string]$_.explanation -ceq "Medic expertise proc"
+    }).Count -eq $medicDeferredDotProcRows.Count -and
+    $medicDeferredDotProcSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDeferredDotProcExpertiseSkillRows -and
+    @($medicDeferredDotProcSkillRows | Where-Object {
+        [string]$_.NAME -ceq "expertise_me_dueterium_rounds_1" -and
+        [string]$_.SKILL_MODS -ceq "expertise_dueterium_rounds_proc=5"
+    }).Count -eq 1 -and
+    @($medicDeferredDotProcSkillRows | Where-Object {
+        [string]$_.NAME -ceq "expertise_me_poison_knuckle_1" -and
+        [string]$_.SKILL_MODS -ceq "expertise_poison_knuckle_proc=5"
+    }).Count -eq 1 -and
+    $medicDeferredDotProcHandlers.Count -eq
+        [int]$contract.expected.retainedNgeMedicDeferredDotProcActionHandlers -and
+    $precuCombatMedicDotCommandRows.Count -eq
+        [int]$contract.expected.precuCombatMedicDotCommandsPreserved -and
+    $precuCombatMedicDotSkillRows.Count -eq 2 -and
+    @($precuCombatMedicDotSkillRows | Where-Object {
+        [string]$_.NAME -ceq "science_combatmedic_novice" -and
+        [string]$_.COMMANDS -match '(^|,)applyPoison(,|$)'
+    }).Count -eq 1 -and
+    @($precuCombatMedicDotSkillRows | Where-Object {
+        [string]$_.NAME -ceq "science_combatmedic_healing_range_02" -and
+        [string]$_.COMMANDS -match '(^|,)applyDisease(,|$)'
+    }).Count -eq 1) `
+    "p14.combat-expertise-isolation.medic-dot-proc-data-and-precu-continuity-authenticated"
+
+$medicPlayerAction = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeMedicPlayerAction(obj_id self, String actionName)"
+$dueteriumRoundsHandler = Get-BracedBlock $combatActions `
+    "public int expertise_dueterium_rounds_proc("
+$poisonKnuckleHandler = Get-BracedBlock $combatActions `
+    "public int expertise_poison_knuckle_proc("
+$genericProcGate = $standardCombatAction.IndexOf(
+    "proc.isRetiredPostNgePlayerProcAction(self, actionName)",
+    [StringComparison]::Ordinal)
+$medicActionGate = $standardCombatAction.IndexOf(
+    "isRetiredPostNgeMedicPlayerAction(self, actionName)",
+    [StringComparison]::Ordinal)
+Assert-Contract ($medicPlayerAction.Contains('actionName.startsWith("me_")') -and
+    $medicPlayerAction.Contains(
+        'actionName.equals("expertise_dueterium_rounds_proc")') -and
+    $medicPlayerAction.Contains(
+        'actionName.equals("expertise_poison_knuckle_proc")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeMedicPlayerAction(self, actionName)") -and
+    $genericProcGate -ge 0 -and
+    $medicActionGate -gt $genericProcGate -and
+    $dueteriumRoundsHandler.Contains(
+        'combatStandardAction("expertise_dueterium_rounds_proc"') -and
+    $poisonKnuckleHandler.Contains(
+        'combatStandardAction("expertise_poison_knuckle_proc"') -and
+    -not [bool]$contract.expected.playerNgeMedicDeferredDotProcExecutionReachable -and
+    [bool]$contract.expected.genericPlayerProcGateStillDominatesMedicOwnershipGate -and
+    [bool]$contract.expected.nonPlayerNgeMedicDeferredDotProcCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.medic-dot-proc-player-action-admission-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and

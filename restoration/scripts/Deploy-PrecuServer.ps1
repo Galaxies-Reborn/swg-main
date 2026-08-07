@@ -2206,6 +2206,8 @@ grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, actionName)' "$work_script/
 test "$(grep -Fc 'isRetiredPostNgeCommandoPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 1
 grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, "co_kill_trap_1")' "$work_script/systems/combat/combat_actions.java"
 grep -Fq 'actionName.startsWith("me_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'actionName.equals("expertise_dueterium_rounds_proc")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'actionName.equals("expertise_poison_knuckle_proc")' "$work_script/systems/combat/combat_base.java"
 grep -Fq 'isRetiredPostNgeMedicPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeMedicPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 17
 grep -Fq 'actionName.startsWith("en_")' "$work_script/systems/combat/combat_base.java"
@@ -2744,6 +2746,53 @@ test "$commando_snare_armor_expertise_line" -lt "$commando_snare_armor_writer_li
 commando_snare_armor_remove_source="$(sed -n '/public int commandoSnareBonusRemoveBuffHandler/,/public int commandoFlashBangAddBuffHandler/p' "$work_buff_handler")"
 printf '%s\n' "$commando_snare_armor_remove_source" | grep -Fq 'removeAttribOrSkillModModifier(self, "commandoInnateArmorBonus")'
 printf '%s\n' "$commando_snare_armor_remove_source" | grep -Fq 'messageTo(self, "recalcArmor"'
+medic_deferred_dot_proc_actions='expertise_dueterium_rounds_proc expertise_poison_knuckle_proc'
+for medic_deferred_dot_proc_action in $medic_deferred_dot_proc_actions; do
+    awk -F '\t' -v name="$medic_deferred_dot_proc_action" '
+    NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+    NR > 2 && $1 == name {
+        found++
+        if ($(fieldIndex["scriptHook"]) != name || $(fieldIndex["failScriptHook"]) != "failProc" ||
+            $(fieldIndex["displayGroup"]) != "combat" || $(fieldIndex["addToCombatQueue"]) != 0 ||
+            $(fieldIndex["toolbarOnly"]) != 1 || $(fieldIndex["fromServerOnly"]) != 1) exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_command_table"
+    awk -F '\t' -v name="$medic_deferred_dot_proc_action" '
+    NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+    NR > 2 && $1 == name {
+        found++
+        if ($(fieldIndex["commandType"]) != "LEFT_CLICK_DEFAULT" ||
+            $(fieldIndex["validTarget"]) != "STANDARD" || $(fieldIndex["hitType"]) != "ATTACK" ||
+            $(fieldIndex["percentAddFromWeapon"]) != 0.55 || $(fieldIndex["dotIntensity"]) != 0 ||
+            $(fieldIndex["dotDuration"]) != 6 || $(fieldIndex["specialLine"]) != "no_proc") exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_combat_data"
+    awk -F '\t' -v name="$medic_deferred_dot_proc_action" '
+    NR > 2 && $1 == name {
+        found++
+        explanation = $6
+        sub(/\r$/, "", explanation)
+        if ($2 != 5 || explanation != "Medic expertise proc") exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_proc_table"
+    grep -Fq "public int $medic_deferred_dot_proc_action(" "$work_combat_actions"
+done
+test "$(grep -Ec '^    public int expertise_(dueterium_rounds|poison_knuckle)_proc\(' "$work_combat_actions")" -eq 2
+awk -F '\t' '$1 == "expertise_dueterium_rounds_proc" { found++; if ($3 != "Medic:ProcFireDoT" || $62 != "fire") exit 2 } END { if (found != 1) exit 3 }' "$work_combat_data"
+awk -F '\t' '$1 == "expertise_poison_knuckle_proc" { found++; if ($3 != "Medic:ProcPoisonDoT" || $62 != "poison") exit 2 } END { if (found != 1) exit 3 }' "$work_combat_data"
+awk -F '\t' '$1 == "expertise_me_dueterium_rounds_1" { found++; if ($23 != "expertise_dueterium_rounds_proc=5") exit 2 } $1 == "expertise_me_poison_knuckle_1" { found++; if ($23 != "expertise_poison_knuckle_proc=5") exit 2 } END { if (found != 2) exit 3 }' "$work_skills_table"
+awk -F '\t' '$1 == "science_combatmedic_novice" { poison++; if ($22 !~ /(^|,)applyPoison(,|$)/) exit 2 } $1 == "science_combatmedic_healing_range_02" { disease++; if ($22 !~ /(^|,)applyDisease(,|$)/) exit 2 } END { if (poison != 1 || disease != 1) exit 3 }' "$work_skills_table"
+medic_player_action_source="$(sed -n '/public static boolean isRetiredPostNgeMedicPlayerAction/,/public static boolean isRetiredPostNgeEntertainerPlayerAction/p' "$work_combat_base")"
+printf '%s\n' "$medic_player_action_source" | grep -Fq 'return isPlayer(self)'
+printf '%s\n' "$medic_player_action_source" | grep -Fq 'actionName.startsWith("me_")'
+printf '%s\n' "$medic_player_action_source" | grep -Fq 'actionName.equals("expertise_dueterium_rounds_proc")'
+printf '%s\n' "$medic_player_action_source" | grep -Fq 'actionName.equals("expertise_poison_knuckle_proc")'
+generic_proc_gate_line="$(grep -Fn 'if (proc.isRetiredPostNgePlayerProcAction(self, actionName))' "$work_combat_base" | head -1 | cut -d: -f1)"
+medic_action_gate_line="$(grep -Fn 'if (isRetiredPostNgeMedicPlayerAction(self, actionName))' "$work_combat_base" | head -1 | cut -d: -f1)"
+test "$generic_proc_gate_line" -lt "$medic_action_gate_line"
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -4140,6 +4189,16 @@ printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String co_'
 printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String kill_meter_co_'
 printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String expertise_co_'
 printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String banner_buff_commando'
+medic_player_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base | sed -n '/isRetiredPostNgeMedicPlayerAction/,/isRetiredPostNgeEntertainerPlayerAction/p')"
+printf '%s' "$medic_player_action_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$medic_player_action_bytecode" | grep -Fq 'String me_'
+printf '%s' "$medic_player_action_bytecode" | grep -Fq 'String expertise_dueterium_rounds_proc'
+printf '%s' "$medic_player_action_bytecode" | grep -Fq 'String expertise_poison_knuckle_proc'
+for medic_deferred_dot_proc_action in expertise_dueterium_rounds_proc expertise_poison_knuckle_proc; do
+    medic_deferred_dot_proc_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n "/public int $medic_deferred_dot_proc_action(/,/ireturn/p")"
+    printf '%s' "$medic_deferred_dot_proc_handler_bytecode" | grep -Fq "String $medic_deferred_dot_proc_action"
+    printf '%s' "$medic_deferred_dot_proc_handler_bytecode" | grep -Fq 'Method combatStandardAction'
+done
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commando_snare_bonus'
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commandoInnateArmorBonus'
 commando_snare_armor_effect_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandoSnareArmorEffect(java.lang.String)/,/isRetiredPostNgePlayerCommandoSnareArmorBuff/p')"
