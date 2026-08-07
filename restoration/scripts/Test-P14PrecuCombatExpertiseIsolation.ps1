@@ -1115,6 +1115,157 @@ Assert-Contract ($guardedCriticalHandlers -eq
         [int]$contract.expected.productionCriticalOverrideHandlersGuarded) `
     "p14.combat-expertise-isolation.buff.critical-override-handlers-player-fail-closed"
 
+$expectedLuckHitEffectTypes = [ordered]@{
+    sm_impossible_odds = "hitByLuck"
+    sm_skullduggery = "missByLuck"
+}
+$luckHitEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $expectedLuckHitEffectTypes.Contains([string]$_.NAME) })
+$unexpectedLuckHitMappings = @($luckHitEffectMappings | Where-Object {
+    [string]$_.TYPE -cne [string]$expectedLuckHitEffectTypes[[string]$_.NAME]
+})
+$luckHitBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        $expectedLuckHitEffectTypes.Contains([string]$row.("EFFECT$($_)_PARAM"))
+    }).Count -gt 0
+})
+$luckHitActualSignatures = @($luckHitBuffRows | ForEach-Object {
+    $row = $_
+    @(
+        [string]$row.NAME,
+        [string]$row.DURATION,
+        [string]$row.IS_PERSISTENT,
+        [string]$row.EFFECT1_PARAM,
+        [string]$row.EFFECT1_VALUE,
+        [string]$row.EFFECT2_PARAM,
+        [string]$row.EFFECT2_VALUE,
+        [string]$row.EFFECT3_PARAM,
+        [string]$row.EFFECT3_VALUE,
+        [string]$row.EFFECT4_PARAM,
+        [string]$row.EFFECT4_VALUE,
+        [string]$row.EFFECT5_PARAM,
+        [string]$row.EFFECT5_VALUE
+    ) -join "|"
+} | Sort-Object)
+$luckHitExpectedSignatures = @(
+    "sm_impossible_odds|4|1|sm_impossible_odds|4||0||0||0||0",
+    "sm_skullduggery|4|1|sm_skullduggery|4||0||0||0||0"
+)
+$luckHitSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    @("sm_impossible_odds", "sm_skullduggery") -ccontains [string]$_.COMMANDS
+})
+Assert-Contract ($expectedLuckHitEffectTypes.Count -eq
+        [int]$contract.expected.retiredNgePlayerLuckHitOverrideEffects -and
+    $luckHitEffectMappings.Count -eq
+        [int]$contract.expected.retainedNgeLuckHitOverrideEffectMappingRows -and
+    $unexpectedLuckHitMappings.Count -eq 0 -and
+    $luckHitBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeLuckHitOverrideBuffRows -and
+    (($luckHitActualSignatures -join "`n") -ceq
+        ($luckHitExpectedSignatures -join "`n")) -and
+    $luckHitSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeLuckHitOverrideExpertiseSkillRows -and
+    @($luckHitSkillRows | Where-Object {
+        -not ([string]$_.NAME).StartsWith("expertise_sm_path_", [StringComparison]::Ordinal)
+    }).Count -eq 0) `
+    "p14.combat-expertise-isolation.buff.luck-hit-override-data-inventory-authenticated"
+
+$luckHitInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS"
+$luckHitEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerLuckHitOverrideEffect(String effectName)"
+$luckHitBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerLuckHitOverrideBuff(obj_id target, buff_data data)"
+$luckHitModifierCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerLuckHitOverrideModifiers(obj_id player)"
+$luckHitBuffCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerLuckHitOverrideState(obj_id player)"
+$luckHitProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$luckHitCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$luckHitAdmissionGate = $luckHitCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$luckHitExistingBuffReturn = $luckHitCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$luckHitInventoryNames = @([regex]::Matches($luckHitInventory,
+        '"([A-Za-z0-9_]+)"') | ForEach-Object { $_.Groups[1].Value })
+$luckHitModifierNames = @([regex]::Matches($luckHitModifierCleanup,
+        '"(hitByLuck|increaseHitByLuck|missByLuck)"') |
+    ForEach-Object { $_.Groups[1].Value })
+Assert-Contract ($luckHitInventoryNames.Count -eq $expectedLuckHitEffectTypes.Count -and
+    @($expectedLuckHitEffectTypes.Keys | Where-Object {
+        $luckHitInventoryNames -ccontains $_
+    }).Count -eq $expectedLuckHitEffectTypes.Count -and
+    $luckHitEffectPredicate.Contains("RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS") -and
+    $luckHitBuffPredicate.Contains("!isPlayer(target)") -and
+    $luckHitBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $luckHitBuffPredicate.Contains(
+        "isRetiredPostNgePlayerLuckHitOverrideEffect(getEffectParam(data, effect))") -and
+    $luckHitModifierCleanup.Contains("!isPlayer(player)") -and
+    $luckHitModifierNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerLuckHitOverrideModifiers -and
+    @($luckHitModifierNames | Select-Object -Unique).Count -eq $luckHitModifierNames.Count -and
+    $luckHitModifierCleanup.Contains("hasSkillModModifier(player, retiredModifier)") -and
+    $luckHitModifierCleanup.Contains("removeAttribOrSkillModModifier(player, retiredModifier)") -and
+    $luckHitBuffCleanup.Contains("getAllBuffs(player)") -and
+    $luckHitBuffCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $luckHitBuffCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $luckHitBuffCleanup.Contains("clearPostNgePlayerLuckHitOverrideModifiers(player)") -and
+    $luckHitProgressionCleanup.Contains(
+        "retirePostNgePlayerLuckHitOverrideState(player);") -and
+    $luckHitAdmissionGate -ge 0 -and
+    $luckHitExistingBuffReturn -gt $luckHitAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeLuckHitOverrideBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeLuckHitOverrideStateRemoved -and
+    [bool]$contract.expected.stalePlayerLuckHitOverrideModifiersRemoved -and
+    [bool]$contract.expected.nonPlayerNgeLuckHitOverrideCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.player-luck-hit-override-admission-and-persistence-fail-closed"
+
+$luckHitHandlerExpectations = @(
+    [pscustomobject]@{
+        Name = "missByLuckAddBuffHandler"
+        Cleanup = "buff.retirePostNgePlayerLuckHitOverrideState(self);"
+        RetainedWriter = 'getSkillStatisticModifier(caster, "expertise_miss_by_luck")'
+    },
+    [pscustomobject]@{
+        Name = "missByLuckRemoveBuffHandler"
+        Cleanup = "buff.clearPostNgePlayerLuckHitOverrideModifiers(self);"
+        RetainedWriter = 'removeAttribOrSkillModModifier(self, "missByLuck")'
+    },
+    [pscustomobject]@{
+        Name = "hitByLuckAddBuffHandler"
+        Cleanup = "buff.retirePostNgePlayerLuckHitOverrideState(self);"
+        RetainedWriter = 'getSkillStatisticModifier(caster, "expertise_hit_by_luck")'
+    },
+    [pscustomobject]@{
+        Name = "hitByLuckRemoveBuffHandler"
+        Cleanup = "buff.clearPostNgePlayerLuckHitOverrideModifiers(self);"
+        RetainedWriter = 'removeAttribOrSkillModModifier(self, "hitByLuck")'
+    }
+)
+$guardedLuckHitHandlers = 0
+foreach ($handlerExpectation in $luckHitHandlerExpectations)
+{
+    $handler = Get-BracedBlock $buffHandler ("public int " + $handlerExpectation.Name + "(")
+    $playerGuard = $handler.IndexOf("if (isPlayer(self))", [StringComparison]::Ordinal)
+    $cleanup = $handler.IndexOf($handlerExpectation.Cleanup, [StringComparison]::Ordinal)
+    $playerReturn = $handler.IndexOf("return SCRIPT_CONTINUE;", $cleanup,
+        [StringComparison]::Ordinal)
+    $retainedWriter = $handler.IndexOf($handlerExpectation.RetainedWriter,
+        [StringComparison]::Ordinal)
+    if ($playerGuard -ge 0 -and $cleanup -gt $playerGuard -and
+        $playerReturn -gt $cleanup -and $retainedWriter -gt $playerReturn)
+    {
+        ++$guardedLuckHitHandlers
+    }
+}
+Assert-Contract ($guardedLuckHitHandlers -eq
+        [int]$contract.expected.productionLuckHitOverrideHandlersGuarded) `
+    "p14.combat-expertise-isolation.buff.luck-hit-override-handlers-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and

@@ -1711,7 +1711,7 @@ printf '%s' "$critical_override_script_var_cleanup_source" | grep -Fq '!isPlayer
 for retired_critical_override_script_var in nextCritHit critDoubleDamage critRoot critRemoveBuffNames; do
     test "$(printf '%s' "$critical_override_script_var_cleanup_source" | grep -Fc "utils.removeScriptVarTree(player, \"$retired_critical_override_script_var\")")" -eq 1
 done
-critical_override_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCriticalOverrideState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+critical_override_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCriticalOverrideState/,/public static boolean isRetiredPostNgePlayerLuckHitOverrideEffect/p' "$work_buff_library")"
 printf '%s' "$critical_override_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s' "$critical_override_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s' "$critical_override_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
@@ -1737,6 +1737,85 @@ test "$critical_override_hit_cleanup_line" -lt "$critical_override_next_hit_read
 test "$critical_override_hit_cleanup_line" -lt "$critical_override_remove_read_line"
 test "$critical_override_damage_cleanup_line" -lt "$critical_override_double_read_line"
 test "$critical_override_damage_cleanup_line" -lt "$critical_override_root_read_line"
+retired_luck_hit_effects="sm_impossible_odds sm_skullduggery"
+test "$(printf '%s\n' $retired_luck_hit_effects | wc -l)" -eq 2
+for retired_luck_hit_effect in $retired_luck_hit_effects; do
+    case "$retired_luck_hit_effect" in
+        sm_impossible_odds)
+            expected_luck_hit_type=hitByLuck
+            expected_luck_hit_subtype=combat_all_attack_hit_by_luck
+            ;;
+        sm_skullduggery)
+            expected_luck_hit_type=missByLuck
+            expected_luck_hit_subtype=combat_all_attack_miss_by_luck
+            ;;
+        *) exit 3 ;;
+    esac
+    awk -F '\t' -v effect="$retired_luck_hit_effect" -v type="$expected_luck_hit_type" -v subtype="$expected_luck_hit_subtype" '$1 == effect && $2 == type && $3 == subtype { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+done
+awk -F '\t' '
+BEGIN {
+    expected["sm_impossible_odds"] = "4|1|sm_impossible_odds|4||0||0||0||0"
+    expected["sm_skullduggery"] = "4|1|sm_skullduggery|4||0||0||0||0"
+}
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2) {
+        if ($parameterColumn == "sm_impossible_odds" || $parameterColumn == "sm_skullduggery") ownsEffect = 1
+    }
+    if (ownsEffect) {
+        rows++
+        if (!($1 in expected) || seen[$1]++) exit 2
+        actual = $7 "|" $30 "|" $8 "|" $9 "|" $10 "|" $11 "|" $12 "|" $13 "|" $14 "|" $15 "|" $16 "|" $17
+        if (actual != expected[$1]) exit 2
+    }
+}
+END {
+    if (rows != 2 || !("sm_impossible_odds" in seen) || !("sm_skullduggery" in seen)) exit 3
+}' "$work_buff_table"
+luck_hit_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS/,/public static boolean isRetiredPostNgePlayerLuckHitOverrideEffect/p' "$work_buff_library")"
+for retired_luck_hit_effect in $retired_luck_hit_effects; do
+    test "$(printf '%s' "$luck_hit_inventory_source" | grep -Fc "\"$retired_luck_hit_effect\"")" -eq 1
+done
+luck_hit_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerLuckHitOverrideEffect/,/public static boolean isRetiredPostNgePlayerLuckHitOverrideBuff/p' "$work_buff_library")"
+printf '%s' "$luck_hit_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS'
+luck_hit_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerLuckHitOverrideBuff/,/public static void clearPostNgePlayerLuckHitOverrideModifiers/p' "$work_buff_library")"
+printf '%s' "$luck_hit_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$luck_hit_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$luck_hit_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideEffect(getEffectParam(data, effect))'
+luck_hit_modifier_cleanup_source="$(sed -n '/public static void clearPostNgePlayerLuckHitOverrideModifiers/,/public static void retirePostNgePlayerLuckHitOverrideState/p' "$work_buff_library")"
+printf '%s' "$luck_hit_modifier_cleanup_source" | grep -Fq '!isPlayer(player)'
+for retired_luck_hit_modifier in hitByLuck increaseHitByLuck missByLuck; do
+    test "$(printf '%s' "$luck_hit_modifier_cleanup_source" | grep -Fc "\"$retired_luck_hit_modifier\"")" -eq 1
+done
+printf '%s' "$luck_hit_modifier_cleanup_source" | grep -Fq 'hasSkillModModifier(player, retiredModifier)'
+printf '%s' "$luck_hit_modifier_cleanup_source" | grep -Fq 'removeAttribOrSkillModModifier(player, retiredModifier)'
+luck_hit_cleanup_source="$(sed -n '/public static void retirePostNgePlayerLuckHitOverrideState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s' "$luck_hit_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$luck_hit_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$luck_hit_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s' "$luck_hit_cleanup_source" | grep -Fq 'clearPostNgePlayerLuckHitOverrideModifiers(player)'
+grep -Fq 'retirePostNgePlayerLuckHitOverrideState(player);' "$work_buff_library"
+for luck_hit_handler in missByLuckAddBuffHandler hitByLuckAddBuffHandler; do
+    luck_hit_handler_source="$(sed -n "/public int $luck_hit_handler(/,/^    }/p" "$work_buff_handler")"
+    luck_hit_handler_guard_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+    luck_hit_handler_cleanup_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'buff.retirePostNgePlayerLuckHitOverrideState(self);' | head -1 | cut -d: -f1)"
+    luck_hit_handler_return_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)"
+    luck_hit_handler_writer_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'getSkillStatisticModifier(caster' | head -1 | cut -d: -f1)"
+    test "$luck_hit_handler_guard_line" -lt "$luck_hit_handler_cleanup_line"
+    test "$luck_hit_handler_cleanup_line" -lt "$luck_hit_handler_return_line"
+    test "$luck_hit_handler_return_line" -lt "$luck_hit_handler_writer_line"
+done
+for luck_hit_handler in missByLuckRemoveBuffHandler hitByLuckRemoveBuffHandler; do
+    luck_hit_handler_source="$(sed -n "/public int $luck_hit_handler(/,/^    }/p" "$work_buff_handler")"
+    luck_hit_handler_guard_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+    luck_hit_handler_cleanup_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'buff.clearPostNgePlayerLuckHitOverrideModifiers(self);' | head -1 | cut -d: -f1)"
+    luck_hit_handler_return_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)"
+    luck_hit_handler_writer_line="$(printf '%s\n' "$luck_hit_handler_source" | grep -Fn 'removeAttribOrSkillModModifier(self' | head -1 | cut -d: -f1)"
+    test "$luck_hit_handler_guard_line" -lt "$luck_hit_handler_cleanup_line"
+    test "$luck_hit_handler_cleanup_line" -lt "$luck_hit_handler_return_line"
+    test "$luck_hit_handler_return_line" -lt "$luck_hit_handler_writer_line"
+done
 dot_immunity_predicate_source="$(sed -n '/public boolean isRetiredNgeDotImmunityModifier/,/public boolean isRetiredNgeBuffSkillModifier/p' "$work_buff_handler")"
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.equals("damage_immune")'
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.startsWith("dot_resist_")'
@@ -1971,6 +2050,7 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCommandGr
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerDamageDealtOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
@@ -1978,6 +2058,7 @@ command_grant_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep
 damage_dealt_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerDamageDealtOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 weapon_speed_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 critical_override_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
+luck_hit_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
@@ -1986,6 +2067,7 @@ test "$command_grant_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$damage_dealt_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$weapon_speed_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$critical_override_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$luck_hit_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
@@ -3159,6 +3241,7 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerActionR
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageDealtOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
 buff_command_grant_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerBuffCommandGrant(java.lang.String)/,/isRetiredPostNgePlayerCommandGrantBuff/p')"
@@ -3249,11 +3332,28 @@ printf '%s' "$buff_critical_override_script_var_cleanup_bytecode" | grep -Fq 'is
 for retired_critical_override_script_var in nextCritHit critDoubleDamage critRoot critRemoveBuffNames; do
     printf '%s' "$buff_critical_override_script_var_cleanup_bytecode" | grep -Fq "$retired_critical_override_script_var"
 done
-buff_critical_override_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCriticalOverrideState/,/isRetiredPostNgePlayerModifierBuff/p')"
+buff_critical_override_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCriticalOverrideState/,/isRetiredPostNgePlayerLuckHitOverrideEffect/p')"
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'getAllBuffs'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars'
+buff_luck_hit_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerLuckHitOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerLuckHitOverrideBuff/p')"
+printf '%s' "$buff_luck_hit_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS'
+buff_luck_hit_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerLuckHitOverrideBuff/,/clearPostNgePlayerLuckHitOverrideModifiers/p')"
+printf '%s' "$buff_luck_hit_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_luck_hit_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideEffect'
+buff_luck_hit_modifier_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerLuckHitOverrideModifiers/,/retirePostNgePlayerLuckHitOverrideState/p')"
+printf '%s' "$buff_luck_hit_modifier_cleanup_bytecode" | grep -Fq 'isPlayer'
+for retired_luck_hit_modifier in hitByLuck increaseHitByLuck missByLuck; do
+    printf '%s' "$buff_luck_hit_modifier_cleanup_bytecode" | grep -Fq "$retired_luck_hit_modifier"
+done
+printf '%s' "$buff_luck_hit_modifier_cleanup_bytecode" | grep -Fq 'hasSkillModModifier'
+printf '%s' "$buff_luck_hit_modifier_cleanup_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
+buff_luck_hit_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerLuckHitOverrideState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerLuckHitOverrideModifiers'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
@@ -3329,6 +3429,13 @@ test "$(printf '%s' "$critical_override_handler_bytecode" | grep -Fc 'isPlayer')
 test "$(printf '%s' "$critical_override_handler_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 8
 for retired_critical_override_script_var in nextCritHit critDoubleDamage critRoot critRemoveBuffNames; do
     printf '%s' "$critical_override_handler_bytecode" | grep -Fq "$retired_critical_override_script_var"
+done
+luck_hit_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/missByLuckAddBuffHandler/,/pistolWhipAddBuffHandler/p')"
+test "$(printf '%s' "$luck_hit_handler_bytecode" | grep -Fc 'isPlayer')" -eq 4
+test "$(printf '%s' "$luck_hit_handler_bytecode" | grep -Fc 'buff.retirePostNgePlayerLuckHitOverrideState')" -eq 2
+test "$(printf '%s' "$luck_hit_handler_bytecode" | grep -Fc 'buff.clearPostNgePlayerLuckHitOverrideModifiers')" -eq 2
+for retired_luck_hit_modifier in hitByLuck increaseHitByLuck missByLuck; do
+    printf '%s' "$luck_hit_handler_bytecode" | grep -Fq "$retired_luck_hit_modifier"
 done
 command_grant_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandGrantAddBuffHandler/,/commandGrantRemoveBuffHandler/p')"
 printf '%s' "$command_grant_add_bytecode" | grep -Fq 'isPlayer'
