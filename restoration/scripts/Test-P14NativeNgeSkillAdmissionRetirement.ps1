@@ -16,16 +16,27 @@ $clientPath = Join-Path $root "src/engine/server/library/serverGame/src/shared/c
 $creaturePath = Join-Path $root "src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
 $skillsPath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $commandTablePath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+$buffPath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java"
+$buffHandlerPath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
+$buffTablePath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+$effectMappingPath = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
 $client = Get-Content -LiteralPath $clientPath -Raw
 $creature = Get-Content -LiteralPath $creaturePath -Raw
+$buffSource = Get-Content -LiteralPath $buffPath -Raw
+$buffHandlerSource = Get-Content -LiteralPath $buffHandlerPath -Raw
 
 $srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
 $checkedOutSrcCommit = (& git -C (Join-Path $root "src") rev-parse HEAD).Trim()
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$checkedOutDsrcCommit = (& git -C (Join-Path $root "dsrc") rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or
     [string]$manifest.sourceMode -cne "direct-branch" -or
     $srcPin.Count -ne 1 -or
     [string]$srcPin[0].commit -cne [string]$contract.buildEvidence.nativeSourceCommit -or
-    $checkedOutSrcCommit -cne [string]$contract.buildEvidence.nativeSourceCommit)
+    $checkedOutSrcCommit -cne [string]$contract.buildEvidence.nativeSourceCommit -or
+    $dsrcPin.Count -ne 1 -or
+    [string]$dsrcPin[0].commit -cne [string]$contract.buildEvidence.directSourceGitlink -or
+    $checkedOutDsrcCommit -cne [string]$contract.buildEvidence.directSourceGitlink)
 {
     throw "The native NGE admission contract is not pinned to the checked-out direct source revision."
 }
@@ -128,6 +139,85 @@ if ($retiredCommands.Count -ne [int]$contract.diagnosis.retiredSkillCommands -or
     throw "The NGE-only blank-ability command inventory changed or is incompletely classified."
 }
 
+$retiredBuffCommandGrants = @($contract.diagnosis.retiredBuffCommandGrantPlayerCommands |
+    ForEach-Object { [string]$_ } | Sort-Object)
+$effectMappings = @(Import-SwgTab -Path $effectMappingPath)
+$buffRows = @(Import-SwgTab -Path $buffTablePath)
+$commandGrantMappings = @($effectMappings | Where-Object {
+    [string]$_.TYPE -ceq "commandGrant"
+})
+$mappedCommandGrants = @($commandGrantMappings | ForEach-Object {
+    [string]$_.NAME
+} | Sort-Object)
+$commandGrantBuffRows = @($buffRows | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        $retiredBuffCommandGrants -ccontains [string]$row.("EFFECT$($_)_PARAM")
+    }).Count -gt 0
+})
+$previouslyModifierUngatedBuffs = @($contract.diagnosis.previouslyModifierUngatedBuffs |
+    ForEach-Object { [string]$_ } | Sort-Object)
+if ($commandGrantMappings.Count -ne [int]$contract.diagnosis.retainedBuffCommandGrantMappingRows -or
+    ($mappedCommandGrants -join ([char]0)) -cne ($retiredBuffCommandGrants -join ([char]0)) -or
+    $commandGrantBuffRows.Count -ne [int]$contract.diagnosis.retainedBuffCommandGrantRows -or
+    (@($commandGrantBuffRows.NAME | Sort-Object -Unique)).Count -ne
+        [int]$contract.diagnosis.retainedBuffCommandGrantRows -or
+    (@($commandGrantBuffRows.NAME | Where-Object {
+        $previouslyModifierUngatedBuffs -ccontains [string]$_
+    } | Sort-Object) -join ([char]0)) -cne
+        ($previouslyModifierUngatedBuffs -join ([char]0)))
+{
+    throw "The retained NGE buff command-grant inventory changed or is incompletely classified."
+}
+
+$commandGrantPredicate = Get-BracedSurface -Text $buffSource `
+    -Signature "public static boolean isRetiredPostNgePlayerBuffCommandGrant"
+$commandGrantBuffPredicate = Get-BracedSurface -Text $buffSource `
+    -Signature "public static boolean isRetiredPostNgePlayerCommandGrantBuff"
+$commandGrantCleanup = Get-BracedSurface -Text $buffSource `
+    -Signature "public static void retirePostNgePlayerCommandGrantBuffState"
+$buffProgressionCleanup = Get-BracedSurface -Text $buffSource `
+    -Signature "public static void retirePostNgeBuffProgression"
+$canApplyBuff = Get-BracedSurface -Text $buffSource `
+    -Signature "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$commandGrantAdd = Get-BracedSurface -Text $buffHandlerSource `
+    -Signature "public int commandGrantAddBuffHandler"
+$commandGrantRemove = Get-BracedSurface -Text $buffHandlerSource `
+    -Signature "public int commandGrantRemoveBuffHandler"
+foreach ($commandName in $retiredBuffCommandGrants)
+{
+    if (-not $buffSource.Contains('"' + $commandName + '"'))
+    {
+        throw "Retired buff command grant is absent from the shared player predicate: $commandName"
+    }
+}
+$commandGrantAdmissionLine = $canApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerCommandGrantBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$existingBuffLine = $canApplyBuff.IndexOf("hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+if (-not $commandGrantPredicate.Contains("RETIRED_POST_NGE_PLAYER_BUFF_COMMAND_GRANTS") -or
+    -not $commandGrantBuffPredicate.Contains("!isPlayer(target)") -or
+    -not $commandGrantBuffPredicate.Contains("effect <= MAX_EFFECTS") -or
+    -not $commandGrantBuffPredicate.Contains("getEffectParam(data, effect)") -or
+    -not $commandGrantCleanup.Contains("getAllBuffs(player)") -or
+    -not $commandGrantCleanup.Contains("removeBuff(player, activeBuff)") -or
+    -not $commandGrantCleanup.Contains("while (hasCommand(player, retiredCommand))") -or
+    -not $commandGrantCleanup.Contains("revokeCommand(player, retiredCommand)") -or
+    -not $buffProgressionCleanup.Contains("retirePostNgePlayerCommandGrantBuffState(player);") -or
+    $commandGrantAdmissionLine -lt 0 -or $existingBuffLine -le $commandGrantAdmissionLine -or
+    -not $commandGrantAdd.Contains("isPlayer(self)") -or
+    -not $commandGrantAdd.Contains("buff.isRetiredPostNgePlayerBuffCommandGrant(subType)") -or
+    $commandGrantAdd.IndexOf("buff.isRetiredPostNgePlayerBuffCommandGrant", [StringComparison]::Ordinal) -gt
+        $commandGrantAdd.IndexOf("grantCommand(self, subType)", [StringComparison]::Ordinal) -or
+    -not $commandGrantRemove.Contains("while (hasCommand(self, subType))") -or
+    -not $commandGrantRemove.Contains("revokeCommand(self, subType)") -or
+    [bool]$contract.expected.dataDrivenNgeBuffCommandAdmission -or
+    -not [bool]$contract.expected.persistedNgeBuffCommandsRemoved -or
+    -not [bool]$contract.expected.nonPlayerBuffCommandCompatibilityPreserved)
+{
+    throw "Retained NGE buff command grants are not fully denied and cleaned for players."
+}
+
 $commandGuard = Get-BracedSurface -Text $creature -Signature "bool isRetiredNgeProgressionCommandName"
 foreach ($commandName in $retiredPlayerCommands)
 {
@@ -216,6 +306,10 @@ if ($Expectation -eq "Ready")
     foreach ($entry in @{
         "Client.cpp" = $clientPath
         "CreatureObject.cpp" = $creaturePath
+        "buff.java" = $buffPath
+        "buff_handler.java" = $buffHandlerPath
+        "buff.tab" = $buffTablePath
+        "effect_mapping.tab" = $effectMappingPath
     }.GetEnumerator())
     {
         $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Value).Hash.ToLowerInvariant()

@@ -1299,6 +1299,60 @@ printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'getAllBuffs(playe
 printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
 grep -Fq 'retirePostNgePlayerModifierBuffState(player);' "$work_buff_library"
+retired_buff_command_grants="bh_flawless_strike co_enrage_1 en_action_regen fs_set_heroic_taunt_1 of_deadeye_debuff sm_how_are_you trader_heal trandoshan_ability_1"
+test "$(printf '%s\n' $retired_buff_command_grants | wc -l)" -eq 8
+for retired_buff_command_grant in $retired_buff_command_grants; do
+    awk -F '\t' -v command="$retired_buff_command_grant" '$1 == command && $2 == "commandGrant" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+done
+test "$(awk -F '\t' '$2 == "commandGrant" { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 8
+awk -F '\t' -v commands="$retired_buff_command_grants" '
+BEGIN {
+    split(commands, commandList, " ")
+    for (commandIndex in commandList) retired[commandList[commandIndex]] = 1
+}
+NR > 2 {
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2) {
+        if ($parameterColumn in retired) {
+            rows++
+            names[$1] = 1
+            break
+        }
+    }
+}
+END {
+    for (name in names) distinctNames++
+    if (rows != 10 || distinctNames != 10) exit 3
+}' "$work_buff_table"
+player_command_grant_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_BUFF_COMMAND_GRANTS/,/public static boolean isRetiredPostNgePlayerBuffCommandGrant/p' "$work_buff_library")"
+for retired_buff_command_grant in $retired_buff_command_grants; do
+    test "$(printf '%s' "$player_command_grant_inventory_source" | grep -Fc "\"$retired_buff_command_grant\"")" -eq 1
+done
+player_command_grant_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerBuffCommandGrant/,/public static boolean isRetiredPostNgePlayerCommandGrantBuff/p' "$work_buff_library")"
+printf '%s' "$player_command_grant_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_BUFF_COMMAND_GRANTS'
+player_command_grant_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCommandGrantBuff/,/public static void retirePostNgePlayerCommandGrantBuffState/p' "$work_buff_library")"
+printf '%s' "$player_command_grant_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$player_command_grant_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$player_command_grant_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerBuffCommandGrant(getEffectParam(data, effect))'
+player_command_grant_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCommandGrantBuffState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s' "$player_command_grant_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$player_command_grant_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$player_command_grant_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$player_command_grant_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s' "$player_command_grant_cleanup_source" | grep -Fq 'while (hasCommand(player, retiredCommand))'
+printf '%s' "$player_command_grant_cleanup_source" | grep -Fq 'revokeCommand(player, retiredCommand)'
+grep -Fq 'retirePostNgePlayerCommandGrantBuffState(player);' "$work_buff_library"
+command_grant_add_source="$(sed -n '/public int commandGrantAddBuffHandler/,/public int commandGrantRemoveBuffHandler/p' "$work_buff_handler")"
+command_grant_remove_source="$(sed -n '/public int commandGrantRemoveBuffHandler/,/public int OnGroupMembersChanged/p' "$work_buff_handler")"
+printf '%s' "$command_grant_add_source" | grep -Fq 'isPlayer(self)'
+printf '%s' "$command_grant_add_source" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)'
+printf '%s' "$command_grant_add_source" | grep -Fq 'while (hasCommand(self, subType))'
+printf '%s' "$command_grant_add_source" | grep -Fq 'revokeCommand(self, subType)'
+printf '%s' "$command_grant_add_source" | grep -Fq 'grantCommand(self, subType)'
+test "$(printf '%s\n' "$command_grant_add_source" | grep -Fn 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$command_grant_add_source" | grep -Fn 'grantCommand(self, subType)' | head -1 | cut -d: -f1)"
+printf '%s' "$command_grant_remove_source" | grep -Fq 'isPlayer(self)'
+printf '%s' "$command_grant_remove_source" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)'
+printf '%s' "$command_grant_remove_source" | grep -Fq 'while (hasCommand(self, subType))'
+printf '%s' "$command_grant_remove_source" | grep -Fq 'revokeCommand(self, subType)'
 dot_immunity_predicate_source="$(sed -n '/public boolean isRetiredNgeDotImmunityModifier/,/public boolean isRetiredNgeBuffSkillModifier/p' "$work_buff_handler")"
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.equals("damage_immune")'
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.startsWith("dot_resist_")'
@@ -1529,13 +1583,16 @@ can_apply_buff_source="$(sed -n '/public static boolean canApplyBuff(obj_id targ
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
+command_grant_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCommandGrantBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$proc_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$command_grant_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
@@ -2704,8 +2761,32 @@ printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.removeBuff'
 buff_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/applyBuff(script.obj_id, java.lang.String)/p')"
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+buff_command_grant_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerBuffCommandGrant(java.lang.String)/,/isRetiredPostNgePlayerCommandGrantBuff/p')"
+printf '%s' "$buff_command_grant_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_BUFF_COMMAND_GRANTS'
+buff_command_grant_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandGrantBuff/,/retirePostNgePlayerCommandGrantBuffState/p')"
+printf '%s' "$buff_command_grant_buff_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_command_grant_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerBuffCommandGrant'
+buff_command_grant_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCommandGrantBuffState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'hasCommand'
+printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'revokeCommand'
+buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+command_grant_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandGrantAddBuffHandler/,/commandGrantRemoveBuffHandler/p')"
+printf '%s' "$command_grant_add_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$command_grant_add_bytecode" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant'
+printf '%s' "$command_grant_add_bytecode" | grep -Fq 'hasCommand'
+printf '%s' "$command_grant_add_bytecode" | grep -Fq 'revokeCommand'
+printf '%s' "$command_grant_add_bytecode" | grep -Fq 'grantCommand'
+command_grant_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandGrantRemoveBuffHandler/,/OnGroupMembersChanged/p')"
+printf '%s' "$command_grant_remove_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$command_grant_remove_bytecode" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant'
+printf '%s' "$command_grant_remove_bytecode" | grep -Fq 'hasCommand'
+printf '%s' "$command_grant_remove_bytecode" | grep -Fq 'revokeCommand'
 buff_modifier_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerModifierBuff/,/retirePostNgePlayerModifierBuffState/p')"
 printf '%s' "$buff_modifier_predicate_bytecode" | grep -Fq 'static_item.isRetiredNgeBuffSkillModifier'
 buff_modifier_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerModifierBuffState/,/retirePostNgeBuffProgression/p')"
