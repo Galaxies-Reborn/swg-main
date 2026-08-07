@@ -2601,6 +2601,75 @@ for smuggler_trick_handler in slyLie fastTalk; do
     test "$smuggler_trick_return_line" -lt "$smuggler_trick_expertise_line"
     test "$smuggler_trick_expertise_line" -lt "$smuggler_trick_writer_line"
 done
+awk -F '\t' '
+$2 == "aggroChannel" {
+    found++
+    if ($1 == "aggro_channel_self" && $3 == "self") selfRows++
+    if ($1 == "aggro_channel_target" && $3 == "target") targetRows++
+}
+END { if (found != 2 || selfRows != 1 || targetRows != 1) exit 3 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2)
+        if ($parameterColumn == "aggro_channel_self" || $parameterColumn == "aggro_channel_target") ownsEffect = 1
+    if (ownsEffect) {
+        rows++
+        if (($1 != "aggroChannelTarget" && $1 != "aggroChannelself") ||
+            $2 != "of_aggro_channel" || $7 != -1 || $30 != 1) exit 2
+    }
+}
+END { if (rows != 2) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+NR > 2 && $1 ~ /^expertise_of_aggro_channel_[123]$/ {
+    rows++
+    if (index($23, "expertise_aggro_channel=") == 0) exit 2
+    if (index($22, "of_aggro_channel") > 0) commandOwners++
+}
+END { if (rows != 3 || commandOwners != 1) exit 3 }
+' "$work_skills_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_AGGRO_CHANNEL_EFFECTS' "$work_buff_library"
+grep -Fq '"aggro_channel_self"' "$work_buff_library"
+grep -Fq '"aggro_channel_target"' "$work_buff_library"
+aggro_channel_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerAggroChannelEffect/,/public static boolean isRetiredPostNgePlayerAggroChannelBuff/p' "$work_buff_library")"
+printf '%s\n' "$aggro_channel_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_AGGRO_CHANNEL_EFFECTS'
+aggro_channel_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerAggroChannelBuff/,/public static void retirePostNgePlayerAggroChannelState/p' "$work_buff_library")"
+printf '%s\n' "$aggro_channel_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$aggro_channel_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$aggro_channel_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerAggroChannelEffect(getEffectParam(data, effect))'
+aggro_channel_state_cleanup_source="$(sed -n '/public static void retirePostNgePlayerAggroChannelState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$aggro_channel_state_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$aggro_channel_state_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$aggro_channel_state_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$aggro_channel_state_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$aggro_channel_state_cleanup_source" | grep -Fq 'utils.removeScriptVar(player, AGGRO_TRANSFER_TO);'
+grep -Fq 'retirePostNgePlayerAggroChannelState(player);' "$work_buff_library"
+aggro_channel_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+aggro_channel_admission_gate_line="$(printf '%s\n' "$aggro_channel_admission_source" | grep -Fn 'isRetiredPostNgePlayerAggroChannelBuff(target, bdata)' | head -1 | cut -d: -f1)"
+aggro_channel_existing_return_line="$(printf '%s\n' "$aggro_channel_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$aggro_channel_admission_gate_line" -lt "$aggro_channel_existing_return_line"
+aggro_channel_add_source="$(sed -n '/public int aggroChannelAddBuffHandler/,/public int aggroChannelRemoveBuffHandler/p' "$work_buff_handler")"
+aggro_channel_guard_line="$(printf '%s\n' "$aggro_channel_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerAggroChannelEffect(effectName))' | head -1 | cut -d: -f1)"
+aggro_channel_cleanup_line="$(printf '%s\n' "$aggro_channel_add_source" | grep -Fn 'buff.retirePostNgePlayerAggroChannelState(self);' | head -1 | cut -d: -f1)"
+aggro_channel_return_line="$(printf '%s\n' "$aggro_channel_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+aggro_channel_caster_check_line="$(printf '%s\n' "$aggro_channel_add_source" | grep -Fn 'if (!exists(caster) || !isIdValid(caster))' | head -1 | cut -d: -f1)"
+aggro_channel_apply_line="$(printf '%s\n' "$aggro_channel_add_source" | grep -Fn 'buff.applyBuff(caster, self, "aggroChannelself");' | head -1 | cut -d: -f1)"
+aggro_channel_script_var_line="$(printf '%s\n' "$aggro_channel_add_source" | grep -Fn 'utils.setScriptVar(self, buff.AGGRO_TRANSFER_TO, caster);' | head -1 | cut -d: -f1)"
+test "$aggro_channel_guard_line" -lt "$aggro_channel_cleanup_line"
+test "$aggro_channel_cleanup_line" -lt "$aggro_channel_return_line"
+test "$aggro_channel_return_line" -lt "$aggro_channel_caster_check_line"
+test "$aggro_channel_caster_check_line" -lt "$aggro_channel_apply_line"
+test "$aggro_channel_apply_line" -lt "$aggro_channel_script_var_line"
+aggro_channel_hate_source="$(sed -n '/public static void addHateProcess/,/public static boolean canSee/p' "$work_combat_library")"
+aggro_channel_consumer_cleanup_line="$(printf '%s\n' "$aggro_channel_hate_source" | grep -Fn 'buff.retirePostNgePlayerAggroChannelState(attacker);' | head -1 | cut -d: -f1)"
+aggro_channel_consumer_expertise_line="$(printf '%s\n' "$aggro_channel_hate_source" | grep -Fn 'getEnhancedSkillStatisticModifier(attacker, "expertise_aggro_channel")' | head -1 | cut -d: -f1)"
+aggro_channel_consumer_transfer_line="$(printf '%s\n' "$aggro_channel_hate_source" | grep -Fn 'addHate(defender, transferTo, hateTransfered);' | head -1 | cut -d: -f1)"
+printf '%s\n' "$aggro_channel_hate_source" | grep -Fq 'if (isPlayer(attacker) &&'
+printf '%s\n' "$aggro_channel_hate_source" | grep -Fq 'utils.hasScriptVar(attacker, buff.AGGRO_TRANSFER_TO)'
+test "$aggro_channel_consumer_cleanup_line" -lt "$aggro_channel_consumer_expertise_line"
+test "$aggro_channel_consumer_expertise_line" -lt "$aggro_channel_consumer_transfer_line"
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -3957,6 +4026,41 @@ action_burn_remove_write_bytecode_line="$(printf '%s\n' "$action_burn_remove_byt
 test "$action_burn_remove_guard_bytecode_line" -lt "$action_burn_remove_cleanup_bytecode_line"
 test "$action_burn_remove_cleanup_bytecode_line" -lt "$action_burn_remove_write_bytecode_line"
 combat_library_bytecode="$(javap -classpath "$class_root" -c -p script.library.combat)"
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'aggro_channel_self'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'aggro_channel_target'
+buff_aggro_channel_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerAggroChannelEffect(java.lang.String)/,/isRetiredPostNgePlayerAggroChannelBuff/p')"
+printf '%s' "$buff_aggro_channel_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_AGGRO_CHANNEL_EFFECTS'
+buff_aggro_channel_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerAggroChannelBuff/,/retirePostNgePlayerAggroChannelState/p')"
+printf '%s' "$buff_aggro_channel_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_aggro_channel_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerAggroChannelEffect'
+buff_aggro_channel_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerAggroChannelState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_aggro_channel_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_aggro_channel_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_aggro_channel_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_aggro_channel_cleanup_bytecode" | grep -Fq 'aggroBuffTransfer'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerAggroChannelState'
+aggro_channel_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/aggroChannelAddBuffHandler/,/aggroChannelRemoveBuffHandler/p')"
+aggro_channel_guard_bytecode_line="$(printf '%s\n' "$aggro_channel_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+aggro_channel_predicate_bytecode_line="$(printf '%s\n' "$aggro_channel_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerAggroChannelEffect' | head -1 | cut -d: -f1)"
+aggro_channel_cleanup_bytecode_line="$(printf '%s\n' "$aggro_channel_add_bytecode" | grep -Fn 'retirePostNgePlayerAggroChannelState' | head -1 | cut -d: -f1)"
+aggro_channel_player_return_bytecode_line="$(printf '%s\n' "$aggro_channel_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+aggro_channel_caster_check_bytecode_line="$(printf '%s\n' "$aggro_channel_add_bytecode" | grep -Fn 'Method exists' | head -1 | cut -d: -f1)"
+aggro_channel_apply_bytecode_line="$(printf '%s\n' "$aggro_channel_add_bytecode" | grep -Fn 'Method script/library/buff.applyBuff' | head -1 | cut -d: -f1)"
+aggro_channel_script_var_bytecode_line="$(printf '%s\n' "$aggro_channel_add_bytecode" | grep -Fn 'Method script/library/utils.setScriptVar' | head -1 | cut -d: -f1)"
+test "$aggro_channel_guard_bytecode_line" -lt "$aggro_channel_predicate_bytecode_line"
+test "$aggro_channel_predicate_bytecode_line" -lt "$aggro_channel_cleanup_bytecode_line"
+test "$aggro_channel_cleanup_bytecode_line" -lt "$aggro_channel_player_return_bytecode_line"
+test "$aggro_channel_player_return_bytecode_line" -lt "$aggro_channel_caster_check_bytecode_line"
+test "$aggro_channel_caster_check_bytecode_line" -lt "$aggro_channel_apply_bytecode_line"
+test "$aggro_channel_apply_bytecode_line" -lt "$aggro_channel_script_var_bytecode_line"
+aggro_channel_consumer_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/addHateProcess(script.obj_id, script.obj_id, script.combat_engine[$]hit_result, script.combat_engine[$]combat_data)/,/canSee(script.obj_id, script.obj_id)/p')"
+aggro_channel_consumer_cleanup_bytecode_line="$(printf '%s\n' "$aggro_channel_consumer_bytecode" | grep -Fn 'retirePostNgePlayerAggroChannelState' | head -1 | cut -d: -f1)"
+aggro_channel_consumer_expertise_bytecode_line="$(printf '%s\n' "$aggro_channel_consumer_bytecode" | grep -Fn 'expertise_aggro_channel' | head -1 | cut -d: -f1)"
+aggro_channel_consumer_transfer_bytecode_line="$(printf '%s\n' "$aggro_channel_consumer_bytecode" | grep -Fn 'Method addHate' | head -1 | cut -d: -f1)"
+printf '%s' "$aggro_channel_consumer_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$aggro_channel_consumer_bytecode" | grep -Fq 'aggroBuffTransfer'
+test "$aggro_channel_consumer_cleanup_bytecode_line" -lt "$aggro_channel_consumer_expertise_bytecode_line"
+test "$aggro_channel_consumer_expertise_bytecode_line" -lt "$aggro_channel_consumer_transfer_bytecode_line"
 action_burn_dictionary_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.dictionary)/,/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/p')"
 action_burn_typed_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/,/getSuccessBasedSingleTargetActionCost/p')"
 for action_burn_consumer_bytecode in "$action_burn_dictionary_cost_bytecode" "$action_burn_typed_cost_bytecode"; do

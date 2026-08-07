@@ -2019,6 +2019,158 @@ Assert-Contract ($slyLieGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeSmugglerTrickCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.smuggler-trick-handlers-player-fail-closed"
 
+$aggroChannelMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "aggroChannel" })
+$aggroChannelEffectNames = @($aggroChannelMappings |
+    Select-Object -ExpandProperty NAME)
+$aggroChannelBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $effectParameters = @($_.EFFECT1_PARAM, $_.EFFECT2_PARAM, $_.EFFECT3_PARAM,
+        $_.EFFECT4_PARAM, $_.EFFECT5_PARAM)
+    @($effectParameters | Where-Object {
+        $aggroChannelEffectNames -ccontains [string]$_
+    }).Count -gt 0
+})
+$aggroChannelSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    [string]$_.NAME -cmatch '^expertise_of_aggro_channel_[123]$'
+})
+$aggroChannelCommandOwners = @($aggroChannelSkillRows | Where-Object {
+    @(([string]$_.COMMANDS).Trim('"') -split ',') -ccontains "of_aggro_channel"
+})
+Assert-Contract ($aggroChannelMappings.Count -eq
+        [int]$contract.expected.retainedNgeAggroChannelEffectMappingRows -and
+    $aggroChannelEffectNames -ccontains "aggro_channel_self" -and
+    $aggroChannelEffectNames -ccontains "aggro_channel_target" -and
+    @($aggroChannelMappings | Where-Object {
+        [string]$_.NAME -ceq "aggro_channel_self" -and
+        [string]$_.SUBTYPE -ceq "self"
+    }).Count -eq 1 -and
+    @($aggroChannelMappings | Where-Object {
+        [string]$_.NAME -ceq "aggro_channel_target" -and
+        [string]$_.SUBTYPE -ceq "target"
+    }).Count -eq 1 -and
+    $aggroChannelBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeAggroChannelBuffRows -and
+    @($aggroChannelBuffRows | Select-Object -ExpandProperty NAME) -ccontains
+        "aggroChannelTarget" -and
+    @($aggroChannelBuffRows | Select-Object -ExpandProperty NAME) -ccontains
+        "aggroChannelself" -and
+    @($aggroChannelBuffRows | Where-Object {
+        [string]$_.DURATION -ceq "-1" -and
+        [string]$_.IS_PERSISTENT -ceq "1" -and
+        [string]$_.GROUP1 -ceq "of_aggro_channel"
+    }).Count -eq 2 -and
+    $aggroChannelSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeAggroChannelExpertiseSkillRows -and
+    $aggroChannelCommandOwners.Count -eq 1 -and
+    @($aggroChannelSkillRows | Where-Object {
+        [string]$_.SKILL_MODS -match 'expertise_aggro_channel='
+    }).Count -eq 3) `
+    "p14.combat-expertise-isolation.buff.aggro-channel-data-and-expertise-ownership-authenticated"
+
+$aggroChannelEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerAggroChannelEffect(String effectName)"
+$aggroChannelBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerAggroChannelBuff(obj_id target, buff_data data)"
+$aggroChannelStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerAggroChannelState(obj_id player)"
+$aggroChannelProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$aggroChannelCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$aggroChannelAdmissionGate = $aggroChannelCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerAggroChannelBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$aggroChannelExistingBuffReturn = $aggroChannelCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$officerPlayerAction = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeOfficerPlayerAction(obj_id self, String actionName)"
+Assert-Contract ($buffLibrary.Contains(
+        "RETIRED_POST_NGE_PLAYER_AGGRO_CHANNEL_EFFECTS") -and
+    $buffLibrary.Contains('"aggro_channel_self"') -and
+    $buffLibrary.Contains('"aggro_channel_target"') -and
+    $aggroChannelEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_AGGRO_CHANNEL_EFFECTS") -and
+    $aggroChannelBuffPredicate.Contains("!isPlayer(target)") -and
+    $aggroChannelBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $aggroChannelBuffPredicate.Contains(
+        "isRetiredPostNgePlayerAggroChannelEffect(getEffectParam(data, effect))") -and
+    $aggroChannelStateCleanup.Contains("!isPlayer(player)") -and
+    $aggroChannelStateCleanup.Contains("getAllBuffs(player)") -and
+    $aggroChannelStateCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $aggroChannelStateCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $aggroChannelStateCleanup.Contains(
+        "utils.removeScriptVar(player, AGGRO_TRANSFER_TO);") -and
+    $aggroChannelProgressionCleanup.Contains(
+        "retirePostNgePlayerAggroChannelState(player);") -and
+    $aggroChannelAdmissionGate -ge 0 -and
+    $aggroChannelExistingBuffReturn -gt $aggroChannelAdmissionGate -and
+    $officerPlayerAction.Contains('actionName.startsWith("of_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeOfficerPlayerAction(self, actionName)") -and
+    -not [bool]$contract.expected.playerNgeAggroChannelCommandExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeAggroChannelBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeAggroChannelStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeAggroChannelScriptVarRemoved) `
+    "p14.combat-expertise-isolation.buff.aggro-channel-admission-persistence-and-command-fail-closed"
+
+$aggroChannelAddHandler = Get-BracedBlock $buffHandler `
+    "public int aggroChannelAddBuffHandler("
+$aggroChannelRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int aggroChannelRemoveBuffHandler("
+$aggroChannelGuard = $aggroChannelAddHandler.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$aggroChannelPredicate = $aggroChannelAddHandler.IndexOf(
+    "buff.isRetiredPostNgePlayerAggroChannelEffect(effectName)",
+    [StringComparison]::Ordinal)
+$aggroChannelCleanup = $aggroChannelAddHandler.IndexOf(
+    "buff.retirePostNgePlayerAggroChannelState(self);",
+    [StringComparison]::Ordinal)
+$aggroChannelReturn = $aggroChannelAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$aggroChannelCasterCheck = $aggroChannelAddHandler.IndexOf(
+    "if (!exists(caster) || !isIdValid(caster))", [StringComparison]::Ordinal)
+$aggroChannelCounterpartWrite = $aggroChannelAddHandler.IndexOf(
+    'buff.applyBuff(caster, self, "aggroChannelself");',
+    [StringComparison]::Ordinal)
+$aggroChannelScriptVarWrite = $aggroChannelAddHandler.IndexOf(
+    "utils.setScriptVar(self, buff.AGGRO_TRANSFER_TO, caster);",
+    [StringComparison]::Ordinal)
+$aggroChannelHateConsumer = Get-BracedBlock $combatLibrary `
+    "public static void addHateProcess(obj_id attacker, obj_id defender, hit_result hitData, combat_data actionData)"
+$aggroChannelConsumerCleanup = $aggroChannelHateConsumer.IndexOf(
+    "buff.retirePostNgePlayerAggroChannelState(attacker);",
+    [StringComparison]::Ordinal)
+$aggroChannelConsumerExpertiseRead = $aggroChannelHateConsumer.IndexOf(
+    'getEnhancedSkillStatisticModifier(attacker, "expertise_aggro_channel")',
+    [StringComparison]::Ordinal)
+$aggroChannelConsumerTransfer = $aggroChannelHateConsumer.IndexOf(
+    "addHate(defender, transferTo, hateTransfered);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($aggroChannelGuard -ge 0 -and
+    $aggroChannelPredicate -gt $aggroChannelGuard -and
+    $aggroChannelCleanup -gt $aggroChannelPredicate -and
+    $aggroChannelReturn -gt $aggroChannelCleanup -and
+    $aggroChannelCasterCheck -gt $aggroChannelReturn -and
+    $aggroChannelCounterpartWrite -gt $aggroChannelCasterCheck -and
+    $aggroChannelScriptVarWrite -gt $aggroChannelCounterpartWrite -and
+    $aggroChannelRemoveHandler.Contains(
+        'buff.removeBuff(caster, "aggroChannelself")') -and
+    $aggroChannelRemoveHandler.Contains(
+        'buff.removeBuff(buffed, "aggroChannelTarget")') -and
+    $aggroChannelRemoveHandler.Contains(
+        "utils.removeScriptVar(self, buff.AGGRO_TRANSFER_TO)") -and
+    $aggroChannelHateConsumer.Contains("if (isPlayer(attacker) &&") -and
+    $aggroChannelHateConsumer.Contains(
+        "utils.hasScriptVar(attacker, buff.AGGRO_TRANSFER_TO)") -and
+    $aggroChannelConsumerCleanup -ge 0 -and
+    $aggroChannelConsumerExpertiseRead -gt $aggroChannelConsumerCleanup -and
+    $aggroChannelConsumerTransfer -gt $aggroChannelConsumerExpertiseRead -and
+    [int]$contract.expected.productionAggroChannelHandlersGuarded -eq 1 -and
+    [int]$contract.expected.productionAggroChannelConsumersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeAggroChannelHateTransferReachable -and
+    [bool]$contract.expected.nonPlayerNgeAggroChannelCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.aggro-channel-handler-and-hate-consumer-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and
