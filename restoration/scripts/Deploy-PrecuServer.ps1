@@ -2904,6 +2904,163 @@ test "$commando_snare_armor_expertise_line" -lt "$commando_snare_armor_writer_li
 commando_snare_armor_remove_source="$(sed -n '/public int commandoSnareBonusRemoveBuffHandler/,/public int commandoFlashBangAddBuffHandler/p' "$work_buff_handler")"
 printf '%s\n' "$commando_snare_armor_remove_source" | grep -Fq 'removeAttribOrSkillModModifier(self, "commandoInnateArmorBonus")'
 printf '%s\n' "$commando_snare_armor_remove_source" | grep -Fq 'messageTo(self, "recalcArmor"'
+awk -F '\t' '
+BEGIN {
+    expected["expertise_flash_bang"] = "commandoFlashBang|expertise_flash_bang"
+    expected["expertise_muscle_spasm"] = "commandoMuscleSpasm|expertise_muscle_spasm"
+    expected["expertise_on_target"] = "onTarget|expertise_on_target"
+    expected["expertise_riddle_armor"] = "commandoRiddleArmor|expertise_riddle_armor"
+}
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && ($(fieldIndex["NAME"]) in expected) {
+    found++
+    signature = $(fieldIndex["TYPE"]) "|" $(fieldIndex["SUBTYPE"])
+    if (signature != expected[$(fieldIndex["NAME"])]) exit 2
+}
+END { if (found != 4) exit 3 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+BEGIN {
+    expected["co_armor_cracker"] = "playerArmorReduce|15|1|1|expertise_riddle_armor|0||0||0||0||0"
+    expected["co_base_of_operations"] = "base_of_operations|600|0|0|group|0|expertise_innate_protection_all|1000|expertise_critical_niche_all|5||0||0"
+    expected["co_flash_bang"] = "flash_bang|30|1|1|expertise_flash_bang|0||0||0||0||0"
+    expected["co_muscle_spasm"] = "muscle_spasm|10|1|1|expertise_muscle_spasm|0||0||0||0||0"
+    expected["co_pos_sec_action_1"] = "co_pos_sec_action|-1|0|1|expertise_action_all|10||0||0||0||0"
+    expected["co_pos_sec_action_2"] = "co_pos_sec_action|-1|0|1|expertise_action_all|20||0||0||0||0"
+    expected["co_pos_sec_action_3"] = "co_pos_sec_action|-1|0|1|expertise_action_all|30||0||0||0||0"
+    expected["co_pos_sec_critical_1"] = "co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|5|expertise_critical_niche_all|2||0||0||0"
+    expected["co_pos_sec_critical_2"] = "co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|10|expertise_critical_niche_all|4||0||0||0"
+    expected["co_pos_sec_critical_3"] = "co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|15|expertise_critical_niche_all|6||0||0||0"
+    expected["co_pos_sec_critical_4"] = "co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|20|expertise_critical_niche_all|8||0||0||0"
+    expected["co_pos_sec_proc_1"] = "co_pos_sec_proc|-1|0|1|expertise_co_burst_fire_proc|10|expertise_devastation_bonus|50||0||0||0"
+    expected["co_pos_sec_proc_2"] = "co_pos_sec_proc|-1|0|1|expertise_co_burst_fire_proc|20|expertise_devastation_bonus|100||0||0||0"
+    expected["co_position_secured"] = "position_secured|600|0|0|precision_modified|200|strength_modified|200|movement|0|expertise_on_target|0||0"
+    expected["co_riddle_armor"] = "playerArmorReduce|15|1|1|expertise_riddle_armor|0||0||0||0||0"
+    expected["grenadier_kinetic"] = "krix_grenadier_kinetic|15|1|1|expertise_riddle_armor|-2250||0||0||0||0"
+}
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && ($(fieldIndex["NAME"]) in expected) {
+    found++
+    signature = $(fieldIndex["GROUP1"]) "|" $(fieldIndex["DURATION"]) "|" \
+        $(fieldIndex["DEBUFF"]) "|" $(fieldIndex["IS_PERSISTENT"]) "|" \
+        $(fieldIndex["EFFECT1_PARAM"]) "|" $(fieldIndex["EFFECT1_VALUE"]) "|" \
+        $(fieldIndex["EFFECT2_PARAM"]) "|" $(fieldIndex["EFFECT2_VALUE"]) "|" \
+        $(fieldIndex["EFFECT3_PARAM"]) "|" $(fieldIndex["EFFECT3_VALUE"]) "|" \
+        $(fieldIndex["EFFECT4_PARAM"]) "|" $(fieldIndex["EFFECT4_VALUE"]) "|" \
+        $(fieldIndex["EFFECT5_PARAM"]) "|" $(fieldIndex["EFFECT5_VALUE"])
+    if (signature != expected[$(fieldIndex["NAME"])]) exit 2
+}
+END { if (found != 16) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && $(fieldIndex["commandName"]) ~ /^(co_armor_cracker|co_position_secured|co_riddle_armor)$/ {
+    found++
+    if ($(fieldIndex["scriptHook"]) != $(fieldIndex["commandName"])) exit 2
+}
+END { if (found != 3) exit 3 }
+' "$work_command_table"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && $(fieldIndex["actionName"]) ~ /^(co_armor_cracker|co_base_of_operations|co_position_secured|co_riddle_armor)$/ { found++ }
+END { if (found != 4) exit 3 }
+' "$work_combat_data"
+awk -F '\t' '
+NR > 2 && $1 ~ /^expertise_co_(position_secured_1|imp_position_secured_[1-3]|burst_fire_[1-2]|on_target_[1-4]|base_of_operations_1|flashbang_[1-2]|riddle_armor_1|imp_riddle_armor_[1-2]|armor_cracker_1)$/ { found++ }
+END { if (found != 17) exit 3 }
+' "$work_skills_table"
+awk -F '\t' '
+NR > 2 && $1 ~ /^(expertise_co_flash_bang|expertise_co_muscle_spasm|expertise_riddle_armor)$/ { found++ }
+END { if (found != 3) exit 3 }
+' "$work_skill_mod_listing"
+commando_specialized_effect_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SPECIALIZED_EFFECTS/,/};/p' "$work_buff_library")"
+test "$(printf '%s\n' "$commando_specialized_effect_inventory_source" | grep -Ec '^[[:space:]]*"[A-Za-z0-9_]+",?[[:space:]]*$')" -eq 4
+for commando_specialized_effect in expertise_flash_bang expertise_muscle_spasm expertise_riddle_armor expertise_on_target; do
+    printf '%s\n' "$commando_specialized_effect_inventory_source" | grep -Fq "\"$commando_specialized_effect\""
+done
+commando_specialized_buff_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SPECIALIZED_BUFFS/,/};/p' "$work_buff_library")"
+test "$(printf '%s\n' "$commando_specialized_buff_inventory_source" | grep -Ec '^[[:space:]]*"[A-Za-z0-9_]+",?[[:space:]]*$')" -eq 16
+for commando_specialized_buff in co_flash_bang co_muscle_spasm co_riddle_armor co_armor_cracker grenadier_kinetic co_position_secured co_pos_sec_action_1 co_pos_sec_action_2 co_pos_sec_action_3 co_pos_sec_proc_1 co_pos_sec_proc_2 co_pos_sec_critical_1 co_pos_sec_critical_2 co_pos_sec_critical_3 co_pos_sec_critical_4 co_base_of_operations; do
+    printf '%s\n' "$commando_specialized_buff_inventory_source" | grep -Fq "\"$commando_specialized_buff\""
+done
+commando_specialized_modifier_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SPECIALIZED_MODIFIERS/,/};/p' "$work_buff_library")"
+test "$(printf '%s\n' "$commando_specialized_modifier_inventory_source" | grep -Ec '^[[:space:]]*"[A-Za-z0-9_]+",?[[:space:]]*$')" -eq 21
+for commando_specialized_modifier in commandoFlashBang commandoMuscleSpasm precision_modified strength_modified glancing_blow_vulnerable expertise_riddle_armor expertise_innate_protection_all expertise_critical_hit_reduction expertise_critical_niche_all expertise_co_burst_fire_proc expertise_devastation_bonus expertise_action_all expertise_co_flash_bang expertise_co_muscle_spasm expertise_action_line_co_imp_pos_sec expertise_co_pos_secured_line_armor expertise_co_pos_secured_line_boo_critical expertise_co_pos_secured_line_burst_fire_devastation_bonus expertise_co_pos_secured_line_burst_fire_proc expertise_co_pos_secured_line_critical expertise_co_pos_secured_line_protection; do
+    printf '%s\n' "$commando_specialized_modifier_inventory_source" | grep -Fq "\"$commando_specialized_modifier\""
+done
+commando_specialized_effect_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCommandoSpecializedEffect/,/public static boolean isRetiredPostNgePlayerCommandoSpecializedBuffName/p' "$work_buff_library")"
+printf '%s\n' "$commando_specialized_effect_source" | grep -Fq 'effectName.equals(retiredEffect)'
+printf '%s\n' "$commando_specialized_effect_source" | grep -Fq 'effectName.startsWith(retiredEffect + "_")'
+commando_specialized_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCommandoSpecializedBuff(obj_id target/,/public static void clearPostNgePlayerCommandoSpecializedModifiers/p' "$work_buff_library")"
+printf '%s\n' "$commando_specialized_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$commando_specialized_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerCommandoSpecializedBuffName(data.buffName)'
+printf '%s\n' "$commando_specialized_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$commando_specialized_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerCommandoSpecializedEffect(getEffectParam(data, effect))'
+commando_specialized_modifier_cleanup_source="$(sed -n '/public static void clearPostNgePlayerCommandoSpecializedModifiers/,/public static void clearPostNgePlayerCommandoSpecializedBuffs/p' "$work_buff_library")"
+printf '%s\n' "$commando_specialized_modifier_cleanup_source" | grep -Fq 'hasSkillModModifier(player, retiredModifier)'
+printf '%s\n' "$commando_specialized_modifier_cleanup_source" | grep -Fq 'retiredModifier + "_" + effect'
+printf '%s\n' "$commando_specialized_modifier_cleanup_source" | grep -Fq 'getSkillStatMod(player, retiredModifier)'
+printf '%s\n' "$commando_specialized_modifier_cleanup_source" | grep -Fq 'applySkillStatisticModifier(player, retiredModifier, -currentValue)'
+printf '%s\n' "$commando_specialized_modifier_cleanup_source" | grep -Fq 'messageTo(player, "recalcArmor"'
+printf '%s\n' "$commando_specialized_modifier_cleanup_source" | grep -Fq 'combat.cacheCombatData(player)'
+commando_specialized_buff_cleanup_source="$(sed -n '/public static void clearPostNgePlayerCommandoSpecializedBuffs/,/public static void retirePostNgePlayerCommandoSpecializedState/p' "$work_buff_library")"
+printf '%s\n' "$commando_specialized_buff_cleanup_source" | grep -Fq '!retiredBuff.equals("co_position_secured")'
+printf '%s\n' "$commando_specialized_buff_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+commando_specialized_state_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCommandoSpecializedState/,/private static final String RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_EFFECT_PREFIX/p' "$work_buff_library")"
+commando_specialized_parent_remove_line="$(printf '%s\n' "$commando_specialized_state_cleanup_source" | grep -Fn 'removeBuff(player, "co_position_secured")' | head -1 | cut -d: -f1)"
+commando_specialized_child_remove_line="$(printf '%s\n' "$commando_specialized_state_cleanup_source" | grep -Fn 'clearPostNgePlayerCommandoSpecializedBuffs(player);' | head -1 | cut -d: -f1)"
+commando_specialized_modifier_remove_line="$(printf '%s\n' "$commando_specialized_state_cleanup_source" | grep -Fn 'clearPostNgePlayerCommandoSpecializedModifiers(player);' | head -1 | cut -d: -f1)"
+test -n "$commando_specialized_parent_remove_line"
+test -n "$commando_specialized_child_remove_line"
+test -n "$commando_specialized_modifier_remove_line"
+test "$commando_specialized_parent_remove_line" -lt "$commando_specialized_child_remove_line"
+test "$commando_specialized_child_remove_line" -lt "$commando_specialized_modifier_remove_line"
+grep -Fq 'retirePostNgePlayerCommandoSpecializedState(player);' "$work_buff_library"
+commando_specialized_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+commando_specialized_admission_line="$(printf '%s\n' "$commando_specialized_admission_source" | grep -Fn 'isRetiredPostNgePlayerCommandoSpecializedBuff(target, bdata)' | head -1 | cut -d: -f1)"
+commando_specialized_existing_line="$(printf '%s\n' "$commando_specialized_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$commando_specialized_admission_line"
+test -n "$commando_specialized_existing_line"
+test "$commando_specialized_admission_line" -lt "$commando_specialized_existing_line"
+verify_commando_specialized_source_handler()
+{
+    commando_specialized_method="$1"
+    commando_specialized_next_method="$2"
+    commando_specialized_cleanup_marker="$3"
+    commando_specialized_additional_cleanup_marker="$4"
+    commando_specialized_retained_marker="$5"
+    commando_specialized_requires_effect_predicate="$6"
+    commando_specialized_handler_source="$(sed -n "/public int $commando_specialized_method(/,/public int $commando_specialized_next_method(/p" "$work_buff_handler")"
+    commando_specialized_guard_line="$(printf '%s\n' "$commando_specialized_handler_source" | grep -Fn 'isPlayer(self)' | head -1 | cut -d: -f1)"
+    commando_specialized_cleanup_line="$(printf '%s\n' "$commando_specialized_handler_source" | grep -Fn "$commando_specialized_cleanup_marker" | head -1 | cut -d: -f1)"
+    commando_specialized_cleanup_end_line="$commando_specialized_cleanup_line"
+    if test -n "$commando_specialized_additional_cleanup_marker"; then
+        commando_specialized_additional_cleanup_line="$(printf '%s\n' "$commando_specialized_handler_source" | grep -Fn "$commando_specialized_additional_cleanup_marker" | head -1 | cut -d: -f1)"
+        test -n "$commando_specialized_additional_cleanup_line"
+        test "$commando_specialized_cleanup_line" -lt "$commando_specialized_additional_cleanup_line"
+        commando_specialized_cleanup_end_line="$commando_specialized_additional_cleanup_line"
+    fi
+    commando_specialized_return_line="$(printf '%s\n' "$commando_specialized_handler_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$commando_specialized_cleanup_end_line" '$1 > cleanup { print $1; exit }')"
+    commando_specialized_retained_line="$(printf '%s\n' "$commando_specialized_handler_source" | grep -Fn "$commando_specialized_retained_marker" | head -1 | cut -d: -f1)"
+    test -n "$commando_specialized_guard_line"
+    test -n "$commando_specialized_cleanup_line"
+    test -n "$commando_specialized_return_line"
+    test -n "$commando_specialized_retained_line"
+    test "$commando_specialized_guard_line" -lt "$commando_specialized_cleanup_line"
+    test "$commando_specialized_cleanup_end_line" -lt "$commando_specialized_return_line"
+    test "$commando_specialized_return_line" -lt "$commando_specialized_retained_line"
+    if test "$commando_specialized_requires_effect_predicate" -eq 1; then
+        printf '%s\n' "$commando_specialized_handler_source" | grep -Fq 'buff.isRetiredPostNgePlayerCommandoSpecializedEffect(effectName)'
+    fi
+}
+verify_commando_specialized_source_handler commandoFlashBangAddBuffHandler commandoFlashBangRemoveBuffHandler 'buff.retirePostNgePlayerCommandoSpecializedState(self);' '' 'effectName = effectName.substring' 0
+verify_commando_specialized_source_handler commandoFlashBangRemoveBuffHandler commandoMuscleSpasmAddBuffHandler 'buff.clearPostNgePlayerCommandoSpecializedModifiers(self);' '' 'removeAttribOrSkillModModifier(self, "commandoFlashBang")' 0
+verify_commando_specialized_source_handler commandoMuscleSpasmAddBuffHandler commandoMuscleSpasmRemoveBuffHandler 'buff.retirePostNgePlayerCommandoSpecializedState(self);' '' 'effectName = effectName.substring' 0
+verify_commando_specialized_source_handler commandoMuscleSpasmRemoveBuffHandler commandoRiddleArmorAddBuffHandler 'buff.clearPostNgePlayerCommandoSpecializedModifiers(self);' '' 'removeAttribOrSkillModModifier(self, "commandoMuscleSpasm")' 0
+verify_commando_specialized_source_handler commandoRiddleArmorAddBuffHandler commandoRiddleArmorRemoveBuffHandler 'buff.retirePostNgePlayerCommandoSpecializedState(self);' '' 'String tempEffectName = effectName.substring' 0
+verify_commando_specialized_source_handler commandoRiddleArmorRemoveBuffHandler radarInvisAddBuffHandler 'buff.clearPostNgePlayerCommandoSpecializedModifiers(self);' '' 'removeAttribOrSkillModModifier(self, effectName)' 0
+verify_commando_specialized_source_handler onTargetAddBuffHandler onTargetRemoveBuffHandler 'buff.retirePostNgePlayerCommandoSpecializedState(self);' '' 'if (subtype.equals("expertise_on_target"))' 1
+verify_commando_specialized_source_handler onTargetRemoveBuffHandler immunityAddBuffHandler 'buff.clearPostNgePlayerCommandoSpecializedBuffs(self);' 'buff.clearPostNgePlayerCommandoSpecializedModifiers(self);' 'if (hasSkillModModifier(self, effectName))' 1
 medic_deferred_dot_proc_actions='expertise_dueterium_rounds_proc expertise_poison_knuckle_proc'
 for medic_deferred_dot_proc_action in $medic_deferred_dot_proc_actions; do
     awk -F '\t' -v name="$medic_deferred_dot_proc_action" '
@@ -4891,6 +5048,90 @@ test "$commando_snare_armor_expertise_bytecode_line" -lt "$commando_snare_armor_
 commando_snare_armor_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandoSnareBonusRemoveBuffHandler/,/commandoFlashBangAddBuffHandler/p')"
 printf '%s' "$commando_snare_armor_remove_bytecode" | grep -Fq 'commandoInnateArmorBonus'
 printf '%s' "$commando_snare_armor_remove_bytecode" | grep -Fq 'String recalcArmor'
+for commando_specialized_effect in expertise_flash_bang expertise_muscle_spasm expertise_riddle_armor expertise_on_target; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "String $commando_specialized_effect"
+done
+for commando_specialized_buff in co_flash_bang co_muscle_spasm co_riddle_armor co_armor_cracker grenadier_kinetic co_position_secured co_pos_sec_action_1 co_pos_sec_action_2 co_pos_sec_action_3 co_pos_sec_proc_1 co_pos_sec_proc_2 co_pos_sec_critical_1 co_pos_sec_critical_2 co_pos_sec_critical_3 co_pos_sec_critical_4 co_base_of_operations; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "String $commando_specialized_buff"
+done
+for commando_specialized_modifier in commandoFlashBang commandoMuscleSpasm precision_modified strength_modified glancing_blow_vulnerable expertise_riddle_armor expertise_innate_protection_all expertise_critical_hit_reduction expertise_critical_niche_all expertise_co_burst_fire_proc expertise_devastation_bonus expertise_action_all expertise_co_flash_bang expertise_co_muscle_spasm expertise_action_line_co_imp_pos_sec expertise_co_pos_secured_line_armor expertise_co_pos_secured_line_boo_critical expertise_co_pos_secured_line_burst_fire_devastation_bonus expertise_co_pos_secured_line_burst_fire_proc expertise_co_pos_secured_line_critical expertise_co_pos_secured_line_protection; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "String $commando_specialized_modifier"
+done
+commando_specialized_effect_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandoSpecializedEffect/,/isRetiredPostNgePlayerCommandoSpecializedBuffName/p')"
+printf '%s' "$commando_specialized_effect_bytecode" | grep -Fq 'Method java/lang/String.equals'
+printf '%s' "$commando_specialized_effect_bytecode" | grep -Fq 'Method java/lang/String.startsWith'
+commando_specialized_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandoSpecializedBuff(script.obj_id, script.combat_engine[$]buff_data)/,/clearPostNgePlayerCommandoSpecializedModifiers/p')"
+printf '%s' "$commando_specialized_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$commando_specialized_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandoSpecializedBuffName'
+printf '%s' "$commando_specialized_buff_predicate_bytecode" | grep -Fq 'Method getEffectParam'
+printf '%s' "$commando_specialized_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandoSpecializedEffect'
+commando_specialized_modifier_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerCommandoSpecializedModifiers/,/clearPostNgePlayerCommandoSpecializedBuffs/p')"
+printf '%s' "$commando_specialized_modifier_cleanup_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$commando_specialized_modifier_cleanup_bytecode" | grep -Fq 'Method hasSkillModModifier'
+printf '%s' "$commando_specialized_modifier_cleanup_bytecode" | grep -Fq 'Method removeAttribOrSkillModModifier'
+printf '%s' "$commando_specialized_modifier_cleanup_bytecode" | grep -Fq 'Method getSkillStatMod'
+printf '%s' "$commando_specialized_modifier_cleanup_bytecode" | grep -Fq 'Method applySkillStatisticModifier'
+printf '%s' "$commando_specialized_modifier_cleanup_bytecode" | grep -Fq 'String recalcArmor'
+printf '%s' "$commando_specialized_modifier_cleanup_bytecode" | grep -Fq 'Method script/library/combat.cacheCombatData'
+commando_specialized_buff_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerCommandoSpecializedBuffs/,/retirePostNgePlayerCommandoSpecializedState/p')"
+printf '%s' "$commando_specialized_buff_cleanup_bytecode" | grep -Fq 'String co_position_secured'
+printf '%s' "$commando_specialized_buff_cleanup_bytecode" | grep -Fq 'Method hasBuff'
+printf '%s' "$commando_specialized_buff_cleanup_bytecode" | grep -Fq 'Method removeBuff'
+commando_specialized_state_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCommandoSpecializedState/,/isRetiredPostNgePlayerElementalVulnerabilityEffect/p')"
+commando_specialized_parent_remove_bytecode_line="$(printf '%s\n' "$commando_specialized_state_cleanup_bytecode" | grep -Fn 'Method removeBuff' | head -1 | cut -d: -f1)"
+commando_specialized_child_remove_bytecode_line="$(printf '%s\n' "$commando_specialized_state_cleanup_bytecode" | grep -Fn 'clearPostNgePlayerCommandoSpecializedBuffs' | head -1 | cut -d: -f1)"
+commando_specialized_modifier_remove_bytecode_line="$(printf '%s\n' "$commando_specialized_state_cleanup_bytecode" | grep -Fn 'clearPostNgePlayerCommandoSpecializedModifiers' | head -1 | cut -d: -f1)"
+test -n "$commando_specialized_parent_remove_bytecode_line"
+test -n "$commando_specialized_child_remove_bytecode_line"
+test -n "$commando_specialized_modifier_remove_bytecode_line"
+test "$commando_specialized_parent_remove_bytecode_line" -lt "$commando_specialized_child_remove_bytecode_line"
+test "$commando_specialized_child_remove_bytecode_line" -lt "$commando_specialized_modifier_remove_bytecode_line"
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerCommandoSpecializedState'
+commando_specialized_admission_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/getGroups/p')"
+commando_specialized_admission_bytecode_line="$(printf '%s\n' "$commando_specialized_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerCommandoSpecializedBuff' | head -1 | cut -d: -f1)"
+commando_specialized_existing_bytecode_line="$(printf '%s\n' "$commando_specialized_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$commando_specialized_admission_bytecode_line"
+test -n "$commando_specialized_existing_bytecode_line"
+test "$commando_specialized_admission_bytecode_line" -lt "$commando_specialized_existing_bytecode_line"
+verify_commando_specialized_bytecode_handler()
+{
+    commando_specialized_method="$1"
+    commando_specialized_next_method="$2"
+    commando_specialized_cleanup_marker="$3"
+    commando_specialized_additional_cleanup_marker="$4"
+    commando_specialized_retained_marker="$5"
+    commando_specialized_requires_effect_predicate="$6"
+    commando_specialized_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n "/$commando_specialized_method/,/$commando_specialized_next_method/p")"
+    commando_specialized_guard_bytecode_line="$(printf '%s\n' "$commando_specialized_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+    commando_specialized_cleanup_bytecode_line="$(printf '%s\n' "$commando_specialized_handler_bytecode" | grep -Fn "$commando_specialized_cleanup_marker" | head -1 | cut -d: -f1)"
+    commando_specialized_cleanup_end_bytecode_line="$commando_specialized_cleanup_bytecode_line"
+    if test -n "$commando_specialized_additional_cleanup_marker"; then
+        commando_specialized_additional_cleanup_bytecode_line="$(printf '%s\n' "$commando_specialized_handler_bytecode" | grep -Fn "$commando_specialized_additional_cleanup_marker" | head -1 | cut -d: -f1)"
+        test -n "$commando_specialized_additional_cleanup_bytecode_line"
+        test "$commando_specialized_cleanup_bytecode_line" -lt "$commando_specialized_additional_cleanup_bytecode_line"
+        commando_specialized_cleanup_end_bytecode_line="$commando_specialized_additional_cleanup_bytecode_line"
+    fi
+    commando_specialized_return_bytecode_line="$(printf '%s\n' "$commando_specialized_handler_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$commando_specialized_cleanup_end_bytecode_line" '$1 > cleanup { print $1; exit }')"
+    commando_specialized_retained_bytecode_line="$(printf '%s\n' "$commando_specialized_handler_bytecode" | grep -Fn "$commando_specialized_retained_marker" | head -1 | cut -d: -f1)"
+    test -n "$commando_specialized_guard_bytecode_line"
+    test -n "$commando_specialized_cleanup_bytecode_line"
+    test -n "$commando_specialized_return_bytecode_line"
+    test -n "$commando_specialized_retained_bytecode_line"
+    test "$commando_specialized_guard_bytecode_line" -lt "$commando_specialized_cleanup_bytecode_line"
+    test "$commando_specialized_cleanup_end_bytecode_line" -lt "$commando_specialized_return_bytecode_line"
+    test "$commando_specialized_return_bytecode_line" -lt "$commando_specialized_retained_bytecode_line"
+    if test "$commando_specialized_requires_effect_predicate" -eq 1; then
+        printf '%s\n' "$commando_specialized_handler_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandoSpecializedEffect'
+    fi
+}
+verify_commando_specialized_bytecode_handler commandoFlashBangAddBuffHandler commandoFlashBangRemoveBuffHandler retirePostNgePlayerCommandoSpecializedState '' expertise_co_flash_bang 0
+verify_commando_specialized_bytecode_handler commandoFlashBangRemoveBuffHandler commandoMuscleSpasmAddBuffHandler clearPostNgePlayerCommandoSpecializedModifiers '' 'String commandoFlashBang' 0
+verify_commando_specialized_bytecode_handler commandoMuscleSpasmAddBuffHandler commandoMuscleSpasmRemoveBuffHandler retirePostNgePlayerCommandoSpecializedState '' expertise_co_muscle_spasm 0
+verify_commando_specialized_bytecode_handler commandoMuscleSpasmRemoveBuffHandler commandoRiddleArmorAddBuffHandler clearPostNgePlayerCommandoSpecializedModifiers '' 'String commandoMuscleSpasm' 0
+verify_commando_specialized_bytecode_handler commandoRiddleArmorAddBuffHandler commandoRiddleArmorRemoveBuffHandler retirePostNgePlayerCommandoSpecializedState '' 'String expertise_riddle_armor' 0
+verify_commando_specialized_bytecode_handler commandoRiddleArmorRemoveBuffHandler radarInvisAddBuffHandler clearPostNgePlayerCommandoSpecializedModifiers '' 'Method removeAttribOrSkillModModifier' 0
+verify_commando_specialized_bytecode_handler onTargetAddBuffHandler onTargetRemoveBuffHandler retirePostNgePlayerCommandoSpecializedState '' 'String expertise_action_line_co_imp_pos_sec' 1
+verify_commando_specialized_bytecode_handler onTargetRemoveBuffHandler immunityAddBuffHandler clearPostNgePlayerCommandoSpecializedBuffs clearPostNgePlayerCommandoSpecializedModifiers 'Method hasSkillModModifier' 1
 action_burn_dictionary_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.dictionary)/,/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/p')"
 action_burn_typed_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/,/getSuccessBasedSingleTargetActionCost/p')"
 for action_burn_consumer_bytecode in "$action_burn_dictionary_cost_bytecode" "$action_burn_typed_cost_bytecode"; do

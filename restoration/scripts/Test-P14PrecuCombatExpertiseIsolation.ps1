@@ -2699,6 +2699,241 @@ Assert-Contract ($commandoSnareArmorValidity -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeCommandoSnareArmorCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.commando-snare-armor-handler-player-fail-closed"
 
+$commandoSpecializedEffectTypes = [ordered]@{
+    expertise_flash_bang = "commandoFlashBang"
+    expertise_muscle_spasm = "commandoMuscleSpasm"
+    expertise_riddle_armor = "commandoRiddleArmor"
+    expertise_on_target = "onTarget"
+}
+$commandoSpecializedMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $commandoSpecializedEffectTypes.Contains([string]$_.NAME) })
+$commandoSpecializedMappingSignatures = @($commandoSpecializedMappings |
+    ForEach-Object {
+        "{0}|{1}|{2}" -f $_.NAME, $_.TYPE, $_.SUBTYPE
+    } | Sort-Object)
+$expectedCommandoSpecializedMappingSignatures = @(
+    "expertise_flash_bang|commandoFlashBang|expertise_flash_bang",
+    "expertise_muscle_spasm|commandoMuscleSpasm|expertise_muscle_spasm",
+    "expertise_on_target|onTarget|expertise_on_target",
+    "expertise_riddle_armor|commandoRiddleArmor|expertise_riddle_armor"
+)
+$commandoSpecializedBuffNames = @(
+    "co_armor_cracker",
+    "co_base_of_operations",
+    "co_flash_bang",
+    "co_muscle_spasm",
+    "co_pos_sec_action_1",
+    "co_pos_sec_action_2",
+    "co_pos_sec_action_3",
+    "co_pos_sec_critical_1",
+    "co_pos_sec_critical_2",
+    "co_pos_sec_critical_3",
+    "co_pos_sec_critical_4",
+    "co_pos_sec_proc_1",
+    "co_pos_sec_proc_2",
+    "co_position_secured",
+    "co_riddle_armor",
+    "grenadier_kinetic"
+)
+$commandoSpecializedBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { $commandoSpecializedBuffNames -ccontains [string]$_.NAME })
+$commandoSpecializedBuffSignatures = @($commandoSpecializedBuffRows |
+    ForEach-Object {
+        "{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}|{8}|{9}|{10}|{11}|{12}|{13}|{14}" -f
+            $_.NAME, $_.GROUP1, $_.DURATION, $_.DEBUFF, $_.IS_PERSISTENT,
+            $_.EFFECT1_PARAM, $_.EFFECT1_VALUE, $_.EFFECT2_PARAM, $_.EFFECT2_VALUE,
+            $_.EFFECT3_PARAM, $_.EFFECT3_VALUE, $_.EFFECT4_PARAM, $_.EFFECT4_VALUE,
+            $_.EFFECT5_PARAM, $_.EFFECT5_VALUE
+    } | Sort-Object)
+$expectedCommandoSpecializedBuffSignatures = @(
+    "co_armor_cracker|playerArmorReduce|15|1|1|expertise_riddle_armor|0||0||0||0||0",
+    "co_base_of_operations|base_of_operations|600|0|0|group|0|expertise_innate_protection_all|1000|expertise_critical_niche_all|5||0||0",
+    "co_flash_bang|flash_bang|30|1|1|expertise_flash_bang|0||0||0||0||0",
+    "co_muscle_spasm|muscle_spasm|10|1|1|expertise_muscle_spasm|0||0||0||0||0",
+    "co_pos_sec_action_1|co_pos_sec_action|-1|0|1|expertise_action_all|10||0||0||0||0",
+    "co_pos_sec_action_2|co_pos_sec_action|-1|0|1|expertise_action_all|20||0||0||0||0",
+    "co_pos_sec_action_3|co_pos_sec_action|-1|0|1|expertise_action_all|30||0||0||0||0",
+    "co_pos_sec_critical_1|co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|5|expertise_critical_niche_all|2||0||0||0",
+    "co_pos_sec_critical_2|co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|10|expertise_critical_niche_all|4||0||0||0",
+    "co_pos_sec_critical_3|co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|15|expertise_critical_niche_all|6||0||0||0",
+    "co_pos_sec_critical_4|co_pos_sec_critical|-1|0|1|expertise_critical_hit_reduction|20|expertise_critical_niche_all|8||0||0||0",
+    "co_pos_sec_proc_1|co_pos_sec_proc|-1|0|1|expertise_co_burst_fire_proc|10|expertise_devastation_bonus|50||0||0||0",
+    "co_pos_sec_proc_2|co_pos_sec_proc|-1|0|1|expertise_co_burst_fire_proc|20|expertise_devastation_bonus|100||0||0||0",
+    "co_position_secured|position_secured|600|0|0|precision_modified|200|strength_modified|200|movement|0|expertise_on_target|0||0",
+    "co_riddle_armor|playerArmorReduce|15|1|1|expertise_riddle_armor|0||0||0||0||0",
+    "grenadier_kinetic|krix_grenadier_kinetic|15|1|1|expertise_riddle_armor|-2250||0||0||0||0"
+)
+$commandoSpecializedCommandNames = @(
+    "co_armor_cracker", "co_position_secured", "co_riddle_armor"
+)
+$commandoSpecializedCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { $commandoSpecializedCommandNames -ccontains [string]$_.commandName })
+$commandoSpecializedCombatNames = @(
+    "co_armor_cracker", "co_base_of_operations", "co_position_secured", "co_riddle_armor"
+)
+$commandoSpecializedCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { $commandoSpecializedCombatNames -ccontains [string]$_.actionName })
+$commandoSpecializedSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        [string]$_.NAME -cmatch '^expertise_co_(?:position_secured_1|imp_position_secured_[1-3]|burst_fire_[1-2]|on_target_[1-4]|base_of_operations_1|flashbang_[1-2]|riddle_armor_1|imp_riddle_armor_[1-2]|armor_cracker_1)$'
+    })
+$commandoSpecializedSkillModNames = @(
+    "expertise_co_flash_bang", "expertise_co_muscle_spasm", "expertise_riddle_armor"
+)
+$commandoSpecializedSkillModRows = @(Import-SwgTab -Path $paths.skillModListing |
+    Where-Object { $commandoSpecializedSkillModNames -ccontains [string]$_.skill_mod })
+Assert-Contract ($commandoSpecializedMappings.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedEffectMappingRows -and
+    (($commandoSpecializedMappingSignatures -join "`n") -ceq
+        ($expectedCommandoSpecializedMappingSignatures -join "`n")) -and
+    $commandoSpecializedBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedBuffRows -and
+    (($commandoSpecializedBuffSignatures -join "`n") -ceq
+        ($expectedCommandoSpecializedBuffSignatures -join "`n")) -and
+    $commandoSpecializedCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedCommandRows -and
+    @($commandoSpecializedCommandRows | Where-Object {
+        [string]$_.scriptHook -ceq [string]$_.commandName
+    }).Count -eq $commandoSpecializedCommandRows.Count -and
+    $commandoSpecializedCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedCombatRows -and
+    $commandoSpecializedSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedSkillRows -and
+    $commandoSpecializedSkillModRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedSkillModListingRows) `
+    "p14.combat-expertise-isolation.buff.commando-specialized-data-authenticated"
+
+$commandoSpecializedEffectInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_COMMANDO_SPECIALIZED_EFFECTS"
+$commandoSpecializedBuffInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_COMMANDO_SPECIALIZED_BUFFS"
+$commandoSpecializedModifierInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_COMMANDO_SPECIALIZED_MODIFIERS"
+$commandoSpecializedEffectInventoryNames = @([regex]::Matches(
+        $commandoSpecializedEffectInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$commandoSpecializedBuffInventoryNames = @([regex]::Matches(
+        $commandoSpecializedBuffInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$commandoSpecializedModifierInventoryNames = @([regex]::Matches(
+        $commandoSpecializedModifierInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$commandoSpecializedEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCommandoSpecializedEffect(String effectName)"
+$commandoSpecializedBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCommandoSpecializedBuff(obj_id target, buff_data data)"
+$commandoSpecializedModifierCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerCommandoSpecializedModifiers(obj_id player)"
+$commandoSpecializedBuffCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerCommandoSpecializedBuffs(obj_id player)"
+$commandoSpecializedStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerCommandoSpecializedState(obj_id player)"
+$commandoSpecializedProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$commandoSpecializedCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$commandoSpecializedAdmissionGate = $commandoSpecializedCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerCommandoSpecializedBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$commandoSpecializedExistingBuffReturn = $commandoSpecializedCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$commandoSpecializedParentRemoval = $commandoSpecializedStateCleanup.IndexOf(
+    'removeBuff(player, "co_position_secured")', [StringComparison]::Ordinal)
+$commandoSpecializedChildRemoval = $commandoSpecializedStateCleanup.IndexOf(
+    "clearPostNgePlayerCommandoSpecializedBuffs(player);", [StringComparison]::Ordinal)
+$commandoSpecializedModifierRemoval = $commandoSpecializedStateCleanup.IndexOf(
+    "clearPostNgePlayerCommandoSpecializedModifiers(player);", [StringComparison]::Ordinal)
+Assert-Contract ($commandoSpecializedEffectInventoryNames.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedEffectMappingRows -and
+    (($commandoSpecializedEffectInventoryNames | Sort-Object) -join ([char]0)) -ceq
+        (($commandoSpecializedEffectTypes.Keys | Sort-Object) -join ([char]0)) -and
+    $commandoSpecializedBuffInventoryNames.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSpecializedBuffRows -and
+    (($commandoSpecializedBuffInventoryNames | Sort-Object) -join ([char]0)) -ceq
+        (($commandoSpecializedBuffNames | Sort-Object) -join ([char]0)) -and
+    $commandoSpecializedModifierInventoryNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerCommandoSpecializedModifiers -and
+    @($commandoSpecializedModifierInventoryNames | Select-Object -Unique).Count -eq
+        $commandoSpecializedModifierInventoryNames.Count -and
+    $commandoSpecializedEffectPredicate.Contains("effectName.equals(retiredEffect)") -and
+    $commandoSpecializedEffectPredicate.Contains('effectName.startsWith(retiredEffect + "_")') -and
+    $commandoSpecializedBuffPredicate.Contains("!isPlayer(target)") -and
+    $commandoSpecializedBuffPredicate.Contains(
+        "isRetiredPostNgePlayerCommandoSpecializedBuffName(data.buffName)") -and
+    $commandoSpecializedBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $commandoSpecializedBuffPredicate.Contains(
+        "isRetiredPostNgePlayerCommandoSpecializedEffect(getEffectParam(data, effect))") -and
+    $commandoSpecializedModifierCleanup.Contains("!isPlayer(player)") -and
+    $commandoSpecializedModifierCleanup.Contains("hasSkillModModifier(player, retiredModifier)") -and
+    $commandoSpecializedModifierCleanup.Contains('retiredModifier + "_" + effect') -and
+    $commandoSpecializedModifierCleanup.Contains("getSkillStatMod(player, retiredModifier)") -and
+    $commandoSpecializedModifierCleanup.Contains(
+        "applySkillStatisticModifier(player, retiredModifier, -currentValue)") -and
+    $commandoSpecializedModifierCleanup.Contains('messageTo(player, "recalcArmor"') -and
+    $commandoSpecializedModifierCleanup.Contains("combat.cacheCombatData(player)") -and
+    $commandoSpecializedBuffCleanup.Contains('!retiredBuff.equals("co_position_secured")') -and
+    $commandoSpecializedBuffCleanup.Contains("removeBuff(player, retiredBuff)") -and
+    $commandoSpecializedParentRemoval -ge 0 -and
+    $commandoSpecializedChildRemoval -gt $commandoSpecializedParentRemoval -and
+    $commandoSpecializedModifierRemoval -gt $commandoSpecializedChildRemoval -and
+    $commandoSpecializedProgressionCleanup.Contains(
+        "retirePostNgePlayerCommandoSpecializedState(player);") -and
+    $commandoSpecializedAdmissionGate -ge 0 -and
+    $commandoSpecializedExistingBuffReturn -gt $commandoSpecializedAdmissionGate -and
+    $commandoPlayerAction.Contains('actionName.startsWith("co_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeCommandoPlayerAction(self, actionName)") -and
+    -not [bool]$contract.expected.playerNgeCommandoSpecializedActionExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeCommandoSpecializedBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeCommandoSpecializedStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeCommandoSpecializedModifiersRemoved) `
+    "p14.combat-expertise-isolation.buff.commando-specialized-action-admission-and-state-fail-closed"
+
+$commandoSpecializedHandlerSpecs = @(
+    [pscustomobject]@{ Method = "commandoFlashBangAddBuffHandler"; Cleanup = "buff.retirePostNgePlayerCommandoSpecializedState(self);"; AdditionalCleanup = ""; Retained = "effectName = effectName.substring" },
+    [pscustomobject]@{ Method = "commandoFlashBangRemoveBuffHandler"; Cleanup = "buff.clearPostNgePlayerCommandoSpecializedModifiers(self);"; AdditionalCleanup = ""; Retained = 'removeAttribOrSkillModModifier(self, "commandoFlashBang")' },
+    [pscustomobject]@{ Method = "commandoMuscleSpasmAddBuffHandler"; Cleanup = "buff.retirePostNgePlayerCommandoSpecializedState(self);"; AdditionalCleanup = ""; Retained = "effectName = effectName.substring" },
+    [pscustomobject]@{ Method = "commandoMuscleSpasmRemoveBuffHandler"; Cleanup = "buff.clearPostNgePlayerCommandoSpecializedModifiers(self);"; AdditionalCleanup = ""; Retained = 'removeAttribOrSkillModModifier(self, "commandoMuscleSpasm")' },
+    [pscustomobject]@{ Method = "commandoRiddleArmorAddBuffHandler"; Cleanup = "buff.retirePostNgePlayerCommandoSpecializedState(self);"; AdditionalCleanup = ""; Retained = "String tempEffectName = effectName.substring" },
+    [pscustomobject]@{ Method = "commandoRiddleArmorRemoveBuffHandler"; Cleanup = "buff.clearPostNgePlayerCommandoSpecializedModifiers(self);"; AdditionalCleanup = ""; Retained = "removeAttribOrSkillModModifier(self, effectName)" },
+    [pscustomobject]@{ Method = "onTargetAddBuffHandler"; Cleanup = "buff.retirePostNgePlayerCommandoSpecializedState(self);"; AdditionalCleanup = ""; Retained = 'if (subtype.equals("expertise_on_target"))' },
+    [pscustomobject]@{ Method = "onTargetRemoveBuffHandler"; Cleanup = "buff.clearPostNgePlayerCommandoSpecializedBuffs(self);"; AdditionalCleanup = "buff.clearPostNgePlayerCommandoSpecializedModifiers(self);"; Retained = "if (hasSkillModModifier(self, effectName))" }
+)
+$commandoSpecializedGuardedHandlers = 0
+foreach ($handlerSpec in $commandoSpecializedHandlerSpecs)
+{
+    $handlerBlock = Get-BracedBlock $buffHandler ("public int {0}(" -f $handlerSpec.Method)
+    $guardIndex = $handlerBlock.IndexOf("isPlayer(self)", [StringComparison]::Ordinal)
+    $cleanupIndex = $handlerBlock.IndexOf([string]$handlerSpec.Cleanup,
+        [StringComparison]::Ordinal)
+    $cleanupEndIndex = $cleanupIndex
+    if (-not [string]::IsNullOrEmpty([string]$handlerSpec.AdditionalCleanup))
+    {
+        $additionalCleanupIndex = $handlerBlock.IndexOf(
+            [string]$handlerSpec.AdditionalCleanup, [StringComparison]::Ordinal)
+        if ($additionalCleanupIndex -gt $cleanupEndIndex) { $cleanupEndIndex = $additionalCleanupIndex }
+    }
+    $returnIndex = $handlerBlock.IndexOf("return SCRIPT_OVERRIDE;", $cleanupEndIndex,
+        [StringComparison]::Ordinal)
+    $retainedIndex = $handlerBlock.IndexOf([string]$handlerSpec.Retained,
+        [StringComparison]::Ordinal)
+    $effectPredicateRequired = $handlerSpec.Method.StartsWith("onTarget",
+        [StringComparison]::Ordinal)
+    $effectPredicatePresent = $handlerBlock.Contains(
+        "buff.isRetiredPostNgePlayerCommandoSpecializedEffect(effectName)")
+    if ($guardIndex -ge 0 -and $cleanupIndex -gt $guardIndex -and
+        $returnIndex -gt $cleanupEndIndex -and $retainedIndex -gt $returnIndex -and
+        (-not $effectPredicateRequired -or $effectPredicatePresent))
+    {
+        ++$commandoSpecializedGuardedHandlers
+    }
+}
+Assert-Contract ($commandoSpecializedGuardedHandlers -eq
+        [int]$contract.expected.productionCommandoSpecializedHandlersGuarded -and
+    -not [bool]$contract.expected.playerNgeCommandoSpecializedHandlerExecutionReachable -and
+    [bool]$contract.expected.nonPlayerNgeCommandoSpecializedCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.commando-specialized-eight-handlers-player-fail-closed"
+
 $elementalVulnerabilityEffects = @(
     "dt_vulnerability_acid",
     "dt_vulnerability_cold",
