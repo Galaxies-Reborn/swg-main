@@ -338,16 +338,16 @@ Add-PhaseCheck -Id "phaseA.training.p14-xp-rate" -Passed $xpMultiplierReady -Det
 $execScript = Get-Content -LiteralPath $execPath -Raw
 $transferServerRuntimeReady = (
     @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'transferServerAddress=HOSTIP' }).Count -eq 1 -and
-    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'transferServerPort=44469' }).Count -eq 1 -and
+    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'transferServerPort=50005' }).Count -eq 1 -and
     @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'centralServerServiceBindInterface=eth0' }).Count -eq 1 -and
-    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'centralServerServiceBindPort=44469' }).Count -eq 1 -and
+    @($localOptions -split "\r?\n" | Where-Object { $_ -ceq 'centralServerServiceBindPort=50005' }).Count -eq 1 -and
     $execScript -match '(?m)^start_transfer_server\s*\(\)' -and
     $execScript -match 'pgrep\s+-x\s+CentralServer' -and
     $execScript -match '\./bin/TransferServer\s+--\s+@servercommon\.cfg' -and
     $execScript -match '\./bin/TaskManager\s+--\s+@servercommon\.cfg\s+&' -and
     $execScript -match 'wait\s+"\$task_manager_pid"'
 )
-Add-PhaseCheck -Id "phaseA.runtime.transfer-server" -Passed $transferServerRuntimeReady -Detail "dedicated cluster must configure and supervise the TransferServer required for named-account bank transfers"
+Add-PhaseCheck -Id "phaseA.runtime.transfer-server" -Passed $transferServerRuntimeReady -Detail "dedicated cluster must configure and supervise the TransferServer on its native port 50005 for named-account bank transfers"
 
 $skillScriptPath = Join-Path $source ([string]$contract.sourceFiles.skillScript)
 $teacherScriptPath = Join-Path $source ([string]$contract.sourceFiles.teacherScript)

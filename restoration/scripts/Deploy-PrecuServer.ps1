@@ -3315,6 +3315,8 @@ javap -classpath "$class_root" -c script.player.base.base_player | grep -Fq 'bip
 # values are verified after the container's run path regenerates them.
 grep -Fq 'clusterName=CLUSTERNAME' "$source_local_options"
 grep -Fq 'transferServerAddress=HOSTIP' "$source_local_options"
+grep -Fxq 'transferServerPort=50005' "$source_local_options"
+grep -Fxq 'centralServerServiceBindPort=50005' "$source_local_options"
 javap -classpath "$class_root" -c script.player.skill.outdoorsman | grep -Fq 'corpse.canPlayerHarvestCreature'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'String outdoors_scout_novice'
 javap -classpath "$class_root" -c script.library.corpse | grep -Fq 'Method canPlayerHarvestCreature'
@@ -4496,10 +4498,43 @@ grep -Fxq 'enableOvertImperialMercenary=false' "$cfg"
 grep -Fxq 'enableCovertRebelMercenary=false' "$cfg"
 grep -Fxq 'enableOvertRebelMercenary=false' "$cfg"
 grep -Eq '^transferServerAddress=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' "$cfg"
+grep -Fxq 'transferServerPort=50005' "$cfg"
+grep -Fxq 'centralServerServiceBindPort=50005' "$cfg"
 grep -Fq '### BEGIN Docker runtime overrides' "$cfg"
 '@
 Write-Host "Verifying the restarted server rendered its runtime configuration..."
 Invoke-DockerScript -ContainerName $Container -Script $runtimeConfigProbe
+
+$runtimeTransferServerProbe = @'
+set -eu
+transfer_pid=""
+transfer_listener=""
+for attempt in $(seq 1 30); do
+    transfer_pid="$(pgrep -xo TransferServer || true)"
+    transfer_listener="$(ss -H -ltnp 'sport = :50005' 2>/dev/null || true)"
+    if [ -n "$transfer_pid" ] &&
+       [ "$(pgrep -xc TransferServer || true)" -eq 1 ] &&
+       [ "$(printf '%s\n' "$transfer_listener" | sed '/^$/d' | wc -l)" -eq 1 ] &&
+       printf '%s\n' "$transfer_listener" | grep -Fq 'TransferServer' &&
+       printf '%s\n' "$transfer_listener" | grep -Fq "pid=$transfer_pid,"; then
+        break
+    fi
+    sleep 1
+done
+test -n "$transfer_pid"
+test "$(pgrep -xc TransferServer)" -eq 1
+test "$(printf '%s\n' "$transfer_listener" | sed '/^$/d' | wc -l)" -eq 1
+printf '%s\n' "$transfer_listener" | grep -Fq 'TransferServer'
+printf '%s\n' "$transfer_listener" | grep -Fq "pid=$transfer_pid,"
+sleep 3
+test "$(pgrep -xo TransferServer)" = "$transfer_pid"
+transfer_listener="$(ss -H -ltnp 'sport = :50005')"
+test "$(printf '%s\n' "$transfer_listener" | sed '/^$/d' | wc -l)" -eq 1
+printf '%s\n' "$transfer_listener" | grep -Fq 'TransferServer'
+printf '%s\n' "$transfer_listener" | grep -Fq "pid=$transfer_pid,"
+'@
+Write-Host "Verifying one stable TransferServer owns native port 50005..."
+Invoke-DockerScript -ContainerName $Container -Script $runtimeTransferServerProbe
 
 Write-Host "Verifying a live game process mapped the newly built server binary..."
 $gamePids = @(& docker exec $Container pgrep -f "bin/SwgGameServer")
