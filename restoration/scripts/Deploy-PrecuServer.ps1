@@ -2917,7 +2917,7 @@ for static_parser_consumer_class in script.item.skillmod_click_item script.syste
     printf '%s\n' "$static_parser_consumer_bytecode" | grep -Fq 'applySkillStatisticModifier'
 done
 buff_handler_item_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
-printf '%s\n' "$buff_handler_item_bytecode" | grep -Fq 'static_item.isRetiredNgeStaticItemSkillModifier'
+printf '%s\n' "$buff_handler_item_bytecode" | grep -Fq 'static_item.isRetiredNgeBuffSkillModifier'
 for generic_buff_writer in skillAddBuffHandler skillPercentAddBuffHandler forcePowerAddBuffHandler; do
     generic_buff_writer_bytecode="$(printf '%s\n' "$buff_handler_item_bytecode" | sed -n "/public int $generic_buff_writer/,/public int .*RemoveBuffHandler/p")"
     printf '%s\n' "$generic_buff_writer_bytecode" | grep -Fq 'isPlayer'
