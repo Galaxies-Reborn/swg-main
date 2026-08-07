@@ -371,6 +371,116 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
+$actionDrainEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "actionDrain" })
+$actionDrainBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq "immediate_action_drain"
+    }).Count -gt 0
+})
+$actionDrainActualSignatures = @($actionDrainBuffRows | ForEach-Object {
+    $row = $_
+    @(
+        [string]$row.NAME,
+        [string]$row.DURATION,
+        [string]$row.IS_PERSISTENT,
+        [string]$row.EFFECT1_PARAM,
+        [string]$row.EFFECT1_VALUE,
+        [string]$row.EFFECT2_PARAM,
+        [string]$row.EFFECT2_VALUE,
+        [string]$row.EFFECT3_PARAM,
+        [string]$row.EFFECT3_VALUE,
+        [string]$row.EFFECT4_PARAM,
+        [string]$row.EFFECT4_VALUE,
+        [string]$row.EFFECT5_PARAM,
+        [string]$row.EFFECT5_VALUE
+    ) -join "|"
+} | Sort-Object)
+$actionDrainExpectedSignatures = @(
+    "bh_intimidate|1|1|immediate_action_drain|1||0||0||0||0",
+    "me_traumatize_1|1|1|immediate_action_drain|1|expertise_action_all|-50||0||0||0"
+)
+Assert-Contract ([int]$contract.expected.retiredNgePlayerActionDrainEffects -eq 1 -and
+    $actionDrainEffectMappings.Count -eq
+        [int]$contract.expected.retainedNgeActionDrainEffectMappingRows -and
+    [string]$actionDrainEffectMappings[0].NAME -ceq "immediate_action_drain" -and
+    [string]$actionDrainEffectMappings[0].SUBTYPE -ceq "immediate_action_drain" -and
+    $actionDrainBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeActionDrainBuffRows -and
+    (($actionDrainActualSignatures -join "`n") -ceq
+        ($actionDrainExpectedSignatures -join "`n"))) `
+    "p14.combat-expertise-isolation.buff.action-drain-data-inventory-authenticated"
+
+$actionDrainEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerActionDrainEffect(String effectName)"
+$actionDrainBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerActionDrainBuff(obj_id target, buff_data data)"
+$actionDrainCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerActionDrainState(obj_id player)"
+$actionDrainProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$actionDrainCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$actionDrainAdmissionGate = $actionDrainCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerActionDrainBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$actionDrainExistingBuffReturn = $actionDrainCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_ACTION_DRAIN_EFFECT = "immediate_action_drain"') -and
+    $actionDrainEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_ACTION_DRAIN_EFFECT") -and
+    $actionDrainBuffPredicate.Contains("!isPlayer(target)") -and
+    $actionDrainBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $actionDrainBuffPredicate.Contains(
+        "isRetiredPostNgePlayerActionDrainEffect(getEffectParam(data, effect))") -and
+    $actionDrainCleanup.Contains("!isPlayer(player)") -and
+    $actionDrainCleanup.Contains("getAllBuffs(player)") -and
+    $actionDrainCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $actionDrainCleanup.Contains(
+        "isRetiredPostNgePlayerActionDrainBuff(player, data)") -and
+    $actionDrainCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $actionDrainProgressionCleanup.Contains(
+        "retirePostNgePlayerActionDrainState(player);") -and
+    $actionDrainAdmissionGate -ge 0 -and
+    $actionDrainExistingBuffReturn -gt $actionDrainAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeActionDrainBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeActionDrainStateRemoved) `
+    "p14.combat-expertise-isolation.buff.player-action-drain-admission-and-persistence-fail-closed"
+
+$actionDrainAdd = Get-BracedBlock $buffHandler `
+    "public int actionDrainAddBuffHandler("
+$actionDrainGuard = $actionDrainAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$actionDrainCleanupCall = $actionDrainAdd.IndexOf(
+    "buff.retirePostNgePlayerActionDrainState(self);",
+    [StringComparison]::Ordinal)
+$actionDrainReturn = $actionDrainAdd.IndexOf(
+    "return SCRIPT_CONTINUE;", $actionDrainCleanupCall,
+    [StringComparison]::Ordinal)
+$actionDrainCap = $actionDrainAdd.IndexOf(
+    "if (value > getAction(self))", [StringComparison]::Ordinal)
+$actionDrainWrite = $actionDrainAdd.IndexOf(
+    "drainAttributes(self, (int)value, 0);", [StringComparison]::Ordinal)
+$actionDrainImmunityCheck = $actionDrainAdd.IndexOf(
+    'buff.hasBuff(self, "action_drain_immunity")',
+    [StringComparison]::Ordinal)
+$actionDrainImmunityApply = $actionDrainAdd.IndexOf(
+    'buff.applyBuff(self, self, "action_drain_immunity")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($actionDrainGuard -ge 0 -and
+    $actionDrainCleanupCall -gt $actionDrainGuard -and
+    $actionDrainReturn -gt $actionDrainCleanupCall -and
+    $actionDrainCap -gt $actionDrainReturn -and
+    $actionDrainWrite -gt $actionDrainCap -and
+    $actionDrainImmunityCheck -gt $actionDrainWrite -and
+    $actionDrainImmunityApply -gt $actionDrainImmunityCheck -and
+    [int]$contract.expected.productionActionDrainHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.immediatePlayerActionDrainReachable -and
+    [bool]$contract.expected.nonPlayerNgeActionDrainCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.action-drain-handler-player-fail-closed"
+
 $actionBurnEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object { [string]$_.TYPE -ceq "actionBurn" })
 $actionBurnBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
