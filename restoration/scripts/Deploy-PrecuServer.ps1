@@ -4307,11 +4307,15 @@ for entertainer_buildabuff_reactive_heal_action in expertise_buildabuff_heal_1_r
 done
 buildabuff_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/buildabuffAddBuffHandler/,/buildabuffRemoveBuffHandler/p')"
 buildabuff_add_guard_bytecode_line="$(printf '%s\n' "$buildabuff_add_bytecode" | grep -Fn 'isPostNgeBuffProgressionRetired' | head -1 | cut -d: -f1)"
-buildabuff_add_state_read_bytecode_line="$(printf '%s\n' "$buildabuff_add_bytecode" | grep -Fn 'performance.buildabuff.buffComponentKeys' | head -1 | cut -d: -f1)"
-test "$buildabuff_add_guard_bytecode_line" -lt "$buildabuff_add_state_read_bytecode_line"
+buildabuff_add_cleanup_bytecode_line="$(printf '%s\n' "$buildabuff_add_bytecode" | grep -Fn 'buildabuffRemoveBuffHandler' | head -1 | cut -d: -f1)"
+test -n "$buildabuff_add_guard_bytecode_line"
+test -n "$buildabuff_add_cleanup_bytecode_line"
+test "$buildabuff_add_guard_bytecode_line" -lt "$buildabuff_add_cleanup_bytecode_line"
+buildabuff_class_constants="$(javap -classpath "$class_root" -verbose -p script.systems.buff.buff_handler)"
+printf '%s' "$buildabuff_class_constants" | grep -Fq 'performance.buildabuff.buffComponentKeys'
 buildabuff_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/buildabuffRemoveBuffHandler/,/meDoomAddBuffHandler/p')"
 for entertainer_buildabuff_reactive_heal_action in expertise_buildabuff_heal_1_reac expertise_buildabuff_heal_2_reac expertise_buildabuff_heal_3_reac; do
-    printf '%s' "$buildabuff_add_bytecode" | grep -Fq "String $entertainer_buildabuff_reactive_heal_action"
+    printf '%s' "$buildabuff_class_constants" | grep -Fq "$entertainer_buildabuff_reactive_heal_action"
     printf '%s' "$buildabuff_remove_bytecode" | grep -Fq "String $entertainer_buildabuff_reactive_heal_action"
 done
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commando_snare_bonus'
