@@ -1266,6 +1266,170 @@ Assert-Contract ($guardedLuckHitHandlers -eq
         [int]$contract.expected.productionLuckHitOverrideHandlersGuarded) `
     "p14.combat-expertise-isolation.buff.luck-hit-override-handlers-player-fail-closed"
 
+$forsakeFearEffect = "expertise_channel_action_heal"
+$forsakeFearMappings = @(Import-SwgTab -Path $paths.buffEffectMapping | Where-Object {
+    [string]$_.NAME -ceq $forsakeFearEffect
+})
+$forsakeFearBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq $forsakeFearEffect
+    }).Count -gt 0
+})
+$forsakeFearSignatures = @($forsakeFearBuffRows | ForEach-Object {
+    $row = $_
+    @(
+        [string]$row.NAME,
+        [string]$row.DURATION,
+        [string]$row.IS_PERSISTENT,
+        [string]$row.EFFECT1_PARAM,
+        [string]$row.EFFECT1_VALUE,
+        [string]$row.EFFECT2_PARAM,
+        [string]$row.EFFECT2_VALUE,
+        [string]$row.EFFECT3_PARAM,
+        [string]$row.EFFECT3_VALUE,
+        [string]$row.EFFECT4_PARAM,
+        [string]$row.EFFECT4_VALUE,
+        [string]$row.EFFECT5_PARAM,
+        [string]$row.EFFECT5_VALUE
+    ) -join "|"
+})
+$forsakeFearSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    [string]$_.COMMANDS -ceq "fs_forsake_fear"
+})
+Assert-Contract ($forsakeFearMappings.Count -eq
+        [int]$contract.expected.retainedNgeForsakeFearEffectMappingRows -and
+    [string]$forsakeFearMappings[0].TYPE -ceq "expertiseChannelActionHeal" -and
+    [string]$forsakeFearMappings[0].SUBTYPE -ceq $forsakeFearEffect -and
+    $forsakeFearBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeForsakeFearBuffRows -and
+    (($forsakeFearSignatures -join "`n") -ceq
+        "fs_forsake_fear|10|1|group|0|expertise_channel_action_heal|6||0||0||0") -and
+    $forsakeFearSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeForsakeFearExpertiseSkillRows -and
+    [string]$forsakeFearSkillRows[0].NAME -ceq "expertise_fs_path_forsake_fear_1") `
+    "p14.combat-expertise-isolation.buff.forsake-fear-data-inventory-authenticated"
+
+$forsakeFearEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerForsakeFearChannelEffect(String effectName)"
+$forsakeFearBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerForsakeFearChannelBuff(obj_id target, buff_data data)"
+$forsakeFearStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerForsakeFearChannelState(obj_id player)"
+$forsakeFearLifecycleCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerForsakeFearChannelState(obj_id player)"
+$forsakeFearProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$forsakeFearCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$forsakeFearAdmissionGate = $forsakeFearCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$forsakeFearExistingBuffReturn = $forsakeFearCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$forsakeFearStateKeys = @([regex]::Matches($forsakeFearStateCleanup,
+        'utils[.]removeScriptVar[(]player, "buff_handler[.]([A-Za-z0-9_]+)"[)]') |
+    ForEach-Object { $_.Groups[1].Value })
+$forceSensitivePlayerAction = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeForceSensitivePlayerAction(obj_id self, String actionName)"
+$standardCombatAction = Get-BracedBlock $combatBase `
+    "public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)"
+Assert-Contract ($forsakeFearEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_FORSAKE_FEAR_CHANNEL_EFFECT") -and
+    $buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_FORSAKE_FEAR_CHANNEL_EFFECT = "expertise_channel_action_heal"') -and
+    $forsakeFearBuffPredicate.Contains("!isPlayer(target)") -and
+    $forsakeFearBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $forsakeFearBuffPredicate.Contains(
+        "isRetiredPostNgePlayerForsakeFearChannelEffect(getEffectParam(data, effect))") -and
+    $forsakeFearStateCleanup.Contains("!isPlayer(player)") -and
+    $forsakeFearStateKeys.Count -eq
+        [int]$contract.expected.retiredNgePlayerForsakeFearScriptVars -and
+    @($forsakeFearStateKeys | Select-Object -Unique).Count -eq $forsakeFearStateKeys.Count -and
+    $forsakeFearStateCleanup.Contains(
+        "getIntObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR) == forsakeFearSuiPid") -and
+    $forsakeFearStateCleanup.Contains("if (ownsCountdown)") -and
+    $forsakeFearStateCleanup.Contains("forceCloseSUIPage(forsakeFearSuiPid)") -and
+    $forsakeFearStateCleanup.Contains("removeObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR)") -and
+    $forsakeFearStateCleanup.Contains(
+        "utils.removeScriptVarTree(player, sui.COUNTDOWNTIMER_VAR)") -and
+    $forsakeFearStateCleanup.Contains(
+        "detachScript(player, sui.COUNTDOWNTIMER_PLAYER_SCRIPT)") -and
+    $forsakeFearLifecycleCleanup.Contains("getAllBuffs(player)") -and
+    $forsakeFearLifecycleCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $forsakeFearLifecycleCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $forsakeFearLifecycleCleanup.Contains(
+        "clearPostNgePlayerForsakeFearChannelState(player)") -and
+    $forsakeFearProgressionCleanup.Contains(
+        "retirePostNgePlayerForsakeFearChannelState(player);") -and
+    $forsakeFearAdmissionGate -ge 0 -and
+    $forsakeFearExistingBuffReturn -gt $forsakeFearAdmissionGate -and
+    $forceSensitivePlayerAction.Contains('actionName.startsWith("fs_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeForceSensitivePlayerAction(self, actionName)") -and
+    -not [bool]$contract.expected.playerNgeForsakeFearCommandExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeForsakeFearBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeForsakeFearStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeForsakeFearScriptVarsRemoved -and
+    [bool]$contract.expected.forsakeFearCountdownCleanupOwnershipBounded -and
+    -not [bool]$contract.expected.playerNgeForsakeFearActionHealReachable -and
+    [bool]$contract.expected.nonPlayerNgeForsakeFearCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.forsake-fear-admission-persistence-and-command-fail-closed"
+
+$forsakeFearHandlerExpectations = @(
+    [pscustomobject]@{
+        Name = "expertiseChannelActionHealAddBuffHandler"
+        Guard = "if (isPlayer(self))"
+        Cleanup = "buff.retirePostNgePlayerForsakeFearChannelState(self);"
+        RetainedWriter = 'utils.setScriptVar(self, "buff_handler.lastForsakeFearPulse"'
+    },
+    [pscustomobject]@{
+        Name = "expertiseChannelActionHealRemoveBuffHandler"
+        Guard = "if (isPlayer(self))"
+        Cleanup = "buff.clearPostNgePlayerForsakeFearChannelState(self);"
+        RetainedWriter = 'utils.getIntScriptVar(self, "buff_handler.channelForsakeFearCancelled"'
+    },
+    [pscustomobject]@{
+        Name = "channelForsakeFear"
+        Guard = "if (isPlayer(player))"
+        Cleanup = "buff.clearPostNgePlayerForsakeFearChannelState(player);"
+        RetainedWriter = "healAttribPercent(player, ACTION"
+    },
+    [pscustomobject]@{
+        Name = "checkChannelForsakeFear"
+        Guard = "isPlayer(player)"
+        Cleanup = "buff.clearPostNgePlayerForsakeFearChannelState(player);"
+        RetainedWriter = "channelForsakeFear(player, buffName, false);"
+    },
+    [pscustomobject]@{
+        Name = "channelForsakeFearCountdownHandler"
+        Guard = "isPlayer(player)"
+        Cleanup = "buff.clearPostNgePlayerForsakeFearChannelState(player);"
+        RetainedWriter = "sui.getIntButtonPressed(params)"
+    }
+)
+$guardedForsakeFearHandlers = 0
+foreach ($handlerExpectation in $forsakeFearHandlerExpectations)
+{
+    $handler = Get-BracedBlock $buffHandler ("public int " + $handlerExpectation.Name + "(")
+    $playerGuard = $handler.IndexOf($handlerExpectation.Guard,
+        [StringComparison]::Ordinal)
+    $cleanup = $handler.IndexOf($handlerExpectation.Cleanup,
+        [StringComparison]::Ordinal)
+    $playerReturn = $handler.IndexOf("return SCRIPT_CONTINUE;", $cleanup,
+        [StringComparison]::Ordinal)
+    $retainedWriter = $handler.IndexOf($handlerExpectation.RetainedWriter,
+        [StringComparison]::Ordinal)
+    if ($playerGuard -ge 0 -and $cleanup -gt $playerGuard -and
+        $playerReturn -gt $cleanup -and $retainedWriter -gt $playerReturn)
+    {
+        ++$guardedForsakeFearHandlers
+    }
+}
+Assert-Contract ($guardedForsakeFearHandlers -eq
+        [int]$contract.expected.productionForsakeFearExecutionGuards) `
+    "p14.combat-expertise-isolation.buff.forsake-fear-handlers-and-callbacks-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and

@@ -1790,7 +1790,7 @@ for retired_luck_hit_modifier in hitByLuck increaseHitByLuck missByLuck; do
 done
 printf '%s' "$luck_hit_modifier_cleanup_source" | grep -Fq 'hasSkillModModifier(player, retiredModifier)'
 printf '%s' "$luck_hit_modifier_cleanup_source" | grep -Fq 'removeAttribOrSkillModModifier(player, retiredModifier)'
-luck_hit_cleanup_source="$(sed -n '/public static void retirePostNgePlayerLuckHitOverrideState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+luck_hit_cleanup_source="$(sed -n '/public static void retirePostNgePlayerLuckHitOverrideState/,/public static boolean isRetiredPostNgePlayerForsakeFearChannelEffect/p' "$work_buff_library")"
 printf '%s' "$luck_hit_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s' "$luck_hit_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s' "$luck_hit_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
@@ -1816,6 +1816,73 @@ for luck_hit_handler in missByLuckRemoveBuffHandler hitByLuckRemoveBuffHandler; 
     test "$luck_hit_handler_cleanup_line" -lt "$luck_hit_handler_return_line"
     test "$luck_hit_handler_return_line" -lt "$luck_hit_handler_writer_line"
 done
+awk -F '\t' '$1 == "expertise_channel_action_heal" && $2 == "expertiseChannelActionHeal" && $3 == "expertise_channel_action_heal" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2)
+        if ($parameterColumn == "expertise_channel_action_heal") ownsEffect = 1
+    if (ownsEffect) {
+        rows++
+        actual = $1 "|" $7 "|" $30 "|" $8 "|" $9 "|" $10 "|" $11 "|" $12 "|" $13 "|" $14 "|" $15 "|" $16 "|" $17
+        if (actual != "fs_forsake_fear|10|1|group|0|expertise_channel_action_heal|6||0||0||0") exit 2
+    }
+}
+END { if (rows != 1) exit 3 }' "$work_buff_table"
+awk -F '\t' '$1 == "expertise_fs_path_forsake_fear_1" && $22 == "fs_forsake_fear" { found++ } END { if (found != 1) exit 3 }' "$work_skills_table"
+forsake_fear_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerForsakeFearChannelEffect/,/public static boolean isRetiredPostNgePlayerForsakeFearChannelBuff/p' "$work_buff_library")"
+printf '%s' "$forsake_fear_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_FORSAKE_FEAR_CHANNEL_EFFECT'
+grep -Fq 'RETIRED_POST_NGE_PLAYER_FORSAKE_FEAR_CHANNEL_EFFECT = "expertise_channel_action_heal"' "$work_buff_library"
+forsake_fear_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerForsakeFearChannelBuff/,/public static void clearPostNgePlayerForsakeFearChannelState/p' "$work_buff_library")"
+printf '%s' "$forsake_fear_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$forsake_fear_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$forsake_fear_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelEffect(getEffectParam(data, effect))'
+forsake_fear_state_cleanup_source="$(sed -n '/public static void clearPostNgePlayerForsakeFearChannelState/,/public static void retirePostNgePlayerForsakeFearChannelState/p' "$work_buff_library")"
+printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq '!isPlayer(player)'
+for forsake_fear_state_key in ForsakeFearSUIPID lastForsakeFearPulse totalForsakeFearPulses channelForsakeFearCancelled channelForsakeFearSuccessful; do
+    test "$(printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fc "utils.removeScriptVar(player, \"buff_handler.$forsake_fear_state_key\")")" -eq 1
+done
+printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'getIntObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR) == forsakeFearSuiPid'
+printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'if (ownsCountdown)'
+printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'forceCloseSUIPage(forsakeFearSuiPid)'
+printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'removeObjVar(player, sui.COUNTDOWNTIMER_SUI_VAR)'
+printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, sui.COUNTDOWNTIMER_VAR)'
+printf '%s' "$forsake_fear_state_cleanup_source" | grep -Fq 'detachScript(player, sui.COUNTDOWNTIMER_PLAYER_SCRIPT)'
+forsake_fear_lifecycle_cleanup_source="$(sed -n '/public static void retirePostNgePlayerForsakeFearChannelState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s' "$forsake_fear_lifecycle_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$forsake_fear_lifecycle_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$forsake_fear_lifecycle_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s' "$forsake_fear_lifecycle_cleanup_source" | grep -Fq 'clearPostNgePlayerForsakeFearChannelState(player)'
+grep -Fq 'retirePostNgePlayerForsakeFearChannelState(player);' "$work_buff_library"
+forsake_fear_add_source="$(sed -n '/public int expertiseChannelActionHealAddBuffHandler/,/public int expertiseChannelActionHealRemoveBuffHandler/p' "$work_buff_handler")"
+forsake_fear_remove_source="$(sed -n '/public int expertiseChannelActionHealRemoveBuffHandler/,/public int onIncapHealAddBuffHandler/p' "$work_buff_handler")"
+forsake_fear_channel_source="$(sed -n '/public int channelForsakeFear(/,/public int checkChannelForsakeFear/p' "$work_buff_handler")"
+forsake_fear_check_source="$(sed -n '/public int checkChannelForsakeFear/,/public int channelForsakeFearCountdownHandler/p' "$work_buff_handler")"
+forsake_fear_countdown_source="$(sed -n '/public int channelForsakeFearCountdownHandler/,/public int actionDrainAddBuffHandler/p' "$work_buff_handler")"
+forsake_fear_add_guard_line="$(printf '%s\n' "$forsake_fear_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+forsake_fear_add_cleanup_line="$(printf '%s\n' "$forsake_fear_add_source" | grep -Fn 'buff.retirePostNgePlayerForsakeFearChannelState(self);' | head -1 | cut -d: -f1)"
+forsake_fear_add_writer_line="$(printf '%s\n' "$forsake_fear_add_source" | grep -Fn 'utils.setScriptVar(self, "buff_handler.lastForsakeFearPulse"' | head -1 | cut -d: -f1)"
+test "$forsake_fear_add_guard_line" -lt "$forsake_fear_add_cleanup_line"
+test "$forsake_fear_add_cleanup_line" -lt "$forsake_fear_add_writer_line"
+forsake_fear_remove_guard_line="$(printf '%s\n' "$forsake_fear_remove_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+forsake_fear_remove_cleanup_line="$(printf '%s\n' "$forsake_fear_remove_source" | grep -Fn 'buff.clearPostNgePlayerForsakeFearChannelState(self);' | head -1 | cut -d: -f1)"
+forsake_fear_remove_writer_line="$(printf '%s\n' "$forsake_fear_remove_source" | grep -Fn 'utils.getIntScriptVar(self, "buff_handler.channelForsakeFearCancelled"' | head -1 | cut -d: -f1)"
+test "$forsake_fear_remove_guard_line" -lt "$forsake_fear_remove_cleanup_line"
+test "$forsake_fear_remove_cleanup_line" -lt "$forsake_fear_remove_writer_line"
+for forsake_fear_callback_source in "$forsake_fear_channel_source" "$forsake_fear_check_source" "$forsake_fear_countdown_source"; do
+    forsake_fear_callback_guard_line="$(printf '%s\n' "$forsake_fear_callback_source" | grep -Fn 'isPlayer(player)' | head -1 | cut -d: -f1)"
+    forsake_fear_callback_cleanup_line="$(printf '%s\n' "$forsake_fear_callback_source" | grep -Fn 'buff.clearPostNgePlayerForsakeFearChannelState(player);' | head -1 | cut -d: -f1)"
+    forsake_fear_callback_return_line="$(printf '%s\n' "$forsake_fear_callback_source" | grep -Fn 'return SCRIPT_CONTINUE;' | awk -F: -v cleanup="$forsake_fear_callback_cleanup_line" '$1 > cleanup { print $1; exit }')"
+    test "$forsake_fear_callback_guard_line" -lt "$forsake_fear_callback_cleanup_line"
+    test "$forsake_fear_callback_cleanup_line" -lt "$forsake_fear_callback_return_line"
+done
+forsake_fear_channel_heal_line="$(printf '%s\n' "$forsake_fear_channel_source" | grep -Fn 'healAttribPercent(player, ACTION' | head -1 | cut -d: -f1)"
+forsake_fear_check_requeue_line="$(printf '%s\n' "$forsake_fear_check_source" | grep -Fn 'channelForsakeFear(player, buffName, false);' | head -1 | cut -d: -f1)"
+forsake_fear_countdown_writer_line="$(printf '%s\n' "$forsake_fear_countdown_source" | grep -Fn 'sui.getIntButtonPressed(params)' | head -1 | cut -d: -f1)"
+test "$forsake_fear_channel_source" != ""
+test "$forsake_fear_channel_heal_line" -gt "$(printf '%s\n' "$forsake_fear_channel_source" | grep -Fn 'buff.clearPostNgePlayerForsakeFearChannelState(player);' | head -1 | cut -d: -f1)"
+test "$forsake_fear_check_requeue_line" -gt "$(printf '%s\n' "$forsake_fear_check_source" | grep -Fn 'buff.clearPostNgePlayerForsakeFearChannelState(player);' | head -1 | cut -d: -f1)"
+test "$forsake_fear_countdown_writer_line" -gt "$(printf '%s\n' "$forsake_fear_countdown_source" | grep -Fn 'buff.clearPostNgePlayerForsakeFearChannelState(player);' | head -1 | cut -d: -f1)"
 dot_immunity_predicate_source="$(sed -n '/public boolean isRetiredNgeDotImmunityModifier/,/public boolean isRetiredNgeBuffSkillModifier/p' "$work_buff_handler")"
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.equals("damage_immune")'
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.startsWith("dot_resist_")'
@@ -2051,6 +2118,7 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerDamageDea
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
@@ -2059,6 +2127,7 @@ damage_dealt_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep 
 weapon_speed_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 critical_override_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 luck_hit_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
+forsake_fear_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
@@ -2068,6 +2137,7 @@ test "$damage_dealt_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$weapon_speed_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$critical_override_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$luck_hit_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$forsake_fear_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
@@ -3242,6 +3312,7 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageD
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
 buff_command_grant_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerBuffCommandGrant(java.lang.String)/,/isRetiredPostNgePlayerCommandGrantBuff/p')"
@@ -3349,11 +3420,32 @@ for retired_luck_hit_modifier in hitByLuck increaseHitByLuck missByLuck; do
 done
 printf '%s' "$buff_luck_hit_modifier_cleanup_bytecode" | grep -Fq 'hasSkillModModifier'
 printf '%s' "$buff_luck_hit_modifier_cleanup_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
-buff_luck_hit_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerLuckHitOverrideState/,/isRetiredPostNgePlayerModifierBuff/p')"
+buff_luck_hit_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerLuckHitOverrideState/,/isRetiredPostNgePlayerForsakeFearChannelEffect/p')"
 printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'getAllBuffs'
 printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerLuckHitOverrideModifiers'
+buff_forsake_fear_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerForsakeFearChannelEffect(java.lang.String)/,/isRetiredPostNgePlayerForsakeFearChannelBuff/p')"
+printf '%s' "$buff_forsake_fear_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_FORSAKE_FEAR_CHANNEL_EFFECT'
+printf '%s' "$buff_forsake_fear_effect_predicate_bytecode" | grep -Fq 'expertise_channel_action_heal'
+buff_forsake_fear_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerForsakeFearChannelBuff/,/clearPostNgePlayerForsakeFearChannelState/p')"
+printf '%s' "$buff_forsake_fear_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_forsake_fear_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelEffect'
+buff_forsake_fear_state_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerForsakeFearChannelState/,/retirePostNgePlayerForsakeFearChannelState/p')"
+printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'isPlayer'
+for forsake_fear_state_key in ForsakeFearSUIPID lastForsakeFearPulse totalForsakeFearPulses channelForsakeFearCancelled channelForsakeFearSuccessful; do
+    printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq "$forsake_fear_state_key"
+done
+printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'COUNTDOWNTIMER_SUI_VAR'
+printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'forceCloseSUIPage'
+printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'removeObjVar'
+printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'removeScriptVarTree'
+printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'detachScript'
+buff_forsake_fear_lifecycle_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerForsakeFearChannelState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_forsake_fear_lifecycle_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerForsakeFearChannelState'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
@@ -3437,6 +3529,28 @@ test "$(printf '%s' "$luck_hit_handler_bytecode" | grep -Fc 'buff.clearPostNgePl
 for retired_luck_hit_modifier in hitByLuck increaseHitByLuck missByLuck; do
     printf '%s' "$luck_hit_handler_bytecode" | grep -Fq "$retired_luck_hit_modifier"
 done
+forsake_fear_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/expertiseChannelActionHealAddBuffHandler/,/expertiseChannelActionHealRemoveBuffHandler/p')"
+forsake_fear_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/expertiseChannelActionHealRemoveBuffHandler/,/onIncapHealAddBuffHandler/p')"
+forsake_fear_channel_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelForsakeFear(script.obj_id, java.lang.String, boolean)/,/checkChannelForsakeFear/p')"
+forsake_fear_check_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/checkChannelForsakeFear/,/channelForsakeFearCountdownHandler/p')"
+forsake_fear_countdown_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelForsakeFearCountdownHandler/,/actionDrainAddBuffHandler/p')"
+for forsake_fear_add_remove_bytecode in "$forsake_fear_add_bytecode" "$forsake_fear_remove_bytecode"; do
+    forsake_fear_guard_bytecode_line="$(printf '%s\n' "$forsake_fear_add_remove_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+    forsake_fear_cleanup_bytecode_line="$(printf '%s\n' "$forsake_fear_add_remove_bytecode" | grep -Fn 'PostNgePlayerForsakeFearChannelState' | head -1 | cut -d: -f1)"
+    forsake_fear_return_bytecode_line="$(printf '%s\n' "$forsake_fear_add_remove_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$forsake_fear_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+    test "$forsake_fear_guard_bytecode_line" -lt "$forsake_fear_cleanup_bytecode_line"
+    test "$forsake_fear_cleanup_bytecode_line" -lt "$forsake_fear_return_bytecode_line"
+done
+for forsake_fear_callback_bytecode in "$forsake_fear_channel_bytecode" "$forsake_fear_check_bytecode" "$forsake_fear_countdown_bytecode"; do
+    forsake_fear_guard_bytecode_line="$(printf '%s\n' "$forsake_fear_callback_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+    forsake_fear_cleanup_bytecode_line="$(printf '%s\n' "$forsake_fear_callback_bytecode" | grep -Fn 'clearPostNgePlayerForsakeFearChannelState' | head -1 | cut -d: -f1)"
+    forsake_fear_return_bytecode_line="$(printf '%s\n' "$forsake_fear_callback_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$forsake_fear_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+    test "$forsake_fear_guard_bytecode_line" -lt "$forsake_fear_cleanup_bytecode_line"
+    test "$forsake_fear_cleanup_bytecode_line" -lt "$forsake_fear_return_bytecode_line"
+done
+printf '%s' "$forsake_fear_channel_bytecode" | grep -Fq 'healAttribPercent'
+printf '%s' "$forsake_fear_check_bytecode" | grep -Fq 'channelForsakeFear'
+printf '%s' "$forsake_fear_countdown_bytecode" | grep -Fq 'sui.getIntButtonPressed'
 command_grant_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandGrantAddBuffHandler/,/commandGrantRemoveBuffHandler/p')"
 printf '%s' "$command_grant_add_bytecode" | grep -Fq 'isPlayer'
 printf '%s' "$command_grant_add_bytecode" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant'
