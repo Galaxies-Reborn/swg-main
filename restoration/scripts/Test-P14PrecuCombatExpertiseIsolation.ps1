@@ -1643,6 +1643,99 @@ Assert-Contract ($cooldownExecutionHandlerGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeCooldownExecutionCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.cooldown-execution-handler-player-fail-closed"
 
+$saberInterceptEffect = "saber_intercept"
+$saberInterceptMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq $saberInterceptEffect })
+$saberInterceptBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq $saberInterceptEffect
+    }).Count -gt 0
+})
+$saberInterceptSkillRows = @(Import-SwgTab -Path $paths.skillsTable | Where-Object {
+    $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+    $commands -ccontains "fs_saber_intercept_1"
+})
+Assert-Contract ($saberInterceptMappings.Count -eq
+        [int]$contract.expected.retainedNgeSaberInterceptEffectMappingRows -and
+    [string]$saberInterceptMappings[0].TYPE -ceq "saberIntercept" -and
+    [string]$saberInterceptMappings[0].SUBTYPE -ceq $saberInterceptEffect -and
+    $saberInterceptBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeSaberInterceptBuffRows -and
+    [string]$saberInterceptBuffRows[0].NAME -ceq "fs_saber_intercept" -and
+    [string]$saberInterceptBuffRows[0].DURATION -ceq "10" -and
+    [string]$saberInterceptBuffRows[0].IS_PERSISTENT -ceq "1" -and
+    [string]$saberInterceptBuffRows[0].EFFECT1_PARAM -ceq $saberInterceptEffect -and
+    [string]$saberInterceptBuffRows[0].EFFECT1_VALUE -ceq "1" -and
+    $saberInterceptSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeSaberInterceptSkillRows -and
+    [string]$saberInterceptSkillRows[0].NAME -ceq "class_forcesensitive_phase3_novice") `
+    "p14.combat-expertise-isolation.buff.saber-intercept-data-inventory-authenticated"
+
+$saberInterceptEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerSaberInterceptEffect(String effectName)"
+$saberInterceptBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerSaberInterceptBuff(obj_id target, buff_data data)"
+$saberInterceptCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerSaberInterceptState(obj_id player)"
+$saberInterceptProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$saberInterceptCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$saberInterceptAdmissionGate = $saberInterceptCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerSaberInterceptBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$saberInterceptExistingBuffReturn = $saberInterceptCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_SABER_INTERCEPT_EFFECT = "saber_intercept"') -and
+    $saberInterceptEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_SABER_INTERCEPT_EFFECT") -and
+    $saberInterceptBuffPredicate.Contains("!isPlayer(target)") -and
+    $saberInterceptBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $saberInterceptBuffPredicate.Contains(
+        "isRetiredPostNgePlayerSaberInterceptEffect(getEffectParam(data, effect))") -and
+    $saberInterceptCleanup.Contains("!isPlayer(player)") -and
+    $saberInterceptCleanup.Contains("getAllBuffs(player)") -and
+    $saberInterceptCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $saberInterceptCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $saberInterceptProgressionCleanup.Contains(
+        "retirePostNgePlayerSaberInterceptState(player);") -and
+    $saberInterceptAdmissionGate -ge 0 -and
+    $saberInterceptExistingBuffReturn -gt $saberInterceptAdmissionGate -and
+    $forceSensitivePlayerAction.Contains('actionName.startsWith("fs_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeForceSensitivePlayerAction(self, actionName)") -and
+    -not [bool]$contract.expected.playerNgeSaberInterceptCommandExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeSaberInterceptBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeSaberInterceptStateRemoved) `
+    "p14.combat-expertise-isolation.buff.saber-intercept-admission-persistence-and-command-fail-closed"
+
+$saberInterceptAddHandler = Get-BracedBlock $buffHandler `
+    "public int saberInterceptAddBuffHandler("
+$saberInterceptRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int saberInterceptRemoveBuffHandler("
+$saberInterceptHandlerGuard = $saberInterceptAddHandler.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$saberInterceptHandlerPredicate = $saberInterceptAddHandler.IndexOf(
+    "buff.isRetiredPostNgePlayerSaberInterceptEffect(effectName)",
+    [StringComparison]::Ordinal)
+$saberInterceptHandlerReturn = $saberInterceptAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$saberInterceptRetainedWriter = $saberInterceptAddHandler.IndexOf(
+    "utils.setScriptVar(self, combat.DAMAGE_REDIRECT, caster);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($saberInterceptHandlerGuard -ge 0 -and
+    $saberInterceptHandlerPredicate -gt $saberInterceptHandlerGuard -and
+    $saberInterceptHandlerReturn -gt $saberInterceptHandlerPredicate -and
+    $saberInterceptRetainedWriter -gt $saberInterceptHandlerReturn -and
+    $saberInterceptRemoveHandler.Contains(
+        "utils.removeScriptVar(self, combat.DAMAGE_REDIRECT);") -and
+    [int]$contract.expected.productionSaberInterceptHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeSaberInterceptDamageRedirectReachable -and
+    [bool]$contract.expected.nonPlayerNgeSaberInterceptCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.saber-intercept-handler-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
   "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, radar-invisibility, or global command-cooldown-execution buffs from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, global command lockout, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, radar-invisibility, global command-cooldown-execution, or Force Sensitive saber-intercept buffs from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, global command lockout, damage redirection, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -51,7 +51,9 @@
       "The only radarInvis effect mapping is radar_invis, referenced by exactly three retained later-era buffs: Commando Mirror Armor, Bounty Hunter Take Cover, and queued-battlefield radar invisibility. Its generic add handler directly hid an actor from map and radar without a PRE-CU player-era boundary.",
       "Pinned Core3 has no radar_invis, radarInvis, or co_mirror_armor player mechanic. Exact player-only admission, persisted-buff cleanup, ownership-bounded visibility repair, and both add/remove handler guards now retire that player authority while preserving all three rows and non-player expansion compatibility.",
       "The only cooldownModify effect mapping is cooldown_execute_all, referenced by exactly three retained rows: the retired NGE Spy stifle, heroic Axkva Lelli mine stun, and Jedi statue dark-side debuff. Its add handler enumerated every player command and forced every command cooldown group to at least the data-authored duration.",
-      "Pinned Core3 preserves individual command timers but has no cooldown_execute_all, cooldownModify, or global learned-command lockout mechanic. Exact player-only admission, persisted-buff cleanup, and the add-handler guard now retire that NGE player authority while preserving all three data rows and non-player expansion content compatibility."
+      "Pinned Core3 preserves individual command timers but has no cooldown_execute_all, cooldownModify, or global learned-command lockout mechanic. Exact player-only admission, persisted-buff cleanup, and the add-handler guard now retire that NGE player authority while preserving all three data rows and non-player expansion content compatibility.",
+      "The only saberIntercept mapping is saber_intercept, owned by the persistent fs_saber_intercept buff granted from the retained NGE class_forcesensitive_phase3_novice row. Its add handler writes the caster into the shared damage_redirect state, causing incoming attacks against the recipient to be redirected to another actor.",
+      "Pinned Core3 contains no saber_intercept, saberIntercept, fs_saber_intercept, or player damage_redirect mechanic. The existing fs_* command and class_* progression gates already deny ordinary player acquisition and execution; exact player-only buff admission, persisted cleanup, and add-handler denial now close direct injection or restoration while retaining the mapping, buff, skill row, remove cleanup, and non-player expansion compatibility."
     ]
   },
   "expected": {
@@ -177,6 +179,15 @@
     "persistedPlayerNgeCooldownExecutionStateRemoved": true,
     "globalPlayerCooldownExecutionReachable": false,
     "nonPlayerNgeCooldownExecutionCompatibilityPreserved": true,
+    "retainedNgeSaberInterceptEffectMappingRows": 1,
+    "retainedNgeSaberInterceptBuffRows": 1,
+    "retainedNgeSaberInterceptSkillRows": 1,
+    "productionSaberInterceptHandlersGuarded": 1,
+    "playerNgeSaberInterceptCommandExecutionReachable": false,
+    "playerNgeSaberInterceptBuffAdmissionReachable": false,
+    "persistedPlayerNgeSaberInterceptStateRemoved": true,
+    "playerNgeSaberInterceptDamageRedirectReachable": false,
+    "nonPlayerNgeSaberInterceptCompatibilityPreserved": true,
     "armorBreakNgeExpertiseReads": 0,
     "armorBreakNgeExpertiseWrites": 0,
     "directStanceExpertiseWriters": 0,
@@ -218,7 +229,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "53c2acb1398e9099d635d893896859fffc0dce60",
+    "directSourceGitlink": "f64410561e2e14b9512c08a3d1fc774c9fe60c01",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "20c67a8021862be5be978311ac551ec6ecd2be5d0951c1da596cf8574819f663",
@@ -228,8 +239,8 @@
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "e5dc80a38bef39394819fdc987e1bb66a734040cb0a04f61fef0fb523f126945",
-      "buffHandler": "4bf6eaba0765ff6fa14bdaada6cd9211979855e6b4855b3a06886ffde15a8deb",
-      "buffLibrary": "ffbefa69a39298302381c7df78ed415b22d6462aecbec3ccee1bf677b3b3190b",
+      "buffHandler": "d4bfcf39314c65bc9f0419ed5e634fc855799d1cfd95d51e9d0735da82b17ded",
+      "buffLibrary": "55cd1af5e793dca5dd14990035f1df6e034ef9004e8b8000149290cba95756b6",
       "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
       "bountyHunterShieldScript": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7",
       "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
@@ -249,22 +260,22 @@
     },
     "focusedCombatBaseClassSha256": "2176c852b27e176762e47e6503f723e911ef6cb359b740df4281edb85f4cd61f",
     "focusedCombatBaseClassBytes": 127470,
-    "focusedBuffLibraryClassSha256": "60497f80fd97b6f5603446723534920f57c0d745833eb8cb9b2b7ea287b2f45e",
-    "focusedBuffLibraryClassBytes": 55350,
-    "focusedBuffHandlerClassSha256": "9fd83bbe71680cfcf6fe61b09d7f5959cd5f23b4c7ad8438c874055ad37f0c71",
-    "focusedBuffHandlerClassBytes": 132567,
+    "focusedBuffLibraryClassSha256": "dfff1d7ba9c41aaba4b2b51a5b29582587e9d6dc0e899b566273d77d6f5895d4",
+    "focusedBuffLibraryClassBytes": 56122,
+    "focusedBuffHandlerClassSha256": "f1fcbf9efdb1b7c65b19ed1430ce44ec6de76ccf996a58de1018df41e71ddadf",
+    "focusedBuffHandlerClassBytes": 132656,
     "focusedCombatLibraryClassSha256": "1188fbacd109db3b95950b364199f9fb3aa96cbb1c55c6ee7b33219da0ca8a42",
     "focusedCombatLibraryClassBytes": 88492,
-    "sourceTest": "passed; the exact cooldown_execute_all mapping and three retained rows are authenticated as retired for players at admission, persistence, and the effect-handler boundary while non-player expansion behavior remains available",
-    "focusedJavaCompile": "passed from exact pushed direct source with Java 8 source/target and canonical debug metadata; both cooldown-execution classes compiled and the exact /dev/shm directory was removed with zero entries remaining",
-    "fullJavaCompile": "passed canonical clean dependency rebuild from 5,713 exact pushed direct-source Java files at dsrc 53c2acb1398e9099d635d893896859fffc0dce60 after removing every prior compiled Java class; 5,747 classes were emitted",
-    "fullServerBuild": "passed canonical clean Docker x86-64 build and deployment in 966 seconds from direct dsrc 53c2acb1398e9099d635d893896859fffc0dce60 and parent source checkpoint 146b0f3",
+    "sourceTest": "passed; the exact saber_intercept mapping, persistent buff row, and NGE Force Sensitive skill owner are authenticated as retired for players at command admission, buff admission, persistence, and the effect-handler boundary while non-player expansion behavior remains available",
+    "focusedJavaCompile": "passed from exact pushed direct source with Java 8 source/target and canonical debug metadata; both saber-intercept classes compiled and the exact /dev/shm directory was removed with zero entries remaining",
+    "fullJavaCompile": "passed canonical clean dependency rebuild from 5,713 exact pushed direct-source Java files at dsrc f64410561e2e14b9512c08a3d1fc774c9fe60c01 after removing every prior compiled Java class; 5,747 classes were emitted",
+    "fullServerBuild": "passed canonical clean Docker x86-64 build and deployment in 966 seconds from direct dsrc f64410561e2e14b9512c08a3d1fc774c9fe60c01 and parent source checkpoint 146b0f3",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "serverGameArchiveSha256": "3fafc5a7b05e2347c30f06a5266211b5919d8ace079a5ae7b7895485e5e39b8d",
-    "sourceWorkParity": "passed for every authenticated combat and cooldown-execution source between the read-only pushed source mount and the writable canonical work volume",
-    "bytecodeAudit": "passed deployed player-only cooldown-execution admission, persisted cleanup, progression cleanup, and add-handler denial checks alongside all existing combat-isolation probes",
+    "sourceWorkParity": "passed for every previously deployed authenticated combat source; saber-intercept parity awaits the next canonical deployment",
+    "bytecodeAudit": "passed for the focused saber-intercept compile; deployed admission, persisted cleanup, progression cleanup, and add-handler denial await the next canonical deployment",
     "deploymentProbe": "passed canonical source/data/bytecode, clean x64 build, healthy readiness, mapped-binary, process-topology, shared-memory-cleanliness, and fresh-log verification",
     "result": "passed"
   },
@@ -306,9 +317,9 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear action-channel, player channelled-stim healing, player radar-invisibility, or global player command-cooldown execution authority through generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, hidden map/radar state, global command lockout, or unconditional raw-damage consumers",
+    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear action-channel, player channelled-stim healing, player radar-invisibility, global player command-cooldown execution, or Force Sensitive saber-intercept damage-redirection authority through generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, hidden map/radar state, global command lockout, damage redirection, or unconditional raw-damage consumers",
     "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based combat; ordinary PRE-CU skill and HAM buffs; all retained buff and effect-mapping rows; non-player expansion encounter compatibility; and all expansion quests, conversations, and zones",
-    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, critical-override, Luck-hit, Forsake Fear, player channelled-stim, radar-invisibility, and global cooldown-execution boundaries remain subject to later reachability audits"
+    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, critical-override, Luck-hit, Forsake Fear, player channelled-stim, radar-invisibility, global cooldown-execution, and saber-intercept boundaries remain subject to later reachability audits"
   },
   "requiredBeforeReady": []
 }

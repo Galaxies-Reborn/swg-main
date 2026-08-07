@@ -2436,6 +2436,43 @@ cooldown_execution_retained_writer_line="$(printf '%s\n' "$cooldown_execution_ad
 test "$cooldown_execution_guard_line" -lt "$cooldown_execution_return_line"
 test "$cooldown_execution_return_line" -lt "$cooldown_execution_retained_subtype_line"
 test "$cooldown_execution_retained_subtype_line" -lt "$cooldown_execution_retained_writer_line"
+awk -F '\t' '$1 == "saber_intercept" { found++; if ($2 != "saberIntercept" || $3 != "saber_intercept") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2)
+        if ($parameterColumn == "saber_intercept") ownsEffect = 1
+    if (ownsEffect) {
+        rows++
+        actual = $1 "|" $7 "|" $30 "|" $8 "|" $9
+        if (actual != "fs_saber_intercept|10|1|saber_intercept|1") exit 2
+    }
+}
+END { if (rows != 1) exit 3 }
+' "$work_buff_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_SABER_INTERCEPT_EFFECT = "saber_intercept"' "$work_buff_library"
+saber_intercept_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerSaberInterceptEffect/,/public static boolean isRetiredPostNgePlayerSaberInterceptBuff/p' "$work_buff_library")"
+printf '%s\n' "$saber_intercept_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_SABER_INTERCEPT_EFFECT'
+saber_intercept_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerSaberInterceptBuff/,/public static void retirePostNgePlayerSaberInterceptState/p' "$work_buff_library")"
+printf '%s\n' "$saber_intercept_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$saber_intercept_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$saber_intercept_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerSaberInterceptEffect(getEffectParam(data, effect))'
+saber_intercept_cleanup_source="$(sed -n '/public static void retirePostNgePlayerSaberInterceptState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$saber_intercept_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$saber_intercept_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$saber_intercept_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$saber_intercept_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerSaberInterceptState(player);' "$work_buff_library"
+saber_intercept_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+saber_intercept_admission_gate_line="$(printf '%s\n' "$saber_intercept_admission_source" | grep -Fn 'isRetiredPostNgePlayerSaberInterceptBuff(target, bdata)' | head -1 | cut -d: -f1)"
+saber_intercept_existing_return_line="$(printf '%s\n' "$saber_intercept_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$saber_intercept_admission_gate_line" -lt "$saber_intercept_existing_return_line"
+saber_intercept_add_source="$(sed -n '/public int saberInterceptAddBuffHandler/,/public int saberInterceptRemoveBuffHandler/p' "$work_buff_handler")"
+saber_intercept_guard_line="$(printf '%s\n' "$saber_intercept_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerSaberInterceptEffect(effectName))' | head -1 | cut -d: -f1)"
+saber_intercept_return_line="$(printf '%s\n' "$saber_intercept_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+saber_intercept_retained_writer_line="$(printf '%s\n' "$saber_intercept_add_source" | grep -Fn 'utils.setScriptVar(self, combat.DAMAGE_REDIRECT, caster);' | head -1 | cut -d: -f1)"
+test "$saber_intercept_guard_line" -lt "$saber_intercept_return_line"
+test "$saber_intercept_return_line" -lt "$saber_intercept_retained_writer_line"
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -3695,6 +3732,24 @@ cooldown_execution_player_return_bytecode_line="$(printf '%s\n' "$cooldown_execu
 cooldown_execution_retained_writer_bytecode_line="$(printf '%s\n' "$cooldown_execution_add_bytecode" | grep -Fn 'Method getCommandListingForPlayer' | head -1 | cut -d: -f1)"
 test "$cooldown_execution_guard_bytecode_line" -lt "$cooldown_execution_player_return_bytecode_line"
 test "$cooldown_execution_player_return_bytecode_line" -lt "$cooldown_execution_retained_writer_bytecode_line"
+buff_saber_intercept_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerSaberInterceptEffect(java.lang.String)/,/isRetiredPostNgePlayerSaberInterceptBuff/p')"
+printf '%s' "$buff_saber_intercept_effect_predicate_bytecode" | grep -Fq 'saber_intercept'
+buff_saber_intercept_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerSaberInterceptBuff/,/retirePostNgePlayerSaberInterceptState/p')"
+printf '%s' "$buff_saber_intercept_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_saber_intercept_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerSaberInterceptEffect'
+buff_saber_intercept_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerSaberInterceptState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_saber_intercept_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_saber_intercept_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_saber_intercept_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerSaberInterceptState'
+saber_intercept_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/saberInterceptAddBuffHandler/,/saberInterceptRemoveBuffHandler/p')"
+saber_intercept_guard_bytecode_line="$(printf '%s\n' "$saber_intercept_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+saber_intercept_predicate_bytecode_line="$(printf '%s\n' "$saber_intercept_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerSaberInterceptEffect' | head -1 | cut -d: -f1)"
+saber_intercept_player_return_bytecode_line="$(printf '%s\n' "$saber_intercept_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+saber_intercept_retained_writer_bytecode_line="$(printf '%s\n' "$saber_intercept_add_bytecode" | grep -Fn 'Method script/library/utils.setScriptVar' | head -1 | cut -d: -f1)"
+test "$saber_intercept_guard_bytecode_line" -lt "$saber_intercept_predicate_bytecode_line"
+test "$saber_intercept_predicate_bytecode_line" -lt "$saber_intercept_player_return_bytecode_line"
+test "$saber_intercept_player_return_bytecode_line" -lt "$saber_intercept_retained_writer_bytecode_line"
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
 action_drain_guard_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | head -n "$action_drain_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"
