@@ -2992,6 +2992,124 @@ medic_doom_remove_state_read_line="$(printf '%s\n' "$medic_doom_remove_source" |
 test "$medic_doom_remove_guard_line" -lt "$medic_doom_remove_state_read_line"
 printf '%s\n' "$medic_doom_remove_source" | grep -Fq 'buff.clearPostNgePlayerMedicDoomState(self);'
 test "$(printf '%s\n' "$medic_doom_remove_source" | grep -Fc 'buff.applyBuff(self, self, "me_doom", 10.0f);')" -eq 2
+awk -F '\t' '
+BEGIN {
+    split("dt_vulnerability_acid dt_vulnerability_cold dt_vulnerability_electricity dt_vulnerability_exclusive_acid dt_vulnerability_exclusive_cold dt_vulnerability_exclusive_electricity dt_vulnerability_exclusive_heat dt_vulnerability_heat", names, " ")
+    for (i = 1; i <= 8; i++) expected[names[i]] = 1
+}
+NR == 1 {
+    for (column = 1; column <= NF; column++) {
+        header = $column
+        sub(/\r$/, "", header)
+        fieldIndex[header] = column
+    }
+    next
+}
+NR > 2 {
+    name = $(fieldIndex["NAME"])
+    if (name in expected) {
+        found[name]++
+        if ($(fieldIndex["TYPE"]) != "vulnerability" || $(fieldIndex["SUBTYPE"]) != name) exit 2
+    }
+}
+END {
+    total = 0
+    for (name in expected) {
+        if (found[name] != 1) exit 3
+        total += found[name]
+    }
+    if (total != 8) exit 4
+}
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+BEGIN {
+    expected["acid_aspect|-1|0|1|dt_vulnerability_exclusive_electricity|100"] = 1
+    expected["caretaker_blast|30|1|1|dt_vulnerability_electricity|2"] = 1
+    expected["closed_fist_burn_debuff_1|60|1|1|dt_vulnerability_heat|2"] = 1
+    expected["closed_fist_burn_debuff_2|60|1|1|dt_vulnerability_heat|4"] = 1
+    expected["closed_fist_burn_debuff_3|60|1|1|dt_vulnerability_heat|8"] = 1
+    expected["cold_aspect|-1|0|1|dt_vulnerability_exclusive_heat|100"] = 1
+    expected["elec_aspect|-1|0|1|dt_vulnerability_exclusive_acid|100"] = 1
+    expected["heat_aspect|-1|0|1|dt_vulnerability_exclusive_cold|100"] = 1
+    expected["kun_wrath_ward_acid|10|0|1|dt_vulnerability_acid|0.1"] = 1
+    expected["kun_wrath_ward_cold|10|0|1|dt_vulnerability_cold|0.1"] = 1
+    expected["kun_wrath_ward_electrical|10|0|1|dt_vulnerability_electricity|0.1"] = 1
+    expected["kun_wrath_ward_heat|10|0|1|dt_vulnerability_heat|0.1"] = 1
+}
+NR == 1 {
+    for (column = 1; column <= NF; column++) {
+        header = $column
+        sub(/\r$/, "", header)
+        fieldIndex[header] = column
+    }
+    next
+}
+NR > 2 {
+    vulnerability = 0
+    for (effect = 1; effect <= 5; effect++) {
+        param = $(fieldIndex["EFFECT" effect "_PARAM"])
+        if (param ~ /^dt_vulnerability_/) vulnerability = 1
+    }
+    if (vulnerability) {
+        signature = $(fieldIndex["NAME"]) "|" $(fieldIndex["DURATION"]) "|" $(fieldIndex["DEBUFF"]) "|" $(fieldIndex["IS_PERSISTENT"]) "|" $(fieldIndex["EFFECT1_PARAM"]) "|" $(fieldIndex["EFFECT1_VALUE"])
+        found[signature]++
+        rows++
+        if (!(signature in expected)) exit 2
+    }
+}
+END {
+    if (rows != 12) exit 3
+    for (signature in expected) if (found[signature] != 1) exit 4
+}
+' "$work_buff_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_EFFECT_PREFIX = "dt_vulnerability_"' "$work_buff_library"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_STATE = "elemental_vulnerability"' "$work_buff_library"
+elemental_vulnerability_effect_source="$(sed -n '/public static boolean isRetiredPostNgePlayerElementalVulnerabilityEffect/,/public static boolean isRetiredPostNgePlayerElementalVulnerabilityBuff/p' "$work_buff_library")"
+printf '%s\n' "$elemental_vulnerability_effect_source" | grep -Fq 'effectName.startsWith(RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_EFFECT_PREFIX)'
+elemental_vulnerability_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerElementalVulnerabilityBuff/,/public static void clearPostNgePlayerElementalVulnerabilityState/p' "$work_buff_library")"
+printf '%s\n' "$elemental_vulnerability_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$elemental_vulnerability_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$elemental_vulnerability_predicate_source" | grep -Fq 'isRetiredPostNgePlayerElementalVulnerabilityEffect(getEffectParam(data, effect))'
+elemental_vulnerability_clear_source="$(sed -n '/public static void clearPostNgePlayerElementalVulnerabilityState/,/public static void retirePostNgePlayerElementalVulnerabilityState/p' "$work_buff_library")"
+printf '%s\n' "$elemental_vulnerability_clear_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$elemental_vulnerability_clear_source" | grep -Fq 'utils.removeScriptVarTree(player, RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_STATE);'
+elemental_vulnerability_cleanup_source="$(sed -n '/public static void retirePostNgePlayerElementalVulnerabilityState/,/private static final String RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF/p' "$work_buff_library")"
+printf '%s\n' "$elemental_vulnerability_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$elemental_vulnerability_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$elemental_vulnerability_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$elemental_vulnerability_cleanup_source" | grep -Fq 'clearPostNgePlayerElementalVulnerabilityState(player);'
+test "$(grep -Fc 'retirePostNgePlayerElementalVulnerabilityState(player);' "$work_buff_library")" -eq 1
+elemental_vulnerability_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups(buff_data bdata)/p' "$work_buff_library")"
+elemental_vulnerability_admission_line="$(printf '%s\n' "$elemental_vulnerability_admission_source" | grep -Fn 'isRetiredPostNgePlayerElementalVulnerabilityBuff(target, bdata)' | head -1 | cut -d: -f1)"
+elemental_vulnerability_existing_line="$(printf '%s\n' "$elemental_vulnerability_admission_source" | grep -Fn 'if (hasBuff(target, nameCrc))' | head -1 | cut -d: -f1)"
+test -n "$elemental_vulnerability_admission_line"
+test -n "$elemental_vulnerability_existing_line"
+test "$elemental_vulnerability_admission_line" -lt "$elemental_vulnerability_existing_line"
+elemental_vulnerability_add_source="$(sed -n '/public int vulnerabilityAddBuffHandler/,/public void clog/p' "$work_buff_handler")"
+elemental_vulnerability_add_guard_line="$(printf '%s\n' "$elemental_vulnerability_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+elemental_vulnerability_add_cleanup_line="$(printf '%s\n' "$elemental_vulnerability_add_source" | grep -Fn 'buff.retirePostNgePlayerElementalVulnerabilityState(self);' | head -1 | cut -d: -f1)"
+elemental_vulnerability_add_override_line="$(printf '%s\n' "$elemental_vulnerability_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+elemental_vulnerability_add_writer_line="$(printf '%s\n' "$elemental_vulnerability_add_source" | grep -Fn 'utils.setScriptVar(self, "elemental_vulnerability.type_" + type, type);' | head -1 | cut -d: -f1)"
+test "$elemental_vulnerability_add_guard_line" -lt "$elemental_vulnerability_add_cleanup_line"
+test "$elemental_vulnerability_add_cleanup_line" -lt "$elemental_vulnerability_add_override_line"
+test "$elemental_vulnerability_add_override_line" -lt "$elemental_vulnerability_add_writer_line"
+test "$(printf '%s\n' "$elemental_vulnerability_add_source" | grep -Fc 'utils.setScriptVar(self, "elemental_vulnerability.type_')" -eq 3
+elemental_vulnerability_remove_source="$(sed -n '/public int vulnerabilityRemoveBuffHandler/,/public int removeIncapWeakenAddBuffHandler/p' "$work_buff_handler")"
+elemental_vulnerability_remove_guard_line="$(printf '%s\n' "$elemental_vulnerability_remove_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+elemental_vulnerability_remove_cleanup_line="$(printf '%s\n' "$elemental_vulnerability_remove_source" | grep -Fn 'buff.clearPostNgePlayerElementalVulnerabilityState(self);' | head -1 | cut -d: -f1)"
+elemental_vulnerability_remove_override_line="$(printf '%s\n' "$elemental_vulnerability_remove_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+elemental_vulnerability_remove_writer_line="$(printf '%s\n' "$elemental_vulnerability_remove_source" | grep -Fn 'utils.removeScriptVar(self, "elemental_vulnerability.type_" + type);' | head -1 | cut -d: -f1)"
+test "$elemental_vulnerability_remove_guard_line" -lt "$elemental_vulnerability_remove_cleanup_line"
+test "$elemental_vulnerability_remove_cleanup_line" -lt "$elemental_vulnerability_remove_override_line"
+test "$elemental_vulnerability_remove_override_line" -lt "$elemental_vulnerability_remove_writer_line"
+test "$(printf '%s\n' "$elemental_vulnerability_remove_source" | grep -Fc 'utils.removeScriptVar(self, "elemental_vulnerability.type_')" -eq 3
+elemental_vulnerability_consumer_source="$(sed -n '/public void doWrappedDamage(obj_id attacker, obj_id defender, weapon_data weaponData, hit_result hitData, combat_data actionData, int overloadDamage)/,/public obj_id\[\] truncateTargetArray/p' "$work_combat_base")"
+elemental_vulnerability_consumer_guard_line="$(printf '%s\n' "$elemental_vulnerability_consumer_source" | grep -Fn 'if (isPlayer(defender) && utils.hasScriptVarTree(defender, "elemental_vulnerability"))' | head -1 | cut -d: -f1)"
+elemental_vulnerability_consumer_cleanup_line="$(printf '%s\n' "$elemental_vulnerability_consumer_source" | grep -Fn 'buff.retirePostNgePlayerElementalVulnerabilityState(defender);' | head -1 | cut -d: -f1)"
+elemental_vulnerability_consumer_first_read_line="$(printf '%s\n' "$elemental_vulnerability_consumer_source" | grep -Fn 'utils.hasScriptVar(defender, "elemental_vulnerability.type_heat")' | head -1 | cut -d: -f1)"
+test "$elemental_vulnerability_consumer_guard_line" -lt "$elemental_vulnerability_consumer_cleanup_line"
+test "$elemental_vulnerability_consumer_cleanup_line" -lt "$elemental_vulnerability_consumer_first_read_line"
+test "$(printf '%s\n' "$elemental_vulnerability_consumer_source" | grep -Ec 'if \(!isPlayer\(defender\) && utils\.hasScriptVar\(defender, "elemental_vulnerability\.type_(heat|electrical|cold|acid)"\)\)')" -eq 4
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -4459,6 +4577,40 @@ medic_doom_remove_state_bytecode_line="$(printf '%s\n' "$medic_doom_remove_bytec
 test "$medic_doom_remove_guard_bytecode_line" -lt "$medic_doom_remove_state_bytecode_line"
 printf '%s' "$medic_doom_remove_bytecode" | grep -Fq 'clearPostNgePlayerMedicDoomState'
 test "$(printf '%s' "$medic_doom_remove_bytecode" | grep -Fc 'Method script/library/buff.applyBuff')" -eq 2
+elemental_vulnerability_effect_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerElementalVulnerabilityEffect(java.lang.String)/,/isRetiredPostNgePlayerElementalVulnerabilityBuff/p')"
+printf '%s' "$elemental_vulnerability_effect_bytecode" | grep -Fq 'String dt_vulnerability_'
+printf '%s' "$elemental_vulnerability_effect_bytecode" | grep -Fq 'String.startsWith'
+elemental_vulnerability_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerElementalVulnerabilityBuff/,/clearPostNgePlayerElementalVulnerabilityState/p')"
+printf '%s' "$elemental_vulnerability_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$elemental_vulnerability_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerElementalVulnerabilityEffect'
+elemental_vulnerability_clear_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerElementalVulnerabilityState/,/retirePostNgePlayerElementalVulnerabilityState/p')"
+printf '%s' "$elemental_vulnerability_clear_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$elemental_vulnerability_clear_bytecode" | grep -Fq 'Method script/library/utils.removeScriptVarTree'
+printf '%s' "$elemental_vulnerability_clear_bytecode" | grep -Fq 'String elemental_vulnerability'
+elemental_vulnerability_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerElementalVulnerabilityState/,/isRetiredPostNgePlayerMedicDoomBuff/p')"
+printf '%s' "$elemental_vulnerability_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$elemental_vulnerability_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$elemental_vulnerability_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$elemental_vulnerability_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerElementalVulnerabilityState'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerElementalVulnerabilityState'
+elemental_vulnerability_admission_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/getGroups/p')"
+elemental_vulnerability_admission_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerElementalVulnerabilityBuff' | head -1 | cut -d: -f1)"
+elemental_vulnerability_existing_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test "$elemental_vulnerability_admission_bytecode_line" -lt "$elemental_vulnerability_existing_bytecode_line"
+elemental_vulnerability_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/vulnerabilityAddBuffHandler/,/public void clog/p')"
+elemental_vulnerability_add_guard_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+elemental_vulnerability_add_cleanup_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_add_bytecode" | grep -Fn 'retirePostNgePlayerElementalVulnerabilityState' | head -1 | cut -d: -f1)"
+elemental_vulnerability_add_writer_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_add_bytecode" | grep -Fn 'Method script/library/utils.setScriptVar' | head -1 | cut -d: -f1)"
+test "$elemental_vulnerability_add_guard_bytecode_line" -lt "$elemental_vulnerability_add_cleanup_bytecode_line"
+test "$elemental_vulnerability_add_cleanup_bytecode_line" -lt "$elemental_vulnerability_add_writer_bytecode_line"
+test "$(printf '%s' "$elemental_vulnerability_add_bytecode" | grep -Fc 'Method script/library/utils.setScriptVar')" -eq 3
+elemental_vulnerability_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/vulnerabilityRemoveBuffHandler/,/removeIncapWeakenAddBuffHandler/p')"
+elemental_vulnerability_remove_guard_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_remove_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+elemental_vulnerability_remove_cleanup_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_remove_bytecode" | grep -Fn 'clearPostNgePlayerElementalVulnerabilityState' | head -1 | cut -d: -f1)"
+elemental_vulnerability_remove_writer_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_remove_bytecode" | grep -Fn 'Method script/library/utils.removeScriptVar' | head -1 | cut -d: -f1)"
+test "$elemental_vulnerability_remove_guard_bytecode_line" -lt "$elemental_vulnerability_remove_cleanup_bytecode_line"
+test "$elemental_vulnerability_remove_cleanup_bytecode_line" -lt "$elemental_vulnerability_remove_writer_bytecode_line"
+test "$(printf '%s' "$elemental_vulnerability_remove_bytecode" | grep -Fc 'Method script/library/utils.removeScriptVar')" -eq 3
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commando_snare_bonus'
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commandoInnateArmorBonus'
 commando_snare_armor_effect_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandoSnareArmorEffect(java.lang.String)/,/isRetiredPostNgePlayerCommandoSnareArmorBuff/p')"
@@ -4604,6 +4756,16 @@ combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.comb
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 test "$(printf '%s' "$combat_base_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 2
+elemental_vulnerability_consumer_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/doWrappedDamage(script.obj_id, script.obj_id, script.weapon_data, script.hit_result, script.combat_data, int)/,/truncateTargetArray/p')"
+elemental_vulnerability_consumer_guard_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+elemental_vulnerability_consumer_cleanup_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'retirePostNgePlayerElementalVulnerabilityState' | head -1 | cut -d: -f1)"
+elemental_vulnerability_consumer_first_read_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'String elemental_vulnerability.type_heat' | head -1 | cut -d: -f1)"
+test "$elemental_vulnerability_consumer_guard_bytecode_line" -lt "$elemental_vulnerability_consumer_cleanup_bytecode_line"
+test "$elemental_vulnerability_consumer_cleanup_bytecode_line" -lt "$elemental_vulnerability_consumer_first_read_bytecode_line"
+test "$(printf '%s' "$elemental_vulnerability_consumer_bytecode" | grep -Fc 'retirePostNgePlayerElementalVulnerabilityState')" -eq 1
+for elemental_vulnerability_state in heat electrical cold acid; do
+    printf '%s' "$elemental_vulnerability_consumer_bytecode" | grep -Fq "String elemental_vulnerability.type_$elemental_vulnerability_state"
+done
 raw_damage_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/^  public script.dictionary getRawDamage(/,/^  public script.dictionary getPrecuCore3RawDamage(/p')"
 damage_dealt_bytecode_cleanup_line="$(printf '%s\n' "$raw_damage_bytecode" | grep -Fn 'buff.restorePostNgePlayerDamageDealtOverride' | head -1 | cut -d: -f1)"
 damage_dealt_bytecode_read_line="$(printf '%s\n' "$raw_damage_bytecode" | grep -Fn 'damageDealtMod.value' | head -1 | cut -d: -f1)"

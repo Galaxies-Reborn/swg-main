@@ -2327,6 +2327,174 @@ Assert-Contract ($commandoSnareArmorValidity -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeCommandoSnareArmorCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.commando-snare-armor-handler-player-fail-closed"
 
+$elementalVulnerabilityEffects = @(
+    "dt_vulnerability_acid",
+    "dt_vulnerability_cold",
+    "dt_vulnerability_electricity",
+    "dt_vulnerability_exclusive_acid",
+    "dt_vulnerability_exclusive_cold",
+    "dt_vulnerability_exclusive_electricity",
+    "dt_vulnerability_exclusive_heat",
+    "dt_vulnerability_heat"
+)
+$elementalVulnerabilityMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $elementalVulnerabilityEffects -ccontains [string]$_.NAME })
+$elementalVulnerabilityBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        $row = $_
+        @(1..5 | Where-Object {
+            $elementalVulnerabilityEffects -ccontains
+                [string]$row.("EFFECT$($_)_PARAM")
+        }).Count -gt 0
+    })
+$elementalVulnerabilitySignatures = @($elementalVulnerabilityBuffRows |
+    ForEach-Object {
+        @(
+            [string]$_.NAME,
+            [string]$_.DURATION,
+            [string]$_.DEBUFF,
+            [string]$_.IS_PERSISTENT,
+            [string]$_.EFFECT1_PARAM,
+            [string]$_.EFFECT1_VALUE
+        ) -join "|"
+    } | Sort-Object)
+$expectedElementalVulnerabilitySignatures = @(
+    "acid_aspect|-1|0|1|dt_vulnerability_exclusive_electricity|100",
+    "caretaker_blast|30|1|1|dt_vulnerability_electricity|2",
+    "closed_fist_burn_debuff_1|60|1|1|dt_vulnerability_heat|2",
+    "closed_fist_burn_debuff_2|60|1|1|dt_vulnerability_heat|4",
+    "closed_fist_burn_debuff_3|60|1|1|dt_vulnerability_heat|8",
+    "cold_aspect|-1|0|1|dt_vulnerability_exclusive_heat|100",
+    "elec_aspect|-1|0|1|dt_vulnerability_exclusive_acid|100",
+    "heat_aspect|-1|0|1|dt_vulnerability_exclusive_cold|100",
+    "kun_wrath_ward_acid|10|0|1|dt_vulnerability_acid|0.1",
+    "kun_wrath_ward_cold|10|0|1|dt_vulnerability_cold|0.1",
+    "kun_wrath_ward_electrical|10|0|1|dt_vulnerability_electricity|0.1",
+    "kun_wrath_ward_heat|10|0|1|dt_vulnerability_heat|0.1"
+) | Sort-Object
+Assert-Contract ($elementalVulnerabilityMappings.Count -eq
+        [int]$contract.expected.retainedNgeElementalVulnerabilityEffectMappingRows -and
+    @($elementalVulnerabilityMappings | Where-Object {
+        [string]$_.TYPE -ceq "vulnerability" -and
+        [string]$_.SUBTYPE -ceq [string]$_.NAME
+    }).Count -eq $elementalVulnerabilityMappings.Count -and
+    @($elementalVulnerabilityMappings | Select-Object -ExpandProperty NAME -Unique).Count -eq
+        $elementalVulnerabilityEffects.Count -and
+    @($elementalVulnerabilityEffects | Where-Object {
+        @($elementalVulnerabilityMappings.NAME) -ccontains $_
+    }).Count -eq $elementalVulnerabilityEffects.Count -and
+    $elementalVulnerabilityBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeElementalVulnerabilityBuffRows -and
+    (($elementalVulnerabilitySignatures -join "`n") -ceq
+        ($expectedElementalVulnerabilitySignatures -join "`n"))) `
+    "p14.combat-expertise-isolation.buff.elemental-vulnerability-data-inventory-authenticated"
+
+$elementalVulnerabilityEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerElementalVulnerabilityEffect(String effectName)"
+$elementalVulnerabilityBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerElementalVulnerabilityBuff(obj_id target, buff_data data)"
+$elementalVulnerabilityClear = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerElementalVulnerabilityState(obj_id player)"
+$elementalVulnerabilityCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerElementalVulnerabilityState(obj_id player)"
+$elementalVulnerabilityProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$elementalVulnerabilityAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$elementalVulnerabilityAdmissionGate = $elementalVulnerabilityAdmission.IndexOf(
+    "isRetiredPostNgePlayerElementalVulnerabilityBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityExistingBuffReturn = $elementalVulnerabilityAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_EFFECT_PREFIX = "dt_vulnerability_"') -and
+    $buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_STATE = "elemental_vulnerability"') -and
+    $elementalVulnerabilityEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_EFFECT_PREFIX") -and
+    $elementalVulnerabilityEffectPredicate.Contains("effectName.startsWith") -and
+    $elementalVulnerabilityBuffPredicate.Contains("!isPlayer(target)") -and
+    $elementalVulnerabilityBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $elementalVulnerabilityBuffPredicate.Contains(
+        "isRetiredPostNgePlayerElementalVulnerabilityEffect(getEffectParam(data, effect))") -and
+    $elementalVulnerabilityClear.Contains("!isPlayer(player)") -and
+    $elementalVulnerabilityClear.Contains(
+        "utils.removeScriptVarTree(player, RETIRED_POST_NGE_PLAYER_ELEMENTAL_VULNERABILITY_STATE);") -and
+    $elementalVulnerabilityCleanup.Contains("getAllBuffs(player)") -and
+    $elementalVulnerabilityCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $elementalVulnerabilityCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $elementalVulnerabilityCleanup.Contains(
+        "clearPostNgePlayerElementalVulnerabilityState(player);") -and
+    $elementalVulnerabilityProgressionCleanup.Contains(
+        "retirePostNgePlayerElementalVulnerabilityState(player);") -and
+    $elementalVulnerabilityAdmissionGate -ge 0 -and
+    $elementalVulnerabilityExistingBuffReturn -gt $elementalVulnerabilityAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeElementalVulnerabilityBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeElementalVulnerabilityStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeElementalVulnerabilityScriptVarsRemoved -and
+    [bool]$contract.expected.nonPlayerNgeElementalVulnerabilityCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.elemental-vulnerability-admission-and-persistence-fail-closed"
+
+$elementalVulnerabilityAdd = Get-BracedBlock $buffHandler `
+    "public int vulnerabilityAddBuffHandler("
+$elementalVulnerabilityRemove = Get-BracedBlock $buffHandler `
+    "public int vulnerabilityRemoveBuffHandler("
+$elementalVulnerabilityAddGuard = $elementalVulnerabilityAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$elementalVulnerabilityAddCleanup = $elementalVulnerabilityAdd.IndexOf(
+    "buff.retirePostNgePlayerElementalVulnerabilityState(self);",
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityAddReturn = $elementalVulnerabilityAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $elementalVulnerabilityAddCleanup,
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityAddWriter = $elementalVulnerabilityAdd.IndexOf(
+    'utils.setScriptVar(self, "elemental_vulnerability.type_" + type, type);',
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityRemoveGuard = $elementalVulnerabilityRemove.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$elementalVulnerabilityRemoveCleanup = $elementalVulnerabilityRemove.IndexOf(
+    "buff.clearPostNgePlayerElementalVulnerabilityState(self);",
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityRemoveReturn = $elementalVulnerabilityRemove.IndexOf(
+    "return SCRIPT_OVERRIDE;", $elementalVulnerabilityRemoveCleanup,
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityRemoveWriter = $elementalVulnerabilityRemove.IndexOf(
+    'utils.removeScriptVar(self, "elemental_vulnerability.type_" + type);',
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityConsumer = Get-BracedBlock $combatBase `
+    "public void doWrappedDamage(obj_id attacker, obj_id defender, weapon_data weaponData, hit_result hitData, combat_data actionData, int overloadDamage)"
+$elementalVulnerabilityConsumerGuard = $elementalVulnerabilityConsumer.IndexOf(
+    'if (isPlayer(defender) && utils.hasScriptVarTree(defender, "elemental_vulnerability"))',
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityConsumerCleanup = $elementalVulnerabilityConsumer.IndexOf(
+    "buff.retirePostNgePlayerElementalVulnerabilityState(defender);",
+    [StringComparison]::Ordinal)
+$elementalVulnerabilityFirstRead = $elementalVulnerabilityConsumer.IndexOf(
+    'utils.hasScriptVar(defender, "elemental_vulnerability.type_heat")',
+    [StringComparison]::Ordinal)
+$guardedElementalVulnerabilityReads = ([regex]::Matches(
+        $elementalVulnerabilityConsumer,
+        'if \(!isPlayer\(defender\) && utils\.hasScriptVar\(defender, "elemental_vulnerability\.type_(?:heat|electrical|cold|acid)"\)\)')).Count
+Assert-Contract ($elementalVulnerabilityAddGuard -ge 0 -and
+    $elementalVulnerabilityAddCleanup -gt $elementalVulnerabilityAddGuard -and
+    $elementalVulnerabilityAddReturn -gt $elementalVulnerabilityAddCleanup -and
+    $elementalVulnerabilityAddWriter -gt $elementalVulnerabilityAddReturn -and
+    $elementalVulnerabilityRemoveGuard -ge 0 -and
+    $elementalVulnerabilityRemoveCleanup -gt $elementalVulnerabilityRemoveGuard -and
+    $elementalVulnerabilityRemoveReturn -gt $elementalVulnerabilityRemoveCleanup -and
+    $elementalVulnerabilityRemoveWriter -gt $elementalVulnerabilityRemoveReturn -and
+    $elementalVulnerabilityConsumerGuard -ge 0 -and
+    $elementalVulnerabilityConsumerCleanup -gt $elementalVulnerabilityConsumerGuard -and
+    $elementalVulnerabilityFirstRead -gt $elementalVulnerabilityConsumerCleanup -and
+    $guardedElementalVulnerabilityReads -eq 4 -and
+    ([regex]::Matches($elementalVulnerabilityAdd,
+        'utils\.setScriptVar\(self, "elemental_vulnerability\.type_')).Count -eq 3 -and
+    [int]$contract.expected.productionElementalVulnerabilityHandlersGuarded -eq 2 -and
+    [int]$contract.expected.productionElementalVulnerabilityConsumersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeElementalVulnerabilityDamageMutationReachable -and
+    [bool]$contract.expected.nonPlayerNgeElementalVulnerabilityCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.elemental-vulnerability-handlers-and-damage-consumer-player-fail-closed"
+
 $medicDeferredDotProcActions = @(
     "expertise_dueterium_rounds_proc",
     "expertise_poison_knuckle_proc"
