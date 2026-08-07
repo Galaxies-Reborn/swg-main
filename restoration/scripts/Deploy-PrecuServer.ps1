@@ -3553,7 +3553,7 @@ for channel_heal_handler_spec in damage:retirePostNgePlayerChannelHealState:hasB
     channel_heal_handler_writer_bytecode_line="$(printf '%s\n' "$channel_heal_handler_bytecode" | grep -Fn "$channel_heal_handler_writer" | head -1 | cut -d: -f1)"
     test "$channel_heal_handler_guard_bytecode_line" -lt "$channel_heal_handler_cleanup_bytecode_line"
     test "$channel_heal_handler_cleanup_bytecode_line" -lt "$channel_heal_handler_writer_bytecode_line"
-    printf '%s\n' "$channel_heal_handler_bytecode" | head -n "$channel_heal_handler_writer_bytecode_line" | tail -n "+$channel_heal_handler_cleanup_bytecode_line" | grep -Eq '[[:space:]]return$'
+    printf '%s\n' "$channel_heal_handler_bytecode" | head -n "$channel_heal_handler_writer_bytecode_line" | tail -n "+$channel_heal_handler_cleanup_bytecode_line" | grep -Eq '[[:space:]](i)?return$'
 done
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"
