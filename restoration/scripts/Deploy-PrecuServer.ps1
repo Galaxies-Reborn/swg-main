@@ -2079,6 +2079,8 @@ test "$(grep -Fc 'trial.cleanupObject(self);' "$work_gcw_banner_manager")" -eq 2
 gcw_commando_retirement_source="$(sed -n '/public static boolean isRetiredPostNgeCommandoPlayerAction/,/public static boolean isRetiredPostNgeMedicPlayerAction/p' "$work_combat_base")"
 printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'isPlayer(self)'
 printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.startsWith("co_")'
+printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.startsWith("kill_meter_co_")'
+printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.startsWith("expertise_co_")'
 printf '%s' "$gcw_commando_retirement_source" | grep -Fq 'actionName.equals("banner_buff_commando")'
 buildabuff_source="$(sed -n '/public int buildabuffAddBuffHandler/,/public int buildabuffRemoveBuffHandler/p' "$work_buff_handler")"
 test "$(grep -Ec 'addSkillModModifier\(self, *"expertise_' "$work_buff_handler")" -eq 3
@@ -2198,6 +2200,8 @@ done
 grep -Fq 'actionName.startsWith("bh_")' "$work_script/systems/combat/combat_base.java"
 grep -Fq 'isRetiredPostNgeBountyHunterPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 grep -Fq 'actionName.startsWith("co_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'actionName.startsWith("kill_meter_co_")' "$work_script/systems/combat/combat_base.java"
+grep -Fq 'actionName.startsWith("expertise_co_")' "$work_script/systems/combat/combat_base.java"
 grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
 test "$(grep -Fc 'isRetiredPostNgeCommandoPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 1
 grep -Fq 'isRetiredPostNgeCommandoPlayerAction(self, "co_kill_trap_1")' "$work_script/systems/combat/combat_actions.java"
@@ -2670,6 +2674,76 @@ printf '%s\n' "$aggro_channel_hate_source" | grep -Fq 'if (isPlayer(attacker) &&
 printf '%s\n' "$aggro_channel_hate_source" | grep -Fq 'utils.hasScriptVar(attacker, buff.AGGRO_TRANSFER_TO)'
 test "$aggro_channel_consumer_cleanup_line" -lt "$aggro_channel_consumer_expertise_line"
 test "$aggro_channel_consumer_expertise_line" -lt "$aggro_channel_consumer_transfer_line"
+commando_deferred_actions='kill_meter_co_it_burns_proc kill_meter_co_armor_splash_proc kill_meter_co_youll_regret_that_reac expertise_co_burst_fire_proc'
+for commando_deferred_action in $commando_deferred_actions; do
+    test "$(awk -F '\t' -v name="$commando_deferred_action" 'NR > 2 && $1 == name { found++; if ($4 != name) exit 2 } END { print found + 0 }' "$work_command_table")" -eq 1
+    test "$(awk -F '\t' -v name="$commando_deferred_action" 'NR > 2 && $1 == name { found++ } END { print found + 0 }' "$work_combat_data")" -eq 1
+    grep -Fq "public int $commando_deferred_action(" "$work_combat_actions"
+done
+test "$(grep -Ec '^    public int (kill_meter_co_(it_burns_proc|armor_splash_proc|youll_regret_that_reac)|expertise_co_burst_fire_proc)\(' "$work_combat_actions")" -eq 4
+awk -F '\t' '$1 == "kill_meter_co_youll_regret_that_reac" { found++; if ($68 != "co_youll_regret_that") exit 2 } END { if (found != 1) exit 3 }' "$work_combat_data"
+awk -F '\t' '$1 == "commando_snare_bonus" { found++; if ($2 != "commandoSnareBonus" || $3 != "commando_snare_bonus") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 && $8 == "commando_snare_bonus" {
+    found++
+    if ($1 != "co_youll_regret_that" || $2 != "youll_regret_that" || $7 != 30 || $30 != 1) exit 2
+}
+END { if (found != 1) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+NR > 2 && $1 ~ /^expertise_co_youll_regret_that_[1-4]$/ {
+    found++
+    if (index($23, "expertise_youll_regret_that=1000") == 0) exit 2
+    if ($1 == "expertise_co_youll_regret_that_1" &&
+        index($23, "kill_meter_co_youll_regret_that_reac=100") == 0) exit 2
+}
+END { if (found != 4) exit 3 }
+' "$work_skills_table"
+commando_player_action_source="$(sed -n '/public static boolean isRetiredPostNgeCommandoPlayerAction/,/public static boolean isRetiredPostNgeMedicPlayerAction/p' "$work_combat_base")"
+printf '%s\n' "$commando_player_action_source" | grep -Fq 'actionName.startsWith("co_")'
+printf '%s\n' "$commando_player_action_source" | grep -Fq 'actionName.startsWith("kill_meter_co_")'
+printf '%s\n' "$commando_player_action_source" | grep -Fq 'actionName.startsWith("expertise_co_")'
+printf '%s\n' "$commando_player_action_source" | grep -Fq 'actionName.equals("banner_buff_commando")'
+grep -Fq 'RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_EFFECT = "commando_snare_bonus"' "$work_buff_library"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_MODIFIER = "commandoInnateArmorBonus"' "$work_buff_library"
+commando_snare_armor_effect_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCommandoSnareArmorEffect/,/public static boolean isRetiredPostNgePlayerCommandoSnareArmorBuff/p' "$work_buff_library")"
+printf '%s\n' "$commando_snare_armor_effect_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_EFFECT'
+commando_snare_armor_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerCommandoSnareArmorBuff/,/public static void clearPostNgePlayerCommandoSnareArmorModifier/p' "$work_buff_library")"
+printf '%s\n' "$commando_snare_armor_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$commando_snare_armor_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$commando_snare_armor_predicate_source" | grep -Fq 'isRetiredPostNgePlayerCommandoSnareArmorEffect(getEffectParam(data, effect))'
+commando_snare_armor_modifier_cleanup_source="$(sed -n '/public static void clearPostNgePlayerCommandoSnareArmorModifier/,/public static void retirePostNgePlayerCommandoSnareArmorState/p' "$work_buff_library")"
+printf '%s\n' "$commando_snare_armor_modifier_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$commando_snare_armor_modifier_cleanup_source" | grep -Fq 'hasSkillModModifier'
+printf '%s\n' "$commando_snare_armor_modifier_cleanup_source" | grep -Fq 'removeAttribOrSkillModModifier'
+printf '%s\n' "$commando_snare_armor_modifier_cleanup_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_MODIFIER'
+commando_snare_armor_state_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCommandoSnareArmorState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$commando_snare_armor_state_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$commando_snare_armor_state_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$commando_snare_armor_state_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$commando_snare_armor_state_cleanup_source" | grep -Fq 'clearPostNgePlayerCommandoSnareArmorModifier(player);'
+grep -Fq 'retirePostNgePlayerCommandoSnareArmorState(player);' "$work_buff_library"
+commando_snare_armor_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+commando_snare_armor_admission_line="$(printf '%s\n' "$commando_snare_armor_admission_source" | grep -Fn 'isRetiredPostNgePlayerCommandoSnareArmorBuff(target, bdata)' | head -1 | cut -d: -f1)"
+commando_snare_armor_existing_line="$(printf '%s\n' "$commando_snare_armor_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$commando_snare_armor_admission_line" -lt "$commando_snare_armor_existing_line"
+commando_snare_armor_add_source="$(sed -n '/public int commandoSnareBonusAddBuffHandler/,/public int commandoSnareBonusRemoveBuffHandler/p' "$work_buff_handler")"
+commando_snare_armor_validity_line="$(printf '%s\n' "$commando_snare_armor_add_source" | grep -Fn 'if (!isIdValid(self))' | head -1 | cut -d: -f1)"
+commando_snare_armor_guard_line="$(printf '%s\n' "$commando_snare_armor_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerCommandoSnareArmorEffect(effectName))' | head -1 | cut -d: -f1)"
+commando_snare_armor_cleanup_line="$(printf '%s\n' "$commando_snare_armor_add_source" | grep -Fn 'buff.retirePostNgePlayerCommandoSnareArmorState(self);' | head -1 | cut -d: -f1)"
+commando_snare_armor_return_line="$(printf '%s\n' "$commando_snare_armor_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$commando_snare_armor_cleanup_line" '$1 > cleanup { print $1; exit }')"
+commando_snare_armor_movement_line="$(printf '%s\n' "$commando_snare_armor_add_source" | grep -Fn 'movement.getAllModifiers(self)' | head -1 | cut -d: -f1)"
+commando_snare_armor_expertise_line="$(printf '%s\n' "$commando_snare_armor_add_source" | grep -Fn 'getSkillStatisticModifier(self, "expertise_youll_regret_that")' | head -1 | cut -d: -f1)"
+commando_snare_armor_writer_line="$(printf '%s\n' "$commando_snare_armor_add_source" | grep -Fn 'skillAddBuffHandler(self, "commandoInnateArmorBonus", "expertise_innate_protection_all"' | head -1 | cut -d: -f1)"
+test "$commando_snare_armor_validity_line" -lt "$commando_snare_armor_guard_line"
+test "$commando_snare_armor_guard_line" -lt "$commando_snare_armor_cleanup_line"
+test "$commando_snare_armor_cleanup_line" -lt "$commando_snare_armor_return_line"
+test "$commando_snare_armor_return_line" -lt "$commando_snare_armor_movement_line"
+test "$commando_snare_armor_movement_line" -lt "$commando_snare_armor_expertise_line"
+test "$commando_snare_armor_expertise_line" -lt "$commando_snare_armor_writer_line"
+commando_snare_armor_remove_source="$(sed -n '/public int commandoSnareBonusRemoveBuffHandler/,/public int commandoFlashBangAddBuffHandler/p' "$work_buff_handler")"
+printf '%s\n' "$commando_snare_armor_remove_source" | grep -Fq 'removeAttribOrSkillModModifier(self, "commandoInnateArmorBonus")'
+printf '%s\n' "$commando_snare_armor_remove_source" | grep -Fq 'messageTo(self, "recalcArmor"'
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -4061,6 +4135,56 @@ printf '%s' "$aggro_channel_consumer_bytecode" | grep -Fq 'Method isPlayer'
 printf '%s' "$aggro_channel_consumer_bytecode" | grep -Fq 'aggroBuffTransfer'
 test "$aggro_channel_consumer_cleanup_bytecode_line" -lt "$aggro_channel_consumer_expertise_bytecode_line"
 test "$aggro_channel_consumer_expertise_bytecode_line" -lt "$aggro_channel_consumer_transfer_bytecode_line"
+commando_player_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base | sed -n '/isRetiredPostNgeCommandoPlayerAction/,/isRetiredPostNgeMedicPlayerAction/p')"
+printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String co_'
+printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String kill_meter_co_'
+printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String expertise_co_'
+printf '%s' "$commando_player_action_bytecode" | grep -Fq 'String banner_buff_commando'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commando_snare_bonus'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commandoInnateArmorBonus'
+commando_snare_armor_effect_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandoSnareArmorEffect(java.lang.String)/,/isRetiredPostNgePlayerCommandoSnareArmorBuff/p')"
+printf '%s' "$commando_snare_armor_effect_bytecode" | grep -Fq 'commando_snare_bonus'
+commando_snare_armor_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandoSnareArmorBuff/,/clearPostNgePlayerCommandoSnareArmorModifier/p')"
+printf '%s' "$commando_snare_armor_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$commando_snare_armor_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandoSnareArmorEffect'
+commando_snare_armor_modifier_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerCommandoSnareArmorModifier/,/retirePostNgePlayerCommandoSnareArmorState/p')"
+printf '%s' "$commando_snare_armor_modifier_cleanup_bytecode" | grep -Fq 'Method hasSkillModModifier'
+printf '%s' "$commando_snare_armor_modifier_cleanup_bytecode" | grep -Fq 'Method removeAttribOrSkillModModifier'
+printf '%s' "$commando_snare_armor_modifier_cleanup_bytecode" | grep -Fq 'commandoInnateArmorBonus'
+commando_snare_armor_state_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCommandoSnareArmorState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$commando_snare_armor_state_cleanup_bytecode" | grep -Fq 'Method getAllBuffs'
+printf '%s' "$commando_snare_armor_state_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$commando_snare_armor_state_cleanup_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$commando_snare_armor_state_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCommandoSnareArmorModifier'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerCommandoSnareArmorState'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/getGroups/p' | grep -Fq 'isRetiredPostNgePlayerCommandoSnareArmorBuff'
+commando_snare_armor_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandoSnareBonusAddBuffHandler/,/commandoSnareBonusRemoveBuffHandler/p')"
+commando_snare_armor_validity_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'Method isIdValid' | head -1 | cut -d: -f1)"
+commando_snare_armor_guard_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+commando_snare_armor_predicate_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerCommandoSnareArmorEffect' | head -1 | cut -d: -f1)"
+commando_snare_armor_cleanup_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'retirePostNgePlayerCommandoSnareArmorState' | head -1 | cut -d: -f1)"
+commando_snare_armor_return_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$commando_snare_armor_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+commando_snare_armor_movement_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'movement.getAllModifiers' | head -1 | cut -d: -f1)"
+commando_snare_armor_expertise_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'expertise_youll_regret_that' | head -1 | cut -d: -f1)"
+commando_snare_armor_writer_bytecode_line="$(printf '%s\n' "$commando_snare_armor_add_bytecode" | grep -Fn 'Method skillAddBuffHandler' | head -1 | cut -d: -f1)"
+test -n "$commando_snare_armor_validity_bytecode_line"
+test -n "$commando_snare_armor_guard_bytecode_line"
+test -n "$commando_snare_armor_predicate_bytecode_line"
+test -n "$commando_snare_armor_cleanup_bytecode_line"
+test -n "$commando_snare_armor_return_bytecode_line"
+test -n "$commando_snare_armor_movement_bytecode_line"
+test -n "$commando_snare_armor_expertise_bytecode_line"
+test -n "$commando_snare_armor_writer_bytecode_line"
+test "$commando_snare_armor_validity_bytecode_line" -lt "$commando_snare_armor_guard_bytecode_line"
+test "$commando_snare_armor_guard_bytecode_line" -lt "$commando_snare_armor_predicate_bytecode_line"
+test "$commando_snare_armor_predicate_bytecode_line" -lt "$commando_snare_armor_cleanup_bytecode_line"
+test "$commando_snare_armor_cleanup_bytecode_line" -lt "$commando_snare_armor_return_bytecode_line"
+test "$commando_snare_armor_return_bytecode_line" -lt "$commando_snare_armor_movement_bytecode_line"
+test "$commando_snare_armor_movement_bytecode_line" -lt "$commando_snare_armor_expertise_bytecode_line"
+test "$commando_snare_armor_expertise_bytecode_line" -lt "$commando_snare_armor_writer_bytecode_line"
+commando_snare_armor_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/commandoSnareBonusRemoveBuffHandler/,/commandoFlashBangAddBuffHandler/p')"
+printf '%s' "$commando_snare_armor_remove_bytecode" | grep -Fq 'commandoInnateArmorBonus'
+printf '%s' "$commando_snare_armor_remove_bytecode" | grep -Fq 'String recalcArmor'
 action_burn_dictionary_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.dictionary)/,/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/p')"
 action_burn_typed_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/,/getSuccessBasedSingleTargetActionCost/p')"
 for action_burn_consumer_bytecode in "$action_burn_dictionary_cost_bytecode" "$action_burn_typed_cost_bytecode"; do

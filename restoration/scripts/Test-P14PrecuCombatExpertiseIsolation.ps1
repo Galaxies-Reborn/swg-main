@@ -62,6 +62,7 @@ foreach ($property in $contract.sourceFiles.PSObject.Properties)
 
 $combatLibrary = [string]$texts.combatLibrary
 $combatBase = [string]$texts.combatBase
+$combatActions = [string]$texts.combatActions
 $basePlayer = [string]$texts.basePlayer
 $buffHandler = [string]$texts.buffHandler
 $buffLibrary = [string]$texts.buffLibrary
@@ -2170,6 +2171,161 @@ Assert-Contract ($aggroChannelGuard -ge 0 -and
     -not [bool]$contract.expected.playerNgeAggroChannelHateTransferReachable -and
     [bool]$contract.expected.nonPlayerNgeAggroChannelCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.aggro-channel-handler-and-hate-consumer-player-fail-closed"
+
+$commandoDeferredActions = @(
+    "kill_meter_co_it_burns_proc",
+    "kill_meter_co_armor_splash_proc",
+    "kill_meter_co_youll_regret_that_reac",
+    "expertise_co_burst_fire_proc"
+)
+$commandoDeferredCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { $commandoDeferredActions -ccontains [string]$_.commandName })
+$commandoDeferredCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { $commandoDeferredActions -ccontains [string]$_.actionName })
+$commandoDeferredActionHandlers = @([regex]::Matches($combatActions,
+        'public int (kill_meter_co_(?:it_burns_proc|armor_splash_proc|youll_regret_that_reac)|expertise_co_burst_fire_proc)\('))
+$commandoSnareArmorMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "commandoSnareBonus" })
+$commandoSnareArmorBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    [string]$_.EFFECT1_PARAM -ceq "commando_snare_bonus"
+})
+$commandoSnareArmorSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object { [string]$_.NAME -cmatch '^expertise_co_youll_regret_that_[1-4]$' })
+Assert-Contract ($commandoDeferredCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoDeferredCommandRows -and
+    @($commandoDeferredCommandRows | Where-Object {
+        [string]$_.scriptHook -ceq [string]$_.commandName -and
+        [string]$_.fromServerOnly -ceq "1" -and
+        [string]$_.toolbarOnly -ceq "1"
+    }).Count -eq $commandoDeferredCommandRows.Count -and
+    $commandoDeferredCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoDeferredCombatRows -and
+    @($commandoDeferredCombatRows | Where-Object {
+        [string]$_.commandType -ceq "LEFT_CLICK_DEFAULT"
+    }).Count -eq $commandoDeferredCombatRows.Count -and
+    @($commandoDeferredCombatRows | Where-Object {
+        [string]$_.actionName -ceq "kill_meter_co_youll_regret_that_reac" -and
+        [string]$_.buffNameSelf -ceq "co_youll_regret_that"
+    }).Count -eq 1 -and
+    $commandoDeferredActionHandlers.Count -eq
+        [int]$contract.expected.retainedNgeCommandoDeferredActionHandlers -and
+    $commandoSnareArmorMappings.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSnareArmorEffectMappingRows -and
+    [string]$commandoSnareArmorMappings[0].NAME -ceq "commando_snare_bonus" -and
+    [string]$commandoSnareArmorMappings[0].SUBTYPE -ceq "commando_snare_bonus" -and
+    $commandoSnareArmorBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSnareArmorBuffRows -and
+    [string]$commandoSnareArmorBuffRows[0].NAME -ceq "co_youll_regret_that" -and
+    [string]$commandoSnareArmorBuffRows[0].GROUP1 -ceq "youll_regret_that" -and
+    [string]$commandoSnareArmorBuffRows[0].DURATION -ceq "30" -and
+    [string]$commandoSnareArmorBuffRows[0].IS_PERSISTENT -ceq "1" -and
+    $commandoSnareArmorSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSnareArmorExpertiseSkillRows -and
+    @($commandoSnareArmorSkillRows | Where-Object {
+        [string]$_.SKILL_MODS -match 'expertise_youll_regret_that=1000'
+    }).Count -eq 4 -and
+    @($commandoSnareArmorSkillRows | Where-Object {
+        [string]$_.NAME -ceq "expertise_co_youll_regret_that_1" -and
+        [string]$_.SKILL_MODS -match 'kill_meter_co_youll_regret_that_reac=100'
+    }).Count -eq 1) `
+    "p14.combat-expertise-isolation.buff.commando-snare-armor-data-and-action-ownership-authenticated"
+
+$commandoPlayerAction = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeCommandoPlayerAction(obj_id self, String actionName)"
+$commandoSnareArmorEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCommandoSnareArmorEffect(String effectName)"
+$commandoSnareArmorBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCommandoSnareArmorBuff(obj_id target, buff_data data)"
+$commandoSnareArmorModifierCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerCommandoSnareArmorModifier(obj_id player)"
+$commandoSnareArmorStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerCommandoSnareArmorState(obj_id player)"
+$commandoSnareArmorProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$commandoSnareArmorCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$commandoSnareArmorAdmissionGate = $commandoSnareArmorCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerCommandoSnareArmorBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$commandoSnareArmorExistingBuffReturn = $commandoSnareArmorCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($commandoPlayerAction.Contains('actionName.startsWith("co_")') -and
+    $commandoPlayerAction.Contains('actionName.startsWith("kill_meter_co_")') -and
+    $commandoPlayerAction.Contains('actionName.startsWith("expertise_co_")') -and
+    $commandoPlayerAction.Contains('actionName.equals("banner_buff_commando")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeCommandoPlayerAction(self, actionName)") -and
+    $buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_EFFECT = "commando_snare_bonus"') -and
+    $buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_MODIFIER = "commandoInnateArmorBonus"') -and
+    $commandoSnareArmorEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_EFFECT") -and
+    $commandoSnareArmorBuffPredicate.Contains("!isPlayer(target)") -and
+    $commandoSnareArmorBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $commandoSnareArmorBuffPredicate.Contains(
+        "isRetiredPostNgePlayerCommandoSnareArmorEffect(getEffectParam(data, effect))") -and
+    $commandoSnareArmorModifierCleanup.Contains("!isPlayer(player)") -and
+    $commandoSnareArmorModifierCleanup.Contains(
+        "RETIRED_POST_NGE_PLAYER_COMMANDO_SNARE_ARMOR_MODIFIER") -and
+    $commandoSnareArmorModifierCleanup.Contains("hasSkillModModifier") -and
+    $commandoSnareArmorModifierCleanup.Contains("removeAttribOrSkillModModifier") -and
+    $commandoSnareArmorStateCleanup.Contains("getAllBuffs(player)") -and
+    $commandoSnareArmorStateCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $commandoSnareArmorStateCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $commandoSnareArmorStateCleanup.Contains(
+        "clearPostNgePlayerCommandoSnareArmorModifier(player);") -and
+    $commandoSnareArmorProgressionCleanup.Contains(
+        "retirePostNgePlayerCommandoSnareArmorState(player);") -and
+    $commandoSnareArmorAdmissionGate -ge 0 -and
+    $commandoSnareArmorExistingBuffReturn -gt $commandoSnareArmorAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeCommandoDeferredActionExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeCommandoSnareArmorBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeCommandoSnareArmorStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeCommandoSnareArmorModifierRemoved) `
+    "p14.combat-expertise-isolation.buff.commando-snare-armor-action-admission-and-persistence-fail-closed"
+
+$commandoSnareArmorAddHandler = Get-BracedBlock $buffHandler `
+    "public int commandoSnareBonusAddBuffHandler("
+$commandoSnareArmorRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int commandoSnareBonusRemoveBuffHandler("
+$commandoSnareArmorValidity = $commandoSnareArmorAddHandler.IndexOf(
+    "if (!isIdValid(self))", [StringComparison]::Ordinal)
+$commandoSnareArmorGuard = $commandoSnareArmorAddHandler.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$commandoSnareArmorPredicate = $commandoSnareArmorAddHandler.IndexOf(
+    "buff.isRetiredPostNgePlayerCommandoSnareArmorEffect(effectName)",
+    [StringComparison]::Ordinal)
+$commandoSnareArmorCleanup = $commandoSnareArmorAddHandler.IndexOf(
+    "buff.retirePostNgePlayerCommandoSnareArmorState(self);",
+    [StringComparison]::Ordinal)
+$commandoSnareArmorReturn = $commandoSnareArmorAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", $commandoSnareArmorCleanup,
+    [StringComparison]::Ordinal)
+$commandoSnareArmorMovementRead = $commandoSnareArmorAddHandler.IndexOf(
+    "movement.getAllModifiers(self)", [StringComparison]::Ordinal)
+$commandoSnareArmorExpertiseRead = $commandoSnareArmorAddHandler.IndexOf(
+    'getSkillStatisticModifier(self, "expertise_youll_regret_that")',
+    [StringComparison]::Ordinal)
+$commandoSnareArmorWriter = $commandoSnareArmorAddHandler.IndexOf(
+    'skillAddBuffHandler(self, "commandoInnateArmorBonus", "expertise_innate_protection_all"',
+    [StringComparison]::Ordinal)
+Assert-Contract ($commandoSnareArmorValidity -ge 0 -and
+    $commandoSnareArmorGuard -gt $commandoSnareArmorValidity -and
+    $commandoSnareArmorPredicate -gt $commandoSnareArmorGuard -and
+    $commandoSnareArmorCleanup -gt $commandoSnareArmorPredicate -and
+    $commandoSnareArmorReturn -gt $commandoSnareArmorCleanup -and
+    $commandoSnareArmorMovementRead -gt $commandoSnareArmorReturn -and
+    $commandoSnareArmorExpertiseRead -gt $commandoSnareArmorMovementRead -and
+    $commandoSnareArmorWriter -gt $commandoSnareArmorExpertiseRead -and
+    $commandoSnareArmorRemoveHandler.Contains(
+        'removeAttribOrSkillModModifier(self, "commandoInnateArmorBonus")') -and
+    $commandoSnareArmorRemoveHandler.Contains(
+        'messageTo(self, "recalcArmor"') -and
+    [int]$contract.expected.productionCommandoSnareArmorHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeCommandoSnareArmorModifierWritesReachable -and
+    [bool]$contract.expected.nonPlayerNgeCommandoSnareArmorCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.commando-snare-armor-handler-player-fail-closed"
 
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
