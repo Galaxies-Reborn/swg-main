@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, radar-invisibility, global command-cooldown-execution, Force Sensitive saber-intercept, Smuggler pistol-whip control, Smuggler trick-derived modifier buffs, Officer Aggro Channel hate transfer, Commando kill-meter/snare-armor expertise, or prefixless Medic expertise fire/poison DOT procs from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -324,7 +324,7 @@
     },
     "compiledClassSha256": {
       "combatLibrary": "f5cd3b3a9774da397269c0e4aaf048325aa25d1aa4d0e906ea9133187ebd9af5",
-      "combatBase": "5737496cd731d945e127ae30246fc18625b9f80718d81b96d6b4c66af934727f",
+      "combatBase": "19bc7ec711124bea6938410323ae2b1ff3c53b337f42c7540a07e7bfa6c5d11a",
       "basePlayer": "389d23400375051af881a2abca987b5ff50fbd0763b6b6a4909c0730617b45c5",
       "buffHandler": "6d55a9b08bc63a36607a7d1a15cabdf215937458fd23958287774019a018fcff",
       "buffLibrary": "22250ad70a1aecd54765d884bb37088e7e092dc87055a07282b8030750b2d2cc",
@@ -342,28 +342,28 @@
     "focusedCombatLibraryClassBytes": 88492,
     "sourceTest": "passed exact inventory and properties for two retained server-only Medic deferred-DOT commands, two combat rows, two proc rows, two expertise grants, and two combat handlers; authenticated exact player-only Medic action denial, earlier generic proc denial, non-player expansion compatibility, and unchanged PRE-CU applyPoison/applyDisease ownership",
     "focusedJavaCompile": "passed from exact pushed direct source d5b3fb3fbea21fc12fbbb6bb4678f0d2397ca0e9 with Java 8 source/target compatibility against the deployed x64 class set for combat_base.java; isolated bytecode contains both exact Medic deferred-DOT action literals and the player predicate, emitted 127,648 bytes with SHA-256 7cb491dccd5642f83e6a752ce4e95b4d885934f3f01aa1ed38049ac1d9bcfb12, and the exact ephemeral /dev/shm output directories were removed and verified absent",
-    "fullJavaCompile": "passed canonical clean dependency rebuild from 5,713 exact pushed direct-source Java files at dsrc af302e89b6fa9583dad2254c4cac06381f0873dc after removing every prior compiled Java class; 5,747 classes were emitted",
-    "fullServerBuild": "passed canonical clean Docker x86-64 build, full source/data/bytecode/binary audit, controlled restart, and readiness probes in the 834.1-second deployment from direct dsrc af302e89b6fa9583dad2254c4cac06381f0873dc and parent source checkpoint cf06347",
+    "fullJavaCompile": "passed canonical clean dependency rebuild from 5,713 exact pushed direct-source Java files at dsrc d5b3fb3fbea21fc12fbbb6bb4678f0d2397ca0e9 after removing every prior compiled Java class; 5,747 classes were emitted",
+    "fullServerBuild": "passed canonical clean Docker x86-64 build, full source/data/bytecode/binary audit, controlled restart, and readiness probes in the 930-second deployment from direct dsrc d5b3fb3fbea21fc12fbbb6bb4678f0d2397ca0e9 and parent source checkpoint bc53511e33b0dcb3d1221db69f8f2f6863e8b9fd",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "serverGameArchiveSha256": "3fafc5a7b05e2347c30f06a5266211b5919d8ace079a5ae7b7895485e5e39b8d",
     "sourceWorkParity": "passed exact byte parity and matching SHA-256 values between the read-only source mount and writable Docker work volume for combat_base.java, buff_handler.java, and buff.java",
-    "bytecodeAudit": "passed for deployed player-only Commando co_*, kill_meter_co_*, and expertise_co_* action denial; commando_snare_bonus five-slot admission and persisted-state cleanup; orphan commandoInnateArmorBonus cleanup; progression cleanup; and the pre-snare, pre-expertise, pre-write add-handler denial while retaining non-player behavior and paired remove handling",
+    "bytecodeAudit": "passed for deployed player-only Commando co_*, kill_meter_co_*, and expertise_co_* action denial; commando_snare_bonus admission, cleanup, and handler denial; exact Medic me_* plus expertise_dueterium_rounds_proc and expertise_poison_knuckle_proc player action denial; both retained Medic handlers routing through combatStandardAction; and preserved non-player expansion behavior",
     "deploymentProbe": "passed canonical source/data/bytecode and clean x64 build gates, healthy readiness, one stable TransferServer listener on native port 50005, mapped-binary identity, exact process topology, zero shared-memory residue, zero core files, and fresh-log verification",
-    "result": "pending"
+    "result": "passed"
   },
   "runtimeEvidence": {
     "date": "2026-08-07",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-07T17:00:41.027116661Z",
+    "containerStartedAt": "2026-08-07T17:41:51.90819488Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassSizes": {
       "combatLibrary": 104382,
-      "combatBase": 148709,
+      "combatBase": 148818,
       "basePlayer": 315149,
       "buffHandler": 134273,
       "buffLibrary": 60311,
@@ -372,7 +372,7 @@
       "bountyHunterShieldScript": 1763
     },
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 376,
+    "liveGameProcessPid": 371,
     "liveGameProcessCount": 15,
     "liveGameProcessesMappedBuiltBinary": 15,
     "livePlanetProcessCount": 15,
@@ -390,8 +390,8 @@
       "PlanetServer": 15,
       "SwgGameServer": 15
     },
-    "transferServerEndpoint": "one stable TransferServer process exclusively owns 172.26.0.3:50005 and remained on PID 372 across the independent stability window",
-    "postStartLogAudit": "321 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, or Oracle-error matches; three expected Oracle setup/status lines",
+    "transferServerEndpoint": "one stable TransferServer process exclusively owns 172.26.0.3:50005 and remained on PID 373 across the independent stability window",
+    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, core-dump, segmentation-fault, or Oracle-error matches",
     "result": "passed"
   },
   "auditBoundary": {
