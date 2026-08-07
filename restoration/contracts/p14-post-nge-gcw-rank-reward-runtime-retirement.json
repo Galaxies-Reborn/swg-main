@@ -2,21 +2,29 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-gcw-rank-reward-runtime-retirement",
   "status": "ready",
-  "scope": "Retire post-NGE GCW rank ability skills, buffs, and aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, and retained battle content.",
+  "scope": "Retire post-NGE GCW rank ability skills, buffs, all direct combat-action handlers, and player aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, retained battle content, and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "findings": [
       "Publish 14.1 faction rank is persisted independently and promoted through authored faction-point costs; it is not an NGE profession or expertise reward tree.",
       "The inherited pvp_imperial_* and pvp_rebel_* skill rows grant six later GCW combat ability tiers per faction, including an expertise-protection aura and airstrike.",
-      "Faction rank, badges/titles, recruiters, bases, battles, quests, zones, and compatibility data can remain active without granting those later combat abilities."
+      "Faction rank, badges/titles, recruiters, bases, battles, quests, zones, and compatibility data can remain active without granting those later combat abilities.",
+      "The retained 12 command rows fan into 20 command/effect handlers, and the aura controller can reschedule itself independently of skill grants; both runtime surfaces require player-only fail-closed gates in addition to persisted-skill cleanup."
     ]
   },
   "expected": {
     "retiredRewardSkills": 12,
     "retiredActiveBuffs": 12,
+    "retiredPlayerCombatActions": 20,
+    "retainedAuraControllerCallbacks": 3,
+    "authoritativeSourceFiles": 7,
     "retiredRankGrantSites": 6,
     "genericRetiredSkillAdmissionDominates": true,
+    "genericRetiredBuffAdmissionDominates": true,
+    "genericRetiredCombatActionAdmissionDominates": true,
+    "auraPlayerCallbacksFailClosed": true,
+    "nonPlayerCompatibilityPreserved": true,
     "persistedRewardCleanupOnInitializeLoginAndRecap": true,
     "auraControllerDetached": true,
     "auraFactionStateRemoved": true,
@@ -27,14 +35,18 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceCommit": "ddfdc218f8d26e2bb85c59652a4109db62f6553a",
+    "directSourceCommit": "d163f2714ba9f10b2206575ab72d55a7301c191d",
     "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
-    "sourceContentSha256": "98b569591aead1e94bc8ecf981179f2bfa4248e3c5c20d07b2122b21b2ea16fd",
+    "sourceContentSha256": "3326b2cc675627e5e7f65883c65413de179f0cd2c07e52ad1eb96452187501cd",
     "sourceSha256": {
-      "library/factions.java": "d169ef830f19a1462f296ac4d03b8ca0e58308d05bc3f68b2a6b7c557108eac7",
+      "library/buff.java": "eb35e92d3c703266ca68c924c4e8190b0764fda789b283c24ed0e83aa36e04de",
+      "library/factions.java": "0407778e49051f2668e75cafa4e477f3aee3930eb6ed19acea5939c1932a897d",
       "library/skill.java": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
-      "player/base/base_player.java": "26f9d7c2d43fc1e2c1162e110e3dde6883c212e8c6064b2fab3f92dfbd056744"
+      "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
+      "player/gcw/pvp_aura_buff_controller.java": "33d4732f239bc81a7ad5541bcc87f706ee55df58316b1d8aed57f3d640744ced",
+      "systems/combat/combat_actions.java": "1403733bb384e20a4f341c52403dc64101afeff12053e13b639ac0f8bcf51a59",
+      "systems/combat/combat_base.java": "9205cb7f792a487a38cc2f10125fb22807aa9e17d0bcc75f4252771531366cbb"
     },
     "fullJavaCompile": "passed and reverified in the cumulative M325 Docker build from pushed direct source; completed 2026-08-04",
     "compiledClassSha256": {

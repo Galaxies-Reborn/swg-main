@@ -323,6 +323,8 @@ source_groundquests_library="$source_script/library/groundquests.java"
 work_groundquests_library="$work_script/library/groundquests.java"
 source_factions_library="$source_script/library/factions.java"
 work_factions_library="$work_script/library/factions.java"
+source_pvp_aura_controller="$source_script/player/gcw/pvp_aura_buff_controller.java"
+work_pvp_aura_controller="$work_script/player/gcw/pvp_aura_buff_controller.java"
 source_faction_perk_library="$source_script/library/faction_perk.java"
 work_faction_perk_library="$work_script/library/faction_perk.java"
 source_jedi_saber_component="$source_script/systems/jedi/jedi_saber_component.java"
@@ -717,6 +719,7 @@ grep -Fq 'xp.grantCraftingQuestXp(player, experienceAmount)' "$work_groundquests
 grep -Fq 'xp.grantSocialStyleXp(player, experienceType, experienceAmount)' "$work_groundquests_library"
 grep -Fq 'xp.grantUnmodifiedExperience(player, experienceType, experienceAmount, false)' "$work_groundquests_library"
 cmp -s "$source_factions_library" "$work_factions_library"
+cmp -s "$source_pvp_aura_controller" "$work_pvp_aura_controller"
 cmp -s "$source_faction_perk_library" "$work_faction_perk_library"
 cmp -s "$source_jedi_saber_component" "$work_jedi_saber_component"
 cmp -s "$source_gcw_library" "$work_gcw_library"
@@ -1361,6 +1364,30 @@ for retained_avoid_incap_item in 'item_gcw_base_reactive_critical_heal_a_03_01:g
 done
 awk -F '\t' '$1 == "command_pvp_last_man_ability" || $1 == "command_pvp_last_man_rebel_ability" { found++ } END { if (found != 2) exit 3 }' "$work_command_table"
 grep -Fq 'buffHandler:add:tusken_endurance:player' "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/spawning/heroic/tusken/cloning.tab"
+pvp_reward_buff_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PVP_REWARD_BUFFS/,/public static boolean isRetiredPostNgePvpRewardBuff/p' "$work_factions_library")"
+retired_pvp_reward_buffs="pvp_aura_buff_self pvp_aura_buff_target pvp_aura_buff_rebel_self pvp_aura_buff_rebel_target pvp_retaliation_ability pvp_retaliation_rebel_ability pvp_adrenaline_ability pvp_adrenaline_rebel_ability pvp_unstoppable_ability pvp_unstoppable_rebel_ability pvp_last_man_ability pvp_last_man_rebel_ability"
+test "$(printf '%s\n' $retired_pvp_reward_buffs | wc -l)" -eq 12
+for retired_pvp_reward_buff in $retired_pvp_reward_buffs; do
+    printf '%s' "$pvp_reward_buff_inventory_source" | grep -Fq "\"$retired_pvp_reward_buff\""
+done
+grep -Fq 'for (String buffName : RETIRED_POST_NGE_PVP_REWARD_BUFFS)' "$work_factions_library"
+printf '%s' "$gcw_banner_admission_source" | grep -Fq 'factions.isRetiredPostNgePvpRewardBuff(bdata.buffName)'
+test "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'factions.isRetiredPostNgePvpRewardBuff(bdata.buffName)' | cut -d: -f1)" -lt "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'hasBuff(target, nameCrc)' | cut -d: -f1)"
+pvp_reward_action_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PVP_REWARD_PLAYER_ACTIONS/,/public static boolean isRetiredPostNgePvpRewardPlayerAction/p' "$work_combat_base")"
+retired_pvp_reward_actions="command_pvp_adrenaline_ability command_pvp_adrenaline_rebel_ability command_pvp_last_man_ability command_pvp_last_man_rebel_ability command_pvp_retaliation_ability command_pvp_retaliation_rebel_ability command_pvp_unstoppable_ability command_pvp_unstoppable_rebel_ability pvp_adrenaline_ability pvp_adrenaline_rebel_ability pvp_airstrike_ability pvp_airstrike_rebel_ability pvp_aura_buff_rebel_self pvp_aura_buff_self pvp_last_man_ability pvp_last_man_rebel_ability pvp_retaliation_ability pvp_retaliation_rebel_ability pvp_unstoppable_ability pvp_unstoppable_rebel_ability"
+test "$(printf '%s\n' $retired_pvp_reward_actions | wc -l)" -eq 20
+for retired_pvp_reward_action in $retired_pvp_reward_actions; do
+    printf '%s' "$pvp_reward_action_inventory_source" | grep -Fq "\"$retired_pvp_reward_action\""
+done
+pvp_reward_standard_action_source="$(sed -n '/public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)/,/combat.revealPrecuFeignDeath(self, "combatCommand")/p' "$work_combat_base")"
+printf '%s' "$pvp_reward_standard_action_source" | grep -Fq 'isRetiredPostNgePvpRewardPlayerAction(self, actionName)'
+printf '%s' "$pvp_reward_standard_action_source" | grep -Fq 'factions.retirePostNgePvpRewardState(self);'
+test "$(grep -Ec '^    public int ((command_)?pvp_(aura_buff_(rebel_)?self|retaliation(_rebel)?_ability|adrenaline(_rebel)?_ability|unstoppable(_rebel)?_ability|last_man(_rebel)?_ability|airstrike(_rebel)?_ability))\(' "$work_combat_actions")" -eq 20
+test "$(grep -Fc 'factions.retirePostNgePvpRewardState(self);' "$work_pvp_aura_controller")" -eq 3
+test "$(grep -Fc 'if (isPlayer(self))' "$work_pvp_aura_controller")" -eq 3
+grep -Fq 'isMob(self) && !isPlayer(self)' "$work_pvp_aura_controller"
+grep -Fq 'buff.applyBuff(players, "pvp_aura_buff_rebel_target")' "$work_pvp_aura_controller"
+grep -Fq 'buff.applyBuff(players, "pvp_aura_buff_target")' "$work_pvp_aura_controller"
 ! grep -Eq 'getPlayerProfession|getBannerBuff|buffPlayers|buff\.applyBuff' "$work_gcw_banner_manager"
 grep -Fq 'messageTo(self, "handleDeleteSelf", null, 180.0f, false);' "$work_gcw_banner_manager"
 test "$(grep -Fc 'trial.cleanupObject(self);' "$work_gcw_banner_manager")" -eq 2
@@ -2064,6 +2091,19 @@ critical_heal_bytecode="$(javap -classpath "$class_root" -c script.player.base.b
 printf '%s' "$critical_heal_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
 printf '%s' "$critical_heal_bytecode" | grep -Fq 'script/library/buff.retirePostP14PlayerAvoidIncapHealState'
 test "$(printf '%s' "$critical_heal_bytecode" | grep -nF 'script/library/buff.isPostNgeBuffProgressionRetired' | cut -d: -f1)" -lt "$(printf '%s' "$critical_heal_bytecode" | grep -nF 'script/library/buff.getAllBuffs' | cut -d: -f1)"
+javap -classpath "$class_root" -v script.library.factions | grep -Fq 'isRetiredPostNgePvpRewardBuff'
+for retired_pvp_reward_buff in $retired_pvp_reward_buffs; do
+    javap -classpath "$class_root" -v script.library.factions | grep -Fq "$retired_pvp_reward_buff"
+done
+javap -classpath "$class_root" -c script.library.buff | grep -Fq 'script/library/factions.isRetiredPostNgePvpRewardBuff'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgePvpRewardPlayerAction'
+for retired_pvp_reward_action in $retired_pvp_reward_actions; do
+    javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq "$retired_pvp_reward_action"
+done
+pvp_reward_standard_action_bytecode="$(javap -classpath "$class_root" -c script.systems.combat.combat_base | sed -n '/public boolean combatStandardAction(java.lang.String, script.obj_id, script.obj_id, script.obj_id, java.lang.String, script.combat_data, boolean, boolean, int)/,/public boolean/p')"
+printf '%s' "$pvp_reward_standard_action_bytecode" | grep -Fq 'isRetiredPostNgePvpRewardPlayerAction'
+printf '%s' "$pvp_reward_standard_action_bytecode" | grep -Fq 'script/library/factions.retirePostNgePvpRewardState'
+test "$(javap -classpath "$class_root" -c script.player.gcw.pvp_aura_buff_controller | grep -Fc 'script/library/factions.retirePostNgePvpRewardState')" -eq 3
 gcw_bonus_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int gcwBonusGeneralAddBuffHandler/,/public int gcwBonusGeneralRemoveBuffHandler/p')"
 printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
 printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/utils.removeScriptVarTree'

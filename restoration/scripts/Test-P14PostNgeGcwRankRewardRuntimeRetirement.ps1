@@ -38,11 +38,24 @@ function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker
     return $Text.Substring($start, $end - $start)
 }
 
+function Is-Before([string]$Text, [string]$First, [string]$Second)
+{
+    $firstIndex = $Text.IndexOf($First, [System.StringComparison]::Ordinal)
+    $secondIndex = $Text.IndexOf($Second, [System.StringComparison]::Ordinal)
+    return $firstIndex -ge 0 -and $secondIndex -ge 0 -and $firstIndex -lt $secondIndex
+}
+
 $relativeSourceMap = [ordered]@{
+    "library/buff.java" = "library/buff.java"
     "library/factions.java" = "library/factions.java"
     "library/skill.java" = "library/skill.java"
     "player/base/base_player.java" = "player/base/base_player.java"
+    "player/gcw/pvp_aura_buff_controller.java" = "player/gcw/pvp_aura_buff_controller.java"
+    "systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
+    "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
 }
+Assert-Contract ($relativeSourceMap.Count -eq [int]$contract.expected.authoritativeSourceFiles) `
+    "p14.gcw-reward.authoritative-source-count"
 $sourceTexts = @{}
 $contentRecords = ""
 foreach ($entry in $relativeSourceMap.GetEnumerator())
@@ -75,6 +88,18 @@ $expectedBuffs = @(
     "pvp_unstoppable_ability", "pvp_unstoppable_rebel_ability",
     "pvp_last_man_ability", "pvp_last_man_rebel_ability"
 )
+$expectedPlayerActions = @(
+    "command_pvp_adrenaline_ability", "command_pvp_adrenaline_rebel_ability",
+    "command_pvp_last_man_ability", "command_pvp_last_man_rebel_ability",
+    "command_pvp_retaliation_ability", "command_pvp_retaliation_rebel_ability",
+    "command_pvp_unstoppable_ability", "command_pvp_unstoppable_rebel_ability",
+    "pvp_adrenaline_ability", "pvp_adrenaline_rebel_ability",
+    "pvp_airstrike_ability", "pvp_airstrike_rebel_ability",
+    "pvp_aura_buff_rebel_self", "pvp_aura_buff_self",
+    "pvp_last_man_ability", "pvp_last_man_rebel_ability",
+    "pvp_retaliation_ability", "pvp_retaliation_rebel_ability",
+    "pvp_unstoppable_ability", "pvp_unstoppable_rebel_ability"
+)
 
 $skill = [string]$sourceTexts["library/skill.java"]
 $retirementPredicate = Get-SourceSlice $skill "public static boolean isRetiredNgeProgressionSkillName" "public static boolean isRetiredPostNgeSpySkill"
@@ -91,12 +116,70 @@ foreach ($surface in @(
 }
 
 $factions = [string]$sourceTexts["library/factions.java"]
+$buffInventory = Get-SourceSlice $factions `
+    "private static final String[] RETIRED_POST_NGE_PVP_REWARD_BUFFS" `
+    "public static boolean isRetiredPostNgePvpRewardBuff"
 $skillCleanup = Get-SourceSlice $factions "public static void removeAllPvpSkills" "public static void retirePostNgePvpRewardState"
 $runtimeCleanup = Get-SourceSlice $factions "public static void retirePostNgePvpRewardState" "public static boolean shareSocialGroup"
+$actualBuffs = @([regex]::Matches($buffInventory, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
 Assert-Contract (@($expectedSkills | Where-Object { -not $skillCleanup.Contains('"' + $_ + '"') }).Count -eq 0) "p14.gcw-reward.persisted-skills.cleaned"
-Assert-Contract (@($expectedBuffs | Where-Object { -not $runtimeCleanup.Contains('"' + $_ + '"') }).Count -eq 0) "p14.gcw-reward.active-buffs.cleaned"
+Assert-Contract ($actualBuffs.Count -eq [int]$contract.expected.retiredActiveBuffs -and
+    @($actualBuffs | Select-Object -Unique).Count -eq $actualBuffs.Count -and
+    (($actualBuffs -join "`n") -ceq (($expectedBuffs | Sort-Object) -join "`n")) -and
+    $runtimeCleanup.Contains("RETIRED_POST_NGE_PVP_REWARD_BUFFS")) `
+    "p14.gcw-reward.active-buffs.cleaned"
 Assert-Contract ($runtimeCleanup.Contains('detachScript(player, "player.gcw.pvp_aura_buff_controller")') -and
     $runtimeCleanup.Contains('removeObjVar(player, "pvp_aura_buff.faction")')) "p14.gcw-reward.aura-runtime.cleaned"
+
+$buffLibrary = [string]$sourceTexts["library/buff.java"]
+$buffAdmission = Get-SourceSlice $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+Assert-Contract ([bool]$contract.expected.genericRetiredBuffAdmissionDominates -and
+    (Is-Before $buffAdmission "factions.isRetiredPostNgePvpRewardBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
+    "p14.gcw-reward.buff-admission.generic-retirement"
+
+$combatBase = [string]$sourceTexts["systems/combat/combat_base.java"]
+$combatInventory = Get-SourceSlice $combatBase `
+    "private static final String[] RETIRED_POST_NGE_PVP_REWARD_PLAYER_ACTIONS" `
+    "public static boolean isRetiredPostNgePvpRewardPlayerAction"
+$actualPlayerActions = @([regex]::Matches($combatInventory, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+$standardAction = Get-SourceSlice $combatBase `
+    "public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)" `
+    "combat.revealPrecuFeignDeath(self, `"combatCommand`")"
+Assert-Contract ($actualPlayerActions.Count -eq [int]$contract.expected.retiredPlayerCombatActions -and
+    @($actualPlayerActions | Select-Object -Unique).Count -eq $actualPlayerActions.Count -and
+    (($actualPlayerActions -join "`n") -ceq (($expectedPlayerActions | Sort-Object) -join "`n")) -and
+    $standardAction.Contains("isRetiredPostNgePvpRewardPlayerAction(self, actionName)") -and
+    $standardAction.Contains("factions.retirePostNgePvpRewardState(self)") -and
+    [bool]$contract.expected.genericRetiredCombatActionAdmissionDominates) `
+    "p14.gcw-reward.combat-action.generic-retirement"
+
+$combatActions = [string]$sourceTexts["systems/combat/combat_actions.java"]
+$pvpHandlers = @([regex]::Matches($combatActions,
+    '(?ms)^\s*public int ((?:command_)?pvp_(?:aura_buff_(?:rebel_)?self|retaliation(?:_rebel)?_ability|adrenaline(?:_rebel)?_ability|unstoppable(?:_rebel)?_ability|last_man(?:_rebel)?_ability|airstrike(?:_rebel)?_ability))\(.*?(?=^\s*public int |\z)'))
+Assert-Contract ($pvpHandlers.Count -eq [int]$contract.expected.retiredPlayerCombatActions -and
+    @($pvpHandlers | Where-Object { -not $_.Value.Contains("combatStandardAction(") }).Count -eq 0) `
+    "p14.gcw-reward.combat-action.all-handlers-covered"
+
+$auraController = [string]$sourceTexts["player/gcw/pvp_aura_buff_controller.java"]
+$auraHandlers = @([regex]::Matches($auraController,
+    '(?ms)^\s*public int (OnAttach|buffAlly|removeFactionObjVar)\(.*?(?=^\s*public int |\z)'))
+Assert-Contract ($auraHandlers.Count -eq [int]$contract.expected.retainedAuraControllerCallbacks -and
+    @($auraHandlers | Where-Object {
+        -not $_.Value.Contains("if (isPlayer(self))") -or
+        -not $_.Value.Contains("factions.retirePostNgePvpRewardState(self)") -or
+        -not (Is-Before $_.Value "factions.retirePostNgePvpRewardState(self)" "return SCRIPT_CONTINUE;")
+    }).Count -eq 0 -and [bool]$contract.expected.auraPlayerCallbacksFailClosed) `
+    "p14.gcw-reward.aura-player-callbacks.fail-closed"
+Assert-Contract ([bool]$contract.expected.nonPlayerCompatibilityPreserved -and
+    $combatBase.Contains("if (!isPlayer(self) || actionName == null)") -and
+    $auraController.Contains("isMob(self) && !isPlayer(self)") -and
+    $auraController.Contains('buff.applyBuff(players, "pvp_aura_buff_rebel_target")') -and
+    $auraController.Contains('buff.applyBuff(players, "pvp_aura_buff_target")')) `
+    "p14.gcw-reward.non-player-compatibility.preserved"
 
 $player = [string]$sourceTexts["player/base/base_player.java"]
 $centralCleanup = Get-SourceSlice $player "private void retirePostNgePassiveProfessionState" "private void retirePostNgeQueuedBattlefieldPlayerState"
