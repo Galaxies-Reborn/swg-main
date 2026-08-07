@@ -4756,10 +4756,13 @@ combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.comb
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 test "$(printf '%s' "$combat_base_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 2
-elemental_vulnerability_consumer_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/doWrappedDamage(script.obj_id, script.obj_id, script.weapon_data, script.hit_result, script.combat_data, int)/,/truncateTargetArray/p')"
+elemental_vulnerability_consumer_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/^  public void doWrappedDamage(.*combat_data, int)/,/^  public script.obj_id\[\] truncateTargetArray/p')"
 elemental_vulnerability_consumer_guard_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
 elemental_vulnerability_consumer_cleanup_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'retirePostNgePlayerElementalVulnerabilityState' | head -1 | cut -d: -f1)"
 elemental_vulnerability_consumer_first_read_bytecode_line="$(printf '%s\n' "$elemental_vulnerability_consumer_bytecode" | grep -Fn 'String elemental_vulnerability.type_heat' | head -1 | cut -d: -f1)"
+test -n "$elemental_vulnerability_consumer_guard_bytecode_line"
+test -n "$elemental_vulnerability_consumer_cleanup_bytecode_line"
+test -n "$elemental_vulnerability_consumer_first_read_bytecode_line"
 test "$elemental_vulnerability_consumer_guard_bytecode_line" -lt "$elemental_vulnerability_consumer_cleanup_bytecode_line"
 test "$elemental_vulnerability_consumer_cleanup_bytecode_line" -lt "$elemental_vulnerability_consumer_first_read_bytecode_line"
 test "$(printf '%s' "$elemental_vulnerability_consumer_bytecode" | grep -Fc 'retirePostNgePlayerElementalVulnerabilityState')" -eq 1
