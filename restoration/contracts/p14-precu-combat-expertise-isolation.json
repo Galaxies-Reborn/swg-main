@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, or Forsake Fear channel-heal buffs from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, or radar-invisibility buffs from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -47,7 +47,9 @@
       "The retained NGE Smuggler Skullduggery and Impossible Odds effects are exactly two persistent four-second buffs mapped through missByLuck and hitByLuck. Their handlers derive values from the NGE Luck primary statistic and expertise modifiers, then write missByLuck, hitByLuck, and increaseHitByLuck modifiers into inherited miss and defender-hit tables.",
       "Pinned Core3 contains none of those two effects, handlers, commands, or three transient modifier names. Exact player-only admission, lifecycle removal, stale-modifier cleanup, and all four add/remove handler guards now retire that player authority while preserving both rows, both mappings, and non-player expansion compatibility.",
       "The retained NGE Force Sensitive Forsake Fear expertise grants fs_forsake_fear and owns exactly one persistent ten-second buff mapped through expertiseChannelActionHeal. Its add/remove handlers and two delayed callbacks maintain five channel-state keys, a shared countdown SUI, and up to ten one-second pulses that heal Action by six percent per pulse for the player and eligible group members.",
-      "Pinned Core3 has no fs_forsake_fear, expertise_channel_action_heal, channelForsakeFear, or Forsake Fear channel-state path. The shared fs_* command gate and modifier-buff admission already reject fresh player use; exact player-only lifecycle cleanup, countdown-PID ownership validation, and five handler/callback guards now also retire persisted removal heals, delayed pulses, and stale state while preserving the retained row, mapping, skill, and non-player expansion compatibility."
+      "Pinned Core3 has no fs_forsake_fear, expertise_channel_action_heal, channelForsakeFear, or Forsake Fear channel-state path. The shared fs_* command gate and modifier-buff admission already reject fresh player use; exact player-only lifecycle cleanup, countdown-PID ownership validation, and five handler/callback guards now also retire persisted removal heals, delayed pulses, and stale state while preserving the retained row, mapping, skill, and non-player expansion compatibility.",
+      "The only radarInvis effect mapping is radar_invis, referenced by exactly three retained later-era buffs: Commando Mirror Armor, Bounty Hunter Take Cover, and queued-battlefield radar invisibility. Its generic add handler directly hid an actor from map and radar without a PRE-CU player-era boundary.",
+      "Pinned Core3 has no radar_invis, radarInvis, or co_mirror_armor player mechanic. Exact player-only admission, persisted-buff cleanup, ownership-bounded visibility repair, and both add/remove handler guards now retire that player authority while preserving all three rows and non-player expansion compatibility."
     ]
   },
   "expected": {
@@ -159,6 +161,13 @@
     "forsakeFearCountdownCleanupOwnershipBounded": true,
     "playerNgeForsakeFearActionHealReachable": false,
     "nonPlayerNgeForsakeFearCompatibilityPreserved": true,
+    "retainedNgeRadarInvisibilityEffectMappingRows": 1,
+    "retainedNgeRadarInvisibilityBuffRows": 3,
+    "productionRadarInvisibilityHandlersGuarded": 2,
+    "playerNgeRadarInvisibilityBuffAdmissionReachable": false,
+    "persistedPlayerNgeRadarInvisibilityStateRemoved": true,
+    "ownedPlayerRadarVisibilityRestored": true,
+    "nonPlayerNgeRadarInvisibilityCompatibilityPreserved": true,
     "armorBreakNgeExpertiseReads": 0,
     "armorBreakNgeExpertiseWrites": 0,
     "directStanceExpertiseWriters": 0,
@@ -200,7 +209,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "b43c14d9a05215d9902cfd7492deb3f66de4b7ff",
+    "directSourceGitlink": "56060739e094cf69e97085798be1fc670590b0f7",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "20c67a8021862be5be978311ac551ec6ecd2be5d0951c1da596cf8574819f663",
@@ -210,8 +219,8 @@
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "e5dc80a38bef39394819fdc987e1bb66a734040cb0a04f61fef0fb523f126945",
-      "buffHandler": "bfa1be73e3f01fce9b2ccf051f6d69565405ccae09ac40a9e90dcfd74697e56c",
-      "buffLibrary": "cf0b8bf8ca1794b4e3ee68be595c782a017a4ba21d893b84d4913ce8b0b2ebf3",
+      "buffHandler": "4798a81a39b97fe96d6a1003a1b31b2614aae31d30dd220a092a748c6705d030",
+      "buffLibrary": "ca0e9281aa525737235dd7666331f7e8d47b29533a193968dd8a9903eaa0269c",
       "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
       "bountyHunterShieldScript": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7",
       "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
@@ -223,32 +232,32 @@
       "combatLibrary": "a8cf5ac7b8c199ff16e377cc30c868deb36343ea9ebd89d1dee68019d926485d",
       "combatBase": "83eb381d79df7c8e2b3a3d91a1b9055510ca4c27d0930f6b7b34aeea2e17b26a",
       "basePlayer": "389d23400375051af881a2abca987b5ff50fbd0763b6b6a4909c0730617b45c5",
-      "buffHandler": "0c4d80efeaeb71b0648ef0c28ca71f2d32a0a064414bf4b5ede3991f7357e711",
-      "buffLibrary": "e5202fb39c899891a69f02028a4e079a06407a45f275374daf2b70914ee9a134",
+      "buffHandler": "pending",
+      "buffLibrary": "pending",
       "staticItemLibrary": "e4547b9f155746ffdc83070729ccc81ea37efc3eaf4c19e0555ced42988b4cf1",
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
     "focusedCombatBaseClassSha256": "2176c852b27e176762e47e6503f723e911ef6cb359b740df4281edb85f4cd61f",
     "focusedCombatBaseClassBytes": 127470,
-    "focusedBuffLibraryClassSha256": "e5202fb39c899891a69f02028a4e079a06407a45f275374daf2b70914ee9a134",
-    "focusedBuffLibraryClassBytes": 53719,
-    "focusedBuffHandlerClassSha256": "0c4d80efeaeb71b0648ef0c28ca71f2d32a0a064414bf4b5ede3991f7357e711",
-    "focusedBuffHandlerClassBytes": 133557,
+    "focusedBuffLibraryClassSha256": "pending",
+    "focusedBuffLibraryClassBytes": 0,
+    "focusedBuffHandlerClassSha256": "pending",
+    "focusedBuffHandlerClassBytes": 0,
     "focusedCombatLibraryClassSha256": "1188fbacd109db3b95950b364199f9fb3aa96cbb1c55c6ee7b33219da0ca8a42",
     "focusedCombatLibraryClassBytes": 88492,
-    "sourceTest": "passed; the exact Forsake Fear action-channel family and player-facing channel_heal_health stim family are authenticated as retired at admission, persistence, handler, callback, and stale-state boundaries while retained non-player expansion behavior and ordinary immediate PRE-CU medicine healing remain available",
-    "focusedJavaCompile": "passed with Java 8 target from exact pushed direct source for the five channelled-stim runtime sources; the self-cleaning /dev/shm compile directory left no residue",
-    "fullJavaCompile": "passed canonical clean dependency rebuild from 5,713 exact pushed direct-source Java files at dsrc b43c14d9a05215d9902cfd7492deb3f66de4b7ff after removing every prior compiled Java class; 5,747 classes were emitted",
-    "fullServerBuild": "passed canonical clean Docker x86-64 build in approximately 743 seconds from direct dsrc b43c14d9a05215d9902cfd7492deb3f66de4b7ff and parent source checkpoint d2d1488; parent 77a1a7a then corrected only the exact integer-return deployment probe before the verified restart",
+    "sourceTest": "passed; the exact radar_invis mapping and three retained rows are authenticated as retired for players at admission, persistence, owned visibility repair, and both effect-handler boundaries while non-player expansion behavior remains available",
+    "focusedJavaCompile": "pending exact pushed direct-source Java 8 validation",
+    "fullJavaCompile": "pending canonical clean dependency rebuild from dsrc 56060739e094cf69e97085798be1fc670590b0f7",
+    "fullServerBuild": "pending canonical clean Docker x86-64 build",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "serverGameArchiveSha256": "3fafc5a7b05e2347c30f06a5266211b5919d8ace079a5ae7b7895485e5e39b8d",
-    "sourceWorkParity": "passed for every authenticated combat and channel-heal source between the read-only pushed source mount and the writable canonical work volume",
-    "bytecodeAudit": "passed deployed player-only channel-heal admission, persisted cleanup, owned countdown cleanup, delayed callback denial, add/remove/damage handler denial, and immediate medicine adapter checks alongside all existing combat isolation probes",
-    "deploymentProbe": "passed canonical source/data/bytecode, clean x64 build, healthy readiness, mapped-binary, process-topology, shared-memory-cleanliness, and fresh-log verification",
-    "result": "passed"
+    "sourceWorkParity": "pending canonical deployment",
+    "bytecodeAudit": "pending deployed radar-invisibility admission, persisted cleanup, owned visibility repair, and handler denial probes",
+    "deploymentProbe": "pending canonical source/data/bytecode, clean x64 build, healthy readiness, mapped-binary, process-topology, shared-memory-cleanliness, and fresh-log verification",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-07",
@@ -257,7 +266,7 @@
     "dockerWorkVolume": "swg-precu-work-x64",
     "containerStartedAt": "2026-08-07T11:01:20.994177925Z",
     "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
+    "clusterReadyForPlayers": false,
     "compiledClassSizes": {
       "combatLibrary": 104281,
       "combatBase": 148639,
@@ -268,7 +277,7 @@
       "meditationLibrary": 11841,
       "bountyHunterShieldScript": 1763
     },
-    "liveProcessMappedBuiltBinary": true,
+    "liveProcessMappedBuiltBinary": false,
     "liveGameProcessPid": 373,
     "liveBinaryInode": 12141386,
     "liveBinarySize": 22559720,
@@ -285,12 +294,17 @@
       "SwgGameServer": 15
     },
     "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear action-channel, or player channelled-stim healing authority through generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, or unconditional raw-damage consumers",
+    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, later combat-modifier, retained buff-command, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, critical-override, Luck-derived hit-table, Forsake Fear action-channel, player channelled-stim healing, or player radar-invisibility authority through generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, hidden map/radar state, or unconditional raw-damage consumers",
     "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based combat; ordinary PRE-CU skill and HAM buffs; all retained buff and effect-mapping rows; non-player expansion encounter compatibility; and all expansion quests, conversations, and zones",
-    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, critical-override, Luck-hit, Forsake Fear, and player channelled-stim boundaries remain subject to later reachability audits"
+    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, critical-override, Luck-hit, Forsake Fear, player channelled-stim, and radar-invisibility boundaries remain subject to later reachability audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Pass the exact source/data contract against pushed dsrc 56060739e094cf69e97085798be1fc670590b0f7.",
+    "Pass focused Java 8 compilation without leaving host or shared-memory residue.",
+    "Run the canonical clean Docker x86-64 build and deployment probes.",
+    "Replace pending build and runtime evidence with hashes from the live mapped binary and compiled classes."
+  ]
 }

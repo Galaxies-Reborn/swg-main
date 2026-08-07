@@ -2119,6 +2119,7 @@ printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerWeaponSpe
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
@@ -2128,6 +2129,7 @@ weapon_speed_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep 
 critical_override_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCriticalOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 luck_hit_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerLuckHitOverrideBuff(target, bdata)' | head -1 | cut -d: -f1)"
 forsake_fear_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerForsakeFearChannelBuff(target, bdata)' | head -1 | cut -d: -f1)"
+radar_invisibility_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)' | head -1 | cut -d: -f1)"
 modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
@@ -2138,6 +2140,7 @@ test "$weapon_speed_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$critical_override_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$luck_hit_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$forsake_fear_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$radar_invisibility_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
@@ -2287,7 +2290,7 @@ printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'getIntObjVar(play
 printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "channelHeal")'
 printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'if (ownsCountdown)'
 printf '%s\n' "$channel_heal_state_cleanup_source" | grep -Fq 'forceCloseSUIPage(channelHealSuiPid)'
-channel_heal_lifecycle_cleanup_source="$(sed -n '/public static void retirePostNgePlayerChannelHealState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+channel_heal_lifecycle_cleanup_source="$(sed -n '/public static void retirePostNgePlayerChannelHealState/,/public static boolean isRetiredPostNgePlayerRadarInvisibilityEffect/p' "$work_buff_library")"
 printf '%s\n' "$channel_heal_lifecycle_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s\n' "$channel_heal_lifecycle_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s\n' "$channel_heal_lifecycle_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
@@ -2336,6 +2339,60 @@ for channel_heal_handler_spec in damage:retirePostNgePlayerChannelHealState:hasB
     test "$channel_heal_handler_cleanup_line" -lt "$channel_heal_handler_writer_line"
     printf '%s\n' "$channel_heal_handler_source" | head -n "$channel_heal_handler_writer_line" | tail -n "+$channel_heal_handler_cleanup_line" | grep -Eq 'return( SCRIPT_CONTINUE)?;'
 done
+awk -F '\t' '$1 == "radar_invis" { found++; if ($2 != "radarInvis" || $3 != "radar_invis") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2)
+        if ($parameterColumn == "radar_invis") ownsEffect = 1
+    if (ownsEffect) {
+        rows++
+        seen[$1]++
+        actual = $1 "|" $7 "|" $30 "|" $8 "|" $9 "|" $10 "|" $11 "|" $12 "|" $13 "|" $14 "|" $15 "|" $16 "|" $17
+        if ($1 == "battlefield_radar_invisibility" && actual != "battlefield_radar_invisibility|900|1|radar_invis|0||0||0||0||0") exit 2
+        if ($1 == "bh_take_cover" && actual != "bh_take_cover|40|1|expertise_glancing_blow_ranged|40|expertise_damage_all|10|radar_invis|0||0||0") exit 2
+        if ($1 == "co_mirror_armor" && actual != "co_mirror_armor|120|1|radar_invis|0||0||0||0||0") exit 2
+    }
+}
+END {
+    if (rows != 3 || seen["battlefield_radar_invisibility"] != 1 || seen["bh_take_cover"] != 1 || seen["co_mirror_armor"] != 1) exit 3
+}' "$work_buff_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_RADAR_INVISIBILITY_EFFECT = "radar_invis"' "$work_buff_library"
+radar_invisibility_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerRadarInvisibilityEffect/,/public static boolean isRetiredPostNgePlayerRadarInvisibilityBuff/p' "$work_buff_library")"
+printf '%s\n' "$radar_invisibility_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_RADAR_INVISIBILITY_EFFECT'
+radar_invisibility_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerRadarInvisibilityBuff/,/public static void retirePostNgePlayerRadarInvisibilityState/p' "$work_buff_library")"
+printf '%s\n' "$radar_invisibility_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$radar_invisibility_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$radar_invisibility_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityEffect(getEffectParam(data, effect))'
+radar_invisibility_cleanup_source="$(sed -n '/public static void retirePostNgePlayerRadarInvisibilityState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+radar_invisibility_owned_repair_line="$(printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fn 'if (removedOwnedRadarInvisibility)' | head -1 | cut -d: -f1)"
+radar_invisibility_visibility_repair_line="$(printf '%s\n' "$radar_invisibility_cleanup_source" | grep -Fn 'setVisibleOnMapAndRadar(player, true);' | head -1 | cut -d: -f1)"
+test "$radar_invisibility_owned_repair_line" -lt "$radar_invisibility_visibility_repair_line"
+grep -Fq 'retirePostNgePlayerRadarInvisibilityState(player);' "$work_buff_library"
+radar_invisibility_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+radar_invisibility_admission_gate_line="$(printf '%s\n' "$radar_invisibility_admission_source" | grep -Fn 'isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)' | head -1 | cut -d: -f1)"
+radar_invisibility_existing_return_line="$(printf '%s\n' "$radar_invisibility_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$radar_invisibility_admission_gate_line" -lt "$radar_invisibility_existing_return_line"
+radar_invisibility_add_source="$(sed -n '/public int radarInvisAddBuffHandler/,/public int radarInvisRemoveBuffHandler/p' "$work_buff_handler")"
+radar_invisibility_remove_source="$(sed -n '/public int radarInvisRemoveBuffHandler/,/public int onTargetAddBuffHandler/p' "$work_buff_handler")"
+radar_invisibility_add_guard_line="$(printf '%s\n' "$radar_invisibility_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+radar_invisibility_add_repair_line="$(printf '%s\n' "$radar_invisibility_add_source" | grep -Fn 'setVisibleOnMapAndRadar(self, true);' | head -1 | cut -d: -f1)"
+radar_invisibility_add_return_line="$(printf '%s\n' "$radar_invisibility_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+radar_invisibility_retained_hide_line="$(printf '%s\n' "$radar_invisibility_add_source" | grep -Fn 'setVisibleOnMapAndRadar(self, false);' | head -1 | cut -d: -f1)"
+test "$radar_invisibility_add_guard_line" -lt "$radar_invisibility_add_repair_line"
+test "$radar_invisibility_add_repair_line" -lt "$radar_invisibility_add_return_line"
+test "$radar_invisibility_add_return_line" -lt "$radar_invisibility_retained_hide_line"
+radar_invisibility_remove_guard_line="$(printf '%s\n' "$radar_invisibility_remove_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+radar_invisibility_remove_repair_line="$(printf '%s\n' "$radar_invisibility_remove_source" | grep -Fn 'setVisibleOnMapAndRadar(self, true);' | head -1 | cut -d: -f1)"
+radar_invisibility_remove_return_line="$(printf '%s\n' "$radar_invisibility_remove_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)"
+radar_invisibility_retained_restore_line="$(printf '%s\n' "$radar_invisibility_remove_source" | grep -Fn 'setVisibleOnMapAndRadar(self, true);' | tail -1 | cut -d: -f1)"
+test "$radar_invisibility_remove_guard_line" -lt "$radar_invisibility_remove_repair_line"
+test "$radar_invisibility_remove_repair_line" -lt "$radar_invisibility_remove_return_line"
+test "$radar_invisibility_remove_return_line" -lt "$radar_invisibility_retained_restore_line"
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -3382,6 +3439,7 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCritica
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerLuckHitOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerChannelHealBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
 buff_command_grant_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerBuffCommandGrant(java.lang.String)/,/isRetiredPostNgePlayerCommandGrantBuff/p')"
@@ -3527,12 +3585,23 @@ printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'removeScript
 printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'forceCloseSUIPage'
 printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'removeObjVar'
 printf '%s' "$buff_channel_heal_state_cleanup_bytecode" | grep -Fq 'detachScript'
-buff_channel_heal_lifecycle_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerChannelHealState/,/isRetiredPostNgePlayerModifierBuff/p')"
+buff_channel_heal_lifecycle_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerChannelHealState/,/isRetiredPostNgePlayerRadarInvisibilityEffect/p')"
 printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'getAllBuffs'
 printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_channel_heal_lifecycle_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerChannelHealState'
 printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerChannelHealState'
+buff_radar_invisibility_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerRadarInvisibilityEffect(java.lang.String)/,/isRetiredPostNgePlayerRadarInvisibilityBuff/p')"
+printf '%s' "$buff_radar_invisibility_effect_predicate_bytecode" | grep -Fq 'radar_invis'
+buff_radar_invisibility_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerRadarInvisibilityBuff/,/retirePostNgePlayerRadarInvisibilityState/p')"
+printf '%s' "$buff_radar_invisibility_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_radar_invisibility_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityEffect'
+buff_radar_invisibility_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerRadarInvisibilityState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_radar_invisibility_cleanup_bytecode" | grep -Fq 'setVisibleOnMapAndRadar'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerRadarInvisibilityState'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
 channel_heal_damage_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/OnCreatureDamaged/,/attribAddBuffHandler/p')"
 channel_heal_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/channelHealAddBuffHandler/,/channelHealRemoveBuffHandler/p')"
@@ -3554,6 +3623,18 @@ for channel_heal_handler_spec in damage:retirePostNgePlayerChannelHealState:hasB
     test "$channel_heal_handler_guard_bytecode_line" -lt "$channel_heal_handler_cleanup_bytecode_line"
     test "$channel_heal_handler_cleanup_bytecode_line" -lt "$channel_heal_handler_writer_bytecode_line"
     printf '%s\n' "$channel_heal_handler_bytecode" | head -n "$channel_heal_handler_writer_bytecode_line" | tail -n "+$channel_heal_handler_cleanup_bytecode_line" | grep -Eq '[[:space:]](i)?return$'
+done
+radar_invisibility_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/radarInvisAddBuffHandler/,/radarInvisRemoveBuffHandler/p')"
+radar_invisibility_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/radarInvisRemoveBuffHandler/,/onTargetAddBuffHandler/p')"
+for radar_invisibility_handler_bytecode in "$radar_invisibility_add_bytecode" "$radar_invisibility_remove_bytecode"; do
+    radar_invisibility_guard_bytecode_line="$(printf '%s\n' "$radar_invisibility_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+    radar_invisibility_first_visibility_bytecode_line="$(printf '%s\n' "$radar_invisibility_handler_bytecode" | grep -Fn 'Method setVisibleOnMapAndRadar' | head -1 | cut -d: -f1)"
+    radar_invisibility_player_return_bytecode_line="$(printf '%s\n' "$radar_invisibility_handler_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+    radar_invisibility_retained_visibility_bytecode_line="$(printf '%s\n' "$radar_invisibility_handler_bytecode" | grep -Fn 'Method setVisibleOnMapAndRadar' | tail -1 | cut -d: -f1)"
+    test "$(printf '%s\n' "$radar_invisibility_handler_bytecode" | grep -Fc 'Method setVisibleOnMapAndRadar')" -eq 2
+    test "$radar_invisibility_guard_bytecode_line" -lt "$radar_invisibility_first_visibility_bytecode_line"
+    test "$radar_invisibility_first_visibility_bytecode_line" -lt "$radar_invisibility_player_return_bytecode_line"
+    test "$radar_invisibility_player_return_bytecode_line" -lt "$radar_invisibility_retained_visibility_bytecode_line"
 done
 action_drain_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionDrainAddBuffHandler/,/actionDrainRemoveBuffHandler/p')"
 action_drain_cleanup_bytecode_line="$(printf '%s\n' "$action_drain_add_bytecode" | grep -Fn 'retirePostNgePlayerActionDrainState' | head -1 | cut -d: -f1)"

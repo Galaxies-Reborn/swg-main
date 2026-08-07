@@ -1430,6 +1430,122 @@ Assert-Contract ($guardedForsakeFearHandlers -eq
         [int]$contract.expected.productionForsakeFearExecutionGuards) `
     "p14.combat-expertise-isolation.buff.forsake-fear-handlers-and-callbacks-player-fail-closed"
 
+$radarInvisibilityEffect = "radar_invis"
+$radarInvisibilityMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq $radarInvisibilityEffect })
+$radarInvisibilityBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq $radarInvisibilityEffect
+    }).Count -gt 0
+})
+$radarInvisibilitySignatures = @($radarInvisibilityBuffRows | ForEach-Object {
+    $row = $_
+    @(
+        [string]$row.NAME,
+        [string]$row.DURATION,
+        [string]$row.IS_PERSISTENT,
+        [string]$row.EFFECT1_PARAM,
+        [string]$row.EFFECT1_VALUE,
+        [string]$row.EFFECT2_PARAM,
+        [string]$row.EFFECT2_VALUE,
+        [string]$row.EFFECT3_PARAM,
+        [string]$row.EFFECT3_VALUE,
+        [string]$row.EFFECT4_PARAM,
+        [string]$row.EFFECT4_VALUE,
+        [string]$row.EFFECT5_PARAM,
+        [string]$row.EFFECT5_VALUE
+    ) -join "|"
+} | Sort-Object)
+$expectedRadarInvisibilitySignatures = @(
+    "battlefield_radar_invisibility|900|1|radar_invis|0||0||0||0||0",
+    "bh_take_cover|40|1|expertise_glancing_blow_ranged|40|expertise_damage_all|10|radar_invis|0||0||0",
+    "co_mirror_armor|120|1|radar_invis|0||0||0||0||0"
+)
+Assert-Contract ($radarInvisibilityMappings.Count -eq
+        [int]$contract.expected.retainedNgeRadarInvisibilityEffectMappingRows -and
+    [string]$radarInvisibilityMappings[0].TYPE -ceq "radarInvis" -and
+    [string]$radarInvisibilityMappings[0].SUBTYPE -ceq $radarInvisibilityEffect -and
+    $radarInvisibilityBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeRadarInvisibilityBuffRows -and
+    (($radarInvisibilitySignatures -join "`n") -ceq
+        ($expectedRadarInvisibilitySignatures -join "`n"))) `
+    "p14.combat-expertise-isolation.buff.radar-invisibility-data-inventory-authenticated"
+
+$radarInvisibilityEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerRadarInvisibilityEffect(String effectName)"
+$radarInvisibilityBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerRadarInvisibilityBuff(obj_id target, buff_data data)"
+$radarInvisibilityCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerRadarInvisibilityState(obj_id player)"
+$radarInvisibilityProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$radarInvisibilityCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$radarInvisibilityAdmissionGate = $radarInvisibilityCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerRadarInvisibilityBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$radarInvisibilityExistingBuffReturn = $radarInvisibilityCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$radarInvisibilityOwnedRepair = $radarInvisibilityCleanup.IndexOf(
+    "if (removedOwnedRadarInvisibility)", [StringComparison]::Ordinal)
+$radarInvisibilityVisibilityRepair = $radarInvisibilityCleanup.IndexOf(
+    "setVisibleOnMapAndRadar(player, true);", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_RADAR_INVISIBILITY_EFFECT = "radar_invis"') -and
+    $radarInvisibilityEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_RADAR_INVISIBILITY_EFFECT") -and
+    $radarInvisibilityBuffPredicate.Contains("!isPlayer(target)") -and
+    $radarInvisibilityBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $radarInvisibilityBuffPredicate.Contains(
+        "isRetiredPostNgePlayerRadarInvisibilityEffect(getEffectParam(data, effect))") -and
+    $radarInvisibilityCleanup.Contains("!isPlayer(player)") -and
+    $radarInvisibilityCleanup.Contains("getAllBuffs(player)") -and
+    $radarInvisibilityCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $radarInvisibilityCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $radarInvisibilityOwnedRepair -ge 0 -and
+    $radarInvisibilityVisibilityRepair -gt $radarInvisibilityOwnedRepair -and
+    $radarInvisibilityProgressionCleanup.Contains(
+        "retirePostNgePlayerRadarInvisibilityState(player);") -and
+    $radarInvisibilityAdmissionGate -ge 0 -and
+    $radarInvisibilityExistingBuffReturn -gt $radarInvisibilityAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeRadarInvisibilityBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeRadarInvisibilityStateRemoved -and
+    [bool]$contract.expected.ownedPlayerRadarVisibilityRestored) `
+    "p14.combat-expertise-isolation.buff.player-radar-invisibility-admission-persistence-and-repair-fail-closed"
+
+$radarInvisibilityAddHandler = Get-BracedBlock $buffHandler `
+    "public int radarInvisAddBuffHandler("
+$radarInvisibilityRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int radarInvisRemoveBuffHandler("
+$radarInvisibilityAddGuard = $radarInvisibilityAddHandler.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$radarInvisibilityAddRepair = $radarInvisibilityAddHandler.IndexOf(
+    "setVisibleOnMapAndRadar(self, true);", [StringComparison]::Ordinal)
+$radarInvisibilityAddReturn = $radarInvisibilityAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$radarInvisibilityRetainedHide = $radarInvisibilityAddHandler.IndexOf(
+    "setVisibleOnMapAndRadar(self, false);", [StringComparison]::Ordinal)
+$radarInvisibilityRemoveGuard = $radarInvisibilityRemoveHandler.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$radarInvisibilityRemoveRepair = $radarInvisibilityRemoveHandler.IndexOf(
+    "setVisibleOnMapAndRadar(self, true);", [StringComparison]::Ordinal)
+$radarInvisibilityRemoveReturn = $radarInvisibilityRemoveHandler.IndexOf(
+    "return SCRIPT_CONTINUE;", [StringComparison]::Ordinal)
+$radarInvisibilityRetainedRestore = $radarInvisibilityRemoveHandler.LastIndexOf(
+    "setVisibleOnMapAndRadar(self, true);", [StringComparison]::Ordinal)
+Assert-Contract ($radarInvisibilityAddGuard -ge 0 -and
+    $radarInvisibilityAddRepair -gt $radarInvisibilityAddGuard -and
+    $radarInvisibilityAddReturn -gt $radarInvisibilityAddRepair -and
+    $radarInvisibilityRetainedHide -gt $radarInvisibilityAddReturn -and
+    $radarInvisibilityRemoveGuard -ge 0 -and
+    $radarInvisibilityRemoveRepair -gt $radarInvisibilityRemoveGuard -and
+    $radarInvisibilityRemoveReturn -gt $radarInvisibilityRemoveRepair -and
+    $radarInvisibilityRetainedRestore -gt $radarInvisibilityRemoveReturn -and
+    [int]$contract.expected.productionRadarInvisibilityHandlersGuarded -eq 2 -and
+    [bool]$contract.expected.nonPlayerNgeRadarInvisibilityCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.radar-invisibility-handlers-player-fail-closed"
+
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
 Assert-Contract ($armorBreak.Contains("retireNgeExpertiseModifier(self, effectName)") -and
