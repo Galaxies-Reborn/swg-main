@@ -371,6 +371,105 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
+$actionRegenEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "actionRegen" })
+$actionRegenBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq "action_regen"
+    }).Count -gt 0
+})
+Assert-Contract ($actionRegenEffectMappings.Count -eq
+        [int]$contract.expected.retainedNgeActionRegenEffectMappingRows -and
+    [string]$actionRegenEffectMappings[0].NAME -ceq "action_regen" -and
+    [string]$actionRegenEffectMappings[0].SUBTYPE -ceq "N_A" -and
+    $actionRegenBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeActionRegenBuffRows -and
+    [string]$actionRegenBuffRows[0].NAME -ceq "sp_action_regen" -and
+    [string]$actionRegenBuffRows[0].DURATION -ceq "15" -and
+    [string]$actionRegenBuffRows[0].EFFECT1_PARAM -ceq "action_regen" -and
+    [string]$actionRegenBuffRows[0].EFFECT1_VALUE -ceq "0" -and
+    [string]$actionRegenBuffRows[0].EFFECT2_PARAM -ceq "movement" -and
+    [string]$actionRegenBuffRows[0].EFFECT2_VALUE -ceq "2" -and
+    [string]$actionRegenBuffRows[0].IS_PERSISTENT -ceq "1") `
+    "p14.combat-expertise-isolation.buff.action-regen-data-inventory-authenticated"
+
+$actionRegenEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerActionRegenEffect(String effectName)"
+$actionRegenBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerActionRegenBuff(obj_id target, buff_data data)"
+$actionRegenCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerActionRegenState(obj_id player)"
+$actionRegenProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$actionRegenCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$actionRegenAdmissionGate = $actionRegenCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerActionRegenBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$actionRegenExistingBuffReturn = $actionRegenCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_ACTION_REGEN_EFFECT = "action_regen"') -and
+    $actionRegenEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_ACTION_REGEN_EFFECT") -and
+    $actionRegenBuffPredicate.Contains("!isPlayer(target)") -and
+    $actionRegenBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $actionRegenBuffPredicate.Contains(
+        "isRetiredPostNgePlayerActionRegenEffect(getEffectParam(data, effect))") -and
+    $actionRegenCleanup.Contains("!isPlayer(player)") -and
+    $actionRegenCleanup.Contains("getAllBuffs(player)") -and
+    $actionRegenCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $actionRegenCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $actionRegenProgressionCleanup.Contains(
+        "retirePostNgePlayerActionRegenState(player);") -and
+    $actionRegenAdmissionGate -ge 0 -and
+    $actionRegenExistingBuffReturn -gt $actionRegenAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeActionRegenBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeActionRegenStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeActionRegenCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.player-action-regen-admission-and-persistence-fail-closed"
+
+$actionRegenAdd = Get-BracedBlock $buffHandler `
+    "public int actionRegenAddBuffHandler("
+$actionRegenTick = Get-BracedBlock $buffHandler `
+    "public int actionRegenBuff(obj_id self, dictionary params)"
+$actionRegenAddGuard = $actionRegenAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$actionRegenAddCleanup = $actionRegenAdd.IndexOf(
+    "buff.retirePostNgePlayerActionRegenState(self);",
+    [StringComparison]::Ordinal)
+$actionRegenAddReturn = $actionRegenAdd.IndexOf(
+    "return SCRIPT_CONTINUE;", $actionRegenAddCleanup,
+    [StringComparison]::Ordinal)
+$actionRegenAddWrite = $actionRegenAdd.IndexOf(
+    "int actionMax = getMaxAction(self);", [StringComparison]::Ordinal)
+$actionRegenTickGuard = $actionRegenTick.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$actionRegenTickCleanup = $actionRegenTick.IndexOf(
+    "buff.retirePostNgePlayerActionRegenState(self);",
+    [StringComparison]::Ordinal)
+$actionRegenTickReturn = $actionRegenTick.IndexOf(
+    "return SCRIPT_CONTINUE;", $actionRegenTickCleanup,
+    [StringComparison]::Ordinal)
+$actionRegenTickBuffCheck = $actionRegenTick.IndexOf(
+    "if (!buff.hasBuff(self, buffName))", [StringComparison]::Ordinal)
+$actionRegenTickHeal = $actionRegenTick.IndexOf(
+    "healing.healDamage(self, ACTION, (int)healAmount);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($actionRegenAddGuard -ge 0 -and
+    $actionRegenAddCleanup -gt $actionRegenAddGuard -and
+    $actionRegenAddReturn -gt $actionRegenAddCleanup -and
+    $actionRegenAddWrite -gt $actionRegenAddReturn -and
+    $actionRegenTickGuard -ge 0 -and
+    $actionRegenTickCleanup -gt $actionRegenTickGuard -and
+    $actionRegenTickReturn -gt $actionRegenTickCleanup -and
+    $actionRegenTickBuffCheck -gt $actionRegenTickReturn -and
+    $actionRegenTickHeal -gt $actionRegenTickBuffCheck -and
+    [int]$contract.expected.productionActionRegenPlayerExecutionGuards -eq 2 -and
+    -not [bool]$contract.expected.delayedPlayerActionRegenCallbackReachable) `
+    "p14.combat-expertise-isolation.buff.action-regen-handlers-player-fail-closed"
+
 $expectedDamageDealtOverrideBuffValues = [ordered]@{
     bm_enrage = "2"
     kun_one_sacrifice = "1.25"

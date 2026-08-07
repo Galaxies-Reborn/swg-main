@@ -1353,6 +1353,63 @@ printf '%s' "$command_grant_remove_source" | grep -Fq 'isPlayer(self)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'while (hasCommand(self, subType))'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'revokeCommand(self, subType)'
+awk -F '\t' '$1 == "action_regen" && $2 == "actionRegen" && $3 == "N_A" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2) {
+        if ($parameterColumn == "action_regen") ownsEffect = 1
+    }
+    if (ownsEffect) {
+        rows++
+        if ($1 != "sp_action_regen" || $7 != "15" ||
+            $8 != "action_regen" || $9 != "0" ||
+            $10 != "movement" || $11 != "2" ||
+            $22 != "1" || $23 != "0" || $25 != "1" ||
+            $26 != "1" || $27 != "1" || $30 != "1") exit 2
+    }
+}
+END { if (rows != 1) exit 3 }
+' "$work_buff_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_ACTION_REGEN_EFFECT = "action_regen"' "$work_buff_library"
+action_regen_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerActionRegenEffect/,/public static boolean isRetiredPostNgePlayerActionRegenBuff/p' "$work_buff_library")"
+printf '%s' "$action_regen_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_ACTION_REGEN_EFFECT'
+action_regen_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerActionRegenBuff/,/public static void retirePostNgePlayerActionRegenState/p' "$work_buff_library")"
+printf '%s' "$action_regen_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$action_regen_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$action_regen_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerActionRegenEffect(getEffectParam(data, effect))'
+action_regen_cleanup_source="$(sed -n '/public static void retirePostNgePlayerActionRegenState/,/private static final String RETIRED_POST_NGE_PLAYER_DAMAGE_DEALT_OVERRIDE_EFFECT/p' "$work_buff_library")"
+printf '%s' "$action_regen_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$action_regen_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$action_regen_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$action_regen_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerActionRegenState(player);' "$work_buff_library"
+action_regen_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+action_regen_admission_line="$(printf '%s\n' "$action_regen_admission_source" | grep -Fn 'isRetiredPostNgePlayerActionRegenBuff(target, bdata)' | head -1 | cut -d: -f1)"
+action_regen_refresh_line="$(printf '%s\n' "$action_regen_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$action_regen_admission_line"
+test -n "$action_regen_refresh_line"
+test "$action_regen_admission_line" -lt "$action_regen_refresh_line"
+action_regen_add_source="$(sed -n '/public int actionRegenAddBuffHandler/,/public int actionRegenRemoveBuffHandler/p' "$work_buff_handler")"
+action_regen_add_guard_line="$(printf '%s\n' "$action_regen_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+action_regen_add_cleanup_line="$(printf '%s\n' "$action_regen_add_source" | grep -Fn 'buff.retirePostNgePlayerActionRegenState(self);' | head -1 | cut -d: -f1)"
+action_regen_add_return_line="$(printf '%s\n' "$action_regen_add_source" | awk -v cleanup="$action_regen_add_cleanup_line" 'NR > cleanup && /return SCRIPT_CONTINUE;/ { print NR; exit }')"
+action_regen_add_max_line="$(printf '%s\n' "$action_regen_add_source" | grep -Fn 'int actionMax = getMaxAction(self);' | head -1 | cut -d: -f1)"
+test "$action_regen_add_guard_line" -lt "$action_regen_add_cleanup_line"
+test "$action_regen_add_cleanup_line" -lt "$action_regen_add_return_line"
+test "$action_regen_add_return_line" -lt "$action_regen_add_max_line"
+action_regen_tick_source="$(sed -n '/public int actionRegenBuff(obj_id self, dictionary params)/,/public int bodyguardDefenderAddBuffHandler/p' "$work_buff_handler")"
+action_regen_tick_guard_line="$(printf '%s\n' "$action_regen_tick_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+action_regen_tick_cleanup_line="$(printf '%s\n' "$action_regen_tick_source" | grep -Fn 'buff.retirePostNgePlayerActionRegenState(self);' | head -1 | cut -d: -f1)"
+action_regen_tick_return_line="$(printf '%s\n' "$action_regen_tick_source" | awk -v cleanup="$action_regen_tick_cleanup_line" 'NR > cleanup && /return SCRIPT_CONTINUE;/ { print NR; exit }')"
+action_regen_tick_buff_line="$(printf '%s\n' "$action_regen_tick_source" | grep -Fn 'buff.hasBuff(self, buffName)' | head -1 | cut -d: -f1)"
+action_regen_tick_heal_line="$(printf '%s\n' "$action_regen_tick_source" | grep -Fn 'healing.healDamage(self, ACTION, (int)healAmount);' | head -1 | cut -d: -f1)"
+action_regen_tick_requeue_line="$(printf '%s\n' "$action_regen_tick_source" | grep -Fn 'messageTo(self, "actionRegenBuff", params, 1.0f, false);' | head -1 | cut -d: -f1)"
+test "$action_regen_tick_guard_line" -lt "$action_regen_tick_cleanup_line"
+test "$action_regen_tick_cleanup_line" -lt "$action_regen_tick_return_line"
+test "$action_regen_tick_return_line" -lt "$action_regen_tick_buff_line"
+test "$action_regen_tick_buff_line" -lt "$action_regen_tick_heal_line"
+test "$action_regen_tick_heal_line" -lt "$action_regen_tick_requeue_line"
 awk -F '\t' '$1 == "damage_dealt_mod" && $2 == "damageDealtMod" && $3 == "damage_dealt_mod" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
 awk -F '\t' '
 BEGIN {
@@ -2962,6 +3019,7 @@ printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.removeBuff'
 buff_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/applyBuff(script.obj_id, java.lang.String)/p')"
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandGrantBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerActionRegenBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageDealtOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerWeaponSpeedOverrideBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCriticalOverrideBuff'
@@ -2978,6 +3036,17 @@ printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'combat_engine.get
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'hasCommand'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'revokeCommand'
+buff_action_regen_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerActionRegenEffect(java.lang.String)/,/isRetiredPostNgePlayerActionRegenBuff/p')"
+printf '%s' "$buff_action_regen_effect_predicate_bytecode" | grep -Fq 'action_regen'
+buff_action_regen_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerActionRegenBuff/,/retirePostNgePlayerActionRegenState/p')"
+printf '%s' "$buff_action_regen_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_action_regen_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerActionRegenEffect'
+buff_action_regen_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerActionRegenState/,/isRetiredPostNgePlayerDamageDealtOverrideEffect/p')"
+printf '%s' "$buff_action_regen_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_action_regen_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_action_regen_cleanup_bytecode" | grep -Fq 'removeBuff'
+buff_progression_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/retirePostNgeMeditationBuffs/p')"
+printf '%s' "$buff_progression_cleanup_bytecode" | grep -Fq 'retirePostNgePlayerActionRegenState'
 buff_damage_dealt_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageDealtOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerDamageDealtOverrideBuff/p')"
 printf '%s' "$buff_damage_dealt_effect_predicate_bytecode" | grep -Fq 'damage_dealt_mod'
 buff_damage_dealt_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageDealtOverrideBuff/,/restorePostNgePlayerDamageDealtOverride/p')"
@@ -3025,6 +3094,22 @@ printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'combat_engine
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+action_regen_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionRegenAddBuffHandler/,/actionRegenRemoveBuffHandler/p')"
+action_regen_add_guard_bytecode_line="$(printf '%s\n' "$action_regen_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+action_regen_add_cleanup_bytecode_line="$(printf '%s\n' "$action_regen_add_bytecode" | grep -Fn 'retirePostNgePlayerActionRegenState' | head -1 | cut -d: -f1)"
+action_regen_add_max_bytecode_line="$(printf '%s\n' "$action_regen_add_bytecode" | grep -Fn 'Method getMaxAction' | head -1 | cut -d: -f1)"
+test "$action_regen_add_guard_bytecode_line" -lt "$action_regen_add_cleanup_bytecode_line"
+test "$action_regen_add_cleanup_bytecode_line" -lt "$action_regen_add_max_bytecode_line"
+action_regen_tick_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionRegenBuff(script.obj_id, script.dictionary)/,/bodyguardDefenderAddBuffHandler/p')"
+action_regen_tick_guard_bytecode_line="$(printf '%s\n' "$action_regen_tick_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+action_regen_tick_cleanup_bytecode_line="$(printf '%s\n' "$action_regen_tick_bytecode" | grep -Fn 'retirePostNgePlayerActionRegenState' | head -1 | cut -d: -f1)"
+action_regen_tick_buff_bytecode_line="$(printf '%s\n' "$action_regen_tick_bytecode" | grep -Fn 'Method script/library/buff.hasBuff' | head -1 | cut -d: -f1)"
+action_regen_tick_heal_bytecode_line="$(printf '%s\n' "$action_regen_tick_bytecode" | grep -Fn 'Method script/library/healing.healDamage' | head -1 | cut -d: -f1)"
+action_regen_tick_requeue_bytecode_line="$(printf '%s\n' "$action_regen_tick_bytecode" | grep -Fn 'Method messageTo' | tail -1 | cut -d: -f1)"
+test "$action_regen_tick_guard_bytecode_line" -lt "$action_regen_tick_cleanup_bytecode_line"
+test "$action_regen_tick_cleanup_bytecode_line" -lt "$action_regen_tick_buff_bytecode_line"
+test "$action_regen_tick_buff_bytecode_line" -lt "$action_regen_tick_heal_bytecode_line"
+test "$action_regen_tick_heal_bytecode_line" -lt "$action_regen_tick_requeue_bytecode_line"
 damage_dealt_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/damageDealtModAddBuffHandler/,/damageDealtModRemoveBuffHandler/p')"
 printf '%s' "$damage_dealt_add_bytecode" | grep -Fq 'isPlayer'
 printf '%s' "$damage_dealt_add_bytecode" | grep -Fq 'buff.restorePostNgePlayerDamageDealtOverride'
