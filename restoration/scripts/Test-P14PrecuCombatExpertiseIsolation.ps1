@@ -2613,6 +2613,146 @@ Assert-Contract ($entertainerPlayerAction.Contains('actionName.startsWith("en_")
     [bool]$contract.expected.nonPlayerNgeEntertainerBuildabuffReactiveHealCompatibilityPreserved) `
     "p14.combat-expertise-isolation.entertainer-buildabuff-reactive-heal-player-action-and-writer-fail-closed"
 
+$medicDoomActions = @(
+    "me_dm_dot_1", "me_dm_dot_2", "me_dm_dot_3", "me_dm_dot_4",
+    "me_dm_dot_5", "me_dm_dot_6", "me_induce_insanity_1",
+    "me_bacta_resistance_1", "me_electrolyte_drain_1",
+    "me_traumatize_5", "me_thyroid_rupture_1"
+)
+$medicDoomCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { $medicDoomActions -ccontains [string]$_.commandName })
+$medicDoomCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { $medicDoomActions -ccontains [string]$_.actionName })
+$medicDoomEffectRows = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq "me_doom" })
+$medicDoomBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { [string]$_.NAME -ceq "me_doom" })
+$medicDoomSetBonusRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { [string]$_.NAME -ceq "set_bonus_medic_utility_b_3" })
+$medicDoomSkillModRows = @(Import-SwgTab -Path $paths.skillModListing |
+    Where-Object { [string]$_.skill_mod -ceq "me_doom_chance" })
+$medicDoomActionHandlers = @($medicDoomActions | ForEach-Object {
+    [pscustomobject]@{
+        Name = $_
+        Text = Get-BracedBlock $combatActions "public int $_("
+    }
+})
+Assert-Contract ($medicDoomCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDoomCommandRows -and
+    @($medicDoomCommandRows | Where-Object {
+        [string]$_.scriptHook -ceq [string]$_.commandName -and
+        [string]$_.displayGroup -ceq "combat" -and
+        [string]$_.addToCombatQueue -ceq "1"
+    }).Count -eq $medicDoomCommandRows.Count -and
+    $medicDoomCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDoomCombatRows -and
+    @($medicDoomCombatRows | Where-Object {
+        [string]$_.validTarget -ceq "STANDARD" -and
+        [string]$_.attackType -ceq "SINGLE_TARGET" -and
+        ([string]$_.specialLine -ceq "me_dot" -or
+            [string]$_.specialLine -ceq "me_debuff")
+    }).Count -eq $medicDoomCombatRows.Count -and
+    $medicDoomEffectRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDoomEffectMappingRows -and
+    [string]$medicDoomEffectRows[0].TYPE -ceq "meDoom" -and
+    [string]$medicDoomEffectRows[0].SUBTYPE -ceq "me_doom" -and
+    $medicDoomBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDoomBuffRows -and
+    [string]$medicDoomBuffRows[0].GROUP1 -ceq "meDoom" -and
+    [string]$medicDoomBuffRows[0].DURATION -ceq "10" -and
+    [string]$medicDoomBuffRows[0].EFFECT1_PARAM -ceq "me_doom" -and
+    [string]$medicDoomBuffRows[0].EFFECT1_VALUE -ceq "1" -and
+    [string]$medicDoomBuffRows[0].DEBUFF -ceq "1" -and
+    [string]$medicDoomBuffRows[0].IS_PERSISTENT -ceq "1" -and
+    $medicDoomSetBonusRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDoomSetBonusRows -and
+    [string]$medicDoomSetBonusRows[0].EFFECT5_PARAM -ceq "me_doom_chance" -and
+    [string]$medicDoomSetBonusRows[0].EFFECT5_VALUE -ceq "20" -and
+    $medicDoomSkillModRows.Count -eq
+        [int]$contract.expected.retainedNgeMedicDoomExpertiseSkillModRows -and
+    [string]$medicDoomSkillModRows[0].profession -ceq "medic_1a" -and
+    [string]$medicDoomSkillModRows[0].category -ceq "medic" -and
+    [string]$medicDoomSkillModRows[0].comment -ceq "DOOM Chance" -and
+    $medicDoomActionHandlers.Count -eq
+        [int]$contract.expected.retainedNgeMedicDoomActionHandlers -and
+    @($medicDoomActionHandlers | Where-Object {
+        $combatGate = $_.Text.IndexOf(
+            'combatStandardAction("' + $_.Name + '"',
+            [StringComparison]::Ordinal)
+        $doomCall = $_.Text.IndexOf("doDoom(self, target);",
+            [StringComparison]::Ordinal)
+        $combatGate -ge 0 -and $doomCall -gt $combatGate
+    }).Count -eq $medicDoomActionHandlers.Count) `
+    "p14.combat-expertise-isolation.medic-doom-data-and-action-routing-authenticated"
+
+$medicDoomProc = Get-BracedBlock $combatActions `
+    "public void doDoom(obj_id attacker, obj_id defender)"
+$medicDoomPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerMedicDoomBuff(obj_id target, buff_data data)"
+$medicDoomClear = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerMedicDoomState(obj_id player)"
+$medicDoomCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerMedicDoomState(obj_id player)"
+$medicDoomProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$medicDoomAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$medicDoomAdd = Get-BracedBlock $buffHandler `
+    "public int meDoomAddBuffHandler("
+$medicDoomRemove = Get-BracedBlock $buffHandler `
+    "public int meDoomRemoveBuffHandler("
+$medicDoomAttackerGuard = $medicDoomProc.IndexOf("isPlayer(attacker)",
+    [StringComparison]::Ordinal)
+$medicDoomDefenderGuard = $medicDoomProc.IndexOf("isPlayer(defender)",
+    [StringComparison]::Ordinal)
+$medicDoomChanceRead = $medicDoomProc.IndexOf('"me_doom_chance"',
+    [StringComparison]::Ordinal)
+$medicDoomAddGuard = $medicDoomAdd.IndexOf("isPlayer(self)",
+    [StringComparison]::Ordinal)
+$medicDoomAddStateRead = $medicDoomAdd.IndexOf('"me_doom.doom_owner"',
+    [StringComparison]::Ordinal)
+$medicDoomRemoveGuard = $medicDoomRemove.IndexOf("isPlayer(self)",
+    [StringComparison]::Ordinal)
+$medicDoomRemoveStateRead = $medicDoomRemove.IndexOf('"me_doom.doom_owner"',
+    [StringComparison]::Ordinal)
+Assert-Contract ($medicDoomPredicate.Contains("isPlayer(target)") -and
+    $medicDoomPredicate.Contains(
+        'RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF.equals(data.buffName)') -and
+    $medicDoomClear.Contains(
+        'removeScriptVarTree(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF)') -and
+    $medicDoomClear.Contains(
+        'hasSkillModModifier(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_MODIFIER)') -and
+    $medicDoomClear.Contains(
+        'removeAttribOrSkillModModifier(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_MODIFIER)') -and
+    $medicDoomCleanup.Contains(
+        'removeBuff(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF)') -and
+    $medicDoomCleanup.Contains("clearPostNgePlayerMedicDoomState(player)") -and
+    $medicDoomProgressionCleanup.Contains(
+        "retirePostNgePlayerMedicDoomState(player);") -and
+    $medicDoomAdmission.Contains(
+        "isRetiredPostNgePlayerMedicDoomBuff(target, bdata)") -and
+    $medicDoomAttackerGuard -ge 0 -and
+    $medicDoomDefenderGuard -gt $medicDoomAttackerGuard -and
+    $medicDoomChanceRead -gt $medicDoomDefenderGuard -and
+    $medicDoomProc.Contains("retirePostNgePlayerMedicDoomState(attacker)") -and
+    $medicDoomProc.Contains("retirePostNgePlayerMedicDoomState(defender)") -and
+    $medicDoomAddGuard -ge 0 -and
+    $medicDoomAddStateRead -gt $medicDoomAddGuard -and
+    $medicDoomAdd.Contains("retirePostNgePlayerMedicDoomState(self)") -and
+    $medicDoomRemoveGuard -ge 0 -and
+    $medicDoomRemoveStateRead -gt $medicDoomRemoveGuard -and
+    $medicDoomRemove.Contains("clearPostNgePlayerMedicDoomState(self)") -and
+    ([regex]::Matches($medicDoomAdd, "dot.applyDotEffect")).Count -eq 2 -and
+    ([regex]::Matches($medicDoomRemove,
+        'buff.applyBuff\(self, self, "me_doom", 10\.0f\)')).Count -eq 2 -and
+    -not [bool]$contract.expected.playerNgeMedicDoomProcExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeMedicDoomBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeMedicDoomStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeMedicDoomModifierRemoved -and
+    -not [bool]$contract.expected.playerNgeMedicDoomDelayedDotReachable -and
+    [bool]$contract.expected.nonPlayerNgeMedicDoomCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.medic-doom-player-proc-buff-and-delayed-dot-fail-closed"
+
 $buffProgressionCleanup = Get-BracedBlock $buffLibrary `
     "public static void retirePostNgeBuffProgression(obj_id player)"
 $meditationBuffCleanup = Get-BracedBlock $buffLibrary `

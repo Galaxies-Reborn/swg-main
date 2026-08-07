@@ -2890,6 +2890,108 @@ printf '%s\n' "$entertainer_player_action_source" | grep -Fq 'actionName.startsW
 printf '%s\n' "$entertainer_player_action_source" | grep -Fq 'actionName.startsWith("expertise_buildabuff_")'
 entertainer_action_gate_line="$(grep -Fn 'if (isRetiredPostNgeEntertainerPlayerAction(self, actionName))' "$work_combat_base" | head -1 | cut -d: -f1)"
 test "$generic_proc_gate_line" -lt "$entertainer_action_gate_line"
+medic_doom_actions='me_dm_dot_1 me_dm_dot_2 me_dm_dot_3 me_dm_dot_4 me_dm_dot_5 me_dm_dot_6 me_induce_insanity_1 me_bacta_resistance_1 me_electrolyte_drain_1 me_traumatize_5 me_thyroid_rupture_1'
+for medic_doom_action in $medic_doom_actions; do
+    awk -F '\t' -v name="$medic_doom_action" '
+    NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+    NR > 2 && $(fieldIndex["commandName"]) == name {
+        found++
+        if ($(fieldIndex["scriptHook"]) != name || $(fieldIndex["displayGroup"]) != "combat" ||
+            $(fieldIndex["addToCombatQueue"]) != 1) exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_command_table"
+    awk -F '\t' -v name="$medic_doom_action" '
+    NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+    NR > 2 && $(fieldIndex["actionName"]) == name {
+        found++
+        specialLine = $(fieldIndex["specialLine"])
+        if ($(fieldIndex["validTarget"]) != "STANDARD" ||
+            $(fieldIndex["attackType"]) != "SINGLE_TARGET" ||
+            (specialLine != "me_dot" && specialLine != "me_debuff")) exit 2
+    }
+    END { if (found != 1) exit 3 }
+    ' "$work_combat_data"
+    medic_doom_action_source="$(sed -n "/public int $medic_doom_action(/,/return SCRIPT_CONTINUE;/p" "$work_combat_actions")"
+    medic_doom_action_gate_line="$(printf '%s\n' "$medic_doom_action_source" | grep -Fn "combatStandardAction(\"$medic_doom_action\"" | head -1 | cut -d: -f1)"
+    medic_doom_action_proc_line="$(printf '%s\n' "$medic_doom_action_source" | grep -Fn 'doDoom(self, target);' | head -1 | cut -d: -f1)"
+    test -n "$medic_doom_action_gate_line"
+    test -n "$medic_doom_action_proc_line"
+    test "$medic_doom_action_gate_line" -lt "$medic_doom_action_proc_line"
+done
+test "$(grep -Fc 'doDoom(self, target);' "$work_combat_actions")" -eq 11
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+NR > 2 && $(fieldIndex["NAME"]) == "me_doom" {
+    found++
+    if ($(fieldIndex["TYPE"]) != "meDoom" || $(fieldIndex["SUBTYPE"]) != "me_doom") exit 2
+}
+END { if (found != 1) exit 3 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+NR > 2 && $(fieldIndex["NAME"]) == "me_doom" {
+    found++
+    if ($(fieldIndex["GROUP1"]) != "meDoom" || $(fieldIndex["DURATION"]) != 10 ||
+        $(fieldIndex["EFFECT1_PARAM"]) != "me_doom" || $(fieldIndex["EFFECT1_VALUE"]) != 1 ||
+        $(fieldIndex["DEBUFF"]) != 1 || $(fieldIndex["IS_PERSISTENT"]) != 1) exit 2
+}
+NR > 2 && $(fieldIndex["NAME"]) == "set_bonus_medic_utility_b_3" {
+    setBonus++
+    if ($(fieldIndex["EFFECT5_PARAM"]) != "me_doom_chance" || $(fieldIndex["EFFECT5_VALUE"]) != 20) exit 4
+}
+END { if (found != 1 || setBonus != 1) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) { header = $column; sub(/\r$/, "", header); fieldIndex[header] = column } next }
+NR > 2 && $(fieldIndex["skill_mod"]) == "me_doom_chance" {
+    found++
+    comment = $(fieldIndex["comment"])
+    sub(/\r$/, "", comment)
+    if ($(fieldIndex["profession"]) != "medic_1a" || $(fieldIndex["category"]) != "medic" || comment != "DOOM Chance") exit 2
+}
+END { if (found != 1) exit 3 }
+' "$work_skill_mod_listing"
+medic_doom_proc_source="$(sed -n '/public void doDoom(obj_id attacker, obj_id defender)/,/public int of_buff_def_1/p' "$work_combat_actions")"
+medic_doom_attacker_guard_line="$(printf '%s\n' "$medic_doom_proc_source" | grep -Fn 'if (isPlayer(attacker))' | head -1 | cut -d: -f1)"
+medic_doom_defender_guard_line="$(printf '%s\n' "$medic_doom_proc_source" | grep -Fn 'if (isPlayer(defender))' | head -1 | cut -d: -f1)"
+medic_doom_chance_read_line="$(printf '%s\n' "$medic_doom_proc_source" | grep -Fn 'getEnhancedSkillStatisticModifierUncapped(attacker, "me_doom_chance")' | head -1 | cut -d: -f1)"
+medic_doom_state_write_line="$(printf '%s\n' "$medic_doom_proc_source" | grep -Fn 'utils.setScriptVar(defender, "me_doom.doom_owner", attacker);' | head -1 | cut -d: -f1)"
+test -n "$medic_doom_attacker_guard_line"
+test -n "$medic_doom_defender_guard_line"
+test -n "$medic_doom_chance_read_line"
+test -n "$medic_doom_state_write_line"
+test "$medic_doom_attacker_guard_line" -lt "$medic_doom_defender_guard_line"
+test "$medic_doom_defender_guard_line" -lt "$medic_doom_chance_read_line"
+test "$medic_doom_chance_read_line" -lt "$medic_doom_state_write_line"
+printf '%s\n' "$medic_doom_proc_source" | grep -Fq 'buff.retirePostNgePlayerMedicDoomState(attacker);'
+printf '%s\n' "$medic_doom_proc_source" | grep -Fq 'buff.retirePostNgePlayerMedicDoomState(defender);'
+medic_doom_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerMedicDoomBuff/,/public static void clearPostNgePlayerMedicDoomState/p' "$work_buff_library")"
+printf '%s\n' "$medic_doom_predicate_source" | grep -Fq 'isPlayer(target)'
+printf '%s\n' "$medic_doom_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF.equals(data.buffName)'
+medic_doom_clear_source="$(sed -n '/public static void clearPostNgePlayerMedicDoomState/,/public static void retirePostNgePlayerMedicDoomState/p' "$work_buff_library")"
+printf '%s\n' "$medic_doom_clear_source" | grep -Fq 'utils.removeScriptVarTree(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF);'
+printf '%s\n' "$medic_doom_clear_source" | grep -Fq 'hasSkillModModifier(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_MODIFIER)'
+printf '%s\n' "$medic_doom_clear_source" | grep -Fq 'removeAttribOrSkillModModifier(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_MODIFIER);'
+medic_doom_cleanup_source="$(sed -n '/public static void retirePostNgePlayerMedicDoomState/,/public static boolean isRetiredPostNgePlayerModifierBuff/p' "$work_buff_library")"
+printf '%s\n' "$medic_doom_cleanup_source" | grep -Fq 'removeBuff(player, RETIRED_POST_NGE_PLAYER_MEDIC_DOOM_BUFF);'
+printf '%s\n' "$medic_doom_cleanup_source" | grep -Fq 'clearPostNgePlayerMedicDoomState(player);'
+grep -Fq 'retirePostNgePlayerMedicDoomState(player);' "$work_buff_library"
+medic_doom_admission_line="$(grep -Fn 'isRetiredPostNgePlayerMedicDoomBuff(target, bdata)' "$work_buff_library" | head -1 | cut -d: -f1)"
+generic_existing_buff_line="$(grep -Fn 'if (hasBuff(target, nameCrc))' "$work_buff_library" | head -1 | cut -d: -f1)"
+test "$medic_doom_admission_line" -lt "$generic_existing_buff_line"
+medic_doom_add_source="$(sed -n '/public int meDoomAddBuffHandler/,/public int meDoomRemoveBuffHandler/p' "$work_buff_handler")"
+medic_doom_add_guard_line="$(printf '%s\n' "$medic_doom_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+medic_doom_add_state_read_line="$(printf '%s\n' "$medic_doom_add_source" | grep -Fn 'utils.getObjIdScriptVar(self, "me_doom.doom_owner")' | head -1 | cut -d: -f1)"
+test "$medic_doom_add_guard_line" -lt "$medic_doom_add_state_read_line"
+printf '%s\n' "$medic_doom_add_source" | grep -Fq 'buff.retirePostNgePlayerMedicDoomState(self);'
+test "$(printf '%s\n' "$medic_doom_add_source" | grep -Fc 'dot.applyDotEffect')" -eq 2
+medic_doom_remove_source="$(sed -n '/public int meDoomRemoveBuffHandler/,/public int cacheExpertiseProcReacList/p' "$work_buff_handler")"
+medic_doom_remove_guard_line="$(printf '%s\n' "$medic_doom_remove_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+medic_doom_remove_state_read_line="$(printf '%s\n' "$medic_doom_remove_source" | grep -Fn 'utils.getObjIdScriptVar(self, "me_doom.doom_owner")' | head -1 | cut -d: -f1)"
+test "$medic_doom_remove_guard_line" -lt "$medic_doom_remove_state_read_line"
+printf '%s\n' "$medic_doom_remove_source" | grep -Fq 'buff.clearPostNgePlayerMedicDoomState(self);'
+test "$(printf '%s\n' "$medic_doom_remove_source" | grep -Fc 'buff.applyBuff(self, self, "me_doom", 10.0f);')" -eq 2
 legacy_item_combat_level_pattern='required[ _]combat[ _]level|combat[ _]level[ _]required|healing_combat_level_required|healing\.combat_level_required'
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_item_stats_table"
 ! grep -E -i -q "$legacy_item_combat_level_pattern" "$work_advanced_search_table"
@@ -4318,6 +4420,45 @@ for entertainer_buildabuff_reactive_heal_action in expertise_buildabuff_heal_1_r
     printf '%s' "$buildabuff_class_constants" | grep -Fq "$entertainer_buildabuff_reactive_heal_action"
     printf '%s' "$buildabuff_remove_bytecode" | grep -Fq "String $entertainer_buildabuff_reactive_heal_action"
 done
+medic_doom_proc_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/public void doDoom(/,/public int of_buff_def_1/p')"
+medic_doom_proc_is_player_lines="$(printf '%s\n' "$medic_doom_proc_bytecode" | grep -Fn 'Method isPlayer' | cut -d: -f1)"
+medic_doom_proc_attacker_guard_bytecode_line="$(printf '%s\n' "$medic_doom_proc_is_player_lines" | sed -n '1p')"
+medic_doom_proc_defender_guard_bytecode_line="$(printf '%s\n' "$medic_doom_proc_is_player_lines" | sed -n '2p')"
+medic_doom_proc_chance_bytecode_line="$(printf '%s\n' "$medic_doom_proc_bytecode" | grep -Fn 'String me_doom_chance' | head -1 | cut -d: -f1)"
+medic_doom_proc_state_bytecode_line="$(printf '%s\n' "$medic_doom_proc_bytecode" | grep -Fn 'String me_doom.doom_owner' | head -1 | cut -d: -f1)"
+test -n "$medic_doom_proc_attacker_guard_bytecode_line"
+test -n "$medic_doom_proc_defender_guard_bytecode_line"
+test -n "$medic_doom_proc_chance_bytecode_line"
+test -n "$medic_doom_proc_state_bytecode_line"
+test "$medic_doom_proc_attacker_guard_bytecode_line" -lt "$medic_doom_proc_defender_guard_bytecode_line"
+test "$medic_doom_proc_defender_guard_bytecode_line" -lt "$medic_doom_proc_chance_bytecode_line"
+test "$medic_doom_proc_chance_bytecode_line" -lt "$medic_doom_proc_state_bytecode_line"
+test "$(printf '%s\n' "$medic_doom_proc_bytecode" | grep -Fc 'retirePostNgePlayerMedicDoomState')" -eq 2
+medic_doom_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerMedicDoomBuff/,/clearPostNgePlayerMedicDoomState/p')"
+printf '%s' "$medic_doom_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$medic_doom_predicate_bytecode" | grep -Fq 'String me_doom'
+medic_doom_clear_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerMedicDoomState/,/retirePostNgePlayerMedicDoomState/p')"
+printf '%s' "$medic_doom_clear_bytecode" | grep -Fq 'Method script/library/utils.removeScriptVarTree'
+printf '%s' "$medic_doom_clear_bytecode" | grep -Fq 'Method hasSkillModModifier'
+printf '%s' "$medic_doom_clear_bytecode" | grep -Fq 'Method removeAttribOrSkillModModifier'
+printf '%s' "$medic_doom_clear_bytecode" | grep -Fq 'String me_doom_chance'
+medic_doom_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerMedicDoomState/,/isRetiredPostNgePlayerModifierBuff/p')"
+printf '%s' "$medic_doom_cleanup_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$medic_doom_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerMedicDoomState'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerMedicDoomState'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/getGroups/p' | grep -Fq 'isRetiredPostNgePlayerMedicDoomBuff'
+medic_doom_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/meDoomAddBuffHandler/,/meDoomRemoveBuffHandler/p')"
+medic_doom_add_guard_bytecode_line="$(printf '%s\n' "$medic_doom_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+medic_doom_add_state_bytecode_line="$(printf '%s\n' "$medic_doom_add_bytecode" | grep -Fn 'String me_doom.doom_owner' | head -1 | cut -d: -f1)"
+test "$medic_doom_add_guard_bytecode_line" -lt "$medic_doom_add_state_bytecode_line"
+printf '%s' "$medic_doom_add_bytecode" | grep -Fq 'retirePostNgePlayerMedicDoomState'
+test "$(printf '%s' "$medic_doom_add_bytecode" | grep -Fc 'Method script/library/dot.applyDotEffect')" -eq 2
+medic_doom_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/meDoomRemoveBuffHandler/,/cacheExpertiseProcReacList/p')"
+medic_doom_remove_guard_bytecode_line="$(printf '%s\n' "$medic_doom_remove_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+medic_doom_remove_state_bytecode_line="$(printf '%s\n' "$medic_doom_remove_bytecode" | grep -Fn 'String me_doom.doom_owner' | head -1 | cut -d: -f1)"
+test "$medic_doom_remove_guard_bytecode_line" -lt "$medic_doom_remove_state_bytecode_line"
+printf '%s' "$medic_doom_remove_bytecode" | grep -Fq 'clearPostNgePlayerMedicDoomState'
+test "$(printf '%s' "$medic_doom_remove_bytecode" | grep -Fc 'Method script/library/buff.applyBuff')" -eq 2
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commando_snare_bonus'
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'commandoInnateArmorBonus'
 commando_snare_armor_effect_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerCommandoSnareArmorEffect(java.lang.String)/,/isRetiredPostNgePlayerCommandoSnareArmorBuff/p')"
