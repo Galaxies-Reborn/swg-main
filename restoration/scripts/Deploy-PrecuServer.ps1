@@ -3426,7 +3426,6 @@ printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffD
 printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_luck_hit_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerLuckHitOverrideModifiers'
 buff_forsake_fear_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerForsakeFearChannelEffect(java.lang.String)/,/isRetiredPostNgePlayerForsakeFearChannelBuff/p')"
-printf '%s' "$buff_forsake_fear_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_FORSAKE_FEAR_CHANNEL_EFFECT'
 printf '%s' "$buff_forsake_fear_effect_predicate_bytecode" | grep -Fq 'expertise_channel_action_heal'
 buff_forsake_fear_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerForsakeFearChannelBuff/,/clearPostNgePlayerForsakeFearChannelState/p')"
 printf '%s' "$buff_forsake_fear_predicate_bytecode" | grep -Fq 'isPlayer'
@@ -3436,7 +3435,7 @@ printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'isPlayer'
 for forsake_fear_state_key in ForsakeFearSUIPID lastForsakeFearPulse totalForsakeFearPulses channelForsakeFearCancelled channelForsakeFearSuccessful; do
     printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq "$forsake_fear_state_key"
 done
-printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'COUNTDOWNTIMER_SUI_VAR'
+printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'countdown_sui.sui_pid'
 printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'forceCloseSUIPage'
 printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'removeObjVar'
 printf '%s' "$buff_forsake_fear_state_cleanup_bytecode" | grep -Fq 'removeScriptVarTree'
