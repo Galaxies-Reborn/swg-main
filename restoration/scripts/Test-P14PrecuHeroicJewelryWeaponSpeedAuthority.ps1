@@ -127,8 +127,7 @@ Assert-Contract ($primaryPredicateNames.Count -eq
         [int]$contract.expected.genericBuffPrimaryModifiersRetired -and
     @($primaryPredicateNames | Select-Object -Unique).Count -eq $expectedPrimary.Count -and
     @($milkModifiers | Where-Object { $primaryPredicate.Contains($_) }).Count -eq 0 -and
-    $buffPredicate.Contains("isRetiredNgeExpertiseModifier(modifierName)") -and
-    $buffPredicate.Contains("isRetiredNgePrimaryStatisticModifier(modifierName)") -and
+    $buffPredicate.Contains("static_item.isRetiredNgeBuffSkillModifier(modifierName)") -and
     $mappedPrimary.Count -eq $expectedPrimary.Count -and
     @($mappedPrimary | Where-Object {
         [string]$_.TYPE -cne "skill" -or [string]$_.SUBTYPE -cne [string]$_.NAME

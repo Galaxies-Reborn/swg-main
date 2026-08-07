@@ -65,6 +65,7 @@ $combatBase = [string]$texts.combatBase
 $basePlayer = [string]$texts.basePlayer
 $buffHandler = [string]$texts.buffHandler
 $buffLibrary = [string]$texts.buffLibrary
+$staticItemLibrary = [string]$texts.staticItemLibrary
 $meditationLibrary = [string]$texts.meditationLibrary
 $bountyHunterShieldScript = [string]$texts.bountyHunterShieldScript
 $dictionaryCost = Get-BracedBlock $combatLibrary `
@@ -204,6 +205,8 @@ $primaryPredicate = Get-BracedBlock $buffHandler `
     "public boolean isRetiredNgePrimaryStatisticModifier(String modifierName)"
 $buffPredicate = Get-BracedBlock $buffHandler `
     "public boolean isRetiredNgeBuffSkillModifier(String modifierName)"
+$sharedBuffPredicate = Get-BracedBlock $staticItemLibrary `
+    "public static boolean isRetiredNgeBuffSkillModifier(String modifier)"
 $expertiseCleanup = Get-BracedBlock $buffHandler `
     "public void retireNgeExpertiseModifier(obj_id self, String effectName)"
 $primaryModifierNames = @(
@@ -217,8 +220,10 @@ Assert-Contract ($expertisePredicate.Contains('modifierName.startsWith("expertis
     $primaryNamesInPredicate.Count -eq
         [int]$contract.expected.retiredNgePrimaryStatisticModifiers -and
     -not $primaryPredicate.Contains("milk_") -and
-    $buffPredicate.Contains("isRetiredNgeExpertiseModifier(modifierName)") -and
-    $buffPredicate.Contains("isRetiredNgePrimaryStatisticModifier(modifierName)") -and
+    $buffPredicate.Contains("static_item.isRetiredNgeBuffSkillModifier(modifierName)") -and
+    $sharedBuffPredicate.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $sharedBuffPredicate.Contains('modifier.equals("damage_immune")') -and
+    $sharedBuffPredicate.Contains('modifier.startsWith("dot_resist_")') -and
     $expertiseCleanup.Contains("hasSkillModModifier(self, effectName)") -and
     $expertiseCleanup.Contains("removeAttribOrSkillModModifier(self, effectName)")) `
     "p14.combat-expertise-isolation.buff.central-cleanup-authority"
@@ -241,6 +246,108 @@ Assert-Contract ($genericExpertiseHandlers.Count + 1 -eq
     $percentHandler.IndexOf("isRetiredNgeBuffSkillModifier(subtype)", [StringComparison]::Ordinal) -lt
         $percentHandler.IndexOf("getSkillStatisticModifier", [StringComparison]::Ordinal)) `
     "p14.combat-expertise-isolation.buff.generic-writers-guarded"
+
+$modifierInventoryBlocks = @(
+    (Get-BracedBlock $staticItemLibrary `
+        "public static final String[] LEGACY_NGE_DYNAMIC_PRIMARY_MODIFIERS")
+    (Get-BracedBlock $staticItemLibrary `
+        "public static final String[] RETIRED_NGE_STATIC_ITEM_MODIFIERS")
+    (Get-BracedBlock $staticItemLibrary `
+        "public static final String[] RETIRED_NGE_ITEM_WRITER_MODIFIERS")
+    (Get-BracedBlock $staticItemLibrary `
+        "public static final String[] RETIRED_NGE_BUFF_COMBAT_MODIFIERS")
+)
+$retiredExactModifierNames = @($modifierInventoryBlocks |
+    ForEach-Object { [regex]::Matches($_, '"([A-Za-z0-9_]+)"') } |
+    ForEach-Object { $_.Groups[1].Value } |
+    Select-Object -Unique)
+function Test-RetiredNgeBuffModifier([string]$Modifier)
+{
+    if ([string]::IsNullOrWhiteSpace($Modifier)) { return $false }
+    return $Modifier.StartsWith("expertise_", [StringComparison]::Ordinal) -or
+        $Modifier.StartsWith("fast_attack_line_", [StringComparison]::Ordinal) -or
+        $Modifier.StartsWith("bm_", [StringComparison]::Ordinal) -or
+        $Modifier.StartsWith("dot_resist_", [StringComparison]::Ordinal) -or
+        $Modifier -ceq "damage_immune" -or
+        $retiredExactModifierNames -ccontains $Modifier
+}
+$retiredModifierBuffRows = [System.Collections.Generic.List[object]]::new()
+foreach ($row in @(Import-SwgTab -Path $paths.buffTable))
+{
+    $effectParameters = @(1..5 | ForEach-Object {
+        [string]$row.("EFFECT$($_)_PARAM")
+    } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $retiredEffectParameters = @($effectParameters | Where-Object {
+        Test-RetiredNgeBuffModifier $_
+    })
+    if ($retiredEffectParameters.Count -eq 0) { continue }
+    $retiredModifierBuffRows.Add([pscustomobject]@{
+        Name = [string]$row.NAME
+        RetiredEffectParameters = $retiredEffectParameters
+        OtherEffectParameters = @($effectParameters | Where-Object {
+            -not (Test-RetiredNgeBuffModifier $_)
+        })
+    })
+}
+$distinctRetiredModifierNames = @($retiredModifierBuffRows |
+    Select-Object -ExpandProperty Name -Unique)
+$distinctRetiredEffectParameters = @($retiredModifierBuffRows |
+    ForEach-Object { $_.RetiredEffectParameters } | Select-Object -Unique)
+$mixedRetiredModifierRows = @($retiredModifierBuffRows | Where-Object {
+    $_.OtherEffectParameters.Count -gt 0
+})
+$retiredEffectMappingRows = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        $distinctRetiredEffectParameters -ccontains [string]$_.NAME
+    })
+$unmappedRetiredEffectParameters = @($distinctRetiredEffectParameters |
+    Where-Object {
+        $_ -cnotin @($retiredEffectMappingRows | Select-Object -ExpandProperty NAME)
+    })
+Assert-Contract ($retiredModifierBuffRows.Count -eq
+        [int]$contract.expected.retiredNgePlayerModifierBuffRows -and
+    $distinctRetiredModifierNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerModifierBuffNames -and
+    $distinctRetiredEffectParameters.Count -eq
+        [int]$contract.expected.retiredNgePlayerModifierEffectParameters -and
+    $retiredEffectMappingRows.Count -eq
+        [int]$contract.expected.retiredNgePlayerModifierEffectMappingRows -and
+    $mixedRetiredModifierRows.Count -eq
+        [int]$contract.expected.retiredNgePlayerModifierMixedEffectRows -and
+    $unmappedRetiredEffectParameters.Count -eq 0) `
+    "p14.combat-expertise-isolation.buff.retained-modifier-data-inventory-authenticated"
+
+$modifierBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerModifierBuff(obj_id target, buff_data data)"
+$modifierBuffCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerModifierBuffState(obj_id player)"
+$modifierBuffProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$modifierCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$modifierAdmissionGate = $modifierCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerModifierBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$modifierExistingBuffReturn = $modifierCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
+    $modifierBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $modifierBuffPredicate.Contains(
+        "static_item.isRetiredNgeBuffSkillModifier(getEffectParam(data, effect))") -and
+    $modifierBuffCleanup.Contains("!isPlayer(player)") -and
+    $modifierBuffCleanup.Contains("getAllBuffs(player)") -and
+    $modifierBuffCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $modifierBuffCleanup.Contains(
+        "isRetiredPostNgePlayerModifierBuff(player, data)") -and
+    $modifierBuffCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $modifierBuffProgressionCleanup.Contains(
+        "retirePostNgePlayerModifierBuffState(player);") -and
+    $modifierAdmissionGate -ge 0 -and
+    $modifierExistingBuffReturn -gt $modifierAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeModifierBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeModifierBuffStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
 $armorBreak = Get-BracedBlock $buffHandler "public int armorBreakAddBuffHandler("
 $armorBreakRemove = Get-BracedBlock $buffHandler "public int armorBreakRemoveBuffHandler("
@@ -490,6 +597,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.compiledClassSha256.basePlayer -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.buffHandler -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.buffLibrary -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.staticItemLibrary -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.meditationLibrary -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.bountyHunterShieldScript -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and

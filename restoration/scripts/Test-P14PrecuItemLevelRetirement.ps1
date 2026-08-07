@@ -487,7 +487,7 @@ $buffModifierPredicate = Get-FunctionSlice $buffHandler `
 $genericBuffWriterGuards = ([regex]::Matches($buffHandler,
     [regex]::Escape("if (isPlayer(self) && isRetiredNgeBuffSkillModifier(subtype))"))).Count
 Assert-Contract ($buffModifierPredicate.Contains(
-        "static_item.isRetiredNgeStaticItemSkillModifier(modifierName)") -and
+        "static_item.isRetiredNgeBuffSkillModifier(modifierName)") -and
     $genericBuffWriterGuards -eq
         [int]$contract.expected.itemModifierWriters.genericPlayerBuffModifierWriters -and
     $buffHandler.Contains("else") -and

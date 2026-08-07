@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, remove the residual Force Sensitive alacrity side effect from shared glancing resolution, and clean persisted NGE display-only, expertise, later primary-stat, random meditation, Force Sensitive stance/focus, and Bounty Hunter shield state without recreating it.",
+  "status": "implemented-build-pending",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier buffs from becoming player combat authority through admission, refresh, persistence, or alternate effect handlers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -28,7 +28,9 @@
       "The retained NGE Force Sensitive phase tree can persist fs_buff_def_1_1/fs_buff_ca_1 and their expertise-derived child effects independently of the centrally denied fs_* action handlers.",
       "The shared legacy glancing-result block also probed expertise_fs_general_alacrity_1 without using its return value and then played the Jedi alacrity particle for every glancing result; the classic damage reduction and glancing message remain, while that unconditional NGE skill/effect side path is retired.",
       "The inherited Commando default-heavy-attack free-cost, expertise devastation, and automatic level-tiered passive DOT path is also absent; authenticated PRE-CU command damage and hate routing remain authoritative.",
-      "Player lifecycle cleanup, generic buff admission, the stance add handler, and stance/focus query helpers now fail closed over all 34 known state names; 33 compatibility rows and one historical cleanup-only name remain retained, while the distinct PRE-CU brawler centerOfBeing/centerofbeing path is untouched."
+      "Player lifecycle cleanup, generic buff admission, the stance add handler, and stance/focus query helpers now fail closed over all 34 known state names; 33 compatibility rows and one historical cleanup-only name remain retained, while the distinct PRE-CU brawler centerOfBeing/centerofbeing path is untouched.",
+      "The retained 1,993-row buff catalog contains 966 compatibility rows with 187 distinct NGE expertise, modified-primary-stat, Beast Master, fast-attack, DOT-immunity, item-writer, or later combat-modifier effect parameters; 166 rows mix one of those parameters with another content effect, so effect-writer guards alone could still leave misleading persisted player state.",
+      "All 187 later-era effect parameters remain mapped by 195 retained effect-mapping rows. A shared five-slot predicate now denies or removes the entire data-driven buff only for player targets, before an existing buff can be refreshed, while retained rows and non-player expansion encounter behavior remain available."
     ]
   },
   "expected": {
@@ -57,6 +59,14 @@
     "retiredNgePrimaryStatisticModifiers": 6,
     "retainedCreatureMilkModifiers": 3,
     "remainingNgePrimaryBuffWriters": 0,
+    "retiredNgePlayerModifierBuffRows": 966,
+    "retiredNgePlayerModifierBuffNames": 966,
+    "retiredNgePlayerModifierEffectParameters": 187,
+    "retiredNgePlayerModifierEffectMappingRows": 195,
+    "retiredNgePlayerModifierMixedEffectRows": 166,
+    "playerNgeModifierBuffAdmissionReachable": false,
+    "persistedPlayerNgeModifierBuffStateRemoved": true,
+    "nonPlayerNgeModifierBuffCompatibilityPreserved": true,
     "armorBreakNgeExpertiseReads": 0,
     "armorBreakNgeExpertiseWrites": 0,
     "directStanceExpertiseWriters": 0,
@@ -91,11 +101,13 @@
     "buffLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java",
     "meditationLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/meditation.java",
     "bountyHunterShieldScript": "dsrc/sku.0/sys.server/compiled/game/script/player/skill/bh_shields.java",
-    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "staticItemLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java",
+    "buffEffectMapping": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "325d0e07915952189e4d47e46274a08b07e4b8c2",
+    "directSourceGitlink": "4dabfed268f9be976380bde857903b67a9c9c716",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "4e3efd9e68cf583437b88e52cca75f7d132f4b6ee0f9abbfffa8e2de0ed86c4b",
@@ -105,34 +117,37 @@
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "e5dc80a38bef39394819fdc987e1bb66a734040cb0a04f61fef0fb523f126945",
-      "buffHandler": "267029a2b35f93617d3eef2f03e2f133e90476495fe31b70099f6f17f08df230",
-      "buffLibrary": "e20b133ddbb0001190c0849c3ee4a8e3ac4c9afe319653737a77d68c58bdb1c5",
+      "buffHandler": "d179e98cfbce462ebb57f3be3bd7906ac4d097aaaf3ea0f682fc6f71e2c0cd3d",
+      "buffLibrary": "9df73e38ab5e46b780588e4f9762cf43efdc5d90db42691bc409357eb799f209",
       "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
       "bountyHunterShieldScript": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7",
-      "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9"
+      "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
+      "staticItemLibrary": "1057ff58dcf923b9fa3e14c6a532322941d793c67326886c6ecf4bc5cfc8b6fe",
+      "buffEffectMapping": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a"
     },
     "compiledClassSha256": {
       "combatLibrary": "db36049f2304f472b5ca273aba144c9176f87dabc11ee5ff894bfc47f61b4979",
       "combatBase": "08a94d338f49e4422a797ad7a0bcaf572ee90a56d482a5ff3dbe9b62bfee0383",
       "basePlayer": "33819b9d9e0b27af07b6969a40ea9a33f17a44830c71613513d673952a490ec5",
-      "buffHandler": "a35abafac6f685bf38b30404fb742bcc6a4d7e3f6606c61b4fec60b14c3a58b7",
-      "buffLibrary": "a5a615b2dca20b3e236dec66f8ecd9b6474393a5bace8cbe34793bbf8d8c4bbf",
+      "buffHandler": "build-pending",
+      "buffLibrary": "build-pending",
+      "staticItemLibrary": "build-pending",
       "meditationLibrary": "8976607f33c78eb3ec4f123a5d8464ba68e38441308ae5181f1ec9c840a19c88",
       "bountyHunterShieldScript": "1522eb102fb7da9ed7e1571402382382656f82b1e972298b280e9cfd1e0ed0bf"
     },
     "focusedCombatBaseClassSha256": "9ab311fd7d9869d28cb823b97830c23007ff84a913b3ddd7a50ca4828bad9dc7",
     "focusedCombatBaseClassBytes": 125081,
     "sourceTest": "passed; authenticated PRE-CU hit-engine, primary-defense, and secondary-defense blocks contain zero combat-level reads and retain their named skill-modifier inputs, while later-content NGE helpers remain bounded",
-    "focusedJavaCompile": "passed current combat_base.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately",
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed again in the 873.1-second canonical clean Docker x86-64 deployment from pushed parent 6434cdf99720109bbdec4c9f5afe19ef3ab6d3e0 and direct dsrc 0e750f699d681ae9bb20047ed23dedb98921ebe3, followed by authenticated verification and restart",
+    "focusedJavaCompile": "passed static_item.java, buff.java, and buff_handler.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory removed immediately",
+    "fullJavaCompile": "pending canonical clean deployment",
+    "fullServerBuild": "pending canonical clean Docker x86-64 deployment from pushed direct-source and parent commits",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
     "sourceWorkParity": "passed byte-for-byte between the read-only direct-source mount and Docker work volume; combat_base.java SHA-256 8d3d9eaac255055409cc54aa59b1701c3f3768e20ccb078c7aedfc83f5154bae on both mounts",
     "bytecodeAudit": "passed; deployed combat_base.class SHA-256 08a94d338f49e4422a797ad7a0bcaf572ee90a56d482a5ff3dbe9b62bfee0383 retains PRE-CU skill-modifier resolution, explicitly gates the inherited NGE critical-effect call behind the compatibility route, and has zero getLevel calls in runHitEngine, getPrecuPrimaryHitChance, and getPrecuSecondaryDefenseResult; retained later-content helpers remain outside those bounded methods",
-    "deploymentProbe": "passed expanded preflight, source/work parity, bounded combat-level bytecode, x64, readiness, mapped-binary, and clean-log verification",
-    "result": "passed"
+    "deploymentProbe": "pending",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-06",
@@ -165,12 +180,16 @@
       "SwgGameServer": 15
     },
     "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "passed"
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "authenticated PRE-CU hit-result, primary defense, secondary defense, action-cost, damage, hate, and skill-owned heavy-weapon command dispatch cannot cross into inherited NGE combat level, expertise, alacrity, Commando devastation, or automatic passive-DOT authority; cleanup paths cannot recreate retired NGE player state",
-    "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based primary and secondary defense; authored three-pool costs; one-time area cost draining; PRE-CU block/dodge/counter/ricochet; ordinary PRE-CU skill buffs; all twenty-two display cleanup callbacks; retained buff rows/icons and NPC compatibility metadata; and all expansion quests/zones",
-    "notClaimedComplete": "non-combat and content-specific expertise references, plus inherited combat helpers reachable only from non-authenticated later-content actions, remain subject to later reachability audits"
+    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, item-writer, or later combat-modifier authority through generic player buff admission, refresh, persistence, or effect writers",
+    "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based combat; ordinary PRE-CU skill and HAM buffs; all retained buff and effect-mapping rows; non-player expansion encounter compatibility; and all expansion quests, conversations, and zones",
+    "notClaimedComplete": "other data-driven effect families outside the authenticated 187-parameter modifier boundary remain subject to later reachability audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical clean x64 deployment",
+    "compiled-bytecode authentication",
+    "healthy live cluster and clean post-start log audit"
+  ]
 }

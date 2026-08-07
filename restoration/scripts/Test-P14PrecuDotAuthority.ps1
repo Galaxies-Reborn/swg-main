@@ -127,7 +127,7 @@ $skillWriter = Get-BracedBlock $buffHandler `
     "public int skillAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
 Assert-Contract ($dotImmunityPredicate.Contains('modifierName.equals("damage_immune")') -and
     $dotImmunityPredicate.Contains('modifierName.startsWith("dot_resist_")') -and
-    $buffSkillPredicate.Contains("isRetiredNgeDotImmunityModifier(modifierName)") -and
+    $buffSkillPredicate.Contains("static_item.isRetiredNgeBuffSkillModifier(modifierName)") -and
     $skillWriter.Contains("isRetiredNgeBuffSkillModifier(subtype)")) `
     "p14.precu-dot.buff.player-later-immunity-writers-retired"
 

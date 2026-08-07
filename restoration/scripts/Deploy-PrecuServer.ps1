@@ -620,6 +620,8 @@ source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
 source_buff_library="$source_script/library/buff.java"
 work_buff_library="$work_script/library/buff.java"
+source_static_item_library="$source_script/library/static_item.java"
+work_static_item_library="$work_script/library/static_item.java"
 source_gcw_banner_manager="$source_script/item/gcw_buff_banner/banner_buff_manager.java"
 work_gcw_banner_manager="$work_script/item/gcw_buff_banner/banner_buff_manager.java"
 source_bh_shields="$source_script/player/skill/bh_shields.java"
@@ -1224,6 +1226,9 @@ cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
 cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
+cmp -s "$source_static_item_library" "$work_static_item_library"
+cmp -s "$source_buff_table" "$work_buff_table"
+cmp -s "$source_buff_effect_mapping" "$work_buff_effect_mapping"
 cmp -s "$source_gcw_banner_manager" "$work_gcw_banner_manager"
 cmp -s "$source_bh_shields" "$work_bh_shields"
 cmp -s "$source_meditation_library" "$work_meditation_library"
@@ -1246,9 +1251,54 @@ for retired_primary_stat in agility_modified constitution_modified luck_modified
 done
 ! printf '%s' "$primary_stat_source" | grep -Fq 'milk_'
 buff_skill_predicate_source="$(sed -n '/public boolean isRetiredNgeBuffSkillModifier/,/public void retireNgeExpertiseModifier/p' "$work_buff_handler")"
-printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgeExpertiseModifier(modifierName)'
-printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgePrimaryStatisticModifier(modifierName)'
-printf '%s' "$buff_skill_predicate_source" | grep -Fq 'isRetiredNgeDotImmunityModifier(modifierName)'
+printf '%s' "$buff_skill_predicate_source" | grep -Fq 'static_item.isRetiredNgeBuffSkillModifier(modifierName)'
+shared_buff_skill_predicate_source="$(sed -n '/public static boolean isRetiredNgeBuffSkillModifier/,/public static void removeRetiredNgePlayerSkillStatistics/p' "$work_static_item_library")"
+printf '%s' "$shared_buff_skill_predicate_source" | grep -Fq 'isRetiredNgeStaticItemSkillModifier(modifier)'
+printf '%s' "$shared_buff_skill_predicate_source" | grep -Fq 'modifier.equals("damage_immune")'
+printf '%s' "$shared_buff_skill_predicate_source" | grep -Fq 'modifier.startsWith("dot_resist_")'
+retired_player_modifier_regex='^(expertise_|fast_attack_line_|bm_|dot_resist_)|^(agility_modified|constitution_modified|luck_modified|precision_modified|stamina_modified|strength_modified|bh_dire_root|bh_dire_snare|combat_block_chance|combat_block_value|combat_strikethrough_chance|cooldown_percent_of_group_buff|incubation_time_reduction|rally_point_duration|tka_armor|combat_critical_hit_reduction|combat_dodge|combat_parry|combat_evasion_chance|combat_evasion_value|combat_strikethrough_value|commando_devastation|exotic_heal_action_reduction|exotic_dodge_reduction|exotic_parry_reduction|exotic_acid_penetration|exotic_cold_penetration|exotic_heat_penetration|exotic_electricity_penetration|combat_add_damage_dealt|combat_add_damage_taken|combat_all_attack_avoidance|combat_all_attack_miss|combat_all_attack_miss_reduction|combat_all_attack_miss_vulnerability|combat_block_reduction|combat_critical_hit|combat_divide_damage_dealt|combat_divide_damage_taken|combat_dodge_reduction|combat_glancing|combat_glancing_blow_reduction|combat_melee_attack_avoidance|combat_melee_attack_miss|combat_melee_attack_miss_reduction|combat_melee_attack_vulnerability|combat_multiply_damage_dealt|combat_multiply_damage_taken|combat_parry_reduction|combat_ranged_attack_avoidance|combat_ranged_attack_miss|combat_ranged_attack_miss_reduction|combat_ranged_attack_vulnerability|combat_subtract_damage_dealt|combat_subtract_damage_taken|damage_immune)$'
+awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR > 2 {
+    matched = 0
+    mixed = 0
+    for (column = 8; column <= 16; column += 2) {
+        if ($column ~ retired) {
+            matched = 1
+            modifiers[$column] = 1
+        } else if ($column != "") {
+            mixed = 1
+        }
+    }
+    if (matched) {
+        rows++
+        names[$1] = 1
+        if (mixed) mixedRows++
+    }
+} END {
+    for (name in names) nameCount++
+    for (modifier in modifiers) modifierCount++
+    if (rows != 966 || nameCount != 966 || modifierCount != 187 || mixedRows != 166) exit 3
+}' "$work_buff_table"
+awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR == FNR {
+    if (FNR > 2) {
+        for (column = 8; column <= 16; column += 2)
+            if ($column ~ retired) modifiers[$column] = 1
+    }
+    next
+} FNR > 2 && ($1 in modifiers) { mapped++ }
+END {
+    for (modifier in modifiers) modifierCount++
+    if (modifierCount != 187 || mapped != 195) exit 3
+}' "$work_buff_table" "$work_buff_effect_mapping"
+player_modifier_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerModifierBuff/,/public static void retirePostNgePlayerModifierBuffState/p' "$work_buff_library")"
+printf '%s' "$player_modifier_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$player_modifier_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$player_modifier_buff_predicate_source" | grep -Fq 'static_item.isRetiredNgeBuffSkillModifier(getEffectParam(data, effect))'
+player_modifier_buff_cleanup_source="$(sed -n '/public static void retirePostNgePlayerModifierBuffState/,/public static void retirePostNgeBuffProgression/p' "$work_buff_library")"
+printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerModifierBuffState(player);' "$work_buff_library"
 dot_immunity_predicate_source="$(sed -n '/public boolean isRetiredNgeDotImmunityModifier/,/public boolean isRetiredNgeBuffSkillModifier/p' "$work_buff_handler")"
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.equals("damage_immune")'
 printf '%s' "$dot_immunity_predicate_source" | grep -Fq 'modifierName.startsWith("dot_resist_")'
@@ -1479,11 +1529,14 @@ can_apply_buff_source="$(sed -n '/public static boolean canApplyBuff(obj_id targ
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgeBountyHunterShieldBuff(bdata.buffName)'
 printf '%s' "$can_apply_buff_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)'
+printf '%s' "$can_apply_buff_source" | grep -Fq 'isRetiredPostNgePlayerModifierBuff(target, bdata)'
 force_sensitive_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgeForceSensitiveStanceBuff(bdata.buffName)' | head -1 | cut -d: -f1)"
 proc_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcBuff(target, bdata)' | head -1 | cut -d: -f1)"
+modifier_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerModifierBuff(target, bdata)' | head -1 | cut -d: -f1)"
 generic_existing_buff_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
 test "$force_sensitive_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$proc_generic_gate_line" -lt "$generic_existing_buff_line"
+test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
 force_sensitive_stance_handler_cleanup_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.retirePostNgeForceSensitiveStanceState(self);' | head -1 | cut -d: -f1)"
 force_sensitive_stance_visual_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.playStanceVisual(self, effectName);' | head -1 | cut -d: -f1)"
@@ -1600,7 +1653,7 @@ grep -Fq 'if (static_item.isRetiredNgeStaticItemSkillModifier(skillMod))' "$work
 grep -Fq 'if (!static_item.isRetiredNgeStaticItemSkillModifier(skillmod) &&' "$work_player_structure_library"
 grep -Fq 'removeObjVar(structure, player_structure.SPECIAL_SIGN_DECREMENT_MOD);' "$work_player_structure_library"
 buff_skill_predicate_source="$(sed -n '/public boolean isRetiredNgeBuffSkillModifier/,/public void retireNgeExpertiseModifier/p' "$work_buff_handler")"
-printf '%s\n' "$buff_skill_predicate_source" | grep -Fq 'static_item.isRetiredNgeStaticItemSkillModifier(modifierName)'
+printf '%s\n' "$buff_skill_predicate_source" | grep -Fq 'static_item.isRetiredNgeBuffSkillModifier(modifierName)'
 for generic_buff_writer in skillAddBuffHandler skillPercentAddBuffHandler forcePowerAddBuffHandler; do
     generic_buff_writer_source="$(sed -n "/public int $generic_buff_writer/,/public int .*RemoveBuffHandler/p" "$work_buff_handler")"
     printf '%s\n' "$generic_buff_writer_source" | grep -Fq 'if (isPlayer(self) && isRetiredNgeBuffSkillModifier(subtype))'
@@ -2651,6 +2704,14 @@ printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$proc_cleanup_bytecode" | grep -Fq 'buff.removeBuff'
 buff_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/applyBuff(script.obj_id, java.lang.String)/p')"
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
+buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+buff_modifier_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerModifierBuff/,/retirePostNgePlayerModifierBuffState/p')"
+printf '%s' "$buff_modifier_predicate_bytecode" | grep -Fq 'static_item.isRetiredNgeBuffSkillModifier'
+buff_modifier_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerModifierBuffState/,/retirePostNgeBuffProgression/p')"
+printf '%s' "$buff_modifier_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_modifier_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_modifier_cleanup_bytecode" | grep -Fq 'removeBuff'
 combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
@@ -2806,6 +2867,7 @@ test "$(javap -classpath "$class_root" -c -p script.item.medicine.stimpack | gre
 test "$(javap -classpath "$class_root" -c -p script.item.medicine.stimpack_crafted | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 4
 test "$(javap -classpath "$class_root" -c -p script.item.plant.force_melon | grep -Fc 'removeLegacyNgeItemCombatLevelRequirement')" -eq 1
 static_item_bytecode="$(javap -classpath "$class_root" -c -p script.library.static_item)"
+printf '%s\n' "$static_item_bytecode" | sed -n '/public static boolean isRetiredNgeBuffSkillModifier/,/public static void removeRetiredNgePlayerSkillStatistics/p' | grep -Fq 'isRetiredNgeStaticItemSkillModifier'
 item_level_cleanup_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static void removeLegacyNgeItemCombatLevelRequirement(/,/public static int generateStatMod(/p')"
 printf '%s\n' "$item_level_cleanup_bytecode" | grep -Fq 'healing.combat_level_required'
 printf '%s\n' "$item_level_cleanup_bytecode" | grep -Fq 'removeObjVar'
