@@ -371,6 +371,165 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
+$actionBurnEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "actionBurn" })
+$actionBurnBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq "action_burn"
+    }).Count -gt 0
+})
+$actionBurnActualSignatures = @($actionBurnBuffRows | ForEach-Object {
+    $row = $_
+    @(
+        [string]$row.NAME,
+        [string]$row.DURATION,
+        [string]$row.IS_PERSISTENT,
+        [string]$row.EFFECT1_PARAM,
+        [string]$row.EFFECT1_VALUE,
+        [string]$row.EFFECT2_PARAM,
+        [string]$row.EFFECT2_VALUE,
+        [string]$row.EFFECT3_PARAM,
+        [string]$row.EFFECT3_VALUE,
+        [string]$row.EFFECT4_PARAM,
+        [string]$row.EFFECT4_VALUE,
+        [string]$row.EFFECT5_PARAM,
+        [string]$row.EFFECT5_VALUE
+    ) -join "|"
+} | Sort-Object)
+$actionBurnExpectedSignatures = @(
+    "closed_fist_toxin|60|1|action_burn|100||0||0||0||0",
+    "jedi_statue_dark_debuff_light|30|1|action_burn|100|private_armor_break|100|combat_parry_reduction|-200|expertise_block_chance|-20||0",
+    "me_rheumatic_calamity_1|10|1|action_burn|65||0||0||0||0",
+    "of_deadeye_debuff|15|1|action_burn|50|glancing_blow_vulnerable|30||0||0||0",
+    "wod_agony|30|1|action_burn|25||0||0||0||0"
+)
+Assert-Contract ([int]$contract.expected.retiredNgePlayerActionBurnEffects -eq 1 -and
+    $actionBurnEffectMappings.Count -eq
+        [int]$contract.expected.retainedNgeActionBurnEffectMappingRows -and
+    [string]$actionBurnEffectMappings[0].NAME -ceq "action_burn" -and
+    [string]$actionBurnEffectMappings[0].SUBTYPE -ceq "action_burn" -and
+    $actionBurnBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeActionBurnBuffRows -and
+    (($actionBurnActualSignatures -join "`n") -ceq
+        ($actionBurnExpectedSignatures -join "`n"))) `
+    "p14.combat-expertise-isolation.buff.action-burn-data-inventory-authenticated"
+
+$actionBurnEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerActionBurnEffect(String effectName)"
+$actionBurnBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerActionBurnBuff(obj_id target, buff_data data)"
+$actionBurnScriptVarCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerActionBurnScriptVars(obj_id player)"
+$actionBurnCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerActionBurnState(obj_id player)"
+$actionBurnProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$actionBurnCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$actionBurnAdmissionGate = $actionBurnCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerActionBurnBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$actionBurnExistingBuffReturn = $actionBurnCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$actionBurnActiveRead = $actionBurnCleanup.IndexOf(
+    "getAllBuffs(player)", [StringComparison]::Ordinal)
+$actionBurnActiveRemoval = $actionBurnCleanup.IndexOf(
+    "removeBuff(player, activeBuff)", [StringComparison]::Ordinal)
+$actionBurnFinalClear = $actionBurnCleanup.IndexOf(
+    "clearPostNgePlayerActionBurnScriptVars(player);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_ACTION_BURN_EFFECT = "action_burn"') -and
+    $actionBurnEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_ACTION_BURN_EFFECT") -and
+    $actionBurnBuffPredicate.Contains("!isPlayer(target)") -and
+    $actionBurnBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $actionBurnBuffPredicate.Contains(
+        "isRetiredPostNgePlayerActionBurnEffect(getEffectParam(data, effect))") -and
+    $actionBurnScriptVarCleanup.Contains("!isPlayer(player)") -and
+    $actionBurnScriptVarCleanup.Contains(
+        'utils.removeScriptVarTree(player, "buff.action_burn")') -and
+    $actionBurnCleanup.Contains("!isPlayer(player)") -and
+    $actionBurnActiveRead -ge 0 -and
+    $actionBurnCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $actionBurnCleanup.Contains(
+        "isRetiredPostNgePlayerActionBurnBuff(player, data)") -and
+    $actionBurnActiveRemoval -gt $actionBurnActiveRead -and
+    $actionBurnFinalClear -gt $actionBurnActiveRemoval -and
+    $actionBurnProgressionCleanup.Contains(
+        "retirePostNgePlayerActionBurnState(player);") -and
+    $actionBurnAdmissionGate -ge 0 -and
+    $actionBurnExistingBuffReturn -gt $actionBurnAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeActionBurnBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeActionBurnStateRemoved -and
+    [bool]$contract.expected.stalePlayerActionBurnScriptVarsRemoved) `
+    "p14.combat-expertise-isolation.buff.player-action-burn-admission-and-persistence-fail-closed"
+
+$actionBurnAdd = Get-BracedBlock $buffHandler `
+    "public int actionBurnAddBuffHandler("
+$actionBurnRemove = Get-BracedBlock $buffHandler `
+    "public int actionBurnRemoveBuffHandler("
+$actionBurnAddGuard = $actionBurnAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$actionBurnAddCleanup = $actionBurnAdd.IndexOf(
+    "buff.retirePostNgePlayerActionBurnState(self);",
+    [StringComparison]::Ordinal)
+$actionBurnAddReturn = $actionBurnAdd.IndexOf(
+    "return SCRIPT_CONTINUE;", $actionBurnAddCleanup,
+    [StringComparison]::Ordinal)
+$actionBurnAddWrite = $actionBurnAdd.IndexOf(
+    'utils.setScriptVar(self, "buff.action_burn.value", value)',
+    [StringComparison]::Ordinal)
+$actionBurnRemoveGuard = $actionBurnRemove.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$actionBurnRemoveCleanup = $actionBurnRemove.IndexOf(
+    "buff.clearPostNgePlayerActionBurnScriptVars(self);",
+    [StringComparison]::Ordinal)
+$actionBurnRemoveReturn = $actionBurnRemove.IndexOf(
+    "return SCRIPT_CONTINUE;", $actionBurnRemoveCleanup,
+    [StringComparison]::Ordinal)
+$actionBurnRemoveWrite = $actionBurnRemove.IndexOf(
+    'utils.removeScriptVar(self, "buff.action_burn.value")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($actionBurnAddGuard -ge 0 -and
+    $actionBurnAddCleanup -gt $actionBurnAddGuard -and
+    $actionBurnAddReturn -gt $actionBurnAddCleanup -and
+    $actionBurnAddWrite -gt $actionBurnAddReturn -and
+    $actionBurnRemoveGuard -ge 0 -and
+    $actionBurnRemoveCleanup -gt $actionBurnRemoveGuard -and
+    $actionBurnRemoveReturn -gt $actionBurnRemoveCleanup -and
+    $actionBurnRemoveWrite -gt $actionBurnRemoveReturn -and
+    [int]$contract.expected.productionActionBurnHandlersGuarded -eq 2 -and
+    [bool]$contract.expected.nonPlayerNgeActionBurnCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.action-burn-handlers-player-fail-closed"
+
+$actionBurnGuardedConsumers = 0
+foreach ($actionCostConsumer in @($dictionaryCost, $typedCost))
+{
+    $actionBurnConsumerCleanup = $actionCostConsumer.IndexOf(
+        "buff.retirePostNgePlayerActionBurnState(self);",
+        [StringComparison]::Ordinal)
+    $actionBurnConsumerRead = $actionCostConsumer.IndexOf(
+        'utils.hasScriptVar(self, "buff.action_burn.value")',
+        [StringComparison]::Ordinal)
+    if ($actionBurnConsumerCleanup -ge 0 -and
+        $actionBurnConsumerRead -gt $actionBurnConsumerCleanup)
+    {
+        $actionBurnConsumerGuard = $actionCostConsumer.LastIndexOf(
+            "if (isPlayer(self))", $actionBurnConsumerCleanup,
+            [StringComparison]::Ordinal)
+        if ($actionBurnConsumerGuard -ge 0)
+        {
+            ++$actionBurnGuardedConsumers
+        }
+    }
+}
+Assert-Contract ($actionBurnGuardedConsumers -eq
+        [int]$contract.expected.productionActionBurnConsumersGuarded -and
+    -not [bool]$contract.expected.playerNgeActionBurnCombatReadsReachable) `
+    "p14.combat-expertise-isolation.ham.player-action-burn-cleared-before-consumers"
+
 $actionRegenEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object { [string]$_.TYPE -ceq "actionRegen" })
 $actionRegenBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {

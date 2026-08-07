@@ -1353,6 +1353,85 @@ printf '%s' "$command_grant_remove_source" | grep -Fq 'isPlayer(self)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'buff.isRetiredPostNgePlayerBuffCommandGrant(subType)'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'while (hasCommand(self, subType))'
 printf '%s' "$command_grant_remove_source" | grep -Fq 'revokeCommand(self, subType)'
+awk -F '\t' '$1 == "action_burn" && $2 == "actionBurn" && $3 == "action_burn" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '
+BEGIN {
+    expected["me_rheumatic_calamity_1"] = "10|1|action_burn|65||0||0||0||0"
+    expected["closed_fist_toxin"] = "60|1|action_burn|100||0||0||0||0"
+    expected["jedi_statue_dark_debuff_light"] = "30|1|action_burn|100|private_armor_break|100|combat_parry_reduction|-200|expertise_block_chance|-20||0"
+    expected["wod_agony"] = "30|1|action_burn|25||0||0||0||0"
+    expected["of_deadeye_debuff"] = "15|1|action_burn|50|glancing_blow_vulnerable|30||0||0||0"
+}
+NR > 2 {
+    ownsEffect = 0
+    for (parameterColumn = 8; parameterColumn <= 16; parameterColumn += 2) {
+        if ($parameterColumn == "action_burn") ownsEffect = 1
+    }
+    if (ownsEffect) {
+        rows++
+        if (!($1 in expected) || seen[$1]++) exit 2
+        actual = $7 "|" $22 "|" $8 "|" $9 "|" $10 "|" $11 "|" $12 "|" $13 "|" $14 "|" $15 "|" $16 "|" $17
+        if (actual != expected[$1]) exit 2
+    }
+}
+END {
+    if (rows != 5) exit 3
+    for (name in expected) if (seen[name] != 1) exit 3
+}
+' "$work_buff_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_ACTION_BURN_EFFECT = "action_burn"' "$work_buff_library"
+action_burn_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerActionBurnEffect/,/public static boolean isRetiredPostNgePlayerActionBurnBuff/p' "$work_buff_library")"
+printf '%s' "$action_burn_effect_predicate_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_ACTION_BURN_EFFECT'
+action_burn_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerActionBurnBuff/,/public static void clearPostNgePlayerActionBurnScriptVars/p' "$work_buff_library")"
+printf '%s' "$action_burn_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s' "$action_burn_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s' "$action_burn_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerActionBurnEffect(getEffectParam(data, effect))'
+action_burn_script_var_cleanup_source="$(sed -n '/public static void clearPostNgePlayerActionBurnScriptVars/,/public static void retirePostNgePlayerActionBurnState/p' "$work_buff_library")"
+printf '%s' "$action_burn_script_var_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$action_burn_script_var_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "buff.action_burn")'
+action_burn_cleanup_source="$(sed -n '/public static void retirePostNgePlayerActionBurnState/,/private static final String RETIRED_POST_NGE_PLAYER_ACTION_REGEN_EFFECT/p' "$work_buff_library")"
+printf '%s' "$action_burn_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s' "$action_burn_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$action_burn_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s' "$action_burn_cleanup_source" | grep -Fq 'isRetiredPostNgePlayerActionBurnBuff(player, data)'
+action_burn_remove_line="$(printf '%s\n' "$action_burn_cleanup_source" | grep -Fn 'removeBuff(player, activeBuff)' | head -1 | cut -d: -f1)"
+action_burn_clear_line="$(printf '%s\n' "$action_burn_cleanup_source" | grep -Fn 'clearPostNgePlayerActionBurnScriptVars(player);' | head -1 | cut -d: -f1)"
+test -n "$action_burn_remove_line"
+test -n "$action_burn_clear_line"
+test "$action_burn_remove_line" -lt "$action_burn_clear_line"
+grep -Fq 'retirePostNgePlayerActionBurnState(player);' "$work_buff_library"
+action_burn_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+action_burn_admission_line="$(printf '%s\n' "$action_burn_admission_source" | grep -Fn 'isRetiredPostNgePlayerActionBurnBuff(target, bdata)' | head -1 | cut -d: -f1)"
+action_burn_refresh_line="$(printf '%s\n' "$action_burn_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$action_burn_admission_line"
+test -n "$action_burn_refresh_line"
+test "$action_burn_admission_line" -lt "$action_burn_refresh_line"
+action_burn_add_source="$(sed -n '/public int actionBurnAddBuffHandler/,/public int actionBurnRemoveBuffHandler/p' "$work_buff_handler")"
+action_burn_add_guard_line="$(printf '%s\n' "$action_burn_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+action_burn_add_cleanup_line="$(printf '%s\n' "$action_burn_add_source" | grep -Fn 'buff.retirePostNgePlayerActionBurnState(self);' | head -1 | cut -d: -f1)"
+action_burn_add_return_line="$(printf '%s\n' "$action_burn_add_source" | awk -v cleanup="$action_burn_add_cleanup_line" 'NR > cleanup && /return SCRIPT_CONTINUE;/ { print NR; exit }')"
+action_burn_add_write_line="$(printf '%s\n' "$action_burn_add_source" | grep -Fn 'utils.setScriptVar(self, "buff.action_burn.value", value)' | head -1 | cut -d: -f1)"
+test "$action_burn_add_guard_line" -lt "$action_burn_add_cleanup_line"
+test "$action_burn_add_cleanup_line" -lt "$action_burn_add_return_line"
+test "$action_burn_add_return_line" -lt "$action_burn_add_write_line"
+action_burn_remove_source="$(sed -n '/public int actionBurnRemoveBuffHandler/,/public int actionRegenAddBuffHandler/p' "$work_buff_handler")"
+action_burn_remove_guard_line="$(printf '%s\n' "$action_burn_remove_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+action_burn_remove_cleanup_line="$(printf '%s\n' "$action_burn_remove_source" | grep -Fn 'buff.clearPostNgePlayerActionBurnScriptVars(self);' | head -1 | cut -d: -f1)"
+action_burn_remove_return_line="$(printf '%s\n' "$action_burn_remove_source" | awk -v cleanup="$action_burn_remove_cleanup_line" 'NR > cleanup && /return SCRIPT_CONTINUE;/ { print NR; exit }')"
+action_burn_remove_write_line="$(printf '%s\n' "$action_burn_remove_source" | grep -Fn 'utils.removeScriptVar(self, "buff.action_burn.value")' | head -1 | cut -d: -f1)"
+test "$action_burn_remove_guard_line" -lt "$action_burn_remove_cleanup_line"
+test "$action_burn_remove_cleanup_line" -lt "$action_burn_remove_return_line"
+test "$action_burn_remove_return_line" -lt "$action_burn_remove_write_line"
+action_burn_dictionary_cost_source="$(sed -n '/public static int\[\] getActionCost(obj_id self, weapon_data weaponData, dictionary actionData)/,/public static int\[\] getActionCost(obj_id self, weapon_data weaponData, combat_data actionData)/p' "$work_combat_library")"
+action_burn_typed_cost_source="$(sed -n '/public static int\[\] getActionCost(obj_id self, weapon_data weaponData, combat_data actionData)/,/public static int\[\] getSuccessBasedSingleTargetActionCost/p' "$work_combat_library")"
+for action_burn_consumer_source in "$action_burn_dictionary_cost_source" "$action_burn_typed_cost_source"; do
+    test "$(printf '%s' "$action_burn_consumer_source" | grep -Fc 'buff.retirePostNgePlayerActionBurnState(self);')" -eq 1
+    action_burn_consumer_guard_line="$(printf '%s\n' "$action_burn_consumer_source" | grep -Fn 'if (isPlayer(self))' | tail -1 | cut -d: -f1)"
+    action_burn_consumer_cleanup_line="$(printf '%s\n' "$action_burn_consumer_source" | grep -Fn 'buff.retirePostNgePlayerActionBurnState(self);' | head -1 | cut -d: -f1)"
+    action_burn_consumer_read_line="$(printf '%s\n' "$action_burn_consumer_source" | grep -Fn 'utils.hasScriptVar(self, "buff.action_burn.value")' | head -1 | cut -d: -f1)"
+    test "$action_burn_consumer_guard_line" -lt "$action_burn_consumer_cleanup_line"
+    test "$action_burn_consumer_cleanup_line" -lt "$action_burn_consumer_read_line"
+done
 awk -F '\t' '$1 == "action_regen" && $2 == "actionRegen" && $3 == "N_A" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
 awk -F '\t' '
 NR > 2 {
@@ -3036,6 +3115,20 @@ printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'combat_engine.get
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'hasCommand'
 printf '%s' "$buff_command_grant_cleanup_bytecode" | grep -Fq 'revokeCommand'
+buff_action_burn_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerActionBurnEffect(java.lang.String)/,/isRetiredPostNgePlayerActionBurnBuff/p')"
+printf '%s' "$buff_action_burn_effect_predicate_bytecode" | grep -Fq 'action_burn'
+buff_action_burn_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerActionBurnBuff/,/clearPostNgePlayerActionBurnScriptVars/p')"
+printf '%s' "$buff_action_burn_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_action_burn_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerActionBurnEffect'
+buff_action_burn_script_var_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerActionBurnScriptVars/,/retirePostNgePlayerActionBurnState/p')"
+printf '%s' "$buff_action_burn_script_var_cleanup_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$buff_action_burn_script_var_cleanup_bytecode" | grep -Fq 'buff.action_burn'
+printf '%s' "$buff_action_burn_script_var_cleanup_bytecode" | grep -Fq 'utils.removeScriptVarTree'
+buff_action_burn_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerActionBurnState/,/isRetiredPostNgePlayerActionRegenEffect/p')"
+printf '%s' "$buff_action_burn_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_action_burn_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_action_burn_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_action_burn_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerActionBurnScriptVars'
 buff_action_regen_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerActionRegenEffect(java.lang.String)/,/isRetiredPostNgePlayerActionRegenBuff/p')"
 printf '%s' "$buff_action_regen_effect_predicate_bytecode" | grep -Fq 'action_regen'
 buff_action_regen_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerActionRegenBuff/,/retirePostNgePlayerActionRegenState/p')"
@@ -3046,6 +3139,7 @@ printf '%s' "$buff_action_regen_cleanup_bytecode" | grep -Fq 'getAllBuffs'
 printf '%s' "$buff_action_regen_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$buff_action_regen_cleanup_bytecode" | grep -Fq 'removeBuff'
 buff_progression_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/retirePostNgeMeditationBuffs/p')"
+printf '%s' "$buff_progression_cleanup_bytecode" | grep -Fq 'retirePostNgePlayerActionBurnState'
 printf '%s' "$buff_progression_cleanup_bytecode" | grep -Fq 'retirePostNgePlayerActionRegenState'
 buff_damage_dealt_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageDealtOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerDamageDealtOverrideBuff/p')"
 printf '%s' "$buff_damage_dealt_effect_predicate_bytecode" | grep -Fq 'damage_dealt_mod'
@@ -3094,6 +3188,29 @@ printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'combat_engine
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+action_burn_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionBurnAddBuffHandler/,/actionBurnRemoveBuffHandler/p')"
+action_burn_add_cleanup_bytecode_line="$(printf '%s\n' "$action_burn_add_bytecode" | grep -Fn 'retirePostNgePlayerActionBurnState' | head -1 | cut -d: -f1)"
+action_burn_add_guard_bytecode_line="$(printf '%s\n' "$action_burn_add_bytecode" | head -n "$action_burn_add_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"
+action_burn_add_write_bytecode_line="$(printf '%s\n' "$action_burn_add_bytecode" | grep -Fn 'String buff.action_burn.value' | head -1 | cut -d: -f1)"
+test "$action_burn_add_guard_bytecode_line" -lt "$action_burn_add_cleanup_bytecode_line"
+test "$action_burn_add_cleanup_bytecode_line" -lt "$action_burn_add_write_bytecode_line"
+action_burn_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionBurnRemoveBuffHandler/,/actionRegenAddBuffHandler/p')"
+action_burn_remove_cleanup_bytecode_line="$(printf '%s\n' "$action_burn_remove_bytecode" | grep -Fn 'clearPostNgePlayerActionBurnScriptVars' | head -1 | cut -d: -f1)"
+action_burn_remove_guard_bytecode_line="$(printf '%s\n' "$action_burn_remove_bytecode" | head -n "$action_burn_remove_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"
+action_burn_remove_write_bytecode_line="$(printf '%s\n' "$action_burn_remove_bytecode" | grep -Fn 'String buff.action_burn.value' | head -1 | cut -d: -f1)"
+test "$action_burn_remove_guard_bytecode_line" -lt "$action_burn_remove_cleanup_bytecode_line"
+test "$action_burn_remove_cleanup_bytecode_line" -lt "$action_burn_remove_write_bytecode_line"
+combat_library_bytecode="$(javap -classpath "$class_root" -c -p script.library.combat)"
+action_burn_dictionary_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.dictionary)/,/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/p')"
+action_burn_typed_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/,/getSuccessBasedSingleTargetActionCost/p')"
+for action_burn_consumer_bytecode in "$action_burn_dictionary_cost_bytecode" "$action_burn_typed_cost_bytecode"; do
+    test "$(printf '%s' "$action_burn_consumer_bytecode" | grep -Fc 'retirePostNgePlayerActionBurnState')" -eq 1
+    action_burn_consumer_cleanup_bytecode_line="$(printf '%s\n' "$action_burn_consumer_bytecode" | grep -Fn 'retirePostNgePlayerActionBurnState' | head -1 | cut -d: -f1)"
+    action_burn_consumer_guard_bytecode_line="$(printf '%s\n' "$action_burn_consumer_bytecode" | head -n "$action_burn_consumer_cleanup_bytecode_line" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"
+    action_burn_consumer_read_bytecode_line="$(printf '%s\n' "$action_burn_consumer_bytecode" | grep -Fn 'String buff.action_burn.value' | head -1 | cut -d: -f1)"
+    test "$action_burn_consumer_guard_bytecode_line" -lt "$action_burn_consumer_cleanup_bytecode_line"
+    test "$action_burn_consumer_cleanup_bytecode_line" -lt "$action_burn_consumer_read_bytecode_line"
+done
 action_regen_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/actionRegenAddBuffHandler/,/actionRegenRemoveBuffHandler/p')"
 action_regen_add_guard_bytecode_line="$(printf '%s\n' "$action_regen_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
 action_regen_add_cleanup_bytecode_line="$(printf '%s\n' "$action_regen_add_bytecode" | grep -Fn 'retirePostNgePlayerActionRegenState' | head -1 | cut -d: -f1)"
