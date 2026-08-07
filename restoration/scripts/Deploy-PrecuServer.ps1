@@ -2537,8 +2537,7 @@ NR > 2 {
     if (ownsEffect) {
         rows++
         actual = $1 "|" $7 "|" $23 "|" $30 "|" $8 "|" $9
-        expected = $1 == "sm_sly_lie" ? "sm_sly_lie|600|1|1|expertise_sly_lie|0" :
-            ($1 == "sm_fast_talk" ? "sm_fast_talk|600|1|1|expertise_fast_talk|0" : "")
+        expected = $1 == "sm_sly_lie" ? "sm_sly_lie|600|0|1|expertise_sly_lie|0" : ($1 == "sm_fast_talk" ? "sm_fast_talk|600|0|1|expertise_fast_talk|0" : "")
         if (actual != expected) exit 2
     }
 }
