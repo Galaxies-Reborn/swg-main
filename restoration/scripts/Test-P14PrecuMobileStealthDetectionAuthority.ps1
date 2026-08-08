@@ -261,7 +261,15 @@ Assert-Contract (@($commandRows | Where-Object {
 
 $spyContractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14PostNgeSpyPlayerRuntimeRetirement)
 $spyContract = Get-Content -LiteralPath $spyContractPath -Raw | ConvertFrom-Json
-Assert-Contract ([string]$spyContract.status -ceq "ready" -and
+$allowedSpyStatuses = if ($Expectation -eq "Ready")
+{
+    @("ready")
+}
+else
+{
+    @("implemented-build-pending", "implemented-build-verified-live-pending", "ready")
+}
+Assert-Contract ($allowedSpyStatuses -contains [string]$spyContract.status -and
     [bool]$contract.expected.postNgeSpyPlayerRuntimeRetired -and
     @($spyContract.expected.precuMechanicsPreserved) -contains "maskScent" -and
     @($spyContract.expected.precuMechanicsPreserved) -contains "conceal") "p14.mobile-stealth.spy-retirement-continuity"
