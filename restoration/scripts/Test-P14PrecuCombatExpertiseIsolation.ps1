@@ -476,6 +476,88 @@ Assert-Contract ($hitTableVulnerabilityMappings.Count -eq
     [bool]$contract.expected.nonPlayerNgeHitTableVulnerabilityCompatibilityPreserved) `
     "p14.combat-expertise-isolation.hit-table-vulnerability-state-fails-closed"
 
+$attackOverrideModifier = "attack_override_by_buff"
+$attackOverrideMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        [string]$_.NAME -ceq $attackOverrideModifier -and
+        [string]$_.TYPE -ceq "skill" -and
+        [string]$_.SUBTYPE -ceq $attackOverrideModifier
+    })
+$attackOverrideBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        $row = $_
+        @(1..5 | Where-Object {
+            [string]$row.("EFFECT$($_)_PARAM") -ceq $attackOverrideModifier
+        }).Count -gt 0
+    })
+$attackOverrideEffectUses = @($attackOverrideBuffRows | ForEach-Object {
+    $row = $_
+    1..5 | ForEach-Object { [string]$row.("EFFECT$($_)_PARAM") }
+} | Where-Object { $_ -ceq $attackOverrideModifier })
+$attackOverrideBuffNames = @($attackOverrideBuffRows |
+    Select-Object -ExpandProperty NAME -Unique)
+$attackOverrideNameBytes = [Text.Encoding]::UTF8.GetBytes(
+    ($attackOverrideBuffNames -join "`n"))
+$attackOverrideNameHasher = [Security.Cryptography.SHA256]::Create()
+try
+{
+    $attackOverrideBuffNameSha256 = ([BitConverter]::ToString(
+        $attackOverrideNameHasher.ComputeHash($attackOverrideNameBytes))).Replace(
+            "-", "").ToLowerInvariant()
+}
+finally
+{
+    $attackOverrideNameHasher.Dispose()
+}
+$attackOverrideMethod = Get-BracedBlock $combatBase `
+    "public combat_data attackOverrideByBuff(obj_id self, combat_data actionData)"
+$attackOverrideGuard = $attackOverrideMethod.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$attackOverrideCleanup = $attackOverrideMethod.IndexOf(
+    "static_item.removeRetiredNgePlayerSkillStatistics(self);",
+    [StringComparison]::Ordinal)
+$attackOverrideReturn = $attackOverrideMethod.IndexOf(
+    "return actionData;", [StringComparison]::Ordinal)
+$attackOverrideReader = $attackOverrideMethod.IndexOf(
+    'getEnhancedSkillStatisticModifierUncapped(self, "attack_override_by_buff")',
+    [StringComparison]::Ordinal)
+$attackOverrideCall = $combatBase.IndexOf(
+    "actionData = attackOverrideByBuff(self, actionData);",
+    [StringComparison]::Ordinal)
+$attackOverrideCallerGuard = $combatBase.LastIndexOf(
+    "if (!precuAuthoritativeAction)", $attackOverrideCall,
+    [StringComparison]::Ordinal)
+Assert-Contract ($attackOverrideMappings.Count -eq
+        [int]$contract.expected.retainedNgeAttackOverrideEffectMappingRows -and
+    $attackOverrideBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeAttackOverrideBuffRows -and
+    $attackOverrideBuffNames.Count -eq
+        [int]$contract.expected.retainedNgeAttackOverrideBuffNames -and
+    $attackOverrideEffectUses.Count -eq
+        [int]$contract.expected.retainedNgeAttackOverrideEffectUses -and
+    $attackOverrideBuffNameSha256 -ceq
+        [string]$contract.expected.retainedNgeAttackOverrideBuffNameSha256 -and
+    $retiredBuffCombatModifierInventory.Contains(
+        '"attack_override_by_buff"') -and
+    [int]$contract.expected.retiredNgePlayerAttackOverrideModifiers -eq 1 -and
+    $playerModifierCleanup.Contains("getSkillStatModListingForPlayer(player)") -and
+    $playerModifierCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $playerModifierCleanup.Contains(
+        "applySkillStatisticModifier(player, modifier, -currentValue)") -and
+    $attackOverrideGuard -ge 0 -and
+    $attackOverrideCleanup -gt $attackOverrideGuard -and
+    $attackOverrideReturn -gt $attackOverrideCleanup -and
+    $attackOverrideReader -gt $attackOverrideReturn -and
+    $attackOverrideCallerGuard -ge 0 -and
+    $attackOverrideCall -gt $attackOverrideCallerGuard -and
+    ([regex]::Matches($combatBase, 'attackOverrideByBuff\s*\(')).Count -eq 2 -and
+    [int]$contract.expected.productionAttackOverrideConsumersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeAttackOverrideModifierWritesReachable -and
+    [bool]$contract.expected.stalePlayerNgeAttackOverrideModifierRemoved -and
+    -not [bool]$contract.expected.playerNgeAttackOverrideConsumerReachable -and
+    [bool]$contract.expected.nonPlayerNgeAttackOverrideCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.attack-override-state-fails-closed"
+
 $luckyBreakAlwaysModifiers = @("hit_always", "crit_always")
 $luckyBreakAlwaysMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object {

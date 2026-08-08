@@ -1332,7 +1332,7 @@ shared_buff_skill_predicate_source="$(sed -n '/public static boolean isRetiredNg
 printf '%s' "$shared_buff_skill_predicate_source" | grep -Fq 'isRetiredNgeStaticItemSkillModifier(modifier)'
 printf '%s' "$shared_buff_skill_predicate_source" | grep -Fq 'modifier.equals("damage_immune")'
 printf '%s' "$shared_buff_skill_predicate_source" | grep -Fq 'modifier.startsWith("dot_resist_")'
-retired_player_modifier_regex='^(expertise_|fast_attack_line_|bm_|dot_resist_)|^(agility_modified|constitution_modified|luck_modified|precision_modified|stamina_modified|strength_modified|bh_dire_root|bh_dire_snare|combat_block_chance|combat_block_value|combat_strikethrough_chance|cooldown_percent_of_group_buff|incubation_time_reduction|rally_point_duration|tka_armor|combat_critical_hit_reduction|combat_dodge|combat_parry|combat_evasion_chance|combat_evasion_value|combat_strikethrough_value|commando_devastation|exotic_heal_action_reduction|exotic_dodge_reduction|exotic_parry_reduction|exotic_acid_penetration|exotic_cold_penetration|exotic_heat_penetration|exotic_electricity_penetration|combat_add_damage_dealt|combat_add_damage_taken|combat_all_attack_avoidance|combat_all_attack_miss|combat_all_attack_miss_reduction|combat_all_attack_miss_vulnerability|combat_block_reduction|combat_critical_hit|combat_divide_damage_dealt|combat_divide_damage_taken|combat_dodge_reduction|combat_glancing|combat_glancing_blow_reduction|combat_melee_attack_avoidance|combat_melee_attack_miss|combat_melee_attack_miss_reduction|combat_melee_attack_vulnerability|combat_multiply_damage_dealt|combat_multiply_damage_taken|combat_parry_reduction|combat_ranged_attack_avoidance|combat_ranged_attack_miss|combat_ranged_attack_miss_reduction|combat_ranged_attack_vulnerability|combat_subtract_damage_dealt|combat_subtract_damage_taken|crit_always|critical_hit_vulnerable|damage_immune|flurry_cooldown_modifier|freeshot_case_crit|freeshot_case_dodge|freeshot_case_miss|freeshot_case_parry|freeshot_case_strikethrough|glancing_blow_vulnerable|hit_always|of_inspired_action_chance|strikethrough_vulnerable)$'
+retired_player_modifier_regex='^(expertise_|fast_attack_line_|bm_|dot_resist_)|^(agility_modified|constitution_modified|luck_modified|precision_modified|stamina_modified|strength_modified|attack_override_by_buff|bh_dire_root|bh_dire_snare|combat_block_chance|combat_block_value|combat_strikethrough_chance|cooldown_percent_of_group_buff|incubation_time_reduction|rally_point_duration|tka_armor|combat_critical_hit_reduction|combat_dodge|combat_parry|combat_evasion_chance|combat_evasion_value|combat_strikethrough_value|commando_devastation|exotic_heal_action_reduction|exotic_dodge_reduction|exotic_parry_reduction|exotic_acid_penetration|exotic_cold_penetration|exotic_heat_penetration|exotic_electricity_penetration|combat_add_damage_dealt|combat_add_damage_taken|combat_all_attack_avoidance|combat_all_attack_miss|combat_all_attack_miss_reduction|combat_all_attack_miss_vulnerability|combat_block_reduction|combat_critical_hit|combat_divide_damage_dealt|combat_divide_damage_taken|combat_dodge_reduction|combat_glancing|combat_glancing_blow_reduction|combat_melee_attack_avoidance|combat_melee_attack_miss|combat_melee_attack_miss_reduction|combat_melee_attack_vulnerability|combat_multiply_damage_dealt|combat_multiply_damage_taken|combat_parry_reduction|combat_ranged_attack_avoidance|combat_ranged_attack_miss|combat_ranged_attack_miss_reduction|combat_ranged_attack_vulnerability|combat_subtract_damage_dealt|combat_subtract_damage_taken|crit_always|critical_hit_vulnerable|damage_immune|flurry_cooldown_modifier|freeshot_case_crit|freeshot_case_dodge|freeshot_case_miss|freeshot_case_parry|freeshot_case_strikethrough|glancing_blow_vulnerable|hit_always|of_inspired_action_chance|strikethrough_vulnerable)$'
 awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR > 2 {
     matched = 0
     mixed = 0
@@ -1352,7 +1352,7 @@ awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR > 2 {
 } END {
     for (name in names) nameCount++
     for (modifier in modifiers) modifierCount++
-    if (rows != 994 || nameCount != 994 || modifierCount != 196 || mixedRows != 135) exit 3
+    if (rows != 1001 || nameCount != 1001 || modifierCount != 197 || mixedRows != 135) exit 3
 }' "$work_buff_table"
 awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR == FNR {
     if (FNR > 2) {
@@ -1363,7 +1363,7 @@ awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR == FNR {
 } FNR > 2 && ($1 in modifiers) { mapped++ }
 END {
     for (modifier in modifiers) modifierCount++
-    if (modifierCount != 196 || mapped != 204) exit 3
+    if (modifierCount != 197 || mapped != 206) exit 3
 }' "$work_buff_table" "$work_buff_effect_mapping"
 player_modifier_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerModifierBuff/,/public static void retirePostNgePlayerModifierBuffState/p' "$work_buff_library")"
 printf '%s' "$player_modifier_buff_predicate_source" | grep -Fq '!isPlayer(target)'
@@ -1375,6 +1375,41 @@ printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'getAllBuffs(playe
 printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s' "$player_modifier_buff_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
 grep -Fq 'retirePostNgePlayerModifierBuffState(player);' "$work_buff_library"
+test "$(awk -F '\t' '$1 == "attack_override_by_buff" && $2 == "skill" && $3 == "attack_override_by_buff" { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 2
+awk -F '\t' 'NR > 2 {
+    uses = 0
+    for (column = 8; column <= 16; column += 2)
+        if ($column == "attack_override_by_buff") uses++
+    if (uses > 0) {
+        rows++
+        effectUses += uses
+        names[$1] = 1
+        if ($1 !~ /^attack_override_fs_dm_[1-7][|]fs_flurry_[1-7]$/ ||
+            $8 != "attack_override_by_buff" || $9 != 1) exit 2
+    }
+} END {
+    for (name in names) nameCount++
+    if (rows != 7 || nameCount != 7 || effectUses != 7) exit 3
+}' "$work_buff_table"
+attack_override_modifier_inventory_source="$(sed -n '/public static final String\[\] RETIRED_NGE_BUFF_COMBAT_MODIFIERS/,/public static final java.text.NumberFormat/p' "$work_static_item_library")"
+test "$(printf '%s' "$attack_override_modifier_inventory_source" | grep -Fc '"attack_override_by_buff"')" -eq 1
+attack_override_source="$(sed -n '/public combat_data attackOverrideByBuff/,/public void doKillMeterUpdate/p' "$work_combat_base")"
+attack_override_guard_line="$(printf '%s\n' "$attack_override_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+attack_override_cleanup_line="$(printf '%s\n' "$attack_override_source" | grep -Fn 'static_item.removeRetiredNgePlayerSkillStatistics(self);' | head -1 | cut -d: -f1)"
+attack_override_return_line="$(printf '%s\n' "$attack_override_source" | grep -Fn 'return actionData;' | head -1 | cut -d: -f1)"
+attack_override_reader_line="$(printf '%s\n' "$attack_override_source" | grep -Fn 'getEnhancedSkillStatisticModifierUncapped(self, "attack_override_by_buff")' | head -1 | cut -d: -f1)"
+test -n "$attack_override_guard_line"
+test -n "$attack_override_cleanup_line"
+test -n "$attack_override_return_line"
+test -n "$attack_override_reader_line"
+test "$attack_override_guard_line" -lt "$attack_override_cleanup_line"
+test "$attack_override_cleanup_line" -lt "$attack_override_return_line"
+test "$attack_override_return_line" -lt "$attack_override_reader_line"
+test "$(grep -Fc 'attackOverrideByBuff(' "$work_combat_base")" -eq 2
+attack_override_call_line="$(grep -Fn 'actionData = attackOverrideByBuff(self, actionData);' "$work_combat_base" | head -1 | cut -d: -f1)"
+attack_override_caller_guard_line="$(head -n "$attack_override_call_line" "$work_combat_base" | grep -Fn 'if (!precuAuthoritativeAction)' | tail -1 | cut -d: -f1)"
+test -n "$attack_override_caller_guard_line"
+test "$attack_override_caller_guard_line" -lt "$attack_override_call_line"
 retired_buff_command_grants="bh_flawless_strike co_enrage_1 en_action_regen fs_set_heroic_taunt_1 of_deadeye_debuff sm_how_are_you trader_heal trandoshan_ability_1"
 test "$(printf '%s\n' $retired_buff_command_grants | wc -l)" -eq 8
 for retired_buff_command_grant in $retired_buff_command_grants; do
@@ -7403,6 +7438,18 @@ combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.comb
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction'
 printf '%s' "$combat_base_bytecode" | grep -Fq 'proc.retirePostNgePlayerProcState'
 test "$(printf '%s' "$combat_base_bytecode" | grep -Fc 'buff.clearPostNgePlayerCriticalOverrideScriptVars')" -eq 2
+attack_override_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/^  public script.combat_engine[$]combat_data attackOverrideByBuff(/,/^  public void doKillMeterUpdate/p')"
+attack_override_guard_bytecode_line="$(printf '%s\n' "$attack_override_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+attack_override_cleanup_bytecode_line="$(printf '%s\n' "$attack_override_bytecode" | grep -Fn 'removeRetiredNgePlayerSkillStatistics' | head -1 | cut -d: -f1)"
+attack_override_return_bytecode_line="$(printf '%s\n' "$attack_override_bytecode" | grep -Fn 'areturn' | head -1 | cut -d: -f1)"
+attack_override_reader_bytecode_line="$(printf '%s\n' "$attack_override_bytecode" | grep -Fn 'String attack_override_by_buff' | head -1 | cut -d: -f1)"
+test -n "$attack_override_guard_bytecode_line"
+test -n "$attack_override_cleanup_bytecode_line"
+test -n "$attack_override_return_bytecode_line"
+test -n "$attack_override_reader_bytecode_line"
+test "$attack_override_guard_bytecode_line" -lt "$attack_override_cleanup_bytecode_line"
+test "$attack_override_cleanup_bytecode_line" -lt "$attack_override_return_bytecode_line"
+test "$attack_override_return_bytecode_line" -lt "$attack_override_reader_bytecode_line"
 damage_reduction_combat_bytecode="$(printf '%s' "$combat_base_bytecode" | sed -n '/public int expertiseDamageModify/,/public void doWrappedDamage/p')"
 damage_reduction_combat_first_guard_line="$(printf '%s\n' "$damage_reduction_combat_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
 damage_reduction_combat_first_cleanup_line="$(printf '%s\n' "$damage_reduction_combat_bytecode" | grep -Fn 'clearPostNgePlayerDamageReductionState' | head -1 | cut -d: -f1)"
