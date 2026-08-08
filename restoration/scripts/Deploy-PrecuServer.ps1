@@ -3007,7 +3007,7 @@ awk -F '\t' -v expected_names="$profession_heal_effect_mapping_names" '
     FNR == 1 {
         for (field = 1; field <= NF; field++) field_index[$field] = field
         split(expected_names, names, " ")
-        for (index in names) expected[names[index]] = 1
+        for (name_index in names) expected[names[name_index]] = 1
         next
     }
     FNR == 2 { next }
@@ -3031,11 +3031,11 @@ awk -F '\t' \
     -v preserved_names="$preserved_later_content_heal_effect_names" '
     BEGIN {
         split(mapping_names, names, " ")
-        for (index in names) mapping[names[index]] = 1
+        for (name_index in names) mapping[names[name_index]] = 1
         split(retired_names, names, " ")
-        for (index in names) retired[names[index]] = 1
+        for (name_index in names) retired[names[name_index]] = 1
         split(preserved_names, names, " ")
-        for (index in names) preserved[names[index]] = 1
+        for (name_index in names) preserved[names[name_index]] = 1
     }
     FNR == 1 {
         for (field = 1; field <= NF; field++) field_index[$field] = field
