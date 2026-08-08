@@ -129,6 +129,12 @@ $avoidIncapInventoryBody = Get-SourceSlice $buffText `
 $avoidIncapCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostP14PlayerAvoidIncapHealState" `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$groupBuffInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS" `
+    "public static boolean isRetiredPostNgePlayerGroupBuffName"
+$groupBuffCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgePlayerGroupBuffState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_FLAT_ATTRIBUTE_BUFFS"
 $flatAttributeInventoryBody = Get-SourceSlice $buffText `
     "private static final String[] RETIRED_POST_NGE_PLAYER_FLAT_ATTRIBUTE_BUFFS" `
     "public static boolean isRetiredPostNgePlayerFlatAttributeBuffName"
@@ -153,6 +159,22 @@ foreach ($buffName in @($contract.expected.retiredBuffs))
 {
     Assert-Contract ($cleanupBody.Contains("removeBuff(player, `"$buffName`")")) "p14.buff-progression.cleanup.buff.$buffName"
 }
+$expectedGroupBuffs = @($contract.expected.retiredPlayerGroupBuffs | Sort-Object)
+$actualGroupBuffs = @([regex]::Matches($groupBuffInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualGroupBuffs.Count -eq
+        [int]$contract.expected.retiredPlayerGroupBuffCount -and
+    @($actualGroupBuffs | Select-Object -Unique).Count -eq
+        $actualGroupBuffs.Count -and
+    (($actualGroupBuffs -join "`n") -ceq
+        ($expectedGroupBuffs -join "`n")) -and
+    $groupBuffCleanupBody.Contains("isPlayer(player)") -and
+    $groupBuffCleanupBody.Contains("removeBuff(player, activeBuff)") -and
+    $cleanupBody.Contains("retirePostNgePlayerGroupBuffState(player);") -and
+    (Is-Before $buffAdmissionBody "isRetiredPostNgePlayerGroupBuff(target, bdata)" "hasBuff(target, nameCrc)") -and
+    -not [bool]$contract.expected.playerGroupBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerGroupBuffsRemoved) `
+    "p14.buff-progression.group-buff.player-state-and-admission-retired"
 $expectedFlatAttributeBuffs = @($contract.expected.retiredPlayerFlatAttributeBuffs | Sort-Object)
 $actualFlatAttributeBuffs = @([regex]::Matches($flatAttributeInventoryBody, '"([^"\r\n]+)"') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object)
@@ -321,6 +343,12 @@ $xpGrantBody = Get-SourceSlice $handlerText "public int xpGrantedGeneralAddBuffH
 $buildBody = Get-SourceSlice $handlerText "public int buildabuffAddBuffHandler" "public int buildabuffRemoveBuffHandler"
 $gcwBonusBody = Get-SourceSlice $handlerText "public int gcwBonusGeneralAddBuffHandler" "public int gcwBonusGeneralRemoveBuffHandler"
 $gcwMiniTurretBody = Get-SourceSlice $handlerText "public int gcwMiniTurretAddBuffHandler" "public int gcwMiniTurretRemoveBuffHandler"
+$groupBuffAddBody = Get-SourceSlice $handlerText `
+    "public int groupAddBuffHandler" `
+    "public int groupRemoveBuffHandler"
+$groupBuffRemoveBody = Get-SourceSlice $handlerText `
+    "public int groupRemoveBuffHandler" `
+    "public int OnTriggerVolumeEntered"
 $flatAttributeAddBody = Get-SourceSlice $handlerText `
     "public int attribAddBuffHandler" `
     "public int attribRemoveBuffHandler"
@@ -333,6 +361,20 @@ $attributePercentAddBody = Get-SourceSlice $handlerText `
 $attributePercentRemoveBody = Get-SourceSlice $handlerText `
     "public int attribPercentRemoveBuffHandler" `
     "public int skillAddBuffHandler"
+Assert-Contract (([regex]::Matches($handlerText,
+        'buff[.]isRetiredPostNgePlayerGroupBuffName\(buffName\)')).Count -eq
+        [int]$contract.expected.productionGroupAddHandlersGuarded -and
+    $groupBuffAddBody.Contains("isPlayer(self)") -and
+    (Is-Before $groupBuffAddBody "buff.isRetiredPostNgePlayerGroupBuffName(buffName)" "effectName = effectName.substring") -and
+    (Is-Before $groupBuffAddBody "return SCRIPT_OVERRIDE;" "buff.applyBuff(") -and
+    -not $groupBuffRemoveBody.Contains(
+        "isRetiredPostNgePlayerGroupBuffName") -and
+    $groupBuffRemoveBody.Contains("utils.removeScriptVar(self, var)") -and
+    $groupBuffRemoveBody.Contains("messageTo(groupMember, `"setGroupBuffs`"") -and
+    $groupBuffRemoveBody.Contains("removeTriggerVolume(`"group_buff_breach`")") -and
+    [bool]$contract.expected.groupRemoveCleanupPreserved -and
+    [bool]$contract.expected.npcGroupBuffCompatibilityPreserved) `
+    "p14.buff-progression.group-buff.handler-fails-closed-for-players"
 Assert-Contract (([regex]::Matches($handlerText,
         'buff[.]isRetiredPostNgePlayerFlatAttributeBuffName\(buffName\)')).Count -eq
         [int]$contract.expected.productionFlatAttributeAddHandlersGuarded -and
@@ -426,6 +468,39 @@ $effectMapPath = Join-Path $sharedRoot "datatables/buff/effect_mapping.tab"
 $buffTable = Get-Content -LiteralPath $buffTablePath -Raw
 $effectMap = Get-Content -LiteralPath $effectMapPath -Raw
 $allBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t")
+$groupBuffMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
+    Where-Object { $_.TYPE -ceq "group" })
+$groupBuffEffectNames = @($groupBuffMappings.NAME)
+$groupBuffRows = @($allBuffRows | Where-Object {
+    $parameters = @($_.EFFECT1_PARAM, $_.EFFECT2_PARAM, $_.EFFECT3_PARAM,
+        $_.EFFECT4_PARAM, $_.EFFECT5_PARAM)
+    @($parameters | Where-Object { $groupBuffEffectNames -ccontains $_ }).Count -gt 0
+})
+$retiredGroupBuffRows = @($groupBuffRows |
+    Where-Object { $expectedGroupBuffs -ccontains $_.NAME })
+$unclassifiedGroupBuffRows = @($groupBuffRows | Where-Object {
+    $expectedGroupBuffs -cnotcontains $_.NAME
+})
+Assert-Contract ($groupBuffMappings.Count -eq
+        [int]$contract.expected.retainedGroupEffectMappingRows -and
+    $groupBuffRows.Count -eq
+        [int]$contract.expected.retainedGroupBuffRowCount -and
+    $retiredGroupBuffRows.Count -eq
+        [int]$contract.expected.retiredPlayerGroupBuffCount -and
+    $unclassifiedGroupBuffRows.Count -eq 0 -and
+    ((@($retiredGroupBuffRows.NAME | Sort-Object) -join "`n") -ceq
+        ($expectedGroupBuffs -join "`n"))) `
+    "p14.buff-progression.group-buff.complete-data-inventory-authenticated"
+Assert-Contract ([bool]$contract.expected.precuSquadLeaderCommandsPreserved -and
+    [bool]$contract.expected.laterContentGroupRowsPreserved -and
+    $expectedGroupBuffs -ccontains "sl_group_run" -and
+    $expectedGroupBuffs -ccontains "sl_group_retreat" -and
+    $expectedGroupBuffs -ccontains "of_buff_def_1" -and
+    $expectedGroupBuffs -ccontains "veteranPlayerBuff" -and
+    $expectedGroupBuffs -cnotcontains "formup" -and
+    $expectedGroupBuffs -cnotcontains "rally" -and
+    $expectedGroupBuffs -cnotcontains "retreat") `
+    "p14.buff-progression.group-buff.precu-command-boundary-preserved"
 $flatAttributeMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
     Where-Object { $_.TYPE -ceq "attrib" })
 $flatAttributeEffectNames = @($flatAttributeMappings.NAME)

@@ -2078,6 +2078,72 @@ test "$dot_reduction_guard_line" -lt "$dot_reduction_mutation_line"
 test "$dot_divisor_guard_line" -lt "$dot_divisor_mutation_line"
 test "$(printf '%s\n' "$dot_reduction_handler_source" | grep -Fc 'buff.reduceBuffDotStackCount')" -eq 9
 test "$(printf '%s\n' "$dot_divisor_handler_source" | grep -Fc 'buff.divideBuffDotStackCount')" -eq 9
+# The sole inherited group effect is entirely post-Publish-14 player combat
+# authority. Keep all authored rows plus NPC propagation and removal cleanup,
+# while rejecting the complete exact player inventory before aura mutation.
+test "$(awk -F '\t' '$1 == "group" && $2 == "group" { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 1
+retired_player_group_buffs='sl_group_run sl_group_acc sl_group_def sl_group_crit_hit sl_group_armor sl_group_regen sl_group_armor_break sl_group_red_cooldown sl_group_retreat sl_group_charge co_base_of_operations veteranPlayerBuff fs_forsake_fear of_buff_def_1 of_buff_def_2 of_buff_def_3 of_buff_def_4 of_buff_def_5 of_buff_def_6 of_buff_def_7 of_buff_def_8 of_buff_def_9 of_focus_fire_1 of_focus_fire_2 of_focus_fire_3 of_focus_fire_4 of_focus_fire_5 of_focus_fire_6 of_inspiration_1 of_inspiration_2 of_inspiration_3 of_inspiration_4 of_inspiration_5 of_inspiration_6 of_scatter_1 of_charge_1 of_drillmaster_1 human_ability_1'
+test "$(printf '%s\n' $retired_player_group_buffs | wc -l)" -eq 38
+awk -F '\t' -v retired="$retired_player_group_buffs" '
+    BEGIN {
+        split(retired, retired_names, " ")
+        for (idx in retired_names) { retired_set[retired_names[idx]]=1 }
+    }
+    NR == 1 {
+        for (column = 1; column <= NF; column++) {
+            header = $column
+            sub(/\r$/, "", header)
+            field_index[header] = column
+        }
+        next
+    }
+    NR > 2 {
+        owns_group = 0
+        for (effect = 1; effect <= 5; effect++) {
+            if ($(field_index["EFFECT" effect "_PARAM"]) == "group") {
+                owns_group = 1
+            }
+        }
+        if (!owns_group) { next }
+        name = $(field_index["NAME"])
+        ++rows
+        if (name in retired_set) { ++retired_rows; ++retired_found[name] }
+        else { ++unclassified_rows }
+    }
+    END {
+        if (rows != 38 || retired_rows != 38 || unclassified_rows != 0) exit 2
+        for (name in retired_set) { if (retired_found[name] != 1) exit 3 }
+    }
+' "$work_buff_table"
+group_buff_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS/,/public static boolean isRetiredPostNgePlayerGroupBuffName/p' "$work_buff_library")"
+test "$(printf '%s\n' "$group_buff_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 38
+for retired_player_group_buff in $retired_player_group_buffs; do
+    printf '%s\n' "$group_buff_inventory_source" | grep -Fq "\"$retired_player_group_buff\""
+done
+group_buff_cleanup_source="$(sed -n '/public static void retirePostNgePlayerGroupBuffState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_FLAT_ATTRIBUTE_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$group_buff_cleanup_source" | grep -Fq 'isPlayer(player)'
+printf '%s\n' "$group_buff_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerGroupBuffState(player);' "$work_buff_library"
+group_buff_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+group_buff_admission_line="$(printf '%s\n' "$group_buff_admission_source" | grep -Fn 'isRetiredPostNgePlayerGroupBuff(target, bdata)' | head -1 | cut -d: -f1)"
+group_buff_existing_line="$(printf '%s\n' "$group_buff_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$group_buff_admission_line"
+test -n "$group_buff_existing_line"
+test "$group_buff_admission_line" -lt "$group_buff_existing_line"
+group_buff_add_handler_source="$(sed -n '/public int groupAddBuffHandler/,/public int groupRemoveBuffHandler/p' "$work_buff_handler")"
+group_buff_remove_handler_source="$(sed -n '/public int groupRemoveBuffHandler/,/public int OnTriggerVolumeEntered/p' "$work_buff_handler")"
+group_buff_add_player_line="$(printf '%s\n' "$group_buff_add_handler_source" | grep -Fn 'if (isPlayer(self)' | head -1 | cut -d: -f1)"
+group_buff_add_predicate_line="$(printf '%s\n' "$group_buff_add_handler_source" | grep -Fn 'buff.isRetiredPostNgePlayerGroupBuffName(buffName)' | head -1 | cut -d: -f1)"
+group_buff_add_mutation_line="$(printf '%s\n' "$group_buff_add_handler_source" | grep -Fn 'effectName = effectName.substring' | head -1 | cut -d: -f1)"
+test -n "$group_buff_add_player_line"
+test -n "$group_buff_add_predicate_line"
+test -n "$group_buff_add_mutation_line"
+test "$group_buff_add_player_line" -le "$group_buff_add_predicate_line"
+test "$group_buff_add_predicate_line" -lt "$group_buff_add_mutation_line"
+printf '%s\n' "$group_buff_remove_handler_source" | grep -Fq 'utils.removeScriptVar(self, var)'
+printf '%s\n' "$group_buff_remove_handler_source" | grep -Fq 'messageTo(groupMember, "setGroupBuffs"'
+printf '%s\n' "$group_buff_remove_handler_source" | grep -Fq 'removeTriggerVolume("group_buff_breach")'
+! printf '%s\n' "$group_buff_remove_handler_source" | grep -Fq 'isRetiredPostNgePlayerGroupBuffName'
 # The exact inherited flat-HAM player reward inventory is post-NGE combat
 # authority. Keep its content rows and generic non-player/cleanup machinery,
 # while rejecting those names before player mutation.
@@ -4400,6 +4466,33 @@ test -n "$dot_divisor_guard_bytecode_line"
 test -n "$dot_divisor_mutation_bytecode_line"
 test "$dot_reduction_guard_bytecode_line" -lt "$dot_reduction_mutation_bytecode_line"
 test "$dot_divisor_guard_bytecode_line" -lt "$dot_divisor_mutation_bytecode_line"
+group_buff_bytecode="$dot_stack_buff_bytecode"
+printf '%s\n' "$group_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerGroupBuffName'
+printf '%s\n' "$group_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerGroupBuff'
+printf '%s\n' "$group_buff_bytecode" | grep -Fq 'retirePostNgePlayerGroupBuffState'
+for retired_player_group_buff in $retired_player_group_buffs; do
+    printf '%s\n' "$group_buff_bytecode" | grep -Fq "$retired_player_group_buff"
+done
+group_buff_admission_bytecode="$(printf '%s\n' "$group_buff_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+group_buff_admission_bytecode_line="$(printf '%s\n' "$group_buff_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerGroupBuff' | head -1 | cut -d: -f1)"
+group_buff_existing_bytecode_line="$(printf '%s\n' "$group_buff_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$group_buff_admission_bytecode_line"
+test -n "$group_buff_existing_bytecode_line"
+test "$group_buff_admission_bytecode_line" -lt "$group_buff_existing_bytecode_line"
+group_buff_add_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int groupAddBuffHandler/,/public int groupRemoveBuffHandler/p')"
+group_buff_remove_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int groupRemoveBuffHandler/,/public int OnTriggerVolumeEntered/p')"
+group_buff_add_player_bytecode_line="$(printf '%s\n' "$group_buff_add_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+group_buff_add_predicate_bytecode_line="$(printf '%s\n' "$group_buff_add_handler_bytecode" | grep -Fn 'isRetiredPostNgePlayerGroupBuffName' | head -1 | cut -d: -f1)"
+group_buff_add_mutation_bytecode_line="$(printf '%s\n' "$group_buff_add_handler_bytecode" | grep -Fn 'lastIndexOf' | head -1 | cut -d: -f1)"
+test -n "$group_buff_add_player_bytecode_line"
+test -n "$group_buff_add_predicate_bytecode_line"
+test -n "$group_buff_add_mutation_bytecode_line"
+test "$group_buff_add_player_bytecode_line" -lt "$group_buff_add_predicate_bytecode_line"
+test "$group_buff_add_predicate_bytecode_line" -lt "$group_buff_add_mutation_bytecode_line"
+printf '%s\n' "$group_buff_remove_handler_bytecode" | grep -Fq 'removeScriptVar'
+printf '%s\n' "$group_buff_remove_handler_bytecode" | grep -Fq 'setGroupBuffs'
+printf '%s\n' "$group_buff_remove_handler_bytecode" | grep -Fq 'removeTriggerVolume'
+! printf '%s\n' "$group_buff_remove_handler_bytecode" | grep -Fq 'isRetiredPostNgePlayerGroupBuffName'
 flat_attribute_buff_bytecode="$dot_stack_buff_bytecode"
 printf '%s\n' "$flat_attribute_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerFlatAttributeBuffName'
 printf '%s\n' "$flat_attribute_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerFlatAttributeBuff'
