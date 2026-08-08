@@ -141,6 +141,18 @@ $professionInspirationScriptVarCleanupBody = Get-SourceSlice $buffText `
 $professionInspirationCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgePlayerProfessionInspirationState" `
     "private static final String[] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS"
+$professionImmunityInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_IMMUNITY_BUFFS" `
+    "public static boolean isRetiredPostNgePlayerProfessionImmunityBuffName"
+$professionImmunityNamePredicateBody = Get-SourceSlice $buffText `
+    "public static boolean isRetiredPostNgePlayerProfessionImmunityBuffName" `
+    "public static boolean isRetiredPostNgePlayerProfessionImmunityBuff(obj_id target"
+$professionImmunityBuffPredicateBody = Get-SourceSlice $buffText `
+    "public static boolean isRetiredPostNgePlayerProfessionImmunityBuff(obj_id target" `
+    "public static void retirePostNgePlayerProfessionImmunityState"
+$professionImmunityCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgePlayerProfessionImmunityState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_INSPIRATION_BUFFS"
 $groupBuffCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgePlayerGroupBuffState" `
     "private static final String[] RETIRED_POST_NGE_PLAYER_FLAT_ATTRIBUTE_BUFFS"
@@ -193,6 +205,38 @@ Assert-Contract ($professionInspirationNames.Count -eq
         "isRetiredPostNgePlayerProfessionInspirationBuff(player, data)") -and
     $professionInspirationCleanupBody.Contains("removeBuff(player, activeBuff)")) `
     "p14.buff-progression.profession-inspiration.central-lifecycle"
+$expectedProfessionImmunityNames = @(
+    $contract.expected.retiredPlayerProfessionImmunityBuffs |
+        ForEach-Object { [string]$_ })
+$actualProfessionImmunityNames = @([regex]::Matches(
+    $professionImmunityInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$professionImmunityAdmissionGate = $buffAdmissionBody.IndexOf(
+    "isRetiredPostNgePlayerProfessionImmunityBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$professionImmunityExistingBuffReturn = $buffAdmissionBody.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($actualProfessionImmunityNames.Count -eq
+        $expectedProfessionImmunityNames.Count -and
+    (($actualProfessionImmunityNames -join "`n") -ceq
+        ($expectedProfessionImmunityNames -join "`n")) -and
+    $professionImmunityNamePredicateBody.Contains(
+        "buffName.equals(retiredBuff)") -and
+    $professionImmunityBuffPredicateBody.Contains("isPlayer(target)") -and
+    $professionImmunityBuffPredicateBody.Contains(
+        "isRetiredPostNgePlayerProfessionImmunityBuffName(data.buffName)") -and
+    $professionImmunityCleanupBody.Contains("!isPlayer(player)") -and
+    $professionImmunityCleanupBody.Contains("getAllBuffs(player)") -and
+    $professionImmunityCleanupBody.Contains(
+        "combat_engine.getBuffData(activeBuff)") -and
+    $professionImmunityCleanupBody.Contains("removeBuff(player, activeBuff)") -and
+    $cleanupBody.Contains(
+        "retirePostNgePlayerProfessionImmunityState(player);") -and
+    $professionImmunityAdmissionGate -ge 0 -and
+    $professionImmunityExistingBuffReturn -gt $professionImmunityAdmissionGate -and
+    -not [bool]$contract.expected.playerProfessionImmunityBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerProfessionImmunityStateRemoved) `
+    "p14.buff-progression.profession-immunity.admission-and-central-lifecycle"
 $expectedGroupBuffs = @($contract.expected.retiredPlayerGroupBuffs | Sort-Object)
 $actualGroupBuffs = @([regex]::Matches($groupBuffInventoryBody, '"([^"\r\n]+)"') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object)
@@ -414,6 +458,12 @@ $healEffectAddBody = Get-SourceSlice $handlerText `
 $healEffectRemoveBody = Get-SourceSlice $handlerText `
     "public int healEffectRemoveBuffHandler" `
     "public int buildabuffAddBuffHandler"
+$immunityAddBody = Get-SourceSlice $handlerText `
+    "public int immunityAddBuffHandler" `
+    "public int dotReductionAddBuffHandler"
+$immunityRemoveBody = Get-SourceSlice $handlerText `
+    "public int immunityRemoveBuffHandler" `
+    "public int actionBurnAddBuffHandler"
 $healEffectGuard = $healEffectAddBody.IndexOf(
     "if (isPlayer(self))", [StringComparison]::Ordinal)
 $healEffectInspirationPredicate = $healEffectAddBody.IndexOf(
@@ -449,6 +499,21 @@ $healEffectActionWriter = $healEffectAddBody.IndexOf(
 $healEffectHealthWriter = $healEffectAddBody.IndexOf(
     "healing.healDamage(caster, self, HEALTH, (int)value);",
     [StringComparison]::Ordinal)
+$professionImmunityHandlerGuard = $immunityAddBody.IndexOf(
+    "if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionImmunityBuffName(buffName))",
+    [StringComparison]::Ordinal)
+$professionImmunityHandlerCleanup = $immunityAddBody.IndexOf(
+    "buff.retirePostNgePlayerProfessionImmunityState(self);",
+    [StringComparison]::Ordinal)
+$professionImmunityHandlerReturn = $immunityAddBody.IndexOf(
+    "return SCRIPT_OVERRIDE;", $professionImmunityHandlerCleanup,
+    [StringComparison]::Ordinal)
+$professionImmunityWriters = @(
+    $immunityAddBody.IndexOf("buff.performBuffDotImmunity", [StringComparison]::Ordinal),
+    $immunityAddBody.IndexOf("removeAllModifiersOfType", [StringComparison]::Ordinal),
+    $immunityAddBody.IndexOf("getAllBuffs(self)", [StringComparison]::Ordinal),
+    $immunityAddBody.IndexOf("setScriptVar(self", [StringComparison]::Ordinal)
+)
 Assert-Contract (([regex]::Matches($handlerText,
         'buff[.]isRetiredPostNgePlayerGroupBuffName\(buffName\)')).Count -eq
         [int]$contract.expected.productionGroupAddHandlersGuarded -and
@@ -507,6 +572,21 @@ Assert-Contract ($healEffectGuard -ge 0 -and
     [bool]$contract.expected.professionHealEffectRemoveCompatibilityPreserved -and
     [bool]$contract.expected.nonPlayerProfessionHealEffectCompatibilityPreserved) `
     "p14.buff-progression.profession-heal-effect.direct-writers-fail-closed-for-players"
+Assert-Contract ($professionImmunityHandlerGuard -ge 0 -and
+    $professionImmunityHandlerCleanup -gt $professionImmunityHandlerGuard -and
+    $professionImmunityHandlerReturn -gt $professionImmunityHandlerCleanup -and
+    @($professionImmunityWriters | Where-Object {
+        $_ -le $professionImmunityHandlerReturn
+    }).Count -eq 0 -and
+    @($professionImmunityWriters | Where-Object { $_ -lt 0 }).Count -eq 0 -and
+    [int]$contract.expected.productionProfessionImmunityHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerProfessionImmunityWriterReachable -and
+    $immunityRemoveBody.Contains("return SCRIPT_CONTINUE;") -and
+    -not $immunityRemoveBody.Contains(
+        "isRetiredPostNgePlayerProfessionImmunityBuffName") -and
+    [bool]$contract.expected.professionImmunityRemoveCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerProfessionImmunityCompatibilityPreserved) `
+    "p14.buff-progression.profession-immunity.direct-writers-fail-closed-for-players"
 Assert-Contract ((Is-Before $xpBonusBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $xpGrantBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $buildBody "buff.isPostNgeBuffProgressionRetired()" "performance.buildabuff.buffComponentKeys") -and
@@ -640,6 +720,57 @@ Assert-Contract ($healEffectMappings.Count -eq
         $preservedHealEffectNames -cnotcontains $_
     }).Count -eq 0) `
     "p14.buff-progression.profession-heal-effect.complete-data-inventory-authenticated"
+$immunityMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
+    Where-Object { $_.TYPE -ceq "immunity" })
+$immunityMappingNames = @($immunityMappings.NAME | Sort-Object)
+$immunityUses = @(
+    foreach ($row in $allBuffRows)
+    {
+        foreach ($effect in 1..5)
+        {
+            $parameter = [string]$row.("EFFECT${effect}_PARAM")
+            if ($immunityMappingNames -ccontains $parameter)
+            {
+                [pscustomobject]@{
+                    Name = [string]$row.NAME
+                    Parameter = $parameter
+                }
+            }
+        }
+    }
+)
+$immunityRowNames = @($immunityUses.Name | Sort-Object -Unique)
+$preservedProfessionImmunityNames = @(
+    $contract.expected.preservedLaterContentImmunityBuffs |
+        ForEach-Object { [string]$_ })
+$retiredProfessionImmunityUses = @($immunityUses | Where-Object {
+    $expectedProfessionImmunityNames -ccontains [string]$_.Name })
+$preservedProfessionImmunityUses = @($immunityUses | Where-Object {
+    $preservedProfessionImmunityNames -ccontains [string]$_.Name })
+Assert-Contract ($immunityMappings.Count -eq
+        [int]$contract.expected.retainedImmunityEffectMappingRows -and
+    (($immunityMappingNames -join "`n") -ceq
+        ((@("buff_purge", "debuff_purge", "dot_immunity",
+            "movement_immunity", "state_immunity") | Sort-Object) -join "`n")) -and
+    $immunityRowNames.Count -eq [int]$contract.expected.retainedImmunityBuffRows -and
+    $immunityUses.Count -eq [int]$contract.expected.retainedImmunityEffectUses -and
+    @($retiredProfessionImmunityUses.Name | Sort-Object -Unique).Count -eq
+        [int]$contract.expected.retiredPlayerProfessionImmunityBuffRows -and
+    $retiredProfessionImmunityUses.Count -eq
+        [int]$contract.expected.retiredPlayerProfessionImmunityEffectUses -and
+    @($preservedProfessionImmunityUses.Name | Sort-Object -Unique).Count -eq
+        [int]$contract.expected.preservedLaterContentImmunityBuffRows -and
+    $preservedProfessionImmunityUses.Count -eq
+        [int]$contract.expected.preservedLaterContentImmunityEffectUses -and
+    ((@($retiredProfessionImmunityUses.Name | Sort-Object -Unique) -join "`n") -ceq
+        ((@($expectedProfessionImmunityNames | Sort-Object)) -join "`n")) -and
+    ((@($preservedProfessionImmunityUses.Name | Sort-Object -Unique) -join "`n") -ceq
+        ((@($preservedProfessionImmunityNames | Sort-Object)) -join "`n")) -and
+    @($immunityRowNames | Where-Object {
+        $expectedProfessionImmunityNames -cnotcontains $_ -and
+        $preservedProfessionImmunityNames -cnotcontains $_
+    }).Count -eq 0) `
+    "p14.buff-progression.profession-immunity.complete-data-inventory-authenticated"
 $groupBuffMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
     Where-Object { $_.TYPE -ceq "group" })
 $groupBuffEffectNames = @($groupBuffMappings.NAME)

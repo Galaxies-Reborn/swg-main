@@ -2708,6 +2708,9 @@ test "$force_throw_generic_gate_line" -lt "$generic_existing_buff_line"
 profession_movement_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerProfessionMovementBuff(target, bdata)' | head -1 | cut -d: -f1)"
 test -n "$profession_movement_generic_gate_line"
 test "$profession_movement_generic_gate_line" -lt "$generic_existing_buff_line"
+profession_immunity_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerProfessionImmunityBuff(target, bdata)' | head -1 | cut -d: -f1)"
+test -n "$profession_immunity_generic_gate_line"
+test "$profession_immunity_generic_gate_line" -lt "$generic_existing_buff_line"
 profession_inspiration_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerProfessionInspirationBuff(target, bdata)' | head -1 | cut -d: -f1)"
 test -n "$profession_inspiration_generic_gate_line"
 test "$profession_inspiration_generic_gate_line" -lt "$generic_existing_buff_line"
@@ -2820,6 +2823,114 @@ test -n "$movement_add_writer_line"
 test "$movement_add_profession_guard_line" -lt "$movement_add_force_throw_guard_line"
 test "$movement_add_force_throw_guard_line" -lt "$movement_add_writer_line"
 test "$(printf '%s\n' "$movement_add_source" | grep -Fc 'return SCRIPT_OVERRIDE;')" -eq 2
+profession_immunity_mapping_names='buff_purge debuff_purge dot_immunity movement_immunity state_immunity'
+retired_profession_immunity_names='bm_pet_cure me_serotonin_boost_1 me_serotonin_purge_1 me_stasis_1 me_stasis_self_1 of_stimulator_1 sp_covert_mastery'
+preserved_later_content_immunity_names='gcw_stim_remove_debuff_01 ice_cream_remove_debuff treasure_bonus_combat_dodge'
+test "$(printf '%s\n' $profession_immunity_mapping_names | wc -l)" -eq 5
+test "$(printf '%s\n' $retired_profession_immunity_names | wc -l)" -eq 7
+test "$(printf '%s\n' $preserved_later_content_immunity_names | wc -l)" -eq 3
+awk -F '\t' -v expected_names="$profession_immunity_mapping_names" '
+    FNR == 1 {
+        for (field = 1; field <= NF; field++) field_index[$field] = field
+        split(expected_names, names, " ")
+        for (name_index in names) expected[names[name_index]] = 1
+        next
+    }
+    FNR == 2 { next }
+    $(field_index["TYPE"]) == "immunity" {
+        row_count++
+        seen[$1]++
+        if (!($1 in expected)) exit 48
+    }
+    END {
+        if (row_count != 5) exit 49
+        for (name in expected) if (seen[name] != 1) exit 50
+    }
+' "$work_buff_effect_mapping"
+awk -F '\t' \
+    -v mapping_names="$profession_immunity_mapping_names" \
+    -v retired_names="$retired_profession_immunity_names" \
+    -v preserved_names="$preserved_later_content_immunity_names" '
+    BEGIN {
+        split(mapping_names, names, " ")
+        for (name_index in names) mapping[names[name_index]] = 1
+        split(retired_names, names, " ")
+        for (name_index in names) retired[names[name_index]] = 1
+        split(preserved_names, names, " ")
+        for (name_index in names) preserved[names[name_index]] = 1
+    }
+    FNR == 1 {
+        for (field = 1; field <= NF; field++) field_index[$field] = field
+        next
+    }
+    FNR == 2 { next }
+    {
+        uses = 0
+        for (effect = 1; effect <= 5; effect++) {
+            parameter = $(field_index["EFFECT" effect "_PARAM"])
+            if (parameter in mapping) uses++
+        }
+        if (uses > 0) {
+            row_count++
+            use_count += uses
+            if ($1 in retired) {
+                retired_rows++
+                retired_uses += uses
+                retired_seen[$1]++
+            } else if ($1 in preserved) {
+                preserved_rows++
+                preserved_uses += uses
+                preserved_seen[$1]++
+            } else {
+                exit 51
+            }
+        }
+    }
+    END {
+        if (row_count != 10 || use_count != 13) exit 52
+        if (retired_rows != 7 || retired_uses != 10) exit 53
+        if (preserved_rows != 3 || preserved_uses != 3) exit 54
+        for (name in retired) if (retired_seen[name] != 1) exit 55
+        for (name in preserved) if (preserved_seen[name] != 1) exit 56
+    }
+' "$work_buff_table"
+profession_immunity_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_PROFESSION_IMMUNITY_BUFFS/,/public static boolean isRetiredPostNgePlayerProfessionImmunityBuffName/p' "$work_buff_library")"
+test "$(printf '%s\n' "$profession_immunity_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 7
+for profession_immunity_name in $retired_profession_immunity_names; do
+    printf '%s\n' "$profession_immunity_inventory_source" | grep -Fq "\"$profession_immunity_name\""
+done
+profession_immunity_name_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionImmunityBuffName/,/public static boolean isRetiredPostNgePlayerProfessionImmunityBuff(/p' "$work_buff_library")"
+profession_immunity_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionImmunityBuff(/,/public static void retirePostNgePlayerProfessionImmunityState/p' "$work_buff_library")"
+profession_immunity_cleanup_source="$(sed -n '/public static void retirePostNgePlayerProfessionImmunityState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_PROFESSION_INSPIRATION_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$profession_immunity_name_predicate_source" | grep -Fq 'buffName.equals(retiredBuff)'
+printf '%s\n' "$profession_immunity_buff_predicate_source" | grep -Fq 'isPlayer(target)'
+printf '%s\n' "$profession_immunity_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerProfessionImmunityBuffName(data.buffName)'
+printf '%s\n' "$profession_immunity_cleanup_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$profession_immunity_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$profession_immunity_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$profession_immunity_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+sed -n '/public static void retirePostNgeBuffProgression/,/public static final String DOT_BLEEDING/p' "$work_buff_library" | grep -Fq 'retirePostNgePlayerProfessionImmunityState(player);'
+profession_immunity_add_source="$(sed -n '/public int immunityAddBuffHandler/,/public int dotReductionAddBuffHandler/p' "$work_buff_handler")"
+profession_immunity_remove_source="$(sed -n '/public int immunityRemoveBuffHandler/,/public int expertiseImmunityAddBuffHandler/p' "$work_buff_handler")"
+profession_immunity_guard_line="$(printf '%s\n' "$profession_immunity_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionImmunityBuffName(buffName))' | head -1 | cut -d: -f1)"
+profession_immunity_cleanup_line="$(printf '%s\n' "$profession_immunity_add_source" | grep -Fn 'buff.retirePostNgePlayerProfessionImmunityState(self);' | head -1 | cut -d: -f1)"
+profession_immunity_return_line="$(printf '%s\n' "$profession_immunity_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$profession_immunity_cleanup_line" '$1 > cleanup { print $1; exit }')"
+profession_immunity_dot_writer_line="$(printf '%s\n' "$profession_immunity_add_source" | grep -Fn 'buff.performBuffDotImmunity' | head -1 | cut -d: -f1)"
+profession_immunity_modifier_writer_line="$(printf '%s\n' "$profession_immunity_add_source" | grep -Fn 'removeAllModifiersOfType' | head -1 | cut -d: -f1)"
+profession_immunity_buff_reader_line="$(printf '%s\n' "$profession_immunity_add_source" | grep -Fn 'getAllBuffs(self)' | head -1 | cut -d: -f1)"
+profession_immunity_scriptvar_writer_line="$(printf '%s\n' "$profession_immunity_add_source" | grep -Fn 'utils.setScriptVar(self' | head -1 | cut -d: -f1)"
+for profession_immunity_source_line in "$profession_immunity_guard_line" "$profession_immunity_cleanup_line" "$profession_immunity_return_line" "$profession_immunity_dot_writer_line" "$profession_immunity_modifier_writer_line" "$profession_immunity_buff_reader_line" "$profession_immunity_scriptvar_writer_line"; do
+    test -n "$profession_immunity_source_line"
+done
+test "$profession_immunity_guard_line" -lt "$profession_immunity_cleanup_line"
+test "$profession_immunity_cleanup_line" -lt "$profession_immunity_return_line"
+test "$profession_immunity_return_line" -lt "$profession_immunity_dot_writer_line"
+test "$profession_immunity_return_line" -lt "$profession_immunity_modifier_writer_line"
+test "$profession_immunity_return_line" -lt "$profession_immunity_buff_reader_line"
+test "$profession_immunity_return_line" -lt "$profession_immunity_scriptvar_writer_line"
+! printf '%s\n' "$profession_immunity_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionImmunityBuffName'
+printf '%s\n' "$profession_immunity_remove_source" | grep -Fq 'utils.removeScriptVarTree'
+printf '%s\n' "$profession_immunity_remove_source" | grep -Fq 'return SCRIPT_CONTINUE;'
 profession_inspiration_names='general_inspiration artisan_inspiration entertainer_inspiration scout_inspiration chef_inspiration tailor_inspiration bioengineer_inspiration merchant_inspiration imagedesigner_inspiration musician_inspiration ranger_inspiration architect_inspiration droidengineer_inspiration weaponsmith_inspiration shipwright_inspiration armorsmith_inspiration dancer_inspiration'
 test "$(printf '%s\n' $profession_inspiration_names | wc -l)" -eq 17
 awk -F '\t' -v retired_names="$profession_inspiration_names" '
@@ -5934,6 +6045,7 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsake
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerChannelHealBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionImmunityBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandoSuppressionBuff'
@@ -5954,6 +6066,42 @@ printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'Method getAllBuf
 printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'Method removeBuff'
 printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerProfessionMovementBuffState'
+for profession_immunity_name in $retired_profession_immunity_names; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "$profession_immunity_name"
+done
+profession_immunity_name_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionImmunityBuffName(java.lang.String)/,/isRetiredPostNgePlayerProfessionImmunityBuff(script.obj_id, script.combat_engine\$buff_data)/p')"
+printf '%s' "$profession_immunity_name_predicate_bytecode" | grep -Fq 'java/lang/String.equals'
+profession_immunity_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionImmunityBuff(script.obj_id, script.combat_engine\$buff_data)/,/retirePostNgePlayerProfessionImmunityState/p')"
+printf '%s' "$profession_immunity_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$profession_immunity_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionImmunityBuffName'
+profession_immunity_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerProfessionImmunityState/,/isRetiredPostNgePlayerProfessionInspirationBuffName/p')"
+printf '%s' "$profession_immunity_cleanup_bytecode" | grep -Fq 'Method getAllBuffs'
+printf '%s' "$profession_immunity_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$profession_immunity_cleanup_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerProfessionImmunityState'
+profession_immunity_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int immunityAddBuffHandler/,/public int dotReductionAddBuffHandler/p')"
+profession_immunity_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int immunityRemoveBuffHandler/,/public int expertiseImmunityAddBuffHandler/p')"
+profession_immunity_player_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+profession_immunity_predicate_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionImmunityBuffName' | head -1 | cut -d: -f1)"
+profession_immunity_cleanup_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'retirePostNgePlayerProfessionImmunityState' | head -1 | cut -d: -f1)"
+profession_immunity_return_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$profession_immunity_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+profession_immunity_dot_writer_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'performBuffDotImmunity' | head -1 | cut -d: -f1)"
+profession_immunity_modifier_writer_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'removeAllModifiersOfType' | head -1 | cut -d: -f1)"
+profession_immunity_buff_reader_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'buff.getAllBuffs' | head -1 | cut -d: -f1)"
+profession_immunity_scriptvar_writer_bytecode_line="$(printf '%s\n' "$profession_immunity_add_bytecode" | grep -Fn 'utils.setScriptVar' | head -1 | cut -d: -f1)"
+for profession_immunity_bytecode_line in "$profession_immunity_player_bytecode_line" "$profession_immunity_predicate_bytecode_line" "$profession_immunity_cleanup_bytecode_line" "$profession_immunity_return_bytecode_line" "$profession_immunity_dot_writer_bytecode_line" "$profession_immunity_modifier_writer_bytecode_line" "$profession_immunity_buff_reader_bytecode_line" "$profession_immunity_scriptvar_writer_bytecode_line"; do
+    test -n "$profession_immunity_bytecode_line"
+done
+test "$profession_immunity_player_bytecode_line" -lt "$profession_immunity_predicate_bytecode_line"
+test "$profession_immunity_predicate_bytecode_line" -lt "$profession_immunity_cleanup_bytecode_line"
+test "$profession_immunity_cleanup_bytecode_line" -lt "$profession_immunity_return_bytecode_line"
+test "$profession_immunity_return_bytecode_line" -lt "$profession_immunity_dot_writer_bytecode_line"
+test "$profession_immunity_return_bytecode_line" -lt "$profession_immunity_modifier_writer_bytecode_line"
+test "$profession_immunity_return_bytecode_line" -lt "$profession_immunity_buff_reader_bytecode_line"
+test "$profession_immunity_return_bytecode_line" -lt "$profession_immunity_scriptvar_writer_bytecode_line"
+! printf '%s' "$profession_immunity_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionImmunityBuffName'
+printf '%s' "$profession_immunity_remove_bytecode" | grep -Fq 'utils.removeScriptVarTree'
+printf '%s' "$profession_immunity_remove_bytecode" | grep -Fq 'ireturn'
 for profession_inspiration_name in $profession_inspiration_names; do
     printf '%s' "$buff_modifier_bytecode" | grep -Fq "$profession_inspiration_name"
 done
