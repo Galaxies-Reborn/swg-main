@@ -10,6 +10,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
+Import-Module (Join-Path $PSScriptRoot "Restoration.Common.psm1") -Force
 $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw |
     ConvertFrom-Json
 $contractPath = Join-Path $restorationRoot `
@@ -45,12 +46,19 @@ function Get-BracedBlock([string]$Text, [string]$Signature)
 
 $smugglerPath = Join-Path $source ([string]$contract.sourceFiles.smuggler)
 $junkDealerSummonPath = Join-Path $source ([string]$contract.sourceFiles.junkDealerSummon)
+$buffLibraryPath = Join-Path $source ([string]$contract.sourceFiles.buffLibrary)
+$buffHandlerPath = Join-Path $source ([string]$contract.sourceFiles.buffHandler)
 $skillTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+$skillModListingPath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab"
+$buffEffectMappingPath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
 $spaceCombatPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/space_combat.java"
 $utilsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java"
 $corpsePath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java"
 $combatActionsPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
-foreach ($path in @($smugglerPath, $junkDealerSummonPath, $skillTablePath, $spaceCombatPath, $utilsPath,
+foreach ($path in @($smugglerPath, $junkDealerSummonPath, $buffLibraryPath, $buffHandlerPath,
+    $skillTablePath, $skillModListingPath, $buffEffectMappingPath, $spaceCombatPath, $utilsPath,
     $corpsePath, $combatActionsPath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
@@ -82,6 +90,135 @@ Assert-Contract (-not $junkDealerSummon.Contains("expertise_") -and
     [int]$contract.expected.summonedDealerExpertiseReads -eq 0 -and
     [int]$contract.expected.summonedDealerNgeBuffReferences -eq 0) `
     "p14.precu-smuggler.summoned-dealer-nge-buff-authority-absent"
+
+$buffLibrary = Get-Content -LiteralPath $buffLibraryPath -Raw
+$buffLibraryHash = (Get-FileHash -LiteralPath $buffLibraryPath -Algorithm SHA256).Hash.ToLowerInvariant()
+Assert-Contract ($buffLibraryHash -ceq [string]$contract.buildEvidence.sourceSha256.buffLibrary) `
+    "p14.precu-smuggler.source.buff-library.authenticated"
+$buffHandler = Get-Content -LiteralPath $buffHandlerPath -Raw
+$buffHandlerHash = (Get-FileHash -LiteralPath $buffHandlerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+Assert-Contract ($buffHandlerHash -ceq [string]$contract.buildEvidence.sourceSha256.buffHandler) `
+    "p14.precu-smuggler.source.buff-handler.authenticated"
+
+$junkDealerExpertiseMappings = @(Import-SwgTab -Path $buffEffectMappingPath | Where-Object {
+    [string]$_.NAME -ceq "expertise_junk_dealer"
+})
+$junkDealerExpertiseModifierNames = @(
+    "expertise_buff_best_deal_ever",
+    "expertise_buff_under_the_counter",
+    "expertise_junk_dealer_cut"
+) | Sort-Object
+$junkDealerExpertiseModifierRows = @(Import-SwgTab -Path $skillModListingPath | Where-Object {
+    $junkDealerExpertiseModifierNames -ccontains [string]$_.skill_mod
+})
+$junkDealerExpertiseSkillNames = @(
+    "expertise_sm_path_best_deal_ever_1",
+    "expertise_sm_path_best_deal_ever_2",
+    "expertise_sm_path_under_the_counter_1",
+    "expertise_sm_path_under_the_counter_2"
+) | Sort-Object
+$junkDealerExpertiseSkillRows = @(Import-SwgTab -Path $skillTablePath | Where-Object {
+    $junkDealerExpertiseSkillNames -ccontains [string]$_.NAME
+})
+$underTheCounterRows = @($junkDealerExpertiseSkillRows | Where-Object {
+    [string]$_.NAME -like "expertise_sm_path_under_the_counter_*"
+})
+$bestDealRows = @($junkDealerExpertiseSkillRows | Where-Object {
+    [string]$_.NAME -like "expertise_sm_path_best_deal_ever_*"
+})
+Assert-Contract ($junkDealerExpertiseMappings.Count -eq
+        [int]$contract.expected.retainedNgeJunkDealerExpertiseEffectMappingRows -and
+    [string]$junkDealerExpertiseMappings[0].TYPE -ceq "junkDealer" -and
+    [string]$junkDealerExpertiseMappings[0].SUBTYPE -ceq "expertise_junk_dealer" -and
+    $junkDealerExpertiseModifierNames.Count -eq
+        [int]$contract.expected.retainedNgeJunkDealerExpertiseInputModifiers -and
+    $junkDealerExpertiseModifierRows.Count -eq
+        [int]$contract.expected.retainedNgeJunkDealerExpertiseSkillModifierRows -and
+    (($junkDealerExpertiseModifierRows.skill_mod | Sort-Object) -join ([char]0)) -ceq
+        ((@("expertise_buff_best_deal_ever", "expertise_junk_dealer_cut") | Sort-Object) -join ([char]0)) -and
+    $junkDealerExpertiseSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeJunkDealerExpertiseSkillRows -and
+    (($junkDealerExpertiseSkillRows.NAME | Sort-Object) -join ([char]0)) -ceq
+        ($junkDealerExpertiseSkillNames -join ([char]0)) -and
+    $underTheCounterRows.Count -eq 2 -and
+    @($underTheCounterRows | Where-Object {
+        [string]$_.SKILL_MODS -ceq "expertise_buff_under_the_counter=25"
+    }).Count -eq 2 -and
+    $bestDealRows.Count -eq 2 -and
+    @($bestDealRows | Where-Object {
+        [string]$_.SKILL_MODS -ceq
+            "expertise_buff_best_deal_ever=3,expertise_junk_dealer_cut=5"
+    }).Count -eq 2) `
+    "p14.precu-smuggler.junk-dealer-expertise-data-inventory-authenticated"
+
+$junkDealerEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgeJunkDealerExpertiseEffect(String effectName)"
+$junkDealerBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgeJunkDealerExpertiseBuff(buff_data data)"
+$junkDealerStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgeJunkDealerExpertiseState(obj_id dealer)"
+$junkDealerAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$junkDealerAdmissionGate = $junkDealerAdmission.IndexOf(
+    "isRetiredPostNgeJunkDealerExpertiseBuff(bdata)", [StringComparison]::Ordinal)
+$junkDealerPlayerOnlyGate = $junkDealerAdmission.IndexOf(
+    "if (isPlayer(target) &&", [StringComparison]::Ordinal)
+$junkDealerExistingBuffReturn = $junkDealerAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$junkDealerResidueNames = @([regex]::Matches(
+        $junkDealerStateCleanup, '"(junkDealerPrecision|junkDealerDamageDecrease)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+Assert-Contract ($junkDealerEffectPredicate.Contains(
+        'effectName.equals(RETIRED_POST_NGE_JUNK_DEALER_EXPERTISE_EFFECT)') -and
+    -not $junkDealerEffectPredicate.Contains("startsWith") -and
+    $junkDealerBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $junkDealerBuffPredicate.Contains(
+        "isRetiredPostNgeJunkDealerExpertiseEffect(getEffectParam(data, effect))") -and
+    $junkDealerAdmissionGate -ge 0 -and
+    $junkDealerPlayerOnlyGate -gt $junkDealerAdmissionGate -and
+    $junkDealerExistingBuffReturn -gt $junkDealerPlayerOnlyGate -and
+    -not [bool]$contract.expected.ngeJunkDealerExpertiseBuffAdmissionReachable) `
+    "p14.precu-smuggler.junk-dealer-expertise-admission-fails-closed-for-all-targets"
+Assert-Contract (-not $junkDealerStateCleanup.Contains("isPlayer") -and
+    $junkDealerStateCleanup.Contains('utils.removeScriptVar(dealer, "junkDealerBuffer")') -and
+    $junkDealerResidueNames.Count -eq
+        [int]$contract.expected.retiredNgeJunkDealerExpertiseResidueModifiers -and
+    $junkDealerStateCleanup.Contains("hasSkillModModifier(dealer, retiredModifier)") -and
+    $junkDealerStateCleanup.Contains("removeAttribOrSkillModModifier(dealer, retiredModifier)") -and
+    [bool]$contract.expected.persistedJunkDealerExpertiseResidueRemoved) `
+    "p14.precu-smuggler.junk-dealer-expertise-residue-cleanup-authenticated"
+
+$junkDealerHandlerSpecs = @(
+    [pscustomobject]@{
+        Method = "junkDealerAddBuffHandler"
+        Retained = 'utils.getObjIdScriptVar(self, "junkDealerBuffer")'
+    },
+    [pscustomobject]@{
+        Method = "junkDealerRemoveBuffHandler"
+        Retained = 'removeAttribOrSkillModModifier(self, "junkDealerPrecision")'
+    }
+)
+$guardedJunkDealerHandlers = 0
+foreach ($handlerSpec in $junkDealerHandlerSpecs)
+{
+    $handler = Get-BracedBlock $buffHandler ("public int " + $handlerSpec.Method + "(")
+    $retirementGate = $handler.IndexOf(
+        "buff.isPostNgeBuffProgressionRetired()", [StringComparison]::Ordinal)
+    $effectGate = $handler.IndexOf(
+        "buff.isRetiredPostNgeJunkDealerExpertiseEffect(effectName)", [StringComparison]::Ordinal)
+    $cleanup = $handler.IndexOf(
+        "buff.clearPostNgeJunkDealerExpertiseState(self);", [StringComparison]::Ordinal)
+    $override = $handler.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+    $retained = $handler.IndexOf([string]$handlerSpec.Retained, [StringComparison]::Ordinal)
+    if ($retirementGate -ge 0 -and $effectGate -gt $retirementGate -and
+        $cleanup -gt $effectGate -and $override -gt $cleanup -and $retained -gt $override)
+    {
+        ++$guardedJunkDealerHandlers
+    }
+}
+Assert-Contract ($guardedJunkDealerHandlers -eq
+        [int]$contract.expected.productionJunkDealerExpertiseHandlersGuarded) `
+    "p14.precu-smuggler.junk-dealer-expertise-handlers-fail-closed-before-reads-and-writes"
 
 $dealerAttach = Get-BracedBlock $junkDealerSummon `
     "public int OnAttach(obj_id self)"
@@ -212,6 +349,8 @@ if ($Expectation -eq "Ready")
         "p14.precu-smuggler.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.smuggler -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.junkDealerSummon -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.buffLibrary -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.buffHandler -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.precu-smuggler.live-evidence"

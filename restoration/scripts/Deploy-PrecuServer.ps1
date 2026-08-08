@@ -995,6 +995,54 @@ grep -Fq 'messageTo(self, "handleGreeting", null, 2.0f, false);' "$work_junk_dea
 grep -Fq 'new string_id("spam", "junk_dealer_total_profits")' "$work_junk_dealer_summon"
 grep -Fq 'detachScript(self, "conversation.junk_dealer_smuggler")' "$work_junk_dealer_summon"
 grep -Fq 'detachScript(self, "npc.converse.junk_dealer")' "$work_junk_dealer_summon"
+cmp -s "$source_buff_effect_mapping" "$work_buff_effect_mapping"
+awk -F '\t' '
+    $1 == "expertise_junk_dealer" && $2 == "junkDealer" && $3 == "expertise_junk_dealer" { ++matches }
+    END { exit matches == 1 ? 0 : 1 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+    $1 == "expertise_buff_best_deal_ever" || $1 == "expertise_junk_dealer_cut" { ++matches }
+    END { exit matches == 2 ? 0 : 1 }
+' "$work_skill_mod_listing"
+awk -F '\t' '
+    $1 == "expertise_sm_path_under_the_counter_1" ||
+    $1 == "expertise_sm_path_under_the_counter_2" ||
+    $1 == "expertise_sm_path_best_deal_ever_1" ||
+    $1 == "expertise_sm_path_best_deal_ever_2" { ++matches }
+    END { exit matches == 4 ? 0 : 1 }
+' "$work_skills"
+cmp -s "$source_buff_library" "$work_buff_library"
+cmp -s "$source_buff_handler" "$work_buff_handler"
+junk_dealer_expertise_source="$(sed -n '/private static final String RETIRED_POST_NGE_JUNK_DEALER_EXPERTISE_EFFECT/,/private static final String\[\] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS/p' "$work_buff_library")"
+printf '%s' "$junk_dealer_expertise_source" | grep -Fq '"expertise_junk_dealer"'
+printf '%s' "$junk_dealer_expertise_source" | grep -Fq 'isRetiredPostNgeJunkDealerExpertiseEffect'
+printf '%s' "$junk_dealer_expertise_source" | grep -Fq 'isRetiredPostNgeJunkDealerExpertiseBuff'
+printf '%s' "$junk_dealer_expertise_source" | grep -Fq 'clearPostNgeJunkDealerExpertiseState'
+printf '%s' "$junk_dealer_expertise_source" | grep -Fq 'utils.removeScriptVar(dealer, "junkDealerBuffer")'
+printf '%s' "$junk_dealer_expertise_source" | grep -Fq '"junkDealerPrecision"'
+printf '%s' "$junk_dealer_expertise_source" | grep -Fq '"junkDealerDamageDecrease"'
+junk_dealer_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+junk_dealer_admission_line="$(printf '%s\n' "$junk_dealer_admission_source" | grep -Fn 'isRetiredPostNgeJunkDealerExpertiseBuff(bdata)' | head -1 | cut -d: -f1)"
+junk_dealer_player_gate_line="$(printf '%s\n' "$junk_dealer_admission_source" | grep -Fn 'if (isPlayer(target) &&' | head -1 | cut -d: -f1)"
+junk_dealer_existing_line="$(printf '%s\n' "$junk_dealer_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$junk_dealer_admission_line"
+test -n "$junk_dealer_player_gate_line"
+test -n "$junk_dealer_existing_line"
+test "$junk_dealer_admission_line" -lt "$junk_dealer_player_gate_line"
+test "$junk_dealer_player_gate_line" -lt "$junk_dealer_existing_line"
+junk_dealer_add_source="$(sed -n '/public int junkDealerAddBuffHandler/,/public int junkDealerRemoveBuffHandler/p' "$work_buff_handler")"
+junk_dealer_remove_source="$(sed -n '/public int junkDealerRemoveBuffHandler/,/public int commandoSnareBonusAddBuffHandler/p' "$work_buff_handler")"
+for junk_dealer_handler_source in "$junk_dealer_add_source" "$junk_dealer_remove_source"; do
+    printf '%s' "$junk_dealer_handler_source" | grep -Fq 'buff.isPostNgeBuffProgressionRetired()'
+    printf '%s' "$junk_dealer_handler_source" | grep -Fq 'buff.isRetiredPostNgeJunkDealerExpertiseEffect(effectName)'
+    printf '%s' "$junk_dealer_handler_source" | grep -Fq 'buff.clearPostNgeJunkDealerExpertiseState(self);'
+done
+junk_dealer_add_cleanup_line="$(printf '%s\n' "$junk_dealer_add_source" | grep -Fn 'clearPostNgeJunkDealerExpertiseState' | head -1 | cut -d: -f1)"
+junk_dealer_add_read_line="$(printf '%s\n' "$junk_dealer_add_source" | grep -Fn 'getObjIdScriptVar(self, "junkDealerBuffer")' | head -1 | cut -d: -f1)"
+junk_dealer_remove_cleanup_line="$(printf '%s\n' "$junk_dealer_remove_source" | grep -Fn 'clearPostNgeJunkDealerExpertiseState' | head -1 | cut -d: -f1)"
+junk_dealer_remove_write_line="$(printf '%s\n' "$junk_dealer_remove_source" | grep -Fn 'removeAttribOrSkillModModifier(self, "junkDealerPrecision")' | head -1 | cut -d: -f1)"
+test "$junk_dealer_add_cleanup_line" -lt "$junk_dealer_add_read_line"
+test "$junk_dealer_remove_cleanup_line" -lt "$junk_dealer_remove_write_line"
 cmp -s "$source_smuggler_patrol_ai" "$work_smuggler_patrol_ai"
 ! grep -Fq 'expertise_' "$work_smuggler_patrol_ai"
 ! grep -Fq 'getSmugglerRank' "$work_smuggler_patrol_ai"
@@ -3994,6 +4042,33 @@ javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | gr
 javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'totalProfits'
 javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'handleRunAway'
 javap -classpath "$class_root" -v script.npc.junk_dealer.junk_dealer_summon | grep -Fq 'junk_dealer_total_profits'
+junk_dealer_buff_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+printf '%s' "$junk_dealer_buff_bytecode" | grep -Fq 'isRetiredPostNgeJunkDealerExpertiseEffect'
+printf '%s' "$junk_dealer_buff_bytecode" | grep -Fq 'isRetiredPostNgeJunkDealerExpertiseBuff'
+printf '%s' "$junk_dealer_buff_bytecode" | grep -Fq 'clearPostNgeJunkDealerExpertiseState'
+printf '%s' "$junk_dealer_buff_bytecode" | grep -Fq 'expertise_junk_dealer'
+printf '%s' "$junk_dealer_buff_bytecode" | grep -Fq 'junkDealerBuffer'
+printf '%s' "$junk_dealer_buff_bytecode" | grep -Fq 'junkDealerPrecision'
+printf '%s' "$junk_dealer_buff_bytecode" | grep -Fq 'junkDealerDamageDecrease'
+junk_dealer_admission_bytecode="$(printf '%s' "$junk_dealer_buff_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+junk_dealer_admission_bytecode_line="$(printf '%s\n' "$junk_dealer_admission_bytecode" | grep -Fn 'isRetiredPostNgeJunkDealerExpertiseBuff' | head -1 | cut -d: -f1)"
+junk_dealer_player_gate_bytecode_line="$(printf '%s\n' "$junk_dealer_admission_bytecode" | grep -Fn 'Method isPlayer' | tail -1 | cut -d: -f1)"
+test -n "$junk_dealer_admission_bytecode_line"
+test -n "$junk_dealer_player_gate_bytecode_line"
+test "$junk_dealer_admission_bytecode_line" -lt "$junk_dealer_player_gate_bytecode_line"
+junk_dealer_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int junkDealerAddBuffHandler/,/public int junkDealerRemoveBuffHandler/p')"
+junk_dealer_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int junkDealerRemoveBuffHandler/,/public int commandoSnareBonusAddBuffHandler/p')"
+for junk_dealer_handler_bytecode in "$junk_dealer_add_bytecode" "$junk_dealer_remove_bytecode"; do
+    printf '%s' "$junk_dealer_handler_bytecode" | grep -Fq 'isPostNgeBuffProgressionRetired'
+    printf '%s' "$junk_dealer_handler_bytecode" | grep -Fq 'isRetiredPostNgeJunkDealerExpertiseEffect'
+    printf '%s' "$junk_dealer_handler_bytecode" | grep -Fq 'clearPostNgeJunkDealerExpertiseState'
+done
+junk_dealer_add_cleanup_bytecode_line="$(printf '%s\n' "$junk_dealer_add_bytecode" | grep -Fn 'clearPostNgeJunkDealerExpertiseState' | head -1 | cut -d: -f1)"
+junk_dealer_add_read_bytecode_line="$(printf '%s\n' "$junk_dealer_add_bytecode" | grep -Fn 'getObjIdScriptVar' | head -1 | cut -d: -f1)"
+junk_dealer_remove_cleanup_bytecode_line="$(printf '%s\n' "$junk_dealer_remove_bytecode" | grep -Fn 'clearPostNgeJunkDealerExpertiseState' | head -1 | cut -d: -f1)"
+junk_dealer_remove_write_bytecode_line="$(printf '%s\n' "$junk_dealer_remove_bytecode" | grep -Fn 'removeAttribOrSkillModModifier' | head -1 | cut -d: -f1)"
+test "$junk_dealer_add_cleanup_bytecode_line" -lt "$junk_dealer_add_read_bytecode_line"
+test "$junk_dealer_remove_cleanup_bytecode_line" -lt "$junk_dealer_remove_write_bytecode_line"
 # Retained Smuggler patrol encounters use their authored baseline probabilities
 # without NGE expertise or expertise-scaled underworld rank arithmetic.
 ! javap -classpath "$class_root" -v script.ai.smuggler_spawn_enemy | grep -Fq 'expertise_'
