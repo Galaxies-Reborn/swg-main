@@ -3061,6 +3061,133 @@ verify_commando_specialized_source_handler commandoRiddleArmorAddBuffHandler com
 verify_commando_specialized_source_handler commandoRiddleArmorRemoveBuffHandler radarInvisAddBuffHandler 'buff.clearPostNgePlayerCommandoSpecializedModifiers(self);' '' 'removeAttribOrSkillModModifier(self, effectName)' 0
 verify_commando_specialized_source_handler onTargetAddBuffHandler onTargetRemoveBuffHandler 'buff.retirePostNgePlayerCommandoSpecializedState(self);' '' 'if (subtype.equals("expertise_on_target"))' 1
 verify_commando_specialized_source_handler onTargetRemoveBuffHandler immunityAddBuffHandler 'buff.clearPostNgePlayerCommandoSpecializedBuffs(self);' 'buff.clearPostNgePlayerCommandoSpecializedModifiers(self);' 'if (hasSkillModModifier(self, effectName))' 1
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && $1 ~ /^expertise_(dot|movement)_immunity$/ {
+    found++
+    if ($1 == "expertise_dot_immunity") {
+        dotFound++
+        if ($(fieldIndex["TYPE"]) != "expertiseImmunity" || $(fieldIndex["SUBTYPE"]) != "dot_immunity") exit 2
+    } else {
+        movementFound++
+        if ($(fieldIndex["TYPE"]) != "expertiseImmunity" || $(fieldIndex["SUBTYPE"]) != "movement_immunity") exit 2
+    }
+}
+END { if (found != 2 || dotFound != 1 || movementFound != 1) exit 3 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && ($1 ~ /^fs_sh_[0-3]$/ || $1 == "fs_dot_immunity_recourse") {
+    found++
+    if ($(fieldIndex["GROUP1"]) != "fsCure" || $(fieldIndex["IS_PERSISTENT"]) != 1) exit 2
+    if ($1 ~ /^fs_sh_[0-3]$/) {
+        healingFound++
+        if ($(fieldIndex["DEBUFF"]) != 0 || $(fieldIndex["EFFECT1_PARAM"]) != "expertise_dot_immunity" ||
+            $(fieldIndex["EFFECT1_VALUE"]) != 5 || $(fieldIndex["CALLBACK"]) != "fs_dot_immunity_recourse") exit 2
+    } else {
+        recourseFound++
+        if ($(fieldIndex["DEBUFF"]) != 1 || $(fieldIndex["EFFECT1_PARAM"]) != "" ||
+            $(fieldIndex["CALLBACK"]) != "none") exit 2
+    }
+}
+END { if (found != 5 || healingFound != 4 || recourseFound != 1) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && $1 ~ /^fs_sh_[0-3]$/ {
+    found++
+    if ($(fieldIndex["scriptHook"]) != $1 || $(fieldIndex["displayGroup"]) != "combat" ||
+        $(fieldIndex["addToCombatQueue"]) != 1) exit 2
+}
+END { if (found != 4) exit 3 }
+' "$work_command_table"
+awk -F '\t' '
+BEGIN {
+    damage["fs_sh_0"] = 800; damage["fs_sh_1"] = 2500; damage["fs_sh_2"] = 3500; damage["fs_sh_3"] = 5000
+    action["fs_sh_0"] = 200; action["fs_sh_1"] = 450; action["fs_sh_2"] = 800; action["fs_sh_3"] = 1150
+}
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && $1 ~ /^fs_sh_[0-3]$/ {
+    found++
+    if ($(fieldIndex["validTarget"]) != "NONE" || $(fieldIndex["hitType"]) != "HEAL" ||
+        $(fieldIndex["addedDamage"]) != damage[$1] || $(fieldIndex["actionCost"]) != action[$1] ||
+        $(fieldIndex["specialLine"]) != "fs_heal" || $(fieldIndex["performance_spam"]) != "perform_notarget") exit 2
+}
+END { if (found != 4) exit 3 }
+' "$work_combat_data"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && $1 ~ /^class_forcesensitive_phase[1-4]_(05|04)$/ {
+    value = $(fieldIndex["COMMANDS"]); gsub(/^"|"$/, "", value)
+    if (value ~ /(^|,)fs_sh_[0-3](,|$)/) found++
+}
+END { if (found != 4) exit 3 }
+' "$work_skills_table"
+fs_expertise_immunity_buff_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_BUFFS/,/};/p' "$work_buff_library")"
+for fs_expertise_immunity_buff in fs_sh_0 fs_sh_1 fs_sh_2 fs_sh_3 fs_dot_immunity_recourse; do
+    printf '%s\n' "$fs_expertise_immunity_buff_inventory_source" | grep -Fq "\"$fs_expertise_immunity_buff\""
+done
+test "$(printf '%s\n' "$fs_expertise_immunity_buff_inventory_source" | grep -Ec '^[[:space:]]+"(fs_sh_[0-3]|fs_dot_immunity_recourse)"[,]?$')" -eq 5
+fs_expertise_immunity_effect_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_EFFECTS/,/};/p' "$work_buff_library")"
+for fs_expertise_immunity_effect in expertise_dot_immunity expertise_movement_immunity; do
+    printf '%s\n' "$fs_expertise_immunity_effect_inventory_source" | grep -Fq "\"$fs_expertise_immunity_effect\""
+done
+test "$(printf '%s\n' "$fs_expertise_immunity_effect_inventory_source" | grep -Ec '^[[:space:]]+"expertise_(dot|movement)_immunity"[,]?$')" -eq 2
+fs_expertise_immunity_effect_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect/,/public static boolean isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(obj_id target/p' "$work_buff_library")"
+printf '%s\n' "$fs_expertise_immunity_effect_predicate_source" | grep -Fq 'effectName.equals(retiredEffect)'
+! printf '%s\n' "$fs_expertise_immunity_effect_predicate_source" | grep -Fq 'startsWith'
+fs_expertise_immunity_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(obj_id target/,/public static void clearPostNgePlayerForceSensitiveExpertiseImmunityResidue/p' "$work_buff_library")"
+printf '%s\n' "$fs_expertise_immunity_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$fs_expertise_immunity_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName(data.buffName)'
+printf '%s\n' "$fs_expertise_immunity_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect(getEffectParam(data, effect))'
+fs_expertise_immunity_residue_source="$(sed -n '/public static void clearPostNgePlayerForceSensitiveExpertiseImmunityResidue/,/public static void retirePostNgePlayerForceSensitiveExpertiseImmunityState/p' "$work_buff_library")"
+printf '%s\n' "$fs_expertise_immunity_residue_source" | grep -Fq '!isPlayer(player)'
+for fs_expertise_immunity_residue in immunity.dot.all immunity.movement.snare immunity.movement.root; do
+    printf '%s\n' "$fs_expertise_immunity_residue_source" | grep -Fq "\"$fs_expertise_immunity_residue\""
+done
+printf '%s\n' "$fs_expertise_immunity_residue_source" | grep -Fq 'stopClientEffectObjByLabel(player, "expertise_dot")'
+printf '%s\n' "$fs_expertise_immunity_residue_source" | grep -Fq 'stopClientEffectObjByLabel(player, "expertise_movement")'
+fs_expertise_immunity_state_source="$(sed -n '/public static void retirePostNgePlayerForceSensitiveExpertiseImmunityState/,/private static final String\[\] RETIRED_POST_NGE_GCW_BANNER_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$fs_expertise_immunity_state_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$fs_expertise_immunity_state_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+printf '%s\n' "$fs_expertise_immunity_state_source" | grep -Fq 'clearPostNgePlayerForceSensitiveExpertiseImmunityResidue(player);'
+grep -Fq 'retirePostNgePlayerForceSensitiveExpertiseImmunityState(player);' "$work_buff_library"
+fs_expertise_immunity_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static float getBuffTimeRemaining/p' "$work_buff_library")"
+fs_expertise_immunity_admission_line="$(printf '%s\n' "$fs_expertise_immunity_admission_source" | grep -Fn 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(target, bdata)' | head -1 | cut -d: -f1)"
+fs_expertise_immunity_existing_line="$(printf '%s\n' "$fs_expertise_immunity_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$fs_expertise_immunity_admission_line"
+test -n "$fs_expertise_immunity_existing_line"
+test "$fs_expertise_immunity_admission_line" -lt "$fs_expertise_immunity_existing_line"
+verify_fs_expertise_immunity_source_handler()
+{
+    fs_expertise_immunity_method="$1"
+    fs_expertise_immunity_next_method="$2"
+    fs_expertise_immunity_cleanup_marker="$3"
+    fs_expertise_immunity_retained_marker="$4"
+    fs_expertise_immunity_handler_source="$(sed -n "/public int $fs_expertise_immunity_method/,/public int $fs_expertise_immunity_next_method/p" "$work_buff_handler")"
+    fs_expertise_immunity_guard_line="$(printf '%s\n' "$fs_expertise_immunity_handler_source" | grep -Fn 'isPlayer(self)' | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_effect_line="$(printf '%s\n' "$fs_expertise_immunity_handler_source" | grep -Fn 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect(effectName)' | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_name_line="$(printf '%s\n' "$fs_expertise_immunity_handler_source" | grep -Fn 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName(buffName)' | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_cleanup_line="$(printf '%s\n' "$fs_expertise_immunity_handler_source" | grep -Fn "$fs_expertise_immunity_cleanup_marker" | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_return_line="$(printf '%s\n' "$fs_expertise_immunity_handler_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$fs_expertise_immunity_cleanup_line" '$1 > cleanup { print $1; exit }')"
+    fs_expertise_immunity_retained_line="$(printf '%s\n' "$fs_expertise_immunity_handler_source" | grep -Fn "$fs_expertise_immunity_retained_marker" | head -1 | cut -d: -f1)"
+    test -n "$fs_expertise_immunity_guard_line"
+    test -n "$fs_expertise_immunity_effect_line"
+    test -n "$fs_expertise_immunity_name_line"
+    test -n "$fs_expertise_immunity_cleanup_line"
+    test -n "$fs_expertise_immunity_return_line"
+    test -n "$fs_expertise_immunity_retained_line"
+    test "$fs_expertise_immunity_guard_line" -lt "$fs_expertise_immunity_effect_line"
+    test "$fs_expertise_immunity_guard_line" -lt "$fs_expertise_immunity_name_line"
+    test "$fs_expertise_immunity_name_line" -lt "$fs_expertise_immunity_cleanup_line"
+    test "$fs_expertise_immunity_cleanup_line" -lt "$fs_expertise_immunity_return_line"
+    test "$fs_expertise_immunity_return_line" -lt "$fs_expertise_immunity_retained_line"
+}
+verify_fs_expertise_immunity_source_handler expertiseImmunityAddBuffHandler expertiseImmunityRemoveBuffHandler 'buff.retirePostNgePlayerForceSensitiveExpertiseImmunityState(self);' 'if (!buff.isInStance(self))'
+verify_fs_expertise_immunity_source_handler expertiseImmunityRemoveBuffHandler expertiseChannelActionHealAddBuffHandler 'buff.clearPostNgePlayerForceSensitiveExpertiseImmunityResidue(self);' 'return immunityRemoveBuffHandler'
+grep -Fq 'public int immunityAddBuffHandler' "$work_buff_handler"
+grep -Fq 'public int immunityRemoveBuffHandler' "$work_buff_handler"
+awk -F '\t' '$1 == "dot_immunity" && $2 == "immunity" && $3 == "dot_immunity" { dotFound++ } $1 == "movement_immunity" && $2 == "immunity" && $3 == "movement_immunity" { movementFound++ } END { if (dotFound != 1 || movementFound != 1) exit 3 }' "$work_buff_effect_mapping"
 medic_deferred_dot_proc_actions='expertise_dueterium_rounds_proc expertise_poison_knuckle_proc'
 for medic_deferred_dot_proc_action in $medic_deferred_dot_proc_actions; do
     awk -F '\t' -v name="$medic_deferred_dot_proc_action" '
@@ -5132,6 +5259,73 @@ verify_commando_specialized_bytecode_handler commandoRiddleArmorAddBuffHandler c
 verify_commando_specialized_bytecode_handler commandoRiddleArmorRemoveBuffHandler radarInvisAddBuffHandler clearPostNgePlayerCommandoSpecializedModifiers '' 'Method removeAttribOrSkillModModifier' 0
 verify_commando_specialized_bytecode_handler onTargetAddBuffHandler onTargetRemoveBuffHandler retirePostNgePlayerCommandoSpecializedState '' 'String expertise_action_line_co_imp_pos_sec' 1
 verify_commando_specialized_bytecode_handler onTargetRemoveBuffHandler immunityAddBuffHandler clearPostNgePlayerCommandoSpecializedBuffs clearPostNgePlayerCommandoSpecializedModifiers 'Method hasSkillModModifier' 1
+for fs_expertise_immunity_effect in expertise_dot_immunity expertise_movement_immunity; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "String $fs_expertise_immunity_effect"
+done
+for fs_expertise_immunity_buff in fs_sh_0 fs_sh_1 fs_sh_2 fs_sh_3 fs_dot_immunity_recourse; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "String $fs_expertise_immunity_buff"
+done
+fs_expertise_immunity_effect_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect/,/isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(script.obj_id/p')"
+printf '%s' "$fs_expertise_immunity_effect_bytecode" | grep -Fq 'Method java/lang/String.equals'
+! printf '%s' "$fs_expertise_immunity_effect_bytecode" | grep -Fq 'Method java/lang/String.startsWith'
+fs_expertise_immunity_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(script.obj_id/,/clearPostNgePlayerForceSensitiveExpertiseImmunityResidue/p')"
+printf '%s' "$fs_expertise_immunity_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$fs_expertise_immunity_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName'
+printf '%s' "$fs_expertise_immunity_predicate_bytecode" | grep -Fq 'Method getEffectParam'
+printf '%s' "$fs_expertise_immunity_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect'
+fs_expertise_immunity_residue_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerForceSensitiveExpertiseImmunityResidue/,/retirePostNgePlayerForceSensitiveExpertiseImmunityState/p')"
+printf '%s' "$fs_expertise_immunity_residue_bytecode" | grep -Fq 'Method isPlayer'
+for fs_expertise_immunity_residue in immunity.dot.all immunity.movement.snare immunity.movement.root; do
+    printf '%s' "$fs_expertise_immunity_residue_bytecode" | grep -Fq "String $fs_expertise_immunity_residue"
+done
+printf '%s' "$fs_expertise_immunity_residue_bytecode" | grep -Fq 'String expertise_dot'
+printf '%s' "$fs_expertise_immunity_residue_bytecode" | grep -Fq 'String expertise_movement'
+printf '%s' "$fs_expertise_immunity_residue_bytecode" | grep -Fq 'Method stopClientEffectObjByLabel'
+fs_expertise_immunity_state_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerForceSensitiveExpertiseImmunityState/,/isRetiredPostNgeGcwBannerBuff/p')"
+printf '%s' "$fs_expertise_immunity_state_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$fs_expertise_immunity_state_bytecode" | grep -Fq 'Method hasBuff'
+printf '%s' "$fs_expertise_immunity_state_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$fs_expertise_immunity_state_bytecode" | grep -Fq 'clearPostNgePlayerForceSensitiveExpertiseImmunityResidue'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerForceSensitiveExpertiseImmunityState'
+fs_expertise_immunity_admission_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/canApplyBuff(script.obj_id, script.obj_id, int)/,/getGroups/p')"
+fs_expertise_immunity_admission_bytecode_line="$(printf '%s\n' "$fs_expertise_immunity_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff' | head -1 | cut -d: -f1)"
+fs_expertise_immunity_existing_bytecode_line="$(printf '%s\n' "$fs_expertise_immunity_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$fs_expertise_immunity_admission_bytecode_line"
+test -n "$fs_expertise_immunity_existing_bytecode_line"
+test "$fs_expertise_immunity_admission_bytecode_line" -lt "$fs_expertise_immunity_existing_bytecode_line"
+verify_fs_expertise_immunity_bytecode_handler()
+{
+    fs_expertise_immunity_method="$1"
+    fs_expertise_immunity_next_method="$2"
+    fs_expertise_immunity_cleanup_marker="$3"
+    fs_expertise_immunity_retained_marker="$4"
+    fs_expertise_immunity_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n "/$fs_expertise_immunity_method/,/$fs_expertise_immunity_next_method/p")"
+    fs_expertise_immunity_guard_line="$(printf '%s\n' "$fs_expertise_immunity_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_effect_line="$(printf '%s\n' "$fs_expertise_immunity_handler_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect' | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_name_line="$(printf '%s\n' "$fs_expertise_immunity_handler_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName' | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_cleanup_line="$(printf '%s\n' "$fs_expertise_immunity_handler_bytecode" | grep -Fn "$fs_expertise_immunity_cleanup_marker" | head -1 | cut -d: -f1)"
+    fs_expertise_immunity_return_line="$(printf '%s\n' "$fs_expertise_immunity_handler_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$fs_expertise_immunity_cleanup_line" '$1 > cleanup { print $1; exit }')"
+    fs_expertise_immunity_retained_line="$(printf '%s\n' "$fs_expertise_immunity_handler_bytecode" | grep -Fn "$fs_expertise_immunity_retained_marker" | head -1 | cut -d: -f1)"
+    test -n "$fs_expertise_immunity_guard_line"
+    test -n "$fs_expertise_immunity_effect_line"
+    test -n "$fs_expertise_immunity_name_line"
+    test -n "$fs_expertise_immunity_cleanup_line"
+    test -n "$fs_expertise_immunity_return_line"
+    test -n "$fs_expertise_immunity_retained_line"
+    test "$fs_expertise_immunity_guard_line" -lt "$fs_expertise_immunity_effect_line"
+    test "$fs_expertise_immunity_guard_line" -lt "$fs_expertise_immunity_name_line"
+    test "$fs_expertise_immunity_name_line" -lt "$fs_expertise_immunity_cleanup_line"
+    test "$fs_expertise_immunity_cleanup_line" -lt "$fs_expertise_immunity_return_line"
+    test "$fs_expertise_immunity_return_line" -lt "$fs_expertise_immunity_retained_line"
+}
+verify_fs_expertise_immunity_bytecode_handler expertiseImmunityAddBuffHandler expertiseImmunityRemoveBuffHandler retirePostNgePlayerForceSensitiveExpertiseImmunityState isInStance
+verify_fs_expertise_immunity_bytecode_handler expertiseImmunityRemoveBuffHandler expertiseChannelActionHealAddBuffHandler clearPostNgePlayerForceSensitiveExpertiseImmunityResidue immunityRemoveBuffHandler
+ordinary_immunity_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/immunityAddBuffHandler/,/dotReductionAddBuffHandler/p')"
+ordinary_immunity_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/immunityRemoveBuffHandler/,/expertiseImmunityAddBuffHandler/p')"
+for ordinary_immunity_name in dot_immunity movement_immunity; do
+    printf '%s' "$ordinary_immunity_add_bytecode" | grep -Fq "String $ordinary_immunity_name"
+    printf '%s' "$ordinary_immunity_remove_bytecode" | grep -Fq "String $ordinary_immunity_name"
+done
 action_burn_dictionary_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.dictionary)/,/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/p')"
 action_burn_typed_cost_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/getActionCost(script.obj_id, script.combat_engine[$]weapon_data, script.combat_engine[$]combat_data)/,/getSuccessBasedSingleTargetActionCost/p')"
 for action_burn_consumer_bytecode in "$action_burn_dictionary_cost_bytecode" "$action_burn_typed_cost_bytecode"; do

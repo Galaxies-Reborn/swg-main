@@ -2934,6 +2934,207 @@ Assert-Contract ($commandoSpecializedGuardedHandlers -eq
     [bool]$contract.expected.nonPlayerNgeCommandoSpecializedCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.commando-specialized-eight-handlers-player-fail-closed"
 
+$forceSensitiveExpertiseImmunityEffectTypes = [ordered]@{
+    expertise_dot_immunity = "expertiseImmunity|dot_immunity"
+    expertise_movement_immunity = "expertiseImmunity|movement_immunity"
+}
+$forceSensitiveExpertiseImmunityMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $forceSensitiveExpertiseImmunityEffectTypes.Contains([string]$_.NAME) })
+$forceSensitiveExpertiseImmunityMappingSignatures = @(
+    $forceSensitiveExpertiseImmunityMappings | ForEach-Object {
+        "{0}|{1}|{2}" -f $_.NAME, $_.TYPE, $_.SUBTYPE
+    } | Sort-Object)
+$expectedForceSensitiveExpertiseImmunityMappingSignatures = @(
+    "expertise_dot_immunity|expertiseImmunity|dot_immunity",
+    "expertise_movement_immunity|expertiseImmunity|movement_immunity"
+)
+$forceSensitiveExpertiseImmunityBuffNames = @(
+    "fs_dot_immunity_recourse", "fs_sh_0", "fs_sh_1", "fs_sh_2", "fs_sh_3"
+)
+$forceSensitiveExpertiseImmunityBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { $forceSensitiveExpertiseImmunityBuffNames -ccontains [string]$_.NAME })
+$forceSensitiveExpertiseImmunityBuffSignatures = @(
+    $forceSensitiveExpertiseImmunityBuffRows | ForEach-Object {
+        "{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}" -f $_.NAME, $_.GROUP1, $_.DURATION,
+            $_.DEBUFF, $_.IS_PERSISTENT, $_.EFFECT1_PARAM, $_.EFFECT1_VALUE, $_.CALLBACK
+    } | Sort-Object)
+$expectedForceSensitiveExpertiseImmunityBuffSignatures = @(
+    "fs_dot_immunity_recourse|fsCure|25|1|1||0|none",
+    "fs_sh_0|fsCure|6|0|1|expertise_dot_immunity|5|fs_dot_immunity_recourse",
+    "fs_sh_1|fsCure|10|0|1|expertise_dot_immunity|5|fs_dot_immunity_recourse",
+    "fs_sh_2|fsCure|12|0|1|expertise_dot_immunity|5|fs_dot_immunity_recourse",
+    "fs_sh_3|fsCure|14|0|1|expertise_dot_immunity|5|fs_dot_immunity_recourse"
+)
+$forceSensitiveExpertiseImmunityActionNames = @("fs_sh_0", "fs_sh_1", "fs_sh_2", "fs_sh_3")
+$forceSensitiveExpertiseImmunityCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { $forceSensitiveExpertiseImmunityActionNames -ccontains [string]$_.commandName })
+$forceSensitiveExpertiseImmunityCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { $forceSensitiveExpertiseImmunityActionNames -ccontains [string]$_.actionName })
+$forceSensitiveExpertiseImmunityCombatSignatures = @(
+    $forceSensitiveExpertiseImmunityCombatRows | ForEach-Object {
+        "{0}|{1}|{2}|{3}|{4}|{5}|{6}" -f $_.actionName, $_.validTarget, $_.hitType,
+            $_.addedDamage, $_.actionCost, $_.specialLine, $_.performance_spam
+    } | Sort-Object)
+$expectedForceSensitiveExpertiseImmunityCombatSignatures = @(
+    "fs_sh_0|NONE|HEAL|800|200|fs_heal|perform_notarget",
+    "fs_sh_1|NONE|HEAL|2500|450|fs_heal|perform_notarget",
+    "fs_sh_2|NONE|HEAL|3500|800|fs_heal|perform_notarget",
+    "fs_sh_3|NONE|HEAL|5000|1150|fs_heal|perform_notarget"
+)
+$forceSensitiveExpertiseImmunitySkillNames = @(
+    "class_forcesensitive_phase1_05", "class_forcesensitive_phase2_04",
+    "class_forcesensitive_phase3_04", "class_forcesensitive_phase4_04"
+)
+$forceSensitiveExpertiseImmunitySkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object { $forceSensitiveExpertiseImmunitySkillNames -ccontains [string]$_.NAME })
+Assert-Contract ($forceSensitiveExpertiseImmunityMappings.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveExpertiseImmunityEffectMappingRows -and
+    (($forceSensitiveExpertiseImmunityMappingSignatures -join "`n") -ceq
+        ($expectedForceSensitiveExpertiseImmunityMappingSignatures -join "`n")) -and
+    $forceSensitiveExpertiseImmunityBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveExpertiseImmunityBuffRows -and
+    (($forceSensitiveExpertiseImmunityBuffSignatures -join "`n") -ceq
+        ($expectedForceSensitiveExpertiseImmunityBuffSignatures -join "`n")) -and
+    $forceSensitiveExpertiseImmunityCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveExpertiseImmunityCommandRows -and
+    @($forceSensitiveExpertiseImmunityCommandRows | Where-Object {
+        [string]$_.scriptHook -ceq [string]$_.commandName -and
+        [string]$_.displayGroup -ceq "combat" -and [int]$_.addToCombatQueue -eq 1
+    }).Count -eq $forceSensitiveExpertiseImmunityCommandRows.Count -and
+    $forceSensitiveExpertiseImmunityCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveExpertiseImmunityCombatRows -and
+    (($forceSensitiveExpertiseImmunityCombatSignatures -join "`n") -ceq
+        ($expectedForceSensitiveExpertiseImmunityCombatSignatures -join "`n")) -and
+    $forceSensitiveExpertiseImmunitySkillRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveExpertiseImmunitySkillRows -and
+    @($forceSensitiveExpertiseImmunitySkillRows | Where-Object {
+        [string]$_.COMMANDS -cmatch '(^|,)fs_sh_[0-3](,|$)'
+    }).Count -eq $forceSensitiveExpertiseImmunitySkillRows.Count) `
+    "p14.combat-expertise-isolation.buff.fs-expertise-immunity-data-authenticated"
+
+$forceSensitiveExpertiseImmunityEffectInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_EFFECTS"
+$forceSensitiveExpertiseImmunityBuffInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_BUFFS"
+$forceSensitiveExpertiseImmunityEffectInventoryNames = @([regex]::Matches(
+        $forceSensitiveExpertiseImmunityEffectInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$forceSensitiveExpertiseImmunityBuffInventoryNames = @([regex]::Matches(
+        $forceSensitiveExpertiseImmunityBuffInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$forceSensitiveExpertiseImmunityEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect(String effectName)"
+$forceSensitiveExpertiseImmunityBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(obj_id target, buff_data data)"
+$forceSensitiveExpertiseImmunityResidueCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerForceSensitiveExpertiseImmunityResidue(obj_id player)"
+$forceSensitiveExpertiseImmunityStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerForceSensitiveExpertiseImmunityState(obj_id player)"
+$forceSensitiveExpertiseImmunityProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$forceSensitiveExpertiseImmunityCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$forceSensitiveExpertiseImmunityAdmissionGate =
+    $forceSensitiveExpertiseImmunityCanApplyBuff.IndexOf(
+        "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(target, bdata)",
+        [StringComparison]::Ordinal)
+$forceSensitiveExpertiseImmunityExistingBuffReturn =
+    $forceSensitiveExpertiseImmunityCanApplyBuff.IndexOf(
+        "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$ordinaryImmunityMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -cin @("dot_immunity", "movement_immunity") })
+Assert-Contract ($forceSensitiveExpertiseImmunityEffectInventoryNames.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveExpertiseImmunityEffectMappingRows -and
+    (($forceSensitiveExpertiseImmunityEffectInventoryNames | Sort-Object) -join ([char]0)) -ceq
+        (($forceSensitiveExpertiseImmunityEffectTypes.Keys | Sort-Object) -join ([char]0)) -and
+    $forceSensitiveExpertiseImmunityBuffInventoryNames.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveExpertiseImmunityBuffRows -and
+    (($forceSensitiveExpertiseImmunityBuffInventoryNames | Sort-Object) -join ([char]0)) -ceq
+        (($forceSensitiveExpertiseImmunityBuffNames | Sort-Object) -join ([char]0)) -and
+    $forceSensitiveExpertiseImmunityEffectPredicate.Contains(
+        "effectName.equals(retiredEffect)") -and
+    -not $forceSensitiveExpertiseImmunityEffectPredicate.Contains("startsWith") -and
+    $forceSensitiveExpertiseImmunityBuffPredicate.Contains("!isPlayer(target)") -and
+    $forceSensitiveExpertiseImmunityBuffPredicate.Contains(
+        "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName(data.buffName)") -and
+    $forceSensitiveExpertiseImmunityBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $forceSensitiveExpertiseImmunityBuffPredicate.Contains(
+        "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect(getEffectParam(data, effect))") -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains("!isPlayer(player)") -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains('"immunity.dot.all"') -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains('"immunity.movement.snare"') -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains('"immunity.movement.root"') -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains(
+        'stopClientEffectObjByLabel(player, "expertise_dot")') -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains(
+        'stopClientEffectObjByLabel(player, "expertise_movement")') -and
+    $forceSensitiveExpertiseImmunityStateCleanup.Contains("!isPlayer(player)") -and
+    $forceSensitiveExpertiseImmunityStateCleanup.Contains(
+        "RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_BUFFS") -and
+    $forceSensitiveExpertiseImmunityStateCleanup.Contains("removeBuff(player, retiredBuff)") -and
+    $forceSensitiveExpertiseImmunityStateCleanup.Contains(
+        "clearPostNgePlayerForceSensitiveExpertiseImmunityResidue(player);") -and
+    $forceSensitiveExpertiseImmunityProgressionCleanup.Contains(
+        "retirePostNgePlayerForceSensitiveExpertiseImmunityState(player);") -and
+    $forceSensitiveExpertiseImmunityAdmissionGate -ge 0 -and
+    $forceSensitiveExpertiseImmunityExistingBuffReturn -gt
+        $forceSensitiveExpertiseImmunityAdmissionGate -and
+    $forceSensitivePlayerAction.Contains('actionName.startsWith("fs_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeForceSensitivePlayerAction(self, actionName)") -and
+    -not [bool]$contract.expected.playerNgeForceSensitiveExpertiseImmunityActionExecutionReachable -and
+    -not [bool]$contract.expected.playerNgeForceSensitiveExpertiseImmunityBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeForceSensitiveExpertiseImmunityStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeForceSensitiveExpertiseImmunityResidueRemoved) `
+    "p14.combat-expertise-isolation.buff.fs-expertise-immunity-action-admission-and-state-fail-closed"
+
+$forceSensitiveExpertiseImmunityHandlerSpecs = @(
+    [pscustomobject]@{ Method = "expertiseImmunityAddBuffHandler"; Cleanup = "buff.retirePostNgePlayerForceSensitiveExpertiseImmunityState(self);"; Retained = "if (!buff.isInStance(self))" },
+    [pscustomobject]@{ Method = "expertiseImmunityRemoveBuffHandler"; Cleanup = "buff.clearPostNgePlayerForceSensitiveExpertiseImmunityResidue(self);"; Retained = "return immunityRemoveBuffHandler" }
+)
+$forceSensitiveExpertiseImmunityGuardedHandlers = 0
+foreach ($handlerSpec in $forceSensitiveExpertiseImmunityHandlerSpecs)
+{
+    $handlerBlock = Get-BracedBlock $buffHandler ("public int {0}(" -f $handlerSpec.Method)
+    $guardIndex = $handlerBlock.IndexOf("isPlayer(self)", [StringComparison]::Ordinal)
+    $effectPredicateIndex = $handlerBlock.IndexOf(
+        "buff.isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect(effectName)",
+        [StringComparison]::Ordinal)
+    $namePredicateIndex = $handlerBlock.IndexOf(
+        "buff.isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName(buffName)",
+        [StringComparison]::Ordinal)
+    $cleanupIndex = $handlerBlock.IndexOf([string]$handlerSpec.Cleanup,
+        [StringComparison]::Ordinal)
+    $returnIndex = $handlerBlock.IndexOf("return SCRIPT_OVERRIDE;", $cleanupIndex,
+        [StringComparison]::Ordinal)
+    $retainedIndex = $handlerBlock.IndexOf([string]$handlerSpec.Retained,
+        [StringComparison]::Ordinal)
+    if ($guardIndex -ge 0 -and $effectPredicateIndex -gt $guardIndex -and
+        $namePredicateIndex -gt $guardIndex -and $cleanupIndex -gt $namePredicateIndex -and
+        $returnIndex -gt $cleanupIndex -and $retainedIndex -gt $returnIndex)
+    {
+        ++$forceSensitiveExpertiseImmunityGuardedHandlers
+    }
+}
+$ordinaryImmunityAddHandler = Get-BracedBlock $buffHandler `
+    "public int immunityAddBuffHandler(obj_id self"
+$ordinaryImmunityRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int immunityRemoveBuffHandler(obj_id self"
+Assert-Contract ($forceSensitiveExpertiseImmunityGuardedHandlers -eq
+        [int]$contract.expected.productionForceSensitiveExpertiseImmunityHandlersGuarded -and
+    -not [bool]$contract.expected.playerNgeForceSensitiveExpertiseImmunityHandlerExecutionReachable -and
+    $ordinaryImmunityMappings.Count -eq 2 -and
+    @($ordinaryImmunityMappings | Where-Object {
+        [string]$_.TYPE -ceq "immunity" -and [string]$_.SUBTYPE -ceq [string]$_.NAME
+    }).Count -eq 2 -and
+    $ordinaryImmunityAddHandler.Contains('case "dot_immunity"') -and
+    $ordinaryImmunityAddHandler.Contains('case "movement_immunity"') -and
+    $ordinaryImmunityRemoveHandler.Contains('case "dot_immunity"') -and
+    $ordinaryImmunityRemoveHandler.Contains('case "movement_immunity"') -and
+    [bool]$contract.expected.ordinaryImmunityCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerNgeForceSensitiveExpertiseImmunityCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.fs-expertise-immunity-two-handlers-player-fail-closed"
+
 $elementalVulnerabilityEffects = @(
     "dt_vulnerability_acid",
     "dt_vulnerability_cold",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "precu-profession-authority-closure",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Replace remaining executable NGE class/phase profession authority with Publish 14.1 skill-box ownership, native Jedi state, and the existing hidden PRE-CU combat-skill score; retire post-NGE Officer, Force Sensitive, Smuggler, Bounty Hunter, Commando, Medic, and Entertainer player combat families while preserving their classic PRE-CU skill-box commands, stale-data cleanup, NPC behavior, and expansion content.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -13,7 +13,8 @@
     "officerBoundary": "Publish 14.1 Squad Leader skill boxes remain authoritative; the later singular Officer class, of_* command family, supply-drop items, and reinforcement pets are compatibility content without player gameplay authority.",
     "gcwBannerBoundary": "Pinned Publish 14.1 has no Roadmap class banner buffs; the retained faction banner remains visual content while all nine class effects and the Commando proc are retired for players.",
     "commandoKillMeterBoundary": "The native kill meter, its damage intervals, kill awards, vigor costs, and expertise consumers belong to the retained NGE Commando class path; Publish 14.1 combat_commando players have no kill-meter resource.",
-    "commandoHeavyWeaponBoundary": "Publish 14.1 Commando heavy weapons use skill-owned flame, acid, and lightning commands with authored HAM, cadence, damage, and DOT rows; the inherited NGE default-heavy-attack free action cost, devastation proc, and level-tiered passive DOT are not player progression."
+    "commandoHeavyWeaponBoundary": "Publish 14.1 Commando heavy weapons use skill-owned flame, acid, and lightning commands with authored HAM, cadence, damage, and DOT rows; the inherited NGE default-heavy-attack free action cost, devastation proc, and level-tiered passive DOT are not player progression.",
+    "forceSensitiveExpertiseImmunityBoundary": "Publish 14.1 Jedi and Village progression use their authored force, saber, healing, and Center of Being mechanics; the retained NGE fs_sh_* expertise DOT/movement immunity and recourse buffs are compatibility content without player gameplay authority."
   },
   "expected": {
     "changedSourceFiles": 68,
@@ -55,6 +56,13 @@
     "retiredNgeForceSensitiveStanceStateBuffs": 35,
     "retainedNgeForceSensitiveStanceCompatibilityRows": 34,
     "historicalForceSensitiveStanceCleanupOnlyNames": 1,
+    "retiredNgeForceSensitiveExpertiseImmunityEffects": 2,
+    "retiredNgeForceSensitiveExpertiseImmunityBuffs": 5,
+    "productionForceSensitiveExpertiseImmunityHandlersGuarded": 2,
+    "playerForceSensitiveExpertiseImmunityAdmissionReachable": false,
+    "staleForceSensitiveExpertiseImmunityResidueRemoved": true,
+    "ordinaryImmunityCompatibilityPreserved": true,
+    "nonPlayerForceSensitiveExpertiseImmunityCompatibilityPreserved": true,
     "precuCenterOfBeingPreserved": true,
     "retainedForceSensitiveClassSkillRows": 28,
     "retainedForceSensitiveExpertiseSkillRows": 118,
@@ -137,7 +145,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "922094ca749151b50fa46eac28e7a93066e0b29f",
+    "directSourceGitlink": "8c777de7388c4684d036a0cc5edebf66ff6d25c7",
     "lineEndingPolicy": "Repository-declared LF remains authoritative except for the narrow legacy heavyweapons.java CRLF exception; no generated overlay, host artifact, or staging tree was created.",
     "officerRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/ai/officer_pet.java": "3bbbab602848af451d1085bc6f3ca33d68cb8a5d0741010f62732155e3479b97",
@@ -156,8 +164,8 @@
     "forceSensitiveRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "7b4dd8b17edec75c93d1d55efbfa38fe8537540c4390f0fb5dfbb16d1bed4ed7",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "5a2128467f664f6b4c7fde11f2a9216ebd1e1666a2c9403ebdd4fef28a0b4ff7",
-      "sku.0/sys.server/compiled/game/script/library/buff.java": "2c5a70296c8f2d7d2cbefd0f5945f727cc109a64b78b91976dcfa39c5308caad",
-      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "da82094352f5a8aca54cb076c53b5947e81ed15130df39024e97a617b884625b",
+      "sku.0/sys.server/compiled/game/script/library/buff.java": "d032047eb483d3ed74563334467d3b5e5223988893aaa65b8d8e2ba13f2d1585",
+      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "e4f8412ddec3e433b80abb77faf36c451486a3ab19a0b1623ddacd5838e989be",
       "sku.0/sys.server/compiled/game/script/player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e"
     },
     "smugglerRuntimeSourceSha256": {
@@ -167,8 +175,8 @@
     "bountyHunterRuntimeSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "7b4dd8b17edec75c93d1d55efbfa38fe8537540c4390f0fb5dfbb16d1bed4ed7",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "5a2128467f664f6b4c7fde11f2a9216ebd1e1666a2c9403ebdd4fef28a0b4ff7",
-      "sku.0/sys.server/compiled/game/script/library/buff.java": "2c5a70296c8f2d7d2cbefd0f5945f727cc109a64b78b91976dcfa39c5308caad",
-      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "da82094352f5a8aca54cb076c53b5947e81ed15130df39024e97a617b884625b",
+      "sku.0/sys.server/compiled/game/script/library/buff.java": "d032047eb483d3ed74563334467d3b5e5223988893aaa65b8d8e2ba13f2d1585",
+      "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java": "e4f8412ddec3e433b80abb77faf36c451486a3ab19a0b1623ddacd5838e989be",
       "sku.0/sys.server/compiled/game/script/player/skill/bh_shields.java": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7"
     },
     "commandoRuntimeSourceSha256": {
@@ -188,7 +196,7 @@
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": "7b4dd8b17edec75c93d1d55efbfa38fe8537540c4390f0fb5dfbb16d1bed4ed7",
       "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java": "5a2128467f664f6b4c7fde11f2a9216ebd1e1666a2c9403ebdd4fef28a0b4ff7"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source profession closure now also retires the inherited NGE Commando Flash Bang, Muscle Spasm, Riddle Armor, Armor Cracker, Position Secured, On Target, and Base of Operations player buff paths while preserving retained data and non-player expansion compatibility.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source profession closure now also retires the inherited NGE Force Sensitive expertise DOT/movement immunity and fs_sh_*/recourse player buff paths while preserving ordinary immunity mechanics, retained data, and non-player expansion compatibility.",
     "missionSourceSha256": {
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",
       "sku.0/sys.server/compiled/game/script/systems/missions/base/mission_base.java": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03",
@@ -199,16 +207,16 @@
       "acceptanceFiles": 1170,
       "fingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b"
     },
-    "focusedJavaCompile": "passed Java 8 compatibility compile of buff.java and buff_handler.java in exact ephemeral /dev/shm/precu-commando-specialized-compile-20260807; emitted authenticated 57,831-byte and 102,316-byte classes, authenticated player-only admission, lifecycle, persisted-state and stale-modifier cleanup, all eight Commando specialized handlers, and non-player compatibility; removed the compile path on exit",
+    "focusedJavaCompile": "passed Java 8 compatibility compile of buff.java and buff_handler.java in exact ephemeral /dev/shm/precu-fs-expertise-immunity-compile-20260807; emitted authenticated 59,460-byte and 102,707-byte classes, authenticated player-only admission, lifecycle, persisted-state and immunity-residue cleanup, both expertiseImmunity handlers, ordinary immunity preservation, and non-player compatibility; removed the compile path on exit",
     "javaCompile": {
-      "result": "passed exact zero-class dependency rebuild from pushed direct-source commit 922094ca749151b50fa46eac28e7a93066e0b29f",
+      "result": "pending exact zero-class dependency rebuild from pushed direct-source commit 8c777de7388c4684d036a0cc5edebf66ff6d25c7",
       "sourceFiles": 5713,
       "classFiles": 5747,
       "compilerRuntime": "OpenJDK 11"
     },
     "nativeBuild": {
-      "result": "passed canonical synchronized source/data/bytecode/native artifact verification and controlled live deployment",
-      "architecture": "six core server binaries verified ELF 64-bit x86-64",
+      "result": "pending canonical synchronized source/data/bytecode/native artifact verification and controlled live deployment",
+      "architecture": "pending current-source x64 binary authentication; the prior live deployment remains verified ELF 64-bit x86-64",
       "coreBinaries": 6,
       "swgGameServerSha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
       "swgGameServerBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
@@ -265,9 +273,9 @@
       "systems/combat/combat_base.class": "b7a1ff80617d2eb277dff57d9a8f38fc9aec4d76366bbfc29c689420553e4036",
       "systems/combat/combat_actions.class": "fa81410219173139c70895d1cd0bd501ba9f655fb41f42ab281bd6c7c076eb0d"
     },
-    "sourceWorkParity": "passed canonical synchronization and exact source/work parity for buff_handler.java and buff.java from pushed direct-source commit 922094ca749151b50fa46eac28e7a93066e0b29f",
-    "deploymentProbe": "passed exact player Commando specialized buff boundary bytecode probes, x64 architecture, controlled restart, player readiness, stable TransferServer ownership, mapped/disk SwgGameServer identity, 15/15 game/planet topology, zero /dev/shm residue, and clean post-start logs",
-    "result": "passed",
+    "sourceWorkParity": "pending canonical synchronization and exact source/work parity for buff_handler.java and buff.java from pushed direct-source commit 8c777de7388c4684d036a0cc5edebf66ff6d25c7",
+    "deploymentProbe": "pending exact player Force Sensitive expertise immunity boundary bytecode probes, x64 architecture, controlled restart, player readiness, stable TransferServer ownership, mapped/disk SwgGameServer identity, 15/15 game/planet topology, zero /dev/shm residue, and clean post-start logs",
+    "result": "pending",
     "bytecodeProbes": [
       "hidden PRE-CU combat-score thresholds 25/50/75",
       "PRE-CU Smuggler underworld and master authority",
@@ -280,6 +288,7 @@
       "player-only fs_* plus exact unnumbered forceThrow combat-action retirement with PRE-CU Jedi/Village forceThrow1 and forceThrow2 command preservation",
       "player-only retirement of seven inherited NGE direct damage-reduction/resistance modifiers, including Commando Stand Fast, with retained data and non-player compatibility",
       "player-only persisted Force Sensitive stance/focus/NGE-cloak state retirement with 34 compatibility rows retained, post-Publish-14 invis_forceCloak governed separately, and PRE-CU Center of Being preserved",
+      "player-only Force Sensitive expertise DOT/movement immunity and fs_sh_*/recourse buff admission, persistence, residue, and two-handler retirement with ordinary immunity and non-player compatibility preserved",
       "player-only sm_* combat-action retirement with classic PRE-CU Smuggler command preservation",
       "player-only bh_* combat-action retirement with classic PRE-CU Bounty Hunter command preservation",
       "player-only persisted bh_shields handler, script, block, and charged-state retirement with retained NPC compatibility",

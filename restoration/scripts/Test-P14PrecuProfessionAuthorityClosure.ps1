@@ -411,6 +411,103 @@ Assert-Contract ($retiredForceSensitiveStanceNames.Count -eq
     $forceSensitiveFocusQuery.Contains("return true;")) `
     "p14.profession-closure.force-sensitive-runtime.persisted-stances-fail-closed"
 
+$forceSensitiveExpertiseImmunityBuffInventory = Get-FunctionSlice $forceSensitiveBuff `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_BUFFS" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_EFFECTS"
+$forceSensitiveExpertiseImmunityEffectInventory = Get-FunctionSlice $forceSensitiveBuff `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_FORCE_SENSITIVE_EXPERTISE_IMMUNITY_EFFECTS" `
+    "public static boolean isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName"
+$forceSensitiveExpertiseImmunityBuffNames = @([regex]::Matches(
+        $forceSensitiveExpertiseImmunityBuffInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$forceSensitiveExpertiseImmunityEffectNames = @([regex]::Matches(
+        $forceSensitiveExpertiseImmunityEffectInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$forceSensitiveExpertiseImmunityBuffPredicate = Get-FunctionSlice $forceSensitiveBuff `
+    "public static boolean isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(obj_id target" `
+    "public static void clearPostNgePlayerForceSensitiveExpertiseImmunityResidue"
+$forceSensitiveExpertiseImmunityResidueCleanup = Get-FunctionSlice $forceSensitiveBuff `
+    "public static void clearPostNgePlayerForceSensitiveExpertiseImmunityResidue" `
+    "public static void retirePostNgePlayerForceSensitiveExpertiseImmunityState"
+$forceSensitiveExpertiseImmunityStateCleanup = Get-FunctionSlice $forceSensitiveBuff `
+    "public static void retirePostNgePlayerForceSensitiveExpertiseImmunityState" `
+    "private static final String[] RETIRED_POST_NGE_GCW_BANNER_BUFFS"
+$forceSensitiveExpertiseImmunityProgressionCleanup = Get-FunctionSlice $forceSensitiveBuff `
+    "public static void retirePostNgeBuffProgression" `
+    "public static void retirePostNgeMeditationBuffs"
+$forceSensitiveExpertiseImmunityAdmissionGate = $forceSensitiveCanApply.IndexOf(
+    "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$forceSensitiveExpertiseImmunityAddHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public int expertiseImmunityAddBuffHandler" `
+    "public int expertiseImmunityRemoveBuffHandler"
+$forceSensitiveExpertiseImmunityRemoveHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public int expertiseImmunityRemoveBuffHandler" `
+    "public int expertiseChannelActionHealAddBuffHandler"
+$forceSensitiveExpertiseImmunityAddCleanup =
+    $forceSensitiveExpertiseImmunityAddHandler.IndexOf(
+        "buff.retirePostNgePlayerForceSensitiveExpertiseImmunityState(self);",
+        [StringComparison]::Ordinal)
+$forceSensitiveExpertiseImmunityAddRetained =
+    $forceSensitiveExpertiseImmunityAddHandler.IndexOf(
+        "if (!buff.isInStance(self))", [StringComparison]::Ordinal)
+$forceSensitiveExpertiseImmunityRemoveCleanup =
+    $forceSensitiveExpertiseImmunityRemoveHandler.IndexOf(
+        "buff.clearPostNgePlayerForceSensitiveExpertiseImmunityResidue(self);",
+        [StringComparison]::Ordinal)
+$forceSensitiveExpertiseImmunityRemoveRetained =
+    $forceSensitiveExpertiseImmunityRemoveHandler.IndexOf(
+        "return immunityRemoveBuffHandler", [StringComparison]::Ordinal)
+$ordinaryImmunityAddHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public int immunityAddBuffHandler" "public int dotReductionAddBuffHandler"
+$ordinaryImmunityRemoveHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public int immunityRemoveBuffHandler" "public int expertiseImmunityAddBuffHandler"
+Assert-Contract ($forceSensitiveExpertiseImmunityBuffNames.Count -eq
+        [int]$contract.expected.retiredNgeForceSensitiveExpertiseImmunityBuffs -and
+    (($forceSensitiveExpertiseImmunityBuffNames | Sort-Object) -join ([char]0)) -ceq
+        ((@("fs_dot_immunity_recourse", "fs_sh_0", "fs_sh_1", "fs_sh_2", "fs_sh_3") |
+            Sort-Object) -join ([char]0)) -and
+    $forceSensitiveExpertiseImmunityEffectNames.Count -eq
+        [int]$contract.expected.retiredNgeForceSensitiveExpertiseImmunityEffects -and
+    (($forceSensitiveExpertiseImmunityEffectNames | Sort-Object) -join ([char]0)) -ceq
+        ((@("expertise_dot_immunity", "expertise_movement_immunity") | Sort-Object) -join ([char]0)) -and
+    $forceSensitiveExpertiseImmunityBuffPredicate.Contains("!isPlayer(target)") -and
+    $forceSensitiveExpertiseImmunityBuffPredicate.Contains(
+        "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName(data.buffName)") -and
+    $forceSensitiveExpertiseImmunityBuffPredicate.Contains(
+        "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect(getEffectParam(data, effect))") -and
+    $forceSensitiveExpertiseImmunityAdmissionGate -ge 0 -and
+    $forceSensitiveExistingBuffReturn -gt $forceSensitiveExpertiseImmunityAdmissionGate -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains('"immunity.dot.all"') -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains('"immunity.movement.snare"') -and
+    $forceSensitiveExpertiseImmunityResidueCleanup.Contains('"immunity.movement.root"') -and
+    $forceSensitiveExpertiseImmunityStateCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    $forceSensitiveExpertiseImmunityStateCleanup.Contains(
+        "clearPostNgePlayerForceSensitiveExpertiseImmunityResidue(player);") -and
+    $forceSensitiveExpertiseImmunityProgressionCleanup.Contains(
+        "retirePostNgePlayerForceSensitiveExpertiseImmunityState(player);") -and
+    $forceSensitiveExpertiseImmunityAddHandler.Contains("isPlayer(self)") -and
+    $forceSensitiveExpertiseImmunityAddHandler.Contains(
+        "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityEffect(effectName)") -and
+    $forceSensitiveExpertiseImmunityAddHandler.Contains(
+        "isRetiredPostNgePlayerForceSensitiveExpertiseImmunityBuffName(buffName)") -and
+    $forceSensitiveExpertiseImmunityAddCleanup -ge 0 -and
+    $forceSensitiveExpertiseImmunityAddRetained -gt $forceSensitiveExpertiseImmunityAddCleanup -and
+    $forceSensitiveExpertiseImmunityRemoveHandler.Contains("isPlayer(self)") -and
+    $forceSensitiveExpertiseImmunityRemoveCleanup -ge 0 -and
+    $forceSensitiveExpertiseImmunityRemoveRetained -gt
+        $forceSensitiveExpertiseImmunityRemoveCleanup -and
+    $ordinaryImmunityAddHandler.Contains('case "dot_immunity"') -and
+    $ordinaryImmunityAddHandler.Contains('case "movement_immunity"') -and
+    $ordinaryImmunityRemoveHandler.Contains('case "dot_immunity"') -and
+    $ordinaryImmunityRemoveHandler.Contains('case "movement_immunity"') -and
+    [int]$contract.expected.productionForceSensitiveExpertiseImmunityHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerForceSensitiveExpertiseImmunityAdmissionReachable -and
+    [bool]$contract.expected.staleForceSensitiveExpertiseImmunityResidueRemoved -and
+    [bool]$contract.expected.ordinaryImmunityCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerForceSensitiveExpertiseImmunityCompatibilityPreserved) `
+    "p14.profession-closure.force-sensitive-runtime.expertise-immunity-fail-closed"
+
 $smugglerPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeSmugglerPlayerAction" `
     "public static boolean isRetiredPostNgeBountyHunterPlayerAction"
