@@ -5766,6 +5766,7 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.compiledClassSha256.basePlayer -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.buffHandler -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.buffLibrary -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.playerBeastMaster -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.staticItemLibrary -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.meditationLibrary -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.bountyHunterShieldScript -match '^[a-f0-9]{64}$' -and
