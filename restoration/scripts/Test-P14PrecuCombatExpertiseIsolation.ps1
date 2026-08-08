@@ -420,6 +420,66 @@ Assert-Contract ($luckyBreakBuffRows.Count -eq
     [bool]$contract.expected.nonPlayerNgeSmugglerLuckyBreakAlwaysCompatibilityPreserved) `
     "p14.combat-expertise-isolation.smuggler-lucky-break-always-state-fails-closed"
 
+$spyFreeshotModifiers = @(
+    "freeshot_case_miss",
+    "freeshot_case_dodge",
+    "freeshot_case_parry",
+    "freeshot_case_crit",
+    "freeshot_case_strikethrough"
+)
+$spyFreeshotMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        $spyFreeshotModifiers -ccontains [string]$_.NAME -and
+        [string]$_.TYPE -ceq "skill" -and
+        [string]$_.SUBTYPE -ceq [string]$_.NAME
+    })
+$spyPreparationBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        [string]$_.NAME -ceq "sp_preparation" -and
+        [string]$_.EFFECT1_PARAM -ceq "expertise_damage_all" -and
+        [string]$_.EFFECT2_PARAM -ceq "freeshot_case_crit" -and
+        [string]$_.EFFECT3_PARAM -ceq "freeshot_case_strikethrough"
+    })
+$spyEquilibriumSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        [string]$_.NAME -ceq "expertise_sp_equilibrium" -and
+        [string]$_.SKILL_MODS -ceq
+            "freeshot_case_miss=1,freeshot_case_dodge=1,freeshot_case_parry=1"
+    })
+$spyFreeshotPlayerGuard = $successCost.IndexOf(
+    "if (isPlayer(attacker))", [StringComparison]::Ordinal)
+$spyFreeshotPlayerBlock = Get-BracedBlock $successCost "if (isPlayer(attacker))"
+$spyFreeshotCleanup = $successCost.IndexOf(
+    "static_item.removeRetiredNgePlayerSkillStatistics(attacker);",
+    [StringComparison]::Ordinal)
+$spyFreeshotReader = $successCost.IndexOf(
+    'getEnhancedSkillStatisticModifierUncapped(attacker, "freeshot_case_miss")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($spyFreeshotMappings.Count -eq
+        [int]$contract.expected.retainedNgeSpyFreeshotEffectMappingRows -and
+    $spyPreparationBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeSpyPreparationBuffRows -and
+    $spyEquilibriumSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeSpyEquilibriumExpertiseSkillRows -and
+    @($spyFreeshotModifiers | Where-Object {
+        $retiredBuffCombatModifierInventory.Contains('"' + $_ + '"')
+    }).Count -eq [int]$contract.expected.retiredNgePlayerSpyFreeshotModifiers -and
+    $playerModifierCleanup.Contains("getSkillStatModListingForPlayer(player)") -and
+    $playerModifierCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $playerModifierCleanup.Contains(
+        "applySkillStatisticModifier(player, modifier, -currentValue)") -and
+    -not [bool]$contract.expected.playerNgeSpyFreeshotModifierWritesReachable -and
+    [bool]$contract.expected.stalePlayerNgeSpyFreeshotModifiersRemoved -and
+    [int]$contract.expected.productionSpyFreeshotConsumersGuarded -eq 1 -and
+    $spyFreeshotPlayerGuard -gt $precuReturn -and
+    $spyFreeshotPlayerBlock.Contains(
+        "return getActionCost(attacker, weaponData, actionData);") -and
+    $spyFreeshotCleanup -gt $spyFreeshotPlayerGuard -and
+    $spyFreeshotReader -gt $spyFreeshotCleanup -and
+    -not [bool]$contract.expected.playerNgeSpyFreeshotConsumerReachable -and
+    [bool]$contract.expected.nonPlayerNgeSpyFreeshotCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.spy-freeshot-state-fails-closed"
+
 $prefixlessSetBonusModifiers = @(
     "flurry_cooldown_modifier",
     "of_inspired_action_chance"
