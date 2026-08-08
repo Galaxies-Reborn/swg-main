@@ -357,6 +357,99 @@ Assert-Contract ($forceSensitiveHandlers.Count -eq
 $forceSensitiveBuff = [string]$forceSensitiveTexts["library/buff.java"]
 $forceSensitiveBuffHandler = [string]$forceSensitiveTexts["systems/buff/buff_handler.java"]
 $forceSensitiveBasePlayer = [string]$forceSensitiveTexts["player/base/base_player.java"]
+$shiftySetupMappings = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab" |
+    Where-Object { [string]$_.NAME -ceq "on_attack_remove" })
+$shiftySetupBuffRows = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/buff/buff.tab" |
+    Where-Object { [string]$_.NAME -ceq "sp_shifty_setup" })
+$shiftySetupSkillRows = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/skill/skills.tab" |
+    Where-Object { [string]$_.NAME -ceq "expertise_sp_shifty_setup_1" })
+$shiftySetupBuffPredicate = Get-FunctionSlice $forceSensitiveBuff `
+    "public static boolean isRetiredPostNgePlayerOnAttackRemoveBuff(obj_id target" `
+    "public static void clearPostNgePlayerOnAttackRemoveState"
+$shiftySetupResidueCleanup = Get-FunctionSlice $forceSensitiveBuff `
+    "public static void clearPostNgePlayerOnAttackRemoveState" `
+    "public static void retirePostNgePlayerOnAttackRemoveState"
+$shiftySetupStateCleanup = Get-FunctionSlice $forceSensitiveBuff `
+    "public static void retirePostNgePlayerOnAttackRemoveState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS"
+$shiftySetupProgressionCleanup = Get-FunctionSlice $forceSensitiveBuff `
+    "public static void retirePostNgeBuffProgression" `
+    "public static void retirePostNgeMeditationBuffs"
+$shiftySetupCanApply = Get-FunctionSlice $forceSensitiveBuff `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+$shiftySetupAddHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public int onAttackRemoveAddBuffHandler" `
+    "public int onAttackRemoveRemoveBuffHandler"
+$shiftySetupRemoveHandler = Get-FunctionSlice $forceSensitiveBuffHandler `
+    "public int onAttackRemoveRemoveBuffHandler" `
+    "public int supression_handlerAddBuffHandler"
+$shiftySetupAdmissionGate = $shiftySetupCanApply.IndexOf(
+    "isRetiredPostNgePlayerOnAttackRemoveBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$shiftySetupExistingBuffReturn = $shiftySetupCanApply.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$shiftySetupCombatCleanup = $combatBase.IndexOf(
+    "buff.clearPostNgePlayerOnAttackRemoveState(attackerData.id);",
+    [StringComparison]::Ordinal)
+$shiftySetupCombatConsumer = $combatBase.IndexOf(
+    "utils.hasScriptVar(attackerData.id, buff.ON_ATTACK_REMOVE)",
+    [StringComparison]::Ordinal)
+Assert-Contract ($shiftySetupMappings.Count -eq
+        [int]$contract.expected.retainedNgeSpyShiftySetupEffectMappingRows -and
+    @($shiftySetupMappings | Where-Object {
+        [string]$_.TYPE -ceq "onAttackRemove" -and
+        [string]$_.SUBTYPE -ceq "on_attack_remove"
+    }).Count -eq $shiftySetupMappings.Count -and
+    $shiftySetupBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeSpyShiftySetupBuffRows -and
+    [string]$shiftySetupBuffRows[0].EFFECT4_PARAM -ceq "on_attack_remove" -and
+    $shiftySetupSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeSpyShiftySetupExpertiseSkillRows -and
+    [string]$shiftySetupSkillRows[0].COMMANDS -ceq "sp_shifty_setup") `
+    "p14.profession-closure.spy-shifty-setup.data-retained"
+$shiftyAddGuard = $shiftySetupAddHandler.IndexOf("isPlayer(self)",
+    [StringComparison]::Ordinal)
+$shiftyAddCleanup = $shiftySetupAddHandler.IndexOf(
+    "buff.clearPostNgePlayerOnAttackRemoveState(self);",
+    [StringComparison]::Ordinal)
+$shiftyAddWriter = $shiftySetupAddHandler.IndexOf("Vector removeBuffs",
+    [StringComparison]::Ordinal)
+$shiftyRemoveGuard = $shiftySetupRemoveHandler.IndexOf("isPlayer(self)",
+    [StringComparison]::Ordinal)
+$shiftyRemoveCleanup = $shiftySetupRemoveHandler.IndexOf(
+    "buff.clearPostNgePlayerOnAttackRemoveState(self);",
+    [StringComparison]::Ordinal)
+$shiftyRemoveWriter = $shiftySetupRemoveHandler.IndexOf("Vector removeBuffs",
+    [StringComparison]::Ordinal)
+Assert-Contract ($shiftySetupBuffPredicate.Contains("!isPlayer(target)") -and
+    $shiftySetupBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $shiftySetupBuffPredicate.Contains(
+        "isRetiredPostNgePlayerOnAttackRemoveEffect(getEffectParam(data, effect))") -and
+    $shiftySetupResidueCleanup.Contains(
+        "utils.removeScriptVarTree(player, ON_ATTACK_REMOVE)") -and
+    $shiftySetupStateCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $shiftySetupStateCleanup.Contains("clearPostNgePlayerOnAttackRemoveState(player)") -and
+    $shiftySetupProgressionCleanup.Contains(
+        "retirePostNgePlayerOnAttackRemoveState(player);") -and
+    $shiftySetupAdmissionGate -ge 0 -and
+    $shiftySetupExistingBuffReturn -gt $shiftySetupAdmissionGate -and
+    $shiftyAddGuard -ge 0 -and $shiftyAddCleanup -gt $shiftyAddGuard -and
+    $shiftyAddWriter -gt $shiftyAddCleanup -and
+    $shiftyRemoveGuard -ge 0 -and $shiftyRemoveCleanup -gt $shiftyRemoveGuard -and
+    $shiftyRemoveWriter -gt $shiftyRemoveCleanup -and
+    [int]$contract.expected.productionSpyShiftySetupHandlersGuarded -eq 2 -and
+    [int]$contract.expected.retiredNgePlayerSpyShiftySetupScriptVars -eq 1 -and
+    $shiftySetupCombatCleanup -ge 0 -and
+    $shiftySetupCombatConsumer -gt $shiftySetupCombatCleanup -and
+    -not [bool]$contract.expected.playerNgeSpyShiftySetupBuffAdmissionReachable -and
+    -not [bool]$contract.expected.playerNgeSpyShiftySetupCombatConsumerReachable -and
+    [bool]$contract.expected.persistedPlayerNgeSpyShiftySetupStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeSpyShiftySetupCompatibilityPreserved) `
+    "p14.profession-closure.spy-shifty-setup.player-state-fail-closed"
 $forceSensitiveStanceInventory = Get-FunctionSlice $forceSensitiveBuff `
     "private static final String[] RETIRED_POST_NGE_FORCE_SENSITIVE_STANCE_BUFFS" `
     "public static boolean isRetiredPostNgeForceSensitiveStanceBuff"

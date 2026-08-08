@@ -1789,6 +1789,57 @@ test "$critical_override_hit_cleanup_line" -lt "$critical_override_next_hit_read
 test "$critical_override_hit_cleanup_line" -lt "$critical_override_remove_read_line"
 test "$critical_override_damage_cleanup_line" -lt "$critical_override_double_read_line"
 test "$critical_override_damage_cleanup_line" -lt "$critical_override_root_read_line"
+# Shifty Setup is retained NGE Spy compatibility data. Its generic
+# onAttackRemove state must be unreachable and cleared for PRE-CU players,
+# while non-player content retains the original handler path.
+awk -F '\t' '$1 == "on_attack_remove" { found++; if ($2 != "onAttackRemove" || $3 != "on_attack_remove") exit 2 } END { if (found != 2) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '$1 == "sp_shifty_setup" { found++; if ($14 != "on_attack_remove" || $15 != 1) exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
+awk -F '\t' '
+NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+NR > 2 && $1 == "expertise_sp_shifty_setup_1" { found++; if ($(fieldIndex["COMMANDS"]) != "sp_shifty_setup") exit 2 }
+END { if (found != 1) exit 3 }
+' "$work_skills_table"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_EFFECT = "on_attack_remove"' "$work_buff_library"
+grep -Fq 'RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_BUFF = "sp_shifty_setup"' "$work_buff_library"
+spy_shifty_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerOnAttackRemoveBuff(obj_id target/,/public static void clearPostNgePlayerOnAttackRemoveState/p' "$work_buff_library")"
+printf '%s\n' "$spy_shifty_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$spy_shifty_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$spy_shifty_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerOnAttackRemoveEffect(getEffectParam(data, effect))'
+spy_shifty_state_source="$(sed -n '/public static void clearPostNgePlayerOnAttackRemoveState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS/p' "$work_buff_library")"
+printf '%s\n' "$spy_shifty_state_source" | grep -Fq 'utils.removeScriptVarTree(player, ON_ATTACK_REMOVE)'
+printf '%s\n' "$spy_shifty_state_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$spy_shifty_state_source" | grep -Fq 'clearPostNgePlayerOnAttackRemoveState(player)'
+grep -Fq 'retirePostNgePlayerOnAttackRemoveState(player);' "$work_buff_library"
+spy_shifty_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static float getBuffTimeRemaining/p' "$work_buff_library")"
+spy_shifty_admission_line="$(printf '%s\n' "$spy_shifty_admission_source" | grep -Fn 'isRetiredPostNgePlayerOnAttackRemoveBuff(target, bdata)' | head -1 | cut -d: -f1)"
+spy_shifty_existing_line="$(printf '%s\n' "$spy_shifty_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$spy_shifty_admission_line"
+test -n "$spy_shifty_existing_line"
+test "$spy_shifty_admission_line" -lt "$spy_shifty_existing_line"
+verify_spy_shifty_source_handler()
+{
+    spy_shifty_method="$1"
+    spy_shifty_next="$2"
+    spy_shifty_source="$(sed -n "/public int $spy_shifty_method/,/public int $spy_shifty_next/p" "$work_buff_handler")"
+    spy_shifty_guard_line="$(printf '%s\n' "$spy_shifty_source" | grep -Fn 'isPlayer(self)' | head -1 | cut -d: -f1)"
+    spy_shifty_effect_line="$(printf '%s\n' "$spy_shifty_source" | grep -Fn 'isRetiredPostNgePlayerOnAttackRemoveEffect(effectName)' | head -1 | cut -d: -f1)"
+    spy_shifty_name_line="$(printf '%s\n' "$spy_shifty_source" | grep -Fn 'isRetiredPostNgePlayerOnAttackRemoveBuffName(buffName)' | head -1 | cut -d: -f1)"
+    spy_shifty_cleanup_line="$(printf '%s\n' "$spy_shifty_source" | grep -Fn 'buff.clearPostNgePlayerOnAttackRemoveState(self);' | head -1 | cut -d: -f1)"
+    spy_shifty_return_line="$(printf '%s\n' "$spy_shifty_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+    spy_shifty_writer_line="$(printf '%s\n' "$spy_shifty_source" | grep -Fn 'Vector removeBuffs' | head -1 | cut -d: -f1)"
+    test "$spy_shifty_guard_line" -lt "$spy_shifty_effect_line"
+    test "$spy_shifty_guard_line" -lt "$spy_shifty_name_line"
+    test "$spy_shifty_name_line" -lt "$spy_shifty_cleanup_line"
+    test "$spy_shifty_cleanup_line" -lt "$spy_shifty_return_line"
+    test "$spy_shifty_return_line" -lt "$spy_shifty_writer_line"
+}
+verify_spy_shifty_source_handler onAttackRemoveAddBuffHandler onAttackRemoveRemoveBuffHandler
+verify_spy_shifty_source_handler onAttackRemoveRemoveBuffHandler supression_handlerAddBuffHandler
+spy_shifty_combat_cleanup_line="$(grep -Fn 'buff.clearPostNgePlayerOnAttackRemoveState(attackerData.id);' "$work_combat_base" | head -1 | cut -d: -f1)"
+spy_shifty_combat_consumer_line="$(grep -Fn 'utils.hasScriptVar(attackerData.id, buff.ON_ATTACK_REMOVE)' "$work_combat_base" | head -1 | cut -d: -f1)"
+test -n "$spy_shifty_combat_cleanup_line"
+test -n "$spy_shifty_combat_consumer_line"
+test "$spy_shifty_combat_cleanup_line" -lt "$spy_shifty_combat_consumer_line"
 retired_luck_hit_effects="sm_impossible_odds sm_skullduggery"
 test "$(printf '%s\n' $retired_luck_hit_effects | wc -l)" -eq 2
 for retired_luck_hit_effect in $retired_luck_hit_effects; do
@@ -4949,6 +5000,28 @@ printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'getAllBuffs'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_critical_override_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerCriticalOverrideScriptVars'
+for spy_shifty_symbol in isRetiredPostNgePlayerOnAttackRemoveEffect isRetiredPostNgePlayerOnAttackRemoveBuffName isRetiredPostNgePlayerOnAttackRemoveBuff clearPostNgePlayerOnAttackRemoveState retirePostNgePlayerOnAttackRemoveState on_attack_remove sp_shifty_setup onAttackRemoveBuffList; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "$spy_shifty_symbol"
+done
+spy_shifty_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerOnAttackRemoveBuff(script.obj_id, script.combat_engine.buff_data)/,/clearPostNgePlayerOnAttackRemoveState/p')"
+printf '%s' "$spy_shifty_buff_predicate_bytecode" | grep -Fq 'isPlayer'
+printf '%s' "$spy_shifty_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerOnAttackRemoveEffect'
+spy_shifty_state_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerOnAttackRemoveState/,/isRetiredPostNgePlayerLuckHitOverrideEffect/p')"
+printf '%s' "$spy_shifty_state_bytecode" | grep -Fq 'removeScriptVarTree'
+printf '%s' "$spy_shifty_state_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$spy_shifty_state_bytecode" | grep -Fq 'clearPostNgePlayerOnAttackRemoveState'
+spy_shifty_admission_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+spy_shifty_admission_line="$(printf '%s\n' "$spy_shifty_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerOnAttackRemoveBuff' | head -1 | cut -d: -f1)"
+spy_shifty_existing_line="$(printf '%s\n' "$spy_shifty_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test "$spy_shifty_admission_line" -lt "$spy_shifty_existing_line"
+spy_shifty_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/onAttackRemoveAddBuffHandler/,/supression_handlerAddBuffHandler/p')"
+test "$(printf '%s' "$spy_shifty_handler_bytecode" | grep -Fc 'isRetiredPostNgePlayerOnAttackRemoveEffect')" -eq 2
+test "$(printf '%s' "$spy_shifty_handler_bytecode" | grep -Fc 'isRetiredPostNgePlayerOnAttackRemoveBuffName')" -eq 2
+test "$(printf '%s' "$spy_shifty_handler_bytecode" | grep -Fc 'clearPostNgePlayerOnAttackRemoveState')" -eq 2
+printf '%s' "$spy_shifty_handler_bytecode" | grep -Fq 'java/util/Vector'
+spy_shifty_combat_cleanup_line="$(printf '%s\n' "$combat_base_actions_bytecode" | grep -Fn 'clearPostNgePlayerOnAttackRemoveState' | head -1 | cut -d: -f1)"
+spy_shifty_combat_consumer_line="$(printf '%s\n' "$combat_base_actions_bytecode" | grep -Fn 'ON_ATTACK_REMOVE' | head -1 | cut -d: -f1)"
+test "$spy_shifty_combat_cleanup_line" -lt "$spy_shifty_combat_consumer_line"
 buff_luck_hit_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerLuckHitOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerLuckHitOverrideBuff/p')"
 printf '%s' "$buff_luck_hit_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS'
 buff_luck_hit_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerLuckHitOverrideBuff/,/clearPostNgePlayerLuckHitOverrideModifiers/p')"

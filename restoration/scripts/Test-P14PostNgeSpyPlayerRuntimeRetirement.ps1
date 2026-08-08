@@ -112,6 +112,20 @@ Assert-Contract (
     (Get-TextSha256 $contentRecords) -ceq [string]$contract.buildEvidence.sourceContentSha256
 ) "p14.spy-retirement.source-content.authenticated"
 
+$shiftySetupSourceMap = [ordered]@{
+    "library/buff.java" = "library/buff.java"
+    "systems/buff/buff_handler.java" = "systems/buff/buff_handler.java"
+    "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
+}
+foreach ($entry in $shiftySetupSourceMap.GetEnumerator())
+{
+    $path = Join-Path $scriptRoot $entry.Value
+    $expectedHash = [string]$contract.buildEvidence.shiftySetupSourceSha256.PSObject.Properties[$entry.Key].Value
+    Assert-Contract ((Test-Path -LiteralPath $path -PathType Leaf) -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
+            $expectedHash) "p14.spy-retirement.shifty-setup.source.$($entry.Key).authenticated"
+}
+
 $skillText = [string]$sourceTexts["library/skill.java"]
 $skillPredicate = Get-SourceSlice $skillText "public static boolean isRetiredPostNgeSpySkill" "public static boolean grant("
 Assert-Contract (
@@ -251,6 +265,102 @@ Assert-Contract (
     $invisAddBody.Contains("buff.removeBuff(self, buffName)")
 ) "p14.spy-retirement.direct-buff-application.fail-closed"
 
+$buffLibraryText = Get-Content -LiteralPath (Join-Path $scriptRoot "library/buff.java") -Raw
+$shiftyEffectPredicate = Get-SourceSlice $buffLibraryText `
+    "private static final String RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_EFFECT" `
+    "public static boolean isRetiredPostNgePlayerOnAttackRemoveBuff(obj_id target"
+$shiftyBuffPredicate = Get-SourceSlice $buffLibraryText `
+    "public static boolean isRetiredPostNgePlayerOnAttackRemoveBuff(obj_id target" `
+    "public static void clearPostNgePlayerOnAttackRemoveState"
+$shiftyStateCleanup = Get-SourceSlice $buffLibraryText `
+    "public static void clearPostNgePlayerOnAttackRemoveState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS"
+$shiftyProgressionCleanup = Get-SourceSlice $buffLibraryText `
+    "public static void retirePostNgeBuffProgression" `
+    "public static void retirePostNgeMeditationBuffs"
+$shiftyAdmission = Get-SourceSlice $buffLibraryText `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static float getBuffTimeRemaining"
+$shiftyAddHandler = Get-SourceSlice $handlerText `
+    "public int onAttackRemoveAddBuffHandler" `
+    "public int onAttackRemoveRemoveBuffHandler"
+$shiftyRemoveHandler = Get-SourceSlice $handlerText `
+    "public int onAttackRemoveRemoveBuffHandler" `
+    "public int supression_handlerAddBuffHandler"
+$shiftyCombatCleanup = $combatBaseText.IndexOf(
+    "buff.clearPostNgePlayerOnAttackRemoveState(attackerData.id);",
+    [StringComparison]::Ordinal)
+$shiftyCombatConsumer = $combatBaseText.IndexOf(
+    "utils.hasScriptVar(attackerData.id, buff.ON_ATTACK_REMOVE)",
+    [StringComparison]::Ordinal)
+
+$effectMappingRows = @(Import-Csv -LiteralPath `
+    (Join-Path $sharedRoot "datatables/buff/effect_mapping.tab") -Delimiter "`t" |
+    Select-Object -Skip 1 | Where-Object {
+        [string]$_.NAME -ceq "on_attack_remove"
+    })
+$buffRows = @(Import-Csv -LiteralPath `
+    (Join-Path $sharedRoot "datatables/buff/buff.tab") -Delimiter "`t" |
+    Select-Object -Skip 1 | Where-Object {
+        [string]$_.NAME -ceq "sp_shifty_setup"
+    })
+$shiftySkillRows = @(Import-Csv -LiteralPath `
+    (Join-Path $sharedRoot "datatables/skill/skills.tab") -Delimiter "`t" |
+    Select-Object -Skip 1 | Where-Object {
+        [string]$_.NAME -ceq "expertise_sp_shifty_setup_1"
+    })
+Assert-Contract ($effectMappingRows.Count -eq
+        [int]$contract.expected.retainedShiftySetupEffectMappingRows -and
+    @($effectMappingRows | Where-Object {
+        [string]$_.TYPE -ceq "onAttackRemove" -and
+        [string]$_.SUBTYPE -ceq "on_attack_remove"
+    }).Count -eq $effectMappingRows.Count -and
+    $buffRows.Count -eq [int]$contract.expected.retainedShiftySetupBuffRows -and
+    [string]$buffRows[0].EFFECT4_PARAM -ceq "on_attack_remove" -and
+    $shiftySkillRows.Count -eq
+        [int]$contract.expected.retainedShiftySetupExpertiseSkillRows -and
+    [string]$shiftySkillRows[0].COMMANDS -ceq "sp_shifty_setup") `
+    "p14.spy-retirement.shifty-setup.data-inventory-authenticated"
+$shiftyAdmissionDominatesExisting = Is-Before $shiftyAdmission `
+    "isRetiredPostNgePlayerOnAttackRemoveBuff(target, bdata)" `
+    "hasBuff(target, nameCrc)"
+$shiftyAddGuardDominatesCleanup = Is-Before $shiftyAddHandler `
+    "isPlayer(self)" "buff.clearPostNgePlayerOnAttackRemoveState(self)"
+$shiftyAddCleanupDominatesWriter = Is-Before $shiftyAddHandler `
+    "buff.clearPostNgePlayerOnAttackRemoveState(self)" "Vector removeBuffs"
+$shiftyRemoveGuardDominatesCleanup = Is-Before $shiftyRemoveHandler `
+    "isPlayer(self)" "buff.clearPostNgePlayerOnAttackRemoveState(self)"
+$shiftyRemoveCleanupDominatesWriter = Is-Before $shiftyRemoveHandler `
+    "buff.clearPostNgePlayerOnAttackRemoveState(self)" "Vector removeBuffs"
+Assert-Contract ($shiftyEffectPredicate.Contains(
+        'RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_EFFECT = "on_attack_remove"') -and
+    $shiftyEffectPredicate.Contains(
+        'RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_BUFF = "sp_shifty_setup"') -and
+    $shiftyBuffPredicate.Contains("!isPlayer(target)") -and
+    $shiftyBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $shiftyBuffPredicate.Contains(
+        "isRetiredPostNgePlayerOnAttackRemoveEffect(getEffectParam(data, effect))") -and
+    $shiftyStateCleanup.Contains("utils.removeScriptVarTree(player, ON_ATTACK_REMOVE)") -and
+    $shiftyStateCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $shiftyStateCleanup.Contains("clearPostNgePlayerOnAttackRemoveState(player)") -and
+    $shiftyProgressionCleanup.Contains("retirePostNgePlayerOnAttackRemoveState(player);") -and
+    $shiftyAdmissionDominatesExisting -and
+    -not [bool]$contract.expected.playerShiftySetupBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerShiftySetupStateRemoved) `
+    "p14.spy-retirement.shifty-setup.admission-and-state-fail-closed"
+Assert-Contract ($shiftyAddGuardDominatesCleanup -and
+    $shiftyAddCleanupDominatesWriter -and
+    $shiftyRemoveGuardDominatesCleanup -and
+    $shiftyRemoveCleanupDominatesWriter -and
+    [int]$contract.expected.productionShiftySetupHandlersGuarded -eq 2 -and
+    [bool]$contract.expected.nonPlayerShiftySetupCompatibilityPreserved) `
+    "p14.spy-retirement.shifty-setup.handlers-player-fail-closed"
+Assert-Contract ($shiftyCombatCleanup -ge 0 -and
+    $shiftyCombatConsumer -gt $shiftyCombatCleanup -and
+    -not [bool]$contract.expected.playerShiftySetupCombatConsumerReachable -and
+    [int]$contract.expected.retiredShiftySetupPlayerScriptVars -eq 1) `
+    "p14.spy-retirement.shifty-setup.combat-consumer-fail-closed"
+
 $skillsPath = Join-Path $sharedRoot "datatables/skill/skills.tab"
 $skillRows = @(Get-Content -LiteralPath $skillsPath)
 $classSpyRows = @($skillRows | Where-Object { $_ -match '^class_spy_' })
@@ -304,6 +414,11 @@ foreach ($mission in $missionMap.GetEnumerator())
 Assert-Contract (
     @("implemented-build-pending", "ready-for-live-verification", "ready") -contains [string]$contract.status
 ) "p14.spy-retirement.contract.status"
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+Assert-Contract ($dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceGitlink) `
+    "p14.spy-retirement.direct-source-pin"
 
 if ($failures.Count -gt 0)
 {

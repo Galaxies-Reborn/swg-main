@@ -1116,6 +1116,112 @@ Assert-Contract ($guardedCriticalHandlers -eq
         [int]$contract.expected.productionCriticalOverrideHandlersGuarded) `
     "p14.combat-expertise-isolation.buff.critical-override-handlers-player-fail-closed"
 
+$shiftySetupMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq "on_attack_remove" })
+$shiftySetupBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { [string]$_.NAME -ceq "sp_shifty_setup" })
+$shiftySetupSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object { [string]$_.NAME -ceq "expertise_sp_shifty_setup_1" })
+Assert-Contract ($shiftySetupMappings.Count -eq
+        [int]$contract.expected.retainedNgeSpyShiftySetupEffectMappingRows -and
+    @($shiftySetupMappings | Where-Object {
+        [string]$_.TYPE -ceq "onAttackRemove" -and
+        [string]$_.SUBTYPE -ceq "on_attack_remove"
+    }).Count -eq $shiftySetupMappings.Count -and
+    $shiftySetupBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeSpyShiftySetupBuffRows -and
+    [string]$shiftySetupBuffRows[0].EFFECT4_PARAM -ceq "on_attack_remove" -and
+    $shiftySetupSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeSpyShiftySetupExpertiseSkillRows -and
+    [string]$shiftySetupSkillRows[0].COMMANDS -ceq "sp_shifty_setup") `
+    "p14.combat-expertise-isolation.spy-shifty-setup.data-authenticated"
+
+$shiftySetupEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerOnAttackRemoveEffect(String effectName)"
+$shiftySetupBuffNamePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerOnAttackRemoveBuffName(String buffName)"
+$shiftySetupBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerOnAttackRemoveBuff(obj_id target, buff_data data)"
+$shiftySetupResidueCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerOnAttackRemoveState(obj_id player)"
+$shiftySetupStateCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerOnAttackRemoveState(obj_id player)"
+$shiftySetupProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$shiftySetupCanApply = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$shiftySetupAdmissionGate = $shiftySetupCanApply.IndexOf(
+    "isRetiredPostNgePlayerOnAttackRemoveBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$shiftySetupExistingBuffReturn = $shiftySetupCanApply.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$shiftySetupCombatCleanup = $hitEngine.IndexOf(
+    "buff.clearPostNgePlayerOnAttackRemoveState(attackerData.id);",
+    [StringComparison]::Ordinal)
+$shiftySetupCombatConsumer = $hitEngine.IndexOf(
+    "utils.hasScriptVar(attackerData.id, buff.ON_ATTACK_REMOVE)",
+    [StringComparison]::Ordinal)
+Assert-Contract (([regex]::Matches($buffLibrary,
+        'RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_EFFECT\s*=\s*"on_attack_remove"')).Count -eq 1 -and
+    ([regex]::Matches($buffLibrary,
+        'RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_BUFF\s*=\s*"sp_shifty_setup"')).Count -eq 1 -and
+    $shiftySetupEffectPredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_EFFECT") -and
+    $shiftySetupBuffNamePredicate.Contains(
+        "RETIRED_POST_NGE_PLAYER_ON_ATTACK_REMOVE_BUFF") -and
+    $shiftySetupBuffPredicate.Contains("!isPlayer(target)") -and
+    $shiftySetupBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $shiftySetupBuffPredicate.Contains(
+        "isRetiredPostNgePlayerOnAttackRemoveEffect(getEffectParam(data, effect))") -and
+    $shiftySetupResidueCleanup.Contains(
+        "utils.removeScriptVarTree(player, ON_ATTACK_REMOVE)") -and
+    $shiftySetupStateCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $shiftySetupStateCleanup.Contains("clearPostNgePlayerOnAttackRemoveState(player)") -and
+    $shiftySetupProgressionCleanup.Contains(
+        "retirePostNgePlayerOnAttackRemoveState(player);") -and
+    $shiftySetupAdmissionGate -ge 0 -and
+    $shiftySetupExistingBuffReturn -gt $shiftySetupAdmissionGate -and
+    $shiftySetupCombatCleanup -ge 0 -and
+    $shiftySetupCombatConsumer -gt $shiftySetupCombatCleanup -and
+    [int]$contract.expected.retiredNgePlayerSpyShiftySetupScriptVars -eq 1 -and
+    -not [bool]$contract.expected.playerNgeSpyShiftySetupBuffAdmissionReachable -and
+    -not [bool]$contract.expected.playerNgeSpyShiftySetupCombatConsumerReachable -and
+    [bool]$contract.expected.persistedPlayerNgeSpyShiftySetupStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeSpyShiftySetupCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.spy-shifty-setup.admission-state-and-consumer-fail-closed"
+
+$shiftySetupHandlerNames = @(
+    "onAttackRemoveAddBuffHandler", "onAttackRemoveRemoveBuffHandler"
+)
+$guardedShiftySetupHandlers = 0
+foreach ($handlerName in $shiftySetupHandlerNames)
+{
+    $handler = Get-BracedBlock $buffHandler ("public int " + $handlerName + "(")
+    $guard = $handler.IndexOf("isPlayer(self)", [StringComparison]::Ordinal)
+    $effect = $handler.IndexOf(
+        "isRetiredPostNgePlayerOnAttackRemoveEffect(effectName)",
+        [StringComparison]::Ordinal)
+    $name = $handler.IndexOf(
+        "isRetiredPostNgePlayerOnAttackRemoveBuffName(buffName)",
+        [StringComparison]::Ordinal)
+    $cleanup = $handler.IndexOf(
+        "buff.clearPostNgePlayerOnAttackRemoveState(self);",
+        [StringComparison]::Ordinal)
+    $playerReturn = $handler.IndexOf("return SCRIPT_OVERRIDE;", $cleanup,
+        [StringComparison]::Ordinal)
+    $retainedWriter = $handler.IndexOf("Vector removeBuffs", $playerReturn,
+        [StringComparison]::Ordinal)
+    if ($guard -ge 0 -and $effect -gt $guard -and $name -gt $guard -and
+        $cleanup -gt $name -and $playerReturn -gt $cleanup -and
+        $retainedWriter -gt $playerReturn)
+    {
+        ++$guardedShiftySetupHandlers
+    }
+}
+Assert-Contract ($guardedShiftySetupHandlers -eq
+        [int]$contract.expected.productionSpyShiftySetupHandlersGuarded) `
+    "p14.combat-expertise-isolation.spy-shifty-setup.two-handlers-player-fail-closed"
+
 $expectedLuckHitEffectTypes = [ordered]@{
     sm_impossible_odds = "hitByLuck"
     sm_skullduggery = "missByLuck"
