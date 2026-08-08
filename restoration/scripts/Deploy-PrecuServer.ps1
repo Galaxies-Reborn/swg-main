@@ -3001,6 +3001,108 @@ test "$exclude_self_return_line" -lt "$exclude_self_read_line"
 test "$exclude_self_return_line" -lt "$exclude_self_writer_line"
 ! printf '%s\n' "$exclude_self_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuffName'
 printf '%s\n' "$exclude_self_remove_source" | grep -Fq 'return SCRIPT_CONTINUE;'
+profession_heal_effect_mapping_names='healing_action healing_health'
+test "$(printf '%s\n' $profession_heal_effect_mapping_names | wc -l)" -eq 2
+awk -F '\t' -v expected_names="$profession_heal_effect_mapping_names" '
+    FNR == 1 {
+        for (field = 1; field <= NF; field++) field_index[$field] = field
+        split(expected_names, names, " ")
+        for (index in names) expected[names[index]] = 1
+        next
+    }
+    FNR == 2 { next }
+    $(field_index["TYPE"]) == "healEffect" {
+        row_count++
+        seen[$1]++
+        if (!($1 in expected)) exit 39
+    }
+    END {
+        if (row_count != 2) exit 40
+        for (name in expected) if (seen[name] != 1) exit 41
+    }
+' "$work_buff_effect_mapping"
+retired_profession_heal_effect_names='of_inspiration_1 of_inspiration_2 of_inspiration_3 of_inspiration_4 of_inspiration_5 of_inspiration_6 of_last_words sp_set_perfect_opportunity'
+preserved_later_content_heal_effect_names='treasure_bonus_combat_strikethrough_chance treasure_bonus_heal_health_action ig_head_buff_2 ice_cream_heal_health ice_cream_heal_action'
+test "$(printf '%s\n' $retired_profession_heal_effect_names | wc -l)" -eq 8
+test "$(printf '%s\n' $preserved_later_content_heal_effect_names | wc -l)" -eq 5
+awk -F '\t' \
+    -v mapping_names="$profession_heal_effect_mapping_names" \
+    -v retired_names="$retired_profession_heal_effect_names" \
+    -v preserved_names="$preserved_later_content_heal_effect_names" '
+    BEGIN {
+        split(mapping_names, names, " ")
+        for (index in names) mapping[names[index]] = 1
+        split(retired_names, names, " ")
+        for (index in names) retired[names[index]] = 1
+        split(preserved_names, names, " ")
+        for (index in names) preserved[names[index]] = 1
+    }
+    FNR == 1 {
+        for (field = 1; field <= NF; field++) field_index[$field] = field
+        next
+    }
+    FNR == 2 { next }
+    {
+        uses = 0
+        for (effect = 1; effect <= 5; effect++) {
+            parameter = $(field_index["EFFECT" effect "_PARAM"])
+            if (parameter in mapping) uses++
+        }
+        if (uses > 0) {
+            row_count++
+            use_count += uses
+            if ($1 in retired) {
+                retired_rows++
+                retired_uses += uses
+                retired_seen[$1]++
+            } else if ($1 in preserved) {
+                preserved_rows++
+                preserved_uses += uses
+                preserved_seen[$1]++
+            } else {
+                exit 42
+            }
+        }
+    }
+    END {
+        if (row_count != 13 || use_count != 15) exit 43
+        if (retired_rows != 8 || retired_uses != 9) exit 44
+        if (preserved_rows != 5 || preserved_uses != 6) exit 45
+        for (name in retired) if (retired_seen[name] != 1) exit 46
+        for (name in preserved) if (preserved_seen[name] != 1) exit 47
+    }
+' "$work_buff_table"
+profession_heal_add_source="$(sed -n '/public int healEffectAddBuffHandler/,/public int healEffectRemoveBuffHandler/p' "$work_buff_handler")"
+profession_heal_remove_source="$(sed -n '/public int healEffectRemoveBuffHandler/,/public int buildabuffAddBuffHandler/p' "$work_buff_handler")"
+profession_heal_player_guard_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+profession_heal_inspiration_predicate_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'isRetiredPostNgePlayerProfessionInspirationBuffName' | head -1 | cut -d: -f1)"
+profession_heal_inspiration_cleanup_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'retirePostNgePlayerProfessionInspirationState' | head -1 | cut -d: -f1)"
+profession_heal_inspiration_return_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$profession_heal_inspiration_cleanup_line" '$1 > cleanup { print $1; exit }')"
+profession_heal_proxy_predicate_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'isRetiredPostNgePlayerProfessionProxyBuffName' | head -1 | cut -d: -f1)"
+profession_heal_proxy_cleanup_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'retirePostNgePlayerProfessionProxyState' | head -1 | cut -d: -f1)"
+profession_heal_proxy_return_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$profession_heal_proxy_cleanup_line" '$1 > cleanup { print $1; exit }')"
+profession_heal_spy_predicate_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'isRetiredPostNgeSpyBuffName' | head -1 | cut -d: -f1)"
+profession_heal_spy_cleanup_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'retirePostNgeSpyPlayerState' | head -1 | cut -d: -f1)"
+profession_heal_spy_return_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$profession_heal_spy_cleanup_line" '$1 > cleanup { print $1; exit }')"
+profession_heal_action_writer_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'healing.healDamage(self, ACTION, (int)value);' | head -1 | cut -d: -f1)"
+profession_heal_health_writer_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'healing.healDamage(caster, self, HEALTH, (int)value);' | head -1 | cut -d: -f1)"
+for profession_heal_source_line in "$profession_heal_player_guard_line" "$profession_heal_inspiration_predicate_line" "$profession_heal_inspiration_cleanup_line" "$profession_heal_inspiration_return_line" "$profession_heal_proxy_predicate_line" "$profession_heal_proxy_cleanup_line" "$profession_heal_proxy_return_line" "$profession_heal_spy_predicate_line" "$profession_heal_spy_cleanup_line" "$profession_heal_spy_return_line" "$profession_heal_action_writer_line" "$profession_heal_health_writer_line"; do
+    test -n "$profession_heal_source_line"
+done
+test "$profession_heal_player_guard_line" -lt "$profession_heal_inspiration_predicate_line"
+test "$profession_heal_inspiration_predicate_line" -lt "$profession_heal_inspiration_cleanup_line"
+test "$profession_heal_inspiration_cleanup_line" -lt "$profession_heal_inspiration_return_line"
+test "$profession_heal_inspiration_return_line" -lt "$profession_heal_proxy_predicate_line"
+test "$profession_heal_proxy_predicate_line" -lt "$profession_heal_proxy_cleanup_line"
+test "$profession_heal_proxy_cleanup_line" -lt "$profession_heal_proxy_return_line"
+test "$profession_heal_proxy_return_line" -lt "$profession_heal_spy_predicate_line"
+test "$profession_heal_spy_predicate_line" -lt "$profession_heal_spy_cleanup_line"
+test "$profession_heal_spy_cleanup_line" -lt "$profession_heal_spy_return_line"
+test "$profession_heal_spy_return_line" -lt "$profession_heal_action_writer_line"
+test "$profession_heal_spy_return_line" -lt "$profession_heal_health_writer_line"
+! printf '%s\n' "$profession_heal_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfession'
+! printf '%s\n' "$profession_heal_remove_source" | grep -Fq 'isRetiredPostNgeSpyBuffName'
+printf '%s\n' "$profession_heal_remove_source" | grep -Fq 'return SCRIPT_CONTINUE;'
 officer_action_predicate_source="$(sed -n '/public static boolean isRetiredPostNgeOfficerPlayerAction/,/public static boolean isRetiredPostNgeForceSensitivePlayerAction/p' "$work_combat_base")"
 bounty_hunter_action_predicate_source="$(sed -n '/public static boolean isRetiredPostNgeBountyHunterPlayerAction/,/public static boolean isRetiredPostNgeCommandoPlayerAction/p' "$work_combat_base")"
 for officer_proxy_action in 'actionName.startsWith("of_")' 'actionName.equals("paintTarget")' 'actionName.startsWith("paintTarget_")' 'actionName.equals("applyVortexSnare")'; do
@@ -5916,6 +6018,38 @@ test "$exclude_self_return_bytecode_line" -lt "$exclude_self_read_bytecode_line"
 test "$exclude_self_return_bytecode_line" -lt "$exclude_self_writer_bytecode_line"
 ! printf '%s' "$exclude_self_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuffName'
 printf '%s' "$exclude_self_remove_bytecode" | grep -Fq 'ireturn'
+profession_heal_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int healEffectAddBuffHandler/,/public int healEffectRemoveBuffHandler/p')"
+profession_heal_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int healEffectRemoveBuffHandler/,/public int buildabuffAddBuffHandler/p')"
+profession_heal_player_guard_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+profession_heal_inspiration_predicate_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionInspirationBuffName' | head -1 | cut -d: -f1)"
+profession_heal_inspiration_cleanup_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'retirePostNgePlayerProfessionInspirationState' | head -1 | cut -d: -f1)"
+profession_heal_inspiration_return_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$profession_heal_inspiration_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+profession_heal_proxy_predicate_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionProxyBuffName' | head -1 | cut -d: -f1)"
+profession_heal_proxy_cleanup_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'retirePostNgePlayerProfessionProxyState' | head -1 | cut -d: -f1)"
+profession_heal_proxy_return_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$profession_heal_proxy_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+profession_heal_spy_predicate_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'isRetiredPostNgeSpyBuffName' | head -1 | cut -d: -f1)"
+profession_heal_spy_cleanup_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'retirePostNgeSpyPlayerState' | head -1 | cut -d: -f1)"
+profession_heal_spy_return_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$profession_heal_spy_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+profession_heal_first_writer_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'script/library/healing.healDamage' | head -1 | cut -d: -f1)"
+profession_heal_second_writer_bytecode_line="$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fn 'script/library/healing.healDamage' | tail -1 | cut -d: -f1)"
+test "$(printf '%s\n' "$profession_heal_add_bytecode" | grep -Fc 'script/library/healing.healDamage')" -eq 2
+for profession_heal_bytecode_line in "$profession_heal_player_guard_bytecode_line" "$profession_heal_inspiration_predicate_bytecode_line" "$profession_heal_inspiration_cleanup_bytecode_line" "$profession_heal_inspiration_return_bytecode_line" "$profession_heal_proxy_predicate_bytecode_line" "$profession_heal_proxy_cleanup_bytecode_line" "$profession_heal_proxy_return_bytecode_line" "$profession_heal_spy_predicate_bytecode_line" "$profession_heal_spy_cleanup_bytecode_line" "$profession_heal_spy_return_bytecode_line" "$profession_heal_first_writer_bytecode_line" "$profession_heal_second_writer_bytecode_line"; do
+    test -n "$profession_heal_bytecode_line"
+done
+test "$profession_heal_player_guard_bytecode_line" -lt "$profession_heal_inspiration_predicate_bytecode_line"
+test "$profession_heal_inspiration_predicate_bytecode_line" -lt "$profession_heal_inspiration_cleanup_bytecode_line"
+test "$profession_heal_inspiration_cleanup_bytecode_line" -lt "$profession_heal_inspiration_return_bytecode_line"
+test "$profession_heal_inspiration_return_bytecode_line" -lt "$profession_heal_proxy_predicate_bytecode_line"
+test "$profession_heal_proxy_predicate_bytecode_line" -lt "$profession_heal_proxy_cleanup_bytecode_line"
+test "$profession_heal_proxy_cleanup_bytecode_line" -lt "$profession_heal_proxy_return_bytecode_line"
+test "$profession_heal_proxy_return_bytecode_line" -lt "$profession_heal_spy_predicate_bytecode_line"
+test "$profession_heal_spy_predicate_bytecode_line" -lt "$profession_heal_spy_cleanup_bytecode_line"
+test "$profession_heal_spy_cleanup_bytecode_line" -lt "$profession_heal_spy_return_bytecode_line"
+test "$profession_heal_spy_return_bytecode_line" -lt "$profession_heal_first_writer_bytecode_line"
+test "$profession_heal_spy_return_bytecode_line" -lt "$profession_heal_second_writer_bytecode_line"
+! printf '%s' "$profession_heal_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfession'
+! printf '%s' "$profession_heal_remove_bytecode" | grep -Fq 'isRetiredPostNgeSpyBuffName'
+printf '%s' "$profession_heal_remove_bytecode" | grep -Fq 'ireturn'
 profession_proxy_combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
 officer_action_predicate_bytecode="$(printf '%s' "$profession_proxy_combat_base_bytecode" | sed -n '/isRetiredPostNgeOfficerPlayerAction/,/isRetiredPostNgeForceSensitivePlayerAction/p')"
 for officer_proxy_action in 'String of_' 'String paintTarget' 'String paintTarget_' 'String applyVortexSnare'; do

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
   "status": "ready",
-  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, post-Publish-14 absolute player control-immunity buffs, later reactive avoid-incapacitation heals, and the exact inherited player group-aura, flat-HAM, and percentage-HAM buff sets that conflict with restored Publish 14.1 profession, Jedi, Squad Leader, and reward authority without removing later-content data compatibility, NPC group propagation, or the restored Publish 14.1 entertainer, Teras Kasi, Creature Handler, cloning-sickness, innate regeneration/vitalize, Power Boost, QA, NPC encounter, and Jedi avoid-incapacitation lifecycles.",
+  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, post-Publish-14 absolute player control-immunity buffs, later reactive avoid-incapacitation heals, direct Officer Inspiration/Last Words and Spy Perfect Opportunity heal effects, and the exact inherited player group-aura, flat-HAM, and percentage-HAM buff sets that conflict with restored Publish 14.1 profession, Jedi, Squad Leader, and reward authority without removing later-content data compatibility, retained consumable and treasure heals, NPC group propagation, or the restored Publish 14.1 entertainer, Teras Kasi, Creature Handler, cloning-sickness, innate regeneration/vitalize, Power Boost, QA, NPC encounter, and Jedi avoid-incapacitation lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -33,7 +33,8 @@
       "Pinned Publish 14.1 Core3 implements Form Up as DIZZY/STUN removal, Rally as a 30-second weapon-accuracy and group-defense buff, and Retreat as a 30-second group burst run. Those mechanics use formup, rally, and retreat rather than any sl_group_*, Officer, expertise, veteran-level, or human_ability_1 row, so all 38 group rows remain content-compatible but fail closed for players while NPC propagation and removal cleanup remain available.",
       "A whole production-script inventory has exactly one caller of grantUnmodifiedXPPercentageOfLevel: xpGrantedGeneralAddBuffHandler, which returns at the central retirement gate before the call; the retained API itself also returns zero without consulting player level, class template, or the NGE level table.",
       "All ordinary and crafting inspiration-XP consumers resolve to identity or zero before retained percentage data can affect Publish 14.1 explicit XP pools, closing the deferred level-percentage buff-XP authority surface.",
-      "The exact seventeen-name post-NGE profession-inspiration family now owns general_inspiration cleanup through one player-only lifecycle helper, including all shared and name-scoped stale script-variable trees, while retained rows and non-player compatibility remain available."
+      "The exact seventeen-name post-NGE profession-inspiration family now owns general_inspiration cleanup through one player-only lifecycle helper, including all shared and name-scoped stale script-variable trees, while retained rows and non-player compatibility remain available.",
+      "The two retained healEffect mappings service thirteen rows and fifteen effect uses. Six Officer Inspiration rows, Officer Last Words, and Spy Perfect Opportunity account for the exact eight retired NGE player rows and nine direct heal uses; the handler now cleans their existing retired state and returns before either heal writer while five later-content rows and six uses remain available."
     ]
   },
   "expected": {
@@ -45,6 +46,34 @@
     ],
     "retiredPlayerProfessionInspirationBuffCount": 17,
     "professionInspirationCleanupCentralized": true,
+    "retiredPlayerProfessionHealEffectBuffs": [
+      "of_inspiration_1",
+      "of_inspiration_2",
+      "of_inspiration_3",
+      "of_inspiration_4",
+      "of_inspiration_5",
+      "of_inspiration_6",
+      "of_last_words",
+      "sp_set_perfect_opportunity"
+    ],
+    "preservedLaterContentHealEffectBuffs": [
+      "treasure_bonus_combat_strikethrough_chance",
+      "treasure_bonus_heal_health_action",
+      "ig_head_buff_2",
+      "ice_cream_heal_health",
+      "ice_cream_heal_action"
+    ],
+    "retainedHealEffectMappingRows": 2,
+    "retainedHealEffectBuffRows": 13,
+    "retainedHealEffectUses": 15,
+    "retiredPlayerProfessionHealEffectBuffRows": 8,
+    "retiredPlayerProfessionHealEffectUses": 9,
+    "preservedLaterContentHealEffectBuffRows": 5,
+    "preservedLaterContentHealEffectUses": 6,
+    "productionProfessionHealEffectHandlersGuarded": 1,
+    "playerProfessionHealEffectWriterReachable": false,
+    "professionHealEffectRemoveCompatibilityPreserved": true,
+    "nonPlayerProfessionHealEffectCompatibilityPreserved": true,
     "retiredPlayerGroupBuffCount": 38,
     "retiredPlayerGroupBuffs": [
       "sl_group_run",
@@ -301,34 +330,34 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "013b56d5a174008472b575868e8efd575a8327d2",
+    "directSourceGitlink": "8e648714157f2e34f7e1ce65da5ae8a1dd19f5c1",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "d7fa1a43a63d59cf7f8a9883a50300d03f957d49d7fdff3b8096591af6cc50bb",
+    "sourceContentSha256": "5ff4ac6d2dcae646e2909fd5a2ba633c996f2b3b1694bb34267cdf0b56e1ed8e",
     "sourceSha256": {
       "library/buff.java": "83ea497f7fd6d4c7efe20989e11f7c285e5d2b7d56e1f75d6ea6290cbee015be",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
       "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
-      "systems/buff/buff_handler.java": "3439b0c5b7d0d485f0537cc5b66b04e587b59b24afe536a9fa824395fd9ad321",
+      "systems/buff/buff_handler.java": "abb9eddac36cda50990703ad7e1fc2ef48cfda44c876acd64cf934f03caad086",
       "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
       "systems/crafting/crafting_base.java": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now also includes the retained Officer Last Words exclude-self propagation wrapper in the exact player proxy inventory and returns from its direct add-side handler after centralized cleanup but before group reads or nested writes while preserving its authored row, remove-side cleanup, non-player behavior, authentic PRE-CU combat, and retained expansion content.",
-    "focusedJavaCompile": "passed focused OpenJDK 11 Java 8-target compilation of library/buff.java and systems/buff/buff_handler.java from pushed direct-source commit 013b56d5a174008472b575868e8efd575a8327d2 against the production package root with -g and -implicit:none; both classes were emitted under /dev/shm/precu-last-words-wrapper-check, their bytecode ordering was authenticated, and /dev/shm was verified empty afterward",
+    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now closes the direct heal-effect writer for the exact six Officer Inspiration rows, Officer Last Words, and Spy Perfect Opportunity before either player Action or Health mutation while retaining all thirteen authored rows, five later-content heal rows, remove compatibility, and non-player execution.",
+    "focusedJavaCompile": "passed focused OpenJDK 11 Java 8-target compilation of systems/buff/buff_handler.java from pushed direct-source commit 8e648714157f2e34f7e1ce65da5ae8a1dd19f5c1 against the production package root with -g and -implicit:none; the emitted class SHA-256 is 2a2f5a169dabf0709d94d500029564a7d8c42c9339a8756c167d42bfbb836495 at 137560 bytes, all three player branches return before both heal writers, and /dev/shm was verified empty afterward",
     "focusedCompiledClassSha256": {
       "script.library.buff": "211d33682b528808bb6d232dc68317ff2c765c7b9f258c3a4b964a7da3cce060",
-      "script.systems.buff.buff_handler": "e66a1b3f19b94f8b19c15b1a39c5ee95d914d3a11c363736d6f9321521d850f7"
+      "script.systems.buff.buff_handler": "2a2f5a169dabf0709d94d500029564a7d8c42c9339a8756c167d42bfbb836495"
     },
     "focusedCompiledClassBytes": {
       "script.library.buff": 88906,
-      "script.systems.buff.buff_handler": 137370
+      "script.systems.buff.buff_handler": 137560
     },
     "compiledClassSha256": {
       "script.library.buff": "4876962fd8ce503c80f68900febe392a66e73d1430144181e6126eb1a2a76e20",
@@ -341,7 +370,7 @@
       "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
       "script.systems.crafting.crafting_base": "71bf98a06ceac9de223dfc63d7ee4b63362a758c318792ac1e2e4262a5a915b9"
     },
-    "staticContract": "passed against pushed direct source 013b56d5a174008472b575868e8efd575a8327d2; the exact 41-name Bounty Hunter/Officer proxy inventory and all eight effect mappings retain the Last Words exclude-self compatibility row while generic player admission, centralized persistence cleanup, both direct propagation-handler guards and early returns, non-player execution, and classic PRE-CU authority are proven; the focused two-class compile and all 26 affected source contracts passed alongside prior buff, proc, GCW, profession, retained-content, and mission-continuity assertions",
+    "staticContract": "source validation against pushed direct source 8e648714157f2e34f7e1ce65da5ae8a1dd19f5c1 authenticates the exact eight retired NGE profession heal rows and nine uses; the direct handler runs the existing Officer Inspiration, Officer proxy, or Spy cleanup and returns before both heal writers while retained later-content heals, remove compatibility, non-player execution, prior buff/proxy closures, classic PRE-CU authority, and mission continuity remain preserved",
     "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct-source commit 013b56d5a174008472b575868e8efd575a8327d2; 5713 Java sources produced 5747 classes under OpenJDK 11; the focused and canonical bytecode gates left no /dev/shm residue",
     "javaSourcesCompiled": 5713,
     "javaClassesEmitted": 5747,

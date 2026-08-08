@@ -2633,6 +2633,126 @@ Assert-Contract ($professionProxyInventoryNames.Count -eq 41 -and
     [bool]$contract.expected.nonPlayerNgeProfessionProxyCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.profession-proxy-admission-persistence-and-writer-fail-closed"
 
+$retiredProfessionHealEffectNames = @(
+    $contract.expected.retiredNgePlayerProfessionHealEffectBuffNames |
+        ForEach-Object { [string]$_ }
+)
+$preservedHealEffectNames = @(
+    $contract.expected.preservedLaterContentHealEffectBuffNames |
+        ForEach-Object { [string]$_ }
+)
+$healEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -ceq "healEffect" })
+$healEffectMappingNames = @($healEffectMappings |
+    ForEach-Object { [string]$_.NAME } | Sort-Object)
+$healEffectUses = @(
+    foreach ($row in @(Import-SwgTab -Path $paths.buffTable))
+    {
+        foreach ($effect in 1..5)
+        {
+            $parameter = [string]$row.("EFFECT${effect}_PARAM")
+            if ($healEffectMappingNames -ccontains $parameter)
+            {
+                [pscustomobject]@{
+                    Name = [string]$row.NAME
+                    Parameter = $parameter
+                    Effect = $effect
+                }
+            }
+        }
+    }
+)
+$healEffectRowNames = @($healEffectUses.Name | Sort-Object -Unique)
+$retiredProfessionHealEffectUses = @($healEffectUses | Where-Object {
+    $retiredProfessionHealEffectNames -ccontains [string]$_.Name
+})
+$preservedHealEffectUses = @($healEffectUses | Where-Object {
+    $preservedHealEffectNames -ccontains [string]$_.Name
+})
+Assert-Contract ($healEffectMappings.Count -eq
+        [int]$contract.expected.retainedHealEffectMappingRows -and
+    (($healEffectMappingNames -join "`n") -ceq
+        ((@("healing_action", "healing_health") | Sort-Object) -join "`n")) -and
+    $healEffectRowNames.Count -eq [int]$contract.expected.retainedHealEffectBuffRows -and
+    $healEffectUses.Count -eq [int]$contract.expected.retainedHealEffectUses -and
+    @($retiredProfessionHealEffectUses.Name | Sort-Object -Unique).Count -eq
+        [int]$contract.expected.retiredNgePlayerProfessionHealEffectBuffRows -and
+    $retiredProfessionHealEffectUses.Count -eq
+        [int]$contract.expected.retiredNgePlayerProfessionHealEffectUses -and
+    @($preservedHealEffectUses.Name | Sort-Object -Unique).Count -eq
+        [int]$contract.expected.preservedLaterContentHealEffectBuffRows -and
+    $preservedHealEffectUses.Count -eq
+        [int]$contract.expected.preservedLaterContentHealEffectUses -and
+    ((@($retiredProfessionHealEffectUses.Name | Sort-Object -Unique) -join "`n") -ceq
+        ((@($retiredProfessionHealEffectNames | Sort-Object)) -join "`n")) -and
+    ((@($preservedHealEffectUses.Name | Sort-Object -Unique) -join "`n") -ceq
+        ((@($preservedHealEffectNames | Sort-Object)) -join "`n")) -and
+    @($healEffectRowNames | Where-Object {
+        $retiredProfessionHealEffectNames -cnotcontains $_ -and
+        $preservedHealEffectNames -cnotcontains $_
+    }).Count -eq 0) `
+    "p14.combat-expertise-isolation.buff.profession-heal-effect-complete-data-inventory-authenticated"
+
+$healEffectAdd = Get-BracedBlock $buffHandler `
+    "public int healEffectAddBuffHandler("
+$healEffectRemove = Get-BracedBlock $buffHandler `
+    "public int healEffectRemoveBuffHandler("
+$healEffectGuard = $healEffectAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$healEffectInspirationPredicate = $healEffectAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionInspirationBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$healEffectInspirationCleanup = $healEffectAdd.IndexOf(
+    "buff.retirePostNgePlayerProfessionInspirationState(self);",
+    [StringComparison]::Ordinal)
+$healEffectInspirationReturn = $healEffectAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $healEffectInspirationCleanup,
+    [StringComparison]::Ordinal)
+$healEffectProxyPredicate = $healEffectAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionProxyBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$healEffectProxyCleanup = $healEffectAdd.IndexOf(
+    "buff.retirePostNgePlayerProfessionProxyState(self);",
+    [StringComparison]::Ordinal)
+$healEffectProxyReturn = $healEffectAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $healEffectProxyCleanup,
+    [StringComparison]::Ordinal)
+$healEffectSpyPredicate = $healEffectAdd.IndexOf(
+    "player_stealth.isRetiredPostNgeSpyBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$healEffectSpyCleanup = $healEffectAdd.IndexOf(
+    "player_stealth.retirePostNgeSpyPlayerState(self);",
+    [StringComparison]::Ordinal)
+$healEffectSpyReturn = $healEffectAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $healEffectSpyCleanup,
+    [StringComparison]::Ordinal)
+$healEffectActionWriter = $healEffectAdd.IndexOf(
+    "healing.healDamage(self, ACTION, (int)value);",
+    [StringComparison]::Ordinal)
+$healEffectHealthWriter = $healEffectAdd.IndexOf(
+    "healing.healDamage(caster, self, HEALTH, (int)value);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($healEffectGuard -ge 0 -and
+    $healEffectInspirationPredicate -gt $healEffectGuard -and
+    $healEffectInspirationCleanup -gt $healEffectInspirationPredicate -and
+    $healEffectInspirationReturn -gt $healEffectInspirationCleanup -and
+    $healEffectProxyPredicate -gt $healEffectInspirationReturn -and
+    $healEffectProxyCleanup -gt $healEffectProxyPredicate -and
+    $healEffectProxyReturn -gt $healEffectProxyCleanup -and
+    $healEffectSpyPredicate -gt $healEffectProxyReturn -and
+    $healEffectSpyCleanup -gt $healEffectSpyPredicate -and
+    $healEffectSpyReturn -gt $healEffectSpyCleanup -and
+    $healEffectActionWriter -gt $healEffectSpyReturn -and
+    $healEffectHealthWriter -gt $healEffectSpyReturn -and
+    [int]$contract.expected.productionProfessionHealEffectHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeProfessionHealEffectWriterReachable -and
+    $healEffectRemove.Contains("return SCRIPT_CONTINUE;") -and
+    -not $healEffectRemove.Contains("isRetiredPostNgePlayerProfession") -and
+    -not $healEffectRemove.Contains("isRetiredPostNgeSpyBuffName") -and
+    [bool]$contract.expected.professionHealEffectRemoveCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerNgeProfessionHealEffectCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.profession-heal-effect-direct-writers-fail-closed"
+
 $officerActionPredicate = Get-BracedBlock $combatBase `
     "public static boolean isRetiredPostNgeOfficerPlayerAction("
 $bountyHunterActionPredicate = Get-BracedBlock $combatBase `

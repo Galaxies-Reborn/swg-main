@@ -408,6 +408,47 @@ $attributePercentAddBody = Get-SourceSlice $handlerText `
 $attributePercentRemoveBody = Get-SourceSlice $handlerText `
     "public int attribPercentRemoveBuffHandler" `
     "public int skillAddBuffHandler"
+$healEffectAddBody = Get-SourceSlice $handlerText `
+    "public int healEffectAddBuffHandler" `
+    "public int healEffectRemoveBuffHandler"
+$healEffectRemoveBody = Get-SourceSlice $handlerText `
+    "public int healEffectRemoveBuffHandler" `
+    "public int buildabuffAddBuffHandler"
+$healEffectGuard = $healEffectAddBody.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$healEffectInspirationPredicate = $healEffectAddBody.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionInspirationBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$healEffectInspirationCleanup = $healEffectAddBody.IndexOf(
+    "buff.retirePostNgePlayerProfessionInspirationState(self);",
+    [StringComparison]::Ordinal)
+$healEffectInspirationReturn = $healEffectAddBody.IndexOf(
+    "return SCRIPT_OVERRIDE;", $healEffectInspirationCleanup,
+    [StringComparison]::Ordinal)
+$healEffectProxyPredicate = $healEffectAddBody.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionProxyBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$healEffectProxyCleanup = $healEffectAddBody.IndexOf(
+    "buff.retirePostNgePlayerProfessionProxyState(self);",
+    [StringComparison]::Ordinal)
+$healEffectProxyReturn = $healEffectAddBody.IndexOf(
+    "return SCRIPT_OVERRIDE;", $healEffectProxyCleanup,
+    [StringComparison]::Ordinal)
+$healEffectSpyPredicate = $healEffectAddBody.IndexOf(
+    "player_stealth.isRetiredPostNgeSpyBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$healEffectSpyCleanup = $healEffectAddBody.IndexOf(
+    "player_stealth.retirePostNgeSpyPlayerState(self);",
+    [StringComparison]::Ordinal)
+$healEffectSpyReturn = $healEffectAddBody.IndexOf(
+    "return SCRIPT_OVERRIDE;", $healEffectSpyCleanup,
+    [StringComparison]::Ordinal)
+$healEffectActionWriter = $healEffectAddBody.IndexOf(
+    "healing.healDamage(self, ACTION, (int)value);",
+    [StringComparison]::Ordinal)
+$healEffectHealthWriter = $healEffectAddBody.IndexOf(
+    "healing.healDamage(caster, self, HEALTH, (int)value);",
+    [StringComparison]::Ordinal)
 Assert-Contract (([regex]::Matches($handlerText,
         'buff[.]isRetiredPostNgePlayerGroupBuffName\(buffName\)')).Count -eq
         [int]$contract.expected.productionGroupAddHandlersGuarded -and
@@ -446,6 +487,26 @@ Assert-Contract (([regex]::Matches($handlerText,
     [bool]$contract.expected.attributePercentRemoveCleanupPreserved -and
     [bool]$contract.expected.nonPlayerAttributePercentCompatibilityPreserved) `
     "p14.buff-progression.attribute-percent.handler-fails-closed-for-players"
+Assert-Contract ($healEffectGuard -ge 0 -and
+    $healEffectInspirationPredicate -gt $healEffectGuard -and
+    $healEffectInspirationCleanup -gt $healEffectInspirationPredicate -and
+    $healEffectInspirationReturn -gt $healEffectInspirationCleanup -and
+    $healEffectProxyPredicate -gt $healEffectInspirationReturn -and
+    $healEffectProxyCleanup -gt $healEffectProxyPredicate -and
+    $healEffectProxyReturn -gt $healEffectProxyCleanup -and
+    $healEffectSpyPredicate -gt $healEffectProxyReturn -and
+    $healEffectSpyCleanup -gt $healEffectSpyPredicate -and
+    $healEffectSpyReturn -gt $healEffectSpyCleanup -and
+    $healEffectActionWriter -gt $healEffectSpyReturn -and
+    $healEffectHealthWriter -gt $healEffectSpyReturn -and
+    [int]$contract.expected.productionProfessionHealEffectHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerProfessionHealEffectWriterReachable -and
+    $healEffectRemoveBody.Contains("return SCRIPT_CONTINUE;") -and
+    -not $healEffectRemoveBody.Contains("isRetiredPostNgePlayerProfession") -and
+    -not $healEffectRemoveBody.Contains("isRetiredPostNgeSpyBuffName") -and
+    [bool]$contract.expected.professionHealEffectRemoveCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerProfessionHealEffectCompatibilityPreserved) `
+    "p14.buff-progression.profession-heal-effect.direct-writers-fail-closed-for-players"
 Assert-Contract ((Is-Before $xpBonusBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $xpGrantBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $buildBody "buff.isPostNgeBuffProgressionRetired()" "performance.buildabuff.buffComponentKeys") -and
@@ -526,6 +587,59 @@ $effectMapPath = Join-Path $sharedRoot "datatables/buff/effect_mapping.tab"
 $buffTable = Get-Content -LiteralPath $buffTablePath -Raw
 $effectMap = Get-Content -LiteralPath $effectMapPath -Raw
 $allBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t")
+$healEffectMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
+    Where-Object { $_.TYPE -ceq "healEffect" })
+$healEffectMappingNames = @($healEffectMappings.NAME | Sort-Object)
+$healEffectUses = @(
+    foreach ($row in $allBuffRows)
+    {
+        foreach ($effect in 1..5)
+        {
+            $parameter = [string]$row.("EFFECT${effect}_PARAM")
+            if ($healEffectMappingNames -ccontains $parameter)
+            {
+                [pscustomobject]@{
+                    Name = [string]$row.NAME
+                    Parameter = $parameter
+                }
+            }
+        }
+    }
+)
+$healEffectRowNames = @($healEffectUses.Name | Sort-Object -Unique)
+$retiredHealEffectNames = @(
+    $contract.expected.retiredPlayerProfessionHealEffectBuffs |
+        ForEach-Object { [string]$_ })
+$preservedHealEffectNames = @(
+    $contract.expected.preservedLaterContentHealEffectBuffs |
+        ForEach-Object { [string]$_ })
+$retiredHealEffectUses = @($healEffectUses | Where-Object {
+    $retiredHealEffectNames -ccontains [string]$_.Name })
+$preservedHealEffectUses = @($healEffectUses | Where-Object {
+    $preservedHealEffectNames -ccontains [string]$_.Name })
+Assert-Contract ($healEffectMappings.Count -eq
+        [int]$contract.expected.retainedHealEffectMappingRows -and
+    (($healEffectMappingNames -join "`n") -ceq
+        ((@("healing_action", "healing_health") | Sort-Object) -join "`n")) -and
+    $healEffectRowNames.Count -eq [int]$contract.expected.retainedHealEffectBuffRows -and
+    $healEffectUses.Count -eq [int]$contract.expected.retainedHealEffectUses -and
+    @($retiredHealEffectUses.Name | Sort-Object -Unique).Count -eq
+        [int]$contract.expected.retiredPlayerProfessionHealEffectBuffRows -and
+    $retiredHealEffectUses.Count -eq
+        [int]$contract.expected.retiredPlayerProfessionHealEffectUses -and
+    @($preservedHealEffectUses.Name | Sort-Object -Unique).Count -eq
+        [int]$contract.expected.preservedLaterContentHealEffectBuffRows -and
+    $preservedHealEffectUses.Count -eq
+        [int]$contract.expected.preservedLaterContentHealEffectUses -and
+    ((@($retiredHealEffectUses.Name | Sort-Object -Unique) -join "`n") -ceq
+        ((@($retiredHealEffectNames | Sort-Object)) -join "`n")) -and
+    ((@($preservedHealEffectUses.Name | Sort-Object -Unique) -join "`n") -ceq
+        ((@($preservedHealEffectNames | Sort-Object)) -join "`n")) -and
+    @($healEffectRowNames | Where-Object {
+        $retiredHealEffectNames -cnotcontains $_ -and
+        $preservedHealEffectNames -cnotcontains $_
+    }).Count -eq 0) `
+    "p14.buff-progression.profession-heal-effect.complete-data-inventory-authenticated"
 $groupBuffMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
     Where-Object { $_.TYPE -ceq "group" })
 $groupBuffEffectNames = @($groupBuffMappings.NAME)
