@@ -2011,6 +2011,73 @@ test -n "$damage_immune_purge_line"
 test "$damage_immune_player_guard_line" -lt "$damage_immune_purge_line"
 printf '%s\n' "$damage_immune_source" | grep -Fq 'removeAttribOrSkillModModifier(self, "damageImmuneDotResistAll")'
 printf '%s\n' "$damage_immune_source" | grep -Fq 'removeAttribOrSkillModModifier(self, "damageImmuneDamageImmune")'
+awk -F '\t' '
+    $2 == "dotReduction" || $2 == "dotDivisor" {
+        ++rows
+        ++names[$1]
+        if ($1 != $3) { exit 2 }
+        if ($2 == "dotReduction") { reduction[$1]=1 }
+        if ($2 == "dotDivisor") { divisor[$1]=1 }
+    }
+    END {
+        for (name in names) {
+            ++unique
+            if (names[name] != 2) { exit 3 }
+        }
+        for (name in reduction) { ++reduction_count }
+        for (name in divisor) { ++divisor_count }
+        if (rows != 48 || unique != 24 || reduction_count != 12 || divisor_count != 12) { exit 4 }
+    }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+    function mutation(value) {
+        return value ~ /^dot_(reduction|divisor)_/
+    }
+    mutation($8) || mutation($10) || mutation($12) || mutation($14) || mutation($16) {
+        ++rows
+        found[$1]=1
+    }
+    END {
+        expected["fs_hermetic_touch"]=1
+        expected["me_cure_affliction_1"]=1
+        expected["me_stasis_1"]=1
+        expected["me_stasis_self_1"]=1
+        expected["of_purge_1"]=1
+        expected["sp_covert_mastery"]=1
+        expected["sp_run_its_course"]=1
+        expected["wod_adaptive_biology"]=1
+        if (rows != 8) { exit 2 }
+        for (name in found) { if (!(name in expected)) { exit 3 } }
+        for (name in expected) { if (!(name in found)) { exit 4 } }
+    }
+' "$work_buff_table"
+dot_stack_mutation_source="$(sed -n '/private static final String RETIRED_POST_NGE_PLAYER_DOT_REDUCTION_EFFECT_PREFIX/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_DAMAGE_REDUCTION_MODIFIERS/p' "$work_buff_library")"
+printf '%s\n' "$dot_stack_mutation_source" | grep -Fq '"dot_reduction_"'
+printf '%s\n' "$dot_stack_mutation_source" | grep -Fq '"dot_divisor_"'
+printf '%s\n' "$dot_stack_mutation_source" | grep -Fq 'isRetiredPostNgePlayerDotStackMutationBuff'
+printf '%s\n' "$dot_stack_mutation_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$dot_stack_mutation_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerDotStackMutationState(player);' "$work_buff_library"
+dot_stack_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+dot_stack_admission_line="$(printf '%s\n' "$dot_stack_admission_source" | grep -Fn 'isRetiredPostNgePlayerDotStackMutationBuff(target, bdata)' | head -1 | cut -d: -f1)"
+dot_stack_existing_line="$(printf '%s\n' "$dot_stack_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$dot_stack_admission_line"
+test -n "$dot_stack_existing_line"
+test "$dot_stack_admission_line" -lt "$dot_stack_existing_line"
+dot_reduction_handler_source="$(sed -n '/public int dotReductionAddBuffHandler/,/public int dotReductionRemoveBuffHandler/p' "$work_buff_handler")"
+dot_divisor_handler_source="$(sed -n '/public int dotDivisorAddBuffHandler/,/public int dotDivisorRemoveBuffHandler/p' "$work_buff_handler")"
+dot_reduction_guard_line="$(printf '%s\n' "$dot_reduction_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+dot_reduction_mutation_line="$(printf '%s\n' "$dot_reduction_handler_source" | grep -Fn 'buff.reduceBuffDotStackCount' | head -1 | cut -d: -f1)"
+dot_divisor_guard_line="$(printf '%s\n' "$dot_divisor_handler_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+dot_divisor_mutation_line="$(printf '%s\n' "$dot_divisor_handler_source" | grep -Fn 'buff.divideBuffDotStackCount' | head -1 | cut -d: -f1)"
+test -n "$dot_reduction_guard_line"
+test -n "$dot_reduction_mutation_line"
+test -n "$dot_divisor_guard_line"
+test -n "$dot_divisor_mutation_line"
+test "$dot_reduction_guard_line" -lt "$dot_reduction_mutation_line"
+test "$dot_divisor_guard_line" -lt "$dot_divisor_mutation_line"
+test "$(printf '%s\n' "$dot_reduction_handler_source" | grep -Fc 'buff.reduceBuffDotStackCount')" -eq 9
+test "$(printf '%s\n' "$dot_divisor_handler_source" | grep -Fc 'buff.divideBuffDotStackCount')" -eq 9
 armor_break_source="$(sed -n '/public int armorBreakAddBuffHandler/,/public int armorBreakRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$armor_break_source" | grep -Fq 'retireNgeExpertiseModifier(self, effectName)'
 printf '%s' "$armor_break_source" | grep -Fq 'utils.removeScriptVar(self, INITIAL_GENERAL_PROTECTION)'
@@ -4139,6 +4206,29 @@ test -n "$damage_immune_purge_bytecode_line"
 test "$damage_immune_player_guard_bytecode_line" -lt "$damage_immune_purge_bytecode_line"
 printf '%s\n' "$damage_immune_bytecode" | grep -Fq 'damageImmuneDotResistAll'
 printf '%s\n' "$damage_immune_bytecode" | grep -Fq 'damageImmuneDamageImmune'
+dot_stack_buff_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+printf '%s\n' "$dot_stack_buff_bytecode" | grep -Fq 'dot_reduction_'
+printf '%s\n' "$dot_stack_buff_bytecode" | grep -Fq 'dot_divisor_'
+printf '%s\n' "$dot_stack_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerDotStackMutationBuff'
+printf '%s\n' "$dot_stack_buff_bytecode" | grep -Fq 'retirePostNgePlayerDotStackMutationState'
+dot_stack_admission_bytecode="$(printf '%s\n' "$dot_stack_buff_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+dot_stack_admission_bytecode_line="$(printf '%s\n' "$dot_stack_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerDotStackMutationBuff' | head -1 | cut -d: -f1)"
+dot_stack_existing_bytecode_line="$(printf '%s\n' "$dot_stack_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$dot_stack_admission_bytecode_line"
+test -n "$dot_stack_existing_bytecode_line"
+test "$dot_stack_admission_bytecode_line" -lt "$dot_stack_existing_bytecode_line"
+dot_reduction_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int dotReductionAddBuffHandler/,/public int dotReductionRemoveBuffHandler/p')"
+dot_divisor_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int dotDivisorAddBuffHandler/,/public int dotDivisorRemoveBuffHandler/p')"
+dot_reduction_guard_bytecode_line="$(printf '%s\n' "$dot_reduction_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+dot_reduction_mutation_bytecode_line="$(printf '%s\n' "$dot_reduction_handler_bytecode" | grep -Fn 'reduceBuffDotStackCount' | head -1 | cut -d: -f1)"
+dot_divisor_guard_bytecode_line="$(printf '%s\n' "$dot_divisor_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+dot_divisor_mutation_bytecode_line="$(printf '%s\n' "$dot_divisor_handler_bytecode" | grep -Fn 'divideBuffDotStackCount' | head -1 | cut -d: -f1)"
+test -n "$dot_reduction_guard_bytecode_line"
+test -n "$dot_reduction_mutation_bytecode_line"
+test -n "$dot_divisor_guard_bytecode_line"
+test -n "$dot_divisor_mutation_bytecode_line"
+test "$dot_reduction_guard_bytecode_line" -lt "$dot_reduction_mutation_bytecode_line"
+test "$dot_divisor_guard_bytecode_line" -lt "$dot_divisor_mutation_bytecode_line"
 javap -classpath "$class_root" -v script.library.healing | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'applyPrecuDotEffect'

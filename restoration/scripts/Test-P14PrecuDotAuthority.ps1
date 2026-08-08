@@ -10,6 +10,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
+Import-Module (Join-Path $PSScriptRoot "Restoration.Common.psm1") -Force
 $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw |
     ConvertFrom-Json
 $contractPath = Join-Path $restorationRoot `
@@ -72,6 +73,7 @@ $healing = [string]$texts.healing
 $combatBase = [string]$texts.combatBase
 $combatActions = [string]$texts.combatActions
 $buffHandler = [string]$texts.buffHandler
+$buffLibrary = [string]$texts.buffLibrary
 $normalApply = Get-BracedBlock $dot `
     "public static boolean applyDotEffect(obj_id target, obj_id attacker, String type, String dot_id, int attribute, int potency, int strength, int duration, boolean verbose, String handler)"
 $precuApply = Get-BracedBlock $dot `
@@ -150,6 +152,114 @@ Assert-Contract ($damageImmunePlayerGuard -ge 0 -and
     $damageImmuneHandler.Contains('removeAttribOrSkillModModifier(self, "damageImmuneDamageImmune")') -and
     $damageImmunePurge -gt $damageImmunePlayerGuard) `
     "p14.precu-dot.buff.player-full-damage-immunity-ingress-retired"
+
+$effectMappingPath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+$buffTablePath = Join-Path $source `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+$dotStackEffectRows = @(Import-SwgTab -Path $effectMappingPath | Where-Object {
+    [string]$_.TYPE -ceq "dotReduction" -or [string]$_.TYPE -ceq "dotDivisor"
+})
+$dotReductionEffectNames = @($dotStackEffectRows | Where-Object {
+    [string]$_.TYPE -ceq "dotReduction"
+} | Select-Object -ExpandProperty NAME -Unique)
+$dotDivisorEffectNames = @($dotStackEffectRows | Where-Object {
+    [string]$_.TYPE -ceq "dotDivisor"
+} | Select-Object -ExpandProperty NAME -Unique)
+$dotStackEffectNames = @($dotStackEffectRows |
+    Select-Object -ExpandProperty NAME -Unique)
+$dotStackBuffRows = @(Import-SwgTab -Path $buffTablePath | Where-Object {
+    $row = $_
+    @(1..5 | ForEach-Object { [string]$row.("EFFECT$($_)_PARAM") } |
+        Where-Object {
+            $_.StartsWith("dot_reduction_", [StringComparison]::Ordinal) -or
+            $_.StartsWith("dot_divisor_", [StringComparison]::Ordinal)
+        }).Count -gt 0
+})
+$expectedDotStackBuffNames = @($contract.expected.retainedDotStackMutationBuffNames)
+Assert-Contract ($dotStackEffectRows.Count -eq
+        [int]$contract.expected.retainedDotStackMutationEffectMappingRows -and
+    $dotStackEffectNames.Count -eq
+        [int]$contract.expected.retainedDotStackMutationEffectNames -and
+    $dotReductionEffectNames.Count -eq
+        [int]$contract.expected.retainedDotReductionEffectNames -and
+    $dotDivisorEffectNames.Count -eq
+        [int]$contract.expected.retainedDotDivisorEffectNames -and
+    @($dotStackEffectRows | Group-Object NAME | Where-Object { $_.Count -ne 2 }).Count -eq 0 -and
+    @($dotStackEffectRows | Where-Object {
+        [string]$_.NAME -cne [string]$_.SUBTYPE -or
+        ([string]$_.TYPE -ceq "dotReduction" -and
+            -not ([string]$_.NAME).StartsWith("dot_reduction_", [StringComparison]::Ordinal)) -or
+        ([string]$_.TYPE -ceq "dotDivisor" -and
+            -not ([string]$_.NAME).StartsWith("dot_divisor_", [StringComparison]::Ordinal))
+    }).Count -eq 0 -and
+    $dotStackBuffRows.Count -eq
+        [int]$contract.expected.retainedDotStackMutationBuffRows -and
+    ((@($dotStackBuffRows | Select-Object -ExpandProperty NAME | Sort-Object) -join "`n") -ceq
+        (@($expectedDotStackBuffNames | Sort-Object) -join "`n"))) `
+    "p14.precu-dot.buff.dot-stack-mutation-data-inventory-authenticated"
+
+$dotStackEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDotStackMutationEffect(String effectName)"
+$dotStackBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDotStackMutationBuff(obj_id target, buff_data data)"
+$dotStackCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerDotStackMutationState(obj_id player)"
+$dotStackProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$dotStackAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$dotReductionHandler = Get-BracedBlock $buffHandler `
+    "public int dotReductionAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
+$dotDivisorHandler = Get-BracedBlock $buffHandler `
+    "public int dotDivisorAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
+$dotReductionGuard = $dotReductionHandler.IndexOf("if (isPlayer(self))",
+    [StringComparison]::Ordinal)
+$dotReductionOverride = $dotReductionHandler.IndexOf("return SCRIPT_OVERRIDE;",
+    [StringComparison]::Ordinal)
+$dotReductionMutation = $dotReductionHandler.IndexOf("buff.reduceBuffDotStackCount",
+    [StringComparison]::Ordinal)
+$dotDivisorGuard = $dotDivisorHandler.IndexOf("if (isPlayer(self))",
+    [StringComparison]::Ordinal)
+$dotDivisorOverride = $dotDivisorHandler.IndexOf("return SCRIPT_OVERRIDE;",
+    [StringComparison]::Ordinal)
+$dotDivisorMutation = $dotDivisorHandler.IndexOf("buff.divideBuffDotStackCount",
+    [StringComparison]::Ordinal)
+$dotStackAdmissionPredicate = $dotStackAdmission.IndexOf(
+    "isRetiredPostNgePlayerDotStackMutationBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$dotStackExistingBuffRead = $dotStackAdmission.IndexOf("hasBuff(target, nameCrc)",
+    [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_DOT_REDUCTION_EFFECT_PREFIX = "dot_reduction_"') -and
+    $buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_DOT_DIVISOR_EFFECT_PREFIX = "dot_divisor_"') -and
+    $dotStackBuffPredicate.Contains("isPlayer(target)") -and
+    $dotStackBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $dotStackBuffPredicate.Contains("isRetiredPostNgePlayerDotStackMutationEffect") -and
+    $dotStackCleanup.Contains("getAllBuffs(player)") -and
+    $dotStackCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $dotStackCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $dotStackProgressionCleanup.Contains(
+        "retirePostNgePlayerDotStackMutationState(player);") -and
+    $dotStackAdmissionPredicate -ge 0 -and
+    $dotStackExistingBuffRead -gt $dotStackAdmissionPredicate -and
+    $dotReductionGuard -ge 0 -and
+    $dotReductionOverride -gt $dotReductionGuard -and
+    $dotReductionMutation -gt $dotReductionOverride -and
+    $dotDivisorGuard -ge 0 -and
+    $dotDivisorOverride -gt $dotDivisorGuard -and
+    $dotDivisorMutation -gt $dotDivisorOverride -and
+    ([regex]::Matches($dotReductionHandler, "buff.reduceBuffDotStackCount")).Count -eq 9 -and
+    ([regex]::Matches($dotReductionHandler, "dot.removeDotsOfType")).Count -eq 9 -and
+    ([regex]::Matches($dotDivisorHandler, "buff.divideBuffDotStackCount")).Count -eq 9 -and
+    ([regex]::Matches($dotDivisorHandler, "dot.removeDotsOfType")).Count -eq 9 -and
+    [int]$contract.expected.productionDotStackMutationHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerDotStackMutationBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerDotStackMutationStateRemoved -and
+    -not [bool]$contract.expected.immediatePlayerDotStackMutationReachable -and
+    [bool]$contract.expected.nonPlayerDotStackMutationCompatibilityPreserved) `
+    "p14.precu-dot.buff.player-dot-stack-mutation-fails-closed-npc-paths-preserved"
 
 Assert-Contract ($pulse.Contains("absorption_mod > 50") -and
     $pulse.Contains("absorption_mod = 50") -and

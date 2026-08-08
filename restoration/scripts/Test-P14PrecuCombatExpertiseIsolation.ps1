@@ -4145,6 +4145,88 @@ Assert-Contract ($medicDoomPredicate.Contains("isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeMedicDoomCompatibilityPreserved) `
     "p14.combat-expertise-isolation.medic-doom-player-proc-buff-and-delayed-dot-fail-closed"
 
+$dotStackEffectRows = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        [string]$_.TYPE -ceq "dotReduction" -or
+        [string]$_.TYPE -ceq "dotDivisor"
+    })
+$dotStackEffectNames = @($dotStackEffectRows |
+    Select-Object -ExpandProperty NAME -Unique)
+$dotReductionEffectNames = @($dotStackEffectRows | Where-Object {
+    [string]$_.TYPE -ceq "dotReduction"
+} | Select-Object -ExpandProperty NAME -Unique)
+$dotDivisorEffectNames = @($dotStackEffectRows | Where-Object {
+    [string]$_.TYPE -ceq "dotDivisor"
+} | Select-Object -ExpandProperty NAME -Unique)
+$dotStackBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | ForEach-Object { [string]$row.("EFFECT$($_)_PARAM") } |
+        Where-Object {
+            $_.StartsWith("dot_reduction_", [StringComparison]::Ordinal) -or
+            $_.StartsWith("dot_divisor_", [StringComparison]::Ordinal)
+        }).Count -gt 0
+})
+$expectedDotStackBuffNames = @($contract.expected.retainedDotStackMutationBuffNames)
+Assert-Contract ($dotStackEffectRows.Count -eq
+        [int]$contract.expected.retainedDotStackMutationEffectMappingRows -and
+    $dotStackEffectNames.Count -eq
+        [int]$contract.expected.retainedDotStackMutationEffectNames -and
+    $dotReductionEffectNames.Count -eq
+        [int]$contract.expected.retainedDotReductionEffectNames -and
+    $dotDivisorEffectNames.Count -eq
+        [int]$contract.expected.retainedDotDivisorEffectNames -and
+    @($dotStackEffectRows | Group-Object NAME | Where-Object { $_.Count -ne 2 }).Count -eq 0 -and
+    $dotStackBuffRows.Count -eq
+        [int]$contract.expected.retainedDotStackMutationBuffRows -and
+    ((@($dotStackBuffRows | Select-Object -ExpandProperty NAME | Sort-Object) -join "`n") -ceq
+        (@($expectedDotStackBuffNames | Sort-Object) -join "`n"))) `
+    "p14.combat-expertise-isolation.dot-stack-mutation-data-inventory-authenticated"
+
+$dotStackEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDotStackMutationEffect(String effectName)"
+$dotStackBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDotStackMutationBuff(obj_id target, buff_data data)"
+$dotStackCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerDotStackMutationState(obj_id player)"
+$dotStackAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$dotReductionHandler = Get-BracedBlock $buffHandler `
+    "public int dotReductionAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
+$dotDivisorHandler = Get-BracedBlock $buffHandler `
+    "public int dotDivisorAddBuffHandler(obj_id self, String effectName, String subtype, float duration, float value, String buffName, obj_id caster)"
+$dotReductionGuard = $dotReductionHandler.IndexOf("if (isPlayer(self))",
+    [StringComparison]::Ordinal)
+$dotReductionMutation = $dotReductionHandler.IndexOf("buff.reduceBuffDotStackCount",
+    [StringComparison]::Ordinal)
+$dotDivisorGuard = $dotDivisorHandler.IndexOf("if (isPlayer(self))",
+    [StringComparison]::Ordinal)
+$dotDivisorMutation = $dotDivisorHandler.IndexOf("buff.divideBuffDotStackCount",
+    [StringComparison]::Ordinal)
+Assert-Contract ($buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_DOT_REDUCTION_EFFECT_PREFIX = "dot_reduction_"') -and
+    $buffLibrary.Contains(
+        'RETIRED_POST_NGE_PLAYER_DOT_DIVISOR_EFFECT_PREFIX = "dot_divisor_"') -and
+    $dotStackBuffPredicate.Contains("isPlayer(target)") -and
+    $dotStackBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $dotStackCleanup.Contains("getAllBuffs(player)") -and
+    $dotStackCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $medicDoomProgressionCleanup.Contains(
+        "retirePostNgePlayerDotStackMutationState(player);") -and
+    $dotStackAdmission.Contains(
+        "isRetiredPostNgePlayerDotStackMutationBuff(target, bdata)") -and
+    $dotReductionGuard -ge 0 -and
+    $dotReductionMutation -gt $dotReductionGuard -and
+    $dotDivisorGuard -ge 0 -and
+    $dotDivisorMutation -gt $dotDivisorGuard -and
+    ([regex]::Matches($dotReductionHandler, "buff.reduceBuffDotStackCount")).Count -eq 9 -and
+    ([regex]::Matches($dotDivisorHandler, "buff.divideBuffDotStackCount")).Count -eq 9 -and
+    [int]$contract.expected.productionDotStackMutationHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerDotStackMutationBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerDotStackMutationStateRemoved -and
+    -not [bool]$contract.expected.immediatePlayerDotStackMutationReachable -and
+    [bool]$contract.expected.nonPlayerDotStackMutationCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.dot-stack-mutation-player-path-fails-closed"
+
 $buffProgressionCleanup = Get-BracedBlock $buffLibrary `
     "public static void retirePostNgeBuffProgression(obj_id player)"
 $meditationBuffCleanup = Get-BracedBlock $buffLibrary `
