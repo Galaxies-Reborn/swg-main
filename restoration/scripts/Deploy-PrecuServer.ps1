@@ -2997,7 +2997,7 @@ awk -F '\t' '
     END { if (handler_count != 2 || movement_count != 2) exit 44 }
 ' "$work_buff_effect_mapping"
 awk -F '\t' 'FNR > 2 && $1 == "co_suppressing_fire" { found++; if ($9 != "co_suppressing_fire") exit 45 } END { if (found != 1) exit 46 }' "$work_command_table"
-awk -F '\t' 'FNR > 2 && $1 == "co_suppressing_fire" { found++; if ($68 != "co_supressing_handler") exit 47 } END { if (found != 1) exit 48 }' "$work_combat_data"
+awk -F '\t' 'FNR > 2 && $1 == "co_suppressing_fire" { found++; if ($65 != "co_supressing_handler") exit 47 } END { if (found != 1) exit 48 }' "$work_combat_data"
 awk -F '\t' 'FNR > 2 && ($1 == "expertise_co_suppressing_fire_1" || $1 ~ /^expertise_co_suppression_efficiency_[1-4]$/) { found++ } END { if (found != 5) exit 49 }' "$work_skills_table"
 test "$(awk -F '\t' 'FNR > 2 && ($1 == "suppressionFire1" || $1 == "suppressionFire2") { found++ } END { print found + 0 }' "$work_command_table")" -eq 2
 test "$(awk -F '\t' 'FNR > 2 && ($1 == "suppressionFire1" || $1 == "suppressionFire2") { found++ } END { print found + 0 }' "$work_combat_data")" -eq 2
