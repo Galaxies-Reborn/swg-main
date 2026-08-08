@@ -373,6 +373,53 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
+$luckyBreakAlwaysModifiers = @("hit_always", "crit_always")
+$luckyBreakAlwaysMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        $luckyBreakAlwaysModifiers -ccontains [string]$_.NAME -and
+        [string]$_.TYPE -ceq "skill" -and
+        [string]$_.SUBTYPE -ceq [string]$_.NAME
+    })
+$luckyBreakBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { [string]$_.NAME -ceq "sm_lucky_break" })
+$retiredBuffCombatModifierInventory = Get-BracedBlock $staticItemLibrary `
+    "public static final String[] RETIRED_NGE_BUFF_COMBAT_MODIFIERS"
+$playerModifierCleanup = Get-BracedBlock $staticItemLibrary `
+    "public static void removeRetiredNgePlayerSkillStatistics(obj_id player)"
+$singleTargetDefenderResult = Get-BracedBlock $combatBase `
+    "public int getSingleTargetDefenderResult("
+$singleTargetAttackResult = Get-BracedBlock $combatBase `
+    "public int getSingleTargetAttackResult("
+Assert-Contract ($luckyBreakBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeSmugglerLuckyBreakBuffRows -and
+    @($luckyBreakBuffRows | Where-Object {
+        [string]$_.EFFECT1_PARAM -ceq "expertise_critical_niche_all" -and
+        [string]$_.EFFECT2_PARAM -ceq "hit_always" -and
+        [string]$_.EFFECT3_PARAM -ceq "crit_always"
+    }).Count -eq $luckyBreakBuffRows.Count -and
+    $luckyBreakAlwaysMappings.Count -eq
+        [int]$contract.expected.retainedNgeSmugglerLuckyBreakAlwaysModifierMappings -and
+    @($luckyBreakAlwaysModifiers | Where-Object {
+        $retiredBuffCombatModifierInventory.Contains('"' + $_ + '"')
+    }).Count -eq
+        [int]$contract.expected.retiredNgeSmugglerLuckyBreakAlwaysModifiers -and
+    $playerModifierCleanup.Contains("getSkillStatModListingForPlayer(player)") -and
+    $playerModifierCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $playerModifierCleanup.Contains("applySkillStatisticModifier(player, modifier, -currentValue)") -and
+    $singleTargetDefenderResult.IndexOf("isPlayer(attacker) ? 0", [StringComparison]::Ordinal) -lt
+        $singleTargetDefenderResult.IndexOf(
+            'getEnhancedSkillStatisticModifierUncapped(attacker, "hit_always")',
+            [StringComparison]::Ordinal) -and
+    $singleTargetAttackResult.IndexOf("isPlayer(attacker) ? 0", [StringComparison]::Ordinal) -lt
+        $singleTargetAttackResult.IndexOf(
+            'getEnhancedSkillStatisticModifierUncapped(attacker, "crit_always")',
+            [StringComparison]::Ordinal) -and
+    -not [bool]$contract.expected.playerNgeSmugglerLuckyBreakAlwaysModifierWritesReachable -and
+    [bool]$contract.expected.stalePlayerNgeSmugglerLuckyBreakAlwaysModifiersRemoved -and
+    -not [bool]$contract.expected.playerNgeSmugglerLuckyBreakAlwaysConsumersReachable -and
+    [bool]$contract.expected.nonPlayerNgeSmugglerLuckyBreakAlwaysCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.smuggler-lucky-break-always-state-fails-closed"
+
 $actionDrainEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object { [string]$_.TYPE -ceq "actionDrain" })
 $actionDrainBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
