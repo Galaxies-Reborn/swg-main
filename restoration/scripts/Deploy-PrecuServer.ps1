@@ -3468,6 +3468,7 @@ test -n "$queued_battlefield_communication_admission_line"
 test -n "$queued_battlefield_communication_existing_line"
 test "$queued_battlefield_communication_admission_line" -lt "$queued_battlefield_communication_existing_line"
 queued_battlefield_communication_add_source="$(sed -n '/public int battlefieldCommuncationsGlowAddBuffHandler/,/public int battlefieldCommuncationsGlowRemoveBuffHandler/p' "$work_buff_handler")"
+printf '%s' "$queued_battlefield_communication_add_source" | grep -Fq 'if (isPlayer(self) && buff.isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName(buffName))'
 queued_battlefield_communication_guard_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'if (isPlayer(self)' | head -1 | cut -d: -f1)"
 queued_battlefield_communication_name_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName(buffName)' | head -1 | cut -d: -f1)"
 queued_battlefield_communication_cleanup_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'retirePostNgePlayerQueuedBattlefieldCommunicationState(self);' | head -1 | cut -d: -f1)"
@@ -3476,7 +3477,7 @@ queued_battlefield_communication_writer_line="$(printf '%s\n' "$queued_battlefie
 for queued_battlefield_communication_source_line in "$queued_battlefield_communication_guard_line" "$queued_battlefield_communication_name_line" "$queued_battlefield_communication_cleanup_line" "$queued_battlefield_communication_return_line" "$queued_battlefield_communication_writer_line"; do
     test -n "$queued_battlefield_communication_source_line"
 done
-test "$queued_battlefield_communication_guard_line" -lt "$queued_battlefield_communication_name_line"
+test "$queued_battlefield_communication_guard_line" -le "$queued_battlefield_communication_name_line"
 test "$queued_battlefield_communication_name_line" -lt "$queued_battlefield_communication_cleanup_line"
 test "$queued_battlefield_communication_cleanup_line" -lt "$queued_battlefield_communication_return_line"
 test "$queued_battlefield_communication_return_line" -lt "$queued_battlefield_communication_writer_line"
