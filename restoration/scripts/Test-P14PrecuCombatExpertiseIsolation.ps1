@@ -3598,6 +3598,139 @@ Assert-Contract ($officerActionPredicate.Contains('actionName.startsWith("of_")'
     -not [bool]$contract.expected.playerNgeProfessionProxyDirectCallbacksReachable) `
     "p14.combat-expertise-isolation.actions.profession-proxy-prefixless-actions-and-callbacks-fail-closed"
 
+$retiredPrefixlessProfessionActions = @(
+    $contract.expected.retiredNgePrefixlessProfessionPlayerActions |
+        ForEach-Object { [string]$_ }
+)
+$expectedPrefixlessProfessionActions = @(
+    "ambush",
+    "assault",
+    "blastAway",
+    "cheapShot",
+    "crippleShot",
+    "demolition",
+    "entrench",
+    "forceFocus",
+    "forceRun",
+    "forceStrike",
+    "hipShot",
+    "neurotoxin",
+    "saberBlock",
+    "smokeGrenade",
+    "stealth",
+    "stunGrenade",
+    "targetAnatomy",
+    "terminateTarget"
+)
+$prefixlessProfessionActionOwners = [ordered]@{
+    Spy = @("terminateTarget", "stealth", "smokeGrenade")
+    Officer = @("entrench")
+    ForceSensitive = @("forceRun", "forceFocus", "forceStrike", "saberBlock")
+    Smuggler = @("cheapShot", "blastAway", "hipShot")
+    BountyHunter = @("assault", "crippleShot", "ambush")
+    Commando = @("demolition", "stunGrenade")
+    Medic = @("targetAnatomy", "neurotoxin")
+}
+$prefixlessProfessionActionPredicates = [ordered]@{
+    Spy = Get-BracedBlock $combatBase `
+        "public static boolean isRetiredPostNgeSpyPlayerAction("
+    Officer = $officerActionPredicate
+    ForceSensitive = $forceSensitivePlayerAction
+    Smuggler = Get-BracedBlock $combatBase `
+        "public static boolean isRetiredPostNgeSmugglerPlayerAction("
+    BountyHunter = $bountyHunterActionPredicate
+    Commando = Get-BracedBlock $combatBase `
+        "public static boolean isRetiredPostNgeCommandoPlayerAction("
+    Medic = Get-BracedBlock $combatBase `
+        "public static boolean isRetiredPostNgeMedicPlayerAction("
+}
+$prefixlessProfessionPredicateFailures = @(
+    foreach ($owner in $prefixlessProfessionActionOwners.Keys)
+    {
+        $predicate = [string]$prefixlessProfessionActionPredicates[$owner]
+        foreach ($actionName in $prefixlessProfessionActionOwners[$owner])
+        {
+            if (-not $predicate.Contains(
+                    'actionName.equals("' + $actionName + '")'))
+            {
+                "$owner`:$actionName"
+            }
+        }
+    }
+)
+$prefixlessProfessionCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object {
+        $retiredPrefixlessProfessionActions -ccontains [string]$_.commandName
+    })
+$prefixlessProfessionCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object {
+        $retiredPrefixlessProfessionActions -ccontains [string]$_.actionName
+    })
+$prefixlessProfessionSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+        @($commands | Where-Object {
+            $retiredPrefixlessProfessionActions -ccontains $_
+        }).Count -gt 0
+    })
+$prefixlessProfessionSkillActions = @($prefixlessProfessionSkillRows |
+    ForEach-Object { ([string]$_.COMMANDS).Trim('"') -split ',' } |
+    Where-Object { $retiredPrefixlessProfessionActions -ccontains $_ } |
+    Sort-Object -Unique)
+$precuNumberedForceCommands = @(Import-SwgTab -Path $paths.skillsTable |
+    ForEach-Object { ([string]$_.COMMANDS).Trim('"') -split ',' } |
+    Where-Object { $_ -cmatch '^force(?:Run[123]|Throw[12])$' } |
+    Sort-Object -Unique)
+$groupWaypointAction = Get-BracedBlock $basePlayer `
+    "public int groupWaypoint(obj_id self, obj_id target, String params, float defaultTime)"
+Assert-Contract ($retiredPrefixlessProfessionActions.Count -eq
+        [int]$contract.expected.retiredNgePrefixlessProfessionPlayerActionCount -and
+    @($retiredPrefixlessProfessionActions | Select-Object -Unique).Count -eq
+        $retiredPrefixlessProfessionActions.Count -and
+    (($retiredPrefixlessProfessionActions | Sort-Object) -join "`n") -ceq
+        (($expectedPrefixlessProfessionActions | Sort-Object) -join "`n") -and
+    $prefixlessProfessionCommandRows.Count -eq
+        [int]$contract.expected.retainedNgePrefixlessProfessionCommandRows -and
+    @($prefixlessProfessionCommandRows | Select-Object -ExpandProperty commandName |
+        Sort-Object -Unique).Count -eq $retiredPrefixlessProfessionActions.Count -and
+    $prefixlessProfessionCombatRows.Count -eq
+        [int]$contract.expected.retainedNgePrefixlessProfessionCombatRows -and
+    @($prefixlessProfessionCombatRows | Select-Object -ExpandProperty actionName |
+        Sort-Object -Unique).Count -eq $retiredPrefixlessProfessionActions.Count -and
+    $prefixlessProfessionSkillRows.Count -eq
+        [int]$contract.expected.retainedNgePrefixlessProfessionSkillRows -and
+    ($prefixlessProfessionSkillActions -join "`n") -ceq "forceRun`nsaberBlock") `
+    "p14.combat-expertise-isolation.actions.prefixless-profession-data-inventory-authenticated"
+Assert-Contract ($prefixlessProfessionPredicateFailures.Count -eq 0 -and
+    @($prefixlessProfessionActionPredicates.Values | Where-Object {
+        -not ([string]$_).Contains("isPlayer(self)")
+    }).Count -eq 0 -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeSpyPlayerAction(self, actionName)") -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeOfficerPlayerAction(self, actionName)") -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeForceSensitivePlayerAction(self, actionName)") -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeSmugglerPlayerAction(self, actionName)") -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeBountyHunterPlayerAction(self, actionName)") -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeCommandoPlayerAction(self, actionName)") -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeMedicPlayerAction(self, actionName)") -and
+    ($precuNumberedForceCommands -join "`n") -ceq
+        "forceRun1`nforceRun2`nforceRun3`nforceThrow1`nforceThrow2" -and
+    $groupWaypointAction.Contains(
+        'hasSkill(self, "outdoors_squadleader_novice")') -and
+    -not $officerActionPredicate.Contains(
+        'actionName.equals("groupWaypoint")') -and
+    -not [bool]$contract.expected.playerNgePrefixlessProfessionActionsReachable -and
+    [bool]$contract.expected.precuNumberedForceActionsPreserved -and
+    [bool]$contract.expected.precuSquadLeaderGroupWaypointPreserved -and
+    [bool]$contract.expected.nonPlayerNgePrefixlessProfessionCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.actions.prefixless-profession-player-authority-fail-closed"
+
 $retiredCommandoSuppressionNames = @(
     $contract.expected.retiredNgePlayerCommandoSuppressionBuffNames |
         ForEach-Object { [string]$_ }

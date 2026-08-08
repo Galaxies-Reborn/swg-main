@@ -5840,10 +5840,20 @@ javap -classpath "$class_root" -v script.systems.combat.combat_supply_drop_crate
 # mindBlast*, and jediMindTrick commands. The fs_* family and exact unnumbered
 # forceThrow action are retained NGE compatibility; forceThrow1/2 stay classic.
 combat_base_actions_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
+spy_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeSpyPlayerAction/,/public static boolean isRetiredPostNgeBeastMasterPlayerAction/p')"
+for prefixless_spy_action in terminateTarget stealth smokeGrenade; do
+    printf '%s' "$spy_action_bytecode" | grep -Fq "$prefixless_spy_action"
+done
+officer_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeOfficerPlayerAction/,/public static boolean isRetiredPostNgeForceSensitivePlayerAction/p')"
+printf '%s' "$officer_action_bytecode" | grep -Fq 'entrench'
+! printf '%s' "$officer_action_bytecode" | grep -Fq 'groupWaypoint'
 force_sensitive_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeForceSensitivePlayerAction/,/public static boolean isRetiredPostNgeSmugglerPlayerAction/p')"
 printf '%s' "$force_sensitive_action_bytecode" | grep -Fq 'fs_'
 printf '%s' "$force_sensitive_action_bytecode" | grep -Fq 'forceThrow'
-! printf '%s' "$force_sensitive_action_bytecode" | grep -Eq 'forceThrow[12]'
+for prefixless_force_sensitive_action in forceRun forceFocus forceStrike saberBlock; do
+    printf '%s' "$force_sensitive_action_bytecode" | grep -Fq "$prefixless_force_sensitive_action"
+done
+! printf '%s' "$force_sensitive_action_bytecode" | grep -Eq 'forceRun[123]|forceThrow[12]'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeForceSensitivePlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'fs_dot_immunity_recourse'
 force_throw_action_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/public int forceThrow(/,/public int ambush(/p')"
@@ -5855,6 +5865,10 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'sm_'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeSmugglerPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'sm_inspect_cargo'
+smuggler_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeSmugglerPlayerAction/,/public static boolean isRetiredPostNgeBountyHunterPlayerAction/p')"
+for prefixless_smuggler_action in cheapShot blastAway hipShot; do
+    printf '%s' "$smuggler_action_bytecode" | grep -Fq "$prefixless_smuggler_action"
+done
 # Publish 14.1 Bounty Hunter and Commando use their combat_bountyhunter and
 # combat_commando trees; bh_* and co_* remain NPC/content compatibility only.
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBountyHunterPlayerAction'
@@ -5865,9 +5879,16 @@ printf '%s' "$bounty_hunter_action_bytecode" | grep -Fq 'Method java/lang/String
 for bounty_hunter_flawless_set_action in set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3; do
     printf '%s' "$bounty_hunter_action_bytecode" | grep -Fq "$bounty_hunter_flawless_set_action"
 done
+for prefixless_bounty_hunter_action in assault crippleShot ambush; do
+    printf '%s' "$bounty_hunter_action_bytecode" | grep -Fq "$prefixless_bounty_hunter_action"
+done
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'co_kill_trap_1'
+commando_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeCommandoPlayerAction/,/public static boolean isRetiredPostNgeMedicPlayerAction/p')"
+for prefixless_commando_action in demolition stunGrenade; do
+    printf '%s' "$commando_action_bytecode" | grep -Fq "$prefixless_commando_action"
+done
 ! javap -classpath "$class_root" -v script.library.combat | grep -Eq 'isCommandoBonus|getDevastationChance'
 ! javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Eq 'commando_passive_dot|commando_devastation|expertise_devastation_bonus|getHeavyWeaponDotName'
 heavy_weapon_dot_bytecode="$(javap -classpath "$class_root" -c -p script.library.heavyweapons | sed -n '/getHeavyWeaponDotName(script.obj_id, int, boolean)/,/^$/p')"
@@ -5897,6 +5918,10 @@ javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -F
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeEntertainerPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'me_buff_health_1'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'en_holographic_image'
+medic_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeMedicPlayerAction/,/public static boolean isRetiredPostNgeEntertainerPlayerAction/p')"
+for prefixless_medic_action in targetAnatomy neurotoxin; do
+    printf '%s' "$medic_action_bytecode" | grep -Fq "$prefixless_medic_action"
+done
 # Publish 14.1 Creature Handler remains authoritative. Retain Beast Master
 # assets for later-content loading but retire their player combat runtime.
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'isPostNgeBeastMasterPlayerRuntimeRetired'
