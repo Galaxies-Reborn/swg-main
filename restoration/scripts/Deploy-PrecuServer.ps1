@@ -5845,7 +5845,9 @@ for prefixless_spy_action in terminateTarget stealth smokeGrenade; do
     printf '%s' "$spy_action_bytecode" | grep -Fq "$prefixless_spy_action"
 done
 officer_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeOfficerPlayerAction/,/public static boolean isRetiredPostNgeForceSensitivePlayerAction/p')"
-printf '%s' "$officer_action_bytecode" | grep -Fq 'entrench'
+for prefixless_officer_action in entrench actOfWar actOfWar_1 actOfWar_2 actOfWar_3; do
+    printf '%s' "$officer_action_bytecode" | grep -Fq "$prefixless_officer_action"
+done
 ! printf '%s' "$officer_action_bytecode" | grep -Fq 'groupWaypoint'
 force_sensitive_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeForceSensitivePlayerAction/,/public static boolean isRetiredPostNgeSmugglerPlayerAction/p')"
 printf '%s' "$force_sensitive_action_bytecode" | grep -Fq 'fs_'
@@ -5886,7 +5888,7 @@ javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq '
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'co_kill_trap_1'
 commando_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeCommandoPlayerAction/,/public static boolean isRetiredPostNgeMedicPlayerAction/p')"
-for prefixless_commando_action in demolition stunGrenade; do
+for prefixless_commando_action in demolition stunGrenade barrage barrage_1 barrage_2 barrage_3; do
     printf '%s' "$commando_action_bytecode" | grep -Fq "$prefixless_commando_action"
 done
 ! javap -classpath "$class_root" -v script.library.combat | grep -Eq 'isCommandoBonus|getDevastationChance'

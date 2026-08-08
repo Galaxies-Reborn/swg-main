@@ -3603,8 +3603,16 @@ $retiredPrefixlessProfessionActions = @(
         ForEach-Object { [string]$_ }
 )
 $expectedPrefixlessProfessionActions = @(
+    "actOfWar",
+    "actOfWar_1",
+    "actOfWar_2",
+    "actOfWar_3",
     "ambush",
     "assault",
+    "barrage",
+    "barrage_1",
+    "barrage_2",
+    "barrage_3",
     "blastAway",
     "cheapShot",
     "crippleShot",
@@ -3624,11 +3632,11 @@ $expectedPrefixlessProfessionActions = @(
 )
 $prefixlessProfessionActionOwners = [ordered]@{
     Spy = @("terminateTarget", "stealth", "smokeGrenade")
-    Officer = @("entrench")
+    Officer = @("entrench", "actOfWar", "actOfWar_1", "actOfWar_2", "actOfWar_3")
     ForceSensitive = @("forceRun", "forceFocus", "forceStrike", "saberBlock")
     Smuggler = @("cheapShot", "blastAway", "hipShot")
     BountyHunter = @("assault", "crippleShot", "ambush")
-    Commando = @("demolition", "stunGrenade")
+    Commando = @("demolition", "stunGrenade", "barrage", "barrage_1", "barrage_2", "barrage_3")
     Medic = @("targetAnatomy", "neurotoxin")
 }
 $prefixlessProfessionActionPredicates = [ordered]@{
@@ -3677,6 +3685,15 @@ $prefixlessProfessionSkillActions = @($prefixlessProfessionSkillRows |
     ForEach-Object { ([string]$_.COMMANDS).Trim('"') -split ',' } |
     Where-Object { $retiredPrefixlessProfessionActions -ccontains $_ } |
     Sort-Object -Unique)
+$bactaSprayCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { [string]$_.commandName -ceq "bactaSpray" })
+$barrageCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { [string]$_.commandName -ceq "barrage" })
+$bactaSpraySkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+        $commands -ccontains "bactaSpray"
+    })
 $precuNumberedForceCommands = @(Import-SwgTab -Path $paths.skillsTable |
     ForEach-Object { ([string]$_.COMMANDS).Trim('"') -split ',' } |
     Where-Object { $_ -cmatch '^force(?:Run[123]|Throw[12])$' } |
@@ -3692,15 +3709,28 @@ Assert-Contract ($retiredPrefixlessProfessionActions.Count -eq
     $prefixlessProfessionCommandRows.Count -eq
         [int]$contract.expected.retainedNgePrefixlessProfessionCommandRows -and
     @($prefixlessProfessionCommandRows | Select-Object -ExpandProperty commandName |
-        Sort-Object -Unique).Count -eq $retiredPrefixlessProfessionActions.Count -and
+        Sort-Object -Unique).Count -eq
+        [int]$contract.expected.retainedNgePrefixlessProfessionUniqueCommandNames -and
     $prefixlessProfessionCombatRows.Count -eq
         [int]$contract.expected.retainedNgePrefixlessProfessionCombatRows -and
     @($prefixlessProfessionCombatRows | Select-Object -ExpandProperty actionName |
-        Sort-Object -Unique).Count -eq $retiredPrefixlessProfessionActions.Count -and
+        Sort-Object -Unique).Count -eq
+        [int]$contract.expected.retainedNgePrefixlessProfessionUniqueCombatNames -and
     $prefixlessProfessionSkillRows.Count -eq
         [int]$contract.expected.retainedNgePrefixlessProfessionSkillRows -and
     ($prefixlessProfessionSkillActions -join "`n") -ceq "forceRun`nsaberBlock") `
     "p14.combat-expertise-isolation.actions.prefixless-profession-data-inventory-authenticated"
+Assert-Contract ($bactaSprayCommandRows.Count -eq
+        [int]$contract.expected.retainedDormantBactaSprayCommandRows -and
+    [string]$bactaSprayCommandRows[0].scriptHook -ceq "bactaSpray" -and
+    [string]$bactaSprayCommandRows[0].characterAbility -ceq "bactaSpray" -and
+    $barrageCommandRows.Count -eq 1 -and
+    [string]$barrageCommandRows[0].scriptHook -ceq "barrage" -and
+    [string]$barrageCommandRows[0].characterAbility -ceq "barrage" -and
+    $bactaSpraySkillRows.Count -eq
+        [int]$contract.expected.precuSkillGrantedBactaSprayRows -and
+    -not [bool]$contract.expected.bactaSprayBarrageAliasCollisionPresent) `
+    "p14.combat-expertise-isolation.actions.bacta-spray-barrage-alias-separated"
 Assert-Contract ($prefixlessProfessionPredicateFailures.Count -eq 0 -and
     @($prefixlessProfessionActionPredicates.Values | Where-Object {
         -not ([string]$_).Contains("isPlayer(self)")
