@@ -2741,7 +2741,7 @@ printf '%s\n' "$profession_movement_buff_predicate_source" | grep -Fq '"movement
 printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
-printf '%s\n' "$work_buff_library" | sed -n '/public static void retirePostNgeBuffProgression/,/public static final String DOT_BLEEDING/p' | grep -Fq 'retirePostNgePlayerProfessionMovementBuffState(player);'
+sed -n '/public static void retirePostNgeBuffProgression/,/public static final String DOT_BLEEDING/p' "$work_buff_library" | grep -Fq 'retirePostNgePlayerProfessionMovementBuffState(player);'
 ! printf '%s\n' "$movement_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuffName'
 printf '%s\n' "$movement_remove_source" | grep -Fq 'movement.removeMovementModifier(self, effectName);'
 force_throw_add_guard_line="$(printf '%s\n' "$force_throw_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerForceThrowEffect(effectName))' | head -1 | cut -d: -f1)"
@@ -5435,9 +5435,9 @@ buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.bu
 for profession_movement_prefix in $profession_movement_prefixes; do
     printf '%s' "$buff_modifier_bytecode" | grep -Fq "$profession_movement_prefix"
 done
-profession_movement_name_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionMovementBuffName(java.lang.String)/,/isRetiredPostNgePlayerProfessionMovementBuff(script.obj_id, script.library.buff_data)/p')"
+profession_movement_name_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionMovementBuffName(java.lang.String)/,/isRetiredPostNgePlayerProfessionMovementBuff(script.obj_id, script.combat_engine\$buff_data)/p')"
 printf '%s' "$profession_movement_name_predicate_bytecode" | grep -Fq 'java/lang/String.startsWith'
-profession_movement_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionMovementBuff(script.obj_id, script.library.buff_data)/,/retirePostNgePlayerProfessionMovementBuffState/p')"
+profession_movement_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionMovementBuff(script.obj_id, script.combat_engine\$buff_data)/,/retirePostNgePlayerProfessionMovementBuffState/p')"
 printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
 printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuffName'
 printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'String movement'
