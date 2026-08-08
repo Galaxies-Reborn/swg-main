@@ -69,6 +69,7 @@ $buffLibrary = [string]$texts.buffLibrary
 $staticItemLibrary = [string]$texts.staticItemLibrary
 $meditationLibrary = [string]$texts.meditationLibrary
 $bountyHunterShieldScript = [string]$texts.bountyHunterShieldScript
+$playerBeastMaster = [string]$texts.playerBeastMaster
 $dictionaryCost = Get-BracedBlock $combatLibrary `
     "public static int[] getActionCost(obj_id self, weapon_data weaponData, dictionary actionData)"
 $typedCost = Get-BracedBlock $combatLibrary `
@@ -2135,6 +2136,157 @@ Assert-Contract ($forceThrowAddGuard -ge 0 -and
     -not [bool]$contract.expected.playerNgeForceThrowMovementControlReachable -and
     [bool]$contract.expected.nonPlayerNgeForceThrowCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.force-throw-control-handlers-player-fail-closed"
+
+$retiredBeastFamilyBuffNames = @(
+    $contract.expected.retiredNgePlayerBeastFamilyBuffNames |
+        ForEach-Object { [string]$_ }
+)
+$retiredBeastFamilyCallbacks = @(
+    $contract.expected.retiredNgePlayerBeastFamilyDirectCallbacks |
+        ForEach-Object { [string]$_ }
+)
+$beastFamilyEffects = @(
+    "bm_beast_family_all",
+    "bm_beast_family_monkey",
+    "bm_beast_family_pig"
+)
+$beastFamilyMappings = @(Import-SwgTab -Path $paths.buffEffectMapping | Where-Object {
+    $beastFamilyEffects -ccontains [string]$_.NAME
+})
+$beastFamilyRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $retiredBeastFamilyBuffNames -ccontains [string]$_.NAME
+})
+$beastFamilyEffectUses = @($beastFamilyRows | ForEach-Object {
+    @($_.EFFECT1_PARAM, $_.EFFECT2_PARAM, $_.EFFECT3_PARAM,
+        $_.EFFECT4_PARAM, $_.EFFECT5_PARAM) | Where-Object {
+            $beastFamilyEffects -ccontains [string]$_
+        }
+})
+$beastFamilyMappingSignatures = @($beastFamilyMappings | ForEach-Object {
+    "$($_.NAME)|$($_.TYPE)|$($_.SUBTYPE)"
+} | Sort-Object)
+$expectedBeastFamilyMappingSignatures = @(
+    "bm_beast_family_all|bmBeastFamily|all",
+    "bm_beast_family_monkey|bmBeastFamily|monkey",
+    "bm_beast_family_pig|bmBeastFamily|pig"
+)
+Assert-Contract ($beastFamilyMappings.Count -eq
+        [int]$contract.expected.retainedNgeBeastFamilyEffectMappingRows -and
+    (($beastFamilyMappingSignatures -join "`n") -ceq
+        (($expectedBeastFamilyMappingSignatures | Sort-Object) -join "`n")) -and
+    $beastFamilyRows.Count -eq
+        [int]$contract.expected.retainedNgePlayerBeastFamilyBuffRows -and
+    (($beastFamilyRows.NAME | Sort-Object) -join "`n") -ceq
+        (($retiredBeastFamilyBuffNames | Sort-Object) -join "`n") -and
+    @($beastFamilyRows | Where-Object {
+        [string]$_.GROUP1 -ceq "bm_player_buff"
+    }).Count -eq $beastFamilyRows.Count -and
+    $beastFamilyEffectUses.Count -eq
+        [int]$contract.expected.retainedNgePlayerBeastFamilyEffectUses) `
+    "p14.combat-expertise-isolation.buff.beast-family-data-authenticated"
+
+$beastFamilyInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_BEAST_FAMILY_BUFFS"
+$beastFamilyInventoryNames = @([regex]::Matches($beastFamilyInventory, '"([^\"]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$beastFamilyPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerBeastFamilyBuff(obj_id target, buff_data data)"
+$beastFamilyCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerBeastFamilyBuffState(obj_id player)"
+$beastFamilyProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$beastFamilyAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$beastFamilyAdmissionGate = $beastFamilyAdmission.IndexOf(
+    "isRetiredPostNgePlayerBeastFamilyBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$beastFamilyExistingBuffReturn = $beastFamilyAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ((($beastFamilyInventoryNames -join "`n") -ceq
+        ($retiredBeastFamilyBuffNames -join "`n")) -and
+    $beastFamilyPredicate.Contains("isPlayer(target)") -and
+    $beastFamilyPredicate.Contains(
+        "isRetiredPostNgePlayerBeastFamilyBuffName(data.buffName)") -and
+    $beastFamilyCleanup.Contains("getAllBuffs(player)") -and
+    $beastFamilyCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $beastFamilyProgressionCleanup.Contains(
+        "retirePostNgePlayerBeastFamilyBuffState(player);") -and
+    $beastFamilyAdmissionGate -ge 0 -and
+    $beastFamilyExistingBuffReturn -gt $beastFamilyAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeBeastFamilyBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeBeastFamilyBuffStateRemoved) `
+    "p14.combat-expertise-isolation.buff.beast-family-admission-and-persistence-fail-closed"
+
+$beastFamilyAdd = Get-BracedBlock $buffHandler `
+    "public void bmBeastFamilyAddBuffHandler("
+$beastFamilyRemove = Get-BracedBlock $buffHandler `
+    "public void bmBeastFamilyRemoveBuffHandler("
+$beastFamilyIdentityGate = $beastFamilyAdd.IndexOf(
+    "isRetiredPostNgePlayerBeastFamilyBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$beastFamilyLegacyNonPlayerBranch = $beastFamilyAdd.IndexOf(
+    "if (!isPlayer(self))", [StringComparison]::Ordinal)
+$beastFamilyPlayerGate = $beastFamilyAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$beastFamilyPlayerCleanup = $beastFamilyAdd.IndexOf(
+    "beast_lib.retirePostNgeBeastMasterPlayerState(self);",
+    [StringComparison]::Ordinal)
+$beastFamilyPlayerReturn = $beastFamilyAdd.IndexOf(
+    "return;", $beastFamilyPlayerCleanup, [StringComparison]::Ordinal)
+$beastFamilyOwnedGate = $beastFamilyAdd.IndexOf(
+    "beast_lib.isRetiredPostNgePlayerOwnedBeast(self)",
+    [StringComparison]::Ordinal)
+$beastFamilyOwnedCleanup = $beastFamilyAdd.IndexOf(
+    "beast_lib.retirePostNgeBeastMasterPlayerState(master);",
+    [StringComparison]::Ordinal)
+$beastFamilyLegacyNestedApply = $beastFamilyAdd.IndexOf(
+    "buff.applyBuff(master, self, buffName)", [StringComparison]::Ordinal)
+Assert-Contract ($beastFamilyIdentityGate -ge 0 -and
+    $beastFamilyLegacyNonPlayerBranch -gt $beastFamilyIdentityGate -and
+    $beastFamilyPlayerGate -gt $beastFamilyIdentityGate -and
+    $beastFamilyPlayerCleanup -gt $beastFamilyPlayerGate -and
+    $beastFamilyPlayerReturn -gt $beastFamilyPlayerCleanup -and
+    $beastFamilyPlayerReturn -lt $beastFamilyLegacyNonPlayerBranch -and
+    $beastFamilyOwnedGate -gt $beastFamilyPlayerReturn -and
+    $beastFamilyOwnedCleanup -gt $beastFamilyOwnedGate -and
+    $beastFamilyLegacyNestedApply -gt $beastFamilyOwnedCleanup -and
+    $beastFamilyAdd.Contains("buff.removeBuff(self, buffName);") -and
+    -not $beastFamilyRemove.Contains(
+        "isRetiredPostNgePlayerBeastFamilyBuffName") -and
+    $beastFamilyRemove.Contains("buff.removeBuff(player, buffName);") -and
+    $beastFamilyRemove.Contains("buff.removeBuff(beast, buffName);") -and
+    [int]$contract.expected.productionNgePlayerBeastFamilyAddHandlersGuarded -eq 1 -and
+    [int]$contract.expected.productionNgePlayerBeastFamilyOwnedBeastGuards -eq 1 -and
+    -not [bool]$contract.expected.playerNgeBeastFamilyNestedPropagationReachable -and
+    [bool]$contract.expected.beastFamilyRemoveCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerNgeBeastFamilyCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.beast-family-handler-player-fail-closed"
+
+$guardedBeastFamilyCallbacks = 0
+foreach ($callbackName in $retiredBeastFamilyCallbacks)
+{
+    $callback = Get-BracedBlock $playerBeastMaster "public int $callbackName("
+    $callbackPredicate = $callback.IndexOf(
+        "beast_lib.isRetiredPostNgeBeastMasterPlayer(self)",
+        [StringComparison]::Ordinal)
+    $callbackCleanup = $callback.IndexOf(
+        "beast_lib.retirePostNgeBeastMasterPlayerState(self);",
+        [StringComparison]::Ordinal)
+    $callbackReturn = $callback.IndexOf(
+        "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+    $callbackBuffRead = $callback.IndexOf(
+        "buff.hasBuff(player", [StringComparison]::Ordinal)
+    if ($callbackPredicate -ge 0 -and
+        $callbackCleanup -gt $callbackPredicate -and
+        $callbackReturn -gt $callbackCleanup -and
+        $callbackBuffRead -gt $callbackReturn)
+    {
+        ++$guardedBeastFamilyCallbacks
+    }
+}
+Assert-Contract ($guardedBeastFamilyCallbacks -eq
+        [int]$contract.expected.productionNgePlayerBeastFamilyDirectCallbacksGuarded) `
+    "p14.combat-expertise-isolation.buff.beast-family-direct-callbacks-fail-closed"
 
 $retiredProfessionMovementPrefixes = @(
     $contract.expected.retiredNgePlayerProfessionMovementBuffPrefixes |

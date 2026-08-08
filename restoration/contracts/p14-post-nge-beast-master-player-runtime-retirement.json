@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-beast-master-player-runtime-retirement",
   "status": "ready",
-  "scope": "Retire post-NGE Beast Master identity, player-owned Beast combat XP and level progression, trainer grants, live-conversion reattachment, expertise arithmetic, persisted known-skill state, Shield Master/bodyguard buffs, and all inherited player damage redirection while Publish 14.1 Creature Handler tame/control runtime and retained later-content NPC, display, conversation, asset, template, and data content continue to load.",
+  "scope": "Retire post-NGE Beast Master identity, player-owned Beast combat XP and level progression, trainer grants, live-conversion reattachment, expertise arithmetic, persisted known-skill state, the exact seven-row player Beast-family helper surface, Shield Master/bodyguard buffs, and all inherited player damage redirection while Publish 14.1 Creature Handler tame/control runtime and retained later-content NPC, display, conversation, asset, template, and data content continue to load.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -21,7 +21,8 @@
       "The production combat-XP fallback could still call Beast XP and level progression for a stale player-owned NGE Beast even after player Beast Master identity, creation, login, and commands were retired.",
       "The shared Beast XP and level entrypoints now reject only Beasts mastered by a real player, so retained NPC, unowned, and invulnerable barn-display Beast content remains available.",
       "The retained NGE Beast Master protection family has exactly three effect mappings and three buff rows: Shield Master applies a timed player/pet pair and bodyguard applies a persistent master redirect. Its specialized handlers write the shared damage_redirect state, and the inherited combat consumer also accepts later saber-intercept, Spy hologram, and battlefield-vehicle writers for players.",
-      "Pinned Core3 has no Shield Master/bodyguard mapping, damage_redirect state, or directDamageToDifferentTarget consumer. Exact player-only buff admission and lifecycle cleanup, player and player-master handler guards, and cleanup before the single inherited player consumer now retire every player damage-redirection path while retaining all data and non-player encounter behavior."
+      "Pinned Core3 has no Shield Master/bodyguard mapping, damage_redirect state, or directDamageToDifferentTarget consumer. Exact player-only buff admission and lifecycle cleanup, player and player-master handler guards, and cleanup before the single inherited player consumer now retire every player damage-redirection path while retaining all data and non-player encounter behavior.",
+      "The retained Beast-family helper surface has exactly three bmBeastFamily mappings, seven persistent bm_player_buff rows, seven mapping uses, and seven direct player_beastmaster callbacks. Standard bm_ action admission and login group cleanup were already retired, but queued direct callbacks and the family add handler could still bypass the standard combat gate or propagate state between a player and a player-owned NGE Beast. Exact player admission and lifecycle cleanup, all seven direct callback guards, and the add handler's player and player-owned-Beast guards now close that residual path while every row, remove cleanup, unowned/NPC Beast behavior, and later pet-target content remain available."
     ]
   },
   "expected": {
@@ -71,6 +72,35 @@
     "directCallbacksGuarded": [
       "bm_paralytic_poison_recourse"
     ],
+    "retiredBeastFamilyBuffNames": [
+      "bm_truffle_pig",
+      "bm_helper_monkey_domestic",
+      "bm_helper_monkey_engineering",
+      "bm_helper_monkey_structure",
+      "bm_helper_monkey_munitions",
+      "bm_helper_monkey_jedi",
+      "bm_helper_monkey_shipwright"
+    ],
+    "retiredBeastFamilyDirectCallbackNames": [
+      "bm_pig_forage",
+      "bm_helper_monkey_domestic",
+      "bm_helper_monkey_engineering",
+      "bm_helper_monkey_structure",
+      "bm_helper_monkey_munitions",
+      "bm_helper_monkey_jedi",
+      "bm_helper_monkey_shipwright"
+    ],
+    "retainedBeastFamilyEffectMappingRows": 3,
+    "retainedBeastFamilyBuffRows": 7,
+    "retainedBeastFamilyEffectUses": 7,
+    "productionBeastFamilyDirectCallbacksGuarded": 7,
+    "productionBeastFamilyAddHandlersGuarded": 1,
+    "productionBeastFamilyPlayerOwnedGuards": 1,
+    "playerBeastFamilyBuffAdmissionReachable": false,
+    "persistedPlayerBeastFamilyBuffStateRemoved": true,
+    "playerBeastFamilyNestedPropagationReachable": false,
+    "beastFamilyRemoveCompatibilityPreserved": true,
+    "nonPlayerBeastFamilyCompatibilityPreserved": true,
     "retainedDamageRedirectEffectMappingRows": 3,
     "retainedDamageRedirectBuffRows": 3,
     "productionDamageRedirectHandlersGuarded": 4,
@@ -91,7 +121,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "0d628109881fd4436514a46ce7b0838a92b96768",
+    "directSourceGitlink": "d32bd971bd19d488b1dfc962157565c5bc135071",
     "lineEndingPolicy": "The directly edited Java sources remain repository-declared LF; no generated overlay, host artifact, or staging tree was created.",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/380-p14-post-nge-beast-master-player-runtime-retirement.patch",
@@ -100,8 +130,8 @@
       "role": "authenticated archival origin only; current authority is the pinned direct-source branch"
     },
     "sourceSetSha256": "98053d1c6d65270fabd09a19042c39b3eed8642dd5c03286e1566145fc4b72ca",
-    "sourceContentSha256": "cf7f74f6640fc08b26be42c85e82a7a261edef0cd1e006d5b33707873eee0855",
-    "currentSourceEvidenceRefreshedBy": "Current direct source additionally retires the exact three-mapping, three-buff Beast Master Shield Master/bodyguard protection family and clears all shared player damage_redirect state before the inherited consumer while preserving non-player compatibility.",
+    "sourceContentSha256": "f8414e96beb2b1fc2706b6ae432c3f687a6986c98f5ccf4372a15b97a7cbae8a",
+    "currentSourceEvidenceRefreshedBy": "Current direct source additionally retires the exact three-mapping, seven-row, seven-use Beast-family player helper surface at admission, lifecycle cleanup, the shared add handler's player and player-owned paths, and all seven direct player_beastmaster callbacks while preserving remove-side and non-player compatibility.",
     "sourceSha256": {
       "ai/beast.java": "77949fda3b5deecf0dcbeffab998ba5fe84d7d4a6cded6b48a06a0b6fe50652d",
       "ai/beast_control_device.java": "527fb77039e8429b38fde80d301a9950ce70f84ffc62d046bc315757d6267438",
@@ -109,18 +139,18 @@
       "conversation/trainer_beast_master.java": "af9a2921c9baa8c42023d196ff80352c2977428ad1ba2220d40ede653228da41",
       "item/loot_schematic/loot_schematic.java": "505381f03c4a823bc1e67185966bab7cf48ca2189819d10affa70d4044f1d32d",
       "library/beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
-      "library/buff.java": "f6f42d4b9e595b084a36960a172dccca35ea121566573573e87f8606e846153c",
+      "library/buff.java": "efee8d73a6a1812d97cdc85068592eafdc3bde4d1e223d16fc77f14439d249b3",
       "library/combat.java": "18401be6f86077e0e4fcf4f75e82b0dc21ce471c384a4739d285cdd598676817",
       "library/utils.java": "3cd2ad1f66c8f447bc78ca3e8fd015f003d8432861cde0862c7f488662a5f712",
       "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/live_conversions.java": "d632d33735d943cf63906cfd7c4a5c976a4a04b02ee9039a1e802740288924cd",
-      "player/player_beastmaster.java": "336fe4e2aca9db270e13647ea588d48e3a13f9e795039b93abe3e0618ce25ca5",
-      "systems/buff/buff_handler.java": "4382a7b46423005c0cd4987f773a9272f78e800cf36ff6320f334379fe79ceaf",
+      "player/player_beastmaster.java": "9581e344be2d5ea1d2c42cbd511503eb0688976c97de83d17c1fedd9799580cf",
+      "systems/buff/buff_handler.java": "039a038a6231f0bf55bbfe0511e0ce3a0a85dd4a16a54b9478591287a1b51587",
       "systems/combat/combat_actions.java": "8fd1d328d2ec109ac2b738ad3f2e206851738149d6301a275c225e2e5860a600",
       "systems/combat/combat_base.java": "fa73e6b7d194e4a6f9a037f2f3f1b2e5731b4c6012ad00683c932ef46a83fba6"
     },
-    "staticContract": "passed exact retained data inventory, player-only admission/lifecycle, four specialized handlers, four player-master guards, consumer cleanup ordering, and non-player compatibility",
-    "focusedJavaCompile": "passed Java 8 compatibility compile of buff.java, buff_handler.java, and combat.java with -implicit:none in exact ephemeral /dev/shm/precu-damage-redirect-compile-20260808; emitted 64,418-byte, 104,040-byte, and 88,670-byte classes with SHA-256 f34d02798250ad7e2bebd2a196098ef233cc29fd4d114b00da329158a737c8a5, 1ae26aa73665f44b5ed3c702373d2df111b72510982d8b641e96395ba1554439, and 3d1cbf525503353f6b066ef5add0835be56396818fa7e7d249b664370d6a11ab; path removed and absence verified",
+    "staticContract": "passed exact three-mapping, seven-row, seven-use Beast-family data inventory; exact-name player admission and lifecycle cleanup; the shared add handler's player and player-owned early returns; all seven direct callback guards; remove-side compatibility; and preserved non-player encounter behavior",
+    "focusedJavaCompile": "passed focused OpenJDK 11 Java 8-target compilation of library/buff.java, systems/buff/buff_handler.java, and player/player_beastmaster.java from pushed direct-source commit d32bd971bd19d488b1dfc962157565c5bc135071 with -g and -implicit:none; emitted SHA-256 e0b24e063dabb3bcef31a7ec0d5c0f431492021c8ffdca519455909258591fe at 90937 bytes, 11fe79b1d167ea732f946cf528b21707e2ef42cc95afe12ccef89f9fa2cfeb35 at 137978 bytes, and 43f12d972318bb4a5f182d6b7e488f9ea36520b70eb8455772b840bbf3856f92 at 31973 bytes; bytecode authenticates the shared add-handler player and player-owned returns before legacy nested propagation and every direct callback return before its first buff read; /dev/shm/precu-beast-family-check was removed on exit",
     "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct-source commit c5a18d3550b49b4f5ebff6d098209876c81808be; 5713 Java sources produced 5747 classes under OpenJDK 11",
     "fullServerBuild": "passed canonical clean x64 Docker deployment in 1112.5 seconds from pushed parent f7c4dd8a9e702330f08ed56ef4ed8bb7dede0b0c and direct dsrc c5a18d3550b49b4f5ebff6d098209876c81808be with synchronized source/data/bytecode/native artifact gates and a controlled restart",
     "architecture": "twelve server binaries verified ELF 64-bit LSB x86-64; all 15 live SwgGameServer processes map the authenticated build binary",

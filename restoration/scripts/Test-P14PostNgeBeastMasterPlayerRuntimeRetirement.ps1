@@ -134,6 +134,142 @@ Assert-Contract (
     (Get-TextSha256 $contentRecords) -ceq [string]$contract.buildEvidence.sourceContentSha256
 ) "p14.beast-retirement.source-content.authenticated"
 
+$buffLibrary = [string]$sourceTexts["library/buff.java"]
+$combatLibrary = [string]$sourceTexts["library/combat.java"]
+$buffHandler = [string]$sourceTexts["systems/buff/buff_handler.java"]
+$playerBeastMaster = [string]$sourceTexts["player/player_beastmaster.java"]
+$beastFamilyEffects = @(
+    "bm_beast_family_all",
+    "bm_beast_family_monkey",
+    "bm_beast_family_pig"
+)
+$beastFamilyBuffNames = @(
+    $contract.expected.retiredBeastFamilyBuffNames | ForEach-Object { [string]$_ }
+)
+$beastFamilyMappings = @(Import-Csv -Delimiter "`t" -LiteralPath `
+    (Join-Path $sharedRoot "buff/effect_mapping.tab") | Where-Object {
+        $beastFamilyEffects -ccontains [string]$_.NAME
+    })
+$beastFamilyBuffRows = @(Import-Csv -Delimiter "`t" -LiteralPath `
+    (Join-Path $sharedRoot "buff/buff.tab") | Where-Object {
+        $beastFamilyBuffNames -ccontains [string]$_.NAME
+    })
+$beastFamilyEffectUses = @($beastFamilyBuffRows | ForEach-Object {
+    @($_.EFFECT1_PARAM, $_.EFFECT2_PARAM, $_.EFFECT3_PARAM,
+        $_.EFFECT4_PARAM, $_.EFFECT5_PARAM) | Where-Object {
+            $beastFamilyEffects -ccontains [string]$_
+        }
+})
+$beastFamilyMappingSignatures = @($beastFamilyMappings | ForEach-Object {
+    "$($_.NAME)|$($_.TYPE)|$($_.SUBTYPE)"
+} | Sort-Object)
+$expectedBeastFamilyMappingSignatures = @(
+    "bm_beast_family_all|bmBeastFamily|all",
+    "bm_beast_family_monkey|bmBeastFamily|monkey",
+    "bm_beast_family_pig|bmBeastFamily|pig"
+)
+Assert-Contract (
+    $beastFamilyMappings.Count -eq
+        [int]$contract.expected.retainedBeastFamilyEffectMappingRows -and
+    (($beastFamilyMappingSignatures -join $lf) -ceq
+        (($expectedBeastFamilyMappingSignatures | Sort-Object) -join $lf)) -and
+    $beastFamilyBuffRows.Count -eq [int]$contract.expected.retainedBeastFamilyBuffRows -and
+    (($beastFamilyBuffRows.NAME | Sort-Object) -join $lf) -ceq
+        (($beastFamilyBuffNames | Sort-Object) -join $lf) -and
+    @($beastFamilyBuffRows | Where-Object {
+        [string]$_.GROUP1 -ceq "bm_player_buff"
+    }).Count -eq $beastFamilyBuffRows.Count -and
+    $beastFamilyEffectUses.Count -eq [int]$contract.expected.retainedBeastFamilyEffectUses
+) "p14.beast-retirement.beast-family.data-authenticated"
+
+$beastFamilyInventory = Get-SourceSlice $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_BEAST_FAMILY_BUFFS" `
+    "public static boolean isRetiredPostNgePlayerBeastFamilyBuffName("
+$beastFamilyInventoryNames = @([regex]::Matches($beastFamilyInventory, '"([^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$beastFamilyPredicate = Get-SourceSlice $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerBeastFamilyBuff(" `
+    "public static void retirePostNgePlayerBeastFamilyBuffState("
+$beastFamilyCleanup = Get-SourceSlice $buffLibrary `
+    "public static void retirePostNgePlayerBeastFamilyBuffState(" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_BUFF_PREFIXES"
+$beastFamilyProgressionCleanup = Get-SourceSlice $buffLibrary `
+    "public static void retirePostNgeBuffProgression(" `
+    "public static void retirePostNgeMeditationBuffs("
+$beastFamilyAdmission = Get-SourceSlice $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static int[] getGroups("
+Assert-Contract (
+    (($beastFamilyInventoryNames -join $lf) -ceq ($beastFamilyBuffNames -join $lf)) -and
+    $beastFamilyPredicate.Contains("isPlayer(target)") -and
+    $beastFamilyPredicate.Contains("isRetiredPostNgePlayerBeastFamilyBuffName(data.buffName)") -and
+    $beastFamilyCleanup.Contains("getAllBuffs(player)") -and
+    $beastFamilyCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $beastFamilyProgressionCleanup.Contains("retirePostNgePlayerBeastFamilyBuffState(player);") -and
+    (Is-Before $beastFamilyAdmission `
+        "isRetiredPostNgePlayerBeastFamilyBuff(target, bdata)" `
+        "hasBuff(target, nameCrc)") -and
+    -not [bool]$contract.expected.playerBeastFamilyBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerBeastFamilyBuffStateRemoved
+) "p14.beast-retirement.beast-family.admission-and-lifecycle-fail-closed"
+
+$beastFamilyAdd = Get-SourceSlice $buffHandler `
+    "public void bmBeastFamilyAddBuffHandler(" `
+    "public void bmBeastFamilyRemoveBuffHandler("
+$beastFamilyRemove = Get-SourceSlice $buffHandler `
+    "public void bmBeastFamilyRemoveBuffHandler(" `
+    "public String getInitialBuffName("
+Assert-Contract (
+    (Is-Before $beastFamilyAdd `
+        "isRetiredPostNgePlayerBeastFamilyBuffName(buffName)" `
+        "if (!isPlayer(self))") -and
+    (Is-Before $beastFamilyAdd "if (isPlayer(self))" `
+        "beast_lib.retirePostNgeBeastMasterPlayerState(self);") -and
+    (Is-Before $beastFamilyAdd `
+        "beast_lib.retirePostNgeBeastMasterPlayerState(self);" `
+        "obj_id player = self;") -and
+    (Is-Before $beastFamilyAdd `
+        "beast_lib.isRetiredPostNgePlayerOwnedBeast(self)" `
+        "buff.applyBuff(master, self, buffName)") -and
+    $beastFamilyAdd.Contains("beast_lib.retirePostNgeBeastMasterPlayerState(master);") -and
+    $beastFamilyAdd.Contains("buff.removeBuff(self, buffName);") -and
+    -not $beastFamilyRemove.Contains("isRetiredPostNgePlayerBeastFamilyBuffName") -and
+    $beastFamilyRemove.Contains("buff.removeBuff(player, buffName);") -and
+    $beastFamilyRemove.Contains("buff.removeBuff(beast, buffName);") -and
+    [int]$contract.expected.productionBeastFamilyAddHandlersGuarded -eq 1 -and
+    [int]$contract.expected.productionBeastFamilyPlayerOwnedGuards -eq 1 -and
+    -not [bool]$contract.expected.playerBeastFamilyNestedPropagationReachable -and
+    [bool]$contract.expected.beastFamilyRemoveCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerBeastFamilyCompatibilityPreserved
+) "p14.beast-retirement.beast-family.handler-player-fail-closed"
+
+$beastFamilyDirectCallbacks = @(
+    $contract.expected.retiredBeastFamilyDirectCallbackNames |
+        ForEach-Object { [string]$_ }
+)
+$beastFamilyDirectCallbacksWithSentinel = @($beastFamilyDirectCallbacks) + "bm_dancing_cat"
+$guardedBeastFamilyDirectCallbacks = 0
+for ($index = 0; $index -lt $beastFamilyDirectCallbacks.Count; $index++)
+{
+    $callback = Get-SourceSlice $playerBeastMaster `
+        ("public int {0}(" -f $beastFamilyDirectCallbacksWithSentinel[$index]) `
+        ("public int {0}(" -f $beastFamilyDirectCallbacksWithSentinel[$index + 1])
+    if ((Is-Before $callback `
+            "beast_lib.isRetiredPostNgeBeastMasterPlayer(self)" `
+            "buff.hasBuff(player") -and
+        (Is-Before $callback `
+            "beast_lib.retirePostNgeBeastMasterPlayerState(self);" `
+            "buff.hasBuff(player") -and
+        (Is-Before $callback "return SCRIPT_OVERRIDE;" "buff.hasBuff(player"))
+    {
+        $guardedBeastFamilyDirectCallbacks++
+    }
+}
+Assert-Contract (
+    $guardedBeastFamilyDirectCallbacks -eq
+        [int]$contract.expected.productionBeastFamilyDirectCallbacksGuarded
+) "p14.beast-retirement.beast-family.direct-callbacks-fail-closed"
+
 $damageRedirectEffects = @("protect_master", "shield_master_pet", "shield_master_player")
 $damageRedirectBuffNames = @("bm_shield_master_pet", "bm_shield_master_player", "bodyguard")
 $damageRedirectMappings = @(Import-Csv -Delimiter "`t" -LiteralPath `
@@ -164,9 +300,6 @@ Assert-Contract (
     }).Count -eq 3
 ) "p14.beast-retirement.damage-redirect.data-authenticated"
 
-$buffLibrary = [string]$sourceTexts["library/buff.java"]
-$combatLibrary = [string]$sourceTexts["library/combat.java"]
-$buffHandler = [string]$sourceTexts["systems/buff/buff_handler.java"]
 $damageRedirectBuffPredicate = Get-SourceSlice $buffLibrary `
     "public static boolean isRetiredPostNgePlayerDamageRedirectBuff(" `
     "public static void clearPostNgePlayerDamageRedirectState("
@@ -472,7 +605,6 @@ Assert-Contract (
     (Is-Before $menuSelect "isRetiredPostNgeBeastMasterPlayer(player)" "getLevel(player)")
 ) "p14.beast-retirement.nge-level-rule-retained-but-unreachable"
 
-$playerBeastMaster = [string]$sourceTexts["player/player_beastmaster.java"]
 $attach = Get-SourceSlice $playerBeastMaster "public int OnAttach(" "public int OnInitialize("
 $initialize = Get-SourceSlice $playerBeastMaster "public int OnInitialize(" "public int handleRetirePostNgeBeastMasterPlayerState("
 $detachCallback = Get-SourceSlice $playerBeastMaster "public int handleRetirePostNgeBeastMasterPlayerState(" "public int OnRemovingFromWorld("

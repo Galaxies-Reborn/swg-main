@@ -3361,6 +3361,91 @@ test "$damage_reduction_defender_cleanup_line" -lt "$damage_reduction_first_read
 for damage_reduction_combat_modifier in expertise_damage_decrease_chance expertise_sm_rank_damage_bonus expertise_damage_reduce_anticipate_aggression damage_decrease_percentage area_damage_decrease_percentage area_damage_resist_full_percentage; do
     printf '%s' "$damage_reduction_combat_source" | grep -Fq "\"$damage_reduction_combat_modifier\""
 done
+test "$(awk -F '\t' '$2 == "bmBeastFamily" { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 3
+awk -F '\t' '$1 == "bm_beast_family_all" && $2 == "bmBeastFamily" && $3 == "all" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '$1 == "bm_beast_family_monkey" && $2 == "bmBeastFamily" && $3 == "monkey" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '$1 == "bm_beast_family_pig" && $2 == "bmBeastFamily" && $3 == "pig" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+for beast_family_buff_spec in \
+    bm_truffle_pig:bm_beast_family_pig \
+    bm_helper_monkey_domestic:bm_beast_family_monkey \
+    bm_helper_monkey_engineering:bm_beast_family_monkey \
+    bm_helper_monkey_structure:bm_beast_family_monkey \
+    bm_helper_monkey_munitions:bm_beast_family_monkey \
+    bm_helper_monkey_jedi:bm_beast_family_monkey \
+    bm_helper_monkey_shipwright:bm_beast_family_monkey; do
+    beast_family_buff_name="${beast_family_buff_spec%%:*}"
+    beast_family_effect_name="${beast_family_buff_spec#*:}"
+    awk -F '\t' -v name="$beast_family_buff_name" -v effect="$beast_family_effect_name" '
+        $1 == name {
+            found++
+            if ($2 != "bm_player_buff" || $8 != effect) exit 2
+        }
+        END { if (found != 1) exit 3 }
+    ' "$work_buff_table"
+done
+test "$(awk -F '\t' '
+    $1 ~ /^(bm_truffle_pig|bm_helper_monkey_(domestic|engineering|structure|munitions|jedi|shipwright))$/ {
+        for (column = 8; column <= 16; column += 2)
+            if ($column ~ /^bm_beast_family_(all|monkey|pig)$/) uses++
+    }
+    END { print uses + 0 }
+' "$work_buff_table")" -eq 7
+beast_family_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_BEAST_FAMILY_BUFFS/,/public static boolean isRetiredPostNgePlayerBeastFamilyBuffName/p' "$work_buff_library")"
+test "$(printf '%s\n' "$beast_family_inventory_source" | grep -Ec '^[[:space:]]+"bm_(truffle_pig|helper_monkey_(domestic|engineering|structure|munitions|jedi|shipwright))"[,]?$')" -eq 7
+beast_family_cleanup_source="$(sed -n '/public static void retirePostNgePlayerBeastFamilyBuffState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_BUFF_PREFIXES/p' "$work_buff_library")"
+printf '%s' "$beast_family_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s' "$beast_family_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerBeastFamilyBuffState(player);' "$work_buff_library"
+beast_family_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+beast_family_admission_line="$(printf '%s\n' "$beast_family_admission_source" | grep -Fn 'isRetiredPostNgePlayerBeastFamilyBuff(target, bdata)' | head -1 | cut -d: -f1)"
+beast_family_existing_line="$(printf '%s\n' "$beast_family_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$beast_family_admission_line"
+test -n "$beast_family_existing_line"
+test "$beast_family_admission_line" -lt "$beast_family_existing_line"
+beast_family_add_source="$(sed -n '/public void bmBeastFamilyAddBuffHandler/,/public void bmBeastFamilyRemoveBuffHandler/p' "$work_buff_handler")"
+beast_family_add_identity_line="$(printf '%s\n' "$beast_family_add_source" | grep -Fn 'isRetiredPostNgePlayerBeastFamilyBuffName(buffName)' | head -1 | cut -d: -f1)"
+beast_family_add_player_line="$(printf '%s\n' "$beast_family_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+beast_family_add_cleanup_line="$(printf '%s\n' "$beast_family_add_source" | grep -Fn 'retirePostNgeBeastMasterPlayerState(self);' | head -1 | cut -d: -f1)"
+beast_family_add_return_line="$(printf '%s\n' "$beast_family_add_source" | grep -Fn 'return;' | head -1 | cut -d: -f1)"
+beast_family_add_owned_line="$(printf '%s\n' "$beast_family_add_source" | grep -Fn 'isRetiredPostNgePlayerOwnedBeast(self)' | head -1 | cut -d: -f1)"
+beast_family_add_nested_line="$(printf '%s\n' "$beast_family_add_source" | grep -Fn 'buff.applyBuff(master, self, buffName)' | head -1 | cut -d: -f1)"
+for beast_family_source_line in "$beast_family_add_identity_line" "$beast_family_add_player_line" "$beast_family_add_cleanup_line" "$beast_family_add_return_line" "$beast_family_add_owned_line" "$beast_family_add_nested_line"; do
+    test -n "$beast_family_source_line"
+done
+test "$beast_family_add_identity_line" -lt "$beast_family_add_player_line"
+test "$beast_family_add_player_line" -lt "$beast_family_add_cleanup_line"
+test "$beast_family_add_cleanup_line" -lt "$beast_family_add_return_line"
+test "$beast_family_add_return_line" -lt "$beast_family_add_owned_line"
+test "$beast_family_add_owned_line" -lt "$beast_family_add_nested_line"
+printf '%s' "$beast_family_add_source" | grep -Fq 'retirePostNgeBeastMasterPlayerState(master);'
+printf '%s' "$beast_family_add_source" | grep -Fq 'buff.removeBuff(self, buffName);'
+beast_family_remove_source="$(sed -n '/public void bmBeastFamilyRemoveBuffHandler/,/public String getInitialBuffName/p' "$work_buff_handler")"
+! printf '%s' "$beast_family_remove_source" | grep -Fq 'isRetiredPostNgePlayerBeastFamilyBuffName'
+printf '%s' "$beast_family_remove_source" | grep -Fq 'buff.removeBuff(player, buffName);'
+printf '%s' "$beast_family_remove_source" | grep -Fq 'buff.removeBuff(beast, buffName);'
+verify_beast_family_direct_callback_source()
+{
+    beast_family_callback_name="$1"
+    beast_family_callback_next="$2"
+    beast_family_callback_source="$(sed -n "/public int $beast_family_callback_name(/,/public int $beast_family_callback_next(/p" "$work_player_beastmaster")"
+    beast_family_callback_guard_line="$(printf '%s\n' "$beast_family_callback_source" | grep -Fn 'beast_lib.isRetiredPostNgeBeastMasterPlayer(self)' | head -1 | cut -d: -f1)"
+    beast_family_callback_cleanup_line="$(printf '%s\n' "$beast_family_callback_source" | grep -Fn 'beast_lib.retirePostNgeBeastMasterPlayerState(self);' | head -1 | cut -d: -f1)"
+    beast_family_callback_return_line="$(printf '%s\n' "$beast_family_callback_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+    beast_family_callback_read_line="$(printf '%s\n' "$beast_family_callback_source" | grep -Fn 'buff.hasBuff(player' | head -1 | cut -d: -f1)"
+    for beast_family_callback_line in "$beast_family_callback_guard_line" "$beast_family_callback_cleanup_line" "$beast_family_callback_return_line" "$beast_family_callback_read_line"; do
+        test -n "$beast_family_callback_line"
+    done
+    test "$beast_family_callback_guard_line" -lt "$beast_family_callback_cleanup_line"
+    test "$beast_family_callback_cleanup_line" -lt "$beast_family_callback_return_line"
+    test "$beast_family_callback_return_line" -lt "$beast_family_callback_read_line"
+}
+verify_beast_family_direct_callback_source bm_pig_forage bm_helper_monkey_domestic
+verify_beast_family_direct_callback_source bm_helper_monkey_domestic bm_helper_monkey_engineering
+verify_beast_family_direct_callback_source bm_helper_monkey_engineering bm_helper_monkey_structure
+verify_beast_family_direct_callback_source bm_helper_monkey_structure bm_helper_monkey_munitions
+verify_beast_family_direct_callback_source bm_helper_monkey_munitions bm_helper_monkey_jedi
+verify_beast_family_direct_callback_source bm_helper_monkey_jedi bm_helper_monkey_shipwright
+verify_beast_family_direct_callback_source bm_helper_monkey_shipwright bm_dancing_cat
 bounty_hunter_shield_handler_source="$(sed -n '/public int bhShieldsAddBuffHandler/,/public int bhShieldsRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'if (isPlayer(self))'
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'buff.retirePostNgeBountyHunterShieldState(self);'
@@ -5669,6 +5754,46 @@ javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'isP
 javap -classpath "$class_root" -v script.player.live_conversions | grep -Fq 'retirePostNgeBeastMasterPlayerState'
 javap -classpath "$class_root" -v script.player.player_beastmaster | grep -Fq 'handleRetirePostNgeBeastMasterPlayerState'
 ! javap -classpath "$class_root" -v script.player.player_beastmaster | grep -Fq 'expertise_bm_'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostNgePlayerBeastFamilyBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgePlayerBeastFamilyBuffState'
+beast_family_add_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler | sed -n '/public void bmBeastFamilyAddBuffHandler/,/public void bmBeastFamilyRemoveBuffHandler/p')"
+beast_family_bytecode_identity_line="$(printf '%s\n' "$beast_family_add_bytecode" | grep -nF 'isRetiredPostNgePlayerBeastFamilyBuffName' | head -1 | cut -d: -f1)"
+beast_family_bytecode_player_line="$(printf '%s\n' "$beast_family_add_bytecode" | grep -nF 'Method isPlayer:' | head -1 | cut -d: -f1)"
+beast_family_bytecode_cleanup_line="$(printf '%s\n' "$beast_family_add_bytecode" | grep -nF 'retirePostNgeBeastMasterPlayerState' | head -1 | cut -d: -f1)"
+beast_family_bytecode_return_line="$(printf '%s\n' "$beast_family_add_bytecode" | grep -nE '^[[:space:]]+[0-9]+: return$' | head -1 | cut -d: -f1)"
+beast_family_bytecode_owned_line="$(printf '%s\n' "$beast_family_add_bytecode" | grep -nF 'isRetiredPostNgePlayerOwnedBeast' | head -1 | cut -d: -f1)"
+beast_family_bytecode_nested_line="$(printf '%s\n' "$beast_family_add_bytecode" | grep -nF 'Method script/library/buff.applyBuff:' | head -1 | cut -d: -f1)"
+for beast_family_bytecode_line in "$beast_family_bytecode_identity_line" "$beast_family_bytecode_player_line" "$beast_family_bytecode_cleanup_line" "$beast_family_bytecode_return_line" "$beast_family_bytecode_owned_line" "$beast_family_bytecode_nested_line"; do
+    test -n "$beast_family_bytecode_line"
+done
+test "$beast_family_bytecode_identity_line" -lt "$beast_family_bytecode_player_line"
+test "$beast_family_bytecode_player_line" -lt "$beast_family_bytecode_cleanup_line"
+test "$beast_family_bytecode_cleanup_line" -lt "$beast_family_bytecode_return_line"
+test "$beast_family_bytecode_return_line" -lt "$beast_family_bytecode_owned_line"
+test "$beast_family_bytecode_owned_line" -lt "$beast_family_bytecode_nested_line"
+verify_beast_family_direct_callback_bytecode()
+{
+    beast_family_callback_name="$1"
+    beast_family_callback_next="$2"
+    beast_family_callback_bytecode="$(javap -classpath "$class_root" -c -p script.player.player_beastmaster | sed -n "/public int $beast_family_callback_name(/,/public int $beast_family_callback_next(/p")"
+    beast_family_callback_guard_line="$(printf '%s\n' "$beast_family_callback_bytecode" | grep -nF 'isRetiredPostNgeBeastMasterPlayer' | head -1 | cut -d: -f1)"
+    beast_family_callback_cleanup_line="$(printf '%s\n' "$beast_family_callback_bytecode" | grep -nF 'retirePostNgeBeastMasterPlayerState' | head -1 | cut -d: -f1)"
+    beast_family_callback_return_line="$(printf '%s\n' "$beast_family_callback_bytecode" | grep -nE '^[[:space:]]+[0-9]+: ireturn$' | head -1 | cut -d: -f1)"
+    beast_family_callback_read_line="$(printf '%s\n' "$beast_family_callback_bytecode" | grep -nF 'Method script/library/buff.hasBuff:' | head -1 | cut -d: -f1)"
+    for beast_family_callback_line in "$beast_family_callback_guard_line" "$beast_family_callback_cleanup_line" "$beast_family_callback_return_line" "$beast_family_callback_read_line"; do
+        test -n "$beast_family_callback_line"
+    done
+    test "$beast_family_callback_guard_line" -lt "$beast_family_callback_cleanup_line"
+    test "$beast_family_callback_cleanup_line" -lt "$beast_family_callback_return_line"
+    test "$beast_family_callback_return_line" -lt "$beast_family_callback_read_line"
+}
+verify_beast_family_direct_callback_bytecode bm_pig_forage bm_helper_monkey_domestic
+verify_beast_family_direct_callback_bytecode bm_helper_monkey_domestic bm_helper_monkey_engineering
+verify_beast_family_direct_callback_bytecode bm_helper_monkey_engineering bm_helper_monkey_structure
+verify_beast_family_direct_callback_bytecode bm_helper_monkey_structure bm_helper_monkey_munitions
+verify_beast_family_direct_callback_bytecode bm_helper_monkey_munitions bm_helper_monkey_jedi
+verify_beast_family_direct_callback_bytecode bm_helper_monkey_jedi bm_helper_monkey_shipwright
+verify_beast_family_direct_callback_bytecode bm_helper_monkey_shipwright bm_dancing_cat
 javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeBeastMasterPlayerState'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBeastMasterPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
