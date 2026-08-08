@@ -3446,6 +3446,43 @@ verify_beast_family_direct_callback_source bm_helper_monkey_structure bm_helper_
 verify_beast_family_direct_callback_source bm_helper_monkey_munitions bm_helper_monkey_jedi
 verify_beast_family_direct_callback_source bm_helper_monkey_jedi bm_helper_monkey_shipwright
 verify_beast_family_direct_callback_source bm_helper_monkey_shipwright bm_dancing_cat
+awk -F '\t' '$1 == "battlefield_communcations_glow" && $2 == "battlefieldCommuncationsGlow" && $3 == "battlefield_communcations_glow" { found++ } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '$1 == "battlefield_communication_run" && $2 == "battlefield_communication_run" && $6 == "command.battlefield_communication_run" && $7 == 90 && $8 == "battlefield_communcations_glow" && $20 == "appearance/pt_battlefield_runner.prt" && $22 == 1 && $26 == 1 && $30 == 1 { found++ } END { if (found != 1) exit 3 }' "$work_buff_table"
+test "$(grep -Fc 'buff.applyBuff(player, "battlefield_communication_run");' "$work_battlefield_controller")" -eq 1
+test "$((
+    $(grep -Fc 'buff.hasBuff(who, "battlefield_communication_run")' "$work_script/library/pvp.java") +
+    $(grep -Fc '"battlefield_communication_run")' "$work_script/library/stealth.java") +
+    $(grep -Fc 'buff.hasBuff(self, "battlefield_communication_run")' "$work_base_player") +
+    $(grep -Fc 'buff.hasBuff(player, "battlefield_communication_run")' "$work_battlefield_terminal")
+))" -eq 13
+queued_battlefield_communication_identity_source="$(sed -n '/private static final String RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF/,/private static final String RETIRED_POST_NGE_PLAYER_RADAR_INVISIBILITY_EFFECT/p' "$work_buff_library")"
+printf '%s' "$queued_battlefield_communication_identity_source" | grep -Fq '"battlefield_communication_run"'
+printf '%s' "$queued_battlefield_communication_identity_source" | grep -Fq 'isPlayer(target) && data != null'
+printf '%s' "$queued_battlefield_communication_identity_source" | grep -Fq 'removeBuff(player, RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)'
+queued_battlefield_communication_progression_source="$(sed -n '/public static void retirePostNgeBuffProgression/,/public static void retirePostNgeMeditationBuffs/p' "$work_buff_library")"
+printf '%s' "$queued_battlefield_communication_progression_source" | grep -Fq 'retirePostNgePlayerQueuedBattlefieldCommunicationState(player);'
+queued_battlefield_communication_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+queued_battlefield_communication_admission_line="$(printf '%s\n' "$queued_battlefield_communication_admission_source" | grep -Fn 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuff(target, bdata)' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_existing_line="$(printf '%s\n' "$queued_battlefield_communication_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$queued_battlefield_communication_admission_line"
+test -n "$queued_battlefield_communication_existing_line"
+test "$queued_battlefield_communication_admission_line" -lt "$queued_battlefield_communication_existing_line"
+queued_battlefield_communication_add_source="$(sed -n '/public int battlefieldCommuncationsGlowAddBuffHandler/,/public int battlefieldCommuncationsGlowRemoveBuffHandler/p' "$work_buff_handler")"
+queued_battlefield_communication_guard_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'if (isPlayer(self)' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_name_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName(buffName)' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_cleanup_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'retirePostNgePlayerQueuedBattlefieldCommunicationState(self);' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_return_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_writer_line="$(printf '%s\n' "$queued_battlefield_communication_add_source" | grep -Fn 'buff.removeBuff(self, "battlefield_radar_invisibility")' | head -1 | cut -d: -f1)"
+for queued_battlefield_communication_source_line in "$queued_battlefield_communication_guard_line" "$queued_battlefield_communication_name_line" "$queued_battlefield_communication_cleanup_line" "$queued_battlefield_communication_return_line" "$queued_battlefield_communication_writer_line"; do
+    test -n "$queued_battlefield_communication_source_line"
+done
+test "$queued_battlefield_communication_guard_line" -lt "$queued_battlefield_communication_name_line"
+test "$queued_battlefield_communication_name_line" -lt "$queued_battlefield_communication_cleanup_line"
+test "$queued_battlefield_communication_cleanup_line" -lt "$queued_battlefield_communication_return_line"
+test "$queued_battlefield_communication_return_line" -lt "$queued_battlefield_communication_writer_line"
+queued_battlefield_communication_remove_source="$(sed -n '/public int battlefieldCommuncationsGlowRemoveBuffHandler/,/public int empireDayImperialRecruitmentAddBuffHandler/p' "$work_buff_handler")"
+! printf '%s' "$queued_battlefield_communication_remove_source" | grep -Fq 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName'
+printf '%s' "$queued_battlefield_communication_remove_source" | grep -Fq 'buff.applyBuff(self, "battlefield_radar_invisibility");'
 bounty_hunter_shield_handler_source="$(sed -n '/public int bhShieldsAddBuffHandler/,/public int bhShieldsRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'if (isPlayer(self))'
 printf '%s' "$bounty_hunter_shield_handler_source" | grep -Fq 'buff.retirePostNgeBountyHunterShieldState(self);'
@@ -5794,6 +5831,28 @@ verify_beast_family_direct_callback_bytecode bm_helper_monkey_structure bm_helpe
 verify_beast_family_direct_callback_bytecode bm_helper_monkey_munitions bm_helper_monkey_jedi
 verify_beast_family_direct_callback_bytecode bm_helper_monkey_jedi bm_helper_monkey_shipwright
 verify_beast_family_direct_callback_bytecode bm_helper_monkey_shipwright bm_dancing_cat
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgePlayerQueuedBattlefieldCommunicationState'
+queued_battlefield_communication_admission_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+queued_battlefield_communication_bytecode_admission_line="$(printf '%s\n' "$queued_battlefield_communication_admission_bytecode" | grep -nF 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuff' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_bytecode_existing_line="$(printf '%s\n' "$queued_battlefield_communication_admission_bytecode" | grep -nF 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$queued_battlefield_communication_bytecode_admission_line"
+test -n "$queued_battlefield_communication_bytecode_existing_line"
+test "$queued_battlefield_communication_bytecode_admission_line" -lt "$queued_battlefield_communication_bytecode_existing_line"
+queued_battlefield_communication_add_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler | sed -n '/battlefieldCommuncationsGlowAddBuffHandler/,/battlefieldCommuncationsGlowRemoveBuffHandler/p')"
+queued_battlefield_communication_bytecode_name_line="$(printf '%s\n' "$queued_battlefield_communication_add_bytecode" | grep -nF 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_bytecode_cleanup_line="$(printf '%s\n' "$queued_battlefield_communication_add_bytecode" | grep -nF 'retirePostNgePlayerQueuedBattlefieldCommunicationState' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_bytecode_return_line="$(printf '%s\n' "$queued_battlefield_communication_add_bytecode" | grep -nE '^[[:space:]]+[0-9]+: ireturn$' | head -1 | cut -d: -f1)"
+queued_battlefield_communication_bytecode_writer_line="$(printf '%s\n' "$queued_battlefield_communication_add_bytecode" | grep -nF 'Method script/library/buff.removeBuff:' | head -1 | cut -d: -f1)"
+for queued_battlefield_communication_bytecode_line in "$queued_battlefield_communication_bytecode_name_line" "$queued_battlefield_communication_bytecode_cleanup_line" "$queued_battlefield_communication_bytecode_return_line" "$queued_battlefield_communication_bytecode_writer_line"; do
+    test -n "$queued_battlefield_communication_bytecode_line"
+done
+test "$queued_battlefield_communication_bytecode_name_line" -lt "$queued_battlefield_communication_bytecode_cleanup_line"
+test "$queued_battlefield_communication_bytecode_cleanup_line" -lt "$queued_battlefield_communication_bytecode_return_line"
+test "$queued_battlefield_communication_bytecode_return_line" -lt "$queued_battlefield_communication_bytecode_writer_line"
+queued_battlefield_communication_remove_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler | sed -n '/battlefieldCommuncationsGlowRemoveBuffHandler/,/empireDayImperialRecruitmentAddBuffHandler/p')"
+! printf '%s' "$queued_battlefield_communication_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName'
+printf '%s' "$queued_battlefield_communication_remove_bytecode" | grep -Fq 'Method script/library/buff.applyBuff:'
 javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeBeastMasterPlayerState'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBeastMasterPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'

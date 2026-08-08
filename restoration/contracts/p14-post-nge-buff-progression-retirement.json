@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
   "status": "ready",
-  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, post-Publish-14 absolute player control-immunity buffs, later reactive avoid-incapacitation heals, direct Officer Inspiration/Last Words and Spy Perfect Opportunity heal effects, the exact seven-name Beast Master/Medic/Officer/Spy profession immunity and purge family, and the exact inherited player group-aura, flat-HAM, and percentage-HAM buff sets that conflict with restored Publish 14.1 profession, Jedi, Squad Leader, and reward authority without removing later-content data compatibility, retained consumable and treasure heals, NPC group propagation, non-player pet cure behavior, or the restored Publish 14.1 entertainer, Teras Kasi, Creature Handler, cloning-sickness, innate regeneration/vitalize, Power Boost, QA, NPC encounter, and Jedi avoid-incapacitation lifecycles.",
+  "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, post-Publish-14 absolute player control-immunity buffs, later reactive avoid-incapacitation heals, direct Officer Inspiration/Last Words and Spy Perfect Opportunity heal effects, the exact seven-name Beast Master/Medic/Officer/Spy profession immunity and purge family, the queued-battlefield runner communication buff, and the exact inherited player group-aura, flat-HAM, and percentage-HAM buff sets that conflict with restored Publish 14.1 profession, Jedi, Squad Leader, stealth, and reward authority without removing later-content data compatibility, retained consumable and treasure heals, NPC group propagation, non-player pet cure behavior, or the restored Publish 14.1 entertainer, Teras Kasi, Creature Handler, cloning-sickness, innate regeneration/vitalize, Power Boost, QA, NPC encounter, and Jedi avoid-incapacitation lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -25,6 +25,7 @@
       "Pinned Publish 14.1 has an authentic Jedi avoidIncapacitation command using the avoid_incapacitation skill modifier and a distinct avoid_incap buff effect; it has no generic avoid_incap_heal consumable callback that heals a player before the incapacitated posture is applied.",
       "The five GCW reactive stim buffs, two last-man PvP buffs, and Tusken endurance heroic buff are the complete eight-row avoid_incap_heal inventory; their retained content rows remain loadable while player admission, stale state, and the pre-incap reactive-heal callback fail closed.",
       "The sole avoid_incap_heal effect mapping dispatches through onIncapHealAddBuffHandler. Generic admission and the reactive-heal consumer were already player-inert, but the direct add-side handler could still restore the later gcw_critical_heal script variable. It now runs central player cleanup and returns before mutation; remove-side cleanup and non-player expansion behavior remain available.",
+      "The retained Game Update 10 battlefield_communication_run row is persistent and dispatches through the sole battlefieldCommuncationsGlow mapping. Exact player-only admission and lifecycle cleanup plus an add-handler guard now prevent stale runner state from stripping invisibility or blocking retained PRE-CU stealth, while the row, mapping, remove cleanup, and non-player compatibility remain available.",
       "The inherited attribPercent handler owns exactly 34 retained buff rows through six max-HAM percentage effects. Nineteen rows belong to removed NGE Doctor/Combat Medic/Jedi grants, replaced Squad Leader behavior, and later combat-reward buffs; exact player admission, persistence, and add-handler authority are retired while all rows and non-player compatibility remain available.",
       "The remaining fifteen attribPercent rows are deliberate compatibility exceptions: authenticated PRE-CU Creature Handler emboldenPet and cloning sickness, QA frogBuff, retained Mustafar and Death Troopers mechanics, and creature-special effects. They remain outside the retired player-name inventory.",
       "The inherited attrib handler owns exactly 33 retained buff rows through seven flat HAM effects. Thirteen rows are NGE level-gated holocron/force-crystal rewards, Mustafar crystal combat authority, Trials of Obi-Wan modified-primary rewards, or an unused NGE combat helper; exact player admission, persistence, and add-handler authority are retired while the authored content rows remain available.",
@@ -354,38 +355,46 @@
     "precuEntertainerAttributeSessionPreserved": true,
     "compatibilityBuffRowsPreserved": true,
     "compatibilityEffectMappingsPreserved": true,
-    "missionCoreChanged": false
+    "missionCoreChanged": false,
+    "retainedQueuedBattlefieldCommunicationBuffRows": 1,
+    "retainedQueuedBattlefieldCommunicationEffectMappingRows": 1,
+    "playerQueuedBattlefieldCommunicationBuffAdmissionReachable": false,
+    "persistedPlayerQueuedBattlefieldCommunicationBuffStateRemoved": true,
+    "directQueuedBattlefieldCommunicationAddWriters": 1,
+    "directQueuedBattlefieldCommunicationAddWriterPlayerReachable": false,
+    "queuedBattlefieldCommunicationRemoveCompatibilityPreserved": true,
+    "nonPlayerQueuedBattlefieldCommunicationCompatibilityPreserved": true
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "d32bd971bd19d488b1dfc962157565c5bc135071",
+    "directSourceGitlink": "42533bb539296806c701239384595f2df03a9b32",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "bce34494c5f81eaf90ffe889b343a826754cf25da37b38032c622460c71f856b",
+    "sourceContentSha256": "df8c17a74af149492a6982fa4a483c509435df2448df752424d8bfbb153e1ba2",
     "sourceSha256": {
-      "library/buff.java": "efee8d73a6a1812d97cdc85068592eafdc3bde4d1e223d16fc77f14439d249b3",
+      "library/buff.java": "7e39456f7a974bf113bb8ad771b93a2182f7c9a15617a7c2dfe01680407a8ded",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
       "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
-      "systems/buff/buff_handler.java": "039a038a6231f0bf55bbfe0511e0ce3a0a85dd4a16a54b9478591287a1b51587",
+      "systems/buff/buff_handler.java": "0c6625047edde96fcc3cbeda082b48b043883425c1d4dcb45275f5f492347218",
       "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
       "systems/crafting/crafting_base.java": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now closes the exact three-mapping, seven-row, seven-use Beast-family player helper surface at generic admission, lifecycle cleanup, and the shared add handler's player and player-owned paths while preserving remove-side and non-player compatibility.",
-    "focusedJavaCompile": "passed focused OpenJDK 11 Java 8-target compilation of library/buff.java and systems/buff/buff_handler.java from pushed direct-source commit d32bd971bd19d488b1dfc962157565c5bc135071 against the production package root with -g and -implicit:none; emitted SHA-256 e0b24e063dabb3bcef31a7ec0d5c0f431492021c8ffdca519455909258591fe at 90937 bytes and 11fe79b1d167ea732f946cf528b21707e2ef42cc95afe12ccef89f9fa2cfeb35 at 137978 bytes, the shared add-handler player and player-owned returns precede legacy nested propagation, and /dev/shm was verified empty afterward",
+    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now closes the exact queued-battlefield runner communication row and mapping at generic player admission, lifecycle cleanup, and the add-side invisibility mutation while preserving its producer/readers, remove cleanup, non-player compatibility, and the prior Beast-family closure.",
+    "focusedJavaCompile": "passed focused OpenJDK 11 Java 8-target compilation of library/buff.java and systems/buff/buff_handler.java from pushed direct-source commit 42533bb539296806c701239384595f2df03a9b32 against the production package root with -g and -implicit:none; emitted SHA-256 12e36cad7e14e3c8e46311a00c0d0f62f70cf0f17abf29fc0786365e12c92852 at 91613 bytes and 118f8e0772857d9693abe2efcf8d25de18d0a6856472c750c7676e37f971dbf1 at 138152 bytes, the runner add handler returns before its first invisibility mutation, and /dev/shm was verified empty afterward",
     "focusedCompiledClassSha256": {
-      "script.library.buff": "e0b24e063dabb3bcef31a7ec0d5c0f431492021c8ffdca519455909258591fe",
-      "script.systems.buff.buff_handler": "11fe79b1d167ea732f946cf528b21707e2ef42cc95afe12ccef89f9fa2cfeb35"
+      "script.library.buff": "12e36cad7e14e3c8e46311a00c0d0f62f70cf0f17abf29fc0786365e12c92852",
+      "script.systems.buff.buff_handler": "118f8e0772857d9693abe2efcf8d25de18d0a6856472c750c7676e37f971dbf1"
     },
     "focusedCompiledClassBytes": {
-      "script.library.buff": 90937,
-      "script.systems.buff.buff_handler": 137978
+      "script.library.buff": 91613,
+      "script.systems.buff.buff_handler": 138152
     },
     "compiledClassSha256": {
       "script.library.buff": "898075ae7993ccb61bd9372c4066ef6838f6df61a5dc455335726a52353422f9",
@@ -398,7 +407,7 @@
       "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
       "script.systems.crafting.crafting_base": "71bf98a06ceac9de223dfc63d7ee4b63362a758c318792ac1e2e4262a5a915b9"
     },
-    "staticContract": "source validation against pushed direct source d32bd971bd19d488b1dfc962157565c5bc135071 authenticates the exact three Beast-family mappings, seven persistent player rows and uses, generic player admission, lifecycle cleanup, the shared add handler's player and player-owned early returns, all seven direct callbacks, remove-side compatibility, non-player behavior, prior closures, classic PRE-CU authority, and mission continuity",
+    "staticContract": "source validation against pushed direct source 42533bb539296806c701239384595f2df03a9b32 authenticates the exact queued-battlefield runner communication row/mapping, generic player admission, lifecycle cleanup, add-handler early return before invisibility mutation, unguarded remove cleanup, non-player behavior, preserved producer/readers, prior closures, classic PRE-CU authority, and mission continuity",
     "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct-source commit d32bd971bd19d488b1dfc962157565c5bc135071; 5713 Java sources produced 5747 classes under OpenJDK 11; the focused and canonical bytecode gates left no /dev/shm residue",
     "javaSourcesCompiled": 5713,
     "javaClassesEmitted": 5747,
@@ -498,8 +507,8 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, the complete production level-percentage buff-XP caller surface, GCW buff multipliers and consumables, autonomous GCW consumable turrets, persisted random fs_meditate_* bonuses, the nine NGE Roadmap GCW banner buffs, the exact 12-name post-Publish-14 absolute player control-immunity inventory, the exact eight-name later reactive avoid-incap-heal inventory including its sole direct add-side state writer, generic player admission of the exact 12-name post-NGE PvP rank-reward buff inventory, player lifecycle/admission/writer authority for the complete exact 38-name inherited post-NGE group-aura, 13-name flat-HAM, and 19-name percentage-HAM buff inventories, and the exact eleven-name Force Sensitive choke/flurry player residue and direct add-writer surface",
-    "notClaimedComplete": "ordinary non-progression effects in composite retained buffs and dormant later combat mechanics remain in the broader PRE-CU precedence audit; post-Publish-14 player invisibility is closed separately"
+    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, the complete production level-percentage buff-XP caller surface, GCW buff multipliers and consumables, autonomous GCW consumable turrets, persisted random fs_meditate_* bonuses, the nine NGE Roadmap GCW banner buffs, the exact 12-name post-Publish-14 absolute player control-immunity inventory, the exact eight-name later reactive avoid-incap-heal inventory including its sole direct add-side state writer, generic player admission of the exact 12-name post-NGE PvP rank-reward buff inventory, player lifecycle/admission/writer authority for the queued-battlefield runner communication buff, the complete exact 38-name inherited post-NGE group-aura, 13-name flat-HAM, and 19-name percentage-HAM buff inventories, and the exact eleven-name Force Sensitive choke/flurry player residue and direct add-writer surface",
+    "notClaimedComplete": "ordinary non-progression effects in composite retained buffs and dormant later combat mechanics remain in the broader PRE-CU precedence audit; post-Publish-14 player invisibility itself is closed separately"
   },
   "requiredBeforeReady": []
 }

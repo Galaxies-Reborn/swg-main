@@ -78,11 +78,17 @@ if (Test-Path -LiteralPath $patchPath -PathType Leaf)
 $paths = [ordered]@{
     "attributes" = "dsrc/.gitattributes"
     "script.library.gcw" = "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java"
+    "script.library.buff" = "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java"
+    "script.library.pvp" = "dsrc/sku.0/sys.server/compiled/game/script/library/pvp.java"
+    "script.library.stealth" = "dsrc/sku.0/sys.server/compiled/game/script/library/stealth.java"
     "script.player.base.base_player" = "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
     "script.player.live_conversions" = "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java"
     "script.systems.gcw.battlefield_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/battlefield_terminal.java"
     "script.systems.gcw.player_pvp" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java"
     "script.systems.gcw.pvp_battlefield" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_battlefield.java"
+    "script.systems.buff.buff_handler" = "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
+    "datatable.buff.buff" = "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+    "datatable.buff.effect_mapping" = "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
     "template.gcw.battlefield_terminal" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/battlefield_terminal.tpf"
     "template.gcw.battlefield_beacon" = "dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/battlefield_beacon.tpf"
     "script.terminal.terminal_gcw_publish_gift" = "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java"
@@ -118,9 +124,15 @@ foreach ($name in $paths.Keys)
 }
 
 $gcw = [string]$texts["script.library.gcw"]
+$buffLibrary = [string]$texts["script.library.buff"]
+$pvpLibrary = [string]$texts["script.library.pvp"]
+$stealthLibrary = [string]$texts["script.library.stealth"]
 $controller = [string]$texts["script.systems.gcw.pvp_battlefield"]
 $terminal = [string]$texts["script.systems.gcw.battlefield_terminal"]
 $playerPvp = [string]$texts["script.systems.gcw.player_pvp"]
+$buffHandler = [string]$texts["script.systems.buff.buff_handler"]
+$buffTable = [string]$texts["datatable.buff.buff"]
+$buffEffectMapping = [string]$texts["datatable.buff.effect_mapping"]
 $battlefieldTerminalTemplate = [string]$texts["template.gcw.battlefield_terminal"]
 $battlefieldBeaconTemplate = [string]$texts["template.gcw.battlefield_beacon"]
 $warTerminal = [string]$texts["script.terminal.terminal_gcw_publish_gift"]
@@ -307,6 +319,75 @@ Assert-Contract ($baseRetire.Contains('detachScript(self, "systems.gcw.player_pv
     $login.Contains("retirePostNgeQueuedBattlefieldPlayerState(self)") -and
     $logout.Contains("retirePostNgeQueuedBattlefieldPlayerState(self)")) `
     "p14.queued-battlefield.base-player-login-logout-cleans-persisted-state"
+
+$runnerIdentity = Get-FunctionSlice $buffLibrary `
+    "private static final String RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF" `
+    "private static final String RETIRED_POST_NGE_PLAYER_RADAR_INVISIBILITY_EFFECT"
+$runnerProgressionCleanup = Get-FunctionSlice $buffLibrary `
+    "public static void retirePostNgeBuffProgression" "public static void retirePostNgeMeditationBuffs"
+$runnerAdmission = Get-FunctionSlice $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static boolean applyBuff(obj_id target, String name)"
+$runnerAdmissionGate = $runnerAdmission.IndexOf(
+    "isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuff(target, bdata)",
+    [System.StringComparison]::Ordinal)
+$runnerExistingBuffReturn = $runnerAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [System.StringComparison]::Ordinal)
+Assert-Contract ($runnerIdentity.Contains(
+        'RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF = "battlefield_communication_run"') -and
+    $runnerIdentity.Contains("isPlayer(target) && data != null") -and
+    $runnerIdentity.Contains("hasBuff(player, RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)") -and
+    $runnerIdentity.Contains("removeBuff(player, RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)") -and
+    $runnerProgressionCleanup.Contains("retirePostNgePlayerQueuedBattlefieldCommunicationState(player);") -and
+    $runnerAdmissionGate -ge 0 -and $runnerExistingBuffReturn -gt $runnerAdmissionGate -and
+    -not [bool]$contract.expected.playerRunnerBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerRunnerBuffRemoved) `
+    "p14.queued-battlefield.runner-buff-admission-and-persistence-fail-closed"
+
+$runnerAdd = Get-FunctionSlice $buffHandler `
+    "public int battlefieldCommuncationsGlowAddBuffHandler" `
+    "public int battlefieldCommuncationsGlowRemoveBuffHandler"
+$runnerRemove = Get-FunctionSlice $buffHandler `
+    "public int battlefieldCommuncationsGlowRemoveBuffHandler" `
+    "public int empireDayImperialRecruitmentAddBuffHandler"
+$runnerAddGuard = $runnerAdd.IndexOf("if (isPlayer(self)", [System.StringComparison]::Ordinal)
+$runnerAddIdentity = $runnerAdd.IndexOf(
+    "isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName(buffName)",
+    [System.StringComparison]::Ordinal)
+$runnerAddCleanup = $runnerAdd.IndexOf(
+    "retirePostNgePlayerQueuedBattlefieldCommunicationState(self);",
+    [System.StringComparison]::Ordinal)
+$runnerAddReturn = $runnerAdd.IndexOf("return SCRIPT_OVERRIDE;", [System.StringComparison]::Ordinal)
+$runnerFirstMutation = $runnerAdd.IndexOf(
+    'buff.removeBuff(self, "battlefield_radar_invisibility")',
+    [System.StringComparison]::Ordinal)
+Assert-Contract ($runnerAddGuard -ge 0 -and $runnerAddIdentity -gt $runnerAddGuard -and
+    $runnerAddCleanup -gt $runnerAddIdentity -and $runnerAddReturn -gt $runnerAddCleanup -and
+    $runnerFirstMutation -gt $runnerAddReturn -and
+    -not $runnerRemove.Contains("isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName") -and
+    $runnerRemove.Contains('buff.applyBuff(self, "battlefield_radar_invisibility");') -and
+    -not [bool]$contract.expected.playerRunnerBuffAddMutationReachable -and
+    [bool]$contract.expected.runnerBuffRemoveCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerRunnerBuffCompatibilityPreserved) `
+    "p14.queued-battlefield.runner-buff-add-handler-player-fails-closed"
+
+$runnerBuffRows = @($buffTable -split "`r?`n" | Where-Object {
+    $_.StartsWith("battlefield_communication_run`t", [System.StringComparison]::Ordinal)
+})
+$runnerMappingRows = @($buffEffectMapping -split "`r?`n" | Where-Object {
+    $_ -ceq "battlefield_communcations_glow`tbattlefieldCommuncationsGlow`tbattlefield_communcations_glow`t"
+})
+$runnerProducers = [regex]::Matches($controller,
+    'buff\.applyBuff\(player, "battlefield_communication_run"\);').Count
+$runnerReadConsumers = [regex]::Matches(
+    @($pvpLibrary, $stealthLibrary, $basePlayer, $terminal) -join "`n",
+    'buff\.hasBuff\([^\r\n]+"battlefield_communication_run"\)').Count
+Assert-Contract ($runnerBuffRows.Count -eq [int]$contract.expected.authoredRunnerBuffRowsPreserved -and
+    $runnerBuffRows[0] -ceq "battlefield_communication_run`tbattlefield_communication_run`t`t`t1`tcommand.battlefield_communication_run`t90`tbattlefield_communcations_glow`t0`t`t0`t`t0`t`t0`t`t0`tSTATE_NONE`tnone`tappearance/pt_battlefield_runner.prt`t`t1`t1`t`t0`t1`t0`t0`t1`t1`t0`t1`t1`t0" -and
+    $runnerMappingRows.Count -eq [int]$contract.expected.authoredRunnerEffectMappingsPreserved -and
+    $runnerProducers -eq [int]$contract.expected.authoredRunnerBuffProducersPreserved -and
+    $runnerReadConsumers -eq [int]$contract.expected.authoredRunnerBuffReadConsumersPreserved) `
+    "p14.queued-battlefield.runner-buff-data-and-consumers-authenticated"
 Assert-Contract ($basePlayer.Contains('if (!gcw.isPostNgeQueuedBattlefieldRetired() && isIdValid(controller) && exists(controller))') -and
     $revive.Contains('(!gcw.isPostNgeQueuedBattlefieldRetired() && utils.hasScriptVar(self, "battlefield.active"))')) `
     "p14.queued-battlefield.clone-override-and-delay-unreachable"

@@ -13,7 +13,9 @@
       "The later pvp_battlefields table names four queued maps, and systems.gcw.player_pvp enforces level 75, 4v4-to-16v16 queue/invitation flow, warp admission, scoreboards, and battlefield tokens.",
       "Two later Talus and Rori spawners still create GU10 battlefield token vendors after the controllers and token earners are retired; their generic vendor script and conversations expose the orphaned token reward inventory to players with persisted later-era tokens.",
       "The retained systems.battlefield implementation is a distinct open-world region game using battlefield.tab, faction selection, battlefield structures, and PRE-CU faction-standing rewards.",
-      "The retained War Terminal still exposed a queue action after the queued player handler was detached, leaving a dead interaction and a cached intelpad action that could survive older sessions."
+      "The retained War Terminal still exposed a queue action after the queued player handler was detached, leaving a dead interaction and a cached intelpad action that could survive older sessions.",
+      "The retained battlefield_communication_run runner buff has one authored persistent row, one battlefieldCommuncationsGlow effect mapping, one controller producer, and thirteen read-side blockers across stealth, PvP, player, and terminal code. Generic player buff admission and the add handler remained reachable after the queued controllers were retired.",
+      "Exact player-only admission, lifecycle cleanup, and an add-handler guard now prevent the obsolete runner from stripping PRE-CU invisibility or blocking retained player movement and stealth paths, while the authored row, producer, consumers, non-player compatibility, and unguarded remove-side cleanup remain intact."
     ]
   },
   "expected": {
@@ -42,16 +44,31 @@
     "laterZoneSceneryRowsPreserved": true,
     "precuOpenWorldBattlefieldSourceChanged": false,
     "precuFactionStandingRewardsPreserved": true,
-    "missionTerminalSourceChanged": false
+    "missionTerminalSourceChanged": false,
+    "playerRunnerBuffAdmissionReachable": false,
+    "persistedPlayerRunnerBuffRemoved": true,
+    "playerRunnerBuffAddMutationReachable": false,
+    "runnerBuffRemoveCompatibilityPreserved": true,
+    "nonPlayerRunnerBuffCompatibilityPreserved": true,
+    "authoredRunnerBuffRowsPreserved": 1,
+    "authoredRunnerEffectMappingsPreserved": 1,
+    "authoredRunnerBuffProducersPreserved": 1,
+    "authoredRunnerBuffReadConsumersPreserved": 13
   },
   "sourceFiles": [
     "dsrc/.gitattributes",
     "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/buff.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/pvp.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/library/stealth.java",
     "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
     "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/battlefield_terminal.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/player_pvp.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/pvp_battlefield.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab",
     "dsrc/sku.0/sys.server/compiled/game/script/terminal/terminal_gcw_publish_gift.java",
     "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_pvp_bf_vendor.java",
     "dsrc/sku.0/sys.server/compiled/game/script/conversation/rebel_pvp_bf_vendor.java",
@@ -82,16 +99,22 @@
       "bytes": 39704,
       "sha256": "49bb11af85a30bd885c5958f80607b0c96dc6f1f16dec44af2b5e1c7338799cc"
     },
-    "directSourceCommit": "5df58ef5536faa0e948df42277a00c3cec9558f8",
+    "directSourceCommit": "42533bb539296806c701239384595f2df03a9b32",
     "nativeSourceCommit": "650c594554f71e02cebd9577466fa50c007088f4",
     "sourceSha256": {
       "attributes": "dd085511d55e5ee0ccb40134112be895255fa4d202d99b2e5cca1b45211f1f4d",
       "script.library.gcw": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
+      "script.library.buff": "7e39456f7a974bf113bb8ad771b93a2182f7c9a15617a7c2dfe01680407a8ded",
+      "script.library.pvp": "0ee2b0316d05e37d0aab2f41da9fef96c4f04d8f38d9af26b60539d35528f5e6",
+      "script.library.stealth": "48deacf625da0047c46f2a8ba6198d95dc13055399427ca829169e049889858f",
       "script.player.base.base_player": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "script.player.live_conversions": "d632d33735d943cf63906cfd7c4a5c976a4a04b02ee9039a1e802740288924cd",
       "script.systems.gcw.battlefield_terminal": "ebf1a8b81c923e07492aa22867446945658a800c4dbc7f778de6122973a18615",
       "script.systems.gcw.player_pvp": "f7cbe4a58383e78bc8021beabb5d5eb850d7c3b74e39fd169e3d69aa9e5b1a7f",
       "script.systems.gcw.pvp_battlefield": "706602177b0f0b6daea1678a1525514176b718493dff2325773ea0489b31b059",
+      "script.systems.buff.buff_handler": "0c6625047edde96fcc3cbeda082b48b043883425c1d4dcb45275f5f492347218",
+      "datatable.buff.buff": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
+      "datatable.buff.effect_mapping": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
       "template.gcw.battlefield_terminal": "a2d97e870eb50e1771851bc1aa9886a55ff72b646a7be7cf83ee207900098b0e",
       "template.gcw.battlefield_beacon": "50c427cb3c004a9f2bbc90979e3c629ee3721269b81e36ef059bc711c57bb81b",
       "script.terminal.terminal_gcw_publish_gift": "4caf393b3dc65abd4474e9785096a259cc629b39defaf78d9fc2f184dd351f5b",
@@ -113,6 +136,15 @@
       "retained.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03"
     },
     "isolatedJavaCompile": "the original queued-battlefield and War Terminal closures remain passed; both battlefield token-vendor conversations compile together with javac -source 8 -target 8 against the verified live x64 class set, their isolated class hashes are authenticated, neither class contains showInventorySUI, and the ephemeral /dev/shm output was deleted and verified absent",
+    "focusedRunnerBuffJavaCompile": "passed focused OpenJDK 11 Java 8-target compilation of library/buff.java and systems/buff/buff_handler.java from pushed direct-source commit 42533bb539296806c701239384595f2df03a9b32 against the production package root with -g and -implicit:none; emitted SHA-256 12e36cad7e14e3c8e46311a00c0d0f62f70cf0f17abf29fc0786365e12c92852 at 91613 bytes and 118f8e0772857d9693abe2efcf8d25de18d0a6856472c750c7676e37f971dbf1 at 138152 bytes, with the player return before the first invisibility mutation and empty /dev/shm afterward",
+    "focusedRunnerBuffClassSha256": {
+      "script.library.buff": "12e36cad7e14e3c8e46311a00c0d0f62f70cf0f17abf29fc0786365e12c92852",
+      "script.systems.buff.buff_handler": "118f8e0772857d9693abe2efcf8d25de18d0a6856472c750c7676e37f971dbf1"
+    },
+    "focusedRunnerBuffClassBytes": {
+      "script.library.buff": 91613,
+      "script.systems.buff.buff_handler": 138152
+    },
     "isolatedClassSha256": {
       "script.library.gcw": "864a15301344fd4dd41d12fe8631464ce69ae547d225caa4f2b17671cfec6ca0",
       "script.player.base.base_player": "4d4eff5d567d6ab45bc54722400afb2aee73039dc2484beb456e52f9f91a2395",
@@ -179,8 +211,8 @@
     "missionTerminalContinuity": "The user physically reached a combat mission terminal after Milestone 296 and confirmed that it works; its source and reward hashes remain protected and unchanged in this overlay."
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all known controller buildouts, capture-terminal buildouts, persisted-controller cleanup, cross-server queue/status, War Terminal queue menu and cached action, player-script attachment, level-75 admission, warp, battlefield cloning, pushback-region, scoreboard, token rewards, and orphaned battlefield token-vendor inventory reachability for the Game Update 10 four-map system",
-    "retainedContent": "PRE-CU open-world battlefield code/data and faction-standing rewards, ordinary open-world PvP, faction rank/perks, mission terminals and rewards, static faction bases, the two later vendor NPC spawners and conversation presentation without token inventory, later-zone scenery, and authored quests",
+    "closedInThisMilestone": "all known controller buildouts, capture-terminal buildouts, persisted-controller cleanup, cross-server queue/status, War Terminal queue menu and cached action, player-script attachment, level-75 admission, warp, battlefield cloning, pushback-region, scoreboard, token rewards, orphaned battlefield token-vendor inventory reachability, and player admission, persistence, and add-side mutation for the Game Update 10 runner communication buff",
+    "retainedContent": "PRE-CU open-world battlefield code/data and faction-standing rewards, ordinary open-world PvP, faction rank/perks, mission terminals and rewards, static faction bases, the two later vendor NPC spawners and conversation presentation without token inventory, later-zone scenery, authored quests, the runner buff row/mapping/producer/readers, unguarded remove cleanup, and non-player compatibility",
     "notClaimedComplete": "space rewards and other unaudited GCW-adjacent content remain separate audit boundaries"
   },
   "requiredBeforeReady": []

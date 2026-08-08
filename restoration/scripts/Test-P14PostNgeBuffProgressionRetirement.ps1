@@ -129,6 +129,9 @@ $avoidIncapInventoryBody = Get-SourceSlice $buffText `
 $avoidIncapCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostP14PlayerAvoidIncapHealState" `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$queuedCommunicationIdentityBody = Get-SourceSlice $buffText `
+    "private static final String RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF" `
+    "private static final String RETIRED_POST_NGE_PLAYER_RADAR_INVISIBILITY_EFFECT"
 $groupBuffInventoryBody = Get-SourceSlice $buffText `
     "private static final String[] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS" `
     "public static boolean isRetiredPostNgePlayerGroupBuffName"
@@ -237,6 +240,25 @@ Assert-Contract ($actualProfessionImmunityNames.Count -eq
     -not [bool]$contract.expected.playerProfessionImmunityBuffAdmissionReachable -and
     [bool]$contract.expected.persistedPlayerProfessionImmunityStateRemoved) `
     "p14.buff-progression.profession-immunity.admission-and-central-lifecycle"
+$queuedCommunicationAdmissionGate = $buffAdmissionBody.IndexOf(
+    "isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$queuedCommunicationExistingBuffReturn = $buffAdmissionBody.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($queuedCommunicationIdentityBody.Contains(
+        'RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF = "battlefield_communication_run"') -and
+    $queuedCommunicationIdentityBody.Contains("isPlayer(target) && data != null") -and
+    $queuedCommunicationIdentityBody.Contains(
+        "hasBuff(player, RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)") -and
+    $queuedCommunicationIdentityBody.Contains(
+        "removeBuff(player, RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)") -and
+    $cleanupBody.Contains(
+        "retirePostNgePlayerQueuedBattlefieldCommunicationState(player);") -and
+    $queuedCommunicationAdmissionGate -ge 0 -and
+    $queuedCommunicationExistingBuffReturn -gt $queuedCommunicationAdmissionGate -and
+    -not [bool]$contract.expected.playerQueuedBattlefieldCommunicationBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerQueuedBattlefieldCommunicationBuffStateRemoved) `
+    "p14.buff-progression.queued-battlefield-communication.admission-and-central-lifecycle"
 $expectedGroupBuffs = @($contract.expected.retiredPlayerGroupBuffs | Sort-Object)
 $actualGroupBuffs = @([regex]::Matches($groupBuffInventoryBody, '"([^"\r\n]+)"') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object)
@@ -434,6 +456,12 @@ $gcwBonusBody = Get-SourceSlice $handlerText "public int gcwBonusGeneralAddBuffH
 $gcwMiniTurretBody = Get-SourceSlice $handlerText "public int gcwMiniTurretAddBuffHandler" "public int gcwMiniTurretRemoveBuffHandler"
 $avoidIncapAddBody = Get-SourceSlice $handlerText "public int onIncapHealAddBuffHandler" "public int onIncapHealRemoveBuffHandler"
 $avoidIncapRemoveBody = Get-SourceSlice $handlerText "public int onIncapHealRemoveBuffHandler" "public int healEffectAddBuffHandler"
+$queuedCommunicationAddBody = Get-SourceSlice $handlerText `
+    "public int battlefieldCommuncationsGlowAddBuffHandler" `
+    "public int battlefieldCommuncationsGlowRemoveBuffHandler"
+$queuedCommunicationRemoveBody = Get-SourceSlice $handlerText `
+    "public int battlefieldCommuncationsGlowRemoveBuffHandler" `
+    "public int empireDayImperialRecruitmentAddBuffHandler"
 $groupBuffAddBody = Get-SourceSlice $handlerText `
     "public int groupAddBuffHandler" `
     "public int groupRemoveBuffHandler"
@@ -615,6 +643,25 @@ Assert-Contract ([int]$contract.expected.directAvoidIncapHealAddWriters -eq 1 -a
     $avoidIncapRemoveBody.Contains('utils.removeScriptVar(self, "buff_handler." + subtype)') -and
     [bool]$contract.expected.nonPlayerAvoidIncapHealCompatibilityPreserved) `
     "p14.buff-progression.avoid-incap-heal.direct-writer-fails-closed"
+Assert-Contract ([int]$contract.expected.directQueuedBattlefieldCommunicationAddWriters -eq 1 -and
+    -not [bool]$contract.expected.directQueuedBattlefieldCommunicationAddWriterPlayerReachable -and
+    $queuedCommunicationAddBody.Contains("if (isPlayer(self)") -and
+    $queuedCommunicationAddBody.Contains(
+        "buff.isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName(buffName)") -and
+    $queuedCommunicationAddBody.Contains(
+        "buff.retirePostNgePlayerQueuedBattlefieldCommunicationState(self);") -and
+    (Is-Before $queuedCommunicationAddBody `
+        "buff.retirePostNgePlayerQueuedBattlefieldCommunicationState(self);" `
+        "return SCRIPT_OVERRIDE;") -and
+    (Is-Before $queuedCommunicationAddBody "return SCRIPT_OVERRIDE;" `
+        'buff.removeBuff(self, "battlefield_radar_invisibility")') -and
+    [bool]$contract.expected.queuedBattlefieldCommunicationRemoveCompatibilityPreserved -and
+    -not $queuedCommunicationRemoveBody.Contains(
+        "isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName") -and
+    $queuedCommunicationRemoveBody.Contains(
+        'buff.applyBuff(self, "battlefield_radar_invisibility");') -and
+    [bool]$contract.expected.nonPlayerQueuedBattlefieldCommunicationCompatibilityPreserved) `
+    "p14.buff-progression.queued-battlefield-communication.direct-writer-fails-closed"
 
 $xpText = [string]$sourceTexts["library/xp.java"]
 $applyXpBody = Get-SourceSlice $xpText "public static int applyInspirationBuffXpModifier" "public static float getGroupXpModifier"
@@ -667,6 +714,25 @@ $effectMapPath = Join-Path $sharedRoot "datatables/buff/effect_mapping.tab"
 $buffTable = Get-Content -LiteralPath $buffTablePath -Raw
 $effectMap = Get-Content -LiteralPath $effectMapPath -Raw
 $allBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t")
+$queuedCommunicationRows = @($allBuffRows | Where-Object {
+    $_.NAME -ceq "battlefield_communication_run"
+})
+$queuedCommunicationMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
+    Where-Object { $_.NAME -ceq "battlefield_communcations_glow" })
+Assert-Contract ($queuedCommunicationRows.Count -eq
+        [int]$contract.expected.retainedQueuedBattlefieldCommunicationBuffRows -and
+    [string]$queuedCommunicationRows[0].GROUP1 -ceq "battlefield_communication_run" -and
+    [float]$queuedCommunicationRows[0].DURATION -eq 90.0 -and
+    [string]$queuedCommunicationRows[0].EFFECT1_PARAM -ceq "battlefield_communcations_glow" -and
+    [string]$queuedCommunicationRows[0].PARTICLE -ceq "appearance/pt_battlefield_runner.prt" -and
+    [int]$queuedCommunicationRows[0].VISIBLE -eq 1 -and
+    [int]$queuedCommunicationRows[0].REMOVE_ON_DEATH -eq 1 -and
+    [int]$queuedCommunicationRows[0].IS_PERSISTENT -eq 1 -and
+    $queuedCommunicationMappings.Count -eq
+        [int]$contract.expected.retainedQueuedBattlefieldCommunicationEffectMappingRows -and
+    [string]$queuedCommunicationMappings[0].TYPE -ceq "battlefieldCommuncationsGlow" -and
+    [string]$queuedCommunicationMappings[0].SUBTYPE -ceq "battlefield_communcations_glow") `
+    "p14.buff-progression.queued-battlefield-communication.data-authenticated"
 $healEffectMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
     Where-Object { $_.TYPE -ceq "healEffect" })
 $healEffectMappingNames = @($healEffectMappings.NAME | Sort-Object)

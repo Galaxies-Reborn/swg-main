@@ -2288,6 +2288,88 @@ Assert-Contract ($guardedBeastFamilyCallbacks -eq
         [int]$contract.expected.productionNgePlayerBeastFamilyDirectCallbacksGuarded) `
     "p14.combat-expertise-isolation.buff.beast-family-direct-callbacks-fail-closed"
 
+$queuedCommunicationMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { $_.NAME -ceq "battlefield_communcations_glow" })
+$queuedCommunicationBuffs = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { $_.NAME -ceq "battlefield_communication_run" })
+Assert-Contract ($queuedCommunicationMappings.Count -eq
+        [int]$contract.expected.retainedQueuedBattlefieldCommunicationEffectMappingRows -and
+    [string]$queuedCommunicationMappings[0].TYPE -ceq "battlefieldCommuncationsGlow" -and
+    [string]$queuedCommunicationMappings[0].SUBTYPE -ceq "battlefield_communcations_glow" -and
+    $queuedCommunicationBuffs.Count -eq
+        [int]$contract.expected.retainedQueuedBattlefieldCommunicationBuffRows -and
+    [string]$queuedCommunicationBuffs[0].GROUP1 -ceq "battlefield_communication_run" -and
+    [float]$queuedCommunicationBuffs[0].DURATION -eq 90.0 -and
+    [string]$queuedCommunicationBuffs[0].EFFECT1_PARAM -ceq "battlefield_communcations_glow" -and
+    [string]$queuedCommunicationBuffs[0].PARTICLE -ceq "appearance/pt_battlefield_runner.prt" -and
+    [int]$queuedCommunicationBuffs[0].VISIBLE -eq 1 -and
+    [int]$queuedCommunicationBuffs[0].REMOVE_ON_DEATH -eq 1 -and
+    [int]$queuedCommunicationBuffs[0].IS_PERSISTENT -eq 1) `
+    "p14.combat-expertise-isolation.buff.queued-battlefield-communication-data-authenticated"
+
+$queuedCommunicationIdentity = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName("
+$queuedCommunicationPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuff("
+$queuedCommunicationCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerQueuedBattlefieldCommunicationState("
+$queuedCommunicationProgression = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression("
+$queuedCommunicationAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$queuedCommunicationAdmissionGate = $queuedCommunicationAdmission.IndexOf(
+    "isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$queuedCommunicationExistingBuff = $queuedCommunicationAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($queuedCommunicationIdentity.Contains(
+        'buffName.equals(RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)') -and
+    $queuedCommunicationPredicate.Contains("isPlayer(target)") -and
+    $queuedCommunicationPredicate.Contains("data != null") -and
+    $queuedCommunicationCleanup.Contains(
+        "hasBuff(player, RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)") -and
+    $queuedCommunicationCleanup.Contains(
+        "removeBuff(player, RETIRED_POST_NGE_PLAYER_QUEUED_BATTLEFIELD_COMMUNICATION_BUFF)") -and
+    $queuedCommunicationProgression.Contains(
+        "retirePostNgePlayerQueuedBattlefieldCommunicationState(player);") -and
+    $queuedCommunicationAdmissionGate -ge 0 -and
+    $queuedCommunicationExistingBuff -gt $queuedCommunicationAdmissionGate -and
+    -not [bool]$contract.expected.playerQueuedBattlefieldCommunicationBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerQueuedBattlefieldCommunicationBuffStateRemoved) `
+    "p14.combat-expertise-isolation.buff.queued-battlefield-communication-admission-and-persistence-fail-closed"
+
+$queuedCommunicationAdd = Get-BracedBlock $buffHandler `
+    "public int battlefieldCommuncationsGlowAddBuffHandler("
+$queuedCommunicationRemove = Get-BracedBlock $buffHandler `
+    "public int battlefieldCommuncationsGlowRemoveBuffHandler("
+$queuedCommunicationGuard = $queuedCommunicationAdd.IndexOf(
+    "if (isPlayer(self)", [StringComparison]::Ordinal)
+$queuedCommunicationName = $queuedCommunicationAdd.IndexOf(
+    "isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$queuedCommunicationRepair = $queuedCommunicationAdd.IndexOf(
+    "retirePostNgePlayerQueuedBattlefieldCommunicationState(self);",
+    [StringComparison]::Ordinal)
+$queuedCommunicationReturn = $queuedCommunicationAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$queuedCommunicationWriter = $queuedCommunicationAdd.IndexOf(
+    'buff.removeBuff(self, "battlefield_radar_invisibility")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($queuedCommunicationGuard -ge 0 -and
+    $queuedCommunicationName -gt $queuedCommunicationGuard -and
+    $queuedCommunicationRepair -gt $queuedCommunicationName -and
+    $queuedCommunicationReturn -gt $queuedCommunicationRepair -and
+    $queuedCommunicationWriter -gt $queuedCommunicationReturn -and
+    -not $queuedCommunicationRemove.Contains(
+        "isRetiredPostNgePlayerQueuedBattlefieldCommunicationBuffName") -and
+    $queuedCommunicationRemove.Contains(
+        'buff.applyBuff(self, "battlefield_radar_invisibility");') -and
+    [int]$contract.expected.productionQueuedBattlefieldCommunicationAddHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerQueuedBattlefieldCommunicationInvisibilityMutationReachable -and
+    [bool]$contract.expected.queuedBattlefieldCommunicationRemoveCompatibilityPreserved -and
+    [bool]$contract.expected.nonPlayerQueuedBattlefieldCommunicationCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.queued-battlefield-communication-handler-player-fail-closed"
+
 $retiredProfessionMovementPrefixes = @(
     $contract.expected.retiredNgePlayerProfessionMovementBuffPrefixes |
         ForEach-Object { [string]$_ }
