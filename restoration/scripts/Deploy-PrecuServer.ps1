@@ -7604,7 +7604,7 @@ inspired_action_bytecode="$(printf '%s\n' "$profession_proxy_combat_actions_byte
 printf '%s\n' "$inspired_action_bytecode" | awk '
 /Method isPlayer:/ { guard = NR }
 /removeRetiredNgePlayerSkillStatistics/ { cleanup = NR }
-/[0-9]+:[[:space:]]+return$/ && cleanup > 0 && earlyReturn == 0 { earlyReturn = NR }
+/return/ && cleanup > 0 && earlyReturn == 0 { earlyReturn = NR }
 /String of_inspired_action_chance/ { reader = NR }
 END { if (!(guard > 0 && cleanup > guard && earlyReturn > cleanup && reader > earlyReturn)) exit 2 }'
 parse_skill_modifiers_bytecode="$(printf '%s\n' "$static_item_bytecode" | sed -n '/public static script.dictionary parseSkillModifiers/,/public static script.obj_id makeDynamicObject/p')"
