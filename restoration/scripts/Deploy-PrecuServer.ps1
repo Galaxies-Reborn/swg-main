@@ -2078,6 +2078,92 @@ test "$dot_reduction_guard_line" -lt "$dot_reduction_mutation_line"
 test "$dot_divisor_guard_line" -lt "$dot_divisor_mutation_line"
 test "$(printf '%s\n' "$dot_reduction_handler_source" | grep -Fc 'buff.reduceBuffDotStackCount')" -eq 9
 test "$(printf '%s\n' "$dot_divisor_handler_source" | grep -Fc 'buff.divideBuffDotStackCount')" -eq 9
+# The exact inherited flat-HAM player reward inventory is post-NGE combat
+# authority. Keep its content rows and generic non-player/cleanup machinery,
+# while rejecting those names before player mutation.
+flat_attribute_effect_specs='action:action constitution:constitution health:health mind:mind stamina:stamina strength:strength willpower:willpower'
+test "$(awk -F '\t' '$2 == "attrib" { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 7
+for flat_attribute_effect_spec in $flat_attribute_effect_specs; do
+    flat_attribute_effect_name="${flat_attribute_effect_spec%%:*}"
+    flat_attribute_effect_subtype="${flat_attribute_effect_spec#*:}"
+    awk -F '\t' -v name="$flat_attribute_effect_name" -v subtype="$flat_attribute_effect_subtype" '
+        $1 == name && $2 == "attrib" && $3 == subtype { found++ }
+        END { if (found != 1) exit 3 }
+    ' "$work_buff_effect_mapping"
+done
+retired_player_flat_attribute_buffs='crystal_buff holocron_1 holocron_4 holocron_5 holocron_6 trivialComboRngSpeed towConstStamina_1 towConstStamina_2 towConstWillpower_1 towConstWillpower_2 towStaminaWillpower_1 towStaminaWillpower_2 forceCrystalForce'
+preserved_flat_attribute_buffs='testHealthBuff1 testHealthBuff2 testConstBuff1 testConstBuff2 testAttribBuff1 testAttribBuff2 testDebuff1 testDebuff2 testMedBoost1 testMedBoost2 testColdSnare1 testColdSnare2 testLongBuff bindingStrike bindingStrike_1 innate_regeneration innate_vitalize powerBoost minder_add_debuff jedi_statue_self_dps_debuff'
+test "$(printf '%s\n' $retired_player_flat_attribute_buffs | wc -l)" -eq 13
+test "$(printf '%s\n' $preserved_flat_attribute_buffs | wc -l)" -eq 20
+awk -F '\t' -v retired="$retired_player_flat_attribute_buffs" -v preserved="$preserved_flat_attribute_buffs" '
+    BEGIN {
+        split(retired, retired_names, " ")
+        for (idx in retired_names) { retired_set[retired_names[idx]]=1 }
+        split(preserved, preserved_names, " ")
+        for (idx in preserved_names) { preserved_set[preserved_names[idx]]=1 }
+    }
+    NR == 1 {
+        for (column = 1; column <= NF; column++) {
+            header = $column
+            sub(/\r$/, "", header)
+            field_index[header] = column
+        }
+        next
+    }
+    NR > 2 {
+        owns_flat_attribute = 0
+        for (effect = 1; effect <= 5; effect++) {
+            parameter = $(field_index["EFFECT" effect "_PARAM"])
+            if (parameter == "action" || parameter == "constitution" ||
+                parameter == "health" || parameter == "mind" ||
+                parameter == "stamina" || parameter == "strength" ||
+                parameter == "willpower") {
+                owns_flat_attribute = 1
+            }
+        }
+        if (!owns_flat_attribute) { next }
+        name = $(field_index["NAME"])
+        ++rows
+        if (name in retired_set) { ++retired_rows; ++retired_found[name] }
+        else if (name in preserved_set) { ++preserved_rows; ++preserved_found[name] }
+        else { ++unclassified_rows }
+    }
+    END {
+        if (rows != 33 || retired_rows != 13 || preserved_rows != 20 || unclassified_rows != 0) exit 2
+        for (name in retired_set) { if (retired_found[name] != 1) exit 3 }
+        for (name in preserved_set) { if (preserved_found[name] != 1) exit 4 }
+    }
+' "$work_buff_table"
+flat_attribute_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_FLAT_ATTRIBUTE_BUFFS/,/public static boolean isRetiredPostNgePlayerFlatAttributeBuffName/p' "$work_buff_library")"
+test "$(printf '%s\n' "$flat_attribute_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 13
+for retired_player_flat_attribute_buff in $retired_player_flat_attribute_buffs; do
+    printf '%s\n' "$flat_attribute_inventory_source" | grep -Fq "\"$retired_player_flat_attribute_buff\""
+done
+flat_attribute_cleanup_source="$(sed -n '/public static void retirePostNgePlayerFlatAttributeState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_ATTRIBUTE_PERCENT_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$flat_attribute_cleanup_source" | grep -Fq 'isPlayer(player)'
+printf '%s\n' "$flat_attribute_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerFlatAttributeState(player);' "$work_buff_library"
+flat_attribute_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+flat_attribute_admission_line="$(printf '%s\n' "$flat_attribute_admission_source" | grep -Fn 'isRetiredPostNgePlayerFlatAttributeBuff(target, bdata)' | head -1 | cut -d: -f1)"
+flat_attribute_existing_line="$(printf '%s\n' "$flat_attribute_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$flat_attribute_admission_line"
+test -n "$flat_attribute_existing_line"
+test "$flat_attribute_admission_line" -lt "$flat_attribute_existing_line"
+flat_attribute_add_handler_source="$(sed -n '/public int attribAddBuffHandler/,/public int attribRemoveBuffHandler/p' "$work_buff_handler")"
+flat_attribute_remove_handler_source="$(sed -n '/public int attribRemoveBuffHandler/,/public int attribPercentAddBuffHandler/p' "$work_buff_handler")"
+flat_attribute_add_player_line="$(printf '%s\n' "$flat_attribute_add_handler_source" | grep -Fn 'if (isPlayer(self)' | head -1 | cut -d: -f1)"
+flat_attribute_add_predicate_line="$(printf '%s\n' "$flat_attribute_add_handler_source" | grep -Fn 'buff.isRetiredPostNgePlayerFlatAttributeBuffName(buffName)' | head -1 | cut -d: -f1)"
+flat_attribute_add_attribute_line="$(printf '%s\n' "$flat_attribute_add_handler_source" | grep -Fn 'int attribute = ATTRIB_ERROR' | head -1 | cut -d: -f1)"
+flat_attribute_add_writer_line="$(printf '%s\n' "$flat_attribute_add_handler_source" | grep -Fn 'addAttribModifier(self, am)' | head -1 | cut -d: -f1)"
+test -n "$flat_attribute_add_player_line"
+test -n "$flat_attribute_add_predicate_line"
+test -n "$flat_attribute_add_attribute_line"
+test -n "$flat_attribute_add_writer_line"
+test "$flat_attribute_add_player_line" -le "$flat_attribute_add_predicate_line"
+test "$flat_attribute_add_predicate_line" -lt "$flat_attribute_add_attribute_line"
+test "$flat_attribute_add_predicate_line" -lt "$flat_attribute_add_writer_line"
+printf '%s\n' "$flat_attribute_remove_handler_source" | grep -Fq 'removeAttribOrSkillModModifier(self, effectName)'
+! printf '%s\n' "$flat_attribute_remove_handler_source" | grep -Fq 'isRetiredPostNgePlayerFlatAttributeBuffName'
 # The retained generic percentage-HAM machinery remains available for
 # authenticated PRE-CU and later-content exceptions, but its exact inherited
 # post-NGE player inventory is rejected before any attribute mutation.
@@ -4314,6 +4400,31 @@ test -n "$dot_divisor_guard_bytecode_line"
 test -n "$dot_divisor_mutation_bytecode_line"
 test "$dot_reduction_guard_bytecode_line" -lt "$dot_reduction_mutation_bytecode_line"
 test "$dot_divisor_guard_bytecode_line" -lt "$dot_divisor_mutation_bytecode_line"
+flat_attribute_buff_bytecode="$dot_stack_buff_bytecode"
+printf '%s\n' "$flat_attribute_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerFlatAttributeBuffName'
+printf '%s\n' "$flat_attribute_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerFlatAttributeBuff'
+printf '%s\n' "$flat_attribute_buff_bytecode" | grep -Fq 'retirePostNgePlayerFlatAttributeState'
+for retired_player_flat_attribute_buff in $retired_player_flat_attribute_buffs; do
+    printf '%s\n' "$flat_attribute_buff_bytecode" | grep -Fq "$retired_player_flat_attribute_buff"
+done
+flat_attribute_admission_bytecode="$(printf '%s\n' "$flat_attribute_buff_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+flat_attribute_admission_bytecode_line="$(printf '%s\n' "$flat_attribute_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerFlatAttributeBuff' | head -1 | cut -d: -f1)"
+flat_attribute_existing_bytecode_line="$(printf '%s\n' "$flat_attribute_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$flat_attribute_admission_bytecode_line"
+test -n "$flat_attribute_existing_bytecode_line"
+test "$flat_attribute_admission_bytecode_line" -lt "$flat_attribute_existing_bytecode_line"
+flat_attribute_add_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int attribAddBuffHandler/,/public int attribRemoveBuffHandler/p')"
+flat_attribute_remove_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int attribRemoveBuffHandler/,/public int attribPercentAddBuffHandler/p')"
+flat_attribute_add_player_bytecode_line="$(printf '%s\n' "$flat_attribute_add_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+flat_attribute_add_predicate_bytecode_line="$(printf '%s\n' "$flat_attribute_add_handler_bytecode" | grep -Fn 'isRetiredPostNgePlayerFlatAttributeBuffName' | head -1 | cut -d: -f1)"
+flat_attribute_add_writer_bytecode_line="$(printf '%s\n' "$flat_attribute_add_handler_bytecode" | grep -Fn 'Method addAttribModifier' | head -1 | cut -d: -f1)"
+test -n "$flat_attribute_add_player_bytecode_line"
+test -n "$flat_attribute_add_predicate_bytecode_line"
+test -n "$flat_attribute_add_writer_bytecode_line"
+test "$flat_attribute_add_player_bytecode_line" -lt "$flat_attribute_add_predicate_bytecode_line"
+test "$flat_attribute_add_predicate_bytecode_line" -lt "$flat_attribute_add_writer_bytecode_line"
+printf '%s\n' "$flat_attribute_remove_handler_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
+! printf '%s\n' "$flat_attribute_remove_handler_bytecode" | grep -Fq 'isRetiredPostNgePlayerFlatAttributeBuffName'
 attribute_percent_buff_bytecode="$dot_stack_buff_bytecode"
 printf '%s\n' "$attribute_percent_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerAttributePercentBuffName'
 printf '%s\n' "$attribute_percent_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerAttributePercentBuff'

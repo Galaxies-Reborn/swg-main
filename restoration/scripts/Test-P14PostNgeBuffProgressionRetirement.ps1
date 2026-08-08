@@ -129,6 +129,12 @@ $avoidIncapInventoryBody = Get-SourceSlice $buffText `
 $avoidIncapCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostP14PlayerAvoidIncapHealState" `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$flatAttributeInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_FLAT_ATTRIBUTE_BUFFS" `
+    "public static boolean isRetiredPostNgePlayerFlatAttributeBuffName"
+$flatAttributeCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgePlayerFlatAttributeState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_ATTRIBUTE_PERCENT_BUFFS"
 $attributePercentInventoryBody = Get-SourceSlice $buffText `
     "private static final String[] RETIRED_POST_NGE_PLAYER_ATTRIBUTE_PERCENT_BUFFS" `
     "public static boolean isRetiredPostNgePlayerAttributePercentBuffName"
@@ -147,6 +153,22 @@ foreach ($buffName in @($contract.expected.retiredBuffs))
 {
     Assert-Contract ($cleanupBody.Contains("removeBuff(player, `"$buffName`")")) "p14.buff-progression.cleanup.buff.$buffName"
 }
+$expectedFlatAttributeBuffs = @($contract.expected.retiredPlayerFlatAttributeBuffs | Sort-Object)
+$actualFlatAttributeBuffs = @([regex]::Matches($flatAttributeInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualFlatAttributeBuffs.Count -eq
+        [int]$contract.expected.retiredPlayerFlatAttributeBuffCount -and
+    @($actualFlatAttributeBuffs | Select-Object -Unique).Count -eq
+        $actualFlatAttributeBuffs.Count -and
+    (($actualFlatAttributeBuffs -join "`n") -ceq
+        ($expectedFlatAttributeBuffs -join "`n")) -and
+    $flatAttributeCleanupBody.Contains("isPlayer(player)") -and
+    $flatAttributeCleanupBody.Contains("removeBuff(player, activeBuff)") -and
+    $cleanupBody.Contains("retirePostNgePlayerFlatAttributeState(player);") -and
+    (Is-Before $buffAdmissionBody "isRetiredPostNgePlayerFlatAttributeBuff(target, bdata)" "hasBuff(target, nameCrc)") -and
+    -not [bool]$contract.expected.playerFlatAttributeBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerFlatAttributeBuffsRemoved) `
+    "p14.buff-progression.flat-attribute.player-state-and-admission-retired"
 $expectedAttributePercentBuffs = @($contract.expected.retiredPlayerAttributePercentBuffs | Sort-Object)
 $actualAttributePercentBuffs = @([regex]::Matches($attributePercentInventoryBody, '"([^"\r\n]+)"') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object)
@@ -299,12 +321,30 @@ $xpGrantBody = Get-SourceSlice $handlerText "public int xpGrantedGeneralAddBuffH
 $buildBody = Get-SourceSlice $handlerText "public int buildabuffAddBuffHandler" "public int buildabuffRemoveBuffHandler"
 $gcwBonusBody = Get-SourceSlice $handlerText "public int gcwBonusGeneralAddBuffHandler" "public int gcwBonusGeneralRemoveBuffHandler"
 $gcwMiniTurretBody = Get-SourceSlice $handlerText "public int gcwMiniTurretAddBuffHandler" "public int gcwMiniTurretRemoveBuffHandler"
+$flatAttributeAddBody = Get-SourceSlice $handlerText `
+    "public int attribAddBuffHandler" `
+    "public int attribRemoveBuffHandler"
+$flatAttributeRemoveBody = Get-SourceSlice $handlerText `
+    "public int attribRemoveBuffHandler" `
+    "public int attribPercentAddBuffHandler"
 $attributePercentAddBody = Get-SourceSlice $handlerText `
     "public int attribPercentAddBuffHandler" `
     "public int attribPercentRemoveBuffHandler"
 $attributePercentRemoveBody = Get-SourceSlice $handlerText `
     "public int attribPercentRemoveBuffHandler" `
     "public int skillAddBuffHandler"
+Assert-Contract (([regex]::Matches($handlerText,
+        'buff[.]isRetiredPostNgePlayerFlatAttributeBuffName\(buffName\)')).Count -eq
+        [int]$contract.expected.productionFlatAttributeAddHandlersGuarded -and
+    $flatAttributeAddBody.Contains("isPlayer(self)") -and
+    (Is-Before $flatAttributeAddBody "buff.isRetiredPostNgePlayerFlatAttributeBuffName(buffName)" "int attribute = ATTRIB_ERROR") -and
+    (Is-Before $flatAttributeAddBody "return SCRIPT_OVERRIDE;" "addAttribModifier(self, am)") -and
+    -not $flatAttributeRemoveBody.Contains(
+        "isRetiredPostNgePlayerFlatAttributeBuffName") -and
+    $flatAttributeRemoveBody.Contains("removeAttribOrSkillModModifier(self, effectName)") -and
+    [bool]$contract.expected.flatAttributeRemoveCleanupPreserved -and
+    [bool]$contract.expected.nonPlayerFlatAttributeCompatibilityPreserved) `
+    "p14.buff-progression.flat-attribute.handler-fails-closed-for-players"
 Assert-Contract (([regex]::Matches($handlerText,
         'buff[.]isRetiredPostNgePlayerAttributePercentBuffName\(buffName\)')).Count -eq
         [int]$contract.expected.productionAttributePercentAddHandlersGuarded -and
@@ -386,6 +426,51 @@ $effectMapPath = Join-Path $sharedRoot "datatables/buff/effect_mapping.tab"
 $buffTable = Get-Content -LiteralPath $buffTablePath -Raw
 $effectMap = Get-Content -LiteralPath $effectMapPath -Raw
 $allBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t")
+$flatAttributeMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
+    Where-Object { $_.TYPE -ceq "attrib" })
+$flatAttributeEffectNames = @($flatAttributeMappings.NAME)
+$flatAttributeRows = @($allBuffRows | Where-Object {
+    $parameters = @($_.EFFECT1_PARAM, $_.EFFECT2_PARAM, $_.EFFECT3_PARAM,
+        $_.EFFECT4_PARAM, $_.EFFECT5_PARAM)
+    @($parameters | Where-Object { $flatAttributeEffectNames -ccontains $_ }).Count -gt 0
+})
+$retiredFlatAttributeRows = @($flatAttributeRows |
+    Where-Object { $expectedFlatAttributeBuffs -ccontains $_.NAME })
+$expectedPreservedFlatAttributeBuffs = @(
+    $contract.expected.preservedFlatAttributeBuffs | Sort-Object)
+$preservedFlatAttributeRows = @($flatAttributeRows |
+    Where-Object { $expectedPreservedFlatAttributeBuffs -ccontains $_.NAME })
+$unclassifiedFlatAttributeRows = @($flatAttributeRows | Where-Object {
+    $expectedFlatAttributeBuffs -cnotcontains $_.NAME -and
+    $expectedPreservedFlatAttributeBuffs -cnotcontains $_.NAME
+})
+Assert-Contract ($flatAttributeMappings.Count -eq
+        [int]$contract.expected.retainedFlatAttributeEffectMappingRows -and
+    $flatAttributeRows.Count -eq
+        [int]$contract.expected.retainedFlatAttributeBuffRowCount -and
+    $retiredFlatAttributeRows.Count -eq
+        [int]$contract.expected.retiredPlayerFlatAttributeBuffCount -and
+    $preservedFlatAttributeRows.Count -eq
+        [int]$contract.expected.preservedFlatAttributeBuffCount -and
+    $unclassifiedFlatAttributeRows.Count -eq 0 -and
+    ((@($retiredFlatAttributeRows.NAME | Sort-Object) -join "`n") -ceq
+        ($expectedFlatAttributeBuffs -join "`n")) -and
+    ((@($preservedFlatAttributeRows.NAME | Sort-Object) -join "`n") -ceq
+        ($expectedPreservedFlatAttributeBuffs -join "`n"))) `
+    "p14.buff-progression.flat-attribute.complete-data-inventory-authenticated"
+Assert-Contract ([bool]$contract.expected.precuFlatAttributeCommandsPreserved -and
+    [bool]$contract.expected.qaFlatAttributeFixturesPreserved -and
+    [bool]$contract.expected.legitimateNpcFlatAttributeCompatibilityPreserved -and
+    [bool]$contract.expected.laterContentFlatAttributeRowsPreserved -and
+    $expectedPreservedFlatAttributeBuffs -ccontains "innate_regeneration" -and
+    $expectedPreservedFlatAttributeBuffs -ccontains "innate_vitalize" -and
+    $expectedPreservedFlatAttributeBuffs -ccontains "powerBoost" -and
+    $expectedPreservedFlatAttributeBuffs -ccontains "testHealthBuff1" -and
+    $expectedPreservedFlatAttributeBuffs -ccontains "minder_add_debuff" -and
+    $expectedPreservedFlatAttributeBuffs -ccontains "jedi_statue_self_dps_debuff" -and
+    $expectedFlatAttributeBuffs -cnotcontains "innate_regeneration" -and
+    $expectedFlatAttributeBuffs -cnotcontains "powerBoost") `
+    "p14.buff-progression.flat-attribute.precu-qa-npc-exceptions-preserved"
 $attributePercentMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
     Where-Object { $_.TYPE -ceq "attribPercent" })
 $attributePercentEffectNames = @($attributePercentMappings.NAME)
