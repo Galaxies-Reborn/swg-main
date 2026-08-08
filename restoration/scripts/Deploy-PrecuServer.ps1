@@ -2661,6 +2661,9 @@ test "$profession_inspiration_generic_gate_line" -lt "$generic_existing_buff_lin
 profession_proxy_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerProfessionProxyBuff(target, bdata)' | head -1 | cut -d: -f1)"
 test -n "$profession_proxy_generic_gate_line"
 test "$profession_proxy_generic_gate_line" -lt "$generic_existing_buff_line"
+commando_suppression_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerCommandoSuppressionBuff(target, bdata)' | head -1 | cut -d: -f1)"
+test -n "$commando_suppression_generic_gate_line"
+test "$commando_suppression_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$damage_reduction_generic_gate_line" -lt "$modifier_generic_gate_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
@@ -2959,6 +2962,81 @@ for profession_proxy_direct_spec in \
     test "$profession_proxy_direct_predicate_line" -lt "$profession_proxy_direct_return_line"
     test "$profession_proxy_direct_return_line" -lt "$profession_proxy_direct_mutation_line"
 done
+commando_suppression_names='co_supressing_handler co_supressing_fire_0 co_supressing_fire_1 co_supressing_fire_2 co_supressing_fire_3 co_supressing_fire_4'
+test "$(printf '%s\n' $commando_suppression_names | wc -l)" -eq 6
+awk -F '\t' -v retired_names="$commando_suppression_names" '
+    FNR == 1 {
+        for (field = 1; field <= NF; field++) field_index[$field] = field
+        split(retired_names, expected_names, " ")
+        for (expected_index in expected_names) expected[expected_names[expected_index]] = 1
+        next
+    }
+    FNR == 2 { next }
+    ($1 in expected) {
+        row_count++
+        seen[$1]++
+        if ($(field_index["IS_PERSISTENT"]) != "1") exit 39
+        if ($1 == "co_supressing_handler") {
+            if ($(field_index["VISIBLE"]) != "0" ||
+                $(field_index["EFFECT1_PARAM"]) != "supression_handler") exit 40
+        } else {
+            if ($(field_index["VISIBLE"]) != "1" ||
+                $(field_index["EFFECT1_PARAM"]) != "glancing_blow_vulnerable" ||
+                $(field_index["EFFECT2_PARAM"]) != "supress_movement") exit 41
+        }
+    }
+    END {
+        if (row_count != 6) exit 42
+        for (expected_name in expected) if (seen[expected_name] != 1) exit 43
+    }
+' "$work_buff_table"
+awk -F '\t' '
+    FNR <= 2 { next }
+    $1 == "supression_handler" && $2 == "supression_handler" && $3 == "supressingFire" { handler_count++ }
+    $1 == "supress_movement" && $2 == "movementSupressingEffect" && $3 == "supress_movement" { movement_count++ }
+    END { if (handler_count != 2 || movement_count != 2) exit 44 }
+' "$work_buff_effect_mapping"
+awk -F '\t' 'FNR > 2 && $1 == "co_suppressing_fire" { found++; if ($9 != "co_suppressing_fire") exit 45 } END { if (found != 1) exit 46 }' "$work_command_table"
+awk -F '\t' 'FNR > 2 && $1 == "co_suppressing_fire" { found++; if ($68 != "co_supressing_handler") exit 47 } END { if (found != 1) exit 48 }' "$work_combat_data"
+awk -F '\t' 'FNR > 2 && ($1 == "expertise_co_suppressing_fire_1" || $1 ~ /^expertise_co_suppression_efficiency_[1-4]$/) { found++ } END { if (found != 5) exit 49 }' "$work_skills_table"
+test "$(awk -F '\t' 'FNR > 2 && ($1 == "suppressionFire1" || $1 == "suppressionFire2") { found++ } END { print found + 0 }' "$work_command_table")" -eq 2
+test "$(awk -F '\t' 'FNR > 2 && ($1 == "suppressionFire1" || $1 == "suppressionFire2") { found++ } END { print found + 0 }' "$work_combat_data")" -eq 2
+test "$(awk -F '\t' 'FNR > 2 && ($1 == "suppressionFire1" || $1 == "suppressionFire2") { found++ } END { print found + 0 }' "$work_combat_overrides")" -eq 2
+commando_suppression_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_BUFFS/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_EFFECTS/p' "$work_buff_library")"
+for commando_suppression_name in $commando_suppression_names; do
+    printf '%s\n' "$commando_suppression_inventory_source" | grep -Fq "\"$commando_suppression_name\""
+done
+! printf '%s\n' "$commando_suppression_inventory_source" | grep -Fq '"suppressionFire"'
+commando_suppression_effect_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_EFFECTS/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_MODIFIERS/p' "$work_buff_library")"
+printf '%s\n' "$commando_suppression_effect_source" | grep -Fq '"supression_handler"'
+printf '%s\n' "$commando_suppression_effect_source" | grep -Fq '"supress_movement"'
+! printf '%s\n' "$commando_suppression_effect_source" | grep -Fq '"suppression"'
+commando_suppression_modifier_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_MODIFIERS/,/public static boolean isRetiredPostNgePlayerCommandoSuppressionBuffName/p' "$work_buff_library")"
+for commando_suppression_modifier in glancing_blow_vulnerable expertise_supression_speed expertise_supression_glance; do
+    printf '%s\n' "$commando_suppression_modifier_source" | grep -Fq "\"$commando_suppression_modifier\""
+done
+commando_suppression_cleanup_source="$(sed -n '/public static void retirePostNgePlayerCommandoSuppressionState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$commando_suppression_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$commando_suppression_cleanup_source" | grep -Fq '"supress_movement".equals(getEffectParam(data, effect))'
+printf '%s\n' "$commando_suppression_cleanup_source" | grep -Fq 'if (removedMovementSuppression)'
+printf '%s\n' "$commando_suppression_cleanup_source" | grep -Fq 'removeSlowDownEffect(player)'
+sed -n '/public static void retirePostNgeBuffProgression/,/public static final String DOT_BLEEDING/p' "$work_buff_library" | grep -Fq 'retirePostNgePlayerCommandoSuppressionState(player);'
+commando_suppression_nested_add_source="$(sed -n '/public int supression_handlerAddBuffHandler/,/public int supression_handlerRemoveBuffHandler/p' "$work_buff_handler")"
+commando_suppression_nested_remove_source="$(sed -n '/public int supression_handlerRemoveBuffHandler/,/public int movementSupressingEffectAddBuffHandler/p' "$work_buff_handler")"
+commando_suppression_movement_add_source="$(sed -n '/public int movementSupressingEffectAddBuffHandler/,/public int movementSupressingEffectRemoveBuffHandler/p' "$work_buff_handler")"
+commando_suppression_movement_remove_source="$(sed -n '/public int movementSupressingEffectRemoveBuffHandler/,/public int damageImmuneAddBuffHandler/p' "$work_buff_handler")"
+for commando_suppression_add_source in "$commando_suppression_nested_add_source" "$commando_suppression_movement_add_source"; do
+    commando_suppression_guard_line="$(printf '%s\n' "$commando_suppression_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+    commando_suppression_cleanup_line="$(printf '%s\n' "$commando_suppression_add_source" | grep -Fn 'buff.retirePostNgePlayerCommandoSuppressionState(self);' | head -1 | cut -d: -f1)"
+    commando_suppression_return_line="$(printf '%s\n' "$commando_suppression_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+    test "$commando_suppression_guard_line" -lt "$commando_suppression_cleanup_line"
+    test "$commando_suppression_cleanup_line" -lt "$commando_suppression_return_line"
+done
+test "$(printf '%s\n' "$commando_suppression_nested_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$commando_suppression_nested_add_source" | grep -Fn 'getEnhancedSkillStatisticModifierUncapped' | head -1 | cut -d: -f1)"
+test "$(printf '%s\n' "$commando_suppression_nested_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$commando_suppression_nested_add_source" | grep -Fn 'buff.applyBuff' | head -1 | cut -d: -f1)"
+test "$(printf '%s\n' "$commando_suppression_movement_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$commando_suppression_movement_add_source" | grep -Fn 'addSlowDownEffect' | head -1 | cut -d: -f1)"
+! printf '%s\n' "$commando_suppression_nested_remove_source" | grep -Fq 'retirePostNgePlayerCommandoSuppressionState'
+! printf '%s\n' "$commando_suppression_movement_remove_source" | grep -Fq 'retirePostNgePlayerCommandoSuppressionState'
 damage_reduction_add_source="$(sed -n '/public int expertiseDamageDecreaseAddBuffHandler/,/public int expertiseDamageDecreaseRemoveBuffHandler/p' "$work_buff_handler")"
 damage_reduction_remove_source="$(sed -n '/public int expertiseDamageDecreaseRemoveBuffHandler/,/public int onAttackRemoveAddBuffHandler/p' "$work_buff_handler")"
 damage_reduction_add_guard_line="$(printf '%s\n' "$damage_reduction_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
@@ -5654,6 +5732,7 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarIn
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerCommandoSuppressionBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageReductionBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
@@ -5751,6 +5830,25 @@ for profession_proxy_direct_spec in \
     test "$profession_proxy_direct_predicate_bytecode_line" -lt "$profession_proxy_direct_return_bytecode_line"
     test "$profession_proxy_direct_return_bytecode_line" -lt "$profession_proxy_direct_mutation_bytecode_line"
 done
+for commando_suppression_name in $commando_suppression_names; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "$commando_suppression_name"
+done
+commando_suppression_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerCommandoSuppressionState/,/isRetiredPostNgePlayerGroupBuffName/p')"
+printf '%s' "$commando_suppression_cleanup_bytecode" | grep -Fq 'Method getAllBuffs'
+printf '%s' "$commando_suppression_cleanup_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$commando_suppression_cleanup_bytecode" | grep -Fq 'String supress_movement'
+printf '%s' "$commando_suppression_cleanup_bytecode" | grep -Fq 'Method removeSlowDownEffect'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerCommandoSuppressionState'
+commando_suppression_nested_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int supression_handlerAddBuffHandler/,/public int supression_handlerRemoveBuffHandler/p')"
+commando_suppression_movement_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int movementSupressingEffectAddBuffHandler/,/public int movementSupressingEffectRemoveBuffHandler/p')"
+for commando_suppression_add_bytecode in "$commando_suppression_nested_add_bytecode" "$commando_suppression_movement_add_bytecode"; do
+    commando_suppression_cleanup_bytecode_line="$(printf '%s\n' "$commando_suppression_add_bytecode" | grep -Fn 'retirePostNgePlayerCommandoSuppressionState' | head -1 | cut -d: -f1)"
+    commando_suppression_return_bytecode_line="$(printf '%s\n' "$commando_suppression_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$commando_suppression_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+    test -n "$commando_suppression_cleanup_bytecode_line"
+    test -n "$commando_suppression_return_bytecode_line"
+done
+test "$(printf '%s\n' "$commando_suppression_nested_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$commando_suppression_nested_add_bytecode" | grep -Fn 'getEnhancedSkillStatisticModifierUncapped' | head -1 | cut -d: -f1)"
+test "$(printf '%s\n' "$commando_suppression_movement_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)" -lt "$(printf '%s\n' "$commando_suppression_movement_add_bytecode" | grep -Fn 'addSlowDownEffect' | head -1 | cut -d: -f1)"
 performance_bytecode="$(javap -classpath "$class_root" -c -p script.library.performance)"
 performance_inspiration_gate_bytecode="$(printf '%s' "$performance_bytecode" | sed -n '/public static boolean inspire(script.obj_id, java.lang.String)/,/private static boolean isNgeInspirationEnabled/p')"
 printf '%s' "$performance_inspiration_gate_bytecode" | grep -Fq 'isNgeInspirationEnabled'

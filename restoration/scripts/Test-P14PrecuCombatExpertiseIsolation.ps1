@@ -2651,6 +2651,232 @@ Assert-Contract ($officerActionPredicate.Contains('actionName.startsWith("of_")'
     -not [bool]$contract.expected.playerNgeProfessionProxyDirectCallbacksReachable) `
     "p14.combat-expertise-isolation.actions.profession-proxy-prefixless-actions-and-callbacks-fail-closed"
 
+$retiredCommandoSuppressionNames = @(
+    $contract.expected.retiredNgePlayerCommandoSuppressionBuffNames |
+        ForEach-Object { [string]$_ }
+)
+$commandoSuppressionMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        [string]$_.TYPE -ceq "supression_handler" -or
+        [string]$_.TYPE -ceq "movementSupressingEffect"
+    })
+$commandoSuppressionMappingSignatures = @($commandoSuppressionMappings |
+    ForEach-Object {
+        "{0}|{1}|{2}" -f [string]$_.NAME, [string]$_.TYPE, [string]$_.SUBTYPE
+    } | Sort-Object)
+$expectedCommandoSuppressionMappingSignatures = @(
+    "supress_movement|movementSupressingEffect|supress_movement",
+    "supress_movement|movementSupressingEffect|supress_movement",
+    "supression_handler|supression_handler|supressingFire",
+    "supression_handler|supression_handler|supressingFire"
+) | Sort-Object
+$commandoSuppressionRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { $retiredCommandoSuppressionNames -ccontains [string]$_.NAME })
+$commandoSuppressionSignatures = @($commandoSuppressionRows | ForEach-Object {
+    $row = $_
+    @(
+        [string]$row.NAME,
+        [string]$row.DURATION,
+        [string]$row.VISIBLE,
+        [string]$row.IS_PERSISTENT,
+        [string]$row.EFFECT1_PARAM,
+        [string]$row.EFFECT1_VALUE,
+        [string]$row.EFFECT2_PARAM,
+        [string]$row.EFFECT2_VALUE
+    ) -join "|"
+} | Sort-Object)
+$expectedCommandoSuppressionSignatures = @(
+    "co_supressing_fire_0|8|1|1|glancing_blow_vulnerable|10|supress_movement|50",
+    "co_supressing_fire_1|8|1|1|glancing_blow_vulnerable|15|supress_movement|60",
+    "co_supressing_fire_2|8|1|1|glancing_blow_vulnerable|20|supress_movement|70",
+    "co_supressing_fire_3|8|1|1|glancing_blow_vulnerable|25|supress_movement|80",
+    "co_supressing_fire_4|8|1|1|glancing_blow_vulnerable|30|supress_movement|90",
+    "co_supressing_handler|1|0|1|supression_handler|0||0"
+) | Sort-Object
+$commandoSuppressionCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { [string]$_.commandName -ceq "co_suppressing_fire" })
+$commandoSuppressionCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { [string]$_.actionName -ceq "co_suppressing_fire" })
+$commandoSuppressionSkillNames = @(
+    "expertise_co_suppressing_fire_1",
+    "expertise_co_suppression_efficiency_1",
+    "expertise_co_suppression_efficiency_2",
+    "expertise_co_suppression_efficiency_3",
+    "expertise_co_suppression_efficiency_4"
+)
+$commandoSuppressionSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object { $commandoSuppressionSkillNames -ccontains [string]$_.NAME })
+Assert-Contract ($retiredCommandoSuppressionNames.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSuppressionBuffRows -and
+    @($retiredCommandoSuppressionNames | Sort-Object -Unique).Count -eq 6 -and
+    $commandoSuppressionRows.Count -eq 6 -and
+    (($commandoSuppressionSignatures -join "`n") -ceq
+        ($expectedCommandoSuppressionSignatures -join "`n")) -and
+    $commandoSuppressionMappings.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSuppressionEffectMappingRows -and
+    @($commandoSuppressionMappings | Select-Object -ExpandProperty NAME -Unique).Count -eq
+        [int]$contract.expected.retainedNgeCommandoSuppressionDistinctEffectMappings -and
+    (($commandoSuppressionMappingSignatures -join "`n") -ceq
+        ($expectedCommandoSuppressionMappingSignatures -join "`n")) -and
+    $commandoSuppressionCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSuppressionCommandRows -and
+    [string]$commandoSuppressionCommandRows[0].characterAbility -ceq
+        "co_suppressing_fire" -and
+    $commandoSuppressionCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSuppressionCombatRows -and
+    [string]$commandoSuppressionCombatRows[0].buffNameTarget -ceq
+        "co_supressing_handler" -and
+    $commandoSuppressionSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeCommandoSuppressionExpertiseSkillRows -and
+    ((@($commandoSuppressionSkillRows | Select-Object -ExpandProperty NAME |
+        Sort-Object) -join "`n") -ceq
+        (($commandoSuppressionSkillNames | Sort-Object) -join "`n"))) `
+    "p14.combat-expertise-isolation.buff.commando-suppression-complete-data-inventory-authenticated"
+
+$commandoSuppressionBuffInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_BUFFS"
+$commandoSuppressionEffectInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_EFFECTS"
+$commandoSuppressionModifierInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_COMMANDO_SUPPRESSION_MODIFIERS"
+$commandoSuppressionInventoryNames = @([regex]::Matches(
+    $commandoSuppressionBuffInventory, '"([^"]+)"') | ForEach-Object {
+        $_.Groups[1].Value
+    })
+$commandoSuppressionEffects = @([regex]::Matches(
+    $commandoSuppressionEffectInventory, '"([^"]+)"') | ForEach-Object {
+        $_.Groups[1].Value
+    })
+$commandoSuppressionModifiers = @([regex]::Matches(
+    $commandoSuppressionModifierInventory, '"([^"]+)"') | ForEach-Object {
+        $_.Groups[1].Value
+    })
+$commandoSuppressionNamePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCommandoSuppressionBuffName(String buffName)"
+$commandoSuppressionEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCommandoSuppressionEffect(String effectName)"
+$commandoSuppressionBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerCommandoSuppressionBuff(obj_id target, buff_data data)"
+$commandoSuppressionModifierCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerCommandoSuppressionModifiers(obj_id player)"
+$commandoSuppressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerCommandoSuppressionState(obj_id player)"
+$commandoSuppressionProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$commandoSuppressionAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$commandoSuppressionAdmissionGate = $commandoSuppressionAdmission.IndexOf(
+    "isRetiredPostNgePlayerCommandoSuppressionBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$commandoSuppressionExistingBuffReturn = $commandoSuppressionAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$commandoSuppressionNestedAdd = Get-BracedBlock $buffHandler `
+    "public int supression_handlerAddBuffHandler("
+$commandoSuppressionNestedRemove = Get-BracedBlock $buffHandler `
+    "public int supression_handlerRemoveBuffHandler("
+$commandoSuppressionMovementAdd = Get-BracedBlock $buffHandler `
+    "public int movementSupressingEffectAddBuffHandler("
+$commandoSuppressionMovementRemove = Get-BracedBlock $buffHandler `
+    "public int movementSupressingEffectRemoveBuffHandler("
+$nestedSuppressionGuard = $commandoSuppressionNestedAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$nestedSuppressionCleanup = $commandoSuppressionNestedAdd.IndexOf(
+    "buff.retirePostNgePlayerCommandoSuppressionState(self);",
+    [StringComparison]::Ordinal)
+$nestedSuppressionReturn = $commandoSuppressionNestedAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$nestedSuppressionExpertiseRead = $commandoSuppressionNestedAdd.IndexOf(
+    'getEnhancedSkillStatisticModifierUncapped(caster, "expertise_supression_speed")',
+    [StringComparison]::Ordinal)
+$nestedSuppressionWriter = $commandoSuppressionNestedAdd.IndexOf(
+    'buff.applyBuff(self, caster, "co_supressing_fire_" + level)',
+    [StringComparison]::Ordinal)
+$movementSuppressionGuard = $commandoSuppressionMovementAdd.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$movementSuppressionCleanup = $commandoSuppressionMovementAdd.IndexOf(
+    "buff.retirePostNgePlayerCommandoSuppressionState(self);",
+    [StringComparison]::Ordinal)
+$movementSuppressionReturn = $commandoSuppressionMovementAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$movementSuppressionWriter = $commandoSuppressionMovementAdd.IndexOf(
+    "addSlowDownEffect(caster, self", [StringComparison]::Ordinal)
+Assert-Contract ((($commandoSuppressionInventoryNames -join "`n") -ceq
+        ($retiredCommandoSuppressionNames -join "`n")) -and
+    (($commandoSuppressionEffects -join "`n") -ceq
+        (@("supression_handler", "supress_movement") -join "`n")) -and
+    $commandoSuppressionEffects.Count -eq
+        [int]$contract.expected.retiredNgePlayerCommandoSuppressionEffects -and
+    (($commandoSuppressionModifiers -join "`n") -ceq
+        (@("glancing_blow_vulnerable", "expertise_supression_speed",
+            "expertise_supression_glance") -join "`n")) -and
+    $commandoSuppressionModifiers.Count -eq
+        [int]$contract.expected.retiredNgePlayerCommandoSuppressionModifiers -and
+    $commandoSuppressionNamePredicate.Contains("buffName.equals(retiredBuff)") -and
+    $commandoSuppressionEffectPredicate.Contains("effectName.equals(retiredEffect)") -and
+    $commandoSuppressionBuffPredicate.Contains("isPlayer(target)") -and
+    $commandoSuppressionBuffPredicate.Contains(
+        "isRetiredPostNgePlayerCommandoSuppressionBuffName(data.buffName)") -and
+    $commandoSuppressionBuffPredicate.Contains(
+        "isRetiredPostNgePlayerCommandoSuppressionEffect(getEffectParam(data, effect))") -and
+    $commandoSuppressionModifierCleanup.Contains("hasSkillModModifier(player, retiredModifier)") -and
+    $commandoSuppressionModifierCleanup.Contains('retiredModifier + "_" + effect') -and
+    $commandoSuppressionModifierCleanup.Contains("getSkillStatMod(player, retiredModifier)") -and
+    $commandoSuppressionModifierCleanup.Contains(
+        "applySkillStatisticModifier(player, retiredModifier, -currentValue)") -and
+    $commandoSuppressionCleanup.Contains("getAllBuffs(player)") -and
+    $commandoSuppressionCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $commandoSuppressionCleanup.Contains(
+        '"supress_movement".equals(getEffectParam(data, effect))') -and
+    $commandoSuppressionCleanup.Contains("if (removedMovementSuppression)") -and
+    $commandoSuppressionCleanup.Contains("removeSlowDownEffect(player)") -and
+    [bool]$contract.expected.commandoSuppressionOwnedSlowdownRepairBounded -and
+    $commandoSuppressionProgressionCleanup.Contains(
+        "retirePostNgePlayerCommandoSuppressionState(player);") -and
+    $commandoSuppressionAdmissionGate -ge 0 -and
+    $commandoSuppressionExistingBuffReturn -gt $commandoSuppressionAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeCommandoSuppressionBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeCommandoSuppressionStateRemoved -and
+    [bool]$contract.expected.stalePlayerNgeCommandoSuppressionModifiersRemoved) `
+    "p14.combat-expertise-isolation.buff.commando-suppression-admission-persistence-and-residue-fail-closed"
+
+$commandoSuppressionActionPredicate = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeCommandoPlayerAction(obj_id self, String actionName)"
+$classicSuppressionCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { [string]$_.commandName -cin @("suppressionFire1", "suppressionFire2") })
+$classicSuppressionCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { [string]$_.actionName -cin @("suppressionFire1", "suppressionFire2") })
+$classicSuppressionOverrideRows = @(Import-SwgTab -Path $paths.combatOverrides |
+    Where-Object { [string]$_.actionName -cin @("suppressionFire1", "suppressionFire2") })
+Assert-Contract ($nestedSuppressionGuard -ge 0 -and
+    $nestedSuppressionCleanup -gt $nestedSuppressionGuard -and
+    $nestedSuppressionReturn -gt $nestedSuppressionCleanup -and
+    $nestedSuppressionExpertiseRead -gt $nestedSuppressionReturn -and
+    $nestedSuppressionWriter -gt $nestedSuppressionReturn -and
+    $movementSuppressionGuard -ge 0 -and
+    $movementSuppressionCleanup -gt $movementSuppressionGuard -and
+    $movementSuppressionReturn -gt $movementSuppressionCleanup -and
+    $movementSuppressionWriter -gt $movementSuppressionReturn -and
+    [int]$contract.expected.productionCommandoSuppressionHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerNgeCommandoSuppressionNestedWriterReachable -and
+    -not [bool]$contract.expected.playerNgeCommandoSuppressionMovementWriterReachable -and
+    $commandoSuppressionNestedRemove.Contains("return SCRIPT_CONTINUE;") -and
+    $commandoSuppressionMovementRemove.Contains("return SCRIPT_CONTINUE;") -and
+    -not $commandoSuppressionNestedRemove.Contains(
+        "retirePostNgePlayerCommandoSuppressionState") -and
+    -not $commandoSuppressionMovementRemove.Contains(
+        "retirePostNgePlayerCommandoSuppressionState") -and
+    [bool]$contract.expected.commandoSuppressionRemoveHandlersUnguarded -and
+    $commandoSuppressionActionPredicate.Contains('actionName.startsWith("co_")') -and
+    -not [bool]$contract.expected.playerNgeCommandoSuppressionActionReachable -and
+    $classicSuppressionCommandRows.Count -eq
+        [int]$contract.expected.precuSuppressionFireCommandsPreserved -and
+    $classicSuppressionCombatRows.Count -eq 2 -and
+    $classicSuppressionOverrideRows.Count -eq 2 -and
+    -not ($retiredCommandoSuppressionNames -ccontains "suppressionFire") -and
+    -not ($commandoSuppressionEffects -ccontains "suppression") -and
+    [bool]$contract.expected.nonPlayerNgeCommandoSuppressionCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.commando-suppression-writers-fail-closed-and-precu-suppression-preserved"
+
 $damageReductionModifiers = @(
     "expertise_damage_decrease_chance",
     "expertise_sm_rank_damage_bonus",
