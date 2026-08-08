@@ -2078,6 +2078,91 @@ test "$dot_reduction_guard_line" -lt "$dot_reduction_mutation_line"
 test "$dot_divisor_guard_line" -lt "$dot_divisor_mutation_line"
 test "$(printf '%s\n' "$dot_reduction_handler_source" | grep -Fc 'buff.reduceBuffDotStackCount')" -eq 9
 test "$(printf '%s\n' "$dot_divisor_handler_source" | grep -Fc 'buff.divideBuffDotStackCount')" -eq 9
+# The retained generic percentage-HAM machinery remains available for
+# authenticated PRE-CU and later-content exceptions, but its exact inherited
+# post-NGE player inventory is rejected before any attribute mutation.
+attribute_percent_effect_specs='actionPercent:action constitutionPercent:constitution healthPercent:health mindPercent:mind staminaPercent:stamina willpowerPercent:willpower'
+test "$(awk -F '\t' '$2 == "attribPercent" { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 6
+for attribute_percent_effect_spec in $attribute_percent_effect_specs; do
+    attribute_percent_effect_name="${attribute_percent_effect_spec%%:*}"
+    attribute_percent_effect_subtype="${attribute_percent_effect_spec#*:}"
+    awk -F '\t' -v name="$attribute_percent_effect_name" -v subtype="$attribute_percent_effect_subtype" '
+        $1 == name && $2 == "attribPercent" && $3 == subtype { found++ }
+        END { if (found != 1) exit 3 }
+    ' "$work_buff_effect_mapping"
+done
+retired_player_attribute_percent_buffs='nutrientInjection nutrientInjection_1 nutrientInjection_2 endorphineInjection endorphineInjection_1 serotoninInjection serotoninInjection_1 hemorrhage hemorrhage_1 traumatize traumatize_1 forceSap forceSap_1 holocron_8 sl_group_regen sl_group_retreat combatRegenDebuff treasure_bonus_combat_critical_hit treasure_bonus_heal_health_action'
+preserved_attribute_percent_buffs='frogBuff emboldenPet bio_etheric_shock torpor vacuity biological_suppression insidiousMalady insidiousMalady_1 insidiousMalady_2 insidiousMalady_3 insidiousMalady_4 euphoria cloning_sickness death_troopers_infection_2 death_troopers_infection_3'
+test "$(printf '%s\n' $retired_player_attribute_percent_buffs | wc -l)" -eq 19
+test "$(printf '%s\n' $preserved_attribute_percent_buffs | wc -l)" -eq 15
+awk -F '\t' -v retired="$retired_player_attribute_percent_buffs" -v preserved="$preserved_attribute_percent_buffs" '
+    BEGIN {
+        split(retired, retired_names, " ")
+        for (idx in retired_names) { retired_set[retired_names[idx]]=1 }
+        split(preserved, preserved_names, " ")
+        for (idx in preserved_names) { preserved_set[preserved_names[idx]]=1 }
+    }
+    NR == 1 {
+        for (column = 1; column <= NF; column++) {
+            header = $column
+            sub(/\r$/, "", header)
+            field_index[header] = column
+        }
+        next
+    }
+    NR > 2 {
+        owns_attribute_percent = 0
+        for (effect = 1; effect <= 5; effect++) {
+            parameter = $(field_index["EFFECT" effect "_PARAM"])
+            if (parameter == "actionPercent" || parameter == "constitutionPercent" ||
+                parameter == "healthPercent" || parameter == "mindPercent" ||
+                parameter == "staminaPercent" || parameter == "willpowerPercent") {
+                owns_attribute_percent = 1
+            }
+        }
+        if (!owns_attribute_percent) { next }
+        name = $(field_index["NAME"])
+        ++rows
+        if (name in retired_set) { ++retired_rows; ++retired_found[name] }
+        else if (name in preserved_set) { ++preserved_rows; ++preserved_found[name] }
+        else { ++unclassified_rows }
+    }
+    END {
+        if (rows != 34 || retired_rows != 19 || preserved_rows != 15 || unclassified_rows != 0) exit 2
+        for (name in retired_set) { if (retired_found[name] != 1) exit 3 }
+        for (name in preserved_set) { if (preserved_found[name] != 1) exit 4 }
+    }
+' "$work_buff_table"
+attribute_percent_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_ATTRIBUTE_PERCENT_BUFFS/,/public static boolean isRetiredPostNgePlayerAttributePercentBuffName/p' "$work_buff_library")"
+test "$(printf '%s\n' "$attribute_percent_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 19
+for retired_player_attribute_percent_buff in $retired_player_attribute_percent_buffs; do
+    printf '%s\n' "$attribute_percent_inventory_source" | grep -Fq "\"$retired_player_attribute_percent_buff\""
+done
+attribute_percent_cleanup_source="$(sed -n '/public static void retirePostNgePlayerAttributePercentState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_DAMAGE_REDUCTION_MODIFIERS/p' "$work_buff_library")"
+printf '%s\n' "$attribute_percent_cleanup_source" | grep -Fq 'isPlayer(player)'
+printf '%s\n' "$attribute_percent_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerAttributePercentState(player);' "$work_buff_library"
+attribute_percent_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static boolean applyBuff(obj_id target, String name)/p' "$work_buff_library")"
+attribute_percent_admission_line="$(printf '%s\n' "$attribute_percent_admission_source" | grep -Fn 'isRetiredPostNgePlayerAttributePercentBuff(target, bdata)' | head -1 | cut -d: -f1)"
+attribute_percent_existing_line="$(printf '%s\n' "$attribute_percent_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$attribute_percent_admission_line"
+test -n "$attribute_percent_existing_line"
+test "$attribute_percent_admission_line" -lt "$attribute_percent_existing_line"
+attribute_percent_add_handler_source="$(sed -n '/public int attribPercentAddBuffHandler/,/public int attribPercentRemoveBuffHandler/p' "$work_buff_handler")"
+attribute_percent_remove_handler_source="$(sed -n '/public int attribPercentRemoveBuffHandler/,/public int skillAddBuffHandler/p' "$work_buff_handler")"
+attribute_percent_add_player_line="$(printf '%s\n' "$attribute_percent_add_handler_source" | grep -Fn 'if (isPlayer(self)' | head -1 | cut -d: -f1)"
+attribute_percent_add_predicate_line="$(printf '%s\n' "$attribute_percent_add_handler_source" | grep -Fn 'buff.isRetiredPostNgePlayerAttributePercentBuffName(buffName)' | head -1 | cut -d: -f1)"
+attribute_percent_add_attribute_line="$(printf '%s\n' "$attribute_percent_add_handler_source" | grep -Fn 'int attribute = ATTRIB_ERROR' | head -1 | cut -d: -f1)"
+attribute_percent_add_writer_line="$(printf '%s\n' "$attribute_percent_add_handler_source" | grep -Fn 'addAttribModifier(self, am)' | head -1 | cut -d: -f1)"
+test -n "$attribute_percent_add_player_line"
+test -n "$attribute_percent_add_predicate_line"
+test -n "$attribute_percent_add_attribute_line"
+test -n "$attribute_percent_add_writer_line"
+test "$attribute_percent_add_player_line" -le "$attribute_percent_add_predicate_line"
+test "$attribute_percent_add_predicate_line" -lt "$attribute_percent_add_attribute_line"
+test "$attribute_percent_add_predicate_line" -lt "$attribute_percent_add_writer_line"
+printf '%s\n' "$attribute_percent_remove_handler_source" | grep -Fq 'removeAttribOrSkillModModifier(self, effectName)'
+! printf '%s\n' "$attribute_percent_remove_handler_source" | grep -Fq 'isRetiredPostNgePlayerAttributePercentBuffName'
 armor_break_source="$(sed -n '/public int armorBreakAddBuffHandler/,/public int armorBreakRemoveBuffHandler/p' "$work_buff_handler")"
 printf '%s' "$armor_break_source" | grep -Fq 'retireNgeExpertiseModifier(self, effectName)'
 printf '%s' "$armor_break_source" | grep -Fq 'utils.removeScriptVar(self, INITIAL_GENERAL_PROTECTION)'
@@ -4229,6 +4314,31 @@ test -n "$dot_divisor_guard_bytecode_line"
 test -n "$dot_divisor_mutation_bytecode_line"
 test "$dot_reduction_guard_bytecode_line" -lt "$dot_reduction_mutation_bytecode_line"
 test "$dot_divisor_guard_bytecode_line" -lt "$dot_divisor_mutation_bytecode_line"
+attribute_percent_buff_bytecode="$dot_stack_buff_bytecode"
+printf '%s\n' "$attribute_percent_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerAttributePercentBuffName'
+printf '%s\n' "$attribute_percent_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerAttributePercentBuff'
+printf '%s\n' "$attribute_percent_buff_bytecode" | grep -Fq 'retirePostNgePlayerAttributePercentState'
+for retired_player_attribute_percent_buff in $retired_player_attribute_percent_buffs; do
+    printf '%s\n' "$attribute_percent_buff_bytecode" | grep -Fq "$retired_player_attribute_percent_buff"
+done
+attribute_percent_admission_bytecode="$(printf '%s\n' "$attribute_percent_buff_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+attribute_percent_admission_bytecode_line="$(printf '%s\n' "$attribute_percent_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerAttributePercentBuff' | head -1 | cut -d: -f1)"
+attribute_percent_existing_bytecode_line="$(printf '%s\n' "$attribute_percent_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$attribute_percent_admission_bytecode_line"
+test -n "$attribute_percent_existing_bytecode_line"
+test "$attribute_percent_admission_bytecode_line" -lt "$attribute_percent_existing_bytecode_line"
+attribute_percent_add_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int attribPercentAddBuffHandler/,/public int attribPercentRemoveBuffHandler/p')"
+attribute_percent_remove_handler_bytecode="$(printf '%s\n' "$buff_handler_bytecode" | sed -n '/public int attribPercentRemoveBuffHandler/,/public int skillAddBuffHandler/p')"
+attribute_percent_add_player_bytecode_line="$(printf '%s\n' "$attribute_percent_add_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+attribute_percent_add_predicate_bytecode_line="$(printf '%s\n' "$attribute_percent_add_handler_bytecode" | grep -Fn 'isRetiredPostNgePlayerAttributePercentBuffName' | head -1 | cut -d: -f1)"
+attribute_percent_add_writer_bytecode_line="$(printf '%s\n' "$attribute_percent_add_handler_bytecode" | grep -Fn 'Method addAttribModifier' | head -1 | cut -d: -f1)"
+test -n "$attribute_percent_add_player_bytecode_line"
+test -n "$attribute_percent_add_predicate_bytecode_line"
+test -n "$attribute_percent_add_writer_bytecode_line"
+test "$attribute_percent_add_player_bytecode_line" -lt "$attribute_percent_add_predicate_bytecode_line"
+test "$attribute_percent_add_predicate_bytecode_line" -lt "$attribute_percent_add_writer_bytecode_line"
+printf '%s\n' "$attribute_percent_remove_handler_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
+! printf '%s\n' "$attribute_percent_remove_handler_bytecode" | grep -Fq 'isRetiredPostNgePlayerAttributePercentBuffName'
 javap -classpath "$class_root" -v script.library.healing | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'applyPrecuDotEffect'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'applyPrecuDotEffect'

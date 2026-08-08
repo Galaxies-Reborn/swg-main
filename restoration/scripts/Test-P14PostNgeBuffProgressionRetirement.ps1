@@ -129,6 +129,12 @@ $avoidIncapInventoryBody = Get-SourceSlice $buffText `
 $avoidIncapCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostP14PlayerAvoidIncapHealState" `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff"
+$attributePercentInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_ATTRIBUTE_PERCENT_BUFFS" `
+    "public static boolean isRetiredPostNgePlayerAttributePercentBuffName"
+$attributePercentCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgePlayerAttributePercentState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_DAMAGE_REDUCTION_MODIFIERS"
 $buffAdmissionBody = Get-SourceSlice $buffText `
     "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
     "public static boolean applyBuff(obj_id target, String name)"
@@ -141,6 +147,22 @@ foreach ($buffName in @($contract.expected.retiredBuffs))
 {
     Assert-Contract ($cleanupBody.Contains("removeBuff(player, `"$buffName`")")) "p14.buff-progression.cleanup.buff.$buffName"
 }
+$expectedAttributePercentBuffs = @($contract.expected.retiredPlayerAttributePercentBuffs | Sort-Object)
+$actualAttributePercentBuffs = @([regex]::Matches($attributePercentInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+Assert-Contract ($actualAttributePercentBuffs.Count -eq
+        [int]$contract.expected.retiredPlayerAttributePercentBuffCount -and
+    @($actualAttributePercentBuffs | Select-Object -Unique).Count -eq
+        $actualAttributePercentBuffs.Count -and
+    (($actualAttributePercentBuffs -join "`n") -ceq
+        ($expectedAttributePercentBuffs -join "`n")) -and
+    $attributePercentCleanupBody.Contains("isPlayer(player)") -and
+    $attributePercentCleanupBody.Contains("removeBuff(player, activeBuff)") -and
+    $cleanupBody.Contains("retirePostNgePlayerAttributePercentState(player);") -and
+    (Is-Before $buffAdmissionBody "isRetiredPostNgePlayerAttributePercentBuff(target, bdata)" "hasBuff(target, nameCrc)") -and
+    -not [bool]$contract.expected.playerAttributePercentBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerAttributePercentBuffsRemoved) `
+    "p14.buff-progression.attribute-percent.player-state-and-admission-retired"
 Assert-Contract ($cleanupBody.Contains("retirePostNgeMeditationBuffs(player);") -and
     $meditationCleanupBody.Contains("removeBuff(player, retiredBuff);") -and
     ([regex]::Matches($meditationCleanupBody, '"fs_meditate_[123]"')).Count -eq
@@ -277,6 +299,24 @@ $xpGrantBody = Get-SourceSlice $handlerText "public int xpGrantedGeneralAddBuffH
 $buildBody = Get-SourceSlice $handlerText "public int buildabuffAddBuffHandler" "public int buildabuffRemoveBuffHandler"
 $gcwBonusBody = Get-SourceSlice $handlerText "public int gcwBonusGeneralAddBuffHandler" "public int gcwBonusGeneralRemoveBuffHandler"
 $gcwMiniTurretBody = Get-SourceSlice $handlerText "public int gcwMiniTurretAddBuffHandler" "public int gcwMiniTurretRemoveBuffHandler"
+$attributePercentAddBody = Get-SourceSlice $handlerText `
+    "public int attribPercentAddBuffHandler" `
+    "public int attribPercentRemoveBuffHandler"
+$attributePercentRemoveBody = Get-SourceSlice $handlerText `
+    "public int attribPercentRemoveBuffHandler" `
+    "public int skillAddBuffHandler"
+Assert-Contract (([regex]::Matches($handlerText,
+        'buff[.]isRetiredPostNgePlayerAttributePercentBuffName\(buffName\)')).Count -eq
+        [int]$contract.expected.productionAttributePercentAddHandlersGuarded -and
+    $attributePercentAddBody.Contains("isPlayer(self)") -and
+    (Is-Before $attributePercentAddBody "buff.isRetiredPostNgePlayerAttributePercentBuffName(buffName)" "int attribute = ATTRIB_ERROR") -and
+    (Is-Before $attributePercentAddBody "return SCRIPT_OVERRIDE;" "addAttribModifier(self, am)") -and
+    -not $attributePercentRemoveBody.Contains(
+        "isRetiredPostNgePlayerAttributePercentBuffName") -and
+    $attributePercentRemoveBody.Contains("removeAttribOrSkillModModifier(self, effectName)") -and
+    [bool]$contract.expected.attributePercentRemoveCleanupPreserved -and
+    [bool]$contract.expected.nonPlayerAttributePercentCompatibilityPreserved) `
+    "p14.buff-progression.attribute-percent.handler-fails-closed-for-players"
 Assert-Contract ((Is-Before $xpBonusBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $xpGrantBody "buff.isPostNgeBuffProgressionRetired()" "skill.getPrecuEncounterDifficulty(self)") -and
     (Is-Before $buildBody "buff.isPostNgeBuffProgressionRetired()" "performance.buildabuff.buffComponentKeys") -and
@@ -345,6 +385,49 @@ $buffTablePath = Join-Path $sharedRoot "datatables/buff/buff.tab"
 $effectMapPath = Join-Path $sharedRoot "datatables/buff/effect_mapping.tab"
 $buffTable = Get-Content -LiteralPath $buffTablePath -Raw
 $effectMap = Get-Content -LiteralPath $effectMapPath -Raw
+$allBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t")
+$attributePercentMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
+    Where-Object { $_.TYPE -ceq "attribPercent" })
+$attributePercentEffectNames = @($attributePercentMappings.NAME)
+$attributePercentRows = @($allBuffRows | Where-Object {
+    $parameters = @($_.EFFECT1_PARAM, $_.EFFECT2_PARAM, $_.EFFECT3_PARAM,
+        $_.EFFECT4_PARAM, $_.EFFECT5_PARAM)
+    @($parameters | Where-Object { $attributePercentEffectNames -ccontains $_ }).Count -gt 0
+})
+$retiredAttributePercentRows = @($attributePercentRows |
+    Where-Object { $expectedAttributePercentBuffs -ccontains $_.NAME })
+$expectedPreservedAttributePercentBuffs = @(
+    $contract.expected.preservedAttributePercentBuffs | Sort-Object)
+$preservedAttributePercentRows = @($attributePercentRows |
+    Where-Object { $expectedPreservedAttributePercentBuffs -ccontains $_.NAME })
+$unclassifiedAttributePercentRows = @($attributePercentRows | Where-Object {
+    $expectedAttributePercentBuffs -cnotcontains $_.NAME -and
+    $expectedPreservedAttributePercentBuffs -cnotcontains $_.NAME
+})
+Assert-Contract ($attributePercentMappings.Count -eq
+        [int]$contract.expected.retainedAttributePercentEffectMappingRows -and
+    $attributePercentRows.Count -eq
+        [int]$contract.expected.retainedAttributePercentBuffRowCount -and
+    $retiredAttributePercentRows.Count -eq
+        [int]$contract.expected.retiredPlayerAttributePercentBuffCount -and
+    $preservedAttributePercentRows.Count -eq
+        [int]$contract.expected.preservedAttributePercentBuffCount -and
+    $unclassifiedAttributePercentRows.Count -eq 0 -and
+    ((@($retiredAttributePercentRows.NAME | Sort-Object) -join "`n") -ceq
+        ($expectedAttributePercentBuffs -join "`n")) -and
+    ((@($preservedAttributePercentRows.NAME | Sort-Object) -join "`n") -ceq
+        ($expectedPreservedAttributePercentBuffs -join "`n"))) `
+    "p14.buff-progression.attribute-percent.complete-data-inventory-authenticated"
+Assert-Contract ([bool]$contract.expected.precuCreatureHandlerEmboldenPreserved -and
+    [bool]$contract.expected.precuCloningSicknessPreserved -and
+    [bool]$contract.expected.laterContentAttributePercentMechanicsPreserved -and
+    $expectedPreservedAttributePercentBuffs -ccontains "emboldenPet" -and
+    $expectedPreservedAttributePercentBuffs -ccontains "cloning_sickness" -and
+    $expectedPreservedAttributePercentBuffs -ccontains "biological_suppression" -and
+    $expectedPreservedAttributePercentBuffs -ccontains "death_troopers_infection_3" -and
+    $expectedAttributePercentBuffs -cnotcontains "emboldenPet" -and
+    $expectedAttributePercentBuffs -cnotcontains "cloning_sickness") `
+    "p14.buff-progression.attribute-percent.precu-and-later-content-exceptions-preserved"
 Assert-Contract ($buffTable.Contains("general_inspiration`t") -and
     $buffTable.Contains("buildabuff_inspiration`t") -and $buffTable.Contains("tcg_series1_radtrooper_badge`t") -and
     $buffTable.Contains("tcg_series1_nuna_ball_advertisement`t")) "p14.buff-progression.compatibility.buff-rows-preserved"
