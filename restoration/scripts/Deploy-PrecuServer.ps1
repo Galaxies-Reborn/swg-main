@@ -2652,6 +2652,9 @@ test "$luck_hit_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$forsake_fear_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$radar_invisibility_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$force_throw_generic_gate_line" -lt "$generic_existing_buff_line"
+profession_movement_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerProfessionMovementBuff(target, bdata)' | head -1 | cut -d: -f1)"
+test -n "$profession_movement_generic_gate_line"
+test "$profession_movement_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$damage_reduction_generic_gate_line" -lt "$modifier_generic_gate_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
@@ -2665,16 +2668,96 @@ force_sensitive_invis_handler_effect_line="$(printf '%s\n' "$force_sensitive_inv
 test "$force_sensitive_invis_handler_gate_line" -lt "$force_sensitive_invis_handler_effect_line"
 force_throw_add_source="$(sed -n '/public int forceThrowAddBuffHandler/,/public int forceThrowRemoveBuffHandler/p' "$work_buff_handler")"
 movement_add_source="$(sed -n '/public int movementAddBuffHandler/,/public int movementRemoveBuffHandler/p' "$work_buff_handler")"
+movement_remove_source="$(sed -n '/public int movementRemoveBuffHandler/,/public int exclusiveProxyAddBuffHandler/p' "$work_buff_handler")"
+profession_movement_prefixes='bh_ bm_ co_ en_ fs_ me_ of_ sm_ sp_ sl_group_'
+test "$(printf '%s\n' $profession_movement_prefixes | wc -l)" -eq 10
+test "$(awk -F '\t' '$1 == "movement" && $2 == "movement" { found++ } END { print found + 0 }' "$work_buff_effect_mapping")" -eq 1
+awk -F '\t' -v retired_prefixes="$profession_movement_prefixes" '
+    BEGIN {
+        split(retired_prefixes, prefixes, " ")
+        expected["bh_"] = 13
+        expected["bm_"] = 8
+        expected["co_"] = 8
+        expected["en_"] = 3
+        expected["fs_"] = 16
+        expected["me_"] = 5
+        expected["of_"] = 14
+        expected["sm_"] = 39
+        expected["sp_"] = 4
+        expected["sl_group_"] = 3
+    }
+    NR == 1 {
+        for (field = 1; field <= NF; field++) {
+            field_index[$field] = field
+        }
+        next
+    }
+    NR == 2 { next }
+    {
+        owns_movement = 0
+        for (effect = 1; effect <= 5; effect++) {
+            if ($(field_index["EFFECT" effect "_PARAM"]) == "movement") {
+                owns_movement = 1
+            }
+        }
+        if (!owns_movement) { next }
+        movement_rows++
+        retired = 0
+        for (prefix_index in prefixes) {
+            prefix = prefixes[prefix_index]
+            if (substr($1, 1, length(prefix)) == prefix) {
+                retired = 1
+                retired_prefix_count[prefix]++
+                break
+            }
+        }
+        if (retired) {
+            retired_rows++
+            retired_name_rows[$1]++
+        } else {
+            preserved_rows++
+        }
+    }
+    END {
+        for (name in retired_name_rows) { retired_names++ }
+        if (movement_rows != 224 || retired_rows != 113 || retired_names != 112 || preserved_rows != 111) exit 20
+        if (retired_name_rows["fs_force_run"] != 2) exit 21
+        for (prefix in expected) {
+            if (retired_prefix_count[prefix] != expected[prefix]) exit 22
+        }
+    }
+' "$work_buff_table"
+profession_movement_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_BUFF_PREFIXES/,/public static boolean isRetiredPostNgePlayerProfessionMovementBuffName/p' "$work_buff_library")"
+test "$(printf '%s\n' "$profession_movement_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 10
+for profession_movement_prefix in $profession_movement_prefixes; do
+    printf '%s\n' "$profession_movement_inventory_source" | grep -Fq "\"$profession_movement_prefix\""
+done
+profession_movement_name_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionMovementBuffName/,/public static boolean isRetiredPostNgePlayerProfessionMovementBuff(/p' "$work_buff_library")"
+profession_movement_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionMovementBuff(/,/public static void retirePostNgePlayerProfessionMovementBuffState/p' "$work_buff_library")"
+profession_movement_cleanup_source="$(sed -n '/public static void retirePostNgePlayerProfessionMovementBuffState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$profession_movement_name_predicate_source" | grep -Fq 'buffName.startsWith(retiredPrefix)'
+printf '%s\n' "$profession_movement_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$profession_movement_buff_predicate_source" | grep -Fq '"movement".equals(getEffectParam(data, effect))'
+printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$work_buff_library" | sed -n '/public static void retirePostNgeBuffProgression/,/public static final String DOT_BLEEDING/p' | grep -Fq 'retirePostNgePlayerProfessionMovementBuffState(player);'
+! printf '%s\n' "$movement_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuffName'
+printf '%s\n' "$movement_remove_source" | grep -Fq 'movement.removeMovementModifier(self, effectName);'
 force_throw_add_guard_line="$(printf '%s\n' "$force_throw_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerForceThrowEffect(effectName))' | head -1 | cut -d: -f1)"
 force_throw_add_return_line="$(printf '%s\n' "$force_throw_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
 force_throw_owner_read_line="$(printf '%s\n' "$force_throw_add_source" | grep -Fn 'utils.getObjIdScriptVar(self, "buffOwner." + buffCrc)' | head -1 | cut -d: -f1)"
 test "$force_throw_add_guard_line" -lt "$force_throw_add_return_line"
 test "$force_throw_add_return_line" -lt "$force_throw_owner_read_line"
-movement_add_guard_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerForceThrowBuffName(buffName))' | head -1 | cut -d: -f1)"
-movement_add_return_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+movement_add_profession_guard_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionMovementBuffName(buffName))' | head -1 | cut -d: -f1)"
+movement_add_force_throw_guard_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerForceThrowBuffName(buffName))' | head -1 | cut -d: -f1)"
 movement_add_writer_line="$(printf '%s\n' "$movement_add_source" | grep -Fn 'movement.applyMovementModifier(self, effectName, value);' | head -1 | cut -d: -f1)"
-test "$movement_add_guard_line" -lt "$movement_add_return_line"
-test "$movement_add_return_line" -lt "$movement_add_writer_line"
+test -n "$movement_add_profession_guard_line"
+test -n "$movement_add_force_throw_guard_line"
+test -n "$movement_add_writer_line"
+test "$movement_add_profession_guard_line" -lt "$movement_add_force_throw_guard_line"
+test "$movement_add_force_throw_guard_line" -lt "$movement_add_writer_line"
+test "$(printf '%s\n' "$movement_add_source" | grep -Fc 'return SCRIPT_OVERRIDE;')" -eq 2
 damage_reduction_add_source="$(sed -n '/public int expertiseDamageDecreaseAddBuffHandler/,/public int expertiseDamageDecreaseRemoveBuffHandler/p' "$work_buff_handler")"
 damage_reduction_remove_source="$(sed -n '/public int expertiseDamageDecreaseRemoveBuffHandler/,/public int onAttackRemoveAddBuffHandler/p' "$work_buff_handler")"
 damage_reduction_add_guard_line="$(printf '%s\n' "$damage_reduction_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
@@ -4407,10 +4490,12 @@ test "$force_throw_add_player_line" -lt "$force_throw_add_predicate_line"
 test "$force_throw_add_predicate_line" -lt "$force_throw_add_owner_line"
 movement_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int movementAddBuffHandler/,/public int movementRemoveBuffHandler/p')"
 movement_add_player_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
-movement_add_predicate_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceThrowBuffName' | head -1 | cut -d: -f1)"
+movement_add_profession_predicate_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionMovementBuffName' | head -1 | cut -d: -f1)"
+movement_add_force_throw_predicate_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerForceThrowBuffName' | head -1 | cut -d: -f1)"
 movement_add_writer_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'applyMovementModifier' | head -1 | cut -d: -f1)"
-test "$movement_add_player_line" -lt "$movement_add_predicate_line"
-test "$movement_add_predicate_line" -lt "$movement_add_writer_line"
+test "$movement_add_player_line" -lt "$movement_add_profession_predicate_line"
+test "$movement_add_profession_predicate_line" -lt "$movement_add_force_throw_predicate_line"
+test "$movement_add_force_throw_predicate_line" -lt "$movement_add_writer_line"
 # Every retained ground DOT now resolves through the same PRE-CU application
 # and pulse path; no divergent era marker or NGE DOT modifier survives.
 dot_bytecode="$(javap -classpath "$class_root" -v script.library.dot)"
@@ -5343,9 +5428,24 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerLuckHit
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsakeFearChannelBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerChannelHealBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageReductionBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+for profession_movement_prefix in $profession_movement_prefixes; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "$profession_movement_prefix"
+done
+profession_movement_name_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionMovementBuffName(java.lang.String)/,/isRetiredPostNgePlayerProfessionMovementBuff(script.obj_id, script.library.buff_data)/p')"
+printf '%s' "$profession_movement_name_predicate_bytecode" | grep -Fq 'java/lang/String.startsWith'
+profession_movement_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionMovementBuff(script.obj_id, script.library.buff_data)/,/retirePostNgePlayerProfessionMovementBuffState/p')"
+printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuffName'
+printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'String movement'
+profession_movement_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerProfessionMovementBuffState/,/isRetiredPostNgePlayerGroupBuffName/p')"
+printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'Method getAllBuffs'
+printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerProfessionMovementBuffState'
 for damage_reduction_modifier in $damage_reduction_modifiers; do
     printf '%s' "$buff_modifier_bytecode" | grep -Fq "$damage_reduction_modifier"
 done

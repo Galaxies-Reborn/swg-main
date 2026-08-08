@@ -1,15 +1,20 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-expertise-isolation",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scopeAddendum": "Retire the retained NGE Spy Shifty Setup on-attack buff-removal state for players while preserving its authored data, non-player compatibility, retained Spy devices, and classic PRE-CU Scout/Ranger/Rifleman mechanics.",
-  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, direct damage-reduction/resistance, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, radar-invisibility, global command-cooldown-execution, Force Sensitive saber-intercept, Beast Master Shield Master/bodyguard and other inherited player damage redirection, unnumbered NGE Force Throw shackle/root control, Smuggler pistol-whip control, Smuggler trick-derived modifier buffs, Officer Aggro Channel hate transfer, Commando kill-meter/snare-armor expertise, elemental-vulnerability damage mutation, prefixless Medic expertise fire/poison DOT procs, prefixless Entertainer Build-a-Buff reactive heals, or the Medic Doom chained DOT rider from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, elemental damage multiplication or replacement, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
+  "scope": "Make authenticated PRE-CU combat select its Core3 hit/secondary-defense route before inherited NGE result tables, calculate primary and secondary defense only from Publish-era skill modifiers rather than NGE combat level, preserve authored three-pool HAM costs, and prevent retained NGE modifier, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, direct damage-reduction/resistance, critical-override, Luck-derived hit-table, Forsake Fear channel-heal, radar-invisibility, global command-cooldown-execution, Force Sensitive saber-intercept, Beast Master Shield Master/bodyguard and other inherited player damage redirection, the complete NGE combat-profession movement-buff namespace, unnumbered NGE Force Throw shackle/root control, Smuggler pistol-whip control, Smuggler trick-derived modifier buffs, Officer Aggro Channel hate transfer, Commando kill-meter/snare-armor expertise, elemental-vulnerability damage mutation, prefixless Medic expertise fire/poison DOT procs, prefixless Entertainer Build-a-Buff reactive heals, or the Medic Doom chained DOT rider from becoming player combat authority through admission, refresh, persistence, effect handlers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or weapon state, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, elemental damage multiplication or replacement, or unconditional damage consumers while retaining expansion data and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "core3PrimaryFiles": [
       "MMOCoreORB/src/server/zone/managers/combat/CombatManager.cpp",
-      "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp"
+      "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/BurstRunCommand.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun1Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun2Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/ForceRun3Command.h",
+      "MMOCoreORB/src/server/zone/objects/creature/commands/AvoidIncapacitationCommand.h"
     ],
     "findings": [
       "Publish 14.1 attack admission, primary accuracy, secondary defense, and HAM costs are skill-, weapon-, posture-, and command-authored rather than expertise-driven.",
@@ -75,7 +80,8 @@
       "Pinned Core3 contains no me_doom buff, me_doom_chance statistic, doDoom proc, meDoom handler, or chained Doom DOT. The existing me_* player-action gate remains authoritative; exact attacker/defender proc guards, buff admission, lifecycle and orphan-state cleanup, stale-modifier removal, and pre-state-read add/remove handler guards now close direct injection and delayed player damage while retaining all data and non-player expansion compatibility. Publish 14.1 Combat Medic applyPoison and applyDisease remain unchanged.",
       "The inherited common damage modifier reads six later-era player statistics for Smuggler Spot a Sucker/rank bonuses, Force Sensitive Anticipate Aggression, and Commando/general area resistance. Commando Stand Fast adds a seventh specialized expertise statistic through its custom add/remove handler; retained data comprises five effect mappings, fourteen buff rows, and fourteen expertise skill rows.",
       "Pinned Core3 contains none of these NGE modifier names or the Stand Fast effect handler. Exact player-only data admission, lifecycle removal, base and indexed modifier cleanup, current-stat zeroing, orphan junkDealerDamageDecrease removal, both Stand Fast handler guards, and attacker/defender cleanup before all inherited combat reads now retire player authority while retaining every row and non-player expansion compatibility.",
-      "The retained NGE Bounty Hunter Flawless Strike item-set proc chain comprises exactly eight buff rows, one bhFlawless special-effect mapping, four command and combat actions, three proc rows, three item-set rows, six residue modifier names, and four player actions. Pinned Core3 has no matching Flawless Strike chain. Exact player-only buff-name/effect admission, lifecycle and residue cleanup, both specialized handler guards, and the central action gate now close direct, persisted, nested-proc, and set-bonus action reachability while preserving retained rows, non-player expansion compatibility, and classic PRE-CU Bounty Hunter commands."
+      "The retained NGE Bounty Hunter Flawless Strike item-set proc chain comprises exactly eight buff rows, one bhFlawless special-effect mapping, four command and combat actions, three proc rows, three item-set rows, six residue modifier names, and four player actions. Pinned Core3 has no matching Flawless Strike chain. Exact player-only buff-name/effect admission, lifecycle and residue cleanup, both specialized handler guards, and the central action gate now close direct, persisted, nested-proc, and set-bonus action reachability while preserving retained rows, non-player expansion compatibility, and classic PRE-CU Bounty Hunter commands.",
+      "The sole retained movement effect owns 224 buff rows. Exactly 113 rows and 112 unique names belong to the retired bh_, bm_, co_, en_, fs_, me_, of_, sm_, sp_, and sl_group_ combat-profession namespaces; fs_force_run is the sole duplicate row. None of those 112 exact names appears in pinned Publish 14.1 command sources, which instead authenticate Burst Run, three Force Run ranks, Jedi avoid-incapacitation, and classic movement-control attacks. Player lifecycle cleanup, generic admission, and the production movement writer now fail closed for the complete NGE namespace while all 111 other movement rows, the unguarded removal path, and non-player expansion mechanics remain available."
     ]
   },
   "expected": {
@@ -239,6 +245,32 @@
     "playerNgeForceThrowMovementControlReachable": false,
     "nonPlayerNgeForceThrowCompatibilityPreserved": true,
     "precuForceThrowCommandsPreserved": 2,
+    "retiredNgePlayerProfessionMovementBuffPrefixes": [
+      "bh_",
+      "bm_",
+      "co_",
+      "en_",
+      "fs_",
+      "me_",
+      "of_",
+      "sm_",
+      "sp_",
+      "sl_group_"
+    ],
+    "retainedMovementEffectMappingRows": 1,
+    "retainedMovementBuffRows": 224,
+    "retiredNgePlayerProfessionMovementBuffRows": 113,
+    "retiredNgePlayerProfessionMovementDistinctBuffNames": 112,
+    "retiredNgePlayerProfessionMovementDuplicateBuffName": "fs_force_run",
+    "retiredNgePlayerProfessionMovementDuplicateRows": 2,
+    "preservedMovementBuffRows": 111,
+    "productionProfessionMovementHandlersGuarded": 1,
+    "playerNgeProfessionMovementBuffAdmissionReachable": false,
+    "persistedPlayerNgeProfessionMovementBuffsRemoved": true,
+    "playerNgeProfessionMovementWriterReachable": false,
+    "professionMovementRemoveCleanupPreserved": true,
+    "authenticatedPrecuMovementExamplesPreserved": true,
+    "nonPlayerNgeProfessionMovementCompatibilityPreserved": true,
     "retiredNgePlayerDamageReductionModifiers": 7,
     "retainedNgeDamageReductionEffectMappingRows": 5,
     "retainedNgeDamageReductionBuffRows": 14,
@@ -443,7 +475,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "155962749d957cef1c87882c174d923bb2a62a1e",
+    "directSourceGitlink": "d4d19a7c3c2a50ed8d681e4f8a7305c181499cd2",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combatLibrary": "18401be6f86077e0e4fcf4f75e82b0dc21ce471c384a4739d285cdd598676817",
@@ -458,8 +490,8 @@
       "skillModListing": "5f76547214d4abd4896dc7d7830b8c7ec365f98916b1eda03e562deab2471327",
       "armorLibrary": "e5d76091613b426269502d3b71fd8d52ac3deeec790b67dfed04ad887d42f1b0",
       "reverseEngineering": "e5dc80a38bef39394819fdc987e1bb66a734040cb0a04f61fef0fb523f126945",
-      "buffHandler": "e31a5d7e0fbfa0f34425d192d656171fc00f30379c70e4eb2b6b8c12a239998a",
-      "buffLibrary": "77221a03d4496bbae8a2e8c99f7c4b1ed30f40e26d015fb7370ae2b4a8a8e122",
+      "buffHandler": "79668b058aa07389f75a280bc57a32556bf2e86e7a7c93e06ebf92f02ee2d7a6",
+      "buffLibrary": "fb49630fbca852a4ef125ee759398d94a5c362d4f28cfe5e71fba9b5c9e174af",
       "meditationLibrary": "fa25a8399760ae6681d62fb12f2073d136e26997e8def72089475342ce2f5e63",
       "bountyHunterShieldScript": "32a17e8bbe770c5b1a364e1cd26698bf579ecf7bb1e3f63bcfd0152cba0cffc7",
       "buffTable": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
@@ -488,8 +520,8 @@
     "focusedCombatActionsClassBytes": 232119,
     "focusedCombatLibraryClassSha256": "3d1cbf525503353f6b066ef5add0835be56396818fa7e7d249b664370d6a11ab",
     "focusedCombatLibraryClassBytes": 88670,
-    "sourceTest": "passed exact retained DOT stack-mutation inventory plus player-only admission, lifecycle cleanup, two handler guards before every mutation, and non-player compatibility against direct-source commit d2bde6bc80923097537adfb21027a0ffdcac5236",
-    "focusedJavaCompile": "passed focused OpenJDK compilation of updated buff.java and buff_handler.java from pushed direct-source commit d2bde6bc80923097537adfb21027a0ffdcac5236; emitted authenticated 65,237-byte and 105,154-byte classes and removed the exact /dev/shm/precu-dot-stack-check path on exit",
+    "sourceTest": "passed exact one-mapping/224-row/113-retired-row/112-retired-name/111-preserved-row profession-movement inventory, sole fs_force_run duplication, ten-prefix ownership, player lifecycle and admission dominance, writer-before-mutation denial, unguarded removal cleanup, authenticated PRE-CU examples, non-player compatibility, and all 26 affected source contracts against pushed direct-source commit d4d19a7c3c2a50ed8d681e4f8a7305c181499cd2",
+    "focusedJavaCompile": "passed focused OpenJDK 11 compilation of updated buff.java and buff_handler.java from pushed direct-source commit d4d19a7c3c2a50ed8d681e4f8a7305c181499cd2 against the production classpath; the exact /dev/shm/precu-profession-movement-check path was removed on exit",
     "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct-source commit d2bde6bc80923097537adfb21027a0ffdcac5236; 5713 Java sources produced 5747 classes under OpenJDK 11",
     "fullServerBuild": "passed canonical clean x64 Docker deployment in 974.7 seconds from pushed parent 637d585d20c2a962d338dbadfe8cb6c161004178 and direct dsrc d2bde6bc80923097537adfb21027a0ffdcac5236 with synchronized source/data/bytecode/native gates and a controlled restart",
     "architecture": "twelve server binaries verified ELF 64-bit LSB x86-64; all 15 live SwgGameServer processes map the authenticated build binary",
@@ -546,9 +578,9 @@
   },
   "auditBoundary": {
     "commandoSpecializedBoundary": "All four retained specialized effects, sixteen buffs, three direct commands, four combat rows, seventeen expertise skills, three skill-mod-listing rows, twenty-one stale modifier names, generic admission/lifecycle paths, and eight production handlers are authenticated as player-inert while non-player expansion behavior remains available.",
-    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, generic DOT stack-reduction/division, item-writer, later combat-modifier, retained buff-command, Bounty Hunter Flawless Strike item-set proc, Spy Shifty Setup attack-removal state, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, direct damage-reduction/resistance, critical-override, Luck-derived hit-table, Forsake Fear action-channel, player channelled-stim healing, player radar-invisibility, global player command-cooldown execution, Force Sensitive saber-intercept, Beast Master Shield Master/bodyguard, or any other inherited player damage-redirection path, unnumbered NGE Force Throw expertise shackle/root control, Smuggler pistol-whip movement-control, Smuggler Sly Lie/Fast Talk trick-modifier, Officer Aggro Channel hate-transfer, Commando kill-meter/snare-armor expertise, elemental-vulnerability damage mutation, prefixless Medic expertise fire/poison DOT proc, prefixless Entertainer Build-a-Buff reactive-heal, or Medic Doom chained-DOT authority through player action admission, generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, elemental damage multiplication or replacement, DOT stack mutation, or unconditional raw-damage consumers",
+    "closedInThisMilestone": "authenticated PRE-CU combat cannot cross into inherited NGE combat-level, expertise, modified-primary-stat, fast-attack, Beast Master, DOT-immunity, generic DOT stack-reduction/division, item-writer, later combat-modifier, retained buff-command, Bounty Hunter Flawless Strike item-set proc, Spy Shifty Setup attack-removal state, immediate action-drain, action-burn, delayed action-regeneration, direct damage-dealt multiplier, direct weapon-speed override, direct damage-reduction/resistance, critical-override, Luck-derived hit-table, Forsake Fear action-channel, player channelled-stim healing, player radar-invisibility, global player command-cooldown execution, Force Sensitive saber-intercept, Beast Master Shield Master/bodyguard, any other inherited player damage-redirection path, or the complete 113-row/112-name NGE combat-profession movement-buff namespace, unnumbered NGE Force Throw expertise shackle/root control, Smuggler pistol-whip movement-control, Smuggler Sly Lie/Fast Talk trick-modifier, Officer Aggro Channel hate-transfer, Commando kill-meter/snare-armor expertise, elemental-vulnerability damage mutation, prefixless Medic expertise fire/poison DOT proc, prefixless Entertainer Build-a-Buff reactive-heal, or Medic Doom chained-DOT authority through player action admission, generic player buff admission, refresh, persistence, effect writers, delayed callbacks, stale script variables or modifiers, extra Action or Health drains or heals, mutated player scale or owned weapons, hidden map/radar state, global command lockout, damage redirection, movement control, hate reassignment, armor mutation, elemental damage multiplication or replacement, DOT stack mutation, or unconditional raw-damage consumers",
     "preserved": "Core3 skill-, private-modifier-, posture-, and Center-of-Being-based combat, including the distinct Publish 14.1 forceThrow1 and forceThrow2 commands; ordinary PRE-CU skill and HAM buffs; all retained buff and effect-mapping rows; non-player expansion encounter compatibility; and all expansion quests, conversations, and zones",
-    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, Bounty Hunter Flawless Strike, Spy Shifty Setup attack-removal, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, player damage redirection, direct damage-reduction/resistance, critical-override, Luck-hit, Forsake Fear, player channelled-stim, radar-invisibility, global cooldown-execution, saber-intercept, unnumbered NGE Force Throw control, Smuggler pistol-whip control, Smuggler Sly Lie/Fast Talk trick, Officer Aggro Channel, Commando kill-meter/snare-armor, elemental vulnerability, Medic deferred-DOT proc, Entertainer Build-a-Buff reactive-heal, Medic Doom chained-DOT, and generic DOT stack-reduction/division boundaries remain subject to later reachability audits"
+    "notClaimedComplete": "other data-driven effect families outside the authenticated modifier, commandGrant, Bounty Hunter Flawless Strike, Spy Shifty Setup attack-removal, actionDrain, actionBurn, actionRegen, damageDealtMod, weaponSpeedMod, player damage redirection, direct damage-reduction/resistance, critical-override, Luck-hit, Forsake Fear, player channelled-stim, radar-invisibility, global cooldown-execution, saber-intercept, NGE profession movement, unnumbered NGE Force Throw control, Smuggler pistol-whip control, Smuggler Sly Lie/Fast Talk trick, Officer Aggro Channel, Commando kill-meter/snare-armor, elemental vulnerability, Medic deferred-DOT proc, Entertainer Build-a-Buff reactive-heal, Medic Doom chained-DOT, and generic DOT stack-reduction/division boundaries remain subject to later reachability audits"
   },
   "requiredBeforeReady": []
 }

@@ -2085,11 +2085,14 @@ $forceThrowOwnerRead = $forceThrowAdd.IndexOf(
     [StringComparison]::Ordinal)
 $movementAddGuard = $movementAdd.IndexOf(
     "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$movementProfessionPredicate = $movementAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionMovementBuffName(buffName)",
+    [StringComparison]::Ordinal)
 $movementAddPredicate = $movementAdd.IndexOf(
     "buff.isRetiredPostNgePlayerForceThrowBuffName(buffName)",
     [StringComparison]::Ordinal)
 $movementAddReturn = $movementAdd.IndexOf(
-    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+    "return SCRIPT_OVERRIDE;", $movementAddPredicate, [StringComparison]::Ordinal)
 $movementAddWriter = $movementAdd.IndexOf(
     "movement.applyMovementModifier(self, effectName, value);",
     [StringComparison]::Ordinal)
@@ -2132,6 +2135,177 @@ Assert-Contract ($forceThrowAddGuard -ge 0 -and
     -not [bool]$contract.expected.playerNgeForceThrowMovementControlReachable -and
     [bool]$contract.expected.nonPlayerNgeForceThrowCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.force-throw-control-handlers-player-fail-closed"
+
+$retiredProfessionMovementPrefixes = @(
+    $contract.expected.retiredNgePlayerProfessionMovementBuffPrefixes |
+        ForEach-Object { [string]$_ }
+)
+$movementMappings = @(Import-SwgTab -Path $paths.buffEffectMapping | Where-Object {
+    [string]$_.NAME -ceq "movement" -and [string]$_.TYPE -ceq "movement"
+})
+$allMovementBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    @(1..5 | Where-Object {
+        [string]$row.("EFFECT$($_)_PARAM") -ceq "movement"
+    }).Count -gt 0
+})
+function Test-RetiredProfessionMovementName([string]$Name)
+{
+    foreach ($prefix in $retiredProfessionMovementPrefixes)
+    {
+        if ($Name.StartsWith($prefix, [StringComparison]::Ordinal)) { return $true }
+    }
+    return $false
+}
+$retiredProfessionMovementRows = @($allMovementBuffRows | Where-Object {
+    Test-RetiredProfessionMovementName ([string]$_.NAME)
+})
+$retiredProfessionMovementNames = @($retiredProfessionMovementRows |
+    Select-Object -ExpandProperty NAME | ForEach-Object { [string]$_ } |
+    Sort-Object -Unique)
+$preservedMovementRows = @($allMovementBuffRows | Where-Object {
+    -not (Test-RetiredProfessionMovementName ([string]$_.NAME))
+})
+$retiredMovementDuplicateGroups = @($retiredProfessionMovementRows |
+    Group-Object NAME | Where-Object { $_.Count -gt 1 })
+$retiredMovementPrefixCounts = @($retiredProfessionMovementPrefixes |
+    ForEach-Object {
+        $prefix = $_
+        "{0}|{1}" -f $prefix,
+            @($retiredProfessionMovementRows | Where-Object {
+                ([string]$_.NAME).StartsWith($prefix, [StringComparison]::Ordinal)
+            }).Count
+    })
+$expectedRetiredMovementPrefixCounts = @(
+    "bh_|13",
+    "bm_|8",
+    "co_|8",
+    "en_|3",
+    "fs_|16",
+    "me_|5",
+    "of_|14",
+    "sm_|39",
+    "sp_|4",
+    "sl_group_|3"
+)
+$authenticatedPrecuMovementExamples = @(
+    "avoidIncapacitation",
+    "avoidIncapacitation_1",
+    "avoidIncapacitation_2",
+    "avoidIncapacitation_3",
+    "avoidIncapacitation_4",
+    "avoidIncapacitation_5",
+    "burstRun",
+    "forceRun_1",
+    "forceRun_2",
+    "forceRunDeprecated",
+    "forceSuppression",
+    "forceSuppression_1",
+    "forceWave",
+    "forceWave_1",
+    "forceWeaken",
+    "forceWeaken_1",
+    "cripplingShot",
+    "cripplingShot_1",
+    "stoppingShot",
+    "stoppingShot_1",
+    "stoppingShot_2",
+    "electrolyteDrain",
+    "electrolyteDrain_1",
+    "paralyze",
+    "paralyze_1",
+    "petPinAttack",
+    "petPinAttack_1",
+    "petRunSpeed_1",
+    "petRunSpeed_2",
+    "petRunSpeed_3",
+    "petSnareAttack",
+    "petSnareAttack_1",
+    "tranqDart"
+)
+Assert-Contract ($movementMappings.Count -eq
+        [int]$contract.expected.retainedMovementEffectMappingRows -and
+    $allMovementBuffRows.Count -eq [int]$contract.expected.retainedMovementBuffRows -and
+    $retiredProfessionMovementRows.Count -eq
+        [int]$contract.expected.retiredNgePlayerProfessionMovementBuffRows -and
+    $retiredProfessionMovementNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerProfessionMovementDistinctBuffNames -and
+    $preservedMovementRows.Count -eq [int]$contract.expected.preservedMovementBuffRows -and
+    $retiredMovementDuplicateGroups.Count -eq 1 -and
+    [string]$retiredMovementDuplicateGroups[0].Name -ceq
+        [string]$contract.expected.retiredNgePlayerProfessionMovementDuplicateBuffName -and
+    $retiredMovementDuplicateGroups[0].Count -eq
+        [int]$contract.expected.retiredNgePlayerProfessionMovementDuplicateRows -and
+    (($retiredMovementPrefixCounts -join "`n") -ceq
+        ($expectedRetiredMovementPrefixCounts -join "`n")) -and
+    @($authenticatedPrecuMovementExamples | Where-Object {
+        $authenticatedName = [string]$_
+        @($preservedMovementRows | Where-Object {
+            [string]$_.NAME -ceq $authenticatedName
+        }).Count -eq 0
+    }).Count -eq 0 -and
+    [bool]$contract.expected.authenticatedPrecuMovementExamplesPreserved) `
+    "p14.combat-expertise-isolation.buff.profession-movement-complete-data-inventory-authenticated"
+
+$professionMovementInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_BUFF_PREFIXES"
+$professionMovementInventoryNames = @([regex]::Matches(
+    $professionMovementInventory, '"([^"]+)"') | ForEach-Object {
+        $_.Groups[1].Value
+    })
+$professionMovementNamePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerProfessionMovementBuffName(String buffName)"
+$professionMovementBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerProfessionMovementBuff(obj_id target, buff_data data)"
+$professionMovementCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerProfessionMovementBuffState(obj_id player)"
+$professionMovementProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$professionMovementAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$professionMovementAdmissionGate = $professionMovementAdmission.IndexOf(
+    "isRetiredPostNgePlayerProfessionMovementBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$professionMovementExistingBuffReturn = $professionMovementAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$movementProfessionReturn = $movementAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $movementProfessionPredicate,
+    [StringComparison]::Ordinal)
+$movementRemove = Get-BracedBlock $buffHandler "public int movementRemoveBuffHandler("
+Assert-Contract ($professionMovementInventoryNames.Count -eq
+        $retiredProfessionMovementPrefixes.Count -and
+    (($professionMovementInventoryNames -join "`n") -ceq
+        ($retiredProfessionMovementPrefixes -join "`n")) -and
+    $professionMovementNamePredicate.Contains("buffName.startsWith(retiredPrefix)") -and
+    $professionMovementBuffPredicate.Contains("!isPlayer(target)") -and
+    $professionMovementBuffPredicate.Contains(
+        "isRetiredPostNgePlayerProfessionMovementBuffName(data.buffName)") -and
+    $professionMovementBuffPredicate.Contains(
+        '"movement".equals(getEffectParam(data, effect))') -and
+    $professionMovementCleanup.Contains("!isPlayer(player)") -and
+    $professionMovementCleanup.Contains("getAllBuffs(player)") -and
+    $professionMovementCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $professionMovementCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $professionMovementProgressionCleanup.Contains(
+        "retirePostNgePlayerProfessionMovementBuffState(player);") -and
+    $professionMovementAdmissionGate -ge 0 -and
+    $professionMovementExistingBuffReturn -gt $professionMovementAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeProfessionMovementBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeProfessionMovementBuffsRemoved -and
+    [bool]$contract.expected.nonPlayerNgeProfessionMovementCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.profession-movement-admission-and-persistence-fail-closed"
+Assert-Contract ($movementAddGuard -ge 0 -and
+    $movementProfessionPredicate -gt $movementAddGuard -and
+    $movementProfessionReturn -gt $movementProfessionPredicate -and
+    $movementAddPredicate -gt $movementProfessionReturn -and
+    $movementAddWriter -gt $movementAddPredicate -and
+    [int]$contract.expected.productionProfessionMovementHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeProfessionMovementWriterReachable -and
+    $movementRemove.Contains("movement.removeMovementModifier(self, effectName);") -and
+    -not $movementRemove.Contains(
+        "isRetiredPostNgePlayerProfessionMovementBuffName") -and
+    [bool]$contract.expected.professionMovementRemoveCleanupPreserved) `
+    "p14.combat-expertise-isolation.buff.profession-movement-writer-fails-closed-and-remove-cleans"
 
 $damageReductionModifiers = @(
     "expertise_damage_decrease_chance",
