@@ -305,6 +305,8 @@ source_combat_data="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatabl
 work_combat_data="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 source_proc_table="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/proc/proc.tab"
 work_proc_table="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/proc/proc.tab"
+source_item_sets="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/item_sets.tab"
+work_item_sets="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/item/item_sets.tab"
 source_npc_combat_dir="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/combat"
 work_npc_combat_dir="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/combat"
 source_conversation="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/conversation"
@@ -701,6 +703,8 @@ cmp -s "$source_buff_table" "$work_buff_table"
 cmp -s "$source_buff_effect_mapping" "$work_buff_effect_mapping"
 cmp -s "$source_collection_rewards" "$work_collection_rewards"
 cmp -s "$source_combat_data" "$work_combat_data"
+cmp -s "$source_proc_table" "$work_proc_table"
+cmp -s "$source_item_sets" "$work_item_sets"
 source_npc_tables="$(find "$source_npc_combat_dir" -maxdepth 1 -type f -name 'npc_*.tab' -printf '%f\n' | sort)"
 work_npc_tables="$(find "$work_npc_combat_dir" -maxdepth 1 -type f -name 'npc_*.tab' -printf '%f\n' | sort)"
 test "$source_npc_tables" = "$work_npc_tables"
@@ -3188,6 +3192,82 @@ verify_fs_expertise_immunity_source_handler expertiseImmunityRemoveBuffHandler e
 grep -Fq 'public int immunityAddBuffHandler' "$work_buff_handler"
 grep -Fq 'public int immunityRemoveBuffHandler' "$work_buff_handler"
 awk -F '\t' '$1 == "dot_immunity" && $2 == "immunity" && $3 == "dot_immunity" { dotFound++ } $1 == "movement_immunity" && $2 == "immunity" && $3 == "movement_immunity" { movementFound++ } END { if (dotFound != 1 || movementFound != 1) exit 3 }' "$work_buff_effect_mapping"
+# The retained NGE Bounty Hunter Flawless Strike set chain remains available
+# to expansion content, but its player buff, nested proc, residue, and four
+# action entrypoints must all fail closed before inherited writers execute.
+awk -F '\t' '$1 ~ /^(set_bonus_bh_utility_a_[123]|bh_flawless_strike|bh_flawless_proc_chance_1|flawless_bead_[123])$/ { found++ } END { if (found != 8) exit 3 }' "$work_buff_table"
+awk -F '\t' '$1 == "bh_flawless_proc_chance" { found++; if ($2 != "bhFlawless" || $3 != "bh_flawless_proc_chance") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+for bounty_hunter_flawless_action in bh_flawless_strike set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3; do
+    awk -F '\t' -v name="$bounty_hunter_flawless_action" '
+    NR == 1 { for (column = 1; column <= NF; column++) fieldIndex[$column] = column; next }
+    NR > 2 && $1 == name { found++; if ($(fieldIndex["scriptHook"]) != name) exit 2 }
+    END { if (found != 1) exit 3 }
+    ' "$work_command_table"
+    awk -F '\t' -v name="$bounty_hunter_flawless_action" 'NR > 2 && $1 == name { found++ } END { if (found != 1) exit 3 }' "$work_combat_data"
+done
+for bounty_hunter_flawless_set_action in set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3; do
+    awk -F '\t' -v name="$bounty_hunter_flawless_set_action" 'NR > 2 && $1 == name { found++; if ($2 != 10) exit 2 } END { if (found != 1) exit 3 }' "$work_proc_table"
+done
+awk -F '\t' '$1 == 10002 && $3 ~ /^set_bonus_bh_utility_a_[123]$/ { found++; effects[$3]++ } END { if (found != 3 || effects["set_bonus_bh_utility_a_1"] != 1 || effects["set_bonus_bh_utility_a_2"] != 1 || effects["set_bonus_bh_utility_a_3"] != 1) exit 3 }' "$work_item_sets"
+bounty_hunter_flawless_buff_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_BUFFS/,/};/p' "$work_buff_library")"
+for bounty_hunter_flawless_buff in set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3 bh_flawless_strike bh_flawless_proc_chance_1 flawless_bead_1 flawless_bead_2 flawless_bead_3; do
+    printf '%s\n' "$bounty_hunter_flawless_buff_inventory_source" | grep -Fq "\"$bounty_hunter_flawless_buff\""
+done
+test "$(printf '%s\n' "$bounty_hunter_flawless_buff_inventory_source" | grep -Ec '^[[:space:]]+"(set_bonus_bh_utility_a_[123]|bh_flawless_strike|bh_flawless_proc_chance_1|flawless_bead_[123])"[,]?$')" -eq 8
+bounty_hunter_flawless_modifier_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_MODIFIERS/,/};/p' "$work_buff_library")"
+for bounty_hunter_flawless_modifier in bh_flawless_bead flawless_bead expertise_cooldown_line_bh_flawless_strike set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3; do
+    printf '%s\n' "$bounty_hunter_flawless_modifier_inventory_source" | grep -Fq "\"$bounty_hunter_flawless_modifier\""
+done
+test "$(printf '%s\n' "$bounty_hunter_flawless_modifier_inventory_source" | grep -Ec '^[[:space:]]+"(bh_flawless_bead|flawless_bead|expertise_cooldown_line_bh_flawless_strike|set_bonus_bh_utility_a_[123])"[,]?$')" -eq 6
+bounty_hunter_flawless_action_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_ACTIONS/,/};/p' "$work_buff_library")"
+test "$(printf '%s\n' "$bounty_hunter_flawless_action_inventory_source" | grep -Ec '^[[:space:]]+"(bh_flawless_strike|set_bonus_bh_utility_a_[123])"[,]?$')" -eq 4
+bounty_hunter_flawless_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerBountyHunterFlawlessBuff(obj_id target/,/public static void clearPostNgePlayerBountyHunterFlawlessResidue/p' "$work_buff_library")"
+printf '%s\n' "$bounty_hunter_flawless_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$bounty_hunter_flawless_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerBountyHunterFlawlessBuffName(data.buffName)'
+printf '%s\n' "$bounty_hunter_flawless_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerBountyHunterFlawlessEffect(getEffectParam(data, effect))'
+bounty_hunter_flawless_residue_source="$(sed -n '/public static void clearPostNgePlayerBountyHunterFlawlessResidue/,/public static void retirePostNgePlayerBountyHunterFlawlessState/p' "$work_buff_library")"
+printf '%s\n' "$bounty_hunter_flawless_residue_source" | grep -Fq 'removeBuff(player, "bh_flawless_proc_chance_1")'
+printf '%s\n' "$bounty_hunter_flawless_residue_source" | grep -Fq 'removeAttribOrSkillModModifier(player, retiredModifier)'
+printf '%s\n' "$bounty_hunter_flawless_residue_source" | grep -Fq 'applySkillStatisticModifier(player, retiredModifier, -currentValue)'
+printf '%s\n' "$bounty_hunter_flawless_residue_source" | grep -Fq 'revokeCommand(player, retiredAction)'
+bounty_hunter_flawless_state_source="$(sed -n '/public static void retirePostNgePlayerBountyHunterFlawlessState/,/private static final String\[\] RETIRED_POST_NGE_GCW_BANNER_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$bounty_hunter_flawless_state_source" | grep -Fq '!isPlayer(player)'
+printf '%s\n' "$bounty_hunter_flawless_state_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+printf '%s\n' "$bounty_hunter_flawless_state_source" | grep -Fq 'clearPostNgePlayerBountyHunterFlawlessResidue(player);'
+grep -Fq 'retirePostNgePlayerBountyHunterFlawlessState(player);' "$work_buff_library"
+bounty_hunter_flawless_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static float getBuffTimeRemaining/p' "$work_buff_library")"
+bounty_hunter_flawless_admission_line="$(printf '%s\n' "$bounty_hunter_flawless_admission_source" | grep -Fn 'isRetiredPostNgePlayerBountyHunterFlawlessBuff(target, bdata)' | head -1 | cut -d: -f1)"
+bounty_hunter_flawless_existing_line="$(printf '%s\n' "$bounty_hunter_flawless_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test -n "$bounty_hunter_flawless_admission_line"
+test -n "$bounty_hunter_flawless_existing_line"
+test "$bounty_hunter_flawless_admission_line" -lt "$bounty_hunter_flawless_existing_line"
+bounty_hunter_flawless_action_source="$(sed -n '/public static boolean isRetiredPostNgeBountyHunterPlayerAction/,/public static boolean isRetiredPostNgeCommandoPlayerAction/p' "$work_combat_base")"
+printf '%s\n' "$bounty_hunter_flawless_action_source" | grep -Fq 'isPlayer(self)'
+printf '%s\n' "$bounty_hunter_flawless_action_source" | grep -Fq 'actionName.startsWith("bh_")'
+for bounty_hunter_flawless_set_action in set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3; do
+    printf '%s\n' "$bounty_hunter_flawless_action_source" | grep -Fq "actionName.equals(\"$bounty_hunter_flawless_set_action\")"
+done
+verify_bounty_hunter_flawless_source_handler()
+{
+    bounty_hunter_flawless_method="$1"
+    bounty_hunter_flawless_next_method="$2"
+    bounty_hunter_flawless_cleanup_marker="$3"
+    bounty_hunter_flawless_retained_marker="$4"
+    bounty_hunter_flawless_handler_source="$(sed -n "/public int $bounty_hunter_flawless_method/,/public int $bounty_hunter_flawless_next_method/p" "$work_buff_handler")"
+    bounty_hunter_flawless_guard_line="$(printf '%s\n' "$bounty_hunter_flawless_handler_source" | grep -Fn 'isPlayer(self)' | head -1 | cut -d: -f1)"
+    bounty_hunter_flawless_effect_line="$(printf '%s\n' "$bounty_hunter_flawless_handler_source" | grep -Fn 'isRetiredPostNgePlayerBountyHunterFlawlessEffect(effectName)' | head -1 | cut -d: -f1)"
+    bounty_hunter_flawless_name_line="$(printf '%s\n' "$bounty_hunter_flawless_handler_source" | grep -Fn 'isRetiredPostNgePlayerBountyHunterFlawlessBuffName(buffName)' | head -1 | cut -d: -f1)"
+    bounty_hunter_flawless_cleanup_line="$(printf '%s\n' "$bounty_hunter_flawless_handler_source" | grep -Fn "$bounty_hunter_flawless_cleanup_marker" | head -1 | cut -d: -f1)"
+    bounty_hunter_flawless_return_line="$(printf '%s\n' "$bounty_hunter_flawless_handler_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$bounty_hunter_flawless_cleanup_line" '$1 > cleanup { print $1; exit }')"
+    bounty_hunter_flawless_retained_line="$(printf '%s\n' "$bounty_hunter_flawless_handler_source" | grep -Fn "$bounty_hunter_flawless_retained_marker" | head -1 | cut -d: -f1)"
+    test "$bounty_hunter_flawless_guard_line" -lt "$bounty_hunter_flawless_effect_line"
+    test "$bounty_hunter_flawless_guard_line" -lt "$bounty_hunter_flawless_name_line"
+    test "$bounty_hunter_flawless_name_line" -lt "$bounty_hunter_flawless_cleanup_line"
+    test "$bounty_hunter_flawless_cleanup_line" -lt "$bounty_hunter_flawless_return_line"
+    test "$bounty_hunter_flawless_return_line" -lt "$bounty_hunter_flawless_retained_line"
+}
+verify_bounty_hunter_flawless_source_handler bhFlawlessAddBuffHandler bhFlawlessRemoveBuffHandler 'buff.retirePostNgePlayerBountyHunterFlawlessState(self);' 'buff.applyBuff(self, "bh_flawless_proc_chance_1")'
+verify_bounty_hunter_flawless_source_handler bhFlawlessRemoveBuffHandler mtpMeatlumpAngryAddBuffHandler 'buff.clearPostNgePlayerBountyHunterFlawlessResidue(self);' 'buff.removeBuff(self, "bh_flawless_proc_chance_1")'
 medic_deferred_dot_proc_actions='expertise_dueterium_rounds_proc expertise_poison_knuckle_proc'
 for medic_deferred_dot_proc_action in $medic_deferred_dot_proc_actions; do
     awk -F '\t' -v name="$medic_deferred_dot_proc_action" '
@@ -4074,6 +4154,41 @@ printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnAtt
 printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnInitialize'
 printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnCreatureDamaged'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'retirePostNgeBountyHunterShieldState'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostNgePlayerBountyHunterFlawlessBuff'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'clearPostNgePlayerBountyHunterFlawlessResidue'
+javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostNgePlayerBountyHunterFlawlessState'
+for bounty_hunter_flawless_buff in set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3 bh_flawless_strike bh_flawless_proc_chance_1 flawless_bead_1 flawless_bead_2 flawless_bead_3; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$bounty_hunter_flawless_buff"
+done
+for bounty_hunter_flawless_modifier in bh_flawless_bead flawless_bead expertise_cooldown_line_bh_flawless_strike; do
+    javap -classpath "$class_root" -v script.library.buff | grep -Fq "$bounty_hunter_flawless_modifier"
+done
+bounty_hunter_flawless_cleanup_bytecode="$(printf '%s' "$buff_library_bytecode" | sed -n '/public static void clearPostNgePlayerBountyHunterFlawlessResidue/,/public static void retirePostNgePlayerBountyHunterFlawlessState/p')"
+printf '%s' "$bounty_hunter_flawless_cleanup_bytecode" | grep -Fq 'bh_flawless_proc_chance_1'
+printf '%s' "$bounty_hunter_flawless_cleanup_bytecode" | grep -Fq 'removeAttribOrSkillModModifier'
+printf '%s' "$bounty_hunter_flawless_cleanup_bytecode" | grep -Fq 'applySkillStatisticModifier'
+printf '%s' "$bounty_hunter_flawless_cleanup_bytecode" | grep -Fq 'revokeCommand'
+bounty_hunter_flawless_state_bytecode="$(printf '%s' "$buff_library_bytecode" | sed -n '/public static void retirePostNgePlayerBountyHunterFlawlessState/,/private static final java.lang.String\[\] RETIRED_POST_NGE_GCW_BANNER_BUFFS/p')"
+printf '%s' "$bounty_hunter_flawless_state_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$bounty_hunter_flawless_state_bytecode" | grep -Fq 'clearPostNgePlayerBountyHunterFlawlessResidue'
+bounty_hunter_flawless_admission_bytecode="$(printf '%s' "$buff_library_bytecode" | sed -n '/public static boolean canApplyBuff(script.obj_id, script.obj_id, int)/,/public static boolean applyBuff(script.obj_id, java.lang.String)/p')"
+bounty_hunter_flawless_admission_line="$(printf '%s\n' "$bounty_hunter_flawless_admission_bytecode" | grep -Fn 'isRetiredPostNgePlayerBountyHunterFlawlessBuff' | head -1 | cut -d: -f1)"
+bounty_hunter_flawless_existing_line="$(printf '%s\n' "$bounty_hunter_flawless_admission_bytecode" | grep -Fn 'Method hasBuff' | head -1 | cut -d: -f1)"
+test -n "$bounty_hunter_flawless_admission_line"
+test -n "$bounty_hunter_flawless_existing_line"
+test "$bounty_hunter_flawless_admission_line" -lt "$bounty_hunter_flawless_existing_line"
+bounty_hunter_flawless_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int bhFlawlessAddBuffHandler/,/public int bhFlawlessRemoveBuffHandler/p')"
+printf '%s' "$bounty_hunter_flawless_add_bytecode" | grep -Fq 'isRetiredPostNgePlayerBountyHunterFlawlessEffect'
+printf '%s' "$bounty_hunter_flawless_add_bytecode" | grep -Fq 'isRetiredPostNgePlayerBountyHunterFlawlessBuffName'
+bounty_hunter_flawless_add_cleanup_line="$(printf '%s\n' "$bounty_hunter_flawless_add_bytecode" | grep -Fn 'retirePostNgePlayerBountyHunterFlawlessState' | head -1 | cut -d: -f1)"
+bounty_hunter_flawless_add_nested_line="$(printf '%s\n' "$bounty_hunter_flawless_add_bytecode" | grep -Fn 'bh_flawless_proc_chance_1' | head -1 | cut -d: -f1)"
+test "$bounty_hunter_flawless_add_cleanup_line" -lt "$bounty_hunter_flawless_add_nested_line"
+bounty_hunter_flawless_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int bhFlawlessRemoveBuffHandler/,/public int mtpMeatlumpAngryAddBuffHandler/p')"
+printf '%s' "$bounty_hunter_flawless_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerBountyHunterFlawlessEffect'
+printf '%s' "$bounty_hunter_flawless_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerBountyHunterFlawlessBuffName'
+bounty_hunter_flawless_remove_cleanup_line="$(printf '%s\n' "$bounty_hunter_flawless_remove_bytecode" | grep -Fn 'clearPostNgePlayerBountyHunterFlawlessResidue' | head -1 | cut -d: -f1)"
+bounty_hunter_flawless_remove_nested_line="$(printf '%s\n' "$bounty_hunter_flawless_remove_bytecode" | grep -Fn 'bh_flawless_proc_chance_1' | head -1 | cut -d: -f1)"
+test "$bounty_hunter_flawless_remove_cleanup_line" -lt "$bounty_hunter_flawless_remove_nested_line"
 javap -classpath "$class_root" -c script.library.meditation | grep -Fq 'retirePostNgeMeditationBuffs'
 ! javap -classpath "$class_root" -v script.library.meditation | grep -Fq 'fs_meditate_'
 meditation_tick_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/handleMeditationTick/,/msgCoupDeGraceAuthoritativeCheck/p')"
@@ -4199,6 +4314,13 @@ javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -F
 # Publish 14.1 Bounty Hunter and Commando use their combat_bountyhunter and
 # combat_commando trees; bh_* and co_* remain NPC/content compatibility only.
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeBountyHunterPlayerAction'
+bounty_hunter_action_bytecode="$(printf '%s' "$combat_base_actions_bytecode" | sed -n '/public static boolean isRetiredPostNgeBountyHunterPlayerAction/,/public static boolean isRetiredPostNgeCommandoPlayerAction/p')"
+printf '%s' "$bounty_hunter_action_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$bounty_hunter_action_bytecode" | grep -Fq 'bh_'
+printf '%s' "$bounty_hunter_action_bytecode" | grep -Fq 'Method java/lang/String.startsWith'
+for bounty_hunter_flawless_set_action in set_bonus_bh_utility_a_1 set_bonus_bh_utility_a_2 set_bonus_bh_utility_a_3; do
+    printf '%s' "$bounty_hunter_action_bytecode" | grep -Fq "$bounty_hunter_flawless_set_action"
+done
 javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'isRetiredPostNgeCommandoPlayerAction'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'co_kill_trap_1'

@@ -49,6 +49,15 @@ function Get-SourceText([string]$RelativePath)
     return Get-Content -LiteralPath (Join-Path $dsrc $RelativePath) -Raw
 }
 
+function Import-SwgTab([string]$RelativePath)
+{
+    $path = Join-Path $dsrc $RelativePath
+    $lines = @(Get-Content -LiteralPath $path)
+    if ($lines.Count -lt 2) { return @() }
+    return @($lines | Select-Object -Skip 2 |
+        ConvertFrom-Csv -Delimiter "`t" -Header ($lines[0] -split "`t"))
+}
+
 $patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.overlayPatch.path)
 Assert-Contract (Test-Path -LiteralPath $patchPath -PathType Leaf) "p14.profession-closure.overlay.exists"
 $patchText = ""
@@ -638,6 +647,167 @@ Assert-Contract ($shieldPredicateNames.Count -eq
         [StringComparison]::Ordinal) -lt
         $bountyHunterShieldScript.IndexOf("buff.applyBuff", [StringComparison]::Ordinal)) `
     "p14.profession-closure.bounty-hunter-runtime.persisted-shields-retired"
+
+$bountyHunterFlawlessBuffNames = @(
+    "set_bonus_bh_utility_a_1", "set_bonus_bh_utility_a_2",
+    "set_bonus_bh_utility_a_3", "bh_flawless_strike",
+    "bh_flawless_proc_chance_1", "flawless_bead_1", "flawless_bead_2",
+    "flawless_bead_3"
+)
+$bountyHunterFlawlessActions = @(
+    "bh_flawless_strike", "set_bonus_bh_utility_a_1",
+    "set_bonus_bh_utility_a_2", "set_bonus_bh_utility_a_3"
+)
+$bountyHunterFlawlessSetBonusActions = @(
+    "set_bonus_bh_utility_a_1", "set_bonus_bh_utility_a_2",
+    "set_bonus_bh_utility_a_3"
+)
+$bountyHunterFlawlessModifiers = @(
+    "bh_flawless_bead", "flawless_bead",
+    "expertise_cooldown_line_bh_flawless_strike",
+    "set_bonus_bh_utility_a_1", "set_bonus_bh_utility_a_2",
+    "set_bonus_bh_utility_a_3"
+)
+$bountyHunterFlawlessBuffInventory = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_BUFFS" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_MODIFIERS"
+$bountyHunterFlawlessModifierInventory = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_MODIFIERS" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_ACTIONS"
+$bountyHunterFlawlessActionInventory = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_ACTIONS" `
+    "public static boolean isRetiredPostNgePlayerBountyHunterFlawlessBuffName"
+$bountyHunterFlawlessBuffPredicate = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "public static boolean isRetiredPostNgePlayerBountyHunterFlawlessBuff(obj_id target, buff_data data)" `
+    "public static void clearPostNgePlayerBountyHunterFlawlessResidue"
+$bountyHunterFlawlessResidueCleanup = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "public static void clearPostNgePlayerBountyHunterFlawlessResidue" `
+    "public static void retirePostNgePlayerBountyHunterFlawlessState"
+$bountyHunterFlawlessStateCleanup = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "public static void retirePostNgePlayerBountyHunterFlawlessState" `
+    "private static final String[] RETIRED_POST_NGE_GCW_BANNER_BUFFS"
+$bountyHunterFlawlessProgressionCleanup = Get-FunctionSlice $bountyHunterBuffLibrary `
+    "public static void retirePostNgeBuffProgression" `
+    "public static void retirePostNgeMeditationBuffs"
+$bountyHunterFlawlessAdmissionGate = $bountyHunterCanApply.IndexOf(
+    "isRetiredPostNgePlayerBountyHunterFlawlessBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$bountyHunterFlawlessAddHandler = Get-FunctionSlice $bountyHunterBuffHandler `
+    "public int bhFlawlessAddBuffHandler" "public int bhFlawlessRemoveBuffHandler"
+$bountyHunterFlawlessRemoveHandler = Get-FunctionSlice $bountyHunterBuffHandler `
+    "public int bhFlawlessRemoveBuffHandler" "public int mtpMeatlumpAngryAddBuffHandler"
+$bountyHunterFlawlessBuffInventoryNames = @([regex]::Matches(
+        $bountyHunterFlawlessBuffInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$bountyHunterFlawlessModifierInventoryNames = @([regex]::Matches(
+        $bountyHunterFlawlessModifierInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$bountyHunterFlawlessActionInventoryNames = @([regex]::Matches(
+        $bountyHunterFlawlessActionInventory, '"([A-Za-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$flawlessAddGuard = $bountyHunterFlawlessAddHandler.IndexOf("isPlayer(self)",
+    [StringComparison]::Ordinal)
+$flawlessAddCleanup = $bountyHunterFlawlessAddHandler.IndexOf(
+    "buff.retirePostNgePlayerBountyHunterFlawlessState(self);",
+    [StringComparison]::Ordinal)
+$flawlessAddApply = $bountyHunterFlawlessAddHandler.IndexOf(
+    'buff.applyBuff(self, "bh_flawless_proc_chance_1")',
+    [StringComparison]::Ordinal)
+$flawlessRemoveGuard = $bountyHunterFlawlessRemoveHandler.IndexOf("isPlayer(self)",
+    [StringComparison]::Ordinal)
+$flawlessRemoveCleanup = $bountyHunterFlawlessRemoveHandler.IndexOf(
+    "buff.clearPostNgePlayerBountyHunterFlawlessResidue(self);",
+    [StringComparison]::Ordinal)
+$flawlessRemoveNested = $bountyHunterFlawlessRemoveHandler.IndexOf(
+    'buff.removeBuff(self, "bh_flawless_proc_chance_1")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($bountyHunterFlawlessBuffInventoryNames.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterFlawlessBuffRows -and
+    (($bountyHunterFlawlessBuffInventoryNames | Sort-Object) -join ([char]0)) -ceq
+        (($bountyHunterFlawlessBuffNames | Sort-Object) -join ([char]0)) -and
+    $bountyHunterFlawlessModifierInventoryNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerBountyHunterFlawlessModifiers -and
+    (($bountyHunterFlawlessModifierInventoryNames | Sort-Object) -join ([char]0)) -ceq
+        (($bountyHunterFlawlessModifiers | Sort-Object) -join ([char]0)) -and
+    $bountyHunterFlawlessActionInventoryNames.Count -eq
+        [int]$contract.expected.retiredNgePlayerBountyHunterFlawlessActions -and
+    (($bountyHunterFlawlessActionInventoryNames | Sort-Object) -join ([char]0)) -ceq
+        (($bountyHunterFlawlessActions | Sort-Object) -join ([char]0)) -and
+    $bountyHunterFlawlessBuffPredicate.Contains("!isPlayer(target)") -and
+    $bountyHunterFlawlessBuffPredicate.Contains(
+        "isRetiredPostNgePlayerBountyHunterFlawlessBuffName(data.buffName)") -and
+    $bountyHunterFlawlessBuffPredicate.Contains(
+        "isRetiredPostNgePlayerBountyHunterFlawlessEffect(getEffectParam(data, effect))") -and
+    $bountyHunterFlawlessResidueCleanup.Contains(
+        'removeBuff(player, "bh_flawless_proc_chance_1")') -and
+    $bountyHunterFlawlessResidueCleanup.Contains(
+        "removeAttribOrSkillModModifier(player, retiredModifier)") -and
+    $bountyHunterFlawlessResidueCleanup.Contains(
+        "applySkillStatisticModifier(player, retiredModifier, -currentValue)") -and
+    $bountyHunterFlawlessResidueCleanup.Contains("revokeCommand(player, retiredAction)") -and
+    $bountyHunterFlawlessStateCleanup.Contains(
+        "RETIRED_POST_NGE_PLAYER_BOUNTY_HUNTER_FLAWLESS_BUFFS") -and
+    $bountyHunterFlawlessStateCleanup.Contains("removeBuff(player, retiredBuff)") -and
+    $bountyHunterFlawlessProgressionCleanup.Contains(
+        "retirePostNgePlayerBountyHunterFlawlessState(player);") -and
+    $bountyHunterFlawlessAdmissionGate -ge 0 -and
+    $bountyHunterExistingBuffReturn -gt $bountyHunterFlawlessAdmissionGate -and
+    $bountyHunterPredicate.Contains('actionName.startsWith("bh_")') -and
+    @($bountyHunterFlawlessSetBonusActions | Where-Object {
+        $bountyHunterPredicate.Contains('actionName.equals("' + $_ + '")')
+    }).Count -eq $bountyHunterFlawlessSetBonusActions.Count -and
+    $flawlessAddGuard -ge 0 -and $flawlessAddCleanup -gt $flawlessAddGuard -and
+    $flawlessAddApply -gt $flawlessAddCleanup -and
+    $flawlessRemoveGuard -ge 0 -and $flawlessRemoveCleanup -gt $flawlessRemoveGuard -and
+    $flawlessRemoveNested -gt $flawlessRemoveCleanup -and
+    -not [bool]$contract.expected.playerNgeBountyHunterFlawlessBuffAdmissionReachable -and
+    -not [bool]$contract.expected.playerNgeBountyHunterFlawlessActionsReachable -and
+    [bool]$contract.expected.persistedPlayerNgeBountyHunterFlawlessStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeBountyHunterFlawlessCompatibilityPreserved) `
+    "p14.profession-closure.bounty-hunter-runtime.flawless-strike-player-fail-closed"
+
+$bountyHunterFlawlessBuffRows = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/buff/buff.tab" | Where-Object {
+        $bountyHunterFlawlessBuffNames -ccontains [string]$_.NAME
+    })
+$bountyHunterFlawlessMappings = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab" | Where-Object {
+        [string]$_.NAME -ceq "bh_flawless_proc_chance"
+    })
+$bountyHunterFlawlessCommandRows = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/command/command_table.tab" | Where-Object {
+        $bountyHunterFlawlessActions -ccontains [string]$_.commandName
+    })
+$bountyHunterFlawlessCombatRows = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab" | Where-Object {
+        $bountyHunterFlawlessActions -ccontains [string]$_.actionName
+    })
+$bountyHunterFlawlessProcRows = @(Import-SwgTab `
+    "sku.0/sys.server/compiled/game/datatables/proc/proc.tab" | Where-Object {
+        $bountyHunterFlawlessSetBonusActions -ccontains [string]$_.procString
+    })
+$bountyHunterFlawlessItemSetRows = @(Import-SwgTab `
+    "sku.0/sys.server/compiled/game/datatables/item/item_sets.tab" | Where-Object {
+        [string]$_.SETID -ceq "10002"
+    })
+Assert-Contract ($bountyHunterFlawlessBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterFlawlessBuffRows -and
+    $bountyHunterFlawlessMappings.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterFlawlessSpecialEffectMappingRows -and
+    [string]$bountyHunterFlawlessMappings[0].TYPE -ceq "bhFlawless" -and
+    [string]$bountyHunterFlawlessMappings[0].SUBTYPE -ceq
+        "bh_flawless_proc_chance" -and
+    $bountyHunterFlawlessCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterFlawlessCommandRows -and
+    $bountyHunterFlawlessCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterFlawlessCombatRows -and
+    $bountyHunterFlawlessProcRows.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterFlawlessProcRows -and
+    $bountyHunterFlawlessItemSetRows.Count -eq
+        [int]$contract.expected.retainedNgeBountyHunterFlawlessItemSetRows -and
+    (($bountyHunterFlawlessItemSetRows.EFFECT | Sort-Object) -join ([char]0)) -ceq
+        (($bountyHunterFlawlessSetBonusActions | Sort-Object) -join ([char]0))) `
+    "p14.profession-closure.bounty-hunter-runtime.flawless-strike-data-retained"
 
 $commandoPredicate = Get-FunctionSlice $combatBase `
     "public static boolean isRetiredPostNgeCommandoPlayerAction" `
