@@ -1352,7 +1352,7 @@ awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR > 2 {
 } END {
     for (name in names) nameCount++
     for (modifier in modifiers) modifierCount++
-    if (rows != 966 || nameCount != 966 || modifierCount != 191 || mixedRows != 161) exit 3
+    if (rows != 966 || nameCount != 966 || modifierCount != 193 || mixedRows != 160) exit 3
 }' "$work_buff_table"
 awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR == FNR {
     if (FNR > 2) {
@@ -1363,7 +1363,7 @@ awk -F '\t' -v retired="$retired_player_modifier_regex" 'NR == FNR {
 } FNR > 2 && ($1 in modifiers) { mapped++ }
 END {
     for (modifier in modifiers) modifierCount++
-    if (modifierCount != 191 || mapped != 199) exit 3
+    if (modifierCount != 193 || mapped != 201) exit 3
 }' "$work_buff_table" "$work_buff_effect_mapping"
 player_modifier_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerModifierBuff/,/public static void retirePostNgePlayerModifierBuffState/p' "$work_buff_library")"
 printf '%s' "$player_modifier_buff_predicate_source" | grep -Fq '!isPlayer(target)'
