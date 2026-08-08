@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-gcw-rank-reward-runtime-retirement",
-  "status": "ready",
-  "scope": "Retire post-NGE GCW rank ability skills, buffs, all direct combat-action handlers, and player aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, retained battle content, and non-player compatibility.",
+  "status": "implemented-build-pending",
+  "scope": "Retire post-NGE GCW rank ability skills, buffs, all direct combat-action handlers, the direct aura effect add writer, and player aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, retained battle content, remove-side cleanup, and non-player compatibility.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -10,7 +10,8 @@
       "Publish 14.1 faction rank is persisted independently and promoted through authored faction-point costs; it is not an NGE profession or expertise reward tree.",
       "The inherited pvp_imperial_* and pvp_rebel_* skill rows grant six later GCW combat ability tiers per faction, including an expertise-protection aura and airstrike.",
       "Faction rank, badges/titles, recruiters, bases, battles, quests, zones, and compatibility data can remain active without granting those later combat abilities.",
-      "The retained 12 command rows fan into 20 command/effect handlers, and the aura controller can reschedule itself independently of skill grants; both runtime surfaces require player-only fail-closed gates in addition to persisted-skill cleanup."
+      "The retained 12 command rows fan into 20 command/effect handlers, and the aura controller can reschedule itself independently of skill grants; both runtime surfaces require player-only fail-closed gates in addition to persisted-skill cleanup.",
+      "Two retained aura effect mappings route both faction self-buffs through pvpAuraBuffSelfAddBuffHandler. Generic admission and all controller callbacks were already player-inert, but this direct add-side handler could still attach the later aura controller before those downstream guards ran. It now performs central player reward cleanup and returns before attachment; the remove-side handler remains available for cleanup and non-player behavior is unchanged."
     ]
   },
   "expected": {
@@ -18,12 +19,16 @@
     "retiredActiveBuffs": 12,
     "retiredPlayerCombatActions": 20,
     "retainedAuraControllerCallbacks": 3,
-    "authoritativeSourceFiles": 7,
+    "authoritativeSourceFiles": 8,
     "retiredRankGrantSites": 6,
     "genericRetiredSkillAdmissionDominates": true,
     "genericRetiredBuffAdmissionDominates": true,
     "genericRetiredCombatActionAdmissionDominates": true,
     "auraPlayerCallbacksFailClosed": true,
+    "retainedAuraEffectMappings": 2,
+    "directAuraEffectAddWriters": 1,
+    "auraEffectAddWriterPlayerReachable": false,
+    "auraEffectRemoveCleanupPreserved": true,
     "nonPlayerCompatibilityPreserved": true,
     "persistedRewardCleanupOnInitializeLoginAndRecap": true,
     "auraControllerDetached": true,
@@ -35,39 +40,45 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceCommit": "13f2677856eba5b12c1a09e458867a8586ddc6a0",
+    "directSourceCommit": "4ce9fbea352a58009f53ebdd978f512081a03504",
     "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
-    "sourceContentSha256": "f4dd156900b8eea150ed8120a2bc8faecca045824888a80c343dca2f82bcea8a",
+    "sourceContentSha256": "ecdcc960822a3095d41fb5cbb1d31eca14e01ac7468ebb022b90409d134391e4",
     "sourceSha256": {
       "library/buff.java": "dae496fa89ab5ad7d84e15c74854082011dc9abda63d2c5f06b68a4264f19201",
       "library/factions.java": "0407778e49051f2668e75cafa4e477f3aee3930eb6ed19acea5939c1932a897d",
       "library/skill.java": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
       "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/gcw/pvp_aura_buff_controller.java": "33d4732f239bc81a7ad5541bcc87f706ee55df58316b1d8aed57f3d640744ced",
+      "systems/buff/buff_handler.java": "bbc4989cfd37db70d322426f9afe3edd16d8ab05516f12fffdee62de3fb470e5",
       "systems/combat/combat_actions.java": "8fd1d328d2ec109ac2b738ad3f2e206851738149d6301a275c225e2e5860a600",
       "systems/combat/combat_base.java": "fa73e6b7d194e4a6f9a037f2f3f1b2e5731b4c6012ad00683c932ef46a83fba6"
     },
-    "fullJavaCompile": "passed in the 920.5-second canonical clean x64 build from pushed parent ef052f4 and direct dsrc 325d0e07915952189e4d47e46274a08b07e4b8c2; 5713 Java sources produced 5747 classes",
+    "focusedJavaCompile": "passed focused OpenJDK compilation of systems/buff/buff_handler.java from pushed direct dsrc 4ce9fbea352a58009f53ebdd978f512081a03504 against the production package root; one class emitted in /dev/shm/precu-pvp-aura-handler-check and /dev/shm was verified empty afterward",
+    "focusedBuffHandlerClassSha256": "0a3f3c33e942686579325685bf1872bc8dc5f95fd121ce09c7873531c21d12fa",
+    "focusedBuffHandlerClassBytes": 105086,
+    "fullJavaCompile": "historical live deployment passed canonical exact zero-class dependency rebuild from direct dsrc 13f2677856eba5b12c1a09e458867a8586ddc6a0; updated direct-aura-writer build pending",
     "compiledClassSha256": {
       "library/buff.class": "d05675a6137e2c16f327b6d303f44a0699bc7182045ece2962d2085c445dfbd1",
       "library/factions.class": "7a98acbf36b8ebb0e3962b8ec743856d258ee5029e6a39594ecc9a851483fa1c",
       "library/skill.class": "a44487dd93cf152afe771ea6db661c29761c1978f3231c3f63bac2fd074855f3",
       "player/base/base_player.class": "389d23400375051af881a2abca987b5ff50fbd0763b6b6a4909c0730617b45c5",
       "player/gcw/pvp_aura_buff_controller.class": "ab77cae234e6846da1bcf3766fc2d34beb60efadf213e7b7239e2f43d0d26e5d",
+      "systems/buff/buff_handler.class": "1e1afe32f781894e16a8393e4d528f5201876976d2104914e0307d4307c5c29e",
       "systems/combat/combat_actions.class": "94c7d5ad8012a1ab88c0f284bc52b30b254493055d68e5c6a08858662e8a5e00",
       "systems/combat/combat_base.class": "15b99e1f49e53ccacf028c3ecdb3040ffe6b33d3bced08653f3b2b4fbeeda928"
     },
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
-    "sourceWorkParity": "passed byte-for-byte for all seven authenticated source files",
+    "sourceWorkParity": "historical live parity passed for the original seven authenticated source files; updated eight-file parity pending canonical deployment",
     "result": "passed"
   },
   "continuityEvidence": {
     "skillDataSha256": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
     "combatDataSha256": "44656473c5070db0f36acc29715311d0f29bbf10eb58f28faeb3cc709764f882",
     "buffDataSha256": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
+    "effectMappingDataSha256": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
     "missionTerminalUserVerification": "working in-world; the player ran into interaction range and mission terms populated",
     "missionSourceSha256": {
       "systems/missions/base/mission_terminal.java": "91e66add45f5355e1a154a193430d83b82ff5057d8ea9b2b68bb2e7f4f7cfacf",

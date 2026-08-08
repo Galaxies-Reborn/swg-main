@@ -51,6 +51,7 @@ $relativeSourceMap = [ordered]@{
     "library/skill.java" = "library/skill.java"
     "player/base/base_player.java" = "player/base/base_player.java"
     "player/gcw/pvp_aura_buff_controller.java" = "player/gcw/pvp_aura_buff_controller.java"
+    "systems/buff/buff_handler.java" = "systems/buff/buff_handler.java"
     "systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
     "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
 }
@@ -165,6 +166,7 @@ Assert-Contract ($pvpHandlers.Count -eq [int]$contract.expected.retiredPlayerCom
     "p14.gcw-reward.combat-action.all-handlers-covered"
 
 $auraController = [string]$sourceTexts["player/gcw/pvp_aura_buff_controller.java"]
+$buffHandler = [string]$sourceTexts["systems/buff/buff_handler.java"]
 $auraHandlers = @([regex]::Matches($auraController,
     '(?ms)^\s*public int (OnAttach|buffAlly|removeFactionObjVar)\(.*?(?=^\s*public int |\z)'))
 Assert-Contract ($auraHandlers.Count -eq [int]$contract.expected.retainedAuraControllerCallbacks -and
@@ -174,9 +176,28 @@ Assert-Contract ($auraHandlers.Count -eq [int]$contract.expected.retainedAuraCon
         -not (Is-Before $_.Value "factions.retirePostNgePvpRewardState(self)" "return SCRIPT_CONTINUE;")
     }).Count -eq 0 -and [bool]$contract.expected.auraPlayerCallbacksFailClosed) `
     "p14.gcw-reward.aura-player-callbacks.fail-closed"
+$auraEffectAdd = Get-SourceSlice $buffHandler `
+    "public int pvpAuraBuffSelfAddBuffHandler" `
+    "public int pvpAuraBuffSelfRemoveBuffHandler"
+$auraEffectRemove = Get-SourceSlice $buffHandler `
+    "public int pvpAuraBuffSelfRemoveBuffHandler" `
+    "public int nextHitCritAddBuffHandler"
+Assert-Contract ([int]$contract.expected.directAuraEffectAddWriters -eq 1 -and
+    -not [bool]$contract.expected.auraEffectAddWriterPlayerReachable -and
+    $auraEffectAdd.Contains("if (isPlayer(self))") -and
+    $auraEffectAdd.Contains("factions.retirePostNgePvpRewardState(self);") -and
+    (Is-Before $auraEffectAdd "factions.retirePostNgePvpRewardState(self);" "return SCRIPT_CONTINUE;") -and
+    (Is-Before $auraEffectAdd "return SCRIPT_CONTINUE;" 'attachScript(self, "player.gcw.pvp_aura_buff_controller")')) `
+    "p14.gcw-reward.aura-effect-add-writer.fail-closed"
+Assert-Contract ([bool]$contract.expected.auraEffectRemoveCleanupPreserved -and
+    -not $auraEffectRemove.Contains("retirePostNgePvpRewardState") -and
+    $auraEffectRemove.Contains('detachScript(self, "player.gcw.pvp_aura_buff_controller")') -and
+    $auraEffectRemove.Contains('removeObjVar(self, "pvp_aura_buff.faction")')) `
+    "p14.gcw-reward.aura-effect-remove-cleanup.preserved"
 Assert-Contract ([bool]$contract.expected.nonPlayerCompatibilityPreserved -and
     $combatBase.Contains("if (!isPlayer(self) || actionName == null)") -and
     $auraController.Contains("isMob(self) && !isPlayer(self)") -and
+    $auraEffectAdd.Contains('attachScript(self, "player.gcw.pvp_aura_buff_controller")') -and
     $auraController.Contains('buff.applyBuff(players, "pvp_aura_buff_rebel_target")') -and
     $auraController.Contains('buff.applyBuff(players, "pvp_aura_buff_target")')) `
     "p14.gcw-reward.non-player-compatibility.preserved"
@@ -200,9 +221,12 @@ Assert-Contract (@($expectedBadges | Where-Object { -not $rankChange.Contains('"
 $skillsPath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
 $combatPath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab"
 $buffPath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+$effectMappingPath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
 Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $skillsPath).Hash.ToLowerInvariant() -ceq [string]$contract.continuityEvidence.skillDataSha256) "p14.gcw-reward.skill-data.preserved"
 Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $combatPath).Hash.ToLowerInvariant() -ceq [string]$contract.continuityEvidence.combatDataSha256) "p14.gcw-reward.combat-data.preserved"
 Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $buffPath).Hash.ToLowerInvariant() -ceq [string]$contract.continuityEvidence.buffDataSha256) "p14.gcw-reward.buff-data.preserved"
+Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $effectMappingPath).Hash.ToLowerInvariant() -ceq
+    [string]$contract.continuityEvidence.effectMappingDataSha256) "p14.gcw-reward.effect-mapping-data.preserved"
 $skillRows = @(Import-SwgTab -Path $skillsPath | Where-Object { ([string]$_.NAME).StartsWith("pvp_imperial_") -or ([string]$_.NAME).StartsWith("pvp_rebel_") })
 Assert-Contract ($skillRows.Count -eq 12 -and @($expectedSkills | Where-Object { [string]$name = $_; -not ($skillRows.NAME -ccontains $name) }).Count -eq 0) "p14.gcw-reward.compatibility-skill-rows.retained"
 $rewardCommands = @($skillRows.COMMANDS | Sort-Object -Unique)
@@ -210,6 +234,13 @@ $combatRows = @(Import-SwgTab -Path $combatPath | Where-Object { $rewardCommands
 Assert-Contract ($rewardCommands.Count -eq 12 -and $combatRows.Count -eq 12) "p14.gcw-reward.compatibility-combat-rows.retained"
 $buffRows = @(Import-SwgTab -Path $buffPath | Where-Object { $expectedBuffs -ccontains [string]$_.NAME })
 Assert-Contract ($buffRows.Count -eq 12) "p14.gcw-reward.compatibility-buff-rows.retained"
+$auraEffectMappings = @(Import-SwgTab -Path $effectMappingPath | Where-Object {
+    [string]$_.TYPE -ceq "pvpAuraBuffSelf"
+})
+Assert-Contract ($auraEffectMappings.Count -eq [int]$contract.expected.retainedAuraEffectMappings -and
+    (($auraEffectMappings.NAME | Sort-Object) -join "`n") -ceq
+        ((@("pvp_aura_buff_rebel_self", "pvp_aura_buff_self") | Sort-Object) -join "`n")) `
+    "p14.gcw-reward.aura-effect-mappings.retained"
 
 foreach ($property in $contract.continuityEvidence.missionSourceSha256.PSObject.Properties)
 {
@@ -219,7 +250,7 @@ foreach ($property in $contract.continuityEvidence.missionSourceSha256.PSObject.
 $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
 Assert-Contract ([string]$manifest.sourceMode -ceq "direct-branch" -and $dsrcPin.Count -eq 1 -and
     [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceCommit) "p14.gcw-reward.direct-source-pin"
-Assert-Contract (@("implemented-build-verified-live-pending", "ready") -contains [string]$contract.status) "p14.gcw-reward.contract-status"
+Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -contains [string]$contract.status) "p14.gcw-reward.contract-status"
 $contractText = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14PostNgeGcwRankRewardRuntimeRetirement)) -Raw
 Assert-Contract (-not $contractText.Contains("/Artifacts/") -and -not $contractText.Contains("/Staging/")) "p14.gcw-reward.no-host-staging"
 

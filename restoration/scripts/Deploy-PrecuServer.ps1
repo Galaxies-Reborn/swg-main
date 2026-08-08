@@ -2590,6 +2590,21 @@ test "$(grep -Fc 'if (isPlayer(self))' "$work_pvp_aura_controller")" -eq 3
 grep -Fq 'isMob(self) && !isPlayer(self)' "$work_pvp_aura_controller"
 grep -Fq 'buff.applyBuff(players, "pvp_aura_buff_rebel_target")' "$work_pvp_aura_controller"
 grep -Fq 'buff.applyBuff(players, "pvp_aura_buff_target")' "$work_pvp_aura_controller"
+pvp_aura_effect_add_source="$(sed -n '/public int pvpAuraBuffSelfAddBuffHandler/,/public int pvpAuraBuffSelfRemoveBuffHandler/p' "$work_buff_handler")"
+pvp_aura_effect_remove_source="$(sed -n '/public int pvpAuraBuffSelfRemoveBuffHandler/,/public int nextHitCritAddBuffHandler/p' "$work_buff_handler")"
+pvp_aura_effect_guard_source_line="$(printf '%s\n' "$pvp_aura_effect_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+pvp_aura_effect_cleanup_source_line="$(printf '%s\n' "$pvp_aura_effect_add_source" | grep -Fn 'factions.retirePostNgePvpRewardState(self);' | head -1 | cut -d: -f1)"
+pvp_aura_effect_return_source_line="$(printf '%s\n' "$pvp_aura_effect_add_source" | grep -Fn 'return SCRIPT_CONTINUE;' | head -1 | cut -d: -f1)"
+pvp_aura_effect_attach_source_line="$(printf '%s\n' "$pvp_aura_effect_add_source" | grep -Fn 'attachScript(self, "player.gcw.pvp_aura_buff_controller")' | head -1 | cut -d: -f1)"
+for pvp_aura_effect_source_line in "$pvp_aura_effect_guard_source_line" "$pvp_aura_effect_cleanup_source_line" "$pvp_aura_effect_return_source_line" "$pvp_aura_effect_attach_source_line"; do
+    test -n "$pvp_aura_effect_source_line"
+done
+test "$pvp_aura_effect_guard_source_line" -lt "$pvp_aura_effect_cleanup_source_line"
+test "$pvp_aura_effect_cleanup_source_line" -lt "$pvp_aura_effect_return_source_line"
+test "$pvp_aura_effect_return_source_line" -lt "$pvp_aura_effect_attach_source_line"
+! printf '%s' "$pvp_aura_effect_remove_source" | grep -Fq 'retirePostNgePvpRewardState'
+printf '%s' "$pvp_aura_effect_remove_source" | grep -Fq 'detachScript(self, "player.gcw.pvp_aura_buff_controller")'
+printf '%s' "$pvp_aura_effect_remove_source" | grep -Fq 'removeObjVar(self, "pvp_aura_buff.faction")'
 ! grep -Eq 'getPlayerProfession|getBannerBuff|buffPlayers|buff\.applyBuff' "$work_gcw_banner_manager"
 grep -Fq 'messageTo(self, "handleDeleteSelf", null, 180.0f, false);' "$work_gcw_banner_manager"
 test "$(grep -Fc 'trial.cleanupObject(self);' "$work_gcw_banner_manager")" -eq 2
@@ -5235,6 +5250,22 @@ pvp_reward_standard_action_bytecode="$(javap -classpath "$class_root" -c -p scri
 printf '%s' "$pvp_reward_standard_action_bytecode" | grep -Fq 'isRetiredPostNgePvpRewardPlayerAction'
 printf '%s' "$pvp_reward_standard_action_bytecode" | grep -Fq 'script/library/factions.retirePostNgePvpRewardState'
 test "$(javap -classpath "$class_root" -c script.player.gcw.pvp_aura_buff_controller | grep -Fc 'script/library/factions.retirePostNgePvpRewardState')" -eq 3
+pvp_aura_effect_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+pvp_aura_effect_add_bytecode="$(printf '%s' "$pvp_aura_effect_handler_bytecode" | sed -n '/pvpAuraBuffSelfAddBuffHandler/,/pvpAuraBuffSelfRemoveBuffHandler/p')"
+pvp_aura_effect_remove_bytecode="$(printf '%s' "$pvp_aura_effect_handler_bytecode" | sed -n '/pvpAuraBuffSelfRemoveBuffHandler/,/nextHitCritAddBuffHandler/p')"
+pvp_aura_effect_guard_bytecode_line="$(printf '%s\n' "$pvp_aura_effect_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+pvp_aura_effect_cleanup_bytecode_line="$(printf '%s\n' "$pvp_aura_effect_add_bytecode" | grep -Fn 'script/library/factions.retirePostNgePvpRewardState' | head -1 | cut -d: -f1)"
+pvp_aura_effect_return_bytecode_line="$(printf '%s\n' "$pvp_aura_effect_add_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+pvp_aura_effect_attach_bytecode_line="$(printf '%s\n' "$pvp_aura_effect_add_bytecode" | grep -Fn 'Method attachScript' | head -1 | cut -d: -f1)"
+for pvp_aura_effect_bytecode_line in "$pvp_aura_effect_guard_bytecode_line" "$pvp_aura_effect_cleanup_bytecode_line" "$pvp_aura_effect_return_bytecode_line" "$pvp_aura_effect_attach_bytecode_line"; do
+    test -n "$pvp_aura_effect_bytecode_line"
+done
+test "$pvp_aura_effect_guard_bytecode_line" -lt "$pvp_aura_effect_cleanup_bytecode_line"
+test "$pvp_aura_effect_cleanup_bytecode_line" -lt "$pvp_aura_effect_return_bytecode_line"
+test "$pvp_aura_effect_return_bytecode_line" -lt "$pvp_aura_effect_attach_bytecode_line"
+! printf '%s' "$pvp_aura_effect_remove_bytecode" | grep -Fq 'retirePostNgePvpRewardState'
+printf '%s' "$pvp_aura_effect_remove_bytecode" | grep -Fq 'Method detachScript'
+printf '%s' "$pvp_aura_effect_remove_bytecode" | grep -Fq 'Method removeObjVar'
 gcw_bonus_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int gcwBonusGeneralAddBuffHandler/,/public int gcwBonusGeneralRemoveBuffHandler/p')"
 printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
 printf '%s' "$gcw_bonus_handler_bytecode" | grep -Fq 'script/library/utils.removeScriptVarTree'
