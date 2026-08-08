@@ -2479,6 +2479,178 @@ Assert-Contract (@($expectedInspirationScriptVarTrees | Where-Object {
     [bool]$contract.expected.professionInspirationRemoveCleanupPreserved) `
     "p14.combat-expertise-isolation.buff.profession-inspiration-writers-fail-closed-and-remove-cleans"
 
+$retiredProfessionProxyNames = @(
+    $contract.expected.retiredNgePlayerProfessionProxyBuffNames |
+        ForEach-Object { [string]$_ }
+)
+$professionProxyWrapperNames = @($retiredProfessionProxyNames | Select-Object -First 21)
+$professionProxyDerivedNames = @($retiredProfessionProxyNames | Select-Object -Skip 21)
+$professionProxyRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $retiredProfessionProxyNames -ccontains [string]$_.NAME
+})
+$professionProxyRowNames = @($professionProxyRows | ForEach-Object { [string]$_.NAME })
+$professionProxyMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.TYPE -cin @("exclusiveProxy", "paintTarget") })
+$professionProxyMappingNames = @($professionProxyMappings |
+    ForEach-Object { [string]$_.NAME } | Sort-Object)
+$expectedProfessionProxyMappingNames = @(
+    "exclusive_proxy",
+    "exclusive_proxy_of_vortex_root_1",
+    "exclusive_proxy_of_vortex_root_2",
+    "exclusive_proxy_of_vortex_root_3",
+    "exclusive_proxy_of_vortex_root_4",
+    "exclusive_proxy_of_vortex_root_5",
+    "paint_target"
+) | Sort-Object
+Assert-Contract ($retiredProfessionProxyNames.Count -eq
+        [int]$contract.expected.retainedNgeProfessionProxyBuffRows -and
+    @($retiredProfessionProxyNames | Sort-Object -Unique).Count -eq
+        $retiredProfessionProxyNames.Count -and
+    $professionProxyWrapperNames.Count -eq
+        [int]$contract.expected.retainedNgeProfessionProxyWrapperBuffRows -and
+    $professionProxyDerivedNames.Count -eq
+        [int]$contract.expected.retainedNgeProfessionProxyDerivedBuffRows -and
+    $professionProxyRows.Count -eq $retiredProfessionProxyNames.Count -and
+    (($professionProxyRowNames | Sort-Object) -join "`n") -ceq
+        (($retiredProfessionProxyNames | Sort-Object) -join "`n") -and
+    @($professionProxyRows | Where-Object {
+        [string]$_.IS_PERSISTENT -cne "1"
+    }).Count -eq 0 -and
+    @($professionProxyRows | Where-Object {
+        [string]$_.VISIBLE -ceq "1"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionProxyVisibleBuffRows -and
+    $professionProxyMappings.Count -eq
+        [int]$contract.expected.retainedNgeProfessionProxyEffectMappingRows -and
+    @($professionProxyMappings | Where-Object {
+        [string]$_.TYPE -ceq "exclusiveProxy"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionProxyExclusiveEffectMappingRows -and
+    @($professionProxyMappings | Where-Object {
+        [string]$_.TYPE -ceq "paintTarget"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionProxyPaintTargetEffectMappingRows -and
+    (($professionProxyMappingNames -join "`n") -ceq
+        ($expectedProfessionProxyMappingNames -join "`n"))) `
+    "p14.combat-expertise-isolation.buff.profession-proxy-complete-data-inventory-authenticated"
+
+$professionProxyInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_PROXY_BUFFS"
+$professionProxyInventoryNames = @([regex]::Matches(
+    $professionProxyInventory, '"([^\"]+)"') | ForEach-Object {
+        $_.Groups[1].Value
+    })
+$professionProxyNamePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerProfessionProxyBuffName(String buffName)"
+$professionProxyBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerProfessionProxyBuff(obj_id target, buff_data data)"
+$professionProxyCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerProfessionProxyState(obj_id player)"
+$professionProxyProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$professionProxyAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$professionProxyAdmissionGate = $professionProxyAdmission.IndexOf(
+    "isRetiredPostNgePlayerProfessionProxyBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$professionProxyExistingBuffReturn = $professionProxyAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$exclusiveProxyAdd = Get-BracedBlock $buffHandler `
+    "public int exclusiveProxyAddBuffHandler("
+$exclusiveProxyRemove = Get-BracedBlock $buffHandler `
+    "public int exclusiveProxyRemoveBuffHandler("
+$exclusiveProxyGuard = $exclusiveProxyAdd.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$exclusiveProxyPredicate = $exclusiveProxyAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionProxyBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$exclusiveProxyCleanup = $exclusiveProxyAdd.IndexOf(
+    "buff.retirePostNgePlayerProfessionProxyState(self);",
+    [StringComparison]::Ordinal)
+$exclusiveProxyReturn = $exclusiveProxyAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $exclusiveProxyCleanup, [StringComparison]::Ordinal)
+$exclusiveProxyRead = $exclusiveProxyAdd.IndexOf(
+    "buff.getAllBuffs(self)", [StringComparison]::Ordinal)
+$exclusiveProxyWriter = $exclusiveProxyAdd.IndexOf(
+    "buff.applyBuff(self, caster, s)", [StringComparison]::Ordinal)
+Assert-Contract ($professionProxyInventoryNames.Count -eq 40 -and
+    (($professionProxyInventoryNames -join "`n") -ceq
+        ($retiredProfessionProxyNames -join "`n")) -and
+    $professionProxyNamePredicate.Contains("buffName.equals(retiredBuff)") -and
+    $professionProxyBuffPredicate.Contains("isPlayer(target)") -and
+    $professionProxyBuffPredicate.Contains(
+        "isRetiredPostNgePlayerProfessionProxyBuffName(data.buffName)") -and
+    $professionProxyCleanup.Contains("!isPlayer(player)") -and
+    $professionProxyCleanup.Contains("getAllBuffs(player)") -and
+    $professionProxyCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $professionProxyCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $professionProxyProgressionCleanup.Contains(
+        "retirePostNgePlayerProfessionProxyState(player);") -and
+    $professionProxyAdmissionGate -ge 0 -and
+    $professionProxyExistingBuffReturn -gt $professionProxyAdmissionGate -and
+    $exclusiveProxyGuard -ge 0 -and
+    $exclusiveProxyPredicate -gt $exclusiveProxyGuard -and
+    $exclusiveProxyCleanup -gt $exclusiveProxyPredicate -and
+    $exclusiveProxyReturn -gt $exclusiveProxyCleanup -and
+    $exclusiveProxyRead -gt $exclusiveProxyReturn -and
+    $exclusiveProxyWriter -gt $exclusiveProxyReturn -and
+    -not [bool]$contract.expected.playerNgeProfessionProxyBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeProfessionProxyStateRemoved -and
+    [int]$contract.expected.productionProfessionProxyHandlersGuarded -eq 1 -and
+    -not [bool]$contract.expected.playerNgeProfessionProxyNestedWriterReachable -and
+    $exclusiveProxyRemove.Contains("return SCRIPT_CONTINUE;") -and
+    -not $exclusiveProxyRemove.Contains(
+        "isRetiredPostNgePlayerProfessionProxyBuffName") -and
+    [bool]$contract.expected.professionProxyRemoveCleanupPreserved -and
+    [bool]$contract.expected.nonPlayerNgeProfessionProxyCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.profession-proxy-admission-persistence-and-writer-fail-closed"
+
+$officerActionPredicate = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeOfficerPlayerAction("
+$bountyHunterActionPredicate = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeBountyHunterPlayerAction("
+$combatStandardAdmission = Get-BracedBlock $combatBase `
+    "public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)"
+$officerAdmissionGate = $combatStandardAdmission.IndexOf(
+    "isRetiredPostNgeOfficerPlayerAction(self, actionName)",
+    [StringComparison]::Ordinal)
+$bountyHunterAdmissionGate = $combatStandardAdmission.IndexOf(
+    "isRetiredPostNgeBountyHunterPlayerAction(self, actionName)",
+    [StringComparison]::Ordinal)
+$postNgeAdmissionAuthority = $combatStandardAdmission.IndexOf(
+    'combat.revealPrecuFeignDeath(self, "combatCommand")',
+    [StringComparison]::Ordinal)
+$paintTargetAction = Get-BracedBlock $combatActions `
+    "public int paintTarget(obj_id self, obj_id target, String params, float defaultTime)"
+$professionProxyDirectCallbacks = @(
+    @{ Name = "applyVortexSnare"; Signature = "public int applyVortexSnare(obj_id self, dictionary params)"; Predicate = 'isRetiredPostNgeOfficerPlayerAction(self, "applyVortexSnare")'; Mutation = 'buff.hasBuff(self, "of_vortex_snare")' },
+    @{ Name = "dire_root_recourse"; Signature = "public int dire_root_recourse(obj_id self, dictionary params)"; Predicate = 'isRetiredPostNgeBountyHunterPlayerAction(self, "dire_root_recourse")'; Mutation = 'buff.hasBuff(self, "dire_root_recourse")' },
+    @{ Name = "dire_snare_recourse"; Signature = "public int dire_snare_recourse(obj_id self, dictionary params)"; Predicate = 'isRetiredPostNgeBountyHunterPlayerAction(self, "dire_snare_recourse")'; Mutation = 'buff.hasBuff(self, "dire_snare_recourse")' },
+    @{ Name = "bountycheck"; Signature = "public int bountycheck(obj_id self, obj_id target, String params, float defaultTime)"; Predicate = 'isRetiredPostNgeBountyHunterPlayerAction(self, "bountycheck")'; Mutation = "bounty_hunter.canCheckForBounty(self, target)" }
+)
+$professionProxyDirectCallbackFailures = @($professionProxyDirectCallbacks | Where-Object {
+    $callback = Get-BracedBlock $combatActions $_.Signature
+    $predicate = $callback.IndexOf($_.Predicate, [StringComparison]::Ordinal)
+    $override = $callback.IndexOf(
+        "return SCRIPT_OVERRIDE;", $predicate, [StringComparison]::Ordinal)
+    $mutation = $callback.IndexOf($_.Mutation, [StringComparison]::Ordinal)
+    $predicate -lt 0 -or $override -le $predicate -or $mutation -le $override
+})
+Assert-Contract ($officerActionPredicate.Contains('actionName.startsWith("of_")') -and
+    $officerActionPredicate.Contains('actionName.equals("paintTarget")') -and
+    $officerActionPredicate.Contains('actionName.startsWith("paintTarget_")') -and
+    $officerActionPredicate.Contains('actionName.equals("applyVortexSnare")') -and
+    $bountyHunterActionPredicate.Contains('actionName.startsWith("bh_")') -and
+    $bountyHunterActionPredicate.Contains('actionName.equals("dire_root_recourse")') -and
+    $bountyHunterActionPredicate.Contains('actionName.equals("dire_snare_recourse")') -and
+    $bountyHunterActionPredicate.Contains('actionName.equals("bountycheck")') -and
+    $officerAdmissionGate -ge 0 -and
+    $bountyHunterAdmissionGate -gt $officerAdmissionGate -and
+    $postNgeAdmissionAuthority -gt $bountyHunterAdmissionGate -and
+    $paintTargetAction.Contains(
+        'combatStandardAction("paintTarget", self, target, params, "", "")') -and
+    $professionProxyDirectCallbackFailures.Count -eq 0 -and
+    [int]$contract.expected.productionProfessionProxyDirectCallbacksGuarded -eq 4 -and
+    -not [bool]$contract.expected.playerNgeProfessionProxyDirectCallbacksReachable) `
+    "p14.combat-expertise-isolation.actions.profession-proxy-prefixless-actions-and-callbacks-fail-closed"
+
 $damageReductionModifiers = @(
     "expertise_damage_decrease_chance",
     "expertise_sm_rank_damage_bonus",
