@@ -295,6 +295,7 @@ Assert-Contract ($actualAvoidIncapBuffs.Count -eq [int]$contract.expected.retire
     -not [bool]$contract.expected.postP14PlayerAvoidIncapHealBuffAdmissionReachable -and
     $avoidIncapCleanupBody.Contains("isPlayer(player)") -and
     $avoidIncapCleanupBody.Contains("removeBuff(player, retiredBuff)") -and
+    $avoidIncapCleanupBody.Contains('utils.removeScriptVar(player, "buff_handler.gcw_critical_heal")') -and
     $cleanupBody.Contains("retirePostP14PlayerAvoidIncapHealState(player);") -and
     (Is-Before $buffAdmissionBody "isRetiredPostP14PlayerAvoidIncapHealBuff(bdata.buffName)" "hasBuff(target, nameCrc)")) `
     "p14.buff-progression.avoid-incap-heal.player-state-and-admission-retired"
@@ -387,6 +388,8 @@ $xpGrantBody = Get-SourceSlice $handlerText "public int xpGrantedGeneralAddBuffH
 $buildBody = Get-SourceSlice $handlerText "public int buildabuffAddBuffHandler" "public int buildabuffRemoveBuffHandler"
 $gcwBonusBody = Get-SourceSlice $handlerText "public int gcwBonusGeneralAddBuffHandler" "public int gcwBonusGeneralRemoveBuffHandler"
 $gcwMiniTurretBody = Get-SourceSlice $handlerText "public int gcwMiniTurretAddBuffHandler" "public int gcwMiniTurretRemoveBuffHandler"
+$avoidIncapAddBody = Get-SourceSlice $handlerText "public int onIncapHealAddBuffHandler" "public int onIncapHealRemoveBuffHandler"
+$avoidIncapRemoveBody = Get-SourceSlice $handlerText "public int onIncapHealRemoveBuffHandler" "public int healEffectAddBuffHandler"
 $groupBuffAddBody = Get-SourceSlice $handlerText `
     "public int groupAddBuffHandler" `
     "public int groupRemoveBuffHandler"
@@ -460,6 +463,17 @@ Assert-Contract ((Is-Before $gcwBonusBody "buff.isPostNgeBuffProgressionRetired(
     -not [bool]$contract.expected.postNgeMiniTurretCreationReachable -and
     [bool]$contract.expected.staleGcwBonusGeneralStateScrubbed) `
     "p14.buff-progression.gcw-consumable.handlers-fail-closed"
+Assert-Contract ([int]$contract.expected.directAvoidIncapHealAddWriters -eq 1 -and
+    -not [bool]$contract.expected.directAvoidIncapHealAddWriterPlayerReachable -and
+    $avoidIncapAddBody.Contains("if (isPlayer(self))") -and
+    $avoidIncapAddBody.Contains("buff.retirePostP14PlayerAvoidIncapHealState(self);") -and
+    (Is-Before $avoidIncapAddBody "buff.retirePostP14PlayerAvoidIncapHealState(self);" "return SCRIPT_OVERRIDE;") -and
+    (Is-Before $avoidIncapAddBody "return SCRIPT_OVERRIDE;" 'utils.setScriptVar(self, "buff_handler." + subtype, value)') -and
+    [bool]$contract.expected.avoidIncapHealRemoveCleanupPreserved -and
+    -not $avoidIncapRemoveBody.Contains("retirePostP14PlayerAvoidIncapHealState") -and
+    $avoidIncapRemoveBody.Contains('utils.removeScriptVar(self, "buff_handler." + subtype)') -and
+    [bool]$contract.expected.nonPlayerAvoidIncapHealCompatibilityPreserved) `
+    "p14.buff-progression.avoid-incap-heal.direct-writer-fails-closed"
 
 $xpText = [string]$sourceTexts["library/xp.java"]
 $applyXpBody = Get-SourceSlice $xpText "public static int applyInspirationBuffXpModifier" "public static float getGroupXpModifier"
@@ -671,7 +685,12 @@ Assert-Contract ([bool]$contract.expected.legitimateNpcControlImmunityPreserved 
     "p14.buff-progression.compatibility.npc-control-immunity-preserved"
 $avoidIncapRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
     Where-Object { $_.NAME -in $expectedAvoidIncapBuffs })
-Assert-Contract ($avoidIncapRows.Count -eq [int]$contract.expected.retainedPlayerAvoidIncapHealBuffRows -and
+$avoidIncapMappings = @(Import-Csv -LiteralPath $effectMapPath -Delimiter "`t" |
+    Where-Object { $_.TYPE -ceq "onIncapHeal" })
+Assert-Contract ($avoidIncapMappings.Count -eq [int]$contract.expected.retainedAvoidIncapHealEffectMappingRows -and
+    [string]$avoidIncapMappings[0].NAME -ceq "avoid_incap_heal" -and
+    [string]$avoidIncapMappings[0].SUBTYPE -ceq "gcw_critical_heal" -and
+    $avoidIncapRows.Count -eq [int]$contract.expected.retainedPlayerAvoidIncapHealBuffRows -and
     ((@($avoidIncapRows.NAME | Sort-Object) -join "`n") -ceq ($expectedAvoidIncapBuffs -join "`n")) -and
     @($avoidIncapRows | Where-Object { $_.EFFECT1_PARAM -cne "avoid_incap_heal" }).Count -eq 0) `
     "p14.buff-progression.compatibility.avoid-incap-heal-rows-preserved"

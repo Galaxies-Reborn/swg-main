@@ -2547,9 +2547,23 @@ for retired_player_avoid_incap_buff in $retired_player_avoid_incap_buffs; do
 done
 printf '%s' "$avoid_incap_cleanup_source" | grep -Fq '!isPlayer(player)'
 printf '%s' "$avoid_incap_cleanup_source" | grep -Fq 'removeBuff(player, retiredBuff)'
+printf '%s' "$avoid_incap_cleanup_source" | grep -Fq 'utils.removeScriptVar(player, "buff_handler.gcw_critical_heal")'
 grep -Fq 'retirePostP14PlayerAvoidIncapHealState(player);' "$work_buff_library"
 printf '%s' "$gcw_banner_admission_source" | grep -Fq 'isRetiredPostP14PlayerAvoidIncapHealBuff(bdata.buffName)'
 test "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'isRetiredPostP14PlayerAvoidIncapHealBuff(bdata.buffName)' | cut -d: -f1)" -lt "$(printf '%s' "$gcw_banner_admission_source" | grep -nF 'hasBuff(target, nameCrc)' | cut -d: -f1)"
+avoid_incap_effect_add_source="$(sed -n '/public int onIncapHealAddBuffHandler/,/public int onIncapHealRemoveBuffHandler/p' "$work_buff_handler")"
+avoid_incap_effect_remove_source="$(sed -n '/public int onIncapHealRemoveBuffHandler/,/public int healEffectAddBuffHandler/p' "$work_buff_handler")"
+avoid_incap_effect_guard_source_line="$(printf '%s\n' "$avoid_incap_effect_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
+avoid_incap_effect_cleanup_source_line="$(printf '%s\n' "$avoid_incap_effect_add_source" | grep -Fn 'buff.retirePostP14PlayerAvoidIncapHealState(self);' | head -1 | cut -d: -f1)"
+avoid_incap_effect_return_source_line="$(printf '%s\n' "$avoid_incap_effect_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+avoid_incap_effect_write_source_line="$(printf '%s\n' "$avoid_incap_effect_add_source" | grep -Fn 'utils.setScriptVar(self, "buff_handler." + subtype, value);' | head -1 | cut -d: -f1)"
+test -n "$avoid_incap_effect_guard_source_line" -a -n "$avoid_incap_effect_cleanup_source_line" -a -n "$avoid_incap_effect_return_source_line" -a -n "$avoid_incap_effect_write_source_line"
+test "$avoid_incap_effect_guard_source_line" -lt "$avoid_incap_effect_cleanup_source_line"
+test "$avoid_incap_effect_cleanup_source_line" -lt "$avoid_incap_effect_return_source_line"
+test "$avoid_incap_effect_return_source_line" -lt "$avoid_incap_effect_write_source_line"
+! printf '%s' "$avoid_incap_effect_remove_source" | grep -Fq 'retirePostP14PlayerAvoidIncapHealState'
+printf '%s' "$avoid_incap_effect_remove_source" | grep -Fq 'utils.removeScriptVar(self, "buff_handler." + subtype)'
+awk -F '\t' '$2 == "onIncapHeal" { found++; if ($1 != "avoid_incap_heal" || $3 != "gcw_critical_heal") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
 critical_heal_source="$(sed -n '/public boolean performCriticalHeal/,/public void sendSmugglerSystemBootstrap/p' "$work_base_player")"
 printf '%s' "$critical_heal_source" | grep -Fq 'buff.isPostNgeBuffProgressionRetired()'
 printf '%s' "$critical_heal_source" | grep -Fq 'buff.retirePostP14PlayerAvoidIncapHealState(self);'
@@ -5233,6 +5247,18 @@ javap -classpath "$class_root" -v script.library.buff | grep -Fq 'retirePostP14P
 for retired_player_avoid_incap_buff in $retired_player_avoid_incap_buffs; do
     javap -classpath "$class_root" -v script.library.buff | grep -Fq "$retired_player_avoid_incap_buff"
 done
+avoid_incap_effect_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/onIncapHealAddBuffHandler/,/onIncapHealRemoveBuffHandler/p')"
+avoid_incap_effect_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/onIncapHealRemoveBuffHandler/,/healEffectAddBuffHandler/p')"
+avoid_incap_effect_guard_bytecode_line="$(printf '%s\n' "$avoid_incap_effect_handler_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+avoid_incap_effect_cleanup_bytecode_line="$(printf '%s\n' "$avoid_incap_effect_handler_bytecode" | grep -Fn 'script/library/buff.retirePostP14PlayerAvoidIncapHealState' | head -1 | cut -d: -f1)"
+avoid_incap_effect_return_bytecode_line="$(printf '%s\n' "$avoid_incap_effect_handler_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+avoid_incap_effect_write_bytecode_line="$(printf '%s\n' "$avoid_incap_effect_handler_bytecode" | grep -Fn 'script/library/utils.setScriptVar' | head -1 | cut -d: -f1)"
+test -n "$avoid_incap_effect_guard_bytecode_line" -a -n "$avoid_incap_effect_cleanup_bytecode_line" -a -n "$avoid_incap_effect_return_bytecode_line" -a -n "$avoid_incap_effect_write_bytecode_line"
+test "$avoid_incap_effect_guard_bytecode_line" -lt "$avoid_incap_effect_cleanup_bytecode_line"
+test "$avoid_incap_effect_cleanup_bytecode_line" -lt "$avoid_incap_effect_return_bytecode_line"
+test "$avoid_incap_effect_return_bytecode_line" -lt "$avoid_incap_effect_write_bytecode_line"
+! printf '%s' "$avoid_incap_effect_remove_bytecode" | grep -Fq 'retirePostP14PlayerAvoidIncapHealState'
+printf '%s' "$avoid_incap_effect_remove_bytecode" | grep -Fq 'script/library/utils.removeScriptVar'
 critical_heal_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/public boolean performCriticalHeal/,/public void sendSmugglerSystemBootstrap/p')"
 printf '%s' "$critical_heal_bytecode" | grep -Fq 'script/library/buff.isPostNgeBuffProgressionRetired'
 printf '%s' "$critical_heal_bytecode" | grep -Fq 'script/library/buff.retirePostP14PlayerAvoidIncapHealState'

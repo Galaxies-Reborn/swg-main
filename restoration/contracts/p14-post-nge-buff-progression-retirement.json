@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-buff-progression-retirement",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Retire live NGE Build-a-Buff, general/TCG XP-buff progression, random fs_meditate_* bonuses, GCW point consumables, autonomous GCW consumable turrets, post-Publish-14 absolute player control-immunity buffs, later reactive avoid-incapacitation heals, and the exact inherited player group-aura, flat-HAM, and percentage-HAM buff sets that conflict with restored Publish 14.1 profession, Jedi, Squad Leader, and reward authority without removing later-content data compatibility, NPC group propagation, or the restored Publish 14.1 entertainer, Teras Kasi, Creature Handler, cloning-sickness, innate regeneration/vitalize, Power Boost, QA, NPC encounter, and Jedi avoid-incapacitation lifecycles.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -24,6 +24,7 @@
       "The retained Mustafar movement/mez devices, treasure snare-immunity consumable, GCW critical-heal recourse, generic player immunity rows, and daze/mez/action-drain recourses remain loadable compatibility content while their player admission and stale state fail closed; boss and beast control behavior remains available.",
       "Pinned Publish 14.1 has an authentic Jedi avoidIncapacitation command using the avoid_incapacitation skill modifier and a distinct avoid_incap buff effect; it has no generic avoid_incap_heal consumable callback that heals a player before the incapacitated posture is applied.",
       "The five GCW reactive stim buffs, two last-man PvP buffs, and Tusken endurance heroic buff are the complete eight-row avoid_incap_heal inventory; their retained content rows remain loadable while player admission, stale state, and the pre-incap reactive-heal callback fail closed.",
+      "The sole avoid_incap_heal effect mapping dispatches through onIncapHealAddBuffHandler. Generic admission and the reactive-heal consumer were already player-inert, but the direct add-side handler could still restore the later gcw_critical_heal script variable. It now runs central player cleanup and returns before mutation; remove-side cleanup and non-player expansion behavior remain available.",
       "The inherited attribPercent handler owns exactly 34 retained buff rows through six max-HAM percentage effects. Nineteen rows belong to removed NGE Doctor/Combat Medic/Jedi grants, replaced Squad Leader behavior, and later combat-reward buffs; exact player admission, persistence, and add-handler authority are retired while all rows and non-player compatibility remain available.",
       "The remaining fifteen attribPercent rows are deliberate compatibility exceptions: authenticated PRE-CU Creature Handler emboldenPet and cloning sickness, QA frogBuff, retained Mustafar and Death Troopers mechanics, and creature-special effects. They remain outside the retired player-name inventory.",
       "The inherited attrib handler owns exactly 33 retained buff rows through seven flat HAM effects. Thirteen rows are NGE level-gated holocron/force-crystal rewards, Mustafar crystal combat authority, Trials of Obi-Wan modified-primary rewards, or an unused NGE combat helper; exact player admission, persistence, and add-handler authority are retired while the authored content rows remain available.",
@@ -259,6 +260,11 @@
     "retainedPlayerAvoidIncapHealClickItems": 6,
     "postP14PlayerAvoidIncapHealBuffAdmissionReachable": false,
     "postP14ReactiveCriticalHealReachable": false,
+    "retainedAvoidIncapHealEffectMappingRows": 1,
+    "directAvoidIncapHealAddWriters": 1,
+    "directAvoidIncapHealAddWriterPlayerReachable": false,
+    "avoidIncapHealRemoveCleanupPreserved": true,
+    "nonPlayerAvoidIncapHealCompatibilityPreserved": true,
     "playerAvoidIncapHealItemsDecrementedOnRejectedUse": false,
     "precuJediAvoidIncapacitationBuffRows": 6,
     "precuJediAvoidIncapacitationPreserved": true,
@@ -295,26 +301,35 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "4ce9fbea352a58009f53ebdd978f512081a03504",
+    "directSourceGitlink": "32899c3ffbd7d50c9499a4e8505bce06cf72cb8d",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "4a69c7043cc4c32578d1b4fa93638fa56a08a07b7a3e08b1d5d4df1b51e0c373",
+    "sourceContentSha256": "a20d96e260dcc0f2d92034c69eec7dc04cc4cb5dd3b4e25d99de370018ba5acd",
     "sourceSha256": {
-      "library/buff.java": "dae496fa89ab5ad7d84e15c74854082011dc9abda63d2c5f06b68a4264f19201",
+      "library/buff.java": "84b575883083276ec95da630d4ff87bd42b1cb328df3184e74fab4b9b02ebefc",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
       "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
-      "systems/buff/buff_handler.java": "bbc4989cfd37db70d322426f9afe3edd16d8ab05516f12fffdee62de3fb470e5",
+      "systems/buff/buff_handler.java": "d38ff63c64eab60903fb363cc5894584f8b59ba1d683249cd9c3c0f9b021d751",
       "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
       "systems/crafting/crafting_base.java": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement rejects the complete exact 38-name inherited post-NGE player group-aura inventory and now centralizes the exact seventeen-name post-NGE profession-inspiration family at lifecycle cleanup, generic admission, stale script-variable cleanup, and production writers while preserving authored rows, non-player compatibility, and distinct PRE-CU entertainer and Squad Leader mechanics.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now also clears the sole later avoid_incap_heal script variable centrally and rejects its direct player add-side writer before mutation while preserving all eight authored buff rows, the sole mapping, remove-side cleanup, non-player behavior, and the distinct Publish 14.1 Jedi avoid_incap path.",
+    "focusedJavaCompile": "passed focused OpenJDK 11 compilation of library/buff.java and systems/buff/buff_handler.java from pushed direct-source commit 32899c3ffbd7d50c9499a4e8505bce06cf72cb8d against the production package root; two classes emitted under /dev/shm/precu-avoid-incap-writer-check and /dev/shm was verified empty afterward",
+    "focusedCompiledClassSha256": {
+      "script.library.buff": "3a0a505237c003748725bfa02d7027da1169dee964c3d524d0b5bcf6b12a623e",
+      "script.systems.buff.buff_handler": "2f5377ecfa7bdd42beb856a2925f290a0e94ac31a778eb1c78602fdec4aaeb18"
+    },
+    "focusedCompiledClassBytes": {
+      "script.library.buff": 75661,
+      "script.systems.buff.buff_handler": 106243
+    },
     "compiledClassSha256": {
       "script.library.buff": "1fffd167bf3607292cd854b85e1df63f95064922855462d17d9922fd0f233d7e",
       "script.library.gcw": "5d3b118df19cce0fca60b773b24b04ac71f4c9caafb5189d60805a8f80284b7d",
@@ -326,7 +341,7 @@
       "script.systems.buff_builder.buff_builder_response": "780402dd060f0e6b195a31e2a1f7fdc8d671e1e6a01a0d361ac4530174d5e3dd",
       "script.systems.crafting.crafting_base": "71bf98a06ceac9de223dfc63d7ee4b63362a758c318792ac1e2e4262a5a915b9"
     },
-    "staticContract": "passed against the pushed direct source; exact one-row group mapping, complete 38-row retired player inventory, lifecycle cleanup, admission-before-existing-buff dominance, writer-before-aura-mutation guard, preserved NPC propagation and unguarded removal/trigger cleanup, authored later-content rows, and distinct PRE-CU Squad Leader mechanics; the focused two-class Java compile and all 26 affected source contracts passed while prior flat- and percentage-HAM, meditation, GCW, control-immunity, avoid-incap-heal, PvP rank-reward, XP, entertainer, Jedi, Teras Kasi, retained-content, and mission-continuity assertions remain authenticated",
+    "staticContract": "passed against the pushed direct source; the sole avoid_incap_heal mapping and eight-row later buff inventory remain authenticated while central stale-variable cleanup and the player-only direct add-side guard dominate mutation, remove-side cleanup and non-player behavior remain reachable, and the distinct Publish 14.1 Jedi avoid_incap and Teras Kasi forceOfWill paths remain unchanged; the focused two-class Java compile and all 26 affected source contracts passed while prior group-aura, flat- and percentage-HAM, meditation, GCW, control-immunity, PvP rank-reward, XP, entertainer, retained-content, and mission-continuity assertions remain authenticated",
     "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct-source commit 7440cd2e1c587a0dc732ddc9f07f49a2d622a199; 5713 Java sources produced 5747 classes under OpenJDK 11; the earlier focused buff.java and buff_handler.java compile and the canonical bytecode gates left no /dev/shm residue",
     "javaSourcesCompiled": 5713,
     "javaClassesEmitted": 5747,
@@ -407,7 +422,7 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, the complete production level-percentage buff-XP caller surface, GCW buff multipliers and consumables, autonomous GCW consumable turrets, persisted random fs_meditate_* bonuses, the nine NGE Roadmap GCW banner buffs, the exact 12-name post-Publish-14 absolute player control-immunity inventory, the exact eight-name later reactive avoid-incap-heal inventory, generic player admission of the exact 12-name post-NGE PvP rank-reward buff inventory, and player lifecycle/admission/writer authority for the complete exact 38-name inherited post-NGE group-aura, 13-name flat-HAM, and 19-name percentage-HAM buff inventories",
+    "closedInThisMilestone": "live Build-a-Buff transaction/application callbacks, general/TCG XP, crafting-XP, the complete production level-percentage buff-XP caller surface, GCW buff multipliers and consumables, autonomous GCW consumable turrets, persisted random fs_meditate_* bonuses, the nine NGE Roadmap GCW banner buffs, the exact 12-name post-Publish-14 absolute player control-immunity inventory, the exact eight-name later reactive avoid-incap-heal inventory including its sole direct add-side state writer, generic player admission of the exact 12-name post-NGE PvP rank-reward buff inventory, and player lifecycle/admission/writer authority for the complete exact 38-name inherited post-NGE group-aura, 13-name flat-HAM, and 19-name percentage-HAM buff inventories",
     "notClaimedComplete": "ordinary non-progression effects in composite retained buffs and dormant later combat mechanics remain in the broader PRE-CU precedence audit; post-Publish-14 player invisibility is closed separately"
   },
   "requiredBeforeReady": []
