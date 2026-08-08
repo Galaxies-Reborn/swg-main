@@ -877,6 +877,30 @@ printf '%s' "$proc_cleanup_source" | grep -Fq 'buff.getAllBuffs(player)'
 printf '%s' "$proc_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s' "$proc_cleanup_source" | grep -Fq 'isRetiredPostNgePlayerProcBuff(player, data)'
 printf '%s' "$proc_cleanup_source" | grep -Fq 'buff.removeBuff(player, activeBuff)'
+proc_buff_add_source="$(sed -n '/public void procBuffAddBuffHandler/,/public void procBuffRemoveBuffHandler/p' "$work_buff_handler")"
+proc_buff_remove_source="$(sed -n '/public void procBuffRemoveBuffHandler/,/public void reactiveBuffAddBuffHandler/p' "$work_buff_handler")"
+reactive_buff_add_source="$(sed -n '/public void reactiveBuffAddBuffHandler/,/public void reactiveBuffRemoveBuffHandler/p' "$work_buff_handler")"
+reactive_buff_remove_source="$(sed -n '/public void reactiveBuffRemoveBuffHandler/,/public int stanceAddBuffHandler/p' "$work_buff_handler")"
+for proc_effect_add_source in "$proc_buff_add_source" "$reactive_buff_add_source"; do
+    proc_effect_add_predicate_line="$(printf '%s\n' "$proc_effect_add_source" | grep -Fn 'proc.isRetiredPostNgePlayerProcActor(self)' | head -1 | cut -d: -f1)"
+    proc_effect_add_cleanup_line="$(printf '%s\n' "$proc_effect_add_source" | grep -Fn 'proc.retirePostNgePlayerProcState(self);' | head -1 | cut -d: -f1)"
+    proc_effect_add_return_line="$(printf '%s\n' "$proc_effect_add_source" | grep -Fn 'return;' | head -1 | cut -d: -f1)"
+    proc_effect_add_parse_line="$(printf '%s\n' "$proc_effect_add_source" | grep -Fn 'effectName = effectName.substring' | head -1 | cut -d: -f1)"
+    proc_effect_add_writer_line="$(printf '%s\n' "$proc_effect_add_source" | grep -Fn 'utils.setScriptVar' | head -1 | cut -d: -f1)"
+    for proc_effect_add_line in "$proc_effect_add_predicate_line" "$proc_effect_add_cleanup_line" "$proc_effect_add_return_line" "$proc_effect_add_parse_line" "$proc_effect_add_writer_line"; do
+        test -n "$proc_effect_add_line"
+    done
+    test "$proc_effect_add_predicate_line" -lt "$proc_effect_add_cleanup_line"
+    test "$proc_effect_add_cleanup_line" -lt "$proc_effect_add_return_line"
+    test "$proc_effect_add_return_line" -lt "$proc_effect_add_parse_line"
+    test "$proc_effect_add_parse_line" -lt "$proc_effect_add_writer_line"
+done
+! printf '%s' "$proc_buff_remove_source" | grep -Fq 'retirePostNgePlayerProcState'
+printf '%s' "$proc_buff_remove_source" | grep -Fq 'utils.removeScriptVar(self, "procBuffEffects")'
+printf '%s' "$proc_buff_remove_source" | grep -Fq 'proc.buildCurrentProcList(self)'
+! printf '%s' "$reactive_buff_remove_source" | grep -Fq 'retirePostNgePlayerProcState'
+printf '%s' "$reactive_buff_remove_source" | grep -Fq 'utils.removeScriptVar(self, "reacBuffEffects")'
+printf '%s' "$reactive_buff_remove_source" | grep -Fq 'proc.buildCurrentReacList(self)'
 proc_standard_action_source="$(sed -n '/public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)/,/combat.revealPrecuFeignDeath(self, "combatCommand")/p' "$work_combat_base")"
 printf '%s' "$proc_standard_action_source" | grep -Fq 'proc.isRetiredPostNgePlayerProcAction(self, actionName)'
 printf '%s' "$proc_standard_action_source" | grep -Fq 'proc.retirePostNgePlayerProcState(self);'
@@ -6080,6 +6104,32 @@ printf '%s' "$buff_cooldown_execution_cleanup_bytecode" | grep -Fq 'combat_engin
 printf '%s' "$buff_cooldown_execution_cleanup_bytecode" | grep -Fq 'removeBuff'
 printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerCooldownExecutionState'
 buff_handler_bytecode="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler)"
+proc_buff_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/procBuffAddBuffHandler/,/procBuffRemoveBuffHandler/p')"
+proc_buff_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/procBuffRemoveBuffHandler/,/reactiveBuffAddBuffHandler/p')"
+reactive_buff_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/reactiveBuffAddBuffHandler/,/reactiveBuffRemoveBuffHandler/p')"
+reactive_buff_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/reactiveBuffRemoveBuffHandler/,/stanceAddBuffHandler/p')"
+for proc_effect_add_bytecode in "$proc_buff_add_bytecode" "$reactive_buff_add_bytecode"; do
+    proc_effect_add_predicate_bytecode_line="$(printf '%s\n' "$proc_effect_add_bytecode" | grep -Fn 'script/library/proc.isRetiredPostNgePlayerProcActor' | head -1 | cut -d: -f1)"
+    proc_effect_add_cleanup_bytecode_line="$(printf '%s\n' "$proc_effect_add_bytecode" | grep -Fn 'script/library/proc.retirePostNgePlayerProcState' | head -1 | cut -d: -f1)"
+    proc_effect_add_return_bytecode_line="$(printf '%s\n' "$proc_effect_add_bytecode" | grep -Fn 'return' | head -1 | cut -d: -f1)"
+    proc_effect_add_parse_bytecode_line="$(printf '%s\n' "$proc_effect_add_bytecode" | grep -Fn 'java/lang/String.substring' | head -1 | cut -d: -f1)"
+    proc_effect_add_writer_bytecode_line="$(printf '%s\n' "$proc_effect_add_bytecode" | grep -Fn 'script/library/utils.setScriptVar' | head -1 | cut -d: -f1)"
+    for proc_effect_add_bytecode_line in "$proc_effect_add_predicate_bytecode_line" "$proc_effect_add_cleanup_bytecode_line" "$proc_effect_add_return_bytecode_line" "$proc_effect_add_parse_bytecode_line" "$proc_effect_add_writer_bytecode_line"; do
+        test -n "$proc_effect_add_bytecode_line"
+    done
+    test "$proc_effect_add_predicate_bytecode_line" -lt "$proc_effect_add_cleanup_bytecode_line"
+    test "$proc_effect_add_cleanup_bytecode_line" -lt "$proc_effect_add_return_bytecode_line"
+    test "$proc_effect_add_return_bytecode_line" -lt "$proc_effect_add_parse_bytecode_line"
+    test "$proc_effect_add_parse_bytecode_line" -lt "$proc_effect_add_writer_bytecode_line"
+done
+! printf '%s' "$proc_buff_remove_bytecode" | grep -Fq 'retirePostNgePlayerProcState'
+printf '%s' "$proc_buff_remove_bytecode" | grep -Fq 'String procBuffEffects'
+printf '%s' "$proc_buff_remove_bytecode" | grep -Fq 'script/library/utils.removeScriptVar'
+printf '%s' "$proc_buff_remove_bytecode" | grep -Fq 'script/library/proc.buildCurrentProcList'
+! printf '%s' "$reactive_buff_remove_bytecode" | grep -Fq 'retirePostNgePlayerProcState'
+printf '%s' "$reactive_buff_remove_bytecode" | grep -Fq 'String reacBuffEffects'
+printf '%s' "$reactive_buff_remove_bytecode" | grep -Fq 'script/library/utils.removeScriptVar'
+printf '%s' "$reactive_buff_remove_bytecode" | grep -Fq 'script/library/proc.buildCurrentReacList'
 damage_reduction_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/expertiseDamageDecreaseAddBuffHandler/,/expertiseDamageDecreaseRemoveBuffHandler/p')"
 damage_reduction_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/expertiseDamageDecreaseRemoveBuffHandler/,/onAttackRemoveAddBuffHandler/p')"
 damage_reduction_add_guard_bytecode_line="$(printf '%s\n' "$damage_reduction_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"

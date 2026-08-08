@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-player-proc-runtime-retirement",
-  "status": "ready",
-  "scope": "Retire NGE expertise, item, buff, cybernetic proc, cybernetic special-command, movement-buff, combat-modifier, reactive combat-proc runtime, generic proc-buff admission, and all direct proc combat-action entry points for players while preserving Publish 14.1 combat authority, retained proc/item/cybernetic data and objects, and expansion NPC encounter mechanics.",
+  "status": "implemented-build-pending",
+  "scope": "Retire NGE expertise, item, buff, cybernetic proc, cybernetic special-command, movement-buff, combat-modifier, reactive combat-proc runtime, generic proc-buff admission, both direct proc/reaction add-side effect writers, and all direct proc combat-action entry points for players while preserving Publish 14.1 combat authority, retained proc/item/cybernetic data and objects, removal cleanup, and expansion NPC encounter mechanics.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -14,7 +14,8 @@
       "Seven retained expansion cybernetic rows directly grant seven NGE combat commands on equip; the pinned Publish 14.1 runtime has none of those commands, and retained item data must not become player combat authority.",
       "The retained cybernetic helper also exposed one permanent movement buff plus eight later combat-modifier writers and consumers. Its login validator removed those modifiers and immediately re-granted them from equipped items, so command/proc retirement alone did not close cybernetic player gameplay authority.",
       "The retained proc table contains 97 rows and 96 distinct queued combat commands, while 72 retained buff rows carry proc_buff or reac_buff effect parameters. The normal player proc engine was already fail-closed, but generic buff admission and direct command dispatch remained alternate entry points.",
-      "All 96 proc commands have retained command, combat-data, and combat-action handlers. Ninety-five handlers use combatStandardAction; expertise_fs_flurry_charge_proc bypasses that shared path and therefore requires its own player-only guard."
+      "All 96 proc commands have retained command, combat-data, and combat-action handlers. Ninety-five handlers use combatStandardAction; expertise_fs_flurry_charge_proc bypasses that shared path and therefore requires its own player-only guard.",
+      "The generic proc_buff and reac_buff admission and list builders were already player-inert, but procBuffAddBuffHandler and reactiveBuffAddBuffHandler could still be invoked directly and wrote procBuffEffects or reacBuffEffects before rebuilding later-era lists. Both add-side writers now invoke central player proc cleanup and return before parsing or mutation; their remove halves remain available for cleanup and non-player expansion behavior is unchanged."
     ]
   },
   "diagnosis": {
@@ -63,11 +64,12 @@
     "procCombatActionHandlers": 96,
     "procStandardActionHandlers": 95,
     "procDirectActionHandlers": 1,
+    "directProcEffectAddWriters": 2,
     "retainedProcCommandRows": 96,
     "retainedProcCombatRows": 96
   },
   "expected": {
-    "authoritativeSourceFiles": 6,
+    "authoritativeSourceFiles": 7,
     "playerProcListConstructionReachable": false,
     "playerReactiveListConstructionReachable": false,
     "playerExpertiseProcCacheReachable": false,
@@ -81,6 +83,8 @@
     "playerProcBuffAdmissionReachable": false,
     "playerProcCombatActionAdmissionReachable": false,
     "allProcCombatHandlersCovered": true,
+    "playerProcEffectAddWritersReachable": false,
+    "procEffectRemoveCleanupPreserved": true,
     "playerCyberneticCommandGrantReachable": false,
     "playerCyberneticCommandExecutionReachable": false,
     "persistedPlayerCyberneticCommandsAndCommandBuffsCleaned": true,
@@ -96,7 +100,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceCommit": "4c65b315c489ce940babc2d8a1ead79f6f8a3e1c",
+    "directSourceCommit": "13f2677856eba5b12c1a09e458867a8586ddc6a0",
     "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
@@ -105,7 +109,8 @@
       "library/cybernetic.java": "7420f4c681ec7b46343592bc72e69055dd8fe791f6ddda2641cd2c11cccecb97",
       "library/buff.java": "dae496fa89ab5ad7d84e15c74854082011dc9abda63d2c5f06b68a4264f19201",
       "systems/combat/combat_actions.java": "8fd1d328d2ec109ac2b738ad3f2e206851738149d6301a275c225e2e5860a600",
-      "systems/combat/combat_base.java": "fa73e6b7d194e4a6f9a037f2f3f1b2e5731b4c6012ad00683c932ef46a83fba6"
+      "systems/combat/combat_base.java": "fa73e6b7d194e4a6f9a037f2f3f1b2e5731b4c6012ad00683c932ef46a83fba6",
+      "systems/buff/buff_handler.java": "a06bc9c0c18a6671a870b22c5a392fe4a468d2e4be1952accb6b975345c9c514"
     },
     "compiledClassSha256": {
       "library/proc.class": "2e5efb846c163c7c8eb1e2e5aaf1913031130acb407e310254367dd6e9ae112f",
@@ -113,27 +118,30 @@
       "library/cybernetic.class": "9055ee6e9712d3ea4b073c7dea66c289df6629592fefd60574df5dedddb29329",
       "library/buff.class": "d05675a6137e2c16f327b6d303f44a0699bc7182045ece2962d2085c445dfbd1",
       "systems/combat/combat_actions.class": "94c7d5ad8012a1ab88c0f284bc52b30b254493055d68e5c6a08858662e8a5e00",
-      "systems/combat/combat_base.class": "15b99e1f49e53ccacf028c3ecdb3040ffe6b33d3bced08653f3b2b4fbeeda928"
+      "systems/combat/combat_base.class": "15b99e1f49e53ccacf028c3ecdb3040ffe6b33d3bced08653f3b2b4fbeeda928",
+      "systems/buff/buff_handler.class": "e11f34c23dfab7094923ebc555e21452fdd8d962b5854d8be8e75ea30d79b01a"
     },
-    "focusedJavaCompile": "passed for library/proc.java, library/buff.java, systems/combat/combat_actions.java, and systems/combat/combat_base.java with Java 8 target in a self-cleaning /dev/shm directory; four classes emitted and /dev/shm verified empty afterward; the canonical clean outputs below authenticate the same current sources",
+    "focusedJavaCompile": "passed focused OpenJDK compilation of systems/buff/buff_handler.java from pushed direct dsrc 13f2677856eba5b12c1a09e458867a8586ddc6a0 against the production package root; one class emitted in /dev/shm/precu-player-proc-handler-check and /dev/shm was verified empty afterward",
     "focusedCompiledClassSha256": {
       "library/proc.class": "2e5efb846c163c7c8eb1e2e5aaf1913031130acb407e310254367dd6e9ae112f",
       "library/buff.class": "d05675a6137e2c16f327b6d303f44a0699bc7182045ece2962d2085c445dfbd1",
       "systems/combat/combat_actions.class": "94c7d5ad8012a1ab88c0f284bc52b30b254493055d68e5c6a08858662e8a5e00",
-      "systems/combat/combat_base.class": "15b99e1f49e53ccacf028c3ecdb3040ffe6b33d3bced08653f3b2b4fbeeda928"
+      "systems/combat/combat_base.class": "15b99e1f49e53ccacf028c3ecdb3040ffe6b33d3bced08653f3b2b4fbeeda928",
+      "systems/buff/buff_handler.class": "616712ea4289fe794a999b17fe6f2b557997d87bbc6fb4cc19c710d1b5d6c419"
     },
     "focusedCompiledClassBytes": {
       "library/proc.class": 12427,
       "library/buff.class": 41213,
       "systems/combat/combat_actions.class": 320881,
-      "systems/combat/combat_base.class": 148490
+      "systems/combat/combat_base.class": 148490,
+      "systems/buff/buff_handler.class": 105012
     },
-    "fullJavaCompile": "passed canonical clean compile: 5713 Java source files produced 5747 class files from direct dsrc 325d0e07915952189e4d47e46274a08b07e4b8c2",
-    "fullServerBuild": "passed canonical clean x64 deployment in 920.5 seconds from pushed parent ef052f45271541d82d276df087b5882fb8f3204c and direct dsrc 325d0e07915952189e4d47e46274a08b07e4b8c2",
+    "fullJavaCompile": "historical live deployment passed canonical exact zero-class dependency rebuild from direct dsrc 13f2677856eba5b12c1a09e458867a8586ddc6a0; updated direct-writer build pending",
+    "fullServerBuild": "historical live deployment passed canonical clean x64 Docker deployment in 963.6 seconds from pushed parent 6165fd3b8c0169a06d06354530128203d2783446 and direct dsrc 13f2677856eba5b12c1a09e458867a8586ddc6a0; updated direct-writer build pending",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
-    "sourceWorkParity": "passed byte-for-byte for all six authoritative source files between the read-only pushed source mount and Docker work volume",
+    "sourceWorkParity": "historical live parity passed for the original six authoritative source files; updated seven-file parity pending canonical deployment",
     "result": "passed"
   },
   "continuityEvidence": {
@@ -179,7 +187,7 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all player list construction including the shared expertise cache helper, persisted list and active proc-buff state, generic admission of all 72 proc_buff/reac_buff rows, all 96 proc combat-action handlers including the one direct flurry callback, expertise/buff proc state, reactive cooldown state, attacker proc execution, defender reactive execution, the seven data-driven cybernetic player command grants and handlers, the permanent cybernetic movement buff, eight cybernetic combat modifiers, their equip/unequip/login writers, and their range/healing/accuracy/defense/heavy-weapon consumers",
+    "closedInThisMilestone": "all player list construction including the shared expertise cache helper, persisted list and active proc-buff state, generic admission of all 72 proc_buff/reac_buff rows, both direct proc/reaction add-side effect writers, all 96 proc combat-action handlers including the one direct flurry callback, expertise/buff proc state, reactive cooldown state, attacker proc execution, defender reactive execution, the seven data-driven cybernetic player command grants and handlers, the permanent cybernetic movement buff, eight cybernetic combat modifiers, their equip/unequip/login writers, and their range/healing/accuracy/defense/heavy-weapon consumers",
     "preserved": "Publish 14.1 combat, retained proc/cybernetic/item data, cybernetic objects, installation, repair, armor values and visuals, retained expansion NPC proc mechanics, content objects, quests, conversations, zones, and user-verified mission-terminal behavior",
     "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
