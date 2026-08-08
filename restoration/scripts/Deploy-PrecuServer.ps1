@@ -2655,6 +2655,9 @@ test "$force_throw_generic_gate_line" -lt "$generic_existing_buff_line"
 profession_movement_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerProfessionMovementBuff(target, bdata)' | head -1 | cut -d: -f1)"
 test -n "$profession_movement_generic_gate_line"
 test "$profession_movement_generic_gate_line" -lt "$generic_existing_buff_line"
+profession_inspiration_generic_gate_line="$(printf '%s\n' "$can_apply_buff_source" | grep -Fn 'isRetiredPostNgePlayerProfessionInspirationBuff(target, bdata)' | head -1 | cut -d: -f1)"
+test -n "$profession_inspiration_generic_gate_line"
+test "$profession_inspiration_generic_gate_line" -lt "$generic_existing_buff_line"
 test "$damage_reduction_generic_gate_line" -lt "$modifier_generic_gate_line"
 test "$modifier_generic_gate_line" -lt "$generic_existing_buff_line"
 force_sensitive_stance_handler_gate_line="$(printf '%s\n' "$stance_source" | grep -Fn 'buff.isRetiredPostNgeForceSensitiveStanceBuff(buffName)' | head -1 | cut -d: -f1)"
@@ -2758,6 +2761,86 @@ test -n "$movement_add_writer_line"
 test "$movement_add_profession_guard_line" -lt "$movement_add_force_throw_guard_line"
 test "$movement_add_force_throw_guard_line" -lt "$movement_add_writer_line"
 test "$(printf '%s\n' "$movement_add_source" | grep -Fc 'return SCRIPT_OVERRIDE;')" -eq 2
+profession_inspiration_names='general_inspiration artisan_inspiration entertainer_inspiration scout_inspiration chef_inspiration tailor_inspiration bioengineer_inspiration merchant_inspiration imagedesigner_inspiration musician_inspiration ranger_inspiration architect_inspiration droidengineer_inspiration weaponsmith_inspiration shipwright_inspiration armorsmith_inspiration dancer_inspiration'
+test "$(printf '%s\n' $profession_inspiration_names | wc -l)" -eq 17
+awk -F '\t' -v retired_names="$profession_inspiration_names" '
+    NR == FNR {
+        if (FNR > 2) effect_type[$1] = $2
+        next
+    }
+    FNR == 1 {
+        for (field = 1; field <= NF; field++) field_index[$field] = field
+        split(retired_names, expected_names, " ")
+        for (expected_index in expected_names) expected[expected_names[expected_index]] = expected_index
+        next
+    }
+    FNR == 2 { next }
+    ($1 in expected) {
+        row_count++
+        row_names[row_count] = $1
+        if ($(field_index["DURATION"]) != "300" ||
+            $(field_index["VISIBLE"]) != "1" ||
+            $(field_index["IS_PERSISTENT"]) != "1") exit 30
+        for (effect = 1; effect <= 5; effect++) {
+            param = $(field_index["EFFECT" effect "_PARAM"])
+            if (param == "") continue
+            effect_uses++
+            type_count[effect_type[param]]++
+        }
+    }
+    END {
+        if (row_count != 17 || effect_uses != 33) exit 31
+        for (row_index = 1; row_index <= 17; row_index++) {
+            if (row_names[row_index] != expected_names[row_index]) exit 32
+        }
+        if (type_count["xpBonus"] != 16 || type_count["xpBonusGeneral"] != 1 ||
+            type_count["craftBonus"] != 9 || type_count["scriptVar"] != 6 ||
+            type_count["skill"] != 1) exit 33
+    }
+' "$work_buff_effect_mapping" "$work_buff_table"
+profession_inspiration_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_PROFESSION_INSPIRATION_BUFFS/,/public static boolean isRetiredPostNgePlayerProfessionInspirationBuffName/p' "$work_buff_library")"
+test "$(printf '%s\n' "$profession_inspiration_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 17
+profession_inspiration_inventory_index=0
+for profession_inspiration_name in $profession_inspiration_names; do
+    profession_inspiration_inventory_index=$((profession_inspiration_inventory_index + 1))
+    test "$(printf '%s\n' "$profession_inspiration_inventory_source" | grep -Fn "\"$profession_inspiration_name\"" | head -1 | cut -d: -f1)" -eq $((profession_inspiration_inventory_index + 2))
+done
+profession_inspiration_name_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionInspirationBuffName/,/public static boolean isRetiredPostNgePlayerProfessionInspirationBuff(/p' "$work_buff_library")"
+profession_inspiration_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionInspirationBuff(/,/public static void clearPostNgePlayerProfessionInspirationScriptVars/p' "$work_buff_library")"
+profession_inspiration_scriptvar_cleanup_source="$(sed -n '/public static void clearPostNgePlayerProfessionInspirationScriptVars/,/public static void retirePostNgePlayerProfessionInspirationState/p' "$work_buff_library")"
+profession_inspiration_cleanup_source="$(sed -n '/public static void retirePostNgePlayerProfessionInspirationState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS/p' "$work_buff_library")"
+printf '%s\n' "$profession_inspiration_name_predicate_source" | grep -Fq 'buffName.equals(retiredBuff)'
+printf '%s\n' "$profession_inspiration_buff_predicate_source" | grep -Fq 'isPlayer(target)'
+printf '%s\n' "$profession_inspiration_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuffName(data.buffName)'
+printf '%s\n' "$profession_inspiration_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$profession_inspiration_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$profession_inspiration_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+printf '%s\n' "$profession_inspiration_cleanup_source" | grep -Fq 'clearPostNgePlayerProfessionInspirationScriptVars(player);'
+sed -n '/public static void retirePostNgeBuffProgression/,/public static final String DOT_BLEEDING/p' "$work_buff_library" | grep -Fq 'retirePostNgePlayerProfessionInspirationState(player);'
+for profession_inspiration_scriptvar in buff.xpBonus buff.xpBonusGeneral buff.craftBonus buff.faction buff.instrument buff.prop buff.holoemote; do
+    printf '%s\n' "$profession_inspiration_scriptvar_cleanup_source" | grep -Fq "utils.removeScriptVarTree(player, \"$profession_inspiration_scriptvar\");"
+done
+printf '%s\n' "$profession_inspiration_scriptvar_cleanup_source" | grep -Fq 'utils.removeScriptVarTree(player, "buff." + retiredBuff);'
+grep -Fq 'if (!isNgeInspirationEnabled())' "$work_performance_library"
+sed -n '/private static boolean isNgeInspirationEnabled/,/private static String getFormattedInspirationDuration/p' "$work_performance_library" | grep -Fq 'return false;'
+scriptvar_add_source="$(sed -n '/public int scriptVarAddBuffHandler/,/public int scriptVarRemoveBuffHandler/p' "$work_buff_handler")"
+scriptvar_remove_source="$(sed -n '/public int scriptVarRemoveBuffHandler/,/public int xpBonusAddBuffHandler/p' "$work_buff_handler")"
+craft_bonus_add_source="$(sed -n '/public int craftBonusAddBuffHandler/,/public int craftBonusRemoveBuffHandler/p' "$work_buff_handler")"
+craft_bonus_remove_source="$(sed -n '/public int craftBonusRemoveBuffHandler/,/public int forcePowerAddBuffHandler/p' "$work_buff_handler")"
+scriptvar_add_guard_line="$(printf '%s\n' "$scriptvar_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionInspirationBuffName(buffName))' | head -1 | cut -d: -f1)"
+scriptvar_add_cleanup_line="$(printf '%s\n' "$scriptvar_add_source" | grep -Fn 'buff.clearPostNgePlayerProfessionInspirationScriptVars(self);' | head -1 | cut -d: -f1)"
+scriptvar_add_writer_line="$(printf '%s\n' "$scriptvar_add_source" | grep -Fn 'utils.setScriptVar(self, "buff." + effectName + ".value", value);' | head -1 | cut -d: -f1)"
+craft_bonus_add_guard_line="$(printf '%s\n' "$craft_bonus_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionInspirationBuffName(buffName))' | head -1 | cut -d: -f1)"
+craft_bonus_add_cleanup_line="$(printf '%s\n' "$craft_bonus_add_source" | grep -Fn 'buff.clearPostNgePlayerProfessionInspirationScriptVars(self);' | head -1 | cut -d: -f1)"
+craft_bonus_add_writer_line="$(printf '%s\n' "$craft_bonus_add_source" | grep -Fn 'utils.setScriptVar(self, "buff.craftBonus.types", intValue);' | head -1 | cut -d: -f1)"
+test "$scriptvar_add_guard_line" -lt "$scriptvar_add_cleanup_line"
+test "$scriptvar_add_cleanup_line" -lt "$scriptvar_add_writer_line"
+test "$craft_bonus_add_guard_line" -lt "$craft_bonus_add_cleanup_line"
+test "$craft_bonus_add_cleanup_line" -lt "$craft_bonus_add_writer_line"
+! printf '%s\n' "$scriptvar_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuffName'
+printf '%s\n' "$scriptvar_remove_source" | grep -Fq 'utils.removeScriptVarTree'
+! printf '%s\n' "$craft_bonus_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuffName'
+printf '%s\n' "$craft_bonus_remove_source" | grep -Fq 'utils.removeScriptVarTree(self, "buff.craftBonus");'
 damage_reduction_add_source="$(sed -n '/public int expertiseDamageDecreaseAddBuffHandler/,/public int expertiseDamageDecreaseRemoveBuffHandler/p' "$work_buff_handler")"
 damage_reduction_remove_source="$(sed -n '/public int expertiseDamageDecreaseRemoveBuffHandler/,/public int onAttackRemoveAddBuffHandler/p' "$work_buff_handler")"
 damage_reduction_add_guard_line="$(printf '%s\n' "$damage_reduction_add_source" | grep -Fn 'if (isPlayer(self))' | head -1 | cut -d: -f1)"
@@ -4496,6 +4579,28 @@ movement_add_writer_line="$(printf '%s\n' "$movement_add_bytecode" | grep -Fn 'a
 test "$movement_add_player_line" -lt "$movement_add_profession_predicate_line"
 test "$movement_add_profession_predicate_line" -lt "$movement_add_force_throw_predicate_line"
 test "$movement_add_force_throw_predicate_line" -lt "$movement_add_writer_line"
+scriptvar_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int scriptVarAddBuffHandler/,/public int scriptVarRemoveBuffHandler/p')"
+scriptvar_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int scriptVarRemoveBuffHandler/,/public int xpBonusAddBuffHandler/p')"
+craft_bonus_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int craftBonusAddBuffHandler/,/public int craftBonusRemoveBuffHandler/p')"
+craft_bonus_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int craftBonusRemoveBuffHandler/,/public int forcePowerAddBuffHandler/p')"
+scriptvar_add_player_line="$(printf '%s\n' "$scriptvar_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+scriptvar_add_predicate_line="$(printf '%s\n' "$scriptvar_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionInspirationBuffName' | head -1 | cut -d: -f1)"
+scriptvar_add_cleanup_line="$(printf '%s\n' "$scriptvar_add_bytecode" | grep -Fn 'clearPostNgePlayerProfessionInspirationScriptVars' | head -1 | cut -d: -f1)"
+scriptvar_add_writer_line="$(printf '%s\n' "$scriptvar_add_bytecode" | grep -Fn 'utils.setScriptVar' | head -1 | cut -d: -f1)"
+craft_bonus_add_player_line="$(printf '%s\n' "$craft_bonus_add_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+craft_bonus_add_predicate_line="$(printf '%s\n' "$craft_bonus_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionInspirationBuffName' | head -1 | cut -d: -f1)"
+craft_bonus_add_cleanup_line="$(printf '%s\n' "$craft_bonus_add_bytecode" | grep -Fn 'clearPostNgePlayerProfessionInspirationScriptVars' | head -1 | cut -d: -f1)"
+craft_bonus_add_writer_line="$(printf '%s\n' "$craft_bonus_add_bytecode" | grep -Fn 'utils.setScriptVar' | head -1 | cut -d: -f1)"
+test "$scriptvar_add_player_line" -lt "$scriptvar_add_predicate_line"
+test "$scriptvar_add_predicate_line" -lt "$scriptvar_add_cleanup_line"
+test "$scriptvar_add_cleanup_line" -lt "$scriptvar_add_writer_line"
+test "$craft_bonus_add_player_line" -lt "$craft_bonus_add_predicate_line"
+test "$craft_bonus_add_predicate_line" -lt "$craft_bonus_add_cleanup_line"
+test "$craft_bonus_add_cleanup_line" -lt "$craft_bonus_add_writer_line"
+! printf '%s\n' "$scriptvar_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuffName'
+printf '%s\n' "$scriptvar_remove_bytecode" | grep -Fq 'utils.removeScriptVarTree'
+! printf '%s\n' "$craft_bonus_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuffName'
+printf '%s\n' "$craft_bonus_remove_bytecode" | grep -Fq 'utils.removeScriptVarTree'
 # Every retained ground DOT now resolves through the same PRE-CU application
 # and pulse path; no divergent era marker or NGE DOT modifier survives.
 dot_bytecode="$(javap -classpath "$class_root" -v script.library.dot)"
@@ -5429,6 +5534,7 @@ printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerForsake
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerChannelHealBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerRadarInvisibilityBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuff'
+printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageReductionBuff'
 printf '%s' "$buff_admission_bytecode" | grep -Fq 'isRetiredPostNgePlayerModifierBuff'
 buff_modifier_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
@@ -5446,6 +5552,31 @@ printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'Method getAllBuf
 printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
 printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'Method removeBuff'
 printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerProfessionMovementBuffState'
+for profession_inspiration_name in $profession_inspiration_names; do
+    printf '%s' "$buff_modifier_bytecode" | grep -Fq "$profession_inspiration_name"
+done
+profession_inspiration_name_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionInspirationBuffName(java.lang.String)/,/isRetiredPostNgePlayerProfessionInspirationBuff(script.obj_id, script.combat_engine\$buff_data)/p')"
+printf '%s' "$profession_inspiration_name_predicate_bytecode" | grep -Fq 'java/lang/String.equals'
+profession_inspiration_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerProfessionInspirationBuff(script.obj_id, script.combat_engine\$buff_data)/,/clearPostNgePlayerProfessionInspirationScriptVars/p')"
+printf '%s' "$profession_inspiration_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$profession_inspiration_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuffName'
+profession_inspiration_scriptvar_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerProfessionInspirationScriptVars/,/retirePostNgePlayerProfessionInspirationState/p')"
+printf '%s' "$profession_inspiration_scriptvar_cleanup_bytecode" | grep -Fq 'utils.removeScriptVarTree'
+for profession_inspiration_scriptvar in buff.xpBonus buff.xpBonusGeneral buff.craftBonus buff.faction buff.instrument buff.prop buff.holoemote; do
+    printf '%s' "$profession_inspiration_scriptvar_cleanup_bytecode" | grep -Fq "$profession_inspiration_scriptvar"
+done
+profession_inspiration_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerProfessionInspirationState/,/isRetiredPostNgePlayerGroupBuffName/p')"
+printf '%s' "$profession_inspiration_cleanup_bytecode" | grep -Fq 'Method getAllBuffs'
+printf '%s' "$profession_inspiration_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$profession_inspiration_cleanup_bytecode" | grep -Fq 'Method removeBuff'
+printf '%s' "$profession_inspiration_cleanup_bytecode" | grep -Fq 'clearPostNgePlayerProfessionInspirationScriptVars'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerProfessionInspirationState'
+performance_bytecode="$(javap -classpath "$class_root" -c -p script.library.performance)"
+performance_inspiration_gate_bytecode="$(printf '%s' "$performance_bytecode" | sed -n '/public static boolean inspire(script.obj_id, java.lang.String)/,/private static boolean isNgeInspirationEnabled/p')"
+printf '%s' "$performance_inspiration_gate_bytecode" | grep -Fq 'isNgeInspirationEnabled'
+performance_inspiration_enabled_bytecode="$(printf '%s' "$performance_bytecode" | sed -n '/private static boolean isNgeInspirationEnabled/,/private static java.lang.String getFormattedInspirationDuration/p')"
+printf '%s' "$performance_inspiration_enabled_bytecode" | grep -Fq 'iconst_0'
+printf '%s' "$performance_inspiration_enabled_bytecode" | grep -Fq 'ireturn'
 for damage_reduction_modifier in $damage_reduction_modifiers; do
     printf '%s' "$buff_modifier_bytecode" | grep -Fq "$damage_reduction_modifier"
 done

@@ -31,7 +31,8 @@
       "The sole group effect owns exactly 38 retained rows, all of which are post-Publish-14 player combat authority: ten NGE Squad Leader group replacements, Commando and Jedi expertise auras, an NGE veteran-level buff, twenty-five Officer combat buffs, and an NGE Human species combat buff.",
       "Pinned Publish 14.1 Core3 implements Form Up as DIZZY/STUN removal, Rally as a 30-second weapon-accuracy and group-defense buff, and Retreat as a 30-second group burst run. Those mechanics use formup, rally, and retreat rather than any sl_group_*, Officer, expertise, veteran-level, or human_ability_1 row, so all 38 group rows remain content-compatible but fail closed for players while NPC propagation and removal cleanup remain available.",
       "A whole production-script inventory has exactly one caller of grantUnmodifiedXPPercentageOfLevel: xpGrantedGeneralAddBuffHandler, which returns at the central retirement gate before the call; the retained API itself also returns zero without consulting player level, class template, or the NGE level table.",
-      "All ordinary and crafting inspiration-XP consumers resolve to identity or zero before retained percentage data can affect Publish 14.1 explicit XP pools, closing the deferred level-percentage buff-XP authority surface."
+      "All ordinary and crafting inspiration-XP consumers resolve to identity or zero before retained percentage data can affect Publish 14.1 explicit XP pools, closing the deferred level-percentage buff-XP authority surface.",
+      "The exact seventeen-name post-NGE profession-inspiration family now owns general_inspiration cleanup through one player-only lifecycle helper, including all shared and name-scoped stale script-variable trees, while retained rows and non-player compatibility remain available."
     ]
   },
   "expected": {
@@ -41,6 +42,8 @@
       "buildabuff_inspiration",
       "general_inspiration"
     ],
+    "retiredPlayerProfessionInspirationBuffCount": 17,
+    "professionInspirationCleanupCentralized": true,
     "retiredPlayerGroupBuffCount": 38,
     "retiredPlayerGroupBuffs": [
       "sl_group_run",
@@ -292,26 +295,26 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "d4d19a7c3c2a50ed8d681e4f8a7305c181499cd2",
+    "directSourceGitlink": "7440cd2e1c587a0dc732ddc9f07f49a2d622a199",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/378-p14-post-nge-buff-progression-retirement.patch",
       "bytes": 18702,
       "sha256": "58e745eea8620358a96f67f0613e6c729762b78db32825ca6139e783093233a5"
     },
     "sourceSetSha256": "3a7deb35e7dfedad95627b4ead81b4e4bd2ebfdc448a01a950f2769ef3aca555",
-    "sourceContentSha256": "3575735556c2a21ebdb75c9fcd9beec35c91daeb7b544d321784b9fb9c1696ed",
+    "sourceContentSha256": "f4fb09810cbebbfdcc0d48437aefd568b01299202f10dc5a6dede017c9655822",
     "sourceSha256": {
-      "library/buff.java": "fb49630fbca852a4ef125ee759398d94a5c362d4f28cfe5e71fba9b5c9e174af",
+      "library/buff.java": "be5f41e96d6d2be33e62a5aed809d6927038a760e9f5d5a5478f56ba94ca1619",
       "library/gcw.java": "d9a2bfcef0cfd95e550eb9f74445ec57dfcc18fa6dbccd9322ea32c3c39fe75d",
       "library/xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
       "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/skill/performcommands.java": "787d6701ac9437111520fb8c432a280a4164fbc6b60a88525c8aa0253978148d",
-      "systems/buff/buff_handler.java": "79668b058aa07389f75a280bc57a32556bf2e86e7a7c93e06ebf92f02ee2d7a6",
+      "systems/buff/buff_handler.java": "829a189eaf3df40904a568f76e539180afd6a09f215d5afcab0352b1db177aac",
       "systems/buff_builder/buff_builder_cancel.java": "f65bc0fe6b41211c48249f0d916ccf3a42f6ded56147c03e63b47ef81e66193f",
       "systems/buff_builder/buff_builder_response.java": "fef8e8c62ea73fc8c67b3d90531445d83628596ba7795329e2464f0aa1b073ea",
       "systems/crafting/crafting_base.java": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6"
     },
-    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement now also rejects the complete exact 38-name inherited post-NGE player group-aura inventory at lifecycle cleanup, generic admission, and the production group writer while preserving all authored content rows, NPC propagation, removal/trigger cleanup, and the distinct PRE-CU Form Up, Rally, and Retreat mechanics.",
+    "currentSourceEvidenceRefreshedBy": "Direct-source buff progression retirement rejects the complete exact 38-name inherited post-NGE player group-aura inventory and now centralizes the exact seventeen-name post-NGE profession-inspiration family at lifecycle cleanup, generic admission, stale script-variable cleanup, and production writers while preserving authored rows, non-player compatibility, and distinct PRE-CU entertainer and Squad Leader mechanics.",
     "compiledClassSha256": {
       "script.library.buff": "1fffd167bf3607292cd854b85e1df63f95064922855462d17d9922fd0f233d7e",
       "script.library.gcw": "5d3b118df19cce0fca60b773b24b04ac71f4c9caafb5189d60805a8f80284b7d",
@@ -324,13 +327,13 @@
       "script.systems.crafting.crafting_base": "71bf98a06ceac9de223dfc63d7ee4b63362a758c318792ac1e2e4262a5a915b9"
     },
     "staticContract": "passed against the pushed direct source; exact one-row group mapping, complete 38-row retired player inventory, lifecycle cleanup, admission-before-existing-buff dominance, writer-before-aura-mutation guard, preserved NPC propagation and unguarded removal/trigger cleanup, authored later-content rows, and distinct PRE-CU Squad Leader mechanics; the focused two-class Java compile and all 26 affected source contracts passed while prior flat- and percentage-HAM, meditation, GCW, control-immunity, avoid-incap-heal, PvP rank-reward, XP, entertainer, Jedi, Teras Kasi, retained-content, and mission-continuity assertions remain authenticated",
-    "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct-source commit d4d19a7c3c2a50ed8d681e4f8a7305c181499cd2; 5713 Java sources produced 5747 classes under OpenJDK 11; the earlier focused buff.java and buff_handler.java compile and the canonical bytecode gates left no /dev/shm residue",
+    "fullJavaCompile": "passed canonical exact zero-class dependency rebuild from pushed direct-source commit 7440cd2e1c587a0dc732ddc9f07f49a2d622a199; 5713 Java sources produced 5747 classes under OpenJDK 11; the earlier focused buff.java and buff_handler.java compile and the canonical bytecode gates left no /dev/shm residue",
     "javaSourcesCompiled": 5713,
     "javaClassesEmitted": 5747,
     "cleanMaterializationPatches": 413,
     "cleanMaterializationAcceptanceFiles": 1170,
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
-    "materializedBuild": "passed canonical clean x64 Docker build and controlled deployment, with the production container started at 2026-08-08T06:33:37.216004895Z, from pushed parent 8b4a21e413584326688c5f869a17a5513ecf0c58 and direct dsrc d4d19a7c3c2a50ed8d681e4f8a7305c181499cd2 in volume swg-precu-work-x64; host materialization remains retired",
+    "materializedBuild": "passed canonical clean x64 Docker build and controlled deployment, with the production container started at 2026-08-08T06:33:37.216004895Z, from pushed parent 8b4a21e413584326688c5f869a17a5513ecf0c58 and direct dsrc 7440cd2e1c587a0dc732ddc9f07f49a2d622a199 in volume swg-precu-work-x64; host materialization remains retired",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
     "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",

@@ -2307,6 +2307,178 @@ Assert-Contract ($movementAddGuard -ge 0 -and
     [bool]$contract.expected.professionMovementRemoveCleanupPreserved) `
     "p14.combat-expertise-isolation.buff.profession-movement-writer-fails-closed-and-remove-cleans"
 
+$retiredProfessionInspirationNames = @(
+    $contract.expected.retiredNgePlayerProfessionInspirationBuffNames |
+        ForEach-Object { [string]$_ }
+)
+$professionInspirationRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        $retiredProfessionInspirationNames -ccontains [string]$_.NAME
+    })
+$professionInspirationRowNames = @($professionInspirationRows |
+    ForEach-Object { [string]$_.NAME })
+$effectTypeByName = @{}
+foreach ($mapping in @(Import-SwgTab -Path $paths.buffEffectMapping))
+{
+    $effectTypeByName[[string]$mapping.NAME] = [string]$mapping.TYPE
+}
+$professionInspirationEffectUses = @()
+foreach ($row in $professionInspirationRows)
+{
+    foreach ($slot in 1..5)
+    {
+        $effectParam = [string]$row.("EFFECT$($slot)_PARAM")
+        if ([string]::IsNullOrWhiteSpace($effectParam)) { continue }
+        $professionInspirationEffectUses += [pscustomobject]@{
+            Name = [string]$row.NAME
+            Param = $effectParam
+            Type = [string]$effectTypeByName[$effectParam]
+        }
+    }
+}
+Assert-Contract ($retiredProfessionInspirationNames.Count -eq 17 -and
+    @($retiredProfessionInspirationNames | Sort-Object -Unique).Count -eq 17 -and
+    $professionInspirationRows.Count -eq
+        [int]$contract.expected.retainedNgeProfessionInspirationBuffRows -and
+    (($professionInspirationRowNames -join "`n") -ceq
+        ($retiredProfessionInspirationNames -join "`n")) -and
+    $professionInspirationEffectUses.Count -eq
+        [int]$contract.expected.retainedNgeProfessionInspirationEffectUses -and
+    @($professionInspirationEffectUses | Where-Object {
+        [string]$_.Type -ceq "xpBonus"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionInspirationXpBonusUses -and
+    @($professionInspirationEffectUses | Where-Object {
+        [string]$_.Type -ceq "xpBonusGeneral"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionInspirationXpBonusGeneralUses -and
+    @($professionInspirationEffectUses | Where-Object {
+        [string]$_.Type -ceq "craftBonus"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionInspirationCraftBonusUses -and
+    @($professionInspirationEffectUses | Where-Object {
+        [string]$_.Type -ceq "scriptVar"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionInspirationScriptVarUses -and
+    @($professionInspirationEffectUses | Where-Object {
+        [string]$_.Type -ceq "skill"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionInspirationSkillUses -and
+    @($professionInspirationRows | Where-Object {
+        [string]$_.DURATION -cne "300" -or [string]$_.VISIBLE -cne "1" -or
+            [string]$_.IS_PERSISTENT -cne "1"
+    }).Count -eq 0) `
+    "p14.combat-expertise-isolation.buff.profession-inspiration-complete-data-inventory-authenticated"
+
+$professionInspirationInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_INSPIRATION_BUFFS"
+$professionInspirationInventoryNames = @([regex]::Matches(
+    $professionInspirationInventory, '"([^"]+)"') | ForEach-Object {
+        $_.Groups[1].Value
+    })
+$professionInspirationNamePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerProfessionInspirationBuffName(String buffName)"
+$professionInspirationBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerProfessionInspirationBuff(obj_id target, buff_data data)"
+$professionInspirationScriptVarCleanup = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerProfessionInspirationScriptVars(obj_id player)"
+$professionInspirationCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerProfessionInspirationState(obj_id player)"
+$professionInspirationProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$professionInspirationAdmission = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$professionInspirationAdmissionGate = $professionInspirationAdmission.IndexOf(
+    "isRetiredPostNgePlayerProfessionInspirationBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$professionInspirationExistingBuffReturn = $professionInspirationAdmission.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+$performancePath = Join-Path $source `
+    "dsrc/sku.0/sys.server/compiled/game/script/library/performance.java"
+$performanceText = Get-Content -LiteralPath $performancePath -Raw
+$inspirationProducer = Get-BracedBlock $performanceText `
+    "public static boolean inspire(obj_id actor, String perf_type)"
+$inspirationEnabled = Get-BracedBlock $performanceText `
+    "private static boolean isNgeInspirationEnabled()"
+Assert-Contract ($professionInspirationInventoryNames.Count -eq 17 -and
+    (($professionInspirationInventoryNames -join "`n") -ceq
+        ($retiredProfessionInspirationNames -join "`n")) -and
+    $professionInspirationNamePredicate.Contains("buffName.equals(retiredBuff)") -and
+    $professionInspirationBuffPredicate.Contains("isPlayer(target)") -and
+    $professionInspirationBuffPredicate.Contains(
+        "isRetiredPostNgePlayerProfessionInspirationBuffName(data.buffName)") -and
+    $professionInspirationCleanup.Contains("!isPlayer(player)") -and
+    $professionInspirationCleanup.Contains("getAllBuffs(player)") -and
+    $professionInspirationCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $professionInspirationCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $professionInspirationCleanup.Contains(
+        "clearPostNgePlayerProfessionInspirationScriptVars(player);") -and
+    $professionInspirationProgressionCleanup.Contains(
+        "retirePostNgePlayerProfessionInspirationState(player);") -and
+    $professionInspirationAdmissionGate -ge 0 -and
+    $professionInspirationExistingBuffReturn -gt $professionInspirationAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeProfessionInspirationBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeProfessionInspirationBuffsRemoved -and
+    $inspirationProducer.Contains("if (!isNgeInspirationEnabled())") -and
+    $inspirationEnabled.Contains("return false;") -and
+    -not [bool]$contract.expected.ngeProfessionInspirationProducerEnabled -and
+    [bool]$contract.expected.nonPlayerNgeProfessionInspirationCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.profession-inspiration-admission-persistence-and-producer-fail-closed"
+
+$expectedInspirationScriptVarTrees = @(
+    "buff.xpBonus",
+    "buff.xpBonusGeneral",
+    "buff.craftBonus",
+    "buff.faction",
+    "buff.instrument",
+    "buff.prop",
+    "buff.holoemote"
+)
+$scriptVarAdd = Get-BracedBlock $buffHandler "public int scriptVarAddBuffHandler("
+$scriptVarRemove = Get-BracedBlock $buffHandler "public int scriptVarRemoveBuffHandler("
+$craftBonusAdd = Get-BracedBlock $buffHandler "public int craftBonusAddBuffHandler("
+$craftBonusRemove = Get-BracedBlock $buffHandler "public int craftBonusRemoveBuffHandler("
+$scriptVarGuard = $scriptVarAdd.IndexOf("if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$scriptVarPredicate = $scriptVarAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionInspirationBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$scriptVarCleanup = $scriptVarAdd.IndexOf(
+    "buff.clearPostNgePlayerProfessionInspirationScriptVars(self);",
+    [StringComparison]::Ordinal)
+$scriptVarReturn = $scriptVarAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $scriptVarCleanup, [StringComparison]::Ordinal)
+$scriptVarWriter = $scriptVarAdd.IndexOf(
+    'utils.setScriptVar(self, "buff." + effectName + ".value", value);',
+    [StringComparison]::Ordinal)
+$craftBonusGuard = $craftBonusAdd.IndexOf("if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$craftBonusPredicate = $craftBonusAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionInspirationBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$craftBonusCleanup = $craftBonusAdd.IndexOf(
+    "buff.clearPostNgePlayerProfessionInspirationScriptVars(self);",
+    [StringComparison]::Ordinal)
+$craftBonusReturn = $craftBonusAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $craftBonusCleanup, [StringComparison]::Ordinal)
+$craftBonusWriter = $craftBonusAdd.IndexOf(
+    'utils.setScriptVar(self, "buff.craftBonus.types", intValue);',
+    [StringComparison]::Ordinal)
+Assert-Contract (@($expectedInspirationScriptVarTrees | Where-Object {
+        -not $professionInspirationScriptVarCleanup.Contains(
+            "utils.removeScriptVarTree(player, `"$_`");")
+    }).Count -eq 0 -and
+    $professionInspirationScriptVarCleanup.Contains(
+        'utils.removeScriptVarTree(player, "buff." + retiredBuff);') -and
+    [bool]$contract.expected.stalePlayerNgeProfessionInspirationScriptVarsRemoved -and
+    $scriptVarGuard -ge 0 -and $scriptVarPredicate -gt $scriptVarGuard -and
+    $scriptVarCleanup -gt $scriptVarPredicate -and $scriptVarReturn -gt $scriptVarCleanup -and
+    $scriptVarWriter -gt $scriptVarReturn -and
+    $craftBonusGuard -ge 0 -and $craftBonusPredicate -gt $craftBonusGuard -and
+    $craftBonusCleanup -gt $craftBonusPredicate -and $craftBonusReturn -gt $craftBonusCleanup -and
+    $craftBonusWriter -gt $craftBonusReturn -and
+    [int]$contract.expected.productionProfessionInspirationHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerNgeProfessionInspirationWriterReachable -and
+    $scriptVarRemove.Contains("utils.removeScriptVarTree") -and
+    $craftBonusRemove.Contains('utils.removeScriptVarTree(self, "buff.craftBonus");') -and
+    -not $scriptVarRemove.Contains("isRetiredPostNgePlayerProfessionInspirationBuffName") -and
+    -not $craftBonusRemove.Contains("isRetiredPostNgePlayerProfessionInspirationBuffName") -and
+    [bool]$contract.expected.professionInspirationRemoveCleanupPreserved) `
+    "p14.combat-expertise-isolation.buff.profession-inspiration-writers-fail-closed-and-remove-cleans"
+
 $damageReductionModifiers = @(
     "expertise_damage_decrease_chance",
     "expertise_sm_rank_damage_bonus",

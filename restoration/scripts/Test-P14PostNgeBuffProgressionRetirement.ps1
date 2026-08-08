@@ -132,6 +132,15 @@ $avoidIncapCleanupBody = Get-SourceSlice $buffText `
 $groupBuffInventoryBody = Get-SourceSlice $buffText `
     "private static final String[] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS" `
     "public static boolean isRetiredPostNgePlayerGroupBuffName"
+$professionInspirationInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_INSPIRATION_BUFFS" `
+    "public static boolean isRetiredPostNgePlayerProfessionInspirationBuffName"
+$professionInspirationScriptVarCleanupBody = Get-SourceSlice $buffText `
+    "public static void clearPostNgePlayerProfessionInspirationScriptVars" `
+    "public static void retirePostNgePlayerProfessionInspirationState"
+$professionInspirationCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgePlayerProfessionInspirationState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS"
 $groupBuffCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgePlayerGroupBuffState" `
     "private static final String[] RETIRED_POST_NGE_PLAYER_FLAT_ATTRIBUTE_BUFFS"
@@ -157,8 +166,33 @@ $criticalHealBody = Get-SourceSlice ([string]$sourceTexts["player/base/base_play
 Assert-Contract ($flagBody.Contains("return true;")) "p14.buff-progression.central-flag.true"
 foreach ($buffName in @($contract.expected.retiredBuffs))
 {
-    Assert-Contract ($cleanupBody.Contains("removeBuff(player, `"$buffName`")")) "p14.buff-progression.cleanup.buff.$buffName"
+    $retiredByCentralLifecycle = $cleanupBody.Contains(
+        "removeBuff(player, `"$buffName`")")
+    if ($buffName -ceq "general_inspiration")
+    {
+        $retiredByCentralLifecycle =
+            $professionInspirationInventoryBody.Contains('"general_inspiration"') -and
+            $professionInspirationCleanupBody.Contains(
+                "removeBuff(player, activeBuff)") -and
+            $cleanupBody.Contains(
+                "retirePostNgePlayerProfessionInspirationState(player);")
+    }
+    Assert-Contract $retiredByCentralLifecycle `
+        "p14.buff-progression.cleanup.buff.$buffName"
 }
+$professionInspirationNames = @([regex]::Matches(
+    $professionInspirationInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+Assert-Contract ($professionInspirationNames.Count -eq
+        [int]$contract.expected.retiredPlayerProfessionInspirationBuffCount -and
+    @($professionInspirationNames | Select-Object -Unique).Count -eq
+        $professionInspirationNames.Count -and
+    [bool]$contract.expected.professionInspirationCleanupCentralized -and
+    $professionInspirationCleanupBody.Contains("getAllBuffs(player)") -and
+    $professionInspirationCleanupBody.Contains(
+        "isRetiredPostNgePlayerProfessionInspirationBuff(player, data)") -and
+    $professionInspirationCleanupBody.Contains("removeBuff(player, activeBuff)")) `
+    "p14.buff-progression.profession-inspiration.central-lifecycle"
 $expectedGroupBuffs = @($contract.expected.retiredPlayerGroupBuffs | Sort-Object)
 $actualGroupBuffs = @([regex]::Matches($groupBuffInventoryBody, '"([^"\r\n]+)"') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object)
@@ -282,7 +316,17 @@ Assert-Contract ([bool]$contract.expected.randomMeditationTickGrantRetired -and
     "p14.buff-progression.meditation.random-tick-grant-retired"
 foreach ($tree in @($contract.expected.retiredScriptVarTrees))
 {
-    Assert-Contract (($cleanupBody + $gcwConsumableCleanupBody).Contains("removeScriptVarTree(player, `"$tree`")")) `
+    $treeRetired = ($cleanupBody + $gcwConsumableCleanupBody +
+        $professionInspirationScriptVarCleanupBody).Contains(
+            "removeScriptVarTree(player, `"$tree`")")
+    if ($tree -ceq "buff.general_inspiration")
+    {
+        $treeRetired = $professionInspirationInventoryBody.Contains(
+                '"general_inspiration"') -and
+            $professionInspirationScriptVarCleanupBody.Contains(
+                'removeScriptVarTree(player, "buff." + retiredBuff)')
+    }
+    Assert-Contract $treeRetired `
         "p14.buff-progression.cleanup.scriptvar.$tree"
 }
 foreach ($scriptName in @($contract.expected.retiredBuilderScripts))
