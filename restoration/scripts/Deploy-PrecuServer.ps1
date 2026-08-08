@@ -2740,6 +2740,71 @@ saber_intercept_return_line="$(printf '%s\n' "$saber_intercept_add_source" | gre
 saber_intercept_retained_writer_line="$(printf '%s\n' "$saber_intercept_add_source" | grep -Fn 'utils.setScriptVar(self, combat.DAMAGE_REDIRECT, caster);' | head -1 | cut -d: -f1)"
 test "$saber_intercept_guard_line" -lt "$saber_intercept_return_line"
 test "$saber_intercept_return_line" -lt "$saber_intercept_retained_writer_line"
+awk -F '\t' '
+$1 == "protect_master" {
+    foundProtect++
+    if ($2 != "bodyguardDefender" || $3 != "protect_master") exit 2
+}
+$1 == "shield_master_pet" {
+    foundPet++
+    if ($2 != "bodyguardDefender" || $3 != "shield_master_pet") exit 2
+}
+$1 == "shield_master_player" {
+    foundPlayer++
+    if ($2 != "bodyguardMaster" || $3 != "shield_master_player") exit 2
+}
+END { if (foundProtect != 1 || foundPet != 1 || foundPlayer != 1) exit 3 }
+' "$work_buff_effect_mapping"
+awk -F '\t' '
+NR > 2 && ($1 == "bm_shield_master_pet" ||
+    $1 == "bm_shield_master_player" || $1 == "bodyguard") {
+    rows++
+    actual = $1 "|" $7 "|" $8
+    if (actual != "bm_shield_master_pet|12|shield_master_pet" &&
+        actual != "bm_shield_master_player|12|shield_master_player" &&
+        actual != "bodyguard|-1|protect_master") exit 2
+}
+END { if (rows != 3) exit 3 }
+' "$work_buff_table"
+test "$(grep -Ec '^        "(bm_shield_master_pet|bm_shield_master_player|bodyguard)"[,]?$' "$work_buff_library")" -eq 3
+test "$(grep -Ec '^        "(protect_master|shield_master_pet|shield_master_player)"[,]?$' "$work_buff_library")" -eq 3
+damage_redirect_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerDamageRedirectBuff(obj_id target/,/public static void clearPostNgePlayerDamageRedirectState/p' "$work_buff_library")"
+printf '%s\n' "$damage_redirect_buff_predicate_source" | grep -Fq '!isPlayer(target)'
+printf '%s\n' "$damage_redirect_buff_predicate_source" | grep -Fq 'effect <= MAX_EFFECTS'
+printf '%s\n' "$damage_redirect_buff_predicate_source" | grep -Fq 'isRetiredPostNgePlayerDamageRedirectEffect(getEffectParam(data, effect))'
+damage_redirect_cleanup_source="$(sed -n '/public static void clearPostNgePlayerDamageRedirectState/,/private static final String RETIRED_POST_NGE_PLAYER_PISTOL_WHIP_CONTROL_EFFECT/p' "$work_buff_library")"
+printf '%s\n' "$damage_redirect_cleanup_source" | grep -Fq 'utils.removeScriptVar(player, combat.DAMAGE_REDIRECT);'
+printf '%s\n' "$damage_redirect_cleanup_source" | grep -Fq 'getAllBuffs(player)'
+printf '%s\n' "$damage_redirect_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
+printf '%s\n' "$damage_redirect_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
+grep -Fq 'retirePostNgePlayerDamageRedirectState(player);' "$work_buff_library"
+damage_redirect_admission_source="$(sed -n '/public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)/,/public static int\[\] getGroups/p' "$work_buff_library")"
+damage_redirect_admission_gate_line="$(printf '%s\n' "$damage_redirect_admission_source" | grep -Fn 'isRetiredPostNgePlayerDamageRedirectBuff(target, bdata)' | head -1 | cut -d: -f1)"
+damage_redirect_existing_return_line="$(printf '%s\n' "$damage_redirect_admission_source" | grep -Fn 'hasBuff(target, nameCrc)' | head -1 | cut -d: -f1)"
+test "$damage_redirect_admission_gate_line" -lt "$damage_redirect_existing_return_line"
+bodyguard_defender_add_source="$(sed -n '/public int bodyguardDefenderAddBuffHandler/,/public int bodyguardDefenderRemoveBuffHandler/p' "$work_buff_handler")"
+bodyguard_defender_remove_source="$(sed -n '/public int bodyguardDefenderRemoveBuffHandler/,/public int cooldownModifyAddBuffHandler/p' "$work_buff_handler")"
+bodyguard_master_add_source="$(sed -n '/public int bodyguardMasterAddBuffHandler/,/public int bodyguardMasterRemoveBuffHandler/p' "$work_buff_handler")"
+bodyguard_master_remove_source="$(sed -n '/public int bodyguardMasterRemoveBuffHandler/,/public int onNextAttackAddBuffHandler/p' "$work_buff_handler")"
+for damage_redirect_handler_source in "$bodyguard_defender_add_source" "$bodyguard_defender_remove_source" "$bodyguard_master_add_source" "$bodyguard_master_remove_source"; do
+    printf '%s\n' "$damage_redirect_handler_source" | grep -Fq 'isRetiredPostNgePlayerDamageRedirectEffect(effectName)'
+    printf '%s\n' "$damage_redirect_handler_source" | grep -Fq 'isRetiredPostNgePlayerDamageRedirectBuffName(buffName)'
+    printf '%s\n' "$damage_redirect_handler_source" | grep -Fq 'return SCRIPT_OVERRIDE;'
+done
+test "$(printf '%s\n%s\n' "$bodyguard_defender_add_source" "$bodyguard_defender_remove_source" | grep -Fc 'if (isPlayer(master))')" -eq 4
+bodyguard_defender_return_line="$(printf '%s\n' "$bodyguard_defender_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+bodyguard_defender_writer_line="$(printf '%s\n' "$bodyguard_defender_add_source" | grep -Fn 'utils.setScriptVar(master, combat.DAMAGE_REDIRECT, self);' | head -1 | cut -d: -f1)"
+test "$bodyguard_defender_return_line" -lt "$bodyguard_defender_writer_line"
+damage_redirect_consumer_source="$(sed -n '/public static obj_id directDamageToDifferentTarget/,/public static float getMissChance/p' "$work_combat_library")"
+damage_redirect_consumer_guard_line="$(printf '%s\n' "$damage_redirect_consumer_source" | grep -Fn 'if (isPlayer(defender))' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_cleanup_line="$(printf '%s\n' "$damage_redirect_consumer_source" | grep -Fn 'retirePostNgePlayerDamageRedirectState(defender);' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_return_line="$(printf '%s\n' "$damage_redirect_consumer_source" | grep -Fn 'return defender;' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_beast_line="$(printf '%s\n' "$damage_redirect_consumer_source" | grep -Fn 'if (buff.hasBuff(defender, "bm_shield_master_player"))' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_script_var_line="$(printf '%s\n' "$damage_redirect_consumer_source" | grep -Fn 'if (utils.hasScriptVar(defender, DAMAGE_REDIRECT))' | head -1 | cut -d: -f1)"
+test "$damage_redirect_consumer_guard_line" -lt "$damage_redirect_consumer_cleanup_line"
+test "$damage_redirect_consumer_cleanup_line" -lt "$damage_redirect_consumer_return_line"
+test "$damage_redirect_consumer_return_line" -lt "$damage_redirect_consumer_beast_line"
+test "$damage_redirect_consumer_beast_line" -lt "$damage_redirect_consumer_script_var_line"
 awk -F '\t' '$1 == "sm_pistol_whip" { found++; if ($2 != "pistolWhip" || $3 != "sm_pistol_whip") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
 awk -F '\t' '
 NR > 2 {
@@ -5257,6 +5322,44 @@ action_burn_remove_write_bytecode_line="$(printf '%s\n' "$action_burn_remove_byt
 test "$action_burn_remove_guard_bytecode_line" -lt "$action_burn_remove_cleanup_bytecode_line"
 test "$action_burn_remove_cleanup_bytecode_line" -lt "$action_burn_remove_write_bytecode_line"
 combat_library_bytecode="$(javap -classpath "$class_root" -c -p script.library.combat)"
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'bm_shield_master_pet'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'bm_shield_master_player'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'bodyguard'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'protect_master'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'shield_master_pet'
+printf '%s' "$buff_modifier_bytecode" | grep -Fq 'shield_master_player'
+buff_damage_redirect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerDamageRedirectBuff(script.obj_id, script.combat_engine[$]buff_data)/,/clearPostNgePlayerDamageRedirectState/p')"
+printf '%s' "$buff_damage_redirect_predicate_bytecode" | grep -Fq 'Method isPlayer'
+printf '%s' "$buff_damage_redirect_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageRedirectBuffName'
+printf '%s' "$buff_damage_redirect_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageRedirectEffect'
+buff_damage_redirect_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/clearPostNgePlayerDamageRedirectState/,/isRetiredPostNgePlayerPistolWhipControlEffect/p')"
+printf '%s' "$buff_damage_redirect_cleanup_bytecode" | grep -Fq 'String damage_redirect'
+printf '%s' "$buff_damage_redirect_cleanup_bytecode" | grep -Fq 'getAllBuffs'
+printf '%s' "$buff_damage_redirect_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
+printf '%s' "$buff_damage_redirect_cleanup_bytecode" | grep -Fq 'removeBuff'
+printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerDamageRedirectState'
+for damage_redirect_handler in bodyguardDefenderAdd bodyguardDefenderRemove bodyguardMasterAdd bodyguardMasterRemove; do
+    damage_redirect_handler_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n "/${damage_redirect_handler}BuffHandler/,/ireturn/p")"
+    printf '%s' "$damage_redirect_handler_bytecode" | grep -Fq 'Method isPlayer'
+    printf '%s' "$damage_redirect_handler_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageRedirectEffect'
+    printf '%s' "$damage_redirect_handler_bytecode" | grep -Fq 'isRetiredPostNgePlayerDamageRedirectBuffName'
+    printf '%s' "$damage_redirect_handler_bytecode" | grep -Fq 'ireturn'
+done
+bodyguard_defender_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/bodyguardDefenderAddBuffHandler/,/cooldownModifyAddBuffHandler/p')"
+test "$(printf '%s' "$bodyguard_defender_bytecode" | grep -Fc 'Method isPlayer')" -ge 6
+bodyguard_defender_player_return_bytecode_line="$(printf '%s\n' "$bodyguard_defender_bytecode" | grep -Fn 'ireturn' | head -1 | cut -d: -f1)"
+bodyguard_defender_retained_writer_bytecode_line="$(printf '%s\n' "$bodyguard_defender_bytecode" | grep -Fn 'Method script/library/utils.setScriptVar' | head -1 | cut -d: -f1)"
+test "$bodyguard_defender_player_return_bytecode_line" -lt "$bodyguard_defender_retained_writer_bytecode_line"
+damage_redirect_consumer_bytecode="$(printf '%s' "$combat_library_bytecode" | sed -n '/directDamageToDifferentTarget(script.obj_id, script.obj_id)/,/getMissChance/p')"
+damage_redirect_consumer_guard_bytecode_line="$(printf '%s\n' "$damage_redirect_consumer_bytecode" | grep -Fn 'Method isPlayer' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_cleanup_bytecode_line="$(printf '%s\n' "$damage_redirect_consumer_bytecode" | grep -Fn 'retirePostNgePlayerDamageRedirectState' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_return_bytecode_line="$(printf '%s\n' "$damage_redirect_consumer_bytecode" | grep -Fn 'areturn' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_beast_bytecode_line="$(printf '%s\n' "$damage_redirect_consumer_bytecode" | grep -Fn 'String bm_shield_master_player' | head -1 | cut -d: -f1)"
+damage_redirect_consumer_script_var_bytecode_line="$(printf '%s\n' "$damage_redirect_consumer_bytecode" | grep -Fn 'String damage_redirect' | head -1 | cut -d: -f1)"
+test "$damage_redirect_consumer_guard_bytecode_line" -lt "$damage_redirect_consumer_cleanup_bytecode_line"
+test "$damage_redirect_consumer_cleanup_bytecode_line" -lt "$damage_redirect_consumer_return_bytecode_line"
+test "$damage_redirect_consumer_return_bytecode_line" -lt "$damage_redirect_consumer_beast_bytecode_line"
+test "$damage_redirect_consumer_beast_bytecode_line" -lt "$damage_redirect_consumer_script_var_bytecode_line"
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'aggro_channel_self'
 printf '%s' "$buff_modifier_bytecode" | grep -Fq 'aggro_channel_target'
 buff_aggro_channel_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerAggroChannelEffect(java.lang.String)/,/isRetiredPostNgePlayerAggroChannelBuff/p')"

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-beast-master-player-runtime-retirement",
-  "status": "ready",
-  "scope": "Retire post-NGE Beast Master identity, player-owned Beast combat XP and level progression, trainer grants, live-conversion reattachment, expertise arithmetic, and persisted known-skill state for players while Publish 14.1 Creature Handler tame/control runtime and retained later-content NPC, display, conversation, asset, template, and data content continue to load.",
+  "status": "implemented-build-pending",
+  "scope": "Retire post-NGE Beast Master identity, player-owned Beast combat XP and level progression, trainer grants, live-conversion reattachment, expertise arithmetic, persisted known-skill state, Shield Master/bodyguard buffs, and all inherited player damage redirection while Publish 14.1 Creature Handler tame/control runtime and retained later-content NPC, display, conversation, asset, template, and data content continue to load.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -19,11 +19,13 @@
       "The retained generated Beast Master trainer and live-conversion script formed two bypasses around the original retirement boundary: one could persist Beast abilities and the other could reattach the retired player script.",
       "Retained Beast AI and incubation content can use authored table, station, power, and incubation values, but no player Beast Master expertise or reverse-engineered Beast skill modifier may alter those values.",
       "The production combat-XP fallback could still call Beast XP and level progression for a stale player-owned NGE Beast even after player Beast Master identity, creation, login, and commands were retired.",
-      "The shared Beast XP and level entrypoints now reject only Beasts mastered by a real player, so retained NPC, unowned, and invulnerable barn-display Beast content remains available."
+      "The shared Beast XP and level entrypoints now reject only Beasts mastered by a real player, so retained NPC, unowned, and invulnerable barn-display Beast content remains available.",
+      "The retained NGE Beast Master protection family has exactly three effect mappings and three buff rows: Shield Master applies a timed player/pet pair and bodyguard applies a persistent master redirect. Its specialized handlers write the shared damage_redirect state, and the inherited combat consumer also accepts later saber-intercept, Spy hologram, and battlefield-vehicle writers for players.",
+      "Pinned Core3 has no Shield Master/bodyguard mapping, damage_redirect state, or directDamageToDifferentTarget consumer. Exact player-only buff admission and lifecycle cleanup, player and player-master handler guards, and cleanup before the single inherited player consumer now retire every player damage-redirection path while retaining all data and non-player encounter behavior."
     ]
   },
   "expected": {
-    "authoritativeSourceFiles": 12,
+    "authoritativeSourceFiles": 15,
     "archivedOverlayChangedSourceFiles": 6,
     "authoritativePlayersOnly": true,
     "retiredActionPrefix": "bm_",
@@ -69,6 +71,12 @@
     "directCallbacksGuarded": [
       "bm_paralytic_poison_recourse"
     ],
+    "retainedDamageRedirectEffectMappingRows": 3,
+    "retainedDamageRedirectBuffRows": 3,
+    "productionDamageRedirectHandlersGuarded": 4,
+    "productionDamageRedirectPlayerMasterGuards": 4,
+    "playerDamageRedirectConsumerReachable": false,
+    "nonPlayerDamageRedirectCompatibilityPreserved": true,
     "beastTemplatesOrDatatablesDeleted": false,
     "precuCreatureHandlerFilesChanged": false,
     "precuMechanicsPreserved": [
@@ -83,7 +91,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "45a4cec011213d2be488c3c5636f6fbd8f134326",
+    "directSourceGitlink": "c5a18d3550b49b4f5ebff6d098209876c81808be",
     "lineEndingPolicy": "The directly edited Java sources remain repository-declared LF; no generated overlay, host artifact, or staging tree was created.",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/380-p14-post-nge-beast-master-player-runtime-retirement.patch",
@@ -92,8 +100,8 @@
       "role": "authenticated archival origin only; current authority is the pinned direct-source branch"
     },
     "sourceSetSha256": "98053d1c6d65270fabd09a19042c39b3eed8642dd5c03286e1566145fc4b72ca",
-    "sourceContentSha256": "5dedd9ef782732d662525889a2075786ac463754ca021c03a5f63376ae5fa8f0",
-    "currentSourceEvidenceRefreshedBy": "The shared player and XP sources now also reject positive Chronicles XP at their admission boundaries while retaining the existing Beast Master retirement calls and PRE-CU combat XP continuity behavior.",
+    "sourceContentSha256": "8f84c2c13f56102d84817a15ca0b3e66d0ff4440464529445b89a4205e30af9d",
+    "currentSourceEvidenceRefreshedBy": "Current direct source additionally retires the exact three-mapping, three-buff Beast Master Shield Master/bodyguard protection family and clears all shared player damage_redirect state before the inherited consumer while preserving non-player compatibility.",
     "sourceSha256": {
       "ai/beast.java": "77949fda3b5deecf0dcbeffab998ba5fe84d7d4a6cded6b48a06a0b6fe50652d",
       "ai/beast_control_device.java": "527fb77039e8429b38fde80d301a9950ce70f84ffc62d046bc315757d6267438",
@@ -101,18 +109,21 @@
       "conversation/trainer_beast_master.java": "af9a2921c9baa8c42023d196ff80352c2977428ad1ba2220d40ede653228da41",
       "item/loot_schematic/loot_schematic.java": "505381f03c4a823bc1e67185966bab7cf48ca2189819d10affa70d4044f1d32d",
       "library/beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
+      "library/buff.java": "784b30e43b2e81f97f4584f21e205a504be21b583f80d9140576d618c37ef6d5",
+      "library/combat.java": "18401be6f86077e0e4fcf4f75e82b0dc21ce471c384a4739d285cdd598676817",
       "library/utils.java": "3cd2ad1f66c8f447bc78ca3e8fd015f003d8432861cde0862c7f488662a5f712",
       "player/base/base_player.java": "a11774de4d45b02678cfb3377d3176f3cbd7ff08f5e314f9ff27b60e3de3476e",
       "player/live_conversions.java": "d632d33735d943cf63906cfd7c4a5c976a4a04b02ee9039a1e802740288924cd",
       "player/player_beastmaster.java": "336fe4e2aca9db270e13647ea588d48e3a13f9e795039b93abe3e0618ce25ca5",
+      "systems/buff/buff_handler.java": "b967ecaa9a04a3f4433415db84a612a1d5806ad2a37545b7d853c744d8b38547",
       "systems/combat/combat_actions.java": "5a2128467f664f6b4c7fde11f2a9216ebd1e1666a2c9403ebdd4fef28a0b4ff7",
       "systems/combat/combat_base.java": "ebd7ca69892899e51b22590e679cd3a8ab89bcd4b27f6ad8e1441c4444723f00"
     },
-    "staticContract": "passed",
-    "focusedJavaCompile": "passed for the updated loot_schematic.java with Java 8 target against the live x64 class set in an ephemeral /dev/shm directory that was verified absent afterward; isolated class SHA-256 f6608a7750d0801cd96e0f47f2889a51a9ea88be40eb953af0d03e0d2d3fd598",
-    "fullJavaCompile": "passed; clean Java compile processed 5713 sources and emitted 5747 classes",
-    "fullServerBuild": "passed; canonical clean Docker x86-64 Release deployment completed in 785.2 seconds from pushed parent 924c98ee21c39a142cc44ea5bbb938d64b18db9f, direct dsrc ddfdc218f8d26e2bb85c59652a4109db62f6553a, and native source fda1dd030e08d09b12599f33d939ae30f5870cbe",
-    "architecture": "ELF 64-bit LSB shared object, x86-64",
+    "staticContract": "passed exact retained data inventory, player-only admission/lifecycle, four specialized handlers, four player-master guards, consumer cleanup ordering, and non-player compatibility",
+    "focusedJavaCompile": "passed Java 8 compatibility compile of buff.java, buff_handler.java, and combat.java with -implicit:none in exact ephemeral /dev/shm/precu-damage-redirect-compile-20260808; emitted 64,418-byte, 104,040-byte, and 88,670-byte classes with SHA-256 f34d02798250ad7e2bebd2a196098ef233cc29fd4d114b00da329158a737c8a5, 1ae26aa73665f44b5ed3c702373d2df111b72510982d8b641e96395ba1554439, and 3d1cbf525503353f6b066ef5add0835be56396818fa7e7d249b664370d6a11ab; path removed and absence verified",
+    "fullJavaCompile": "pending canonical zero-class dependency rebuild from pushed direct-source commit c5a18d3550b49b4f5ebff6d098209876c81808be",
+    "fullServerBuild": "pending canonical synchronized source/data/bytecode/native artifact verification and controlled live deployment",
+    "architecture": "pending canonical x64 verification; the current live baseline is ELF 64-bit LSB x86-64",
     "serverBinarySha256": "bde5477ba5871c9d5851a6c0599c4f6920d60c3d82fa13cdc70cf64837d62eb6",
     "serverBinaryBuildId": "a8e3ec2450abadf25e07b0f6e52e006f50b18b96",
     "compiledClassSha256": {
@@ -129,10 +140,10 @@
       "systems/combat/combat_actions.class": "94c7d5ad8012a1ab88c0f284bc52b30b254493055d68e5c6a08858662e8a5e00",
       "systems/combat/combat_base.class": "ef983a522d53de6dd9efc66dd36fa13099ceab63dc264d7a9d18a87609c4c53f"
     },
-    "sourceWorkParity": "passed byte-for-byte for all 12 authoritative Beast runtime sources, including loot_schematic.java SHA-256 505381f03c4a823bc1e67185966bab7cf48ca2189819d10affa70d4044f1d32d, between the read-only direct-source mount and Docker work volume",
-    "bytecodeAudit": "passed; emitted loot_schematic bytecode contains the player knowledge-item predicate, cleanup boundary, and Beast Master state retirement call while the existing Beast, CTS, combat-action, and PRE-CU Creature Handler protections remain present",
-    "deploymentProbe": "passed expanded Beast and familiar preflight contracts, exact production knowledge-item inventory, mandatory source/work parity and bytecode gates, x64 architecture, health/readiness, mapped-binary verification, and clean post-start log audit",
-    "result": "passed"
+    "sourceWorkParity": "pending exact source/work parity for buff.java, buff_handler.java, and combat.java from pushed direct-source commit c5a18d3550b49b4f5ebff6d098209876c81808be",
+    "bytecodeAudit": "pending deployed authentication of exact player-only damage-redirect predicates, cleanup, four specialized handlers, player-master guards, and cleanup before the inherited consumer",
+    "deploymentProbe": "pending canonical source/data/bytecode and x64 binary gates, controlled restart, readiness, stable TransferServer ownership, mapped-binary identity, topology, residue, and fresh-log probes",
+    "result": "pending"
   },
   "continuityEvidence": {
     "precuCreatureHandlerSourceSha256": {
@@ -178,9 +189,13 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "player Beast Master identity, active combat-beast lifecycle, combat XP and level progression, known-skill persistence including retroactive CTS merging, trainer grants, live-conversion script reattachment, Beast expertise arithmetic, additional expertise ability slots, and expertise-scaled retained-beast stats/display/regen; together with the existing cosmetic-familiar authority this closes the Beast and familiar progression audit",
+    "closedInThisMilestone": "player Beast Master identity, active combat-beast lifecycle, combat XP and level progression, known-skill persistence including retroactive CTS merging, trainer grants, live-conversion script reattachment, Beast expertise arithmetic, additional expertise ability slots, expertise-scaled retained-beast stats/display/regen, Shield Master/bodyguard buffs, and inherited player damage redirection; together with the existing cosmetic-familiar authority this closes the Beast and familiar progression audit",
     "preserved": "Publish 14.1 Creature Handler tame/control runtime plus retained NPC, unowned, and cosmetic display Beasts, familiar and Beast trainer conversations, assets, templates, compatibility rows, and authored Beast/incubation data",
     "notClaimedComplete": "post-Publish-14 player invisibility is closed by the mobile-stealth authority contract; other dormant later combat mechanics remain in the broader PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Pass the expanded Beast Master source contract and exact damage-redirection data/source gates.",
+    "Run the canonical x64 zero-class rebuild and authenticate deployed source/work parity plus bytecode.",
+    "Deploy the rebuilt server and refresh live readiness, topology, mapped-binary, residue, and log evidence."
+  ]
 }

@@ -1843,6 +1843,140 @@ Assert-Contract ($saberInterceptHandlerGuard -ge 0 -and
     [bool]$contract.expected.nonPlayerNgeSaberInterceptCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.saber-intercept-handler-player-fail-closed"
 
+$damageRedirectEffectNames = @("protect_master", "shield_master_pet", "shield_master_player")
+$damageRedirectBuffNames = @("bm_shield_master_pet", "bm_shield_master_player", "bodyguard")
+$damageRedirectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping | Where-Object {
+    $damageRedirectEffectNames -ccontains [string]$_.NAME
+})
+$damageRedirectMappingSignatures = @($damageRedirectMappings | ForEach-Object {
+    "$($_.NAME)|$($_.TYPE)|$($_.SUBTYPE)"
+} | Sort-Object)
+$expectedDamageRedirectMappingSignatures = @(
+    "protect_master|bodyguardDefender|protect_master",
+    "shield_master_pet|bodyguardDefender|shield_master_pet",
+    "shield_master_player|bodyguardMaster|shield_master_player"
+) | Sort-Object
+$damageRedirectBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $damageRedirectBuffNames -ccontains [string]$_.NAME
+})
+$damageRedirectBuffSignatures = @($damageRedirectBuffRows | ForEach-Object {
+    "$($_.NAME)|$($_.DURATION)|$($_.EFFECT1_PARAM)"
+} | Sort-Object)
+$expectedDamageRedirectBuffSignatures = @(
+    "bm_shield_master_pet|12|shield_master_pet",
+    "bm_shield_master_player|12|shield_master_player",
+    "bodyguard|-1|protect_master"
+) | Sort-Object
+Assert-Contract ($damageRedirectMappings.Count -eq
+        [int]$contract.expected.retainedNgeDamageRedirectEffectMappingRows -and
+    (($damageRedirectMappingSignatures -join ',') -ceq
+        ($expectedDamageRedirectMappingSignatures -join ',')) -and
+    $damageRedirectBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeDamageRedirectBuffRows -and
+    (($damageRedirectBuffSignatures -join ',') -ceq
+        ($expectedDamageRedirectBuffSignatures -join ','))) `
+    "p14.combat-expertise-isolation.buff.damage-redirect-data-inventory-authenticated"
+
+$damageRedirectBuffNamePredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageRedirectBuffName(String buffName)"
+$damageRedirectEffectPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageRedirectEffect(String effectName)"
+$damageRedirectBuffPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageRedirectBuff(obj_id target, buff_data data)"
+$damageRedirectClear = Get-BracedBlock $buffLibrary `
+    "public static void clearPostNgePlayerDamageRedirectState(obj_id player)"
+$damageRedirectCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgePlayerDamageRedirectState(obj_id player)"
+$damageRedirectProgressionCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeBuffProgression(obj_id player)"
+$damageRedirectCanApplyBuff = Get-BracedBlock $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$damageRedirectAdmissionGate = $damageRedirectCanApplyBuff.IndexOf(
+    "isRetiredPostNgePlayerDamageRedirectBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$damageRedirectExistingBuffReturn = $damageRedirectCanApplyBuff.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract (([regex]::Matches($buffLibrary,
+        '"bm_shield_master_pet"|"bm_shield_master_player"|"bodyguard"')).Count -eq 3 -and
+    ([regex]::Matches($buffLibrary,
+        '"protect_master"|"shield_master_pet"|"shield_master_player"')).Count -eq 3 -and
+    $damageRedirectBuffPredicate.Contains("!isPlayer(target)") -and
+    $damageRedirectBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $damageRedirectClear.Contains("utils.removeScriptVar(player, combat.DAMAGE_REDIRECT);") -and
+    $damageRedirectCleanup.Contains("getAllBuffs(player)") -and
+    $damageRedirectCleanup.Contains("combat_engine.getBuffData(activeBuff)") -and
+    $damageRedirectCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $damageRedirectCleanup.Contains("clearPostNgePlayerDamageRedirectState(player);") -and
+    $damageRedirectProgressionCleanup.Contains(
+        "retirePostNgePlayerDamageRedirectState(player);") -and
+    $damageRedirectAdmissionGate -ge 0 -and
+    $damageRedirectExistingBuffReturn -gt $damageRedirectAdmissionGate -and
+    -not [bool]$contract.expected.playerNgeDamageRedirectBuffAdmissionReachable -and
+    [bool]$contract.expected.persistedPlayerNgeDamageRedirectStateRemoved) `
+    "p14.combat-expertise-isolation.buff.damage-redirect-admission-and-persistence-fail-closed"
+
+$bodyguardDefenderAdd = Get-BracedBlock $buffHandler `
+    "public int bodyguardDefenderAddBuffHandler("
+$bodyguardDefenderRemove = Get-BracedBlock $buffHandler `
+    "public int bodyguardDefenderRemoveBuffHandler("
+$bodyguardMasterAdd = Get-BracedBlock $buffHandler `
+    "public int bodyguardMasterAddBuffHandler("
+$bodyguardMasterRemove = Get-BracedBlock $buffHandler `
+    "public int bodyguardMasterRemoveBuffHandler("
+$damageRedirectHandlers = @(
+    $bodyguardDefenderAdd,
+    $bodyguardDefenderRemove,
+    $bodyguardMasterAdd,
+    $bodyguardMasterRemove
+)
+$damageRedirectGuardedHandlers = @($damageRedirectHandlers | Where-Object {
+    $_.Contains("isRetiredPostNgePlayerDamageRedirectEffect(effectName)") -and
+    $_.Contains("isRetiredPostNgePlayerDamageRedirectBuffName(buffName)") -and
+    $_.Contains("return SCRIPT_OVERRIDE;")
+})
+$damageRedirectPlayerMasterGuards =
+    ([regex]::Matches($bodyguardDefenderAdd + $bodyguardDefenderRemove,
+        'if \(isPlayer\(master\)\)')).Count
+$damageRedirectDefenderReturn = $bodyguardDefenderAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+$damageRedirectDefenderWriter = $bodyguardDefenderAdd.IndexOf(
+    "utils.setScriptVar(master, combat.DAMAGE_REDIRECT, self);",
+    [StringComparison]::Ordinal)
+Assert-Contract ($damageRedirectGuardedHandlers.Count -eq
+        [int]$contract.expected.productionDamageRedirectHandlersGuarded -and
+    $damageRedirectPlayerMasterGuards -eq
+        [int]$contract.expected.productionDamageRedirectPlayerMasterGuards -and
+    $damageRedirectDefenderReturn -ge 0 -and
+    $damageRedirectDefenderWriter -gt $damageRedirectDefenderReturn -and
+    $bodyguardDefenderAdd.Contains('buff.applyBuff(master, self, "bodyguard");') -and
+    $bodyguardDefenderRemove.Contains('buff.removeBuff(master, "bodyguard");') -and
+    [bool]$contract.expected.nonPlayerNgeDamageRedirectCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.buff.damage-redirect-handlers-player-fail-closed"
+
+$damageRedirectConsumer = Get-BracedBlock $combatLibrary `
+    "public static obj_id directDamageToDifferentTarget(obj_id attacker, obj_id defender)"
+$damageRedirectConsumerGuard = $damageRedirectConsumer.IndexOf(
+    "if (isPlayer(defender))", [StringComparison]::Ordinal)
+$damageRedirectConsumerCleanup = $damageRedirectConsumer.IndexOf(
+    "buff.retirePostNgePlayerDamageRedirectState(defender);",
+    [StringComparison]::Ordinal)
+$damageRedirectConsumerReturn = $damageRedirectConsumer.IndexOf(
+    "return defender;", $damageRedirectConsumerCleanup,
+    [StringComparison]::Ordinal)
+$damageRedirectBeastBranch = $damageRedirectConsumer.IndexOf(
+    'if (buff.hasBuff(defender, "bm_shield_master_player"))',
+    [StringComparison]::Ordinal)
+$damageRedirectScriptVarBranch = $damageRedirectConsumer.IndexOf(
+    "if (utils.hasScriptVar(defender, DAMAGE_REDIRECT))",
+    [StringComparison]::Ordinal)
+Assert-Contract ($damageRedirectConsumerGuard -ge 0 -and
+    $damageRedirectConsumerCleanup -gt $damageRedirectConsumerGuard -and
+    $damageRedirectConsumerReturn -gt $damageRedirectConsumerCleanup -and
+    $damageRedirectBeastBranch -gt $damageRedirectConsumerReturn -and
+    $damageRedirectScriptVarBranch -gt $damageRedirectBeastBranch -and
+    -not [bool]$contract.expected.playerNgeDamageRedirectConsumerReachable) `
+    "p14.combat-expertise-isolation.damage.damage-redirect-player-consumer-fail-closed"
+
 $forceThrowCommandRows = @(Import-SwgTab -Path $paths.commandTable |
     Where-Object { [string]$_.commandName -ceq "forceThrow" })
 $forceThrowCombatRows = @(Import-SwgTab -Path $paths.combatData |

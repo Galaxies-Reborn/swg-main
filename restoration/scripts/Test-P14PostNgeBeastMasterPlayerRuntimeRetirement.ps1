@@ -61,10 +61,13 @@ $relativeSourceMap = [ordered]@{
     "conversation/trainer_beast_master.java" = "conversation/trainer_beast_master.java"
     "item/loot_schematic/loot_schematic.java" = "item/loot_schematic/loot_schematic.java"
     "library/beast_lib.java" = "library/beast_lib.java"
+    "library/buff.java" = "library/buff.java"
+    "library/combat.java" = "library/combat.java"
     "library/utils.java" = "library/utils.java"
     "player/base/base_player.java" = "player/base/base_player.java"
     "player/live_conversions.java" = "player/live_conversions.java"
     "player/player_beastmaster.java" = "player/player_beastmaster.java"
+    "systems/buff/buff_handler.java" = "systems/buff/buff_handler.java"
     "systems/combat/combat_actions.java" = "systems/combat/combat_actions.java"
     "systems/combat/combat_base.java" = "systems/combat/combat_base.java"
 }
@@ -130,6 +133,115 @@ foreach ($entry in $relativeSourceMap.GetEnumerator())
 Assert-Contract (
     (Get-TextSha256 $contentRecords) -ceq [string]$contract.buildEvidence.sourceContentSha256
 ) "p14.beast-retirement.source-content.authenticated"
+
+$damageRedirectEffects = @("protect_master", "shield_master_pet", "shield_master_player")
+$damageRedirectBuffNames = @("bm_shield_master_pet", "bm_shield_master_player", "bodyguard")
+$damageRedirectMappings = @(Import-Csv -Delimiter "`t" -LiteralPath `
+    (Join-Path $sharedRoot "buff/effect_mapping.tab") | Where-Object {
+        $damageRedirectEffects -ccontains [string]$_.NAME
+    })
+$damageRedirectBuffRows = @(Import-Csv -Delimiter "`t" -LiteralPath `
+    (Join-Path $sharedRoot "buff/buff.tab") | Where-Object {
+        $damageRedirectBuffNames -ccontains [string]$_.NAME
+    })
+$damageRedirectMappingSignatures = @($damageRedirectMappings | ForEach-Object {
+    "$($_.NAME)|$($_.TYPE)|$($_.SUBTYPE)"
+} | Sort-Object)
+$expectedDamageRedirectMappingSignatures = @(
+    "protect_master|bodyguardDefender|protect_master",
+    "shield_master_pet|bodyguardDefender|shield_master_pet",
+    "shield_master_player|bodyguardMaster|shield_master_player"
+)
+Assert-Contract (
+    $damageRedirectMappings.Count -eq [int]$contract.expected.retainedDamageRedirectEffectMappingRows -and
+    (($damageRedirectMappingSignatures -join $lf) -ceq
+        (($expectedDamageRedirectMappingSignatures | Sort-Object) -join $lf)) -and
+    $damageRedirectBuffRows.Count -eq [int]$contract.expected.retainedDamageRedirectBuffRows -and
+    (($damageRedirectBuffRows.NAME | Sort-Object) -join $lf) -ceq
+        (($damageRedirectBuffNames | Sort-Object) -join $lf) -and
+    @($damageRedirectBuffRows | Where-Object {
+        $damageRedirectEffects -ccontains [string]$_.EFFECT1_PARAM
+    }).Count -eq 3
+) "p14.beast-retirement.damage-redirect.data-authenticated"
+
+$buffLibrary = [string]$sourceTexts["library/buff.java"]
+$combatLibrary = [string]$sourceTexts["library/combat.java"]
+$buffHandler = [string]$sourceTexts["systems/buff/buff_handler.java"]
+$damageRedirectBuffPredicate = Get-SourceSlice $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerDamageRedirectBuff(" `
+    "public static void clearPostNgePlayerDamageRedirectState("
+$damageRedirectClear = Get-SourceSlice $buffLibrary `
+    "public static void clearPostNgePlayerDamageRedirectState(" `
+    "public static void retirePostNgePlayerDamageRedirectState("
+$damageRedirectCleanup = Get-SourceSlice $buffLibrary `
+    "public static void retirePostNgePlayerDamageRedirectState(" `
+    "private static final String RETIRED_POST_NGE_PLAYER_PISTOL_WHIP_CONTROL_EFFECT"
+$damageRedirectProgressionCleanup = Get-SourceSlice $buffLibrary `
+    "public static void retirePostNgeBuffProgression(" `
+    "public static void retirePostNgeMeditationBuffs("
+$damageRedirectAdmission = Get-SourceSlice $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)" `
+    "public static int[] getGroups("
+Assert-Contract (
+    ([regex]::Matches($buffLibrary, '"bm_shield_master_pet"|"bm_shield_master_player"|"bodyguard"')).Count -eq 3 -and
+    ([regex]::Matches($buffLibrary, '"protect_master"|"shield_master_pet"|"shield_master_player"')).Count -eq 3 -and
+    $damageRedirectBuffPredicate.Contains("!isPlayer(target)") -and
+    $damageRedirectBuffPredicate.Contains("effect <= MAX_EFFECTS") -and
+    $damageRedirectClear.Contains("utils.removeScriptVar(player, combat.DAMAGE_REDIRECT);") -and
+    $damageRedirectCleanup.Contains("getAllBuffs(player)") -and
+    $damageRedirectCleanup.Contains("removeBuff(player, activeBuff)") -and
+    $damageRedirectProgressionCleanup.Contains("retirePostNgePlayerDamageRedirectState(player);") -and
+    (Is-Before $damageRedirectAdmission `
+        "isRetiredPostNgePlayerDamageRedirectBuff(target, bdata)" `
+        "hasBuff(target, nameCrc)")
+) "p14.beast-retirement.damage-redirect.admission-and-lifecycle-fail-closed"
+
+$bodyguardDefenderAdd = Get-SourceSlice $buffHandler `
+    "public int bodyguardDefenderAddBuffHandler(" `
+    "public int bodyguardDefenderRemoveBuffHandler("
+$bodyguardDefenderRemove = Get-SourceSlice $buffHandler `
+    "public int bodyguardDefenderRemoveBuffHandler(" `
+    "public int cooldownModifyAddBuffHandler("
+$bodyguardMasterAdd = Get-SourceSlice $buffHandler `
+    "public int bodyguardMasterAddBuffHandler(" `
+    "public int bodyguardMasterRemoveBuffHandler("
+$bodyguardMasterRemove = Get-SourceSlice $buffHandler `
+    "public int bodyguardMasterRemoveBuffHandler(" `
+    "public int onNextAttackAddBuffHandler("
+$damageRedirectHandlers = @(
+    $bodyguardDefenderAdd,
+    $bodyguardDefenderRemove,
+    $bodyguardMasterAdd,
+    $bodyguardMasterRemove
+)
+Assert-Contract (
+    @($damageRedirectHandlers | Where-Object {
+        $_.Contains("isRetiredPostNgePlayerDamageRedirectEffect(effectName)") -and
+        $_.Contains("isRetiredPostNgePlayerDamageRedirectBuffName(buffName)") -and
+        $_.Contains("return SCRIPT_OVERRIDE;")
+    }).Count -eq [int]$contract.expected.productionDamageRedirectHandlersGuarded -and
+    ([regex]::Matches($bodyguardDefenderAdd + $bodyguardDefenderRemove,
+        'if \(isPlayer\(master\)\)')).Count -eq
+        [int]$contract.expected.productionDamageRedirectPlayerMasterGuards -and
+    (Is-Before $bodyguardDefenderAdd "return SCRIPT_OVERRIDE;" `
+        "utils.setScriptVar(master, combat.DAMAGE_REDIRECT, self);") -and
+    $bodyguardDefenderAdd.Contains('buff.applyBuff(master, self, "bodyguard");') -and
+    $bodyguardDefenderRemove.Contains('buff.removeBuff(master, "bodyguard");')
+) "p14.beast-retirement.damage-redirect.handlers-player-fail-closed"
+
+$damageRedirectConsumer = Get-SourceSlice $combatLibrary `
+    "public static obj_id directDamageToDifferentTarget(" `
+    "public static float getMissChance("
+Assert-Contract (
+    (Is-Before $damageRedirectConsumer "if (isPlayer(defender))" `
+        'if (buff.hasBuff(defender, "bm_shield_master_player"))') -and
+    (Is-Before $damageRedirectConsumer `
+        "buff.retirePostNgePlayerDamageRedirectState(defender);" `
+        "return defender;") -and
+    $damageRedirectConsumer.Contains("utils.hasScriptVar(defender, DAMAGE_REDIRECT)") -and
+    -not [bool]$contract.expected.playerDamageRedirectConsumerReachable -and
+    [bool]$contract.expected.nonPlayerDamageRedirectCompatibilityPreserved
+) "p14.beast-retirement.damage-redirect.consumer-player-fail-closed"
 
 $beastLibrary = [string]$sourceTexts["library/beast_lib.java"]
 $retirementPredicate = Get-SourceSlice $beastLibrary `
