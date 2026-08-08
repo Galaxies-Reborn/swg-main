@@ -420,6 +420,75 @@ Assert-Contract ($luckyBreakBuffRows.Count -eq
     [bool]$contract.expected.nonPlayerNgeSmugglerLuckyBreakAlwaysCompatibilityPreserved) `
     "p14.combat-expertise-isolation.smuggler-lucky-break-always-state-fails-closed"
 
+$prefixlessSetBonusModifiers = @(
+    "flurry_cooldown_modifier",
+    "of_inspired_action_chance"
+)
+$prefixlessSetBonusMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        $prefixlessSetBonusModifiers -ccontains [string]$_.NAME -and
+        [string]$_.TYPE -ceq "skill" -and
+        [string]$_.SUBTYPE -ceq [string]$_.NAME
+    })
+$jediFlurrySetRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
+    $row = $_
+    [string]$row.NAME -cmatch '^set_bonus_jedi_dps_[123]$' -and
+        @(1..5 | Where-Object {
+            [string]$row.("EFFECT$($_)_PARAM") -ceq "flurry_cooldown_modifier"
+        }).Count -eq 1
+})
+$officerInspiredActionSetRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        $row = $_
+        [string]$row.NAME -ceq "set_bonus_officer_utility_b_3" -and
+            @(1..5 | Where-Object {
+                [string]$row.("EFFECT$($_)_PARAM") -ceq "of_inspired_action_chance"
+            }).Count -eq 1
+    })
+$officerInspiredActionListingRows = @(Import-SwgTab -Path $paths.skillModListing |
+    Where-Object {
+        [string]$_.skill_mod -ceq "of_inspired_action_chance" -and
+        [string]$_.profession -ceq "officer_1a" -and
+        [string]$_.category -ceq "officer" -and
+        [string]$_.display -ceq "1"
+    })
+$inspiredActionConsumer = Get-BracedBlock $combatActions `
+    "public void doInspiredAction(obj_id officer)"
+$inspiredActionPlayerGuard = $inspiredActionConsumer.IndexOf(
+    "if (isPlayer(officer))", [StringComparison]::Ordinal)
+$inspiredActionCleanup = $inspiredActionConsumer.IndexOf(
+    "static_item.removeRetiredNgePlayerSkillStatistics(officer);",
+    [StringComparison]::Ordinal)
+$inspiredActionReader = $inspiredActionConsumer.IndexOf(
+    'getEnhancedSkillStatisticModifierUncapped(officer, "of_inspired_action_chance")',
+    [StringComparison]::Ordinal)
+Assert-Contract ($prefixlessSetBonusMappings.Count -eq
+        [int]$contract.expected.retainedNgePrefixlessSetBonusEffectMappingRows -and
+    $jediFlurrySetRows.Count -eq
+        [int]$contract.expected.retainedNgeJediFlurryCooldownSetBuffRows -and
+    @($jediFlurrySetRows | Select-Object -ExpandProperty NAME -Unique).Count -eq
+        [int]$contract.expected.retainedNgeJediFlurryCooldownSetBuffRows -and
+    $officerInspiredActionSetRows.Count -eq
+        [int]$contract.expected.retainedNgeOfficerInspiredActionSetBuffRows -and
+    $officerInspiredActionListingRows.Count -eq
+        [int]$contract.expected.retainedNgeOfficerInspiredActionSkillListingRows -and
+    @($prefixlessSetBonusModifiers | Where-Object {
+        $retiredBuffCombatModifierInventory.Contains('"' + $_ + '"')
+    }).Count -eq [int]$contract.expected.retiredNgePrefixlessSetBonusModifiers -and
+    $playerModifierCleanup.Contains("getSkillStatModListingForPlayer(player)") -and
+    $playerModifierCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $playerModifierCleanup.Contains(
+        "applySkillStatisticModifier(player, modifier, -currentValue)") -and
+    -not [bool]$contract.expected.playerNgePrefixlessSetBonusModifierWritesReachable -and
+    [bool]$contract.expected.stalePlayerNgePrefixlessSetBonusModifiersRemoved -and
+    [int]$contract.expected.productionOfficerInspiredActionConsumersGuarded -eq 1 -and
+    $inspiredActionPlayerGuard -ge 0 -and
+    $inspiredActionCleanup -gt $inspiredActionPlayerGuard -and
+    $inspiredActionReader -gt $inspiredActionCleanup -and
+    -not [bool]$contract.expected.playerNgeOfficerInspiredActionConsumerReachable -and
+    [bool]$contract.expected.nonPlayerNgePrefixlessSetBonusCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.prefixless-set-bonus-state-fails-closed"
+
 $actionDrainEffectMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object { [string]$_.TYPE -ceq "actionDrain" })
 $actionDrainBuffRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
