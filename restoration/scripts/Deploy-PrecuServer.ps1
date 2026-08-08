@@ -5020,7 +5020,9 @@ test "$(printf '%s' "$spy_shifty_handler_bytecode" | grep -Fc 'isRetiredPostNgeP
 test "$(printf '%s' "$spy_shifty_handler_bytecode" | grep -Fc 'clearPostNgePlayerOnAttackRemoveState')" -eq 2
 printf '%s' "$spy_shifty_handler_bytecode" | grep -Fq 'java/util/Vector'
 spy_shifty_combat_cleanup_line="$(printf '%s\n' "$combat_base_actions_bytecode" | grep -Fn 'clearPostNgePlayerOnAttackRemoveState' | head -1 | cut -d: -f1)"
-spy_shifty_combat_consumer_line="$(printf '%s\n' "$combat_base_actions_bytecode" | grep -Fn 'ON_ATTACK_REMOVE' | head -1 | cut -d: -f1)"
+spy_shifty_combat_consumer_line="$(printf '%s\n' "$combat_base_actions_bytecode" | grep -Fn 'onAttackRemoveBuffList' | head -1 | cut -d: -f1)"
+test -n "$spy_shifty_combat_cleanup_line"
+test -n "$spy_shifty_combat_consumer_line"
 test "$spy_shifty_combat_cleanup_line" -lt "$spy_shifty_combat_consumer_line"
 buff_luck_hit_effect_predicate_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/isRetiredPostNgePlayerLuckHitOverrideEffect(java.lang.String)/,/isRetiredPostNgePlayerLuckHitOverrideBuff/p')"
 printf '%s' "$buff_luck_hit_effect_predicate_bytecode" | grep -Fq 'RETIRED_POST_NGE_PLAYER_LUCK_HIT_OVERRIDE_EFFECTS'
