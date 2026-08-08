@@ -5104,6 +5104,149 @@ Assert-Contract ($forceSensitiveStanceRows.Count -eq
     }).Count -eq 1) `
     "p14.combat-expertise-isolation.force-sensitive-stances.compatibility-and-precu-center-boundary"
 
+$forceSensitiveChokeFlurryInventory = Get-BracedBlock $buffLibrary `
+    "private static final String[] RETIRED_POST_NGE_FORCE_SENSITIVE_CHOKE_FLURRY_BUFFS"
+$forceSensitiveChokeFlurryPredicate = Get-BracedBlock $buffLibrary `
+    "public static boolean isRetiredPostNgeForceSensitiveChokeFlurryBuff(String buffName)"
+$forceSensitiveChokeFlurryCleanup = Get-BracedBlock $buffLibrary `
+    "public static void retirePostNgeForceSensitiveChokeFlurryState(obj_id player)"
+$retiredForceSensitiveChokeFlurryNames = @([regex]::Matches(
+        $forceSensitiveChokeFlurryInventory, '"([^"]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$expectedForceSensitiveChokeFlurryNames = @(
+    "attack_override_fs_dm_1|fs_flurry_1",
+    "attack_override_fs_dm_2|fs_flurry_2",
+    "attack_override_fs_dm_3|fs_flurry_3",
+    "attack_override_fs_dm_4|fs_flurry_4",
+    "attack_override_fs_dm_5|fs_flurry_5",
+    "attack_override_fs_dm_6|fs_flurry_6",
+    "attack_override_fs_dm_7|fs_flurry_7",
+    "fs_choke_handler",
+    "fs_imp_choke_1",
+    "fs_imp_choke_2",
+    "jedi_reflect_flurry_proc_remove"
+) | Sort-Object
+$forceSensitiveChokeFlurryRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        $retiredForceSensitiveChokeFlurryNames -ccontains [string]$_.NAME
+    })
+$forceSensitiveChokeFlurryMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        @("fs_choke_handler", "fs_flurry_proc") -ccontains [string]$_.NAME
+    })
+$forceSensitiveChokeFlurryMappingSignatures = @(
+    $forceSensitiveChokeFlurryMappings | ForEach-Object {
+        "{0}|{1}|{2}" -f $_.NAME, $_.TYPE, $_.SUBTYPE
+    } | Sort-Object)
+$expectedForceSensitiveChokeFlurryMappingSignatures = @(
+    "fs_choke_handler|fs_choke_handler|fs_choke_handler",
+    "fs_choke_handler|fs_choke_handler|fs_choke_handler",
+    "fs_flurry_proc|fs_flurry_proc|fs_flurry_proc",
+    "fs_flurry_proc|fs_flurry_proc|fs_flurry_proc"
+) | Sort-Object
+$forceSensitiveChokeFlurryCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object {
+        [string]$_.actionName -cmatch '^fs_(?:dm_cc_[1-6]|flurry_[1-7])$'
+    })
+$precuForceChokeFlurrySkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        $commands = ([string]$_.COMMANDS).Trim('"') -split ','
+        $commands -ccontains "forceChoke" -or
+            $commands -ccontains "flurryShot1" -or
+            $commands -ccontains "flurryShot2"
+    })
+$expectedPrecuForceChokeFlurrySkillNames = @(
+    "combat_rifleman_support_01",
+    "combat_rifleman_support_03",
+    "force_discipline_powers_master",
+    "jedi_dark_side_master_master",
+    "jedi_light_side_master_master"
+) | Sort-Object
+$forceSensitiveChokeAddHandler = Get-BracedBlock $buffHandler `
+    "public int fs_choke_handlerAddBuffHandler("
+$forceSensitiveChokeRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int fs_choke_handlerRemoveBuffHandler("
+$forceSensitiveFlurryAddHandler = Get-BracedBlock $buffHandler `
+    "public int fs_flurry_procAddBuffHandler("
+$forceSensitiveFlurryRemoveHandler = Get-BracedBlock $buffHandler `
+    "public int fs_flurry_procRemoveBuffHandler("
+$forceSensitiveChokeGenericGate = $forceSensitiveCanApplyBuff.IndexOf(
+    "isRetiredPostNgeForceSensitiveChokeFlurryBuff(bdata.buffName)",
+    [StringComparison]::Ordinal)
+$forceSensitiveChokeAddGuard = $forceSensitiveChokeAddHandler.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$forceSensitiveChokeAddCleanup = $forceSensitiveChokeAddHandler.IndexOf(
+    "buff.retirePostNgeForceSensitiveChokeFlurryState(self);",
+    [StringComparison]::Ordinal)
+$forceSensitiveChokeAddRead = $forceSensitiveChokeAddHandler.IndexOf(
+    'getEnhancedSkillStatisticModifierUncapped(owner, "expertise_fs_imp_choke")',
+    [StringComparison]::Ordinal)
+$forceSensitiveChokeAddReturn = $forceSensitiveChokeAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", $forceSensitiveChokeAddCleanup,
+    [StringComparison]::Ordinal)
+$forceSensitiveFlurryAddGuard = $forceSensitiveFlurryAddHandler.IndexOf(
+    "if (isPlayer(self))", [StringComparison]::Ordinal)
+$forceSensitiveFlurryAddCleanup = $forceSensitiveFlurryAddHandler.IndexOf(
+    "buff.retirePostNgeForceSensitiveChokeFlurryState(self);",
+    [StringComparison]::Ordinal)
+$forceSensitiveFlurryAddWriter = $forceSensitiveFlurryAddHandler.IndexOf(
+    'buff.applyBuff(self, self, "attack_override_fs_dm_1|fs_flurry_1")',
+    [StringComparison]::Ordinal)
+$forceSensitiveFlurryAddReturn = $forceSensitiveFlurryAddHandler.IndexOf(
+    "return SCRIPT_OVERRIDE;", $forceSensitiveFlurryAddCleanup,
+    [StringComparison]::Ordinal)
+Assert-Contract ($retiredForceSensitiveChokeFlurryNames.Count -eq
+        [int]$contract.expected.retiredNgeForceSensitiveChokeFlurryStateBuffs -and
+    (@($retiredForceSensitiveChokeFlurryNames | Sort-Object) -join "`n") -ceq
+        ($expectedForceSensitiveChokeFlurryNames -join "`n") -and
+    @($retiredForceSensitiveChokeFlurryNames | Select-Object -Unique).Count -eq
+        $retiredForceSensitiveChokeFlurryNames.Count -and
+    $forceSensitiveChokeFlurryRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveChokeFlurryCompatibilityRows -and
+    (@($forceSensitiveChokeFlurryRows | Select-Object -ExpandProperty NAME | Sort-Object) -join "`n") -ceq
+        ($expectedForceSensitiveChokeFlurryNames -join "`n") -and
+    $forceSensitiveChokeFlurryMappings.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveChokeFlurryEffectMappingRows -and
+    ($forceSensitiveChokeFlurryMappingSignatures -join "`n") -ceq
+        ($expectedForceSensitiveChokeFlurryMappingSignatures -join "`n") -and
+    $forceSensitiveChokeFlurryCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeForceSensitiveChokeFlurryCombatRows -and
+    $precuForceChokeFlurrySkillRows.Count -eq
+        [int]$contract.expected.precuForceChokeFlurrySkillRows -and
+    (@($precuForceChokeFlurrySkillRows | Select-Object -ExpandProperty NAME | Sort-Object) -join "`n") -ceq
+        ($expectedPrecuForceChokeFlurrySkillNames -join "`n") -and
+    [bool]$contract.expected.precuForceChokeAndRiflemanFlurryPreserved) `
+    "p14.combat-expertise-isolation.force-sensitive-choke-flurry.data-and-precu-boundary-authenticated"
+Assert-Contract ($forceSensitiveChokeFlurryPredicate.Contains(
+        "for (String retiredBuff : RETIRED_POST_NGE_FORCE_SENSITIVE_CHOKE_FLURRY_BUFFS)") -and
+    $forceSensitiveChokeFlurryCleanup.Contains("!isPlayer(player)") -and
+    $forceSensitiveChokeFlurryCleanup.Contains("removeBuff(player, retiredBuff);") -and
+    $forceSensitiveStanceCleanup.Contains(
+        "retirePostNgeForceSensitiveChokeFlurryState(player);") -and
+    $forceSensitiveChokeGenericGate -ge 0 -and
+    $forceSensitiveExistingBuffReturn -gt $forceSensitiveChokeGenericGate -and
+    $forceSensitiveChokeAddGuard -ge 0 -and
+    $forceSensitiveChokeAddCleanup -gt $forceSensitiveChokeAddGuard -and
+    $forceSensitiveChokeAddReturn -gt $forceSensitiveChokeAddCleanup -and
+    $forceSensitiveChokeAddRead -gt $forceSensitiveChokeAddReturn -and
+    $forceSensitiveFlurryAddGuard -ge 0 -and
+    $forceSensitiveFlurryAddCleanup -gt $forceSensitiveFlurryAddGuard -and
+    $forceSensitiveFlurryAddReturn -gt $forceSensitiveFlurryAddCleanup -and
+    $forceSensitiveFlurryAddWriter -gt $forceSensitiveFlurryAddReturn -and
+    $forceSensitiveChokeRemoveHandler.TrimEnd().EndsWith("}") -and
+    -not $forceSensitiveChokeRemoveHandler.Contains(
+        "retirePostNgeForceSensitiveChokeFlurryState") -and
+    $forceSensitiveFlurryRemoveHandler.Contains("buff.removeBuffs(self, buffList);") -and
+    [int]$contract.expected.productionForceSensitiveChokeFlurryAddHandlersGuarded -eq 2 -and
+    -not [bool]$contract.expected.playerNgeForceSensitiveChokeFlurryBuffAdmissionReachable -and
+    -not [bool]$contract.expected.playerNgeForceSensitiveChokeFlurryDirectWriterReachable -and
+    [bool]$contract.expected.persistedPlayerNgeForceSensitiveChokeFlurryStateRemoved -and
+    [bool]$contract.expected.nonPlayerNgeForceSensitiveChokeFlurryCompatibilityPreserved -and
+    $forceSensitivePlayerAction.Contains('actionName.startsWith("fs_")') -and
+    $standardCombatAction.Contains(
+        "isRetiredPostNgeForceSensitivePlayerAction(self, actionName)")) `
+    "p14.combat-expertise-isolation.force-sensitive-choke-flurry.player-writers-fail-closed"
+
 $bountyHunterShieldPredicate = Get-BracedBlock $buffLibrary `
     "public static boolean isRetiredPostNgeBountyHunterShieldBuff(String buffName)"
 $bountyHunterShieldCleanup = Get-BracedBlock $buffLibrary `
