@@ -296,16 +296,24 @@ $officerPredicate = Get-FunctionSlice $combatBase `
     "public boolean combatStandardAction"
 Assert-Contract ($officerPredicate.Contains("isPlayer(self)") -and
     $officerPredicate.Contains('actionName.startsWith("of_")') -and
+    $officerPredicate.Contains('actionName.equals("paintTarget")') -and
+    $officerPredicate.Contains('actionName.startsWith("paintTarget_")') -and
+    $officerPredicate.Contains('actionName.equals("applyVortexSnare")') -and
     $combatBase.Contains("if (isRetiredPostNgeOfficerPlayerAction(self, actionName))")) `
     "p14.profession-closure.officer-runtime.central-player-action-gate"
 
 $combatActions = [string]$officerTexts["systems/combat/combat_actions.java"]
 $officerHandlers = @([regex]::Matches(
     $combatActions,
-    '(?ms)^\s*public int (of_[A-Za-z0-9_]+)\(.*?(?=^\s*public int |\z)'))
+    '(?ms)^\s*public int (of_[A-Za-z0-9_]+|paintTarget|applyVortexSnare)\(.*?(?=^\s*public (?:int|float) |\z)'))
 $standardOfficerHandlers = @($officerHandlers | Where-Object { $_.Value.Contains("combatStandardAction(") })
 $directOfficerHandlers = @($officerHandlers | Where-Object { -not $_.Value.Contains("combatStandardAction(") })
-$expectedDirectOfficerHandlers = @("of_last_words_recourse", "of_rally_point_def", "of_rally_point_off")
+$expectedDirectOfficerHandlers = @(
+    "applyVortexSnare",
+    "of_last_words_recourse",
+    "of_rally_point_def",
+    "of_rally_point_off"
+)
 $actualDirectOfficerHandlers = @($directOfficerHandlers | ForEach-Object { $_.Groups[1].Value } | Sort-Object)
 $directOfficerHandlersGuarded = @($directOfficerHandlers | Where-Object {
     $_.Value.Contains("isRetiredPostNgeOfficerPlayerAction(")

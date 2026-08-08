@@ -3023,7 +3023,7 @@ for post_nge_officer_runtime_path in $post_nge_officer_runtime_paths; do
 done
 grep -Fq 'actionName.startsWith("of_")' "$work_script/systems/combat/combat_base.java"
 grep -Fq 'isRetiredPostNgeOfficerPlayerAction(self, actionName)' "$work_script/systems/combat/combat_base.java"
-test "$(grep -Fc 'isRetiredPostNgeOfficerPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 3
+test "$(grep -Fc 'isRetiredPostNgeOfficerPlayerAction(self, "' "$work_script/systems/combat/combat_actions.java")" -eq 4
 ! grep -Fq 'expertise_of_reinforcements_1' "$work_script/ai/officer_pet.java"
 grep -Fq 'pet_lib.destroyOfficerPets(master)' "$work_script/ai/officer_pet.java"
 test "$(grep -Fc 'retirePostNgeOfficerSupplyDrop(self, owner)' "$work_script/systems/combat/combat_supply_drop_controller.java")" -eq 3
