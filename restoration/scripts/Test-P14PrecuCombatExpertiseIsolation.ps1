@@ -2757,6 +2757,29 @@ $retiredProfessionMovementNames = @($retiredProfessionMovementRows |
 $preservedMovementRows = @($allMovementBuffRows | Where-Object {
     -not (Test-RetiredProfessionMovementName ([string]$_.NAME))
 })
+$retiredMovementTableBuffName =
+    [string]$contract.expected.retiredNgePlayerProfessionMovementTableBuffName
+$unhealthyFixationMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object { [string]$_.NAME -ceq "en_unhealthy_stun" })
+$unhealthyFixationBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object { [string]$_.NAME -ceq $retiredMovementTableBuffName })
+$unhealthyFixationCommandRows = @(Import-SwgTab -Path $paths.commandTable |
+    Where-Object { [string]$_.commandName -ceq "en_unhealthy_fixation" })
+$unhealthyFixationCombatRows = @(Import-SwgTab -Path $paths.combatData |
+    Where-Object { [string]$_.actionName -ceq "en_unhealthy_fixation" })
+$unhealthyFixationMovementRows = @(Import-SwgTab -Path $paths.movementTable |
+    Where-Object { [string]$_.name -ceq $retiredMovementTableBuffName })
+$unhealthyFixationExpertiseSkillNames = @(
+    "expertise_en_unhealthy_fixation_1",
+    "expertise_en_allure_1",
+    "expertise_en_allure_2",
+    "expertise_en_allure_3",
+    "expertise_en_allure_4"
+)
+$unhealthyFixationExpertiseSkillRows = @(Import-SwgTab -Path $paths.skillsTable |
+    Where-Object {
+        $unhealthyFixationExpertiseSkillNames -ccontains [string]$_.NAME
+    })
 $retiredMovementDuplicateGroups = @($retiredProfessionMovementRows |
     Group-Object NAME | Where-Object { $_.Count -gt 1 })
 $retiredMovementPrefixCounts = @($retiredProfessionMovementPrefixes |
@@ -2837,6 +2860,40 @@ Assert-Contract ($movementMappings.Count -eq
     }).Count -eq 0 -and
     [bool]$contract.expected.authenticatedPrecuMovementExamplesPreserved) `
     "p14.combat-expertise-isolation.buff.profession-movement-complete-data-inventory-authenticated"
+Assert-Contract ($retiredMovementTableBuffName -ceq "en_unhealthy_fixation_debuff" -and
+    $unhealthyFixationMappings.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerUnhealthyFixationEffectMappingRows -and
+    [string]$unhealthyFixationMappings[0].TYPE -ceq "enUnhealthyStun" -and
+    [string]$unhealthyFixationMappings[0].SUBTYPE -ceq "en_unhealthy_stun" -and
+    $unhealthyFixationBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerUnhealthyFixationBuffRows -and
+    [string]$unhealthyFixationBuffRows[0].EFFECT1_PARAM -ceq "en_unhealthy_stun" -and
+    [float]$unhealthyFixationBuffRows[0].DURATION -eq 1.0 -and
+    $unhealthyFixationCommandRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerUnhealthyFixationCommandRows -and
+    [string]$unhealthyFixationCommandRows[0].scriptHook -ceq "en_unhealthy_fixation" -and
+    [string]$unhealthyFixationCommandRows[0].target -ceq "enemy" -and
+    $unhealthyFixationCombatRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerUnhealthyFixationCombatRows -and
+    [string]$unhealthyFixationCombatRows[0].hitType -ceq "NON_DAMAGE_ATTACK" -and
+    [string]$unhealthyFixationCombatRows[0].buffNameTarget -ceq
+        $retiredMovementTableBuffName -and
+    $unhealthyFixationMovementRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerUnhealthyFixationMovementRows -and
+    [string]$unhealthyFixationMovementRows[0].type -ceq "root" -and
+    [int]$unhealthyFixationMovementRows[0].affects_onfoot -eq 1 -and
+    [int]$unhealthyFixationMovementRows[0].affects_vehicle -eq 1 -and
+    [int]$unhealthyFixationMovementRows[0].affects_mount -eq 1 -and
+    $unhealthyFixationExpertiseSkillRows.Count -eq
+        [int]$contract.expected.retainedNgeEntertainerUnhealthyFixationExpertiseSkillRows -and
+    (($unhealthyFixationExpertiseSkillRows.NAME | Sort-Object) -join "`n") -ceq
+        (($unhealthyFixationExpertiseSkillNames | Sort-Object) -join "`n") -and
+    ([int]$contract.expected.retiredNgePlayerProfessionMovementBuffRows +
+        [int]$contract.expected.retainedNgeEntertainerUnhealthyFixationBuffRows) -eq
+        [int]$contract.expected.retiredNgePlayerProfessionMovementTotalBuffRows -and
+    ([int]$contract.expected.retiredNgePlayerProfessionMovementDistinctBuffNames + 1) -eq
+        [int]$contract.expected.retiredNgePlayerProfessionMovementTotalDistinctBuffNames) `
+    "p14.combat-expertise-isolation.buff.profession-movement-table-root-data-authenticated"
 
 $professionMovementInventory = Get-BracedBlock $buffLibrary `
     "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_BUFF_PREFIXES"
@@ -2863,6 +2920,14 @@ $movementProfessionReturn = $movementAdd.IndexOf(
     "return SCRIPT_OVERRIDE;", $movementProfessionPredicate,
     [StringComparison]::Ordinal)
 $movementRemove = Get-BracedBlock $buffHandler "public int movementRemoveBuffHandler("
+$professionMovementTableGate = $professionMovementBuffPredicate.IndexOf(
+    "data.buffName.equals(RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_TABLE_BUFF)",
+    [StringComparison]::Ordinal)
+$professionMovementEffectScan = $professionMovementBuffPredicate.IndexOf(
+    '"movement".equals(getEffectParam(data, effect))',
+    [StringComparison]::Ordinal)
+$entertainerMovementActionPredicate = Get-BracedBlock $combatBase `
+    "public static boolean isRetiredPostNgeEntertainerPlayerAction(obj_id self, String actionName)"
 Assert-Contract ($professionMovementInventoryNames.Count -eq
         $retiredProfessionMovementPrefixes.Count -and
     (($professionMovementInventoryNames -join "`n") -ceq
@@ -2871,6 +2936,11 @@ Assert-Contract ($professionMovementInventoryNames.Count -eq
     $professionMovementBuffPredicate.Contains("!isPlayer(target)") -and
     $professionMovementBuffPredicate.Contains(
         "isRetiredPostNgePlayerProfessionMovementBuffName(data.buffName)") -and
+    $buffLibrary.Contains(
+        'private static final String RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_TABLE_BUFF') -and
+    $buffLibrary.Contains('"en_unhealthy_fixation_debuff"') -and
+    $professionMovementTableGate -ge 0 -and
+    $professionMovementEffectScan -gt $professionMovementTableGate -and
     $professionMovementBuffPredicate.Contains(
         '"movement".equals(getEffectParam(data, effect))') -and
     $professionMovementCleanup.Contains("!isPlayer(player)") -and
@@ -2883,6 +2953,7 @@ Assert-Contract ($professionMovementInventoryNames.Count -eq
     $professionMovementExistingBuffReturn -gt $professionMovementAdmissionGate -and
     -not [bool]$contract.expected.playerNgeProfessionMovementBuffAdmissionReachable -and
     [bool]$contract.expected.persistedPlayerNgeProfessionMovementBuffsRemoved -and
+    $entertainerMovementActionPredicate.Contains('actionName.startsWith("en_")') -and
     [bool]$contract.expected.nonPlayerNgeProfessionMovementCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.profession-movement-admission-and-persistence-fail-closed"
 Assert-Contract ($movementAddGuard -ge 0 -and

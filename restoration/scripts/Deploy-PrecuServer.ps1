@@ -2828,16 +2828,28 @@ awk -F '\t' -v retired_prefixes="$profession_movement_prefixes" '
     }
 ' "$work_buff_table"
 profession_movement_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_BUFF_PREFIXES/,/public static boolean isRetiredPostNgePlayerProfessionMovementBuffName/p' "$work_buff_library")"
-test "$(printf '%s\n' "$profession_movement_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 10
+test "$(printf '%s\n' "$profession_movement_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 11
 for profession_movement_prefix in $profession_movement_prefixes; do
     printf '%s\n' "$profession_movement_inventory_source" | grep -Fq "\"$profession_movement_prefix\""
 done
+printf '%s\n' "$profession_movement_inventory_source" | grep -Fq 'RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_TABLE_BUFF'
+printf '%s\n' "$profession_movement_inventory_source" | grep -Fq '"en_unhealthy_fixation_debuff"'
+awk -F '\t' '$1 == "en_unhealthy_stun" { found++; if ($2 != "enUnhealthyStun" || $3 != "en_unhealthy_stun") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_effect_mapping"
+awk -F '\t' '$1 == "en_unhealthy_fixation_debuff" { found++; if ($7 != 1 || $8 != "en_unhealthy_stun") exit 2 } END { if (found != 1) exit 3 }' "$work_buff_table"
+awk -F '\t' '$1 == "en_unhealthy_fixation" { found++; if ($4 != "en_unhealthy_fixation" || $74 != "enemy" || $75 != "required") exit 2 } END { if (found != 1) exit 3 }' "$work_command_table"
+awk -F '\t' '$1 == "en_unhealthy_fixation" { found++; if ($8 != "NON_DAMAGE_ATTACK" || $65 != "en_unhealthy_fixation_debuff" || $89 != "en_unhealthy_fixation_debuff") exit 2 } END { if (found != 1) exit 3 }' "$work_combat_data"
+awk -F '\t' '$1 == "en_unhealthy_fixation_debuff" { found++; if ($2 != "root" || $4 != 1 || $5 != 1 || $6 != 1) exit 2 } END { if (found != 1) exit 3 }' "$work_movement_table"
+awk -F '\t' '$1 ~ /^expertise_en_(unhealthy_fixation_1|allure_[1-4])$/ { found++ } END { if (found != 5) exit 3 }' "$work_skills"
 profession_movement_name_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionMovementBuffName/,/public static boolean isRetiredPostNgePlayerProfessionMovementBuff(/p' "$work_buff_library")"
 profession_movement_buff_predicate_source="$(sed -n '/public static boolean isRetiredPostNgePlayerProfessionMovementBuff(/,/public static void retirePostNgePlayerProfessionMovementBuffState/p' "$work_buff_library")"
 profession_movement_cleanup_source="$(sed -n '/public static void retirePostNgePlayerProfessionMovementBuffState/,/private static final String\[\] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS/p' "$work_buff_library")"
 printf '%s\n' "$profession_movement_name_predicate_source" | grep -Fq 'buffName.startsWith(retiredPrefix)'
 printf '%s\n' "$profession_movement_buff_predicate_source" | grep -Fq '!isPlayer(target)'
 printf '%s\n' "$profession_movement_buff_predicate_source" | grep -Fq '"movement".equals(getEffectParam(data, effect))'
+profession_movement_table_gate_line="$(printf '%s\n' "$profession_movement_buff_predicate_source" | grep -Fn 'data.buffName.equals(RETIRED_POST_NGE_PLAYER_PROFESSION_MOVEMENT_TABLE_BUFF)' | head -1 | cut -d: -f1)"
+profession_movement_effect_scan_line="$(printf '%s\n' "$profession_movement_buff_predicate_source" | grep -Fn '"movement".equals(getEffectParam(data, effect))' | head -1 | cut -d: -f1)"
+test -n "$profession_movement_table_gate_line" -a -n "$profession_movement_effect_scan_line"
+test "$profession_movement_table_gate_line" -lt "$profession_movement_effect_scan_line"
 printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'getAllBuffs(player)'
 printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'combat_engine.getBuffData(activeBuff)'
 printf '%s\n' "$profession_movement_cleanup_source" | grep -Fq 'removeBuff(player, activeBuff)'
@@ -6359,6 +6371,10 @@ profession_movement_buff_predicate_bytecode="$(printf '%s' "$buff_modifier_bytec
 printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'Method isPlayer'
 printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionMovementBuffName'
 printf '%s' "$profession_movement_buff_predicate_bytecode" | grep -Fq 'String movement'
+profession_movement_table_bytecode_line="$(printf '%s\n' "$profession_movement_buff_predicate_bytecode" | grep -Fn 'String en_unhealthy_fixation_debuff' | head -1 | cut -d: -f1)"
+profession_movement_effect_bytecode_line="$(printf '%s\n' "$profession_movement_buff_predicate_bytecode" | grep -Fn 'String movement' | head -1 | cut -d: -f1)"
+test -n "$profession_movement_table_bytecode_line" -a -n "$profession_movement_effect_bytecode_line"
+test "$profession_movement_table_bytecode_line" -lt "$profession_movement_effect_bytecode_line"
 profession_movement_cleanup_bytecode="$(printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgePlayerProfessionMovementBuffState/,/isRetiredPostNgePlayerGroupBuffName/p')"
 printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'Method getAllBuffs'
 printf '%s' "$profession_movement_cleanup_bytecode" | grep -Fq 'combat_engine.getBuffData'
