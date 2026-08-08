@@ -373,6 +373,109 @@ Assert-Contract ($modifierBuffPredicate.Contains("!isPlayer(target)") -and
     [bool]$contract.expected.nonPlayerNgeModifierBuffCompatibilityPreserved) `
     "p14.combat-expertise-isolation.buff.player-modifier-admission-and-persistence-fail-closed"
 
+$retiredBuffCombatModifierInventory = Get-BracedBlock $staticItemLibrary `
+    "public static final String[] RETIRED_NGE_BUFF_COMBAT_MODIFIERS"
+$playerModifierCleanup = Get-BracedBlock $staticItemLibrary `
+    "public static void removeRetiredNgePlayerSkillStatistics(obj_id player)"
+$hitTableVulnerabilityModifiers = @(
+    "critical_hit_vulnerable",
+    "glancing_blow_vulnerable",
+    "strikethrough_vulnerable"
+)
+$hitTableVulnerabilityMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
+    Where-Object {
+        $hitTableVulnerabilityModifiers -ccontains [string]$_.NAME -and
+        [string]$_.TYPE -ceq "skill" -and
+        [string]$_.SUBTYPE -ceq [string]$_.NAME
+    })
+$hitTableVulnerabilityBuffRows = @(Import-SwgTab -Path $paths.buffTable |
+    Where-Object {
+        $row = $_
+        $effectParameters = @(1..5 | ForEach-Object {
+            [string]$row.("EFFECT$($_)_PARAM")
+        })
+        @($effectParameters | Where-Object {
+            $hitTableVulnerabilityModifiers -ccontains $_
+        }).Count -gt 0
+    })
+$hitTableVulnerabilityEffectUses = @($hitTableVulnerabilityBuffRows |
+    ForEach-Object {
+        $row = $_
+        1..5 | ForEach-Object { [string]$row.("EFFECT$($_)_PARAM") }
+    } | Where-Object { $hitTableVulnerabilityModifiers -ccontains $_ })
+$hitTableVulnerabilityBuffNames = @($hitTableVulnerabilityBuffRows |
+    Select-Object -ExpandProperty NAME -Unique)
+$hitTableVulnerabilityNameBytes = [Text.Encoding]::UTF8.GetBytes(
+    ($hitTableVulnerabilityBuffNames -join "`n"))
+$hitTableVulnerabilityNameHasher = [Security.Cryptography.SHA256]::Create()
+try
+{
+    $hitTableVulnerabilityNameSha256 = ([BitConverter]::ToString(
+        $hitTableVulnerabilityNameHasher.ComputeHash(
+            $hitTableVulnerabilityNameBytes))).Replace("-", "").ToLowerInvariant()
+}
+finally
+{
+    $hitTableVulnerabilityNameHasher.Dispose()
+}
+$hitTableVulnerabilityConsumers = @(
+    @{
+        Actor = "attacker"
+        Method = "public static float getAttackerGlancingReduction(obj_id attacker)"
+        Modifier = "glancing_blow_vulnerable"
+    },
+    @{
+        Actor = "defender"
+        Method = "public static float getDefenderCriticalChance(obj_id defender)"
+        Modifier = "critical_hit_vulnerable"
+    },
+    @{
+        Actor = "player"
+        Method = "public static float getDefenderStrikethroughReduction(obj_id player)"
+        Modifier = "strikethrough_vulnerable"
+    }
+)
+$guardedHitTableVulnerabilityConsumers = @($hitTableVulnerabilityConsumers |
+    Where-Object {
+        $block = Get-BracedBlock $combatLibrary $_.Method
+        $guard = $block.IndexOf("if (isPlayer($($_.Actor)))",
+            [StringComparison]::Ordinal)
+        $cleanup = $block.IndexOf(
+            "static_item.removeRetiredNgePlayerSkillStatistics($($_.Actor));",
+            [StringComparison]::Ordinal)
+        $earlyReturn = $block.IndexOf("return 0.0f;", [StringComparison]::Ordinal)
+        $reader = $block.IndexOf(
+            'getEnhancedSkillStatisticModifierUncapped(' + $_.Actor + ', "' +
+                $_.Modifier + '")', [StringComparison]::Ordinal)
+        $guard -ge 0 -and $cleanup -gt $guard -and
+            $earlyReturn -gt $cleanup -and $reader -gt $earlyReturn
+    })
+Assert-Contract ($hitTableVulnerabilityMappings.Count -eq
+        [int]$contract.expected.retainedNgeHitTableVulnerabilityEffectMappingRows -and
+    $hitTableVulnerabilityBuffRows.Count -eq
+        [int]$contract.expected.retainedNgeHitTableVulnerabilityBuffRows -and
+    $hitTableVulnerabilityBuffNames.Count -eq
+        [int]$contract.expected.retainedNgeHitTableVulnerabilityBuffNames -and
+    $hitTableVulnerabilityEffectUses.Count -eq
+        [int]$contract.expected.retainedNgeHitTableVulnerabilityEffectUses -and
+    $hitTableVulnerabilityNameSha256 -ceq
+        [string]$contract.expected.retainedNgeHitTableVulnerabilityBuffNameSha256 -and
+    @($hitTableVulnerabilityModifiers | Where-Object {
+        $retiredBuffCombatModifierInventory.Contains('"' + $_ + '"')
+    }).Count -eq
+        [int]$contract.expected.retiredNgePlayerHitTableVulnerabilityModifiers -and
+    $playerModifierCleanup.Contains("getSkillStatModListingForPlayer(player)") -and
+    $playerModifierCleanup.Contains("isRetiredNgeStaticItemSkillModifier(modifier)") -and
+    $playerModifierCleanup.Contains(
+        "applySkillStatisticModifier(player, modifier, -currentValue)") -and
+    -not [bool]$contract.expected.playerNgeHitTableVulnerabilityModifierWritesReachable -and
+    [bool]$contract.expected.stalePlayerNgeHitTableVulnerabilityModifiersRemoved -and
+    $guardedHitTableVulnerabilityConsumers.Count -eq
+        [int]$contract.expected.productionHitTableVulnerabilityConsumersGuarded -and
+    -not [bool]$contract.expected.playerNgeHitTableVulnerabilityConsumersReachable -and
+    [bool]$contract.expected.nonPlayerNgeHitTableVulnerabilityCompatibilityPreserved) `
+    "p14.combat-expertise-isolation.hit-table-vulnerability-state-fails-closed"
+
 $luckyBreakAlwaysModifiers = @("hit_always", "crit_always")
 $luckyBreakAlwaysMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     Where-Object {
@@ -382,10 +485,6 @@ $luckyBreakAlwaysMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
     })
 $luckyBreakBuffRows = @(Import-SwgTab -Path $paths.buffTable |
     Where-Object { [string]$_.NAME -ceq "sm_lucky_break" })
-$retiredBuffCombatModifierInventory = Get-BracedBlock $staticItemLibrary `
-    "public static final String[] RETIRED_NGE_BUFF_COMBAT_MODIFIERS"
-$playerModifierCleanup = Get-BracedBlock $staticItemLibrary `
-    "public static void removeRetiredNgePlayerSkillStatistics(obj_id player)"
 $singleTargetDefenderResult = Get-BracedBlock $combatBase `
     "public int getSingleTargetDefenderResult("
 $singleTargetAttackResult = Get-BracedBlock $combatBase `
