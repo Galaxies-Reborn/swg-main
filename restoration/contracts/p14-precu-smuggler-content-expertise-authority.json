@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-smuggler-content-expertise-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Preserve retained junk-dealer, summoned-dealer lifecycle, and contraband content for Publish 14.1 Smugglers while preventing inherited NGE expertise bonuses, proc buffs, secondary payouts, tiered primary/combat buffs, and the indirect junk-dealer special-effect handler from becoming gameplay authority.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -64,56 +64,60 @@
     "compiledClassSha256": {
       "smuggler": "bb5464eaaae58b2917749deddb9785e631f2774077b191c5d9c55c486193f606",
       "junkDealerSummon": "d6bb9bd4de64717d4c849d9a18109ca4cb0304febd9f279bd6ecf7737ba3b863",
-      "buffLibrary": "e396f393bfde1c58d61fc17597385ce58e5ef7e044e7074a1ea40656385c0a04",
-      "buffHandler": "cbcca3fb17d9bdda429cafc20b60c8f7c11649d51fe2bd6bfdb720125738680f"
+      "buffLibrary": "0470d708a99c9aebe497faecfeb3ea864c5464990fbe46804ef2f563539facfb",
+      "buffHandler": "6c69756e7b46ede682ca0ee896f0d83e411c48ab4da5b04fd5c96fb0dca3cd37"
     },
     "sourceTest": "passed exact one-mapping, three-input-modifier, two-listed-modifier-row, four-skill-row, shared all-target admission, two-residue cleanup, and two-handler junk-dealer expertise assertions while retaining the exact 19-row Publish 14.1 Smuggler family, slicing abilities, junk/contraband content, and summoned-dealer lifecycle",
     "focusedJavaCompile": "passed Java 8 compatibility compile with -implicit:none in exact ephemeral container path /dev/shm/precu-smuggler-junk-effect-compile-20260808; buff.class SHA-256 e396f393bfde1c58d61fc17597385ce58e5ef7e044e7074a1ea40656385c0a04, 62004 bytes; buff_handler.class SHA-256 cbcca3fb17d9bdda429cafc20b60c8f7c11649d51fe2bd6bfdb720125738680f, 103237 bytes; path removed and absence verified",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes; smuggler.class was emitted at 2026-08-05T06:25:37.191988037Z and junk_dealer_summon.class at 2026-08-05T06:25:37.715660148Z",
-    "fullServerBuild": "passed in 617 seconds from pushed parent 0ff9441 and direct dsrc d7fe7590e with all server and data targets completed",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed byte-for-byte for smuggler.java and junk_dealer_summon.java between the read-only direct-source mount and Docker work volume; their SHA-256 values are d6bb3a8acb16dec3043b9367ac8782905674ee04e3ff2b3688ca53030ec466ec and 9bc9c97531381576418e4c4be5e3f2679fc154078abb910b786a27db5e9b3ead",
-    "bytecodeAudit": "passed; smuggler.class contains no expertise_, sm_feeling_lucky, or ACCT_RELIC_DEALER symbol and retains its authored junk/contraband paths; junk_dealer_summon.class contains no expertise_, sm_junk_dealer_, or buffParty symbol and retains greeting, profit reporting, timeout, dismissal, runaway, and cleanup lifecycle symbols",
-    "deploymentProbe": "passed all 26 direct-source preflight contracts, mandatory source/work parity, focused summoned-dealer source and bytecode gates, cumulative PRE-CU data/native/bytecode gates, x64 architecture, restart/readiness, live mapped-binary verification, and clean log audit",
-    "result": "build-pending"
+    "fullJavaCompile": "passed exact zero-class dependency rebuild from pushed direct-source commit f7396ad0b7134c384c3ddd5681e7cfb014049b31; 5713 Java sources produced 5747 classes under OpenJDK 11 in the canonical x64 Docker work volume",
+    "fullServerBuild": "passed canonical deployment in 986.8 seconds from pushed parent 2c0c9c18a02093819db3740156c7d21bc70f8ea8 and direct dsrc f7396ad0b7134c384c3ddd5681e7cfb014049b31 with all source, data, bytecode, native, architecture, restart, readiness, and live identity gates completed",
+    "architecture": "LoginServer, TaskManager, ConnectionServer, SwgDatabaseServer, TransferServer, ChatServer, CentralServer, PlanetServer, and SwgGameServer verified ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "eae35f76f717b6e6416d1c5b6de1b62c67254df222c020f3ede813b33b50b770",
+    "serverBinaryBuildId": "bab22056ffd3cfd49d93e87e06b67f4f1589200f",
+    "serverGameArchiveSha256": "3fafc5a7b05e2347c30f06a5266211b5919d8ace079a5ae7b7895485e5e39b8d",
+    "sourceWorkParity": "passed byte-for-byte for smuggler.java, junk_dealer_summon.java, buff.java, and buff_handler.java between the read-only direct-source mount and Docker work volume; changed shared files authenticated at 1428ea6d98b08ca2b0a228fa70e51119d2a19e23e26c1ad3f30274f5200ac456 and fa40c4ecfceb662360c30f8e74b85c8a1abf0b0bd02dc53e5ab2b37fff953449",
+    "bytecodeAudit": "passed deployed authentication of the exact expertise_junk_dealer predicate, all-target admission denial, junkDealerBuffer plus two-modifier cleanup, and both handler guards before any NGE expertise read or dealer modifier write; retained smuggler.class and junk_dealer_summon.class remain free of their previously retired expertise/proc/buff authority while preserving content lifecycle symbols",
+    "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, exact junk-dealer expertise source/data/bytecode gates, cumulative PRE-CU data/native/bytecode gates, nine runtime x64 binaries, controlled restart/readiness, stable TransferServer ownership, 15 mapped game-server identities, and clean fresh-log audit",
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "2026-08-05",
+    "date": "2026-08-08",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-05T06:31:23.324756029Z",
+    "containerStartedAt": "2026-08-08T01:37:15.9740019Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassSizes": {
       "smuggler": 33836,
-      "junkDealerSummon": 4265
+      "junkDealerSummon": 4265,
+      "buffLibrary": 72873,
+      "buffHandler": 136364
     },
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 364,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
+    "liveGameProcessPid": 376,
+    "liveBinaryInode": 12141386,
+    "liveBinarySize": 22559720,
     "liveBinaryMapEntries": 2,
     "processCounts": {
       "LoginServer": 1,
       "TaskManager": 1,
       "ConnectionServer": 1,
       "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
     },
-    "postStartLogAudit": "344 lines; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
-    "result": "superseded-awaiting-build"
+    "stableTransferServer": "PID 368 remained stable across five seconds and exclusively owned 172.26.0.3:50005",
+    "postStartLogAudit": "357 lines since container start; one exact Cluster swg is ready for players marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, core-dump, segmentation-fault, Oracle-error, or database-conversion matches",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "NGE Smuggler expertise can no longer alter retained junk-dealer payouts or contraband drop chances, proc the later Feeling Lucky buff, cause the retained summoned dealer to apply any tiered NGE primary/combat buff, or reach the dealer-targeted expertise_junk_dealer special-effect handlers.",
     "preserved": "The exact Publish 14.1 Smuggler skill family, slicing ownership, base junk sale, underworld faction tiers, space contraband drops, summoned-dealer greeting, conversation, profit reporting, lifetime, dismissal, and cleanup remain intact.",
     "notClaimedComplete": "Other shared libraries and content-specific handlers remain subject to the broader PRE-CU precedence audit."
   },
-  "requiredBeforeReady": [
-    "Run the canonical x64 full rebuild/deploy from pushed parent and direct-source commits.",
-    "Authenticate deployed source/work parity, junk-dealer expertise bytecode gates, live x64 mapped binary, readiness, topology, and fresh logs."
-  ]
+  "requiredBeforeReady": []
 }
