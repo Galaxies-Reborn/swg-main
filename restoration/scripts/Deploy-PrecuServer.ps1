@@ -2900,8 +2900,8 @@ test "$craft_bonus_add_cleanup_line" -lt "$craft_bonus_add_writer_line"
 printf '%s\n' "$scriptvar_remove_source" | grep -Fq 'utils.removeScriptVarTree'
 ! printf '%s\n' "$craft_bonus_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionInspirationBuffName'
 printf '%s\n' "$craft_bonus_remove_source" | grep -Fq 'utils.removeScriptVarTree(self, "buff.craftBonus");'
-profession_proxy_names='exclusive_proxy_bh_del_cc_1 exclusive_proxy_bh_del_cc_2 exclusive_proxy_bh_del_cc_3 exclusive_proxy_bh_del_dm_cc_dot_1 exclusive_proxy_bh_del_dm_cc_dot_2 exclusive_proxy_bh_del_dm_cc_dot_3 exclusive_proxy_of_last_words exclusive_proxy_bh_dire_root_1 exclusive_proxy_of_vortex_root_1 exclusive_proxy_of_vortex_root_2 exclusive_proxy_of_vortex_root_3 exclusive_proxy_of_vortex_root_4 exclusive_proxy_of_vortex_root_5 of_pt_proxy_1 of_pt_proxy_2 of_pt_proxy_3 of_pt_proxy_4 of_pt_proxy_5 of_pt_proxy_6 of_pt_proxy_7 of_pt_proxy_8 bh_del_cc_1 bh_del_cc_2 bh_del_cc_3 bh_del_dm_cc_dot_1 bh_del_dm_cc_dot_2 bh_del_dm_cc_dot_3 of_last_words of_last_words_recourse bh_dire_root_1 bh_dire_snare_1 dire_root_recourse dire_snare_recourse of_vortex_root of_vortex_snare of_vortex_bleed_1 of_vortex_bleed_2 of_vortex_bleed_3 of_vortex_bleed_4 of_vortex_bleed_5'
-test "$(printf '%s\n' $profession_proxy_names | wc -l)" -eq 40
+profession_proxy_names='exclusive_proxy_bh_del_cc_1 exclusive_proxy_bh_del_cc_2 exclusive_proxy_bh_del_cc_3 exclusive_proxy_bh_del_dm_cc_dot_1 exclusive_proxy_bh_del_dm_cc_dot_2 exclusive_proxy_bh_del_dm_cc_dot_3 exclusive_proxy_of_last_words exclude_self_exclusive_proxy_of_last_words exclusive_proxy_bh_dire_root_1 exclusive_proxy_of_vortex_root_1 exclusive_proxy_of_vortex_root_2 exclusive_proxy_of_vortex_root_3 exclusive_proxy_of_vortex_root_4 exclusive_proxy_of_vortex_root_5 of_pt_proxy_1 of_pt_proxy_2 of_pt_proxy_3 of_pt_proxy_4 of_pt_proxy_5 of_pt_proxy_6 of_pt_proxy_7 of_pt_proxy_8 bh_del_cc_1 bh_del_cc_2 bh_del_cc_3 bh_del_dm_cc_dot_1 bh_del_dm_cc_dot_2 bh_del_dm_cc_dot_3 of_last_words of_last_words_recourse bh_dire_root_1 bh_dire_snare_1 dire_root_recourse dire_snare_recourse of_vortex_root of_vortex_snare of_vortex_bleed_1 of_vortex_bleed_2 of_vortex_bleed_3 of_vortex_bleed_4 of_vortex_bleed_5'
+test "$(printf '%s\n' $profession_proxy_names | wc -l)" -eq 41
 awk -F '\t' -v retired_names="$profession_proxy_names" '
     FNR == 1 {
         for (field = 1; field <= NF; field++) field_index[$field] = field
@@ -2917,7 +2917,7 @@ awk -F '\t' -v retired_names="$profession_proxy_names" '
         if ($(field_index["VISIBLE"]) == "1") visible_count++
     }
     END {
-        if (row_count != 40 || visible_count != 35) exit 35
+        if (row_count != 41 || visible_count != 36) exit 35
         for (expected_name in expected) if (seen[expected_name] != 1) exit 36
     }
 ' "$work_buff_table"
@@ -2935,19 +2935,24 @@ awk -F '\t' '
         paint_count++
         seen[$1]++
     }
+    $(field_index["TYPE"]) == "excludeSelf" {
+        exclude_self_count++
+        seen[$1]++
+    }
     END {
-        if (exclusive_count != 6 || paint_count != 1) exit 37
+        if (exclusive_count != 6 || paint_count != 1 || exclude_self_count != 1) exit 37
         if (seen["exclusive_proxy"] != 1 ||
             seen["exclusive_proxy_of_vortex_root_1"] != 1 ||
             seen["exclusive_proxy_of_vortex_root_2"] != 1 ||
             seen["exclusive_proxy_of_vortex_root_3"] != 1 ||
             seen["exclusive_proxy_of_vortex_root_4"] != 1 ||
             seen["exclusive_proxy_of_vortex_root_5"] != 1 ||
+            seen["exclude_self"] != 1 ||
             seen["paint_target"] != 1) exit 38
     }
 ' "$work_buff_effect_mapping"
 profession_proxy_inventory_source="$(sed -n '/private static final String\[\] RETIRED_POST_NGE_PLAYER_PROFESSION_PROXY_BUFFS/,/public static boolean isRetiredPostNgePlayerProfessionProxyBuffName/p' "$work_buff_library")"
-test "$(printf '%s\n' "$profession_proxy_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 40
+test "$(printf '%s\n' "$profession_proxy_inventory_source" | grep -Ec '^[[:space:]]*"[^"]+"[,;]?$')" -eq 41
 profession_proxy_inventory_index=0
 for profession_proxy_name in $profession_proxy_names; do
     profession_proxy_inventory_index=$((profession_proxy_inventory_index + 1))
@@ -2966,6 +2971,8 @@ printf '%s\n' "$profession_proxy_cleanup_source" | grep -Fq 'removeBuff(player, 
 sed -n '/public static void retirePostNgeBuffProgression/,/public static final String DOT_BLEEDING/p' "$work_buff_library" | grep -Fq 'retirePostNgePlayerProfessionProxyState(player);'
 exclusive_proxy_add_source="$(sed -n '/public int exclusiveProxyAddBuffHandler/,/public int exclusiveProxyRemoveBuffHandler/p' "$work_buff_handler")"
 exclusive_proxy_remove_source="$(sed -n '/public int exclusiveProxyRemoveBuffHandler/,/public int excludeSelfAddBuffHandler/p' "$work_buff_handler")"
+exclude_self_add_source="$(sed -n '/public int excludeSelfAddBuffHandler/,/public int excludeSelfRemoveBuffHandler/p' "$work_buff_handler")"
+exclude_self_remove_source="$(sed -n '/public int excludeSelfRemoveBuffHandler/,/public int delayAttackAddBuffHandler/p' "$work_buff_handler")"
 exclusive_proxy_guard_line="$(printf '%s\n' "$exclusive_proxy_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionProxyBuffName(buffName))' | head -1 | cut -d: -f1)"
 exclusive_proxy_cleanup_line="$(printf '%s\n' "$exclusive_proxy_add_source" | grep -Fn 'buff.retirePostNgePlayerProfessionProxyState(self);' | head -1 | cut -d: -f1)"
 exclusive_proxy_return_line="$(printf '%s\n' "$exclusive_proxy_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
@@ -2980,6 +2987,20 @@ test "$exclusive_proxy_return_line" -lt "$exclusive_proxy_read_line"
 test "$exclusive_proxy_return_line" -lt "$exclusive_proxy_writer_line"
 ! printf '%s\n' "$exclusive_proxy_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuffName'
 printf '%s\n' "$exclusive_proxy_remove_source" | grep -Fq 'return SCRIPT_CONTINUE;'
+exclude_self_guard_line="$(printf '%s\n' "$exclude_self_add_source" | grep -Fn 'if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionProxyBuffName(buffName))' | head -1 | cut -d: -f1)"
+exclude_self_cleanup_line="$(printf '%s\n' "$exclude_self_add_source" | grep -Fn 'buff.retirePostNgePlayerProfessionProxyState(self);' | head -1 | cut -d: -f1)"
+exclude_self_return_line="$(printf '%s\n' "$exclude_self_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | head -1 | cut -d: -f1)"
+exclude_self_read_line="$(printf '%s\n' "$exclude_self_add_source" | grep -Fn 'buff.getAllBuffs(self)' | head -1 | cut -d: -f1)"
+exclude_self_writer_line="$(printf '%s\n' "$exclude_self_add_source" | grep -Fn 'buff.applyBuff(groupMember, self, actualBuff)' | head -1 | cut -d: -f1)"
+for profession_proxy_source_line in "$exclude_self_guard_line" "$exclude_self_cleanup_line" "$exclude_self_return_line" "$exclude_self_read_line" "$exclude_self_writer_line"; do
+    test -n "$profession_proxy_source_line"
+done
+test "$exclude_self_guard_line" -lt "$exclude_self_cleanup_line"
+test "$exclude_self_cleanup_line" -lt "$exclude_self_return_line"
+test "$exclude_self_return_line" -lt "$exclude_self_read_line"
+test "$exclude_self_return_line" -lt "$exclude_self_writer_line"
+! printf '%s\n' "$exclude_self_remove_source" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuffName'
+printf '%s\n' "$exclude_self_remove_source" | grep -Fq 'return SCRIPT_CONTINUE;'
 officer_action_predicate_source="$(sed -n '/public static boolean isRetiredPostNgeOfficerPlayerAction/,/public static boolean isRetiredPostNgeForceSensitivePlayerAction/p' "$work_combat_base")"
 bounty_hunter_action_predicate_source="$(sed -n '/public static boolean isRetiredPostNgeBountyHunterPlayerAction/,/public static boolean isRetiredPostNgeCommandoPlayerAction/p' "$work_combat_base")"
 for officer_proxy_action in 'actionName.startsWith("of_")' 'actionName.equals("paintTarget")' 'actionName.startsWith("paintTarget_")' 'actionName.equals("applyVortexSnare")'; do
@@ -5865,6 +5886,8 @@ printf '%s' "$profession_proxy_cleanup_bytecode" | grep -Fq 'Method removeBuff'
 printf '%s' "$buff_modifier_bytecode" | sed -n '/retirePostNgeBuffProgression/,/canApplyBuff(script.obj_id, java.lang.String)/p' | grep -Fq 'retirePostNgePlayerProfessionProxyState'
 exclusive_proxy_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int exclusiveProxyAddBuffHandler/,/public int exclusiveProxyRemoveBuffHandler/p')"
 exclusive_proxy_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int exclusiveProxyRemoveBuffHandler/,/public int excludeSelfAddBuffHandler/p')"
+exclude_self_add_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int excludeSelfAddBuffHandler/,/public int excludeSelfRemoveBuffHandler/p')"
+exclude_self_remove_bytecode="$(printf '%s' "$buff_handler_bytecode" | sed -n '/public int excludeSelfRemoveBuffHandler/,/public int delayAttackAddBuffHandler/p')"
 exclusive_proxy_predicate_bytecode_line="$(printf '%s\n' "$exclusive_proxy_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionProxyBuffName' | head -1 | cut -d: -f1)"
 exclusive_proxy_cleanup_bytecode_line="$(printf '%s\n' "$exclusive_proxy_add_bytecode" | grep -Fn 'retirePostNgePlayerProfessionProxyState' | head -1 | cut -d: -f1)"
 exclusive_proxy_return_bytecode_line="$(printf '%s\n' "$exclusive_proxy_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$exclusive_proxy_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
@@ -5879,6 +5902,20 @@ test "$exclusive_proxy_return_bytecode_line" -lt "$exclusive_proxy_read_bytecode
 test "$exclusive_proxy_return_bytecode_line" -lt "$exclusive_proxy_writer_bytecode_line"
 ! printf '%s' "$exclusive_proxy_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuffName'
 printf '%s' "$exclusive_proxy_remove_bytecode" | grep -Fq 'ireturn'
+exclude_self_predicate_bytecode_line="$(printf '%s\n' "$exclude_self_add_bytecode" | grep -Fn 'isRetiredPostNgePlayerProfessionProxyBuffName' | head -1 | cut -d: -f1)"
+exclude_self_cleanup_bytecode_line="$(printf '%s\n' "$exclude_self_add_bytecode" | grep -Fn 'retirePostNgePlayerProfessionProxyState' | head -1 | cut -d: -f1)"
+exclude_self_return_bytecode_line="$(printf '%s\n' "$exclude_self_add_bytecode" | grep -Fn 'ireturn' | awk -F: -v cleanup="$exclude_self_cleanup_bytecode_line" '$1 > cleanup { print $1; exit }')"
+exclude_self_read_bytecode_line="$(printf '%s\n' "$exclude_self_add_bytecode" | grep -Fn 'buff.getAllBuffs' | head -1 | cut -d: -f1)"
+exclude_self_writer_bytecode_line="$(printf '%s\n' "$exclude_self_add_bytecode" | grep -Fn 'buff.applyBuff' | head -1 | cut -d: -f1)"
+for profession_proxy_bytecode_line in "$exclude_self_predicate_bytecode_line" "$exclude_self_cleanup_bytecode_line" "$exclude_self_return_bytecode_line" "$exclude_self_read_bytecode_line" "$exclude_self_writer_bytecode_line"; do
+    test -n "$profession_proxy_bytecode_line"
+done
+test "$exclude_self_predicate_bytecode_line" -lt "$exclude_self_cleanup_bytecode_line"
+test "$exclude_self_cleanup_bytecode_line" -lt "$exclude_self_return_bytecode_line"
+test "$exclude_self_return_bytecode_line" -lt "$exclude_self_read_bytecode_line"
+test "$exclude_self_return_bytecode_line" -lt "$exclude_self_writer_bytecode_line"
+! printf '%s' "$exclude_self_remove_bytecode" | grep -Fq 'isRetiredPostNgePlayerProfessionProxyBuffName'
+printf '%s' "$exclude_self_remove_bytecode" | grep -Fq 'ireturn'
 profession_proxy_combat_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_base)"
 officer_action_predicate_bytecode="$(printf '%s' "$profession_proxy_combat_base_bytecode" | sed -n '/isRetiredPostNgeOfficerPlayerAction/,/isRetiredPostNgeForceSensitivePlayerAction/p')"
 for officer_proxy_action in 'String of_' 'String paintTarget' 'String paintTarget_' 'String applyVortexSnare'; do

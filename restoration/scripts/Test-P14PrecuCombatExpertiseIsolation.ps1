@@ -2483,14 +2483,14 @@ $retiredProfessionProxyNames = @(
     $contract.expected.retiredNgePlayerProfessionProxyBuffNames |
         ForEach-Object { [string]$_ }
 )
-$professionProxyWrapperNames = @($retiredProfessionProxyNames | Select-Object -First 21)
-$professionProxyDerivedNames = @($retiredProfessionProxyNames | Select-Object -Skip 21)
+$professionProxyWrapperNames = @($retiredProfessionProxyNames | Select-Object -First 22)
+$professionProxyDerivedNames = @($retiredProfessionProxyNames | Select-Object -Skip 22)
 $professionProxyRows = @(Import-SwgTab -Path $paths.buffTable | Where-Object {
     $retiredProfessionProxyNames -ccontains [string]$_.NAME
 })
 $professionProxyRowNames = @($professionProxyRows | ForEach-Object { [string]$_.NAME })
 $professionProxyMappings = @(Import-SwgTab -Path $paths.buffEffectMapping |
-    Where-Object { [string]$_.TYPE -cin @("exclusiveProxy", "paintTarget") })
+    Where-Object { [string]$_.TYPE -cin @("exclusiveProxy", "paintTarget", "excludeSelf") })
 $professionProxyMappingNames = @($professionProxyMappings |
     ForEach-Object { [string]$_.NAME } | Sort-Object)
 $expectedProfessionProxyMappingNames = @(
@@ -2500,6 +2500,7 @@ $expectedProfessionProxyMappingNames = @(
     "exclusive_proxy_of_vortex_root_3",
     "exclusive_proxy_of_vortex_root_4",
     "exclusive_proxy_of_vortex_root_5",
+    "exclude_self",
     "paint_target"
 ) | Sort-Object
 Assert-Contract ($retiredProfessionProxyNames.Count -eq
@@ -2527,6 +2528,9 @@ Assert-Contract ($retiredProfessionProxyNames.Count -eq
     @($professionProxyMappings | Where-Object {
         [string]$_.TYPE -ceq "paintTarget"
     }).Count -eq [int]$contract.expected.retainedNgeProfessionProxyPaintTargetEffectMappingRows -and
+    @($professionProxyMappings | Where-Object {
+        [string]$_.TYPE -ceq "excludeSelf"
+    }).Count -eq [int]$contract.expected.retainedNgeProfessionProxyExcludeSelfEffectMappingRows -and
     (($professionProxyMappingNames -join "`n") -ceq
         ($expectedProfessionProxyMappingNames -join "`n"))) `
     "p14.combat-expertise-isolation.buff.profession-proxy-complete-data-inventory-authenticated"
@@ -2556,6 +2560,10 @@ $exclusiveProxyAdd = Get-BracedBlock $buffHandler `
     "public int exclusiveProxyAddBuffHandler("
 $exclusiveProxyRemove = Get-BracedBlock $buffHandler `
     "public int exclusiveProxyRemoveBuffHandler("
+$excludeSelfAdd = Get-BracedBlock $buffHandler `
+    "public int excludeSelfAddBuffHandler("
+$excludeSelfRemove = Get-BracedBlock $buffHandler `
+    "public int excludeSelfRemoveBuffHandler("
 $exclusiveProxyGuard = $exclusiveProxyAdd.IndexOf(
     "if (isPlayer(self) &&", [StringComparison]::Ordinal)
 $exclusiveProxyPredicate = $exclusiveProxyAdd.IndexOf(
@@ -2570,7 +2578,21 @@ $exclusiveProxyRead = $exclusiveProxyAdd.IndexOf(
     "buff.getAllBuffs(self)", [StringComparison]::Ordinal)
 $exclusiveProxyWriter = $exclusiveProxyAdd.IndexOf(
     "buff.applyBuff(self, caster, s)", [StringComparison]::Ordinal)
-Assert-Contract ($professionProxyInventoryNames.Count -eq 40 -and
+$excludeSelfGuard = $excludeSelfAdd.IndexOf(
+    "if (isPlayer(self) &&", [StringComparison]::Ordinal)
+$excludeSelfPredicate = $excludeSelfAdd.IndexOf(
+    "buff.isRetiredPostNgePlayerProfessionProxyBuffName(buffName)",
+    [StringComparison]::Ordinal)
+$excludeSelfCleanup = $excludeSelfAdd.IndexOf(
+    "buff.retirePostNgePlayerProfessionProxyState(self);",
+    [StringComparison]::Ordinal)
+$excludeSelfReturn = $excludeSelfAdd.IndexOf(
+    "return SCRIPT_OVERRIDE;", $excludeSelfCleanup, [StringComparison]::Ordinal)
+$excludeSelfRead = $excludeSelfAdd.IndexOf(
+    "buff.getAllBuffs(self)", [StringComparison]::Ordinal)
+$excludeSelfWriter = $excludeSelfAdd.IndexOf(
+    "buff.applyBuff(groupMember, self, actualBuff)", [StringComparison]::Ordinal)
+Assert-Contract ($professionProxyInventoryNames.Count -eq 41 -and
     (($professionProxyInventoryNames -join "`n") -ceq
         ($retiredProfessionProxyNames -join "`n")) -and
     $professionProxyNamePredicate.Contains("buffName.equals(retiredBuff)") -and
@@ -2591,12 +2613,21 @@ Assert-Contract ($professionProxyInventoryNames.Count -eq 40 -and
     $exclusiveProxyReturn -gt $exclusiveProxyCleanup -and
     $exclusiveProxyRead -gt $exclusiveProxyReturn -and
     $exclusiveProxyWriter -gt $exclusiveProxyReturn -and
+    $excludeSelfGuard -ge 0 -and
+    $excludeSelfPredicate -gt $excludeSelfGuard -and
+    $excludeSelfCleanup -gt $excludeSelfPredicate -and
+    $excludeSelfReturn -gt $excludeSelfCleanup -and
+    $excludeSelfRead -gt $excludeSelfReturn -and
+    $excludeSelfWriter -gt $excludeSelfReturn -and
     -not [bool]$contract.expected.playerNgeProfessionProxyBuffAdmissionReachable -and
     [bool]$contract.expected.persistedPlayerNgeProfessionProxyStateRemoved -and
-    [int]$contract.expected.productionProfessionProxyHandlersGuarded -eq 1 -and
+    [int]$contract.expected.productionProfessionProxyHandlersGuarded -eq 2 -and
     -not [bool]$contract.expected.playerNgeProfessionProxyNestedWriterReachable -and
     $exclusiveProxyRemove.Contains("return SCRIPT_CONTINUE;") -and
     -not $exclusiveProxyRemove.Contains(
+        "isRetiredPostNgePlayerProfessionProxyBuffName") -and
+    $excludeSelfRemove.Contains("return SCRIPT_CONTINUE;") -and
+    -not $excludeSelfRemove.Contains(
         "isRetiredPostNgePlayerProfessionProxyBuffName") -and
     [bool]$contract.expected.professionProxyRemoveCleanupPreserved -and
     [bool]$contract.expected.nonPlayerNgeProfessionProxyCompatibilityPreserved) `
