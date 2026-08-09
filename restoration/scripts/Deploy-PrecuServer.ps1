@@ -953,6 +953,7 @@ grep -Fq 'utils.isPrecuRetainedItemClass(player, profession)' "$work_vendor"
 ! grep -Fq 'getPlayerProfession(' "$work_meatlump_vendor"
 ! grep -Fq 'getPlayerProfession(' "$work_nova_orion_vendor"
 cmp -s "$source_stealth_library" "$work_stealth_library"
+grep -Fq '"invis_cover"' "$work_stealth_library"
 cmp -s "$source_luck_library" "$work_luck_library"
 cmp -s "$source_crafting_library" "$work_crafting_library"
 cmp -s "$source_resource_library" "$work_resource_library"
@@ -5808,16 +5809,38 @@ test "$(printf '%s' "$stealth_theft_bytecode" | grep -Fc 'script/library/xp.getP
 stealth_decoy_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n '/public static script.obj_id createDecoy/,/public static boolean isDecoy/p')"
 test "$(printf '%s' "$stealth_decoy_bytecode" | grep -Fc 'script/library/xp.getPrecuCombatLevel')" -eq 1
 ! printf '%s' "$stealth_decoy_bytecode" | grep -Fq 'script/base_class.getLevel'
-# Publish 14.1 retains mask scent and Ranger conceal, but not the later
-# urbanStealth, wildernessStealth, or Force Cloak player action/buff family.
+# Publish 14.1 retains mask scent, Ranger conceal, and invis_cover, but not the
+# later Ranger blend/camouflage, Spy stealth/smoke, Smuggler ally-invisibility,
+# urban/wilderness stealth, or Force Cloak player action/buff families.
 post_p14_invisibility_retirement_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n '/public static boolean isRetiredPostP14PlayerInvisibilityName/,/public static void setBioProbeData/p')"
-printf '%s' "$stealth_bytecode" | grep -Fq 'urbanStealth'
-printf '%s' "$stealth_bytecode" | grep -Fq 'wildernessStealth'
-printf '%s' "$stealth_bytecode" | grep -Fq 'forceCloak'
-printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_urbanStealth'
-printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_wildernessStealth'
-printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_forceCloak'
+for retired_invisibility_name in \
+  blendIn camouflageAlly camouflageSelf stealth stealth_1 stealth_2 \
+  smokeGrenade smokeGrenade_1 smokeGrenade_2 sm_buff_invis_ally_1 \
+  urbanStealth wildernessStealth forceCloak \
+  invis_blendIn invis_camouflage invis_urbanStealth invis_wildernessStealth \
+  invis_forceCloak invis_stealth invis_stealth_1 invis_stealth_2 \
+  invis_smokeGrenade invis_smokeGrenade_1 invis_smokeGrenade_2 \
+  invis_sm_buff_invis_1
+do
+  printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq "$retired_invisibility_name"
+done
+! printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_cover'
 printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'retirePostP14PlayerInvisibilityState'
+assert_stealth_retirement_guard()
+{
+  guarded_method_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n "/$1/,/$2/p")"
+  printf '%s' "$guarded_method_bytecode" | grep -Fq "$3"
+  printf '%s' "$guarded_method_bytecode" | grep -Fq 'retirePostP14PlayerInvisibilityState'
+}
+assert_stealth_retirement_guard 'canPerformSmokeGrenade' 'canPerformWithoutTrace' 'isRetiredPostP14PlayerInvisibilityAction'
+assert_stealth_retirement_guard 'canPerformStationaryInvis' 'public static void smokeGrenade' 'isRetiredPostP14PlayerInvisibilityAction'
+assert_stealth_retirement_guard 'public static void smokeGrenade' 'public static void bothanInnate' 'isRetiredPostP14PlayerInvisibilityAction'
+assert_stealth_retirement_guard 'canPerformStealth' 'public static void stealth' 'isRetiredPostP14PlayerInvisibilityAction'
+assert_stealth_retirement_guard 'public static void stealth' 'public static void withoutTrace' 'isRetiredPostP14PlayerInvisibilityAction'
+assert_stealth_retirement_guard 'invisBuffAdded' 'canPerformCamouflageSelf' 'isRetiredPostP14PlayerInvisibilityName'
+assert_stealth_retirement_guard 'canPerformCamouflageSelf' 'public static void camouflageSelf' 'isRetiredPostP14PlayerInvisibilityAction'
+assert_stealth_retirement_guard 'public static void camouflageSelf' 'canPerformCamouflageAlly' 'isRetiredPostP14PlayerInvisibilityAction'
+assert_stealth_retirement_guard 'canPerformCamouflageAlly' 'canPerformUrbanStealth' 'isRetiredPostP14PlayerInvisibilityAction'
 javap -classpath "$class_root" -v script.library.buff | grep -Fq 'isRetiredPostP14PlayerInvisibilityName'
 javap -classpath "$class_root" -v script.library.jedi | grep -Fq 'isRetiredPostP14PlayerInvisibilityAction'
 javap -classpath "$class_root" -v script.systems.buff.buff_handler | grep -Fq 'retirePostP14PlayerInvisibilityState'

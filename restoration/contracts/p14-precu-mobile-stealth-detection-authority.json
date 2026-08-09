@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-precu-mobile-stealth-detection-authority",
   "status": "ready",
-  "scope": "Make production-reachable mobile conceal detection and retained NPC theft/decoy compatibility resolve players through the authenticated equipped-weapon PRE-CU combat level, and retire post-Publish-14 urban stealth, wilderness stealth, and Force Cloak gameplay for players while preserving authored NPC levels, Publish 14.1 concealment, and retained later-content data and assets.",
+  "scope": "Make production-reachable mobile conceal detection and retained NPC theft/decoy compatibility resolve players through the authenticated equipped-weapon PRE-CU combat level, and retire the post-Publish-14 Ranger blend/camouflage, Spy stealth/smoke, Smuggler ally-invisibility, urban/wilderness stealth, and Force Cloak families for players while preserving authored NPC levels, Publish 14.1 concealment, and retained later-content data and assets.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -19,9 +19,9 @@
       "The authenticated project helper xp.getPrecuCombatLevel already implements the same player-versus-NPC boundary and is distinct from retained-content encounter difficulty.",
       "Publish 14.1 has no player Spy theft or decoy profession actions, so those player entry points remain retired while retained NPC and expansion compatibility may continue to use their shared implementations.",
       "Retained theft comparisons and decoy combat metadata must use the same PRE-CU player-versus-authored-NPC difficulty boundary instead of the removed NGE player-level field.",
-      "The authenticated Publish 14.1 skill table grants Scout mask scent, Ranger conceal, Jedi animalAttack at force_discipline_powers_mental_04, and no urbanStealth, wildernessStealth, or forceCloak command.",
-      "The legacy PRE-CU/NGE skill diff identifies urbanStealth and wildernessStealth as NGE-added Ranger commands, while July 2005 post-CU notes document Force Cloak after the Publish 14.1 boundary.",
-      "The three later command, buff, Jedi-action, HEP, schematic, and visual compatibility surfaces remain loadable for NPC and expansion content, but cannot grant player gameplay authority."
+      "The authenticated Publish 14.1 skill table grants Scout mask scent, Ranger conceal, Jedi animalAttack at force_discipline_powers_mental_04, and none of the thirteen later action names in the retired invisibility family through native PRE-CU progression.",
+      "The legacy PRE-CU/NGE skill diff identifies later Ranger blend/camouflage, ranked Spy stealth/smoke, Smuggler ally-invisibility, urbanStealth, and wildernessStealth paths, while July 2005 post-CU notes document Force Cloak after the Publish 14.1 boundary.",
+      "The thirteen later action names, twelve matching buffs, command/combat rows, Jedi action, HEP, schematic, and visual compatibility surfaces remain loadable for NPC and expansion content, but cannot grant player gameplay authority; classic conceal and invis_cover remain outside the retirement set."
     ]
   },
   "diagnosis": {
@@ -62,15 +62,18 @@
     "postNgeSpyPlayerRuntimeRetired": true,
     "playerTheftAndDecoyInvocationRetired": true,
     "retainedNpcTheftAndDecoyCompatibilityPreserved": true,
-    "retiredPostP14PlayerInvisibilityNames": 6,
-    "retiredPostP14PlayerInvisibilityActions": 3,
-    "retiredPostP14PlayerInvisibilityBuffs": 3,
+    "retiredPostP14PlayerInvisibilityNames": 25,
+    "retiredPostP14PlayerInvisibilityActions": 13,
+    "retiredPostP14PlayerInvisibilityBuffs": 12,
+    "directPlayerInvisibilityMethodsGuarded": 9,
     "postP14PlayerInvisibilityLifecycleCleanup": true,
     "postP14PlayerInvisibilityGenericAdmissionDenied": true,
     "hepPlayerUrbanStealthActivationRetired": true,
-    "retainedPostP14CommandRows": 2,
-    "retainedPostP14BuffRows": 3,
+    "retainedPostP14CommandRows": 8,
+    "retainedPostP14CombatRows": 7,
+    "retainedPostP14BuffRows": 12,
     "retainedPostP14JediActionRows": 1,
+    "classicConcealBuffRows": 1,
     "retainedPostP14CompatibilityAssetsPreserved": true,
     "laterNpcAndExpansionContentPreserved": true
   },
@@ -87,16 +90,17 @@
     "hep": "dsrc/sku.0/sys.server/compiled/game/script/systems/skills/stealth/hep.java",
     "jedi": "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
     "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
     "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
     "jediActions": "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "42533bb539296806c701239384595f2df03a9b32",
+    "directSourceGitlink": "acaccce5f9ace9c11165fe7d8848b75432254a96",
     "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
-      "stealth": "48deacf625da0047c46f2a8ba6198d95dc13055399427ca829169e049889858f",
+      "stealth": "18324719ba4b0e077c2c49dde160a6a28e380941f59b7f8acf222627ac8a1160",
       "buff": "a24ae3a307dfc9c735687ecbb6b06c6294874fb6d0a6ebdc9cc921d93ab40848",
       "jedi": "f69bb9c32403659bbbd8028b7a92ea3445d1914fa522a470d2e06d9dc35a42e5",
       "buffHandler": "0c6625047edde96fcc3cbeda082b48b043883425c1d4dcb45275f5f492347218",
@@ -151,8 +155,8 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the production mobile conceal detector, retained theft and decoy reads of the removed NGE player-level field, and player authority for post-Publish-14 urban stealth, wilderness stealth, and Force Cloak",
-    "preserved": "Publish 14.1 mask scent, Ranger conceal, Jedi animalAttack, current detection inputs, authored NPC levels, HEP and later invisibility data/assets, and retained expansion NPC theft and decoy behavior",
+    "closedInThisMilestone": "the production mobile conceal detector, retained theft and decoy reads of the removed NGE player-level field, and player authority for post-Publish-14 Ranger blend/camouflage, Spy stealth/smoke, Smuggler ally-invisibility, urban/wilderness stealth, and Force Cloak families",
+    "preserved": "Publish 14.1 mask scent, Ranger conceal and invis_cover, Jedi animalAttack, current detection inputs, authored NPC levels, HEP and later invisibility data/assets for non-player expansion compatibility, and retained expansion NPC theft and decoy behavior",
     "notClaimedComplete": "other dormant post-Publish-14 gameplay systems remain in the wider PRE-CU precedence audit"
   },
   "requiredBeforeReady": []
