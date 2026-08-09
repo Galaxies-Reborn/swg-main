@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "precu-admin-skill-authority",
-  "status": "ready",
-  "scope": "Replace GM, test-center, beta-terminal, and reachable QA XP/item NGE roadmap, broad XP-catalog, combat-level, expertise, class-template, Jedi-conversion, and tier-filter progression with canonical Publish 14.1 skill-box and XP administration; remove dormant compiled NGE mutation implementations while preserving fail-closed legacy script identities and retained later-content item packs.",
+  "status": "implemented-build-pending",
+  "scope": "Replace GM, test-center, beta-terminal, reachable QA XP/item, dormant beta debugger/XP test, and developer XP diagnostic NGE roadmap, broad XP-catalog, combat-level, expertise, class-template, Jedi-conversion, arbitrary skill mutation, and retired combat_general progression with canonical Publish 14.1 skill-box and XP administration; preserve fail-closed legacy script identities, non-progression debugging, and retained later-content item packs.",
   "sourceFiles": {
     "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "skillLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
@@ -21,7 +21,10 @@
     "qaItem": "dsrc/sku.0/sys.server/compiled/game/script/test/qaitem.java",
     "qaNge": "dsrc/sku.0/sys.server/compiled/game/script/test/qange.java",
     "betaXpTerminal": "dsrc/sku.0/sys.server/compiled/game/script/beta/terminal_xp.java",
-    "betaJedi": "dsrc/sku.0/sys.server/compiled/game/script/beta/tc_jedi.java"
+    "betaJedi": "dsrc/sku.0/sys.server/compiled/game/script/beta/tc_jedi.java",
+    "betaDebugger": "dsrc/sku.0/sys.server/compiled/game/script/beta/debugger.java",
+    "betaXpTest": "dsrc/sku.0/sys.server/compiled/game/script/beta/xp_test.java",
+    "developerXpTest": "dsrc/sku.0/sys.server/compiled/game/script/hnguyen/cwdm_test.java"
   },
   "compiledClasses": {
     "skillLibrary": "script/library/skill.class",
@@ -40,7 +43,10 @@
     "qaItem": "script/test/qaitem.class",
     "qaNge": "script/test/qange.class",
     "betaXpTerminal": "script/beta/terminal_xp.class",
-    "betaJedi": "script/beta/tc_jedi.class"
+    "betaJedi": "script/beta/tc_jedi.class",
+    "betaDebugger": "script/beta/debugger.class",
+    "betaXpTest": "script/beta/xp_test.class",
+    "developerXpTest": "script/hnguyen/cwdm_test.class"
   },
   "expected": {
     "publicProfessionRoots": 33,
@@ -67,6 +73,9 @@
     "canonicalPrecuXpCatalogConsumers": 3,
     "qaXpCanonicalEntryPoints": 2,
     "betaJediConversionReachable": false,
+    "broadBetaXpMutationReachable": false,
+    "arbitraryBetaSkillMutationReachable": false,
+    "retiredCombatGeneralDiagnosticReachable": false,
     "qaNgeSkillResetHelperReachable": false,
     "qaItemCombatLevelFilter": false,
     "qaItemClassTemplateFilter": false,
@@ -74,9 +83,9 @@
     "laterContentItemPacksPreserved": true
   },
   "buildEvidence": {
-    "directSourceGitlink": "c2dcd61bfbb00dc4588d4e754eb7d821e411ef11",
-    "parentCommitAtDeployment": "91d7214b45b3e48e5d3b7720f4b56a81d4ca684e",
-    "javaCompile": "passed canonical clean x64 dependency rebuild in 1044.5 seconds from pushed parent 91d7214b45b3e48e5d3b7720f4b56a81d4ca684e and direct dsrc c2dcd61bfbb00dc4588d4e754eb7d821e411ef11; 5713 Java sources produced 5747 classes with zero shared-memory residue",
+    "directSourceGitlink": "6e134d721c59a936fa4d58dfb40dbdd86a4359b8",
+    "parentCommitAtDeployment": "pending-current-source-deployment",
+    "javaCompile": "focused compile passed for the three changed beta/developer Java classes against the deployed x64 dependency tree with zero shared-memory residue; canonical clean x64 dependency rebuild pending",
     "javaSourcesCompiled": 5713,
     "javaClassesEmitted": 5747,
     "compiledClassRoot": "/swg-precu/data/sku.0/sys.server/compiled/game",
@@ -98,7 +107,10 @@
       "qaItem": "01a66cef23573fa5e6e45c8132129777edb29a2d6e6d10b8beb60aab2c9c7ce6",
       "qaNge": "84ff10ca18111ee84395dfe5b574de17ee1829f2d836c1cb169d9ae01f63b20f",
       "betaXpTerminal": "10b4b9ba62508656955648faaf592fb332f18cdac18297ce75d0af37b853b837",
-      "betaJedi": "c99ec8c0b9a5199b58a9a193a452c6fdcbb8f52da7c009324d8cacd7e40c662f"
+      "betaJedi": "c99ec8c0b9a5199b58a9a193a452c6fdcbb8f52da7c009324d8cacd7e40c662f",
+      "betaDebugger": "711fa223894b2f4331b08ab861499034f217ebfc3efbf609df34c2c7898ac2f9",
+      "betaXpTest": "67fa6c02f50947e94a5544e02699fad5e71b293974100904db1263046e74e540",
+      "developerXpTest": "4c1e4121337db392fcdda9c4a95dbd1e38406094296d711d2e042f8777818b3d"
     },
     "classSha256": {
       "skillLibrary": "e248ed0a78e03038f7fd06c56d748f2426cafecb427007b2822ca84152c4accd",
@@ -117,7 +129,10 @@
       "qaItem": "c4849fc6887132c1620f276c76736e0a2eadbf6a9d923014e108e123690ecc3d",
       "qaNge": "5be7645fa1d0e362ff3746cf3e7acf5348568f086003d28c3d5e5fa70dd950cd",
       "betaXpTerminal": "d37c57617dd8055e60579ca65ac801813ee2df342ca2a97bbb2802ec799966be",
-      "betaJedi": "8a3642bb8464eeebbc66b0b8302a83ce3aaaf8ee2003cc2eda599081937f915e"
+      "betaJedi": "8a3642bb8464eeebbc66b0b8302a83ce3aaaf8ee2003cc2eda599081937f915e",
+      "betaDebugger": "pending-clean-x64-deployment",
+      "betaXpTest": "pending-clean-x64-deployment",
+      "developerXpTest": "pending-clean-x64-deployment"
     },
     "classBytes": {
       "skillLibrary": 32399,
@@ -136,24 +151,27 @@
       "qaItem": 20308,
       "qaNge": 745,
       "betaXpTerminal": 6392,
-      "betaJedi": 859
+      "betaJedi": 859,
+      "betaDebugger": 0,
+      "betaXpTest": 0,
+      "developerXpTest": 0
     },
-    "sourceWorkParity": "passed byte-for-byte for all eighteen authoritative source/data files between the read-only source mount, host direct source, and x64 Docker work volume",
-    "bytecodeAudit": "passed complete deployed 17-class audit: the XP library owns the canonical PRE-CU profession and pilot catalog; GM, QA, and beta XP surfaces consume it; QA callbacks remain self-bound; the NGE combat-level respec and beta Jedi conversion identities fail closed; later-content item packs remain available without NGE progression mutation",
-    "serverBinarySha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
-    "serverBinaryBuildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa",
+    "sourceWorkParity": "pending clean x64 deployment for all twenty-one authoritative source/data files",
+    "bytecodeAudit": "pending clean x64 deployment of canonical PRE-CU admin XP authority, constrained dormant beta/developer progression tools, and fail-closed NGE compatibility stubs",
+    "serverBinarySha256": "pending-clean-x64-deployment",
+    "serverBinaryBuildId": "pending-clean-x64-deployment",
     "architecture": "ELF 64-bit LSB x86-64"
   },
   "runtimeEvidence": {
     "date": "2026-08-09",
-    "result": "passed",
+    "result": "pending-current-source-deployment",
     "container": "swg-precu",
     "containerStartedAt": "2026-08-09T22:02:51.295063061Z",
     "containerHealth": "healthy",
-    "deployedParentCommit": "91d7214b45b3e48e5d3b7720f4b56a81d4ca684e",
-    "deployedDsrcCommit": "c2dcd61bfbb00dc4588d4e754eb7d821e411ef11",
-    "clusterReadyForPlayers": true,
-    "serverHealthy": true,
+    "deployedParentCommit": "pending-current-source-deployment",
+    "deployedDsrcCommit": "pending-current-source-deployment",
+    "clusterReadyForPlayers": false,
+    "serverHealthy": false,
     "liveGameProcessPid": 373,
     "liveGameProcessCount": 15,
     "liveGameProcessesMappedBuiltBinary": 15,
@@ -179,5 +197,9 @@
     },
     "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical clean x64 dependency rebuild from pushed direct source",
+    "deployed bytecode and source/work parity audit for all twenty-one authoritative files",
+    "fresh-start runtime health and process-map evidence"
+  ]
 }

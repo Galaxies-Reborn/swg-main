@@ -57,6 +57,9 @@ $qaItem = Get-SourceText "qaItem"
 $qaNge = Get-SourceText "qaNge"
 $betaXpTerminal = Get-SourceText "betaXpTerminal"
 $betaJedi = Get-SourceText "betaJedi"
+$betaDebugger = Get-SourceText "betaDebugger"
+$betaXpTest = Get-SourceText "betaXpTest"
+$developerXpTest = Get-SourceText "developerXpTest"
 
 $rootConstant = Get-Slice $skill `
     "public static final String[] PRECU_PUBLIC_PROFESSION_ROOTS" `
@@ -407,6 +410,58 @@ Assert-Excludes $betaXpTerminal @(
     "grantExperiencePoints("
 ) "beta XP terminal"
 
+Assert-Contains $betaDebugger @(
+    "skill.grantPrecuSkillWithPrerequisites(",
+    "skill.isPrecuPublicProfessionSkillName(",
+    "xp.isPrecuProgressionExperienceType(",
+    "xp.getPrecuProgressionExperienceAccessError(",
+    "xp.grant(target, xp_type, amt, false)",
+    "xp.grantUnmodifiedExperience(target, xp_type, amt, false)",
+    "NGE class/template mutation is retired",
+    "bulk skill mutation is retired",
+    "stale bulk skill request rejected"
+) "dormant beta debugger progression surface"
+Assert-Excludes $betaDebugger @(
+    "skill.assignSkillTemplate(",
+    "grantExperiencePoints(",
+    "grantSkill(self,",
+    "skill.grantSkillToPlayer(",
+    "skill.purchaseSkill(",
+    'dataTableGetStringColumn(skill.TBL_SKILL, "NAME")',
+    'messageTo(self, "handleGrantAllSkills"',
+    "xp.grant(target, xp_type, amt);"
+) "dormant beta debugger progression surface"
+
+Assert-Contains $betaXpTest @(
+    "xp.isPrecuProgressionExperienceType(",
+    "xp.getPrecuProgressionExperienceAccessError(",
+    "xp.grant(target, xpType, amt, false)",
+    "xp.grantUnmodifiedExperience(target, xpType, -amt, false)",
+    "amount must be a positive integer"
+) "dormant beta XP test"
+Assert-Excludes $betaXpTest @(
+    "grantExperiencePoints(",
+    "xp.getXpTypes(",
+    "combat_general",
+    "setSkillTemplate("
+) "dormant beta XP test"
+
+Assert-Contains $developerXpTest @(
+    "The retired NGE combat XP diagnostic is disabled",
+    "Rejected stale NGE combat XP diagnostic message"
+) "developer XP diagnostic"
+Assert-Excludes $developerXpTest @(
+    'messageTo(target, "huyTestXP"',
+    "combat_general",
+    "xp.grant(self,"
+) "developer XP diagnostic"
+if ($contract.expected.broadBetaXpMutationReachable -or
+    $contract.expected.arbitraryBetaSkillMutationReachable -or
+    $contract.expected.retiredCombatGeneralDiagnosticReachable)
+{
+    throw "The dormant beta/developer progression reachability contract must fail closed."
+}
+
 Assert-Contains $qaItem @(
     "Get Later-Content Item Packs",
     'ITEM_REWARD_TABLE = "datatables/roadmap/item_rewards.iff"',
@@ -516,7 +571,7 @@ if ($Expectation -eq "Ready")
     }
     $classRoot = [string]$contract.buildEvidence.compiledClassRoot
     $classFiles = @($contract.compiledClasses.PSObject.Properties)
-    if ($classFiles.Count -ne 17) { throw "PRE-CU admin compiled-class inventory is incomplete." }
+    if ($classFiles.Count -ne 20) { throw "PRE-CU admin compiled-class inventory is incomplete." }
     foreach ($property in $classFiles)
     {
         $classPath = $classRoot + "/" + [string]$property.Value
@@ -576,6 +631,9 @@ if ($Expectation -eq "Ready")
     $qaNgeBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qange | Out-String)
     $betaXpTerminalBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.terminal_xp | Out-String)
     $betaJediBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.tc_jedi | Out-String)
+    $betaDebuggerBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.debugger | Out-String)
+    $betaXpTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.xp_test | Out-String)
+    $developerXpTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.hnguyen.cwdm_test | Out-String)
     foreach ($entry in @{
         "deployed GM bytecode" = $playerUtilityBytecode
         "deployed test-center bytecode" = $builderBytecode
@@ -658,6 +716,46 @@ if ($Expectation -eq "Ready")
         "setObjVar:",
         "getStringObjVar:"
     ) "deployed beta XP terminal bytecode"
+    Assert-Contains $betaDebuggerBytecode @(
+        "grantPrecuSkillWithPrerequisites:",
+        "isPrecuPublicProfessionSkillName:",
+        "isPrecuProgressionExperienceType:",
+        "getPrecuProgressionExperienceAccessError:",
+        "script/library/xp.grant:",
+        "script/library/xp.grantUnmodifiedExperience:",
+        "NGE class/template mutation is retired",
+        "bulk skill mutation is retired",
+        "stale bulk skill request rejected"
+    ) "deployed dormant beta debugger bytecode"
+    Assert-Excludes $betaDebuggerBytecode @(
+        "script/library/skill.assignSkillTemplate:",
+        "grantExperiencePoints:",
+        "grantSkill:",
+        "script/library/skill.grantSkillToPlayer:",
+        "script/library/skill.purchaseSkill:",
+        "combat_general"
+    ) "deployed dormant beta debugger bytecode"
+    Assert-Contains $betaXpTestBytecode @(
+        "isPrecuProgressionExperienceType:",
+        "getPrecuProgressionExperienceAccessError:",
+        "script/library/xp.grant:",
+        "script/library/xp.grantUnmodifiedExperience:",
+        "amount must be a positive integer"
+    ) "deployed dormant beta XP test bytecode"
+    Assert-Excludes $betaXpTestBytecode @(
+        "grantExperiencePoints:",
+        "getXpTypes:",
+        "combat_general",
+        "setSkillTemplate:"
+    ) "deployed dormant beta XP test bytecode"
+    Assert-Contains $developerXpTestBytecode @(
+        "The retired NGE combat XP diagnostic is disabled",
+        "Rejected stale NGE combat XP diagnostic message"
+    ) "deployed developer XP diagnostic bytecode"
+    Assert-Excludes $developerXpTestBytecode @(
+        "combat_general",
+        "script/library/xp.grant:"
+    ) "deployed developer XP diagnostic bytecode"
     Assert-Contains $qaItemBytecode @(
         "Get Later-Content Item Packs",
         "datatables/roadmap/item_rewards.iff",
