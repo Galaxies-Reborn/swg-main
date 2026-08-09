@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-post-nge-player-xp-buff-admission-retirement",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Retire the four retained post-NGE player XP-bonus buff rows at generic admission, refresh, persistence, and login cleanup so later reward chips and food cannot create effectless status icons or consume themselves for a retired progression modifier, while retaining every item, reward, quest, food, template, appearance, string, and non-player compatibility asset.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -61,20 +61,67 @@
     "focusedClassBytes": {
       "library/buff.class": 79994
     },
-    "fullServerBuild": "pending canonical clean x86-64 deployment",
+    "fullServerBuild": "passed: canonical clean x86-64 deployment completed in 941.3 seconds from parent 2966f2e26b3869a1da3c91d18af3572e9a4c5e9b and dsrc 0482b2ad0a3d44f2afd85665d012f19f78115fd2",
+    "deployedParentCommit": "2966f2e26b3869a1da3c91d18af3572e9a4c5e9b",
+    "deployedDsrcCommit": "0482b2ad0a3d44f2afd85665d012f19f78115fd2",
+    "deployedJavaSources": 5713,
+    "deployedJavaClasses": 5747,
+    "sourceWorkParity": "passed byte-for-byte for library/buff.java between the read-only direct-source mount and canonical Docker work tree at SHA-256 af8b71e1974c18200702aedd376fe9e3770c959d44e8ca2d8477e83eef41f92e",
+    "deployedClassSha256": {
+      "library/buff.class": "e4ee8a92684fd01c5b7d9d80605d58bc67cdc1e0fa66239b4e1f4c319e359fac"
+    },
+    "deployedClassBytes": {
+      "library/buff.class": 92580
+    },
+    "deployedBytecodeAudit": "passed: deployed bytecode contains the exact four retired XP-bonus buff names; the player-only predicate delegates to the exact-name inventory; stale-state cleanup removes matching buffs and buff.xpBonusGeneral; the central login cleanup invokes it; generic admission calls the predicate at bytecode offset 388 before hasBuff at offset 472 and returns false through the shared rejection branch; the six-argument apply path calls canApplyBuff before mutation",
+    "serverBinary": {
+      "path": "/swg-precu/build/bin/SwgGameServer",
+      "format": "ELF 64-bit LSB x86-64",
+      "sha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
+      "bytes": 22561640,
+      "inode": 12141592,
+      "buildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa"
+    },
+    "serverGameArchive": {
+      "path": "/swg-precu/build/engine/server/library/serverGame/src/libserverGame.a",
+      "sha256": "db86201560944ce97864f3010c7abd7f74eb771e2908ddd10a76802ec42aad52",
+      "bytes": 32651496,
+      "inode": 11801721
+    },
     "result": "passed"
   },
   "runtimeEvidence": {
-    "result": "pending canonical clean x86-64 deployment"
+    "result": "passed",
+    "container": "swg-precu",
+    "startedAt": "2026-08-09T07:40:32.69700979Z",
+    "state": "running",
+    "health": "healthy",
+    "serverHealthy": true,
+    "clusterReadyForPlayers": true,
+    "playerReadyMarkers": 1,
+    "freshLogLines": 357,
+    "freshJavaErrors": 0,
+    "prohibitedFreshLogSignatures": 0,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "LogServer": 1,
+      "ConnectionServer": 1,
+      "DatabaseServer": 1,
+      "TransferServer": 1,
+      "ChatServer": 1,
+      "CommoditiesServer": 1,
+      "CentralServer": 1,
+      "PlanetServer": 15,
+      "GameServer": 15
+    },
+    "gameServerBinaryAuthentication": "all 15 live game-server processes map /swg-precu/build/bin/SwgGameServer; 30 executable/shared-object map entries total and zero unmapped processes",
+    "devShmEntries": 0
   },
   "auditBoundary": {
     "closedInThisMilestone": "the exact four-row xp_bonus_general player-buff family across generic admission, direct application, refresh, persistence, empty status-icon creation, stale script-variable state, and item-consumption gating",
     "preserved": "explicit PRE-CU skill XP pools, ordinary XP grants, retained reward chips, foods, Meatlump content, veteran rewards, item/template data, appearances, strings, quests, zones, and non-player compatibility",
     "notClaimedComplete": "the broader PRE-CU precedence discovery audit and nine live gameplay verification audits remain active"
   },
-  "requiredBeforeReady": [
-    "canonical clean x86-64 server build and deployment",
-    "deployed buff-class authentication and bytecode audit",
-    "healthy player-ready runtime evidence"
-  ]
+  "requiredBeforeReady": []
 }
