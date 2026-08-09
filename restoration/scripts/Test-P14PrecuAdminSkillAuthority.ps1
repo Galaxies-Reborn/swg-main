@@ -151,7 +151,7 @@ Assert-Excludes $gmSurface @(
 
 $builderSurface = Get-Slice $characterBuilder `
     "public void handlePrecuSkills" `
-    "public void revokeAllSkills"
+    "public void handlePetAbilityOption"
 Assert-Contains $builderSurface @(
     "gm.getPrecuProfessionList()",
     "skill.getPrecuProfessionSkillList(",
@@ -169,6 +169,33 @@ Assert-Excludes $builderSurface @(
     "revokeAllSkills(",
     "skill_template."
 ) "test-center skill surface"
+Assert-Excludes $characterBuilder @(
+    "getSkillTemplate(",
+    "setSkillTemplate(",
+    "autoLevelPlayer(",
+    "autoAllocateExpertiseByLevel(",
+    "fullExpertiseReset(",
+    "revokeAllSkills("
+) "complete test-center source"
+$publishOptions = Get-Slice $characterBuilder `
+    "public int handlePublishOptions" `
+    "public void flagAllHeroicInstances"
+Assert-Contains $publishOptions @(
+    "PUB27_HEAVYPACK",
+    "generateGenerationSabers(",
+    "PUB27_TRAPS",
+    "PRE-CU skills were not changed",
+    "Jedi gear issued"
+) "test-center Publish content surface"
+Assert-Excludes $publishOptions @(
+    "getSkillTemplate(",
+    "setSkillTemplate(",
+    "autoLevelPlayer(",
+    "fullExpertiseReset(",
+    "revokeAllSkills(",
+    "grantExperiencePoints(",
+    "setWorkingSkill("
+) "test-center Publish content surface"
 
 $qaSpec = Get-Slice $qaTool `
     "public boolean precuSpecTester" `
@@ -179,36 +206,74 @@ Assert-Contains $qaSpec @(
     "PRE-CU skill box and missing prerequisites granted"
 ) "QA spec surface"
 Assert-Excludes $qaSpec @("setSkillTemplate(", "autoLevelPlayer(", "expertise", "Roadmap", "roadmap") "QA spec surface"
+$retiredSpec = Get-Slice $qaTool `
+    "public boolean retiredNgeSpecTester" `
+    "public boolean mulipleStaticSpawn"
+Assert-Contains $retiredSpec @(
+    "NGE class, level, and roadmap mutation is retired",
+    "return false;"
+) "retired QA NGE spec surface"
+Assert-Excludes $retiredSpec @(
+    "setSkillTemplate(",
+    "getLevel(",
+    "grantExperiencePoints(",
+    "grantSkillToPlayer(",
+    "revokeAllSkills(",
+    "spawnItems(",
+    "attainCorrectFaction"
+) "retired QA NGE spec surface"
+Assert-Excludes $qaTool @(
+    "utils.fullExpertiseReset(",
+    'grantSkill(self, "expertise")',
+    'attachScript(self, "test.qaprofession")',
+    "qaprofession.mainMenu",
+    "PROFESSION_TOOL_MENU",
+    "setSkillTemplate(",
+    "autoLevelPlayer(",
+    "getLevel("
+) "complete QA tool source"
 if (([regex]::Matches($qaTool, '\bretiredNgeSpecTester\s*\(')).Count -ne 1 -or
-    -not $qaTool.Contains("String[] roadmapList = new String[0];") -or
     $qaTool.Contains('attachScript(self, "test.qange")') -or
     $qaTool.Contains('"handleGiveRespecItem"'))
 {
     throw "A reachable QA NGE spec or respec route remains."
 }
-if ($qaScript.Contains('"test.qange"') -or $qaScript.Contains('"test.qasetup"'))
+if ($qaScript.Contains('"test.qange"') -or
+    $qaScript.Contains('"test.qasetup"') -or
+    $qaScript.Contains('"test.qaprofession"'))
 {
     throw "The QA script menu still offers retired NGE setup scripts."
 }
 
-$professionMutation = Get-Slice $qaProfession `
-    "public int handleProfessionDetails" `
-    "public int handleTraderSelection"
-Assert-Contains $professionMutation @("NGE template mastering is retired", "/qatool spec <PRE-CU skill box>") "QA profession mutation surface"
-Assert-Excludes $professionMutation @("setSkillTemplate(", "grantSkillToPlayer(", "qa.revokeAllSkills(") "QA profession mutation surface"
-
 foreach ($entry in @{
-    "QA level-90 setup" = [pscustomobject]@{ Text=$qaSetup; Next="public int OnSpeaking"; Script="test.qasetup"; Message="NGE level-90 and expertise setup tool is retired" }
-    "QA class/template setup" = [pscustomobject]@{ Text=$qaCharacter; Next="public int OnSpeaking"; Script="test.qa_character"; Message="NGE class/template setup tool is retired" }
+    "QA level-90 setup" = [pscustomobject]@{ Text=$qaSetup; Class="qasetup"; Script="test.qasetup"; Message="NGE level-90 and expertise setup tool is retired" }
+    "QA class/template setup" = [pscustomobject]@{ Text=$qaCharacter; Class="qa_character"; Script="test.qa_character"; Message="NGE class/template setup tool is retired" }
+    "QA profession/roadmap assistant" = [pscustomobject]@{ Text=$qaProfession; Class="qaprofession"; Script="test.qaprofession"; Message="NGE profession and roadmap assistant is retired" }
 }.GetEnumerator())
 {
-    $attach = Get-Slice $entry.Value.Text "public int OnAttach" $entry.Value.Next
-    Assert-Contains $attach @(
+    Assert-Contains $entry.Value.Text @(
+        ("public class " + $entry.Value.Class + " extends script.base_script"),
+        "public int OnAttach",
         ('detachScript(self, "' + $entry.Value.Script + '");'),
         $entry.Value.Message,
+        "/qatool spec <PRE-CU skill box>",
         "return SCRIPT_CONTINUE;"
     ) $entry.Key
-    Assert-Excludes $attach @("isGod(", "getGodLevel(", "attachScript(") $entry.Key
+    Assert-Excludes $entry.Value.Text @(
+        "isGod(",
+        "getGodLevel(",
+        "attachScript(",
+        "setSkillTemplate(",
+        "autoLevelPlayer(",
+        "autoAllocateExpertiseByLevel(",
+        "fullExpertiseReset(",
+        "grantSkillToPlayer(",
+        "dataTable"
+    ) $entry.Key
+    if (([regex]::Matches($entry.Value.Text, '\bpublic int\s+')).Count -ne 1)
+    {
+        throw "$($entry.Key) is not a minimal fail-closed compatibility stub."
+    }
 }
 
 if ($Expectation -eq "Ready")
@@ -285,16 +350,37 @@ if ($Expectation -eq "Ready")
     }
     Assert-Contains $playerUtilityBytecode @("purchaseWorkingPrecuSkillForTesting", "getPrecuProfessionSkillList") "deployed GM bytecode"
     Assert-Contains $builderBytecode @("purchaseWorkingPrecuSkillForTesting", "getPrecuProfessionSkillList") "deployed test-center bytecode"
+    Assert-Excludes $builderBytecode @(
+        "getSkillTemplate",
+        "setSkillTemplate",
+        "autoLevelPlayer",
+        "autoAllocateExpertiseByLevel",
+        "fullExpertiseReset",
+        "revokeAllSkills"
+    ) "complete deployed test-center bytecode"
+    Assert-Excludes $qaToolBytecode @(
+        "setSkillTemplate",
+        "autoLevelPlayer",
+        "fullExpertiseReset",
+        "getLevel"
+    ) "complete deployed QA tool bytecode"
     if (([regex]::Matches($qaToolBytecode, "Method retiredNgeSpecTester")).Count -ne 0)
     {
         throw "Deployed QA bytecode calls the retired NGE spec implementation."
     }
-    foreach ($className in @("script.test.qasetup", "script.test.qa_character"))
+    foreach ($className in @("script.test.qasetup", "script.test.qa_character", "script.test.qaprofession"))
     {
         $bytecode = (& docker exec $Container javap -classpath $classRoot -c -p $className | Out-String)
-        $attach = Get-Slice $bytecode "public int OnAttach" "public int OnSpeaking"
-        Assert-Contains $attach @("detachScript") "deployed $className OnAttach"
-        Assert-Excludes $attach @("setSkillTemplate", "autoLevelPlayer", "autoAllocateExpertiseByLevel") "deployed $className OnAttach"
+        Assert-Contains $bytecode @("public int OnAttach", "detachScript", "/qatool spec <PRE-CU skill box>") "deployed $className stub"
+        Assert-Excludes $bytecode @(
+            "OnSpeaking",
+            "setSkillTemplate",
+            "autoLevelPlayer",
+            "autoAllocateExpertiseByLevel",
+            "fullExpertiseReset",
+            "grantSkillToPlayer",
+            "dataTable"
+        ) "deployed $className stub"
     }
     $state = (& docker inspect --format "{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}" $Container).Trim()
     if ($LASTEXITCODE -ne 0 -or $state -cne "running healthy")

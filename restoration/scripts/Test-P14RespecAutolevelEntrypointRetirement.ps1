@@ -162,10 +162,8 @@ $expectedByPath = [ordered]@{
     "library/skill_template.java" = 3
     "library/utils.java" = 1
     "player/live_conversions.java" = 2
-    "terminal/terminal_character_builder.java" = 1
     "test/dwhite_test.java" = 1
     "test/precu_marksman_tier1_fixture.java" = 5
-    "test/qa_character.java" = 2
     "test/qaitem.java" = 1
     "test/qaxp.java" = 1
     "test/thicks_test.java" = 1
@@ -183,7 +181,7 @@ Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter "*.java" | ForEach-Objec
         $actualByPath[$relative] = $count
     }
 }
-if (($actualByPath.Values | Measure-Object -Sum).Sum -ne 37)
+if (($actualByPath.Values | Measure-Object -Sum).Sum -ne 34)
 {
     throw "Residual skill-template reference total changed."
 }
