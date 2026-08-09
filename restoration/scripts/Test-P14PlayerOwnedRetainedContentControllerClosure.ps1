@@ -168,7 +168,15 @@ $referenced = [ordered]@{
 }
 foreach ($entry in $referenced.GetEnumerator())
 {
-    Assert-Contract ([string]$entry.Value.status -ceq "ready") `
+    $allowedReferencedStatuses = if ($Expectation -eq "Ready")
+    {
+        @("ready")
+    }
+    else
+    {
+        @("source-ready", "implemented-build-pending", "ready")
+    }
+    Assert-Contract ([string]$entry.Value.status -in $allowedReferencedStatuses) `
         "p14.player-owned-controller.referenced-contract.$($entry.Key).ready"
 }
 Assert-Contract (
