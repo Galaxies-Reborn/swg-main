@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-data-grant-persistence-closure",
+  "status": "implemented-build-pending",
+  "scope": "Close the final stale player data-grant and persistence audit across skill, command, Chronicles XP, stored Chronicle rewards, delayed progression callbacks, and non-skill command objvars while preserving Publish 14.1 skill-box progression and retained quest, badge, faction, pilot, entertainer, item, and expansion-content rewards.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "Pinned Publish 14.1 Core3 has no NGE class/expertise progression, Chronicles profession or XP, Storyteller reward reserve, cybernetic combat commands, or veteran migration buff command.",
+    "retainedBoundary": "Later quests, conversations, zones, objects, item templates, and independent quest state stay loadable; only retired player progression grants and their persisted authority fail closed."
+  },
+  "inventory": {
+    "grantSourceLines": 424,
+    "grantSourceFiles": 57,
+    "grantSkillSourceLines": 393,
+    "grantSkillSourceFiles": 45,
+    "grantCommandSourceLines": 31,
+    "grantCommandSourceFiles": 19,
+    "normalizedInventorySha256": "a8b974cf417560fa077cb01b3ac8ccd43a6b078d3563d0e475812da1cf8e7706",
+    "excludedFixtureDirectories": [
+      "test",
+      "working",
+      "beta",
+      "gm",
+      "content_tools",
+      "e3demo"
+    ]
+  },
+  "expected": {
+    "authoritativeSourceFiles": 14,
+    "retiredNativeCommandNames": 17,
+    "authoritativeRetiredSkillGrantsRejected": true,
+    "authoritativeRetiredCommandGrantsRejectedBeforePersistence": true,
+    "persistedRetiredNonSkillCommandsRemovedOnLoad": true,
+    "positiveChroniclesXpRejectedAndRemoved": true,
+    "storedChroniclesXpAndTokenReservesRemovedOnLogin": true,
+    "chroniclesProfessionGrantRejected": true,
+    "chroniclesRoadmapAndTokenRewardsRejected": true,
+    "chroniclesRatingReserveCallbackRejected": true,
+    "storytellerStoredRewardClaimsRejected": true,
+    "nonPlayerExpansionCompatibilityPreserved": true,
+    "preCuSkillBoxAndXpProgressionPreserved": true,
+    "retainedQuestBadgeFactionPilotEntertainerAndItemRewardsPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "6193173a6e96d395ec3aa43413ab67cde64d8a3a",
+    "nativeSourceCommit": "3f530f88a1b904d349cc08bced37e84d57df1e4d",
+    "hostMaterializationWorkflow": "retired; no host artifact, staging, or generated overlay tree",
+    "sourceSha256": {
+      "CreatureObject.cpp": "ddb773ce861c48c11b6f25f331b278a54b94b0c200cf2662dbfc232874887e01",
+      "CreatureObject.h": "654838fe8cc7225673f68eed4bd744b97757da06d7a7a0bee054e70e458113ea",
+      "skill.java": "94dbb1f6ec4dc17acd90429379bdb62749174618dd86e1a4146a8f69155ab68e",
+      "xp.java": "3e1c8aeeea216673b882f1db186923c922a5a934c14690191b0d14de2cc7c9af",
+      "pgc_quests.java": "d7984c6420bb521b2963d47c8c38238c94d36222d0317f9ab5b83295d2545537",
+      "base_player.java": "c11554be93bb5537d1937d60680d6284a2894f7f686691f48fe37b5a38026f65",
+      "player_saga_quest.java": "d6bc3e9fe1643ed8fc96b48b67d84f790aab1f2c4eee89d154d59932a087222a",
+      "storyteller_commands.java": "1e7be916cd5ac7124b51b0b6b7fd60e0c5349c6d03616b42419084eaafe8600a",
+      "collection.java": "4ed1fdcc203c64b6337771d20e3dbe75fb8ac4bab05a634622417a228a3a3820",
+      "cybernetic.java": "7420f4c681ec7b46343592bc72e69055dd8fe791f6ddda2641cd2c11cccecb97",
+      "respec.java": "b24248616509197101c86b837c641500ffc0f186115c0c76e410a8289f6ce33b",
+      "xp_purchase.java": "46dbf986116233dd256e9bf16083f6432191a278ca348099891dbb1ac8b83385",
+      "loot_schematic.java": "505381f03c4a823bc1e67185966bab7cf48ca2189819d10affa70d4044f1d32d",
+      "buff_handler.java": "0c6625047edde96fcc3cbeda082b48b043883425c1d4dcb45275f5f492347218"
+    },
+    "focusedJavaCompile": "passed with Java 8 source/target against the canonical deployed classpath",
+    "focusedClassSha256": {
+      "pgc_quests.class": "30b6e658a6061100f41b9e39456945c76f250fb562e995c762fec44a18f0bbac",
+      "base_player.class": "50cffb08d8ec7e62b82d130d7a6d42f188a2d115dcd9d1555c507265d098175e",
+      "player_saga_quest.class": "f9494bf9a760c370b2668086e36ff59f80c6dabca93617d0d73792b56163b7bb",
+      "storyteller_commands.class": "04d4a76bcc8a72d74fc8b97ffc16af5ec18a233433df9310724805996ef89618"
+    },
+    "focusedNativeCompile": "passed in the canonical Docker x86-64 Release serverGame library",
+    "creatureObjectObjectSha256": "b407f2bcf64b0102c4ca30135a6f87a445de819a203b6e7632b7c313963a8511",
+    "fullServerBuild": "pending canonical clean x86-64 deployment",
+    "result": "source-and-focused-build-passed"
+  },
+  "runtimeEvidence": {
+    "result": "pending canonical deployment",
+    "container": "swg-precu"
+  },
+  "requiredBeforeReady": [
+    "canonical clean x86-64 server deployment from the pushed src and dsrc revisions",
+    "source/work parity, linked native marker, deployed bytecode, live mapped-binary, readiness, and clean post-start log verification"
+  ]
+}

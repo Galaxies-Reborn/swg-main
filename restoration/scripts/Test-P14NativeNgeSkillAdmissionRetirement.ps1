@@ -260,6 +260,24 @@ if (-not $warmup.Contains($retiredCommandAdmission) -or
     throw "Native NGE command admission does not fail closed before the blank character-ability bypass."
 }
 
+$commandGrant = Get-BracedSurface -Text $creature -Signature "bool CreatureObject::grantCommand"
+$commandCleanup = Get-BracedSurface -Text $creature -Signature "void CreatureObject::clearRetiredNgeProgressionCommands"
+$clientLoad = Get-BracedSurface -Text $creature -Signature "void CreatureObject::onClientAboutToLoad"
+if (-not $commandGrant.Contains("isPlayerControlled()") -or
+    -not $commandGrant.Contains("isRetiredNgeProgressionCommandName(commandName)") -or
+    $commandGrant.IndexOf("return false;", [StringComparison]::Ordinal) -gt
+        $commandGrant.IndexOf("setObjVarItem", [StringComparison]::Ordinal) -or
+    -not $commandCleanup.Contains("DynamicVariableList::NestedList") -or
+    -not $commandCleanup.Contains("isRetiredNgeProgressionCommandName(iter.getName())") -or
+    -not $commandCleanup.Contains("revokeCommand(*iter, false, true)") -or
+    -not $commandCleanup.Contains('removeObjVarItem(OBJVAR_NOT_SKILL_COMMANDS + "." + *iter)') -or
+    -not $clientLoad.Contains("clearRetiredNgeProgressionCommands();") -or
+    -not [bool]$contract.expected.authoritativeRetiredCommandGrantsRejected -or
+    -not [bool]$contract.expected.persistedRetiredNonSkillCommandsRemoved)
+{
+    throw "Authoritative or persisted retired NGE command admission remains open."
+}
+
 $grant = Get-BracedSurface -Text $creature -Signature "const bool CreatureObject::grantSkill"
 foreach ($required in @("isPlayerControlled()", "isRetiredNgeProgressionSkillName", "return false;"))
 {

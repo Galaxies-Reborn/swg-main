@@ -55,6 +55,10 @@ Write-Host "Verifying the player-owned retained-content controller closure befor
 & (Join-Path $PSScriptRoot "Test-P14PlayerOwnedRetainedContentControllerClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the data-grant and persistence closure before build..."
+& (Join-Path $PSScriptRoot "Test-P14DataGrantPersistenceClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
@@ -632,6 +636,12 @@ source_ai="$source_script/ai/ai.java"
 work_ai="$work_script/ai/ai.java"
 source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
+source_pgc_library="$source_script/library/pgc_quests.java"
+work_pgc_library="$work_script/library/pgc_quests.java"
+source_player_saga="$source_script/player/player_saga_quest.java"
+work_player_saga="$work_script/player/player_saga_quest.java"
+source_storyteller_commands="$source_script/systems/storyteller/storyteller_commands.java"
+work_storyteller_commands="$work_script/systems/storyteller/storyteller_commands.java"
 source_pet_library="$source_script/library/pet_lib.java"
 work_pet_library="$work_script/library/pet_lib.java"
 source_buff_library="$source_script/library/buff.java"
@@ -1319,6 +1329,9 @@ cmp -s "$source_mission_escort" "$work_mission_escort"
 cmp -s "$source_player_utility" "$work_player_utility"
 cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
+cmp -s "$source_pgc_library" "$work_pgc_library"
+cmp -s "$source_player_saga" "$work_player_saga"
+cmp -s "$source_storyteller_commands" "$work_storyteller_commands"
 cmp -s "$source_pet_library" "$work_pet_library"
 cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
@@ -6016,6 +6029,11 @@ printf '%s' "$beast_controller_bytecode" | grep -Fq 'public boolean retirePostNg
 printf '%s' "$beast_controller_bytecode" | grep -Fq 'beast_lib.isRetiredPostNgePlayerOwnedBeast'
 printf '%s' "$beast_controller_bytecode" | grep -Fq 'beast_lib.retirePostNgeBeastMasterPlayerState'
 test "$(printf '%s' "$beast_controller_bytecode" | grep -Fc 'retirePostNgePlayerOwnedRuntime')" -eq 5
+javap -classpath "$class_root" -v script.library.pgc_quests | grep -Fq 'retireChroniclesPlayerProgressionState'
+javap -classpath "$class_root" -v script.library.pgc_quests | grep -Fq 'PGC_STORED_CHRONICLE_GOLD_TOKENS_INDEX'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retireChroniclesPlayerProgressionState'
+javap -classpath "$class_root" -v script.player.player_saga_quest | grep -Fq 'isRetiredChroniclesPlayerProgression'
+javap -classpath "$class_root" -v script.systems.storyteller.storyteller_commands | grep -Fq 'retireChroniclesPlayerProgressionState'
 ! javap -classpath "$class_root" -v script.ai.creature_combat | grep -Fq 'expertise_bm_'
 ! javap -classpath "$class_root" -v script.conversation.trainer_beast_master | grep -Fq 'playerLearnBeastMasterSkill'
 javap -classpath "$class_root" -v script.conversation.trainer_beast_master | grep -Fq 'conversation/trainer_beast_master'
@@ -8026,6 +8044,8 @@ nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::processExpertiseRequest'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::clearRetiredNgeProgressionSkills()'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObjectNamespace::isRetiredNgeProgressionCommandName'
+nm -C "$server_game_archive" | grep -Fq 'CreatureObject::clearRetiredNgeProgressionCommands()'
+strings "$binary" | grep -Fq 'Retired %u persisted NGE progression command(s) while loading player %s'
 nm -C "$server_game_archive" | grep -Fq 'GroupObject::getSecondsLeftOnGroupPickup() const'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::startNpcConversation'
 nm -C "$server_game_archive" | grep -Fq 'TangibleObject::endNpcConversation()'
