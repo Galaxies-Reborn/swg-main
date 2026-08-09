@@ -96,6 +96,7 @@ foreach ($command in $expectedUnique) {
 }
 
 if ($Expectation -ceq "Ready") {
+    $directCommit = (& git -C (Join-Path $root "dsrc") rev-parse HEAD).Trim()
     Assert ([string]$contract.status -ceq "ready" -and [string]$contract.auditEvidence.result -ceq "passed") "M330 is not Ready"
     Assert ([int]$contract.auditBoundary.remainingCommands -eq 0 -and
         [bool]$contract.historicalAudit.publish12Verified -and
@@ -106,5 +107,20 @@ if ($Expectation -ceq "Ready") {
         [bool]$contract.commandBrowserClassification.nonCombatExamplesRemainOther -and
         [bool]$contract.evidenceClosure.readyContractsVerified -and
         [bool]$contract.evidenceClosure.mcpEvidenceVerified) "M330 closure evidence missing"
+    Assert ($LASTEXITCODE -eq 0 -and
+        [string]$contract.deploymentEvidence.result -ceq "passed" -and
+        [string]$contract.deploymentEvidence.directSourceCommit -ceq $directCommit -and
+        [string]$contract.deploymentEvidence.architecture -like "ELF 64-bit*" -and
+        [int]$contract.deploymentEvidence.javaSources -eq 5713 -and
+        [int]$contract.deploymentEvidence.javaClasses -eq 5747 -and
+        [string]$contract.deploymentEvidence.commandTableIffSha256 -match '^[a-f0-9]{64}$' -and
+        [int]$contract.deploymentEvidence.commandTableIffBytes -gt 0 -and
+        [bool]$contract.deploymentEvidence.clusterReadyForPlayers -and
+        [int]$contract.deploymentEvidence.liveGameProcessCount -eq 15 -and
+        [int]$contract.deploymentEvidence.livePlanetProcessCount -eq 15 -and
+        [int]$contract.deploymentEvidence.liveGameProcessesMappedBuiltBinary -eq 15 -and
+        [int]$contract.deploymentEvidence.readyMarkers -eq 1 -and
+        [int]$contract.deploymentEvidence.suspiciousLogLines -eq 0 -and
+        [int]$contract.deploymentEvidence.devShmEntries -eq 0) "M330 deployment evidence missing"
 }
 Write-Host "Publish 14.1 Core3 retained-command inventory closure passed."
