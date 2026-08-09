@@ -5813,16 +5813,20 @@ test "$(printf '%s' "$stealth_decoy_bytecode" | grep -Fc 'script/library/xp.getP
 # later Ranger blend/camouflage, Spy stealth/smoke, Smuggler ally-invisibility,
 # urban/wilderness stealth, or Force Cloak player action/buff families.
 post_p14_invisibility_retirement_bytecode="$(printf '%s' "$stealth_bytecode" | sed -n '/public static boolean isRetiredPostP14PlayerInvisibilityName/,/public static void setBioProbeData/p')"
-for retired_invisibility_name in \
+for retired_invisibility_action in \
   blendIn camouflageAlly camouflageSelf stealth stealth_1 stealth_2 \
   smokeGrenade smokeGrenade_1 smokeGrenade_2 sm_buff_invis_ally_1 \
-  urbanStealth wildernessStealth forceCloak \
+  urbanStealth wildernessStealth forceCloak
+do
+  printf '%s' "$stealth_bytecode" | grep -Fq "$retired_invisibility_action"
+done
+for retired_invisibility_buff in \
   invis_blendIn invis_camouflage invis_urbanStealth invis_wildernessStealth \
   invis_forceCloak invis_stealth invis_stealth_1 invis_stealth_2 \
   invis_smokeGrenade invis_smokeGrenade_1 invis_smokeGrenade_2 \
   invis_sm_buff_invis_1
 do
-  printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq "$retired_invisibility_name"
+  printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq "$retired_invisibility_buff"
 done
 ! printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'invis_cover'
 printf '%s' "$post_p14_invisibility_retirement_bytecode" | grep -Fq 'retirePostP14PlayerInvisibilityState'
