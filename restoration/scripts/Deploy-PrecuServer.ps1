@@ -88,6 +88,10 @@ Write-Host "Verifying direct-source post-NGE droid combat-module runtime retirem
 & (Join-Path $PSScriptRoot "Test-P14PostNgeDroidCombatModuleRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source command callback inventory closure before build..."
+& (Join-Path $PSScriptRoot "Test-P14DirectCommandCallbackInventoryClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying direct-source post-NGE player proc runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerProcRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
