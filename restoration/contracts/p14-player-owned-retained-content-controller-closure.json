@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-player-owned-retained-content-controller-closure",
+  "status": "source-ready",
+  "scope": "Close the retained-content ownership-controller audit across post-NGE player combat Beasts, droid combat modules, Officer hirelings and supply drops, autonomous GCW consumable turrets, cosmetic familiars, and retained Publish 14.1 pets and faction hirelings without disabling NPC, encounter, display, asset, or data compatibility.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "Pinned Publish 14.1 Core3 retains Creature Handler pets, classic droids, faction hirelings, and Detonate Droid but has no Beast Master combat Beast, post-NGE droid combat-module, Officer hireling/supply-drop, autonomous GCW consumable-turret, or familiar combat-buff player authority.",
+    "retainedContentBoundary": "Later NPC, encounter, display, reward, crafting, template, command, buff, and asset data remain loadable; only later player-owned combat authority is retired."
+  },
+  "expected": {
+    "authoritativeSourceFiles": 10,
+    "auditedControllerFamilies": 6,
+    "beastControllerAdmissionAndLifecycleRoots": 4,
+    "postNgePlayerOwnedBeastControllerReachable": false,
+    "postNgePlayerDroidCombatModulesReachable": false,
+    "postNgePlayerOfficerControllersReachable": false,
+    "postNgePlayerAutonomousGcwTurretCreationReachable": false,
+    "familiarCombatAuthorityReachable": false,
+    "cosmeticFamiliarLifecyclePreserved": true,
+    "precuCreatureHandlerPetRuntimePreserved": true,
+    "precuClassicDroidRuntimePreserved": true,
+    "precuDroidDetonationPreserved": true,
+    "precuFactionHirelingsPreserved": true,
+    "nonPlayerExpansionControllerCompatibilityPreserved": true,
+    "retainedDisplayCompatibilityPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "4628a4fc798c435f9286daf6cca46d4b3d9eb630",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "sourceSha256": {
+      "ai/beast.java": "e0680e12fcfd5571bc7aa77ddabf831ac430159a813115aad47196c97ff49a47",
+      "library/beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
+      "ai/pet.java": "9b241cdb4ea433f0a41999664dc35ff2f3bd0b8996cdb42b9ae1154b28563def",
+      "library/pet_lib.java": "d0b6a03365ed081075590dddb947d29b85ce9bffdad2712e66ef98727b51574b",
+      "ai/officer_pet.java": "3bbbab602848af451d1085bc6f3ca33d68cb8a5d0741010f62732155e3479b97",
+      "systems/combat/combat_supply_drop_controller.java": "e1d59b602155d6d97cd3952d9dffcd34cabd8cccdf44bf16323001c95ee254c5",
+      "systems/combat/combat_supply_drop_crate.java": "faabe522a58822b63afa273bbb2e708f60ce5dcfd85097ace793fa268c886ef8",
+      "systems/buff/buff_handler.java": "0c6625047edde96fcc3cbeda082b48b043883425c1d4dcb45275f5f492347218",
+      "ai/familiar.java": "659b992400ee7bf8bfabe647aa59c46c849685e9d9504ae4bcc8eb591fd436ff",
+      "library/faction_perk.java": "7baf89bd7af8946652592ac55756c29ae4f57c3a620b51f1b7323943fd943f99"
+    },
+    "focusedJavaCompile": "passed OpenJDK 11 Java 8-target compilation of ai/beast.java against the deployed class tree; emitted SHA-256 96974ef5fa9f3551c40d40bdf593e6b674d491360a540d9b042e0af923fb8383 at 28253 bytes and removed the isolated /dev/shm compile directory on exit",
+    "staticControllerAudit": "passed exact six-family ownership inventory; the stale player-owned Beast controller now self-retires before attach, world-load, setup, or recurring-ping mutation while all other player-retirement and retained PRE-CU/cosmetic boundaries remain authenticated by their ready contracts",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "container": "swg-precu",
+    "containerHealth": "pending canonical deployment",
+    "clusterReadyForPlayers": false,
+    "deployedDirectSourceCommit": "",
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending"
+  },
+  "requiredBeforeReady": [
+    "canonical clean Java/native x64 rebuild, artifact authentication, restart, readiness, process-map, and fresh-log probe"
+  ]
+}

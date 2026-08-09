@@ -51,6 +51,10 @@ Write-Host "Verifying direct-source post-NGE Beast Master player-runtime retirem
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the player-owned retained-content controller closure before build..."
+& (Join-Path $PSScriptRoot "Test-P14PlayerOwnedRetainedContentControllerClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
@@ -950,6 +954,10 @@ grep -Fq 'removeObjVar(player, respec.PROF_LEVEL_ARRAY);' "$work_utils_library"
 grep -Fq 'beast_lib.retirePostNgeBeastMasterPlayerState(player);' "$work_utils_library"
 grep -Fq 'public static boolean isRetiredPostNgePlayerOwnedBeast(obj_id beast)' "$work_beast_library"
 test "$(grep -Fc 'isRetiredPostNgePlayerOwnedBeast(beast)' "$work_beast_library")" -eq 6
+beast_controller_source="$work_script/ai/beast.java"
+grep -Fq 'public boolean retirePostNgePlayerOwnedRuntime(obj_id self)' "$beast_controller_source"
+test "$(grep -Fc 'retirePostNgePlayerOwnedRuntime(self)' "$beast_controller_source")" -eq 4
+grep -Fq 'beast_lib.retirePostNgeBeastMasterPlayerState(master);' "$beast_controller_source"
 cmp -s "$source_vendor" "$work_vendor"
 cmp -s "$source_meatlump_vendor" "$work_meatlump_vendor"
 cmp -s "$source_nova_orion_vendor" "$work_nova_orion_vendor"
@@ -6003,6 +6011,11 @@ javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'setBeastm
 javap -classpath "$class_root" -v script.library.beast_lib | grep -Fq 'removeBatchObjVar'
 javap -classpath "$class_root" -v script.ai.beast_control_device | grep -Fq 'isRetiredPostNgeBeastMasterPlayer'
 ! javap -classpath "$class_root" -v script.ai.beast | grep -Fq 'expertise_'
+beast_controller_bytecode="$(javap -classpath "$class_root" -c script.ai.beast)"
+printf '%s' "$beast_controller_bytecode" | grep -Fq 'public boolean retirePostNgePlayerOwnedRuntime'
+printf '%s' "$beast_controller_bytecode" | grep -Fq 'beast_lib.isRetiredPostNgePlayerOwnedBeast'
+printf '%s' "$beast_controller_bytecode" | grep -Fq 'beast_lib.retirePostNgeBeastMasterPlayerState'
+test "$(printf '%s' "$beast_controller_bytecode" | grep -Fc 'retirePostNgePlayerOwnedRuntime')" -eq 5
 ! javap -classpath "$class_root" -v script.ai.creature_combat | grep -Fq 'expertise_bm_'
 ! javap -classpath "$class_root" -v script.conversation.trainer_beast_master | grep -Fq 'playerLearnBeastMasterSkill'
 javap -classpath "$class_root" -v script.conversation.trainer_beast_master | grep -Fq 'conversation/trainer_beast_master'
