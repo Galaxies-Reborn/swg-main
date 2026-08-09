@@ -41,6 +41,8 @@ function Assert-Excludes([string]$Text, [string[]]$Forbidden, [string]$Surface)
 }
 
 $skill = Get-SourceText "skillLibrary"
+$xpLibrary = Get-SourceText "xpLibrary"
+$qaLibrary = Get-SourceText "qaLibrary"
 $gm = Get-SourceText "gmLibrary"
 $gmCommand = Get-SourceText "gmCommand"
 $playerUtility = Get-SourceText "playerUtility"
@@ -52,6 +54,9 @@ $qaSetup = Get-SourceText "qaSetup"
 $qaCharacter = Get-SourceText "qaCharacter"
 $qaXp = Get-SourceText "qaXp"
 $qaItem = Get-SourceText "qaItem"
+$qaNge = Get-SourceText "qaNge"
+$betaXpTerminal = Get-SourceText "betaXpTerminal"
+$betaJedi = Get-SourceText "betaJedi"
 
 $rootConstant = Get-Slice $skill `
     "public static final String[] PRECU_PUBLIC_PROFESSION_ROOTS" `
@@ -110,6 +115,53 @@ $precuXpTypes = @($rows | Where-Object {
 if ($precuXpTypes.Count -ne [int]$contract.expected.precuGroundXpPools)
 {
     throw "The canonical public PRE-CU ground-XP pool total is no longer $($contract.expected.precuGroundXpPools)."
+}
+$precuXpCatalog = Get-Slice $xpLibrary `
+    "public static String[] getPrecuProgressionExperienceTypes" `
+    "public static void checkAndUpdateHuntingMissions"
+Assert-Contains $precuXpCatalog @(
+    "skill.getPrecuPublicProfessionRoots()",
+    "skill.getPrecuProfessionSkillList(",
+    "skill_template.getSkillExperienceType(",
+    "public static boolean isPrecuProgressionExperienceType(",
+    "public static String getPrecuProgressionExperienceAccessError(",
+    "space_flags.isImperialPilot(player)",
+    "space_flags.isRebelPilot(player)",
+    "space_flags.isNeutralPilot(player)"
+) "canonical PRE-CU XP catalog"
+Assert-Excludes $precuXpCatalog @(
+    "dataTableGetStringColumnNoDefaults(TBL_SKILL",
+    "QUEST_COMBAT",
+    "QUEST_CRAFTING",
+    "QUEST_SOCIAL",
+    "QUEST_GENERAL",
+    "COMBAT_GENERAL"
+) "canonical PRE-CU XP catalog"
+if ($xpLibrary.Contains("public static String[] getXpTypes("))
+{
+    throw "The broad all-skill-table XP catalog remains available."
+}
+$scriptRoot = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script"
+$catalogConsumers = @(Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter "*.java" | Where-Object {
+    (Get-Content -LiteralPath $_.FullName -Raw).Contains("xp.getPrecuProgressionExperienceTypes(")
+} | ForEach-Object {
+    $_.FullName.Substring($scriptRoot.Length + 1).Replace("\", "/")
+} | Sort-Object)
+$expectedCatalogConsumers = @(
+    "beta/terminal_xp.java",
+    "gm/cmd.java",
+    "test/qaxp.java"
+)
+if ($catalogConsumers.Count -ne [int]$contract.expected.canonicalPrecuXpCatalogConsumers -or
+    ($catalogConsumers -join "`n") -cne ($expectedCatalogConsumers -join "`n"))
+{
+    throw "Canonical PRE-CU XP catalog consumer inventory changed."
+}
+if (@(Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter "*.java" | Where-Object {
+    (Get-Content -LiteralPath $_.FullName -Raw).Contains("getXpTypes(")
+}).Count -ne 0)
+{
+    throw "A broad XP catalog reference remains in direct source."
 }
 
 $professionHelpers = Get-Slice $skill `
@@ -218,6 +270,49 @@ Assert-Excludes $publishOptions @(
     "setWorkingSkill("
 ) "test-center Publish content surface"
 
+$gmXpSurface = Get-Slice $gmCommand `
+    "public int cmdSetExperience" `
+    "public void showSetExperienceSyntax"
+Assert-Contains $gmXpSurface @(
+    "xp.getPrecuProgressionExperienceTypes()",
+    "xp.isPrecuProgressionExperienceType(xp_type)",
+    "xp.grantUnmodifiedExperience(",
+    "PRE-CU XP TYPES",
+    "Canonical Publish 14.1 skill XP pools"
+) "GM set-experience surface"
+Assert-Excludes $gmXpSurface @(
+    "xp.getXpTypes(",
+    "dataTableGetStringColumn",
+    "combat_general",
+    "quest_combat",
+    "quest_crafting",
+    "quest_social",
+    "quest_general"
+) "GM set-experience surface"
+
+$qaXpRouteCount = ([regex]::Matches($qaTool, [regex]::Escape("qaxp.toolMainMenu("))).Count
+if ($qaXpRouteCount -ne [int]$contract.expected.qaXpCanonicalEntryPoints)
+{
+    throw "The QA tool does not expose exactly two canonical PRE-CU XP entry points."
+}
+Assert-Excludes $qaTool @(
+    "XP_TOOL_MENU",
+    "Beta XP Dispenser",
+    "xp.getXpTypes(",
+    "initializeXpTool(",
+    "setXpTypesScriptVar(",
+    '"combat_general"',
+    '"quest_combat"',
+    '"quest_crafting"',
+    '"quest_social"',
+    '"quest_general"'
+) "complete QA XP routing source"
+Assert-Excludes $qaLibrary @(
+    "public static void revokeAllSkills(",
+    'grantExperiencePoints(player, "combat_general"',
+    'setSkillTemplate(player, "")'
+) "shared QA library"
+
 $qaSpec = Get-Slice $qaTool `
     "public boolean precuSpecTester" `
     "public boolean retiredNgeSpecTester"
@@ -267,10 +362,13 @@ if ($qaScript.Contains('"test.qange"') -or
 }
 
 Assert-Contains $qaXp @(
-    "skill.getPrecuPublicProfessionRoots()",
-    "skill.getPrecuProfessionSkillList(",
+    "public static void toolMainMenu(",
+    "xp.getPrecuProgressionExperienceTypes()",
+    "xp.isPrecuProgressionExperienceType(",
+    "xp.getPrecuProgressionExperienceAccessError(",
     "skill_template.getSkillExperienceType(",
     "skill.isPrecuPublicProfessionSkillName(",
+    "obj_id player = self;",
     "xp.grant(player, xpType, amt, false)",
     "xp.grantUnmodifiedExperience(player, xpType, -amt, false)",
     "PRE-CU XP Tool"
@@ -278,17 +376,36 @@ Assert-Contains $qaXp @(
 Assert-Excludes $qaXp @(
     "getSkillTemplate(",
     "grantXpByTemplate(",
+    "getPrecuXpTypes(",
+    "qa.findTarget(",
     "XP_QUEST",
     "xp.NON_COMBAT",
     "setSkillTemplate(",
     "autoLevelPlayer("
 ) "reachable QA XP tool"
-$pilotPrestigePools = @([regex]::Matches($qaXp, 'xp\.SPACE_PRESTIGE_([A-Z_]+)') |
+$pilotPrestigePools = @([regex]::Matches($precuXpCatalog, 'SPACE_PRESTIGE_([A-Z_]+)') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
 if ($pilotPrestigePools.Count -ne [int]$contract.expected.retainedPilotPrestigePools)
 {
     throw "The reachable QA XP tool does not retain exactly three explicit pilot prestige pools."
 }
+
+Assert-Contains $betaXpTerminal @(
+    "PRE-CU XP Dispenser",
+    "xp.getPrecuProgressionExperienceTypes()",
+    "xp.getPrecuProgressionExperienceAccessError(",
+    "utils.setScriptVar(player, VAR_DESIRED_XP_TYPE, xpType)",
+    "utils.removeScriptVar(player, VAR_DESIRED_XP_TYPE)",
+    "xp.grant(player, xpType, amt, false)",
+    "isAuthorizedPlayer(player)"
+) "beta XP terminal"
+Assert-Excludes $betaXpTerminal @(
+    "Beta XP Dispenser",
+    "xp.getXpTypes(",
+    "getStringObjVar(player, VAR_DESIRED_XP_TYPE)",
+    "setObjVar(player, VAR_DESIRED_XP_TYPE",
+    "grantExperiencePoints("
+) "beta XP terminal"
 
 Assert-Contains $qaItem @(
     "Get Later-Content Item Packs",
@@ -309,11 +426,17 @@ Assert-Excludes $qaItem @(
     "armorLevelMenu"
 ) "reachable QA item tool"
 
-foreach ($entry in @{
+$qaStubs = [ordered]@{
     "QA level-90 setup" = [pscustomobject]@{ Text=$qaSetup; Class="qasetup"; Script="test.qasetup"; Message="NGE level-90 and expertise setup tool is retired" }
     "QA class/template setup" = [pscustomobject]@{ Text=$qaCharacter; Class="qa_character"; Script="test.qa_character"; Message="NGE class/template setup tool is retired" }
     "QA profession/roadmap assistant" = [pscustomobject]@{ Text=$qaProfession; Class="qaprofession"; Script="test.qaprofession"; Message="NGE profession and roadmap assistant is retired" }
-}.GetEnumerator())
+    "QA combat-level respec" = [pscustomobject]@{ Text=$qaNge; Class="qange"; Script="test.qange"; Message="NGE combat-level respec tool is retired" }
+}
+if ($qaStubs.Count -ne [int]$contract.expected.minimalFailClosedQaStubs)
+{
+    throw "The fail-closed QA compatibility-stub inventory changed."
+}
+foreach ($entry in $qaStubs.GetEnumerator())
 {
     Assert-Contains $entry.Value.Text @(
         ("public class " + $entry.Value.Class + " extends script.base_script"),
@@ -338,6 +461,33 @@ foreach ($entry in @{
     {
         throw "$($entry.Key) is not a minimal fail-closed compatibility stub."
     }
+    $lineCount = ($entry.Value.Text.TrimEnd("`r", "`n") -split "\r?\n").Count
+    if ($lineCount -ne [int]$contract.expected.qaStubLinesEach)
+    {
+        throw "$($entry.Key) is not the expected minimal line count."
+    }
+}
+
+Assert-Contains $betaJedi @(
+    "public class tc_jedi extends script.base_script",
+    "public int OnAttach",
+    "public int OnInitialize",
+    'detachScript(self, "beta.tc_jedi");',
+    "The NGE Jedi conversion is retired",
+    "PRE-CU Jedi progression is preserved"
+) "beta Jedi conversion stub"
+Assert-Excludes $betaJedi @(
+    "revokeSkills(",
+    "revokeExperience(",
+    "grantExperiencePoints(",
+    "getXpTypes(",
+    "player.player_jedi_conversion",
+    "jedi.totalPoints",
+    "attachScript("
+) "beta Jedi conversion stub"
+if (([regex]::Matches($betaJedi, '\bpublic int\s+')).Count -ne 2)
+{
+    throw "The beta Jedi conversion identity is not a minimal two-lifecycle fail-closed stub."
 }
 
 if ($Expectation -eq "Ready")
@@ -366,7 +516,7 @@ if ($Expectation -eq "Ready")
     }
     $classRoot = [string]$contract.buildEvidence.compiledClassRoot
     $classFiles = @($contract.compiledClasses.PSObject.Properties)
-    if ($classFiles.Count -ne 12) { throw "PRE-CU admin compiled-class inventory is incomplete." }
+    if ($classFiles.Count -ne 17) { throw "PRE-CU admin compiled-class inventory is incomplete." }
     foreach ($property in $classFiles)
     {
         $classPath = $classRoot + "/" + [string]$property.Value
@@ -395,17 +545,37 @@ if ($Expectation -eq "Ready")
         if ($LASTEXITCODE -ne 0) { throw "Direct/work source parity mismatch: $($property.Name)" }
     }
     $skillBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.skill | Out-String)
+    $xpLibraryBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.xp | Out-String)
+    $qaLibraryBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.qa | Out-String)
     Assert-Contains $skillBytecode @(
         "collectPrecuSkillPrerequisites",
         "getAvailableSkillPoints",
         "grantSkillToPlayer",
         "purchaseSkill"
     ) "deployed PRE-CU skill bytecode"
+    Assert-Contains $xpLibraryBytecode @(
+        "getPrecuProgressionExperienceTypes",
+        "isPrecuProgressionExperienceType",
+        "getPrecuProgressionExperienceAccessError",
+        "getPrecuPublicProfessionRoots:",
+        "getPrecuProfessionSkillList:",
+        "getSkillExperienceType:",
+        "prestige_imperial",
+        "prestige_rebel",
+        "prestige_pilot"
+    ) "deployed canonical PRE-CU XP catalog bytecode"
+    Assert-Excludes $xpLibraryBytecode @(
+        "public static java.lang.String[] getXpTypes("
+    ) "deployed canonical PRE-CU XP catalog bytecode"
     $playerUtilityBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.player.player_utility | Out-String)
+    $gmCommandBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.gm.cmd | Out-String)
     $builderBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.terminal.terminal_character_builder | Out-String)
     $qaToolBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qatool | Out-String)
     $qaXpBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qaxp | Out-String)
     $qaItemBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qaitem | Out-String)
+    $qaNgeBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qange | Out-String)
+    $betaXpTerminalBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.terminal_xp | Out-String)
+    $betaJediBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.tc_jedi | Out-String)
     foreach ($entry in @{
         "deployed GM bytecode" = $playerUtilityBytecode
         "deployed test-center bytecode" = $builderBytecode
@@ -430,13 +600,34 @@ if ($Expectation -eq "Ready")
         "fullExpertiseReset:",
         "getLevel:"
     ) "complete deployed QA tool bytecode"
+    Assert-Contains $qaToolBytecode @(
+        "script/test/qaxp.toolMainMenu:"
+    ) "deployed QA XP routing bytecode"
+    Assert-Excludes $qaToolBytecode @(
+        "Beta XP Dispenser",
+        "XP_TOOL_MENU",
+        "getXpTypes:"
+    ) "deployed QA XP routing bytecode"
+    Assert-Contains $gmCommandBytecode @(
+        "getPrecuProgressionExperienceTypes:",
+        "isPrecuProgressionExperienceType:",
+        "grantUnmodifiedExperience:",
+        "PRE-CU XP TYPES"
+    ) "deployed GM set-experience bytecode"
+    Assert-Excludes $gmCommandBytecode @(
+        "getXpTypes:"
+    ) "deployed GM set-experience bytecode"
+    Assert-Excludes $qaLibraryBytecode @(
+        "public static void revokeAllSkills("
+    ) "deployed shared QA library bytecode"
     if (([regex]::Matches($qaToolBytecode, "Method retiredNgeSpecTester")).Count -ne 0)
     {
         throw "Deployed QA bytecode calls the retired NGE spec implementation."
     }
     Assert-Contains $qaXpBytecode @(
-        "getPrecuPublicProfessionRoots:",
-        "getPrecuProfessionSkillList:",
+        "getPrecuProgressionExperienceTypes:",
+        "isPrecuProgressionExperienceType:",
+        "getPrecuProgressionExperienceAccessError:",
         "getSkillExperienceType:",
         "isPrecuPublicProfessionSkillName:",
         "script/library/xp.grant:",
@@ -451,9 +642,25 @@ if ($Expectation -eq "Ready")
         "grantXpByTemplate:",
         "setSkillTemplate:",
         "autoLevelPlayer:",
+        "getXpTypes:",
+        "getPrecuXpTypes:",
         "XP_QUEST",
         "NON_COMBAT"
     ) "deployed QA XP bytecode"
+    Assert-Contains $betaXpTerminalBytecode @(
+        "PRE-CU XP Dispenser",
+        "getPrecuProgressionExperienceTypes:",
+        "getPrecuProgressionExperienceAccessError:",
+        "setScriptVar:",
+        "removeScriptVar:",
+        "script/library/xp.grant:"
+    ) "deployed beta XP terminal bytecode"
+    Assert-Excludes $betaXpTerminalBytecode @(
+        "Beta XP Dispenser",
+        "getXpTypes:",
+        "setObjVar:",
+        "getStringObjVar:"
+    ) "deployed beta XP terminal bytecode"
     Assert-Contains $qaItemBytecode @(
         "Get Later-Content Item Packs",
         "datatables/roadmap/item_rewards.iff",
@@ -472,7 +679,7 @@ if ($Expectation -eq "Ready")
         "getLevelsToDisplay:",
         "armorLevelMenu"
     ) "deployed QA item bytecode"
-    foreach ($className in @("script.test.qasetup", "script.test.qa_character", "script.test.qaprofession"))
+    foreach ($className in @("script.test.qasetup", "script.test.qa_character", "script.test.qaprofession", "script.test.qange"))
     {
         $bytecode = (& docker exec $Container javap -classpath $classRoot -c -p $className | Out-String)
         Assert-Contains $bytecode @("public int OnAttach", "detachScript", "/qatool spec <PRE-CU skill box>") "deployed $className stub"
@@ -486,6 +693,22 @@ if ($Expectation -eq "Ready")
             "dataTable"
         ) "deployed $className stub"
     }
+    Assert-Contains $betaJediBytecode @(
+        "public int OnAttach",
+        "public int OnInitialize",
+        "detachScript",
+        "The NGE Jedi conversion is retired",
+        "PRE-CU Jedi progression is preserved"
+    ) "deployed beta Jedi conversion stub"
+    Assert-Excludes $betaJediBytecode @(
+        "revokeSkills",
+        "revokeExperience",
+        "grantExperiencePoints",
+        "getXpTypes",
+        "player_jedi_conversion",
+        "jedi.totalPoints",
+        "attachScript"
+    ) "deployed beta Jedi conversion stub"
     $state = (& docker inspect --format "{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}" $Container).Trim()
     if ($LASTEXITCODE -ne 0 -or $state -cne "running healthy")
     {

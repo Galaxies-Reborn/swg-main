@@ -217,7 +217,7 @@ Assert-Contract (-not $skills.Contains("blueGlowie") -and
 $directCommit = (& git -C $dsrc rev-parse HEAD).Trim()
 Assert-Contract ($LASTEXITCODE -eq 0 -and $directCommit -ceq [string]$contract.buildEvidence.directSourceCommit) `
     "p14.direct-callback.direct-source-pin"
-Assert-Contract ([string]$contract.status -in @("source-ready", "ready")) `
+Assert-Contract ([string]$contract.status -in @("source-ready", "implemented-build-pending", "ready")) `
     "p14.direct-callback.contract-status"
 if ($Expectation -eq "Ready")
 {
