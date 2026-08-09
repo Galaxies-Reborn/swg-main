@@ -109,6 +109,10 @@ Write-Host "Verifying the direct-source PRE-CU combat routing closure before bui
 & (Join-Path $PSScriptRoot "Test-P14PrecuCombatRoutingClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the direct-source PRE-CU Center of Being lifecycle before build..."
+& (Join-Path $PSScriptRoot "Test-P14CenterOfBeingLifecycle.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying pinned Core3 damage and NGE kill-meter player isolation before build..."
 & (Join-Path $PSScriptRoot "Test-P14Core3DamageAuthority.ps1") `
     -SourceRoot $repositoryRoot
@@ -770,6 +774,7 @@ END {
     for (name in noncombat) if (noncombat_seen[name] != 1) exit 5
 }
 ' "$work_command_table"
+awk -F '\t' '$1 == "centerOfBeing" { found++; if ($2 != "combat") exit 2 } END { if (found != 1) exit 3 }' "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_buff_table" "$work_buff_table"
 cmp -s "$source_buff_effect_mapping" "$work_buff_effect_mapping"

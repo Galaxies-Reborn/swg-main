@@ -47,6 +47,7 @@ $command = $command[0]
 Assert ($command.scriptHook -ceq "centerOfBeing" -and
     $command.failScriptHook -ceq "failSpecialAttack" -and
     $command.defaultPriority -ceq "normal" -and
+    $command.commandCategory -ceq "combat" -and
     $command.characterAbility -ceq "centerOfBeing" -and
     $command.addToCombatQueue -ceq "1") "centerOfBeing command routing drifted"
 
