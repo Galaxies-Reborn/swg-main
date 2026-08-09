@@ -126,6 +126,24 @@ Assert-Contract ($vendorQualification.Contains("profession = utils.COMMANDO") -a
     ([regex]::Matches($vendor, 'utils\.isPrecuRetainedItemClass\(player, profession\)').Count -eq
         [int]$contract.expected.qualifiedVendorRevalidationCalls)) `
     "p14.retained-vendor.precu-item-profession-admission"
+$professionPresentation = Get-SourceSlice $utils `
+    "public static String getPrecuRetainedItemClassName(" `
+    "public static boolean meetsProfessionRequirement("
+$professionPresentationValid = -not $professionPresentation.Contains('"@skl_n:class_"')
+foreach ($mapping in $contract.expected.professionPresentation.PSObject.Properties)
+{
+    $caseMarker = "case {0}:" -f $mapping.Name
+    $returnMarker = 'return "{0}";' -f [string]$mapping.Value
+    if (-not $professionPresentation.Contains($caseMarker) -or
+        -not $professionPresentation.Contains($returnMarker))
+    {
+        $professionPresentationValid = $false
+    }
+}
+Assert-Contract ($professionPresentationValid -and
+    $professionPresentation.Contains('default:') -and
+    $professionPresentation.Contains('return "";')) `
+    "p14.retained-vendor.precu-profession-presentation"
 Assert-Contract ($vendorSelection.Contains("selectedRow >= qualifiedProfessions.length") -and
     $vendorSelection.Contains("!utils.isPrecuRetainedItemClass(player, profession)") -and
     $vendorSelection.Contains("profession >= containerList.length") -and

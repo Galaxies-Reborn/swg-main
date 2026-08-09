@@ -95,6 +95,24 @@ Assert-Contract ($adapterSlice.Contains("profession == SPY") -and
     $adapterSlice.Contains("return isProfession(player, profession);") -and
     $adapterSlice.Contains('return "@skl_n:outdoors_ranger_novice";')) `
     "p14.retained-device.spy-slot.maps-to-ranger"
+$presentationSlice = Get-FunctionSlice $utilsText `
+    "public static String getPrecuRetainedItemClassName(" `
+    "public static boolean meetsProfessionRequirement("
+$presentationMappingsValid = -not $presentationSlice.Contains('"@skl_n:class_"')
+foreach ($mapping in $contract.expected.precuClassPresentation.PSObject.Properties)
+{
+    $caseMarker = "case {0}:" -f $mapping.Name
+    $returnMarker = 'return "{0}";' -f [string]$mapping.Value
+    if (-not $presentationSlice.Contains($caseMarker) -or
+        -not $presentationSlice.Contains($returnMarker))
+    {
+        $presentationMappingsValid = $false
+    }
+}
+Assert-Contract ($presentationMappingsValid -and
+    $presentationSlice.Contains('default:') -and
+    $presentationSlice.Contains('return "";')) `
+    "p14.retained-device.class-presentation.precu-skill-labels"
 Assert-Contract ($professionSlice -match '(?s)case SPY:\s*return false;' -and
     -not $professionSlice.Contains("outdoors_ranger_novice") -and
     $requirementSlice -match '(?s)requirement[.]equals[(]"spy"[)]\s*[)]?\s*\{\s*return false;') `
