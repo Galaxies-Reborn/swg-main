@@ -50,6 +50,8 @@ $qaProfession = Get-SourceText "qaProfession"
 $qaScript = Get-SourceText "qaScript"
 $qaSetup = Get-SourceText "qaSetup"
 $qaCharacter = Get-SourceText "qaCharacter"
+$qaXp = Get-SourceText "qaXp"
+$qaItem = Get-SourceText "qaItem"
 
 $rootConstant = Get-Slice $skill `
     "public static final String[] PRECU_PUBLIC_PROFESSION_ROOTS" `
@@ -90,6 +92,25 @@ foreach ($professionRoot in $expectedRoots)
     $boxCount += $boxes.Count
 }
 if ($boxCount -ne 594) { throw "The canonical public PRE-CU skill-box total is no longer 594." }
+$precuXpTypes = @($rows | Where-Object {
+    $skillName = [string]$_.NAME
+    $isPublicProfessionSkill = $false
+    foreach ($professionRoot in $expectedRoots)
+    {
+        if ($skillName.StartsWith($professionRoot + "_", [StringComparison]::Ordinal))
+        {
+            $isPublicProfessionSkill = $true
+            break
+        }
+    }
+    $isPublicProfessionSkill -and $_.GOD_ONLY -eq "0" -and
+        $_.IS_HIDDEN -eq "0" -and $_.SEARCHABLE -eq "1" -and
+        -not [string]::IsNullOrWhiteSpace([string]$_.XP_TYPE)
+} | ForEach-Object { [string]$_.XP_TYPE } | Sort-Object -Unique)
+if ($precuXpTypes.Count -ne [int]$contract.expected.precuGroundXpPools)
+{
+    throw "The canonical public PRE-CU ground-XP pool total is no longer $($contract.expected.precuGroundXpPools)."
+}
 
 $professionHelpers = Get-Slice $skill `
     "public static String[] getPrecuPublicProfessionRoots" `
@@ -245,6 +266,49 @@ if ($qaScript.Contains('"test.qange"') -or
     throw "The QA script menu still offers retired NGE setup scripts."
 }
 
+Assert-Contains $qaXp @(
+    "skill.getPrecuPublicProfessionRoots()",
+    "skill.getPrecuProfessionSkillList(",
+    "skill_template.getSkillExperienceType(",
+    "skill.isPrecuPublicProfessionSkillName(",
+    "xp.grant(player, xpType, amt, false)",
+    "xp.grantUnmodifiedExperience(player, xpType, -amt, false)",
+    "PRE-CU XP Tool"
+) "reachable QA XP tool"
+Assert-Excludes $qaXp @(
+    "getSkillTemplate(",
+    "grantXpByTemplate(",
+    "XP_QUEST",
+    "xp.NON_COMBAT",
+    "setSkillTemplate(",
+    "autoLevelPlayer("
+) "reachable QA XP tool"
+$pilotPrestigePools = @([regex]::Matches($qaXp, 'xp\.SPACE_PRESTIGE_([A-Z_]+)') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+if ($pilotPrestigePools.Count -ne [int]$contract.expected.retainedPilotPrestigePools)
+{
+    throw "The reachable QA XP tool does not retain exactly three explicit pilot prestige pools."
+}
+
+Assert-Contains $qaItem @(
+    "Get Later-Content Item Packs",
+    'ITEM_REWARD_TABLE = "datatables/roadmap/item_rewards.iff"',
+    "getAllEquipmentOfType(self, searchInt)",
+    "buildTheSUI(self, allRowsOfEquipment)",
+    "getArmorList(player)"
+) "reachable QA item tool"
+Assert-Excludes $qaItem @(
+    "getSkillTemplate(",
+    "getLevel(",
+    '"required_level"',
+    "getAllEquipmentOfProfession(",
+    "getAllEquipmentOfCombatLevelOrBelow(",
+    "getHighestTierItems(",
+    "handleLevelOptions(",
+    "getLevelsToDisplay(",
+    "armorLevelMenu"
+) "reachable QA item tool"
+
 foreach ($entry in @{
     "QA level-90 setup" = [pscustomobject]@{ Text=$qaSetup; Class="qasetup"; Script="test.qasetup"; Message="NGE level-90 and expertise setup tool is retired" }
     "QA class/template setup" = [pscustomobject]@{ Text=$qaCharacter; Class="qa_character"; Script="test.qa_character"; Message="NGE class/template setup tool is retired" }
@@ -302,7 +366,7 @@ if ($Expectation -eq "Ready")
     }
     $classRoot = [string]$contract.buildEvidence.compiledClassRoot
     $classFiles = @($contract.compiledClasses.PSObject.Properties)
-    if ($classFiles.Count -ne 10) { throw "PRE-CU admin compiled-class inventory is incomplete." }
+    if ($classFiles.Count -ne 12) { throw "PRE-CU admin compiled-class inventory is incomplete." }
     foreach ($property in $classFiles)
     {
         $classPath = $classRoot + "/" + [string]$property.Value
@@ -340,6 +404,8 @@ if ($Expectation -eq "Ready")
     $playerUtilityBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.player.player_utility | Out-String)
     $builderBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.terminal.terminal_character_builder | Out-String)
     $qaToolBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qatool | Out-String)
+    $qaXpBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qaxp | Out-String)
+    $qaItemBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qaitem | Out-String)
     foreach ($entry in @{
         "deployed GM bytecode" = $playerUtilityBytecode
         "deployed test-center bytecode" = $builderBytecode
@@ -368,6 +434,44 @@ if ($Expectation -eq "Ready")
     {
         throw "Deployed QA bytecode calls the retired NGE spec implementation."
     }
+    Assert-Contains $qaXpBytecode @(
+        "getPrecuPublicProfessionRoots:",
+        "getPrecuProfessionSkillList:",
+        "getSkillExperienceType:",
+        "isPrecuPublicProfessionSkillName:",
+        "script/library/xp.grant:",
+        "script/library/xp.grantUnmodifiedExperience:",
+        "prestige_imperial",
+        "prestige_rebel",
+        "prestige_pilot",
+        "PRE-CU XP Tool"
+    ) "deployed QA XP bytecode"
+    Assert-Excludes $qaXpBytecode @(
+        "getSkillTemplate:",
+        "grantXpByTemplate:",
+        "setSkillTemplate:",
+        "autoLevelPlayer:",
+        "XP_QUEST",
+        "NON_COMBAT"
+    ) "deployed QA XP bytecode"
+    Assert-Contains $qaItemBytecode @(
+        "Get Later-Content Item Packs",
+        "datatables/roadmap/item_rewards.iff",
+        "getAllEquipmentOfType:",
+        "buildTheSUI:",
+        "getArmorList:"
+    ) "deployed QA item bytecode"
+    Assert-Excludes $qaItemBytecode @(
+        "getSkillTemplate:",
+        "getLevel:",
+        "required_level",
+        "getAllEquipmentOfProfession:",
+        "getAllEquipmentOfCombatLevelOrBelow:",
+        "getHighestTierItems:",
+        "handleLevelOptions:",
+        "getLevelsToDisplay:",
+        "armorLevelMenu"
+    ) "deployed QA item bytecode"
     foreach ($className in @("script.test.qasetup", "script.test.qa_character", "script.test.qaprofession"))
     {
         $bytecode = (& docker exec $Container javap -classpath $classRoot -c -p $className | Out-String)
