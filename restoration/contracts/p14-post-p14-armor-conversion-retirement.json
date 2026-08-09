@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-p14-armor-conversion-retirement",
+  "status": "implemented-build-pending",
+  "scope": "Retire the inherited Combat Upgrade armor refit and dismantling migration surfaces so persisted PRE-CU armor cannot be converted, destroyed, or rewritten into post-Publish-14 armor categories, while retaining every armor template, schematic, component, appearance, and later expansion asset for content compatibility.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "The pinned Publish 14.1 Core3 tree contains no refit_armor, Assault/Battle/Recon armor conversion, Mandalorian/RIS/Bounty Hunter dismantling, or Wookiee cybernetic-resize action. The inherited scripts explicitly describe one-time armor conversion and cybernetic compatibility rather than authored Publish 14.1 gameplay.",
+    "retainedBoundary": "All armor, schematic, component, string, appearance, crafting, Kashyyyk, and cybernetic assets remain loadable. Only the post-Publish-14 destructive player conversion menus, stale SUI callbacks, direct mutation helpers, and serialized conversion-script attachments are retired."
+  },
+  "inventory": {
+    "conversionJavaSources": 28,
+    "inheritedArmorRefitScripts": 23,
+    "standaloneConversionScripts": [
+      "item.conversion.armor_mand",
+      "item.conversion.armor_ris",
+      "item.conversion.armor_wookiee",
+      "item.conversion.bounty_hunter",
+      "item.conversion.medicine"
+    ],
+    "destructiveMutationHelpers": [
+      "refitArmor",
+      "dismantleMand",
+      "dismantleRis",
+      "dismantleWookiee",
+      "dismantleBountyHunter"
+    ]
+  },
+  "expected": {
+    "conversionJavaSources": 28,
+    "inheritedArmorRefitScripts": 23,
+    "baseLifecycleCleanupEntrypoints": 4,
+    "baseMutationCallsAfterRetirement": 0,
+    "standaloneRetirementFamilies": 5,
+    "standaloneLifecycleCleanupEntrypoints": 10,
+    "guardedStandaloneMenuEntrypoints": 8,
+    "guardedStandaloneSuiAndMutationEntrypoints": 16,
+    "retainedArmorAndExpansionAssetsAffected": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "9914d9277d5829c57d19aa667ea23f1d4a5b78fe",
+    "hostMaterializationWorkflow": "retired; no host artifact, staging, generated overlay, or duplicate source tree",
+    "conversionSourceInventorySha256": "884c24a443b6c26cfcb62df6b2f940e77dd408b69764be33c5cb94bdb07289be",
+    "sourceSha256": {
+      "armor_base_conversion.java": "8426991d09681a7876556c21f139492a0e72a4bad320bf235f74d380daad60a8",
+      "armor_mand.java": "6e8b3585db388e2eeeb9cf6fd4c0e9c8d75315b2a26b80584122edefd8d99677",
+      "armor_ris.java": "252c24acea19126ab6ff9af2af9a816db14c288ecf9ce0d6df983ba138a17c4d",
+      "armor_wookiee.java": "bef61ffa86bc21ee1f572d46d33aaac2e99886d6374222cfe68549e5aec680a0",
+      "bounty_hunter.java": "160383e864efdb6f8dd0e491b4e72ed4b16f9501319deb940f836d85363892eb",
+      "medicine.java": "894ba630d86c0173a063878ed02c83b0ff001442824e11952b9b244d532ca255",
+      "aggregate": "884c24a443b6c26cfcb62df6b2f940e77dd408b69764be33c5cb94bdb07289be"
+    },
+    "focusedJavaCompile": "passed for all 28 conversion sources with Java 8 source/target against the canonical deployed x64 classpath in an ephemeral /dev/shm directory that was removed immediately",
+    "focusedClassSha256": {
+      "armor_base_conversion.class": "5d5a039b2096e8b2b1fc6333f57e7807a113cb5ce14e15dc359cf08277d98416",
+      "armor_mand.class": "f865326e63726997e96798bbaf64a291f019c574ab863b46f410f900ecec6276",
+      "armor_ris.class": "629e9b993b2414cc9f18746283d9b95ddfb3aa4d45f12680346a8cab7c373147",
+      "armor_wookiee.class": "a46727dd4435db70c99ac326d3c79cc2398033e1394192af61c1c8f224a157a4",
+      "bounty_hunter.class": "9d924fc6fe1912dd1323204fa69d574d7bbb09d6b13eb7e0027cda6080724419",
+      "medicine.class": "c9fe79619919e2b2e88d74a6c3731b727242ce17768364060c94ecca30bdf2b9"
+    },
+    "focusedClassBytes": {
+      "armor_base_conversion.class": 4585,
+      "armor_mand.class": 6762,
+      "armor_ris.class": 3816,
+      "armor_wookiee.class": 6778,
+      "bounty_hunter.class": 6806,
+      "medicine.class": 815
+    },
+    "fullServerBuild": "pending canonical clean x86-64 deployment",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "pending canonical clean x86-64 deployment"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete 23-script inherited armor-refit family plus Mandalorian, RIS, Bounty Hunter, Wookiee/cybernetic, and medicine conversion-script lifecycle, menu, stale SUI, and direct mutation surfaces",
+    "preserved": "authentic PRE-CU armor objects and stats, Death Watch and RIS crafting, retained expansion armor appearances and templates, schematics, components, Kashyyyk content, cybernetic content assets, quests, conversations, zones, and non-conversion gameplay",
+    "notClaimedComplete": "the broader PRE-CU precedence discovery audit and nine live gameplay verification audits remain active"
+  },
+  "requiredBeforeReady": [
+    "canonical clean x86-64 server build and deployment",
+    "deployed conversion-class authentication and bytecode audit",
+    "healthy player-ready runtime evidence"
+  ]
+}

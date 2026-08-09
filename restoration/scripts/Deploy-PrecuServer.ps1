@@ -67,6 +67,10 @@ Write-Host "Verifying post-NGE Rare Loot player-runtime retirement before build.
 & (Join-Path $PSScriptRoot "Test-P14PostNgeRareLootPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying post-Publish-14 armor conversion retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostP14ArmorConversionRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
