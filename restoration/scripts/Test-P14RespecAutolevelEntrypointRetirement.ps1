@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$SourceRoot,
-    [ValidateSet("Build", "Ready")][string]$Expectation = "Build"
+    [ValidateSet("Build", "Ready")][string]$Expectation = "Build",
+    [string]$Container = "swg-precu"
 )
 $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
@@ -16,6 +17,11 @@ $files = [ordered]@{
     "respec.java" = "dsrc/sku.0/sys.server/compiled/game/script/library/respec.java"
     "live_conversions.java" = "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java"
     "combat_base.java" = "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+    "legacyDwhiteTest.java" = "dsrc/sku.0/sys.server/compiled/game/script/test/dwhite_test.java"
+    "legacyThicksTest.java" = "dsrc/sku.0/sys.server/compiled/game/script/test/thicks_test.java"
+    "legacyAhunterTest.java" = "dsrc/sku.0/sys.server/compiled/game/script/working/ahunter/my_script.java"
+    "legacyJbenjTest.java" = "dsrc/sku.0/sys.server/compiled/game/script/working/jbenjtest.java"
+    "legacyJfreemanSkillTest.java" = "dsrc/sku.0/sys.server/compiled/game/script/working/jfreeman/skilltest.java"
 }
 $text = [ordered]@{}
 foreach ($entry in $files.GetEnumerator())
@@ -153,6 +159,92 @@ foreach ($required in @(
         throw "Base-player compatibility cleanup is missing: $required"
     }
 }
+$legacyProgressionFiles = @(
+    "legacyDwhiteTest.java",
+    "legacyThicksTest.java",
+    "legacyAhunterTest.java",
+    "legacyJbenjTest.java",
+    "legacyJfreemanSkillTest.java"
+)
+$forbiddenLegacyMutations = @(
+    "setSkillTemplate(",
+    "setWorkingSkill(",
+    "revokeAllProfessionSkills(",
+    "respec.autoLevelPlayer(",
+    "respec.setPercentageCompletion(",
+    "resetExpertises(",
+    "skill.validateExpertise(",
+    "grantSkill(",
+    "skill.grantSkillToPlayer(",
+    "showMediator=ws_professiontemplateselect",
+    "setObjVar(player, respec.PROF_LEVEL_ARRAY"
+)
+foreach ($name in $legacyProgressionFiles)
+{
+    foreach ($forbidden in $forbiddenLegacyMutations)
+    {
+        if ($text[$name].Contains($forbidden))
+        {
+            throw "Legacy NGE progression mutation remains in ${name}: $forbidden"
+        }
+    }
+}
+$requiredRetiredCommands = [ordered]@{
+    "legacyDwhiteTest.java" = @(
+        'text.startsWith("setWorkingSkill")',
+        'text.startsWith("setSkillTemplate")',
+        "NGE working-skill mutation is retired",
+        "NGE profession-template mutation is retired"
+    )
+    "legacyThicksTest.java" = @(
+        "public void runRespec",
+        "NGE profession respec is retired"
+    )
+    "legacyAhunterTest.java" = @(
+        'text.equals("rae")',
+        'text.equals("ct")',
+        'text.equals("sti")',
+        'text.equals("st")',
+        'text.equals("st2")',
+        'text.equals("st3")',
+        'text.equals("st4")',
+        'text.equals("sws")',
+        'text.equals("advance")',
+        'text.equals("demo")',
+        'text.equals("makemejedi")',
+        "public void reportRetiredNgeProgressionCommand",
+        "NGE template, expertise, and arbitrary skill mutation are retired"
+    )
+    "legacyJbenjTest.java" = @(
+        'command.equals("tweakRespecValues")',
+        'command.equals("respecFix")',
+        'command.equals("validateExpertise")',
+        'command.equals("setBlankTemplate")',
+        "public void reportRetiredNgeProgressionCommand",
+        "NGE respec, auto-level, expertise, and template mutation are retired"
+    )
+    "legacyJfreemanSkillTest.java" = @(
+        'text.equalsIgnoreCase("choose")',
+        'text.equalsIgnoreCase("reset")',
+        "NGE profession-template selector is retired",
+        "NGE template reset is retired"
+    )
+}
+foreach ($entry in $requiredRetiredCommands.GetEnumerator())
+{
+    foreach ($required in $entry.Value)
+    {
+        if (-not $text[$entry.Key].Contains($required))
+        {
+            throw "Fail-closed legacy progression marker is missing from $($entry.Key): $required"
+        }
+    }
+}
+if (([regex]::Matches($text["legacyAhunterTest.java"], [regex]::Escape("reportRetiredNgeProgressionCommand(self)"))).Count -ne 11 -or
+    ([regex]::Matches($text["legacyJbenjTest.java"], [regex]::Escape("reportRetiredNgeProgressionCommand(self)"))).Count -ne 4)
+{
+    throw "Legacy NGE progression command retirement coverage changed."
+}
 $scriptRoot = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script"
 $expectedByPath = [ordered]@{
     "base_class.java" = 3
@@ -242,6 +334,62 @@ if ($Expectation -eq "Ready")
         $hash -ne $contract.buildEvidence.overlayPatchSha256)
     {
         throw "Patch evidence mismatch."
+    }
+    $classRoot = [string]$contract.buildEvidence.compiledClassRoot
+    $classFiles = @($contract.compiledClasses.PSObject.Properties)
+    if ($classFiles.Count -ne 5)
+    {
+        throw "Legacy NGE progression compiled-class inventory is incomplete."
+    }
+    foreach ($property in $classFiles)
+    {
+        $classPath = $classRoot + "/" + [string]$property.Value
+        $hashOutput = (& docker exec $Container sha256sum $classPath).Trim()
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw "Unable to hash deployed legacy progression class: $($property.Name)"
+        }
+        $actualHash = ($hashOutput -split '\s+')[0]
+        $actualBytes = [int64]((& docker exec $Container stat -c "%s" $classPath).Trim())
+        if ($LASTEXITCODE -ne 0 -or
+            $actualHash -cne [string]$contract.buildEvidence.classSha256.($property.Name) -or
+            $actualBytes -ne [int64]$contract.buildEvidence.classBytes.($property.Name))
+        {
+            throw "Legacy NGE progression compiled-class evidence mismatch: $($property.Name)"
+        }
+    }
+    $classNames = [ordered]@{
+        "legacyDwhiteTest" = "script.test.dwhite_test"
+        "legacyThicksTest" = "script.test.thicks_test"
+        "legacyAhunterTest" = "script.working.ahunter.my_script"
+        "legacyJbenjTest" = "script.working.jbenjtest"
+        "legacyJfreemanSkillTest" = "script.working.jfreeman.skilltest"
+    }
+    foreach ($entry in $classNames.GetEnumerator())
+    {
+        $bytecode = (& docker exec $Container javap -classpath $classRoot -c -p $entry.Value | Out-String)
+        if ($LASTEXITCODE -ne 0 -or -not $bytecode.Contains("PRE-CU progression uses trained skill boxes"))
+        {
+            throw "Deployed fail-closed legacy progression bytecode is missing: $($entry.Key)"
+        }
+        foreach ($forbidden in @(
+            "// Method setSkillTemplate:",
+            "// Method setWorkingSkill:",
+            "// Method script/library/skill.revokeAllProfessionSkills:",
+            "// Method script/library/respec.autoLevelPlayer:",
+            "// Method script/library/respec.setPercentageCompletion:",
+            "// Method resetExpertises:",
+            "// Method script/library/skill.validateExpertise:",
+            "// Method grantSkill:",
+            "// Method script/library/skill.grantSkillToPlayer:",
+            "showMediator=ws_professiontemplateselect"
+        ))
+        {
+            if ($bytecode.Contains($forbidden))
+            {
+                throw "Deployed legacy NGE progression mutation remains in $($entry.Key): $forbidden"
+            }
+        }
     }
 }
 Write-Host "Publish 14.1 respec/auto-level entrypoint retirement contract passed."

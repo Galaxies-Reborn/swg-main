@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "respec-autolevel-entrypoint-retirement",
-  "status": "ready",
-  "scope": "Fail NGE profession-respec sellers, tokens, repurposed anti-decay kits, auto-level items, base-player template-change callbacks, shared player-facing respec library entrypoints, and the veteran migration stat-buff command closed while retaining link-compatible deep helpers, dormant diagnostics, and explicit restoration fixtures. Active GM and test-center progression use canonical PRE-CU skill boxes.",
+  "status": "implemented-build-verification-pending",
+  "scope": "Fail NGE profession-respec sellers, tokens, repurposed anti-decay kits, auto-level items, base-player template-change callbacks, shared player-facing respec library entrypoints, the veteran migration stat-buff command, and dormant legacy template/respec/expertise/arbitrary-skill test commands closed while retaining link-compatible deep helpers, read-only diagnostics, and explicit restoration fixtures. Active GM and test-center progression use canonical PRE-CU skill boxes.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "core3Boundary": "The pinned Publish 14.1 Core3 tree contains no profession-template respec, expertise reallocation, combat-level holocron, or matching respec seller implementation.",
@@ -24,6 +24,10 @@
     "combatRespecTokenGuardedEntrypoints": 2,
     "antidecayGuardedEntrypoints": 2,
     "autoLevelGuardedEntrypoints": 4,
+    "legacyNgeProgressionMutationScripts": 5,
+    "legacyNgeProgressionFailClosedCommands": 20,
+    "legacyNgeProgressionMutationCalls": 0,
+    "legacyTemplateDiagnosticsPreserved": true,
     "residualSkillTemplateReferences": 32,
     "residualReferenceClasses": {
       "nativeWrapper": 3,
@@ -32,6 +36,13 @@
       "qaAndWorkingScripts": 9,
       "precuReversibleFixture": 5
     }
+  },
+  "compiledClasses": {
+    "legacyDwhiteTest": "script/test/dwhite_test.class",
+    "legacyThicksTest": "script/test/thicks_test.class",
+    "legacyAhunterTest": "script/working/ahunter/my_script.class",
+    "legacyJbenjTest": "script/working/jbenjtest.class",
+    "legacyJfreemanSkillTest": "script/working/jfreeman/skilltest.class"
   },
   "buildEvidence": {
     "overlayPatch": "restoration/patches/dsrc/166-p14-respec-autolevel-entrypoint-retirement.patch",
@@ -47,11 +58,17 @@
       "utils.java": "86909a18bbb9fcd72f6ff6969c78dd52095580c7d9637289e3cdbcb152f3695c",
       "respec.java": "88af077108eeaeba8778feed4786c3deb3c76cca062c2f65f9b1409e78aa2649",
       "live_conversions.java": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e",
-      "combat_base.java": "b9f7b5e452c4cdab95007b377200774be4d622dcf7d2845cd874c65f8f120ab9"
+      "combat_base.java": "b9f7b5e452c4cdab95007b377200774be4d622dcf7d2845cd874c65f8f120ab9",
+      "legacyDwhiteTest.java": "6abc999baebd519777a1d26fbcaf7e5eadb088e54d56ecb8d7905f241e29256a",
+      "legacyThicksTest.java": "878991880a8134b6fe35c30000e1c4d74fe43551161a00d72683cd9f1939bb60",
+      "legacyAhunterTest.java": "540644d545961821dba71136183ec474642ffa30efa85d1b90814ce88a482843",
+      "legacyJbenjTest.java": "3487f71d22d288567178963739ee8c6dab3b7a71f5e576b133ca5c365463e3db",
+      "legacyJfreemanSkillTest.java": "6e6e9dbb9d985a0fc35bee44dc40bfe04a35a12601e048963c80a5e546a0031a"
     },
-    "currentSourceEvidenceRefreshedBy": "The shared CTS helper and public player-facing respec library entrypoints fail closed; the disabled auto-level item suppresses its NGE level attribute; login cleanup revokes the veteran command/buff and persisted respec state; Java combat admission rejects the veteran action; reachable qaxp and qaitem no longer read the player's NGE skill template.",
-    "directSourceGitlink": "6e134d721c59a936fa4d58dfb40dbdd86a4359b8",
-    "javaCompile": "passed again in the canonical 944.8-second 2026-08-09 x64 Docker deployment; 5,713 Java sources emitted 5,747 classes from pushed direct dsrc e5c482487242b40b6af4f2daee274abc9b3af0fd and native src 3f530f88a1b904d349cc08bced37e84d57df1e4d",
+    "currentSourceEvidenceRefreshedBy": "The shared CTS helper and public player-facing respec library entrypoints fail closed; the disabled auto-level item suppresses its NGE level attribute; login cleanup revokes the veteran command/buff and persisted respec state; Java combat admission rejects the veteran action; five dormant employee/test scripts retain read-only diagnostics but can no longer mutate NGE profession templates, working skills, auto-level state, expertise, or arbitrary skills.",
+    "directSourceGitlink": "d943a25d77553f1b38e7c4e4b6fe13bff0dfaba9",
+    "javaCompile": "pending canonical clean x64 Docker deployment from pushed direct dsrc d943a25d77553f1b38e7c4e4b6fe13bff0dfaba9",
+    "compiledClassRoot": "/swg-precu/data/sku.0/sys.server/compiled/game",
     "classSha256": {
       "respecseller.class": "849cc6da6b54e8482aac19325bccd506ad5b1ebbc821e1188d5acb5d1a05fc05",
       "click_combat_token.class": "2238ea6b0f34c3c74721b6629e776b631592c8477907675821baea65cb024afc",
@@ -63,10 +80,11 @@
       "live_conversions.class": "7c3c145b2d3feb5e35064514953fe52cda8df50d841228597d9c9d7a765bdb5f",
       "combat_base.class": "e79bebc953ec7ccb4fd27d534113220326b0136e6555464bb9c7ed1157df0a7e"
     },
-    "autoLevelAttributeBytecode": "deployed 4,908-byte auto_level.class invokes isNgeAutoLevelItemEnabled at bytecode offset 0 and returns at offset 7 before the inherited level attribute write at offset 43"
+    "classBytes": {},
+    "autoLevelAttributeBytecode": "deployed 4,908-byte auto_level.class invokes isNgeAutoLevelItemEnabled at bytecode offset 0 and returns at offset 7 before the inherited level attribute write at offset 43; legacy test-script bytecode refresh is pending"
   },
   "runtimeEvidence": {
-    "result": "passed",
+    "result": "deployment-pending",
     "container": "swg-precu",
     "containerStartedAt": "2026-08-09T11:01:00.212831771Z",
     "serverProcessId": 377,
@@ -91,5 +109,8 @@
     "postStartLogAudit": "357 lines; one exact player-ready marker; zero fatal, severe, exception, error, mission error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, or database-conversion matches",
     "structuredLogFatalSevereExceptionCount": 0
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Run the canonical clean x64 Docker deployment from pushed parent and direct-source commits.",
+    "Record and verify the five deployed legacy test-class hashes, byte sizes, fail-closed bytecode, source/work parity, process map, and fresh logs."
+  ]
 }
