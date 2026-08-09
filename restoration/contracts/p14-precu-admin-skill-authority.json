@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "precu-admin-skill-authority",
-  "status": "ready",
-  "scope": "Replace GM, test-center, beta-terminal, reachable QA XP/item, dormant beta debugger/XP test, and developer XP diagnostic NGE roadmap, broad XP-catalog, combat-level, expertise, class-template, Jedi-conversion, arbitrary skill mutation, and retired combat_general progression with canonical Publish 14.1 skill-box and XP administration; preserve fail-closed legacy script identities, non-progression debugging, and retained later-content item packs.",
+  "status": "implemented-build-verification-pending",
+  "scope": "Replace GM, test-center, beta-terminal, reachable QA XP/item, dormant beta debugger/XP/pet/survey tests, and developer XP/AI diagnostics NGE roadmap, broad XP-catalog, combat-level, expertise, class-template, Jedi-conversion, arbitrary skill mutation, unauthorized player-targeted skill grants, and retired combat_general progression with canonical Publish 14.1 skill-box and XP administration; preserve fail-closed legacy script identities, authenticated PRE-CU test behavior, non-player AI setup, non-progression debugging, and retained later-content item packs.",
   "sourceFiles": {
     "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "skillLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
@@ -24,7 +24,10 @@
     "betaJedi": "dsrc/sku.0/sys.server/compiled/game/script/beta/tc_jedi.java",
     "betaDebugger": "dsrc/sku.0/sys.server/compiled/game/script/beta/debugger.java",
     "betaXpTest": "dsrc/sku.0/sys.server/compiled/game/script/beta/xp_test.java",
-    "developerXpTest": "dsrc/sku.0/sys.server/compiled/game/script/hnguyen/cwdm_test.java"
+    "developerXpTest": "dsrc/sku.0/sys.server/compiled/game/script/hnguyen/cwdm_test.java",
+    "betaPetTest": "dsrc/sku.0/sys.server/compiled/game/script/beta/pet_test.java",
+    "betaSurveySpecialist": "dsrc/sku.0/sys.server/compiled/game/script/beta/skills_survey_specialist.java",
+    "developerAiTest": "dsrc/sku.0/sys.server/compiled/game/script/test/ai_test.java"
   },
   "compiledClasses": {
     "skillLibrary": "script/library/skill.class",
@@ -46,7 +49,10 @@
     "betaJedi": "script/beta/tc_jedi.class",
     "betaDebugger": "script/beta/debugger.class",
     "betaXpTest": "script/beta/xp_test.class",
-    "developerXpTest": "script/hnguyen/cwdm_test.class"
+    "developerXpTest": "script/hnguyen/cwdm_test.class",
+    "betaPetTest": "script/beta/pet_test.class",
+    "betaSurveySpecialist": "script/beta/skills_survey_specialist.class",
+    "developerAiTest": "script/test/ai_test.class"
   },
   "expected": {
     "publicProfessionRoots": 33,
@@ -76,6 +82,10 @@
     "broadBetaXpMutationReachable": false,
     "arbitraryBetaSkillMutationReachable": false,
     "retiredCombatGeneralDiagnosticReachable": false,
+    "dormantPrecuPlayerTestCanonicalGrantSurfaces": 3,
+    "dormantPrecuPlayerTestNativeGrantReachable": false,
+    "dormantPrecuPlayerTestUnauthorizedSpeakerGrantReachable": false,
+    "surveyDetachSkillRevocationReachable": false,
     "qaNgeSkillResetHelperReachable": false,
     "qaItemCombatLevelFilter": false,
     "qaItemClassTemplateFilter": false,
@@ -83,9 +93,9 @@
     "laterContentItemPacksPreserved": true
   },
   "buildEvidence": {
-    "directSourceGitlink": "d943a25d77553f1b38e7c4e4b6fe13bff0dfaba9",
-    "parentCommitAtDeployment": "22d7ff50d968237cb765d758daca315f75e577ab",
-    "javaCompile": "passed canonical clean x64 dependency rebuild in 1,127 seconds from pushed parent 22d7ff50d968237cb765d758daca315f75e577ab and direct dsrc d943a25d77553f1b38e7c4e4b6fe13bff0dfaba9; 5713 Java sources produced 5747 classes with zero shared-memory residue",
+    "directSourceGitlink": "d32614252661fb68f530582360ae1023b8d94928",
+    "parentCommitAtDeployment": null,
+    "javaCompile": "pending canonical clean x64 dependency rebuild from pushed direct dsrc d32614252661fb68f530582360ae1023b8d94928",
     "javaSourcesCompiled": 5713,
     "javaClassesEmitted": 5747,
     "compiledClassRoot": "/swg-precu/data/sku.0/sys.server/compiled/game",
@@ -110,7 +120,10 @@
       "betaJedi": "c99ec8c0b9a5199b58a9a193a452c6fdcbb8f52da7c009324d8cacd7e40c662f",
       "betaDebugger": "711fa223894b2f4331b08ab861499034f217ebfc3efbf609df34c2c7898ac2f9",
       "betaXpTest": "67fa6c02f50947e94a5544e02699fad5e71b293974100904db1263046e74e540",
-      "developerXpTest": "4c1e4121337db392fcdda9c4a95dbd1e38406094296d711d2e042f8777818b3d"
+      "developerXpTest": "4c1e4121337db392fcdda9c4a95dbd1e38406094296d711d2e042f8777818b3d",
+      "betaPetTest": "7eda91bf84e48b997012de1ac6c7f813e796aa85366942517fce9023cf8d1e7e",
+      "betaSurveySpecialist": "999f49c73e6d9021133a1031b72e3f6f5d209586671376acbbf0600ca15afe72",
+      "developerAiTest": "1a4d7d48ed6c9c212e6949b4c7f0b73a03a05f2f8093b736e05ce6dd55bf1e4b"
     },
     "classSha256": {
       "skillLibrary": "e248ed0a78e03038f7fd06c56d748f2426cafecb427007b2822ca84152c4accd",
@@ -156,20 +169,20 @@
       "betaXpTest": 3344,
       "developerXpTest": 108244
     },
-    "sourceWorkParity": "passed byte-for-byte for all twenty-one authoritative source/data files between the read-only source mount, host direct source, and x64 Docker work volume",
-    "bytecodeAudit": "passed complete deployed 20-class audit: canonical PRE-CU profession and pilot XP administration remains authoritative; dormant beta debugger and XP test mutations are constrained; stale bulk-skill, NGE template, and retired combat_general developer diagnostics fail closed; retained non-progression debugging and later-content item packs remain available",
+    "sourceWorkParity": "pending byte-for-byte deployment verification for all twenty-four authoritative source/data files",
+    "bytecodeAudit": "pending complete deployed 23-class audit including the three cap-aware, GM-only PRE-CU pet/survey/AI test surfaces",
     "serverBinarySha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
     "serverBinaryBuildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa",
     "architecture": "ELF 64-bit LSB x86-64"
   },
   "runtimeEvidence": {
     "date": "2026-08-09",
-    "result": "passed",
+    "result": "deployment-pending",
     "container": "swg-precu",
     "containerStartedAt": "2026-08-09T23:28:28.249756996Z",
     "containerHealth": "healthy",
     "deployedParentCommit": "22d7ff50d968237cb765d758daca315f75e577ab",
-    "deployedDsrcCommit": "d943a25d77553f1b38e7c4e4b6fe13bff0dfaba9",
+    "deployedDsrcCommit": "d32614252661fb68f530582360ae1023b8d94928",
     "clusterReadyForPlayers": true,
     "serverHealthy": true,
     "liveGameProcessPid": 377,
@@ -197,5 +210,8 @@
     },
     "postStartLogAudit": "321 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Run the canonical clean x64 Docker deployment from pushed parent and direct-source commits.",
+    "Record and verify the three new class hashes/bytes, all 24 source/work pairs, complete 23-class bytecode, process map, and fresh logs."
+  ]
 }

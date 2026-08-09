@@ -60,6 +60,9 @@ $betaJedi = Get-SourceText "betaJedi"
 $betaDebugger = Get-SourceText "betaDebugger"
 $betaXpTest = Get-SourceText "betaXpTest"
 $developerXpTest = Get-SourceText "developerXpTest"
+$betaPetTest = Get-SourceText "betaPetTest"
+$betaSurveySpecialist = Get-SourceText "betaSurveySpecialist"
+$developerAiTest = Get-SourceText "developerAiTest"
 
 $rootConstant = Get-Slice $skill `
     "public static final String[] PRECU_PUBLIC_PROFESSION_ROOTS" `
@@ -455,9 +458,54 @@ Assert-Excludes $developerXpTest @(
     "combat_general",
     "xp.grant(self,"
 ) "developer XP diagnostic"
+
+Assert-Contains $betaPetTest @(
+    'if (!isGod(self) || getGodLevel(self) < 10 || !isPlayer(self))',
+    'detachScript(self, "beta.pet_test")',
+    'skill.grantPrecuSkillWithPrerequisites(self, "outdoors_creaturehandler_master")',
+    "within the 250-point skill cap"
+) "dormant beta PRE-CU pet test"
+Assert-Excludes $betaPetTest @(
+    "grantSkill(",
+    "revokeSkill(",
+    "skill.grantSkill(",
+    "skill.grantSkillToPlayer("
+) "dormant beta PRE-CU pet test"
+
+Assert-Contains $betaSurveySpecialist @(
+    'if (!isGod(self) || getGodLevel(self) < 10 || !isPlayer(self))',
+    'detachScript(self, "beta.skills_survey_specialist")',
+    "skill.grantPrecuSkillWithPrerequisites(self, SKILL_NAME)",
+    "within the 250-point skill cap",
+    "remain learned when the survey test script is detached"
+) "dormant beta PRE-CU survey specialist"
+Assert-Excludes $betaSurveySpecialist @(
+    "getAllRequiredSkills(",
+    "grantSkill(",
+    "revokeSkill(",
+    "skill.grantSkill(",
+    "skill.revokeSkill("
+) "dormant beta PRE-CU survey specialist"
+
+Assert-Contains $developerAiTest @(
+    'skill.grantPrecuSkillWithPrerequisites(speaker, "outdoors_creaturehandler_master")',
+    'if (!isGod(speaker) || getGodLevel(speaker) < 10 || !isPlayer(speaker))',
+    "within the 250-point skill cap",
+    'setObjVar(speaker, "fasttame", 1)'
+) "dormant PRE-CU AI test"
+Assert-Excludes $developerAiTest @(
+    "grantSkill(",
+    "revokeSkill(",
+    "skill.grantSkill(",
+    "skill.grantSkillToPlayer("
+) "dormant PRE-CU AI test"
 if ($contract.expected.broadBetaXpMutationReachable -or
     $contract.expected.arbitraryBetaSkillMutationReachable -or
-    $contract.expected.retiredCombatGeneralDiagnosticReachable)
+    $contract.expected.retiredCombatGeneralDiagnosticReachable -or
+    $contract.expected.dormantPrecuPlayerTestNativeGrantReachable -or
+    $contract.expected.dormantPrecuPlayerTestUnauthorizedSpeakerGrantReachable -or
+    $contract.expected.surveyDetachSkillRevocationReachable -or
+    [int]$contract.expected.dormantPrecuPlayerTestCanonicalGrantSurfaces -ne 3)
 {
     throw "The dormant beta/developer progression reachability contract must fail closed."
 }
@@ -571,7 +619,7 @@ if ($Expectation -eq "Ready")
     }
     $classRoot = [string]$contract.buildEvidence.compiledClassRoot
     $classFiles = @($contract.compiledClasses.PSObject.Properties)
-    if ($classFiles.Count -ne 20) { throw "PRE-CU admin compiled-class inventory is incomplete." }
+    if ($classFiles.Count -ne 23) { throw "PRE-CU admin compiled-class inventory is incomplete." }
     foreach ($property in $classFiles)
     {
         $classPath = $classRoot + "/" + [string]$property.Value
@@ -634,6 +682,9 @@ if ($Expectation -eq "Ready")
     $betaDebuggerBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.debugger | Out-String)
     $betaXpTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.xp_test | Out-String)
     $developerXpTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.hnguyen.cwdm_test | Out-String)
+    $betaPetTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.pet_test | Out-String)
+    $betaSurveySpecialistBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.skills_survey_specialist | Out-String)
+    $developerAiTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.ai_test | Out-String)
     foreach ($entry in @{
         "deployed GM bytecode" = $playerUtilityBytecode
         "deployed test-center bytecode" = $builderBytecode
@@ -756,6 +807,27 @@ if ($Expectation -eq "Ready")
         "combat_general",
         "script/library/xp.grant:"
     ) "deployed developer XP diagnostic bytecode"
+    foreach ($entry in @{
+        "deployed beta PRE-CU pet test bytecode" = $betaPetTestBytecode
+        "deployed beta PRE-CU survey specialist bytecode" = $betaSurveySpecialistBytecode
+        "deployed PRE-CU AI test bytecode" = $developerAiTestBytecode
+    }.GetEnumerator())
+    {
+        Assert-Contains $entry.Value @(
+            "script/library/skill.grantPrecuSkillWithPrerequisites:",
+            "250-point skill cap"
+        ) $entry.Key
+        Assert-Excludes $entry.Value @(
+            "// Method grantSkill:",
+            "// Method revokeSkill:",
+            "// Method script/library/skill.grantSkill:",
+            "// Method script/library/skill.grantSkillToPlayer:",
+            "// Method script/library/skill.revokeSkill:"
+        ) $entry.Key
+    }
+    Assert-Contains $betaPetTestBytecode @("getGodLevel:", "beta.pet_test") "deployed beta PRE-CU pet test bytecode"
+    Assert-Contains $betaSurveySpecialistBytecode @("getGodLevel:", "remain learned when the survey test script is detached") "deployed beta PRE-CU survey specialist bytecode"
+    Assert-Contains $developerAiTestBytecode @("getGodLevel:", "fasttame") "deployed PRE-CU AI test bytecode"
     Assert-Contains $qaItemBytecode @(
         "Get Later-Content Item Packs",
         "datatables/roadmap/item_rewards.iff",
