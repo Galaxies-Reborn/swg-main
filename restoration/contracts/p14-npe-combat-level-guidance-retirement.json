@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-npe-combat-level-guidance-retirement",
+  "status": "implemented-build-pending",
+  "scope": "Preserve retained Tansarii quests, conversations, transfers, and non-level tutorial guidance while retiring its NGE combat-level-two popup, persistent completion marker, and delayed stale callback authority.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "Pinned Publish 14.1 Core3 has no Tansarii NPE journal or player combat-level progression callback; characters progress through learned skill boxes.",
+    "retainedBoundary": "Later Tansarii content remains loadable and playable. Only the NGE player-level presentation and its state are retired."
+  },
+  "inventory": {
+    "productionCombatLevelChangedCallbacks": 2,
+    "callbacks": [
+      "npe/trigger_journal.java",
+      "player/base/base_player.java"
+    ],
+    "disposition": {
+      "npe/trigger_journal.java": "retired level presentation with lifecycle and delayed-callback cleanup",
+      "player/base/base_player.java": "retained link-compatible command-series synchronization without level rewards or stats"
+    }
+  },
+  "expected": {
+    "npeLevelPopupProducerCalls": 0,
+    "npeLevelStateWrites": 0,
+    "npeLevelCleanupEntrypoints": 3,
+    "staleDelayedPopupRejected": true,
+    "questRegrantPreserved": true,
+    "spaceQuestCleanupPreserved": true,
+    "stationDeathSignalsPreserved": true,
+    "firstSkillGuidancePreserved": true,
+    "stationTransfersPreserved": true,
+    "visiblePlayerCombatLevelProgression": false
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "fbc6fa47231a687893bb6ca157ed2b96e49d5e1e",
+    "hostMaterializationWorkflow": "retired; no host artifact, staging, generated overlay, or duplicate source tree",
+    "sourceSha256": {
+      "trigger_journal.java": "2c7c253fda9b491ed27f8927a70708eed47beadde84aa2996b51608d64d4b37d"
+    },
+    "focusedJavaCompile": "passed with Java 8 source/target against the canonical deployed classpath in an ephemeral /dev/shm directory that was removed immediately",
+    "focusedClassSha256": {
+      "trigger_journal.class": "a8861ef4cf6064421e83a4fbba8ad4a064a846e6a14153dc2b792a1d75f3758d"
+    },
+    "fullServerBuild": "pending",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the only retained production callback that still produced NGE combat-level presentation",
+    "notClaimedComplete": "the broader PRE-CU precedence audit continues across other dormant later-era mechanics and live-verification-only contracts"
+  },
+  "requiredBeforeReady": [
+    "canonical x64 full rebuild, controlled restart, readiness, bytecode, source/work parity, and fresh-log verification"
+  ]
+}
