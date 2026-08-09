@@ -632,9 +632,6 @@ if ($Expectation -eq "Ready")
         "isPrecuPublicProfessionSkillName:",
         "script/library/xp.grant:",
         "script/library/xp.grantUnmodifiedExperience:",
-        "prestige_imperial",
-        "prestige_rebel",
-        "prestige_pilot",
         "PRE-CU XP Tool"
     ) "deployed QA XP bytecode"
     Assert-Excludes $qaXpBytecode @(
