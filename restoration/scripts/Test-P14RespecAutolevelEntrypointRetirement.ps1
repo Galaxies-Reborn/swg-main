@@ -26,7 +26,7 @@ $guards = [ordered]@{
     "respecseller.java" = [pscustomobject]@{ Helper = "isNgeRespecSellerEnabled"; Count = 5 }
     "click_combat_token.java" = [pscustomobject]@{ Helper = "isNgeCombatRespecTokenEnabled"; Count = 2 }
     "antidecay.java" = [pscustomobject]@{ Helper = "isNgeAntidecayRespecEnabled"; Count = 2 }
-    "auto_level.java" = [pscustomobject]@{ Helper = "isNgeAutoLevelItemEnabled"; Count = 3 }
+    "auto_level.java" = [pscustomobject]@{ Helper = "isNgeAutoLevelItemEnabled"; Count = 4 }
 }
 foreach ($entry in $guards.GetEnumerator())
 {
@@ -45,6 +45,20 @@ foreach ($entry in $guards.GetEnumerator())
     {
         throw "$helper does not fail closed."
     }
+}
+$autoLevel = $text["auto_level.java"]
+$attributeStart = $autoLevel.IndexOf("public int OnGetAttributes", [StringComparison]::Ordinal)
+$attributeEnd = $autoLevel.IndexOf("public int handlerSuiAutoLevel", $attributeStart, [StringComparison]::Ordinal)
+if ($attributeStart -lt 0 -or $attributeEnd -le $attributeStart)
+{
+    throw "Auto-level item attribute callback is missing."
+}
+$attributeBody = $autoLevel.Substring($attributeStart, $attributeEnd - $attributeStart)
+$attributeGuard = $attributeBody.IndexOf("if (!isNgeAutoLevelItemEnabled())", [StringComparison]::Ordinal)
+$levelAttribute = $attributeBody.IndexOf('names[idx] = "level"', [StringComparison]::Ordinal)
+if ($attributeGuard -lt 0 -or $levelAttribute -lt 0 -or $attributeGuard -gt $levelAttribute)
+{
+    throw "Disabled NGE auto-level items can still publish a level attribute."
 }
 $utils = $text["utils.java"]
 $ctsRespecStart = $utils.IndexOf("public static void updateRespecCTSObjvars", [StringComparison]::Ordinal)
