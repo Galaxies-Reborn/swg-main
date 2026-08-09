@@ -7,8 +7,10 @@ $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
 $root = (Resolve-Path -LiteralPath $SourceRoot).Path
 $relativeFiles = [ordered]@{
+    "npe.java" = "dsrc/sku.0/sys.server/compiled/game/script/library/npe.java"
     "trigger_journal.java" = "dsrc/sku.0/sys.server/compiled/game/script/npe/trigger_journal.java"
     "handoff_to_tatooine.java" = "dsrc/sku.0/sys.server/compiled/game/script/npe/handoff_to_tatooine.java"
+    "npe_station_han_solo2.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_station_han_solo2.java"
     "npe_force_sensitive.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_force_sensitive.java"
     "npe_commando.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_commando.java"
     "npe_profession_trader.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_profession_trader.java"
@@ -62,6 +64,36 @@ if ($failClosedCount -lt 10)
 {
     throw "Expected at least ten fail-closed NPE class gates; found $failClosedCount."
 }
+$npe = $texts["npe.java"]
+$pointerStart = $npe.IndexOf("public static void giveTemplatePointer")
+$pointerEnd = $npe.IndexOf("public static void commTutorialPlayer", $pointerStart)
+$pointer = $npe.Substring($pointerStart, $pointerEnd - $pointerStart)
+if (-not $pointer.Contains('groundquests.sendSignal(player, "npe_solo_profession_2_end")') -or
+    $pointer.Contains("groundquests.grantQuest(") -or
+    $pointer.Contains("utils.isProfession("))
+{
+    throw "NPE template pointer can still select or grant an NGE class quest."
+}
+$weaponStart = $npe.IndexOf("public static obj_id[] giveProfessionWeapon")
+$weaponEnd = $npe.IndexOf("public static void reGrantReWorkedQuests", $weaponStart)
+$weapon = $npe.Substring($weaponStart, $weaponEnd - $weaponStart)
+foreach ($retired in @("createNewItemFunction(", "showLootBox(", "utils.isProfession("))
+{
+    if ($weapon.Contains($retired))
+    {
+        throw "NPE profession weapon helper remains authoritative: $retired"
+    }
+}
+if (-not $weapon.Contains("return new obj_id[0]"))
+{
+    throw "NPE profession weapon compatibility helper is not fail closed."
+}
+$han = $texts["npe_station_han_solo2.java"]
+if (-not $han.Contains("npe.giveProfessionWeapon(player)") -or
+    -not $han.Contains("npe.giveTemplatePointer(player)"))
+{
+    throw "Retained Han Solo station conversation no longer routes through the bounded NPE helpers."
+}
 if ($Expectation -eq "Ready")
 {
     $contract = Get-Content -LiteralPath (Join-Path $restorationRoot "contracts/p14-npe-class-progression-retirement.json") -Raw | ConvertFrom-Json
@@ -91,21 +123,10 @@ if ($Expectation -eq "Ready")
             throw "Source evidence mismatch: $($entry.Key)"
         }
     }
-    $patchPath = Join-Path $restorationRoot "patches/dsrc/163-p14-npe-class-progression-retirement.patch"
-    $bytes = [Text.Encoding]::UTF8.GetBytes(([IO.File]::ReadAllText($patchPath) -replace "`r`n", "`n"))
-    $sha = [Security.Cryptography.SHA256]::Create()
-    try
+    $directCommit = (& git -C (Join-Path $root "dsrc") rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or $directCommit -cne [string]$contract.buildEvidence.dsrcSourceCommit)
     {
-        $hash = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace("-", "").ToLowerInvariant()
-    }
-    finally
-    {
-        $sha.Dispose()
-    }
-    if ($bytes.Length -ne $contract.buildEvidence.overlayPatchBytes -or
-        $hash -ne $contract.buildEvidence.overlayPatchSha256)
-    {
-        throw "Patch evidence mismatch."
+        throw "Direct dsrc source commit does not match the contract pin."
     }
 }
 Write-Host "Publish 14.1 NPE class-progression retirement contract passed."

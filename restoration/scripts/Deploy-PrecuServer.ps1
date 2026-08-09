@@ -63,6 +63,10 @@ Write-Host "Verifying retained NPE combat-level guidance retirement before build
 & (Join-Path $PSScriptRoot "Test-P14NpeCombatLevelGuidanceRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying NPE class progression and profession reward retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14NpeClassProgressionRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying post-NGE Rare Loot player-runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeRareLootPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
