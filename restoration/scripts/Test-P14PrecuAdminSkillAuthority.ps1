@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$SourceRoot,
-    [ValidateSet("Build", "Ready")][string]$Expectation = "Build"
+    [ValidateSet("Build", "Ready")][string]$Expectation = "Build",
+    [string]$Container = "swg-precu"
 )
 $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
@@ -233,6 +234,89 @@ if ($Expectation -eq "Ready")
         {
             throw "PRE-CU admin source evidence mismatch: $($property.Name)"
         }
+    }
+    $classRoot = [string]$contract.buildEvidence.compiledClassRoot
+    $classFiles = @($contract.compiledClasses.PSObject.Properties)
+    if ($classFiles.Count -ne 10) { throw "PRE-CU admin compiled-class inventory is incomplete." }
+    foreach ($property in $classFiles)
+    {
+        $classPath = $classRoot + "/" + [string]$property.Value
+        $hashOutput = (& docker exec $Container sha256sum $classPath).Trim()
+        if ($LASTEXITCODE -ne 0) { throw "Unable to hash deployed class: $($property.Name)" }
+        $actualHash = ($hashOutput -split '\s+')[0]
+        $actualBytes = [int64]((& docker exec $Container stat -c "%s" $classPath).Trim())
+        if ($LASTEXITCODE -ne 0 -or
+            $actualHash -cne [string]$contract.buildEvidence.classSha256.($property.Name) -or
+            $actualBytes -ne [int64]$contract.buildEvidence.classBytes.($property.Name))
+        {
+            throw "PRE-CU admin compiled-class evidence mismatch: $($property.Name)"
+        }
+    }
+    $classCount = @(& docker exec $Container find ($classRoot + "/script") -type f -name "*.class").Count
+    $sourceCount = @(& docker exec $Container find "/swg-precu-source/dsrc/sku.0/sys.server/compiled/game/script" -type f -name "*.java").Count
+    if ($classCount -ne [int]$contract.buildEvidence.javaClassesEmitted -or
+        $sourceCount -ne [int]$contract.buildEvidence.javaSourcesCompiled)
+    {
+        throw "Canonical clean Java source/class counts do not match deployed evidence."
+    }
+    foreach ($property in $contract.sourceFiles.PSObject.Properties)
+    {
+        $relative = ([string]$property.Value).Substring(5).Replace('\', '/')
+        & docker exec $Container cmp -s ("/swg-precu-source/dsrc/" + $relative) ("/swg-precu/dsrc/" + $relative)
+        if ($LASTEXITCODE -ne 0) { throw "Direct/work source parity mismatch: $($property.Name)" }
+    }
+    $skillBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.skill | Out-String)
+    Assert-Contains $skillBytecode @(
+        "collectPrecuSkillPrerequisites",
+        "getAvailableSkillPoints",
+        "grantSkillToPlayer",
+        "purchaseSkill"
+    ) "deployed PRE-CU skill bytecode"
+    $playerUtilityBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.player.player_utility | Out-String)
+    $builderBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.terminal.terminal_character_builder | Out-String)
+    $qaToolBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qatool | Out-String)
+    foreach ($entry in @{
+        "deployed GM bytecode" = $playerUtilityBytecode
+        "deployed test-center bytecode" = $builderBytecode
+        "deployed QA spec bytecode" = $qaToolBytecode
+    }.GetEnumerator())
+    {
+        Assert-Contains $entry.Value @("grantPrecuSkillWithPrerequisites") $entry.Key
+    }
+    Assert-Contains $playerUtilityBytecode @("purchaseWorkingPrecuSkillForTesting", "getPrecuProfessionSkillList") "deployed GM bytecode"
+    Assert-Contains $builderBytecode @("purchaseWorkingPrecuSkillForTesting", "getPrecuProfessionSkillList") "deployed test-center bytecode"
+    if (([regex]::Matches($qaToolBytecode, "Method retiredNgeSpecTester")).Count -ne 0)
+    {
+        throw "Deployed QA bytecode calls the retired NGE spec implementation."
+    }
+    foreach ($className in @("script.test.qasetup", "script.test.qa_character"))
+    {
+        $bytecode = (& docker exec $Container javap -classpath $classRoot -c -p $className | Out-String)
+        $attach = Get-Slice $bytecode "public int OnAttach" "public int OnSpeaking"
+        Assert-Contains $attach @("detachScript") "deployed $className OnAttach"
+        Assert-Excludes $attach @("setSkillTemplate", "autoLevelPlayer", "autoAllocateExpertiseByLevel") "deployed $className OnAttach"
+    }
+    $state = (& docker inspect --format "{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}" $Container).Trim()
+    if ($LASTEXITCODE -ne 0 -or $state -cne "running healthy")
+    {
+        throw "PRE-CU x64 server is not running and healthy."
+    }
+    $processNames = @(& docker exec $Container ps -eo comm= | ForEach-Object { $_.Trim() })
+    foreach ($property in $contract.runtimeEvidence.processCounts.PSObject.Properties)
+    {
+        $expectedName = [string]$property.Name
+        $commName = $expectedName.Substring(0, [Math]::Min(15, $expectedName.Length))
+        $actualCount = @($processNames | Where-Object { $_ -ceq $commName }).Count
+        if ($actualCount -ne [int]$property.Value)
+        {
+            throw "Unexpected deployed process count: $($property.Name)=$actualCount"
+        }
+    }
+    $logs = (& docker logs --since ([string]$contract.runtimeEvidence.containerStartedAt) $Container 2>&1 | Out-String)
+    if (([regex]::Matches($logs, [regex]::Escape("Cluster swg is ready for players."))).Count -ne 1 -or
+        $logs -match '(?i)fatal|severe|exception|\berror\b|ConGenericMessage constructed with empty message|undefined symbol|symbol lookup error|ABI|ORA-[0-9]+|segmentation fault|core dumped')
+    {
+        throw "Fresh deployed server logs do not match the clean player-ready evidence."
     }
 }
 Write-Host "Publish 14.1 PRE-CU admin skill authority contract passed."
