@@ -115,7 +115,7 @@ Assert-Contract ($presentationMappingsValid -and
     "p14.retained-device.class-presentation.precu-skill-labels"
 Assert-Contract ($professionSlice -match '(?s)case SPY:\s*return false;' -and
     -not $professionSlice.Contains("outdoors_ranger_novice") -and
-    $requirementSlice -match '(?s)requirement[.]equals[(]"spy"[)]\s*[)]?\s*\{\s*return false;') `
+    $requirementSlice -match '(?s)requirement[.]equals[(]"spy"[)].*?return isPrecuRetainedItemClass[(]player, SPY[)];') `
     "p14.retained-device.global-spy-identity.unchanged"
 
 $disarmSlice = Get-FunctionSlice $stealthText "public static void disarmTrap(" "public static boolean canDetectCamouflage("

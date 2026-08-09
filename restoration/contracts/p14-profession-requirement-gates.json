@@ -1,30 +1,76 @@
 {
   "schemaVersion": 1,
   "feature": "profession-requirement-gates",
-  "status": "ready",
-  "scope": "Route direct content and item profession requirements through exact Publish 14.1 ownership while retaining known compatibility tokens.",
+  "status": "build",
+  "scope": "Route retained content and item profession requirements through exact Publish 14.1 ownership, including an item-local NGE Spy-to-PRE-CU Ranger compatibility boundary and PRE-CU skill presentation.",
   "expected": {
     "convertedConsumers": 7,
     "exactSkillsAccepted": true,
     "knownCategoryTokensMapped": true,
-    "unknownAndSpyFailClosed": true
+    "unknownRequirementsFailClosed": true,
+    "globalSpyProfessionIdentity": false,
+    "namedSpyItemAdmission": "outdoors_ranger_novice",
+    "presentationAdapterCalls": 8,
+    "namedCompatibilitySkillMappings": {
+      "commando": "combat_commando_novice",
+      "smuggler": "combat_smuggler_novice",
+      "medic": "science_medic_novice",
+      "officer": "outdoors_squadleader_novice",
+      "spy": "outdoors_ranger_novice",
+      "bounty_hunter": "combat_bountyhunter_novice",
+      "force_sensitive": "force_sensitive",
+      "trader": "crafting_artisan_novice",
+      "entertainer": "social_entertainer_novice"
+    },
+    "masterItemNamedRequirementCounts": {
+      "bounty_hunter": 52,
+      "commando": 57,
+      "entertainer": 33,
+      "force_sensitive": 75,
+      "medic": 40,
+      "officer": 43,
+      "smuggler": 54,
+      "spy": 54,
+      "trader": 28
+    }
+  },
+  "sourceFiles": {
+    "utils": "dsrc/sku.0/sys.server/compiled/game/script/library/utils.java",
+    "content": "dsrc/sku.0/sys.server/compiled/game/script/library/content.java",
+    "staticItem": "dsrc/sku.0/sys.server/compiled/game/script/library/static_item.java",
+    "dynamicArmor": "dsrc/sku.0/sys.server/compiled/game/script/item/armor/dynamic_armor.java",
+    "staticItemBase": "dsrc/sku.0/sys.server/compiled/game/script/item/static_item_base.java",
+    "skillmodClickItem": "dsrc/sku.0/sys.server/compiled/game/script/item/skillmod_click_item.java",
+    "lootSchematic": "dsrc/sku.0/sys.server/compiled/game/script/item/loot_schematic/loot_schematic.java",
+    "runtimeFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_profession_requirement_fixture.java",
+    "masterItem": "dsrc/sku.0/sys.server/compiled/game/datatables/item/master_item/master_item.tab"
   },
   "buildEvidence": {
     "overlayPatch": "restoration/patches/dsrc/152-p14-profession-requirement-gates.patch",
     "overlayPatchBytes": 15673,
     "overlayPatchSha256": "08361480cfac29071b317b4ad44403fe7c5499a809e2672096bdc03b75d50303",
-    "javaCompile": "passed"
+    "javaCompile": "passed",
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "9afd016ff215e0c518018a0e47eba6ff794a505a",
+    "sourceSha256": {
+      "utils": "86909a18bbb9fcd72f6ff6969c78dd52095580c7d9637289e3cdbcb152f3695c",
+      "content": "b963826b1cd34d688f46f116cea18ff8f2f3d9416f8d9414b2607ed8960ac3b6",
+      "staticItem": "1723f2a061c5b8dba64c4d6b8887a983502d0d043f1ea166c540eed71775d9af",
+      "dynamicArmor": "5f019b57e50b2e4106df3ac76ee3358bb0a31ca6eb34c7e646b914c81edcdf05",
+      "staticItemBase": "b606e862322b2636596260d3693693e6a3edaa2de4f103d3a0ab1551c98a35a1",
+      "skillmodClickItem": "75153eaa02ab92ea6399fcde2f2c2ceea8a587ab4173efc0383dc3c0cce94c58",
+      "lootSchematic": "1fa8a878010238eb6ec7f7bb3920168b858749bdf7dabb1c6c79ee4aff0d7b9f",
+      "runtimeFixture": "46bb5c306932d7510e43a04cfe4c99249f6ddcea6930e0c2b82d621e22edb3e9",
+      "masterItem": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d"
+    },
+    "focusedJavaCompile": "passed for six changed Java sources with Java 8 target against the canonical deployed class root; the ephemeral /dev/shm output directory was removed immediately"
   },
   "runtimeEvidence": {
-    "result": "passed",
-    "container": "swg-precu",
-    "clientProcessId": 56856,
-    "backgroundInputProtocol": 85,
-    "characterOid": 39008597,
-    "stationId": 1001,
-    "identityBoundProbe": "exact-skill-token-state-rejection-matrix-passed-and-restored",
-    "serverHealthy": true,
-    "fatalSevereExceptionCount": 0
+    "result": "pending",
+    "requiredProbe": "authoritative Ranger grant must admit named Spy retained-item requirements while global Spy identity stays retired, then restore all mutated skills and Jedi state"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical x64 deployment from the pushed direct-source commit",
+    "identity-bound live profession requirement probe passes and restores player state"
+  ]
 }
