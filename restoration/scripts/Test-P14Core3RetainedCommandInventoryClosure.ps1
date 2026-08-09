@@ -68,6 +68,7 @@ foreach ($property in $contract.retainedOwnership.PSObject.Properties) {
         $expectedAll.Add($command)
         $row = @($commandRows | Where-Object commandName -CEQ $command)
         Assert ($row.Count -eq 1) "M330 command missing or duplicated: $command"
+        Assert ([string]$row[0].commandCategory -ceq "combat") "M330 combat command is not categorized as combat: $command"
         $owners = @($skillRows | Where-Object { @(([string]$_.COMMANDS -split ',') | ForEach-Object { $_.Trim() }) -ccontains $command })
         Assert ($owners.Count -gt 0) "M330 retained owner missing: $command"
         Assert (@($owners | Where-Object { ([string]$_.NAME).StartsWith($prefixes[$category], [System.StringComparison]::Ordinal) }).Count -gt 0) "M330 owner/category drifted: $command"
@@ -76,6 +77,12 @@ foreach ($property in $contract.retainedOwnership.PSObject.Properties) {
 $expectedUnique = @($expectedAll | Sort-Object -Unique)
 Assert ($expectedAll.Count -eq 79 -and $expectedUnique.Count -eq 79) "M330 contract command inventory duplicated"
 Assert (($audited -join ([char]0)) -ceq ($expectedUnique -join ([char]0))) "M330 overlay and contract inventories differ"
+
+foreach ($command in @($contract.commandBrowserClassification.nonCombatExamples)) {
+    $row = @($commandRows | Where-Object commandName -CEQ ([string]$command))
+    Assert ($row.Count -eq 1) "M330 non-combat command missing or duplicated: $command"
+    Assert ([string]$row[0].commandCategory -cne "combat") "M330 non-combat command is incorrectly categorized as combat: $command"
+}
 
 $readyContractTexts = [System.Collections.Generic.List[string]]::new()
 foreach ($path in Get-ChildItem -LiteralPath (Join-Path $restorationRoot "contracts") -File -Filter "*.json") {
@@ -95,6 +102,8 @@ if ($Expectation -ceq "Ready") {
         [bool]$contract.historicalAudit.allCommandsPresentExactlyOnce -and
         [bool]$contract.currentProduction.allCommandsRegisteredExactlyOnce -and
         [bool]$contract.currentProduction.allCommandsRetainOwners -and
+        [bool]$contract.commandBrowserClassification.allRetainedCommandsCategorizedCombat -and
+        [bool]$contract.commandBrowserClassification.nonCombatExamplesRemainOther -and
         [bool]$contract.evidenceClosure.readyContractsVerified -and
         [bool]$contract.evidenceClosure.mcpEvidenceVerified) "M330 closure evidence missing"
 }

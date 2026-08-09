@@ -40,7 +40,7 @@ foreach ($name in $commands) {
     $row = @($commandRows | Where-Object commandName -CEQ $name)
     Assert ($row.Count -eq 1) "$name command row missing or duplicated"
     $row = $row[0]
-    Assert ([string]::IsNullOrEmpty([string]$row.commandCategory) -and
+    Assert ([string]$row.commandCategory -ceq "combat" -and
         [string]$row.defaultPriority -ceq "normal" -and
         [string]$row.scriptHook -ceq $name -and
         [string]$row.failScriptHook -ceq "failSpecialAttack" -and

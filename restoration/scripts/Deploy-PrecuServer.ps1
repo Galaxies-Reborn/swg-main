@@ -750,6 +750,26 @@ cmp -s "$source_speeds" "$work_speeds"
 cmp -s "$source_travel" "$work_travel"
 cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
+awk -F '\t' '
+BEGIN {
+    split("bleedingShot confusionShot eyeShot fastBlast forceOfWill knockdownFire lastDitch lowBlow meditate panicShot powerBoost sprayShot torsoShot tumbleToKneeling tumbleToProne tumbleToStanding underHandShot", retained_names, " ")
+    for (index in retained_names) retained[retained_names[index]] = 1
+    split("startDance startMusic stopDance stopMusic groupdance", noncombat_names, " ")
+    for (index in noncombat_names) noncombat[noncombat_names[index]] = 1
+}
+NR > 2 && ($1 in retained) {
+    retained_seen[$1]++
+    if ($2 != "combat") exit 2
+}
+NR > 2 && ($1 in noncombat) {
+    noncombat_seen[$1]++
+    if ($2 == "combat") exit 3
+}
+END {
+    for (name in retained) if (retained_seen[name] != 1) exit 4
+    for (name in noncombat) if (noncombat_seen[name] != 1) exit 5
+}
+' "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_buff_table" "$work_buff_table"
 cmp -s "$source_buff_effect_mapping" "$work_buff_effect_mapping"
