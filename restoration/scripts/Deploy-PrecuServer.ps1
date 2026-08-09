@@ -113,6 +113,10 @@ Write-Host "Verifying the direct-source PRE-CU Center of Being lifecycle before 
 & (Join-Path $PSScriptRoot "Test-P14CenterOfBeingLifecycle.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build
+Write-Host "Verifying the direct-source PRE-CU Teras Kasi ability branch before build..."
+& (Join-Path $PSScriptRoot "Test-P14Core3UnarmedAbilityBranchClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying pinned Core3 damage and NGE kill-meter player isolation before build..."
 & (Join-Path $PSScriptRoot "Test-P14Core3DamageAuthority.ps1") `
     -SourceRoot $repositoryRoot
@@ -775,6 +779,29 @@ END {
 }
 ' "$work_command_table"
 awk -F '\t' '$1 == "centerOfBeing" { found++; if ($2 != "combat") exit 2 } END { if (found != 1) exit 3 }' "$work_command_table"
+awk -F '\t' '
+NR == 1 {
+    for (column = 1; column <= NF; column++) field[$column] = column
+    next
+}
+NR > 2 && ($1 == "unarmedDizzy1" || $1 == "unarmedCombo1" || $1 == "unarmedCombo2") {
+    found[$1]++
+    expectedTime["unarmedDizzy1"] = 2
+    expectedTime["unarmedCombo1"] = 2
+    expectedTime["unarmedCombo2"] = 4
+    if ($(field["commandCategory"]) != "combat" ||
+        $(field["scriptHook"]) != $1 ||
+        $(field["defaultTime"]) != expectedTime[$1] ||
+        $(field["executeTime"]) != expectedTime[$1] ||
+        $(field["validWeapon"]) != "UNARMED" ||
+        $(field["addToCombatQueue"]) != 1) exit 2
+}
+END {
+    if (found["unarmedDizzy1"] != 1 ||
+        found["unarmedCombo1"] != 1 ||
+        found["unarmedCombo2"] != 1) exit 3
+}
+' "$work_command_table"
 cmp -s "$source_skills" "$work_skills"
 cmp -s "$source_buff_table" "$work_buff_table"
 cmp -s "$source_buff_effect_mapping" "$work_buff_effect_mapping"
@@ -5774,6 +5801,16 @@ printf '%s' "$center_of_being_bytecode" | grep -Fq 'combat_brawler_novice'
 printf '%s' "$center_of_being_bytecode" | grep -Fq 'centerofbeing'
 printf '%s' "$center_of_being_bytecode" | grep -Fq 'drainCombatActionAttributes'
 ! printf '%s' "$center_of_being_bytecode" | grep -Eq 'fs_buff_(def_1_1|ca_1)'
+combat_actions_signatures="$(javap -classpath "$class_root" -p script.systems.combat.combat_actions)"
+printf '%s' "$combat_actions_signatures" | grep -Fq 'public int unarmedDizzy1('
+printf '%s' "$combat_actions_signatures" | grep -Fq 'public int unarmedCombo1('
+printf '%s' "$combat_actions_signatures" | grep -Fq 'public int unarmedCombo2('
+printf '%s' "$combat_actions_signatures" | grep -Fq 'private boolean performPrecuUnarmedCombo('
+unarmed_combo_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions | sed -n '/public int unarmedCombo1/,/public int intimidate1/p')"
+printf '%s' "$unarmed_combo_bytecode" | grep -Fq 'precuTargetPool'
+printf '%s' "$unarmed_combo_bytecode" | grep -Fq 'precuHealthDamageMultiplier'
+printf '%s' "$unarmed_combo_bytecode" | grep -Fq 'precuActionDamageMultiplier'
+printf '%s' "$unarmed_combo_bytecode" | grep -Fq 'precuMindDamageMultiplier'
 bounty_hunter_shield_script_bytecode="$(javap -classpath "$class_root" -c -p script.player.skill.bh_shields)"
 test "$(printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fc 'retirePostNgeBountyHunterShieldState')" -eq 3
 printf '%s' "$bounty_hunter_shield_script_bytecode" | grep -Fq 'public int OnAttach'

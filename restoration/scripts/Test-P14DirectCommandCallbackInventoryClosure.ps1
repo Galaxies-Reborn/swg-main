@@ -86,7 +86,8 @@ $handlerRecords = @(
         [pscustomobject]@{
             Name = $name
             Body = $body
-            Standard = $body.Contains("combatStandardAction(")
+            Standard = $body.Contains("combatStandardAction(") -or
+                $body.Contains("performPrecuUnarmedCombo(")
         }
     }
 )

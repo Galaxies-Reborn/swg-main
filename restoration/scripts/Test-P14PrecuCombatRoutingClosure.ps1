@@ -202,7 +202,7 @@ if ($Expectation -eq "Ready")
 }
 else
 {
-    Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -contains
+    Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "implemented-build-verified-live-validation-pending", "ready") -contains
         [string]$contract.status) "p14.combat-routing.source-status"
 }
 

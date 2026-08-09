@@ -52,7 +52,7 @@ Assert-C (
     [Text.Encoding]::UTF8.GetByteCount($familyText) -eq [int]$e.family.normalizedSortedRowsBytes -and
     $familyHash -ceq [string]$e.family.normalizedSortedRowsSha256
 ) "p14.teras-kasi-profession.family.all-19-rows-exact"
-Assert-C ($compatibilityRows.Count -eq 7) "p14.teras-kasi-profession.compatibility-prereqs-isolated"
+Assert-C ($compatibilityRows.Count -eq [int]$e.compatibilityRowCount) "p14.teras-kasi-profession.compatibility-prereqs-isolated"
 if ($Expectation -ceq "Ready") {
     $b = $contract.buildEvidence
     $runtime = $contract.runtimeEvidence

@@ -51,8 +51,11 @@ foreach ($patch in $patches) {
 }
 $addedUnique = @($added | Sort-Object -Unique)
 Assert ($added.Count -eq 77 -and $addedUnique.Count -eq 77) "M330 patch-added command inventory drifted"
-$audited = @($addedUnique + @($contract.auditBoundary.preexistingRowsRequiringLifecycle) | Sort-Object -Unique)
-Assert ($audited.Count -eq 79) "M330 audited command inventory drifted: $($audited.Count)"
+$audited = @($addedUnique +
+    @($contract.auditBoundary.preexistingRowsRequiringLifecycle) +
+    @($contract.auditBoundary.directSourceCommandsAddedAfterClosure) |
+    Sort-Object -Unique)
+Assert ($audited.Count -eq 82) "M330 audited command inventory drifted: $($audited.Count)"
 
 $prefixes = @{
     Brawler="combat_brawler_"; Rifleman="combat_rifleman_"; OneHandedSword="combat_1hsword_";
@@ -75,7 +78,7 @@ foreach ($property in $contract.retainedOwnership.PSObject.Properties) {
     }
 }
 $expectedUnique = @($expectedAll | Sort-Object -Unique)
-Assert ($expectedAll.Count -eq 79 -and $expectedUnique.Count -eq 79) "M330 contract command inventory duplicated"
+Assert ($expectedAll.Count -eq 82 -and $expectedUnique.Count -eq 82) "M330 contract command inventory duplicated"
 Assert (($audited -join ([char]0)) -ceq ($expectedUnique -join ([char]0))) "M330 overlay and contract inventories differ"
 
 foreach ($command in @($contract.commandBrowserClassification.nonCombatExamples)) {
@@ -89,7 +92,11 @@ foreach ($path in Get-ChildItem -LiteralPath (Join-Path $restorationRoot "contra
     if ($path.Name -ceq "p14-core3-retained-command-inventory-closure.json") { continue }
     $raw = Get-Content -LiteralPath $path.FullName -Raw
     $data = $raw | ConvertFrom-Json
-    if ([string]$data.status -ceq "ready") { $readyContractTexts.Add($raw) }
+    if ([string]$data.status -ceq "ready" -or
+        ($Expectation -ceq "Build" -and
+            $path.Name -ceq "p14-core3-unarmed-ability-branch-closure.json")) {
+        $readyContractTexts.Add($raw)
+    }
 }
 foreach ($command in $expectedUnique) {
     Assert (@($readyContractTexts | Where-Object { $_.Contains($command) }).Count -gt 0) "M330 Ready contract evidence missing: $command"

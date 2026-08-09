@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "feature": "core3-unarmed-ability-branch-closure",
+  "status": "implemented-source-verified-build-pending",
+  "scope": "Restore the three Publish-era Teras Kasi ability commands still granted by the PRE-CU skill tree but absent from the NGE-derived command and combat source.",
+  "eraEvidence": {
+    "publish12CommandTable": {
+      "path": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+      "sha256": "09179C383095EE784D6BDF14FD52836982C063B0CBC8B1138893C8C0F2E4B9B8",
+      "commands": ["unarmedDizzy1", "unarmedCombo1", "unarmedCombo2"]
+    },
+    "publish12SkillTable": {
+      "path": "MCP/SWGEmu/extracted/precu-patch-12-00/datatables/skill/skills.iff",
+      "sha256": "1CDC3466C089D5E96779AC19F4C3D0B183BC0F3AD4BE39B407277245FC48F128",
+      "owners": {
+        "unarmedDizzy1": "combat_unarmed_ability_01",
+        "unarmedCombo1": "combat_unarmed_ability_02",
+        "unarmedCombo2": "combat_unarmed_ability_04"
+      }
+    },
+    "core3": {
+      "repository": "https://github.com/swgemu/Core3",
+      "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+      "sources": [
+        "MMOCoreORB/bin/scripts/commands/unarmedDizzy1.lua",
+        "MMOCoreORB/bin/scripts/commands/unarmedCombo1.lua",
+        "MMOCoreORB/bin/scripts/commands/unarmedCombo2.lua",
+        "MMOCoreORB/src/server/zone/objects/creature/commands/UnarmedDizzy1Command.h",
+        "MMOCoreORB/src/server/zone/objects/creature/commands/UnarmedCombo1Command.h",
+        "MMOCoreORB/src/server/zone/objects/creature/commands/UnarmedCombo2Command.h"
+      ]
+    },
+    "commands": {
+      "unarmedDizzy1": {
+        "damageMultiplier": 1.5,
+        "speedMultiplier": 2.0,
+        "hamCostMultipliers": [1.5, 1.5, 1.5],
+        "accuracyBonus": 15,
+        "state": "DIZZY",
+        "stateChance": 100,
+        "stateDuration": 30,
+        "animation": "attack_special_wookiee_slap",
+        "combatSpam": "gundarkslap"
+      },
+      "unarmedCombo1": {
+        "damageMultiplier": 2.0,
+        "speedMultiplier": 2.0,
+        "hamCostMultipliers": [1.5, 1.5, 1.5],
+        "accuracyBonus": 15,
+        "targetPools": ["HEALTH", "ACTION", "MIND"],
+        "serverDistribution": "health=(90-random[0,50])/100; action=0.1; mind=1-health-action",
+        "animation": "combo_4b",
+        "combatSpam": "shenbitbonecrusher"
+      },
+      "unarmedCombo2": {
+        "damageMultiplier": 3.0,
+        "speedMultiplier": 4.0,
+        "hamCostMultipliers": [2.0, 2.0, 2.0],
+        "accuracyBonus": 15,
+        "targetPools": ["HEALTH", "ACTION", "MIND"],
+        "serverDistribution": "independent random[10,80] weights normalized to sum 1",
+        "animation": "combo_4a",
+        "combatSpam": "deathweave"
+      }
+    }
+  },
+  "sourceFiles": {
+    "combatActions": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
+    "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
+    "combatSpam": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+  },
+  "authority": {
+    "commandCategory": "combat",
+    "weapon": "UNARMED",
+    "queue": "normal PRE-CU combat queue and weapon-speed gate",
+    "comboDistribution": "generated server-side and passed through a cloned combat_data record; client params are ignored"
+  },
+  "buildEvidence": {
+    "result": "source-passed-build-pending",
+    "directSourceCommit": "b0ee5aa7c11120d6b8b7253ca30063f8146129cc",
+    "sourceSha256": {
+      "combatActions": "62c57e5131fce7bc958351c298605560536e5773849ed5294a613b0b68fe346e",
+      "commandTable": "8598fc35b6ba06177f6936f1ef58121ca5314ffc5b3bf90a8ffd04a1f9ebc672",
+      "combatData": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
+      "combatOverrides": "ed4d713f9902f7f3775ef90f6173e0b09b5a35b104d4d9d581b9e942f48cccba",
+      "combatSpam": "8b3cdf2e47bf39c485eaa331a5832aea65b186b44459f2629fac11ff52ee2eeb"
+    },
+    "staticContract": "passed",
+    "x64ServerBuild": "pending",
+    "datatableCompile": "pending",
+    "javaCompile": "pending",
+    "deployment": "pending"
+  },
+  "runtimeEvidence": {
+    "result": "pending",
+    "required": [
+      "Each command enters the combat queue and resolves with an unarmed weapon.",
+      "unarmedDizzy1 applies its defended 30-second Dizzy state on a successful state roll.",
+      "unarmedCombo1 and unarmedCombo2 distribute one attack's damage across Health, Action, and Mind with server-generated ratios.",
+      "HAM costs, cadence, animation, and command-name combat spam match the restored metadata."
+    ]
+  }
+}
