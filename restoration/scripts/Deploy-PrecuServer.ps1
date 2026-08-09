@@ -75,6 +75,10 @@ Write-Host "Verifying post-Publish-14 veteran respec item retirement before buil
 & (Join-Path $PSScriptRoot "Test-P14PostP14VeteranRespecItemRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying post-NGE player XP-buff admission retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgePlayerXpBuffAdmissionRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
