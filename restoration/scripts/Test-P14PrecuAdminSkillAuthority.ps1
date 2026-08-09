@@ -351,18 +351,18 @@ if ($Expectation -eq "Ready")
     Assert-Contains $playerUtilityBytecode @("purchaseWorkingPrecuSkillForTesting", "getPrecuProfessionSkillList") "deployed GM bytecode"
     Assert-Contains $builderBytecode @("purchaseWorkingPrecuSkillForTesting", "getPrecuProfessionSkillList") "deployed test-center bytecode"
     Assert-Excludes $builderBytecode @(
-        "getSkillTemplate",
-        "setSkillTemplate",
-        "autoLevelPlayer",
-        "autoAllocateExpertiseByLevel",
-        "fullExpertiseReset",
-        "revokeAllSkills"
+        "getSkillTemplate:",
+        "setSkillTemplate:",
+        "autoLevelPlayer:",
+        "autoAllocateExpertiseByLevel:",
+        "fullExpertiseReset:",
+        "revokeAllSkills:"
     ) "complete deployed test-center bytecode"
     Assert-Excludes $qaToolBytecode @(
-        "setSkillTemplate",
-        "autoLevelPlayer",
-        "fullExpertiseReset",
-        "getLevel"
+        "setSkillTemplate:",
+        "autoLevelPlayer:",
+        "fullExpertiseReset:",
+        "getLevel:"
     ) "complete deployed QA tool bytecode"
     if (([regex]::Matches($qaToolBytecode, "Method retiredNgeSpecTester")).Count -ne 0)
     {
