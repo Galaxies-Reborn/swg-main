@@ -9,10 +9,22 @@ $root = (Resolve-Path -LiteralPath $SourceRoot).Path
 $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw | ConvertFrom-Json
 $contract = Get-Content -LiteralPath (Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14NeutralProgressionPresentation)) -Raw | ConvertFrom-Json
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$checkedOutDsrcCommit = (& git -C (Join-Path $root "dsrc") rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $dsrcPin.Count -ne 1 -or
+    [string]$dsrcPin[0].commit -cne [string]$contract.buildEvidence.directSourceGitlink -or
+    $checkedOutDsrcCommit -cne [string]$contract.buildEvidence.directSourceGitlink)
+{
+    throw "Neutral progression presentation is not pinned to the checked-out direct dsrc commit."
+}
 $gcwPath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/library/gcw.java"
 $instancePath = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script/player/player_instance.java"
+$guildScriptPath = Join-Path $root ([string]$contract.sourceFiles.scriptGuild)
+$cityTerminalPath = Join-Path $root ([string]$contract.sourceFiles.scriptCityTerminal)
 $gcw = Get-Content -LiteralPath $gcwPath -Raw
 $instance = Get-Content -LiteralPath $instancePath -Raw
+$guildScript = Get-Content -LiteralPath $guildScriptPath -Raw
+$cityTerminal = Get-Content -LiteralPath $cityTerminalPath -Raw
 
 function Get-FunctionSlice([string]$Text, [string]$StartMarker, [string]$EndMarker)
 {
@@ -46,6 +58,37 @@ foreach ($required in @(
 foreach ($counter in @("playerGCW","playerPvpKills","playerKills","playerAssists","playerCraftedItems","playerDestroyedItems"))
 {
     if (-not $surface.Contains("$counter = currentData.$counter + $counter;")) { throw "GCW counter accumulation is missing: $counter" }
+}
+
+$guildMemberList = Get-FunctionSlice $guildScript `
+    "public static void showGuildMembers(" `
+    "public static void setWindowPid("
+$cityCitizenList = Get-FunctionSlice $cityTerminal `
+    "public int DisplayCitizenList(" `
+    "public int handleCitizenSelect("
+if ($guildMemberList.Contains("guildGetMemberProfession(") -or
+    $guildMemberList.Contains("@ui_roadmap:") -or
+    -not $guildMemberList.Contains('memberData[i][2] = "Unavailable";'))
+{
+    throw "Scripted guild member presentation can still revive a singular NGE roadmap profession."
+}
+if ($cityCitizenList.Contains("cityGetCitizenProfession(") -or
+    $cityCitizenList.Contains("@ui_roadmap:") -or
+    -not $cityCitizenList.Contains('displayData[k][l] = "@city/city:unknown_profession";'))
+{
+    throw "Scripted city citizen presentation can still revive a singular NGE roadmap profession."
+}
+
+foreach ($entry in @{
+    "guild.java" = $guildScriptPath
+    "terminal_city.java" = $cityTerminalPath
+}.GetEnumerator())
+{
+    $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Value).Hash.ToLowerInvariant()
+    if ($actual -ne [string]$contract.buildEvidence.sourceSha256.($entry.Key))
+    {
+        throw "Scripted progression-presentation source evidence mismatch: $($entry.Key)"
+    }
 }
 
 $nativePaths = [ordered]@{
