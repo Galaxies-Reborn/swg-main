@@ -154,6 +154,7 @@ $relativePaths = @(
     "library/static_item.java",
     "player/player_utility.java",
     "systems/buff/buff_handler.java",
+    "systems/combat/combat_weapon.java",
     "systems/crafting/crafting_base.java",
     "systems/crafting/clothing/crafting_base_clothing.java",
     "systems/crafting/weapon/component/crafting_weapon_component_attribute.java",
@@ -192,6 +193,7 @@ $specialSign = [string]$texts["systems/sign/special_sign.java"]
 $tcgVendorContract = [string]$texts["systems/tcg/tcg_vendor_contract.java"]
 $skillBuffItem = [string]$texts["item/skill_buff/base.java"]
 $skillmodClickItem = [string]$texts["item/skillmod_click_item.java"]
+$combatWeapon = [string]$texts["systems/combat/combat_weapon.java"]
 $validators = Get-FunctionSlice $staticItem `
     "public static boolean validateLevelRequired(obj_id player, int requiredLevel)" `
     "public static void decrementStaticItem("
@@ -222,6 +224,14 @@ Assert-Contract (-not $staticBaseAttributes.Contains("effect_level") -and
     $staticObjectAttributes.Contains("required_skill") -and
     $staticObjectAttributes.Contains("reuse_time")) `
     "p14.item-level.static-attribute-presentation-retired"
+
+$combatWeaponAttributes = Get-FunctionSlice $combatWeapon `
+    "public int OnGetAttributes(" "public int handleConvertSchemSui("
+Assert-Contract ($combatWeaponAttributes.Contains(
+        "utils.getPrecuProfessionRequirementSkillName") -and
+    $combatWeaponAttributes.Contains('skillRequired.equals("disabled")') -and
+    -not $combatWeaponAttributes.Contains('@ui_roadmap:title_')) `
+    "p14.item-level.weapon-requirement-precu-presentation"
 
 $validateWorn = Get-FunctionSlice $staticItem `
     "public static void validateWornEffects(" "public static void applyWornBuffs("
@@ -871,6 +881,7 @@ $sourceHashPaths = @{
     buffHandler = "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
     specialSign = "dsrc/sku.0/sys.server/compiled/game/script/systems/sign/special_sign.java"
     tcgVendorContract = "dsrc/sku.0/sys.server/compiled/game/script/systems/tcg/tcg_vendor_contract.java"
+    combatWeapon = "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_weapon.java"
     effectMapping = "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
     buffTable = "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
     collectionRewards = "dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab"

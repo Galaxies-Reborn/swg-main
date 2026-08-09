@@ -18,7 +18,8 @@ $paths = @(
     "item/armor/dynamic_armor.java",
     "item/static_item_base.java",
     "item/skillmod_click_item.java",
-    "item/loot_schematic/loot_schematic.java"
+    "item/loot_schematic/loot_schematic.java",
+    "systems/combat/combat_weapon.java"
 )
 $texts = @{}
 foreach ($relative in $paths)
@@ -97,7 +98,8 @@ $presentationConsumers = @(
     "library/static_item.java",
     "item/armor/dynamic_armor.java",
     "item/static_item_base.java",
-    "item/loot_schematic/loot_schematic.java"
+    "item/loot_schematic/loot_schematic.java",
+    "systems/combat/combat_weapon.java"
 )
 $presentationAdapterCalls = 0
 foreach ($relative in $presentationConsumers)
@@ -105,7 +107,8 @@ foreach ($relative in $presentationConsumers)
     $text = [string]$texts[$relative]
     $presentationAdapterCalls +=
         [regex]::Matches($text, "getPrecuProfessionRequirementSkillName[(]").Count
-    if ($text -match 'new string_id[(]"ui_roadmap",\s*(?:requiredSkill|requiredSkillToEquip|skill_req)' -or
+    if ($text.Contains('@ui_roadmap:title_') -or
+        $text -match 'new string_id[(]"ui_roadmap",\s*(?:requiredSkill|requiredSkillToEquip|skill_req)' -or
         $text -match '"@skl_n:"\s*[+]\s*(?:requiredSkill|requiredSkillToEquip|skill_req)(?:\W|$)')
     {
         throw "NGE Roadmap/raw class presentation remains in $relative."
@@ -148,6 +151,64 @@ foreach ($expected in $expectedNamedCounts.PSObject.Properties)
     {
         throw "Named requirement count drifted for '$($expected.Name)'."
     }
+}
+
+$advancedSearchPath = Join-Path $root `
+    "dsrc/sku.0/sys.shared/compiled/game/datatables/commodity/advanced_search_attribute.tab"
+$advancedSearchRows = @(Import-Csv -LiteralPath $advancedSearchPath -Delimiter "`t")
+
+function Get-DefaultSearchValues($Row)
+{
+    $values = @()
+    for ($index = 1; $index -le 200; $index++)
+    {
+        $value = [string]$Row.("Default Search Value $index")
+        if (-not [string]::IsNullOrWhiteSpace($value))
+        {
+            $values += $value
+        }
+    }
+    return @($values)
+}
+
+function Assert-ExactEnumValues($Rows, [object[]]$Expected, [string]$Name)
+{
+    foreach ($row in $Rows)
+    {
+        $actual = @(Get-DefaultSearchValues $row)
+        if (($actual -join "`n") -cne (@($Expected) -join "`n"))
+        {
+            throw "PRE-CU bazaar enum values drifted for '$Name'."
+        }
+    }
+}
+
+$classRequirementRows = @($advancedSearchRows | Where-Object {
+    $_.'Search Attribute Name' -ceq 'class_required'
+})
+$namedRequirementRows = @($advancedSearchRows | Where-Object {
+    $_.'Search Attribute Name' -ceq '@proc/proc:required_skill'
+})
+$weaponRequirementRows = @($advancedSearchRows | Where-Object {
+    $_.'Search Attribute Name' -ceq 'skillmodmin'
+})
+if ($classRequirementRows.Count -ne 1 -or
+    $namedRequirementRows.Count -ne 2 -or
+    $weaponRequirementRows.Count -ne 1)
+{
+    throw "Unexpected bazaar profession-requirement row inventory."
+}
+Assert-ExactEnumValues $classRequirementRows `
+    @($contract.expected.bazaarClassRequirementValues) 'class_required'
+Assert-ExactEnumValues $namedRequirementRows `
+    @($contract.expected.bazaarNamedRequirementValues) 'required_skill'
+Assert-ExactEnumValues $weaponRequirementRows `
+    @($contract.expected.bazaarWeaponRequirementValues) 'skillmodmin'
+$advancedSearchText = Get-Content -LiteralPath $advancedSearchPath -Raw
+if ($advancedSearchText -match '@ui_roadmap:' -or
+    $advancedSearchText -match '@skl_n:class_[1-9](?:\D|$)')
+{
+    throw "NGE class roadmap values remain in bazaar search metadata."
 }
 
 if ($Expectation -eq "Ready")
