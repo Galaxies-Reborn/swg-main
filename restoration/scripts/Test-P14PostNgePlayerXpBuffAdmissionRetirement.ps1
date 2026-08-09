@@ -51,6 +51,9 @@ $paths = [ordered]@{
     "datatables/item/master_item/item_stats.tab" = Join-Path $serverGame "datatables/item/master_item/item_stats.tab"
     "datatables/item/master_item/master_item.tab" = Join-Path $serverGame "datatables/item/master_item/master_item.tab"
     "datatables/veteran_rewards/items.tab" = Join-Path $serverGame "datatables/veteran_rewards/items.tab"
+    "datatables/item/vendor/imperial_emperorsday_stuff.tab" = Join-Path $serverGame "datatables/item/vendor/imperial_emperorsday_stuff.tab"
+    "datatables/item/vendor/loveday_stuff.tab" = Join-Path $serverGame "datatables/item/vendor/loveday_stuff.tab"
+    "datatables/item/vendor/rebel_emperorsday_stuff.tab" = Join-Path $serverGame "datatables/item/vendor/rebel_emperorsday_stuff.tab"
     "object/tangible/food/mtp_meatlump_xp_wine.tpf" = Join-Path $serverGame "object/tangible/food/mtp_meatlump_xp_wine.tpf"
 }
 $text = @{}
@@ -75,7 +78,7 @@ Assert-Contract ($LASTEXITCODE -eq 0 -and $dsrcPin.Count -eq 1 -and
 $buffNames = @($contract.inventory.retiredBuffs | ForEach-Object { [string]$_ } | Sort-Object)
 $buffTable = [string]$text["datatables/buff/buff.tab"]
 $rows = @([regex]::Matches($buffTable,
-    '(?m)^(buddy_xp_buff|ice_cream_xp_bonus|mtp_meatlump_wine_xp_buff|vet_exp_buff_item_buff)\t[^\r\n]+$') |
+    '(?m)^(buddy_xp_buff|event_ewok_berry|event_imperial_cookies|event_rebel_drink|ice_cream_xp_bonus|mtp_meatlump_wine_xp_buff|vet_exp_buff_item_buff)\t[^\r\n]+$') |
     ForEach-Object { $_.Value })
 $rowNames = @($rows | ForEach-Object { ($_ -split "`t")[0] } | Sort-Object)
 Assert-Contract ($rows.Count -eq [int]$contract.expected.retiredBuffRows -and
@@ -97,14 +100,24 @@ foreach ($name in $itemStatNames)
 }
 $masterItems = [string]$text["datatables/item/master_item/master_item.tab"]
 $masterItemRows = @([regex]::Matches($masterItems,
-    '(?m)^(item_cs_exp_buff_item_03_01|item_ice_cream_buff_xp_bonus_01_01|item_mtp_meatlump_xp_wine_02_01|item_reward_buddy_xp_chip_06_01|item_vet_exp_buff_item_03_01)\t')).Count
+    '(?m)^(item_cs_exp_buff_item_03_01|item_event_ewok_berry_01_02|item_event_imperial_cookies_01_01|item_event_rebel_drink_01_01|item_ice_cream_buff_xp_bonus_01_01|item_mtp_meatlump_xp_wine_02_01|item_reward_buddy_xp_chip_06_01|item_vet_exp_buff_item_03_01)\t')).Count
 $veteranRows = @([regex]::Matches([string]$text["datatables/veteran_rewards/items.tab"],
     '(?m)^cybernetic_xp_chip\t')).Count
+$vendorRows = 0
+foreach ($vendor in @(
+    @{ Path = "datatables/item/vendor/imperial_emperorsday_stuff.tab"; Item = "item_event_imperial_cookies_01_01" },
+    @{ Path = "datatables/item/vendor/loveday_stuff.tab"; Item = "item_event_ewok_berry_01_01" },
+    @{ Path = "datatables/item/vendor/rebel_emperorsday_stuff.tab"; Item = "item_event_rebel_drink_01_01" }
+))
+{
+    if ([string]$text[$vendor.Path] -match "(?m)^$([regex]::Escape($vendor.Item))`t") { $vendorRows++ }
+}
 $templateRows = @([regex]::Matches([string]$text["object/tangible/food/mtp_meatlump_xp_wine.tpf"],
     '"buff_name"="mtp_meatlump_wine_xp_buff"')).Count
 Assert-Contract ($itemStatRows -eq [int]$contract.expected.retainedItemStatConsumers -and
     $masterItemRows -eq [int]$contract.expected.retainedMasterItemConsumers -and
     $veteranRows -eq [int]$contract.expected.retainedVeteranRewardRows -and
+    $vendorRows -eq [int]$contract.expected.retainedVendorConsumers -and
     $templateRows -eq [int]$contract.expected.retainedTemplateConsumers) `
     "p14.xp-buff.content-consumers-retained"
 
