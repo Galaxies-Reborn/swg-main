@@ -34,6 +34,20 @@ $templatePaths = [ordered]@{
         (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series2/house_capacity_organizational_datapad.tpf")
     "object/tangible/tcg/series9/consumable_lepese_dictionary.tpf" =
         (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series9/consumable_lepese_dictionary.tpf")
+    "object/tangible/tcg/series1/consumable_radtrooper_badge.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series1/consumable_radtrooper_badge.tpf")
+    "object/tangible/tcg/series1/consumable_hans_hydrospanner.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series1/consumable_hans_hydrospanner.tpf")
+    "object/tangible/tcg/series2/consumable_mandalorian_strongbox.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series2/consumable_mandalorian_strongbox.tpf")
+    "object/tangible/tcg/series2/consumable_keelkana_tooth.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series2/consumable_keelkana_tooth.tpf")
+    "object/tangible/tcg/series3/consumable_general_grievous_gutsack.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series3/consumable_general_grievous_gutsack.tpf")
+    "object/tangible/tcg/series5/consumable_klorri_clan_shield.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series5/consumable_klorri_clan_shield.tpf")
+    "object/tangible/tcg/series6/consumable_ponda_baba_arm.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series6/consumable_ponda_baba_arm.tpf")
 }
 $failures = [System.Collections.Generic.List[string]]::new()
 
@@ -153,6 +167,16 @@ $instantBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
     Where-Object { $instantBuffNames -ccontains [string]$_.NAME })
 $instantMappingRows = @(Import-Csv -LiteralPath $effectMappingPath -Delimiter "`t" |
     Where-Object { [string]$_.NAME -ceq "tcg_xp_granted" })
+$bonusBuffNames = @($contract.inventory.buffBackedXpBonusBuffs |
+    ForEach-Object { [string]$_ })
+$bonusItemNames = @($contract.inventory.buffBackedXpBonusItems |
+    ForEach-Object { [string]$_ })
+$bonusMasterRows = @($masterRows | Where-Object { $bonusItemNames -ccontains [string]$_.name })
+$bonusItemStatRows = @($itemStatRows | Where-Object { $bonusItemNames -ccontains [string]$_.name })
+$bonusBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $bonusBuffNames -ccontains [string]$_.NAME })
+$bonusMappingRows = @(Import-Csv -LiteralPath $effectMappingPath -Delimiter "`t" |
+    Where-Object { [string]$_.NAME -ceq "tcg_xp_bonus" })
 Assert-Contract ($instantMasterRows.Count -eq [int]$contract.expected.buffBackedInstantXpItemRows -and
     @($instantMasterRows | Where-Object { [string]$_.scripts -notmatch '(^|,)item\.buff_click_item(,|$)' }).Count -eq 0 -and
     $instantItemStatRows.Count -eq [int]$contract.expected.buffBackedInstantXpItemRows -and
@@ -164,41 +188,80 @@ Assert-Contract ($instantMasterRows.Count -eq [int]$contract.expected.buffBacked
     [string]$instantMappingRows[0].TYPE -ceq "xpGrantedGeneral" -and
     [string]$instantMappingRows[0].SUBTYPE -ceq "tcg_xp_buff") `
     "p14.tcg-xp-adapter.buff-backed-data-inventory-authenticated"
+Assert-Contract ($bonusMasterRows.Count -eq [int]$contract.expected.buffBackedXpBonusItemRows -and
+    @($bonusMasterRows | Where-Object { [string]$_.scripts -notmatch '(^|,)item\.buff_click_item(,|$)' }).Count -eq 0 -and
+    @($bonusMasterRows | Where-Object { [string]$_.string_detail -notlike '*random collection item*' }).Count -eq 0 -and
+    $bonusItemStatRows.Count -eq [int]$contract.expected.buffBackedXpBonusItemRows -and
+    ((@($bonusItemStatRows.buff_name | Sort-Object) -join "`n") -ceq
+        (@($bonusBuffNames | Sort-Object) -join "`n")) -and
+    $bonusBuffRows.Count -eq [int]$contract.expected.buffBackedXpBonusBuffRows -and
+    @($bonusBuffRows | Where-Object { [string]$_.EFFECT1_PARAM -cne "tcg_xp_bonus" }).Count -eq 0 -and
+    $bonusMappingRows.Count -eq [int]$contract.expected.buffBackedXpBonusEffectMappings -and
+    [string]$bonusMappingRows[0].TYPE -ceq "xpBonusGeneral" -and
+    [string]$bonusMappingRows[0].SUBTYPE -ceq "tcg_xp_buff") `
+    "p14.tcg-xp-adapter.buff-backed-xp-bonus-data-inventory-authenticated"
 
 $buffLibrary = Get-Content -LiteralPath $buffLibraryPath -Raw
 $instantInventoryStart = $buffLibrary.IndexOf(
     "RETIRED_POST_NGE_PLAYER_INSTANT_XP_GRANT_BUFFS", [StringComparison]::Ordinal)
 $instantInventoryEnd = $buffLibrary.IndexOf(
-    "public static boolean isRetiredPostNgePlayerInstantXpGrantBuffName",
+    "private static final String[] RETIRED_POST_NGE_PLAYER_TCG_XP_BONUS_BUFFS",
     $instantInventoryStart, [StringComparison]::Ordinal)
 $instantInventory = if ($instantInventoryStart -ge 0 -and $instantInventoryEnd -gt $instantInventoryStart) {
     $buffLibrary.Substring($instantInventoryStart, $instantInventoryEnd - $instantInventoryStart)
 } else { "" }
 $instantSourceNames = @([regex]::Matches($instantInventory, '"([a-z0-9_]+)"') |
     ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+$bonusInventoryStart = $buffLibrary.IndexOf(
+    "RETIRED_POST_NGE_PLAYER_TCG_XP_BONUS_BUFFS", [StringComparison]::Ordinal)
+$bonusInventoryEnd = $buffLibrary.IndexOf(
+    "public static boolean isRetiredPostNgePlayerInstantXpGrantBuffName",
+    $bonusInventoryStart, [StringComparison]::Ordinal)
+$bonusInventory = if ($bonusInventoryStart -ge 0 -and $bonusInventoryEnd -gt $bonusInventoryStart) {
+    $buffLibrary.Substring($bonusInventoryStart, $bonusInventoryEnd - $bonusInventoryStart)
+} else { "" }
+$bonusSourceNames = @([regex]::Matches($bonusInventory, '"([a-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
 $combinedPredicate = Get-BracedSurface $buffLibrary `
     "public static boolean isRetiredPostNgePlayerBuildABuffOrXpGrantBuffName"
 $playerPredicate = Get-BracedSurface $buffLibrary `
     "public static boolean isRetiredPostNgePlayerBuildABuffOrXpGrantBuff(obj_id target"
+$bonusPlayerPredicate = Get-BracedSurface $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerTcgXpBonusBuff(obj_id target"
+$bonusCleanup = Get-BracedSurface $buffLibrary `
+    "public static void retirePostNgePlayerTcgXpBonusBuffState"
+$centralCleanup = Get-BracedSurface $buffLibrary `
+    "public static void retirePostNgeBuffProgression"
 $admission = Get-BracedSurface $buffLibrary `
     "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
 $admissionGate = $admission.IndexOf(
     "isRetiredPostNgePlayerBuildABuffOrXpGrantBuff(target, bdata)", [StringComparison]::Ordinal)
+$bonusAdmissionGate = $admission.IndexOf(
+    "isRetiredPostNgePlayerTcgXpBonusBuff(target, bdata)", [StringComparison]::Ordinal)
 $existingBuffReturn = $admission.IndexOf("hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
 Assert-Contract ($instantSourceNames.Count -eq $instantBuffNames.Count -and
     (($instantSourceNames -join "`n") -ceq (@($instantBuffNames | Sort-Object) -join "`n")) -and
     $combinedPredicate.Contains("RETIRED_POST_NGE_PLAYER_BUILDABUFF") -and
     $combinedPredicate.Contains("isRetiredPostNgePlayerInstantXpGrantBuffName(buffName)") -and
     $playerPredicate.Contains("isPlayer(target)") -and
-    $admissionGate -ge 0 -and $existingBuffReturn -gt $admissionGate) `
+    $bonusSourceNames.Count -eq $bonusBuffNames.Count -and
+    (($bonusSourceNames -join "`n") -ceq (@($bonusBuffNames | Sort-Object) -join "`n")) -and
+    $bonusPlayerPredicate.Contains("isPlayer(target)") -and
+    $bonusCleanup.Contains("RETIRED_POST_NGE_PLAYER_TCG_XP_BONUS_BUFFS") -and
+    $bonusCleanup.Contains("removeBuff(player, retiredBuff)") -and
+    $centralCleanup.Contains("retirePostNgePlayerTcgXpBonusBuffState(player)") -and
+    $admissionGate -ge 0 -and $bonusAdmissionGate -gt $admissionGate -and
+    $existingBuffReturn -gt $bonusAdmissionGate) `
     "p14.tcg-xp-adapter.generic-buff-admission-fails-closed"
 
 $buffClickItem = Get-Content -LiteralPath $buffClickItemPath -Raw
 $buffClickSelect = Get-BracedSurface $buffClickItem "public int OnObjectMenuSelect"
 $buffClickAdapter = Get-BracedSurface $buffClickItem `
-    "public void grantPrecuTcgInstantXpReplacement"
+    "public void grantPrecuTcgXpReplacement"
 $routeIndex = $buffClickSelect.IndexOf(
     "buff.isRetiredPostNgePlayerInstantXpGrantBuffName(buffName)", [StringComparison]::Ordinal)
+$bonusRouteIndex = $buffClickSelect.IndexOf(
+    "buff.isRetiredPostNgePlayerTcgXpBonusBuffName(buffName)", [StringComparison]::Ordinal)
 $genericAdmissionIndex = $buffClickSelect.IndexOf(
     "buff.canApplyBuff(player, buffName)", [StringComparison]::Ordinal)
 $adapterGrantIndex = $buffClickAdapter.IndexOf(
@@ -211,8 +274,9 @@ $adapterEffectIndex = $buffClickAdapter.IndexOf(
     "playClientEffectObj(player, clientEffect", [StringComparison]::Ordinal)
 $adapterDecrementIndex = $buffClickAdapter.IndexOf(
     "static_item.decrementStaticItem(self)", [StringComparison]::Ordinal)
-Assert-Contract ($routeIndex -ge 0 -and $genericAdmissionIndex -gt $routeIndex -and
-    $buffClickSelect.Contains("grantPrecuTcgInstantXpReplacement(self, player, itemName, clientEffect, clientAnimation)") -and
+Assert-Contract ($routeIndex -ge 0 -and $bonusRouteIndex -gt $routeIndex -and
+    $genericAdmissionIndex -gt $bonusRouteIndex -and
+    $buffClickSelect.Contains("grantPrecuTcgXpReplacement(self, player, itemName, clientEffect, clientAnimation)") -and
     $adapterGrantIndex -ge 0 -and $adapterFailureIndex -gt $adapterGrantIndex -and
     $adapterFailureReturnIndex -gt $adapterFailureIndex -and
     $adapterEffectIndex -gt $adapterFailureReturnIndex -and

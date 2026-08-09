@@ -146,12 +146,21 @@ $professionInspirationCleanupBody = Get-SourceSlice $buffText `
     "private static final String[] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS"
 $buildABuffXpGrantInventoryBody = Get-SourceSlice $buffText `
     "private static final String RETIRED_POST_NGE_PLAYER_BUILDABUFF" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_TCG_XP_BONUS_BUFFS"
+$tcgXpBonusInventoryBody = Get-SourceSlice $buffText `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_TCG_XP_BONUS_BUFFS" `
     "public static boolean isRetiredPostNgePlayerInstantXpGrantBuffName"
 $buildABuffXpGrantPredicateBody = Get-SourceSlice $buffText `
     "public static boolean isRetiredPostNgePlayerBuildABuffOrXpGrantBuff(obj_id target" `
     "public static void retirePostNgePlayerBuildABuffAndXpGrantBuffState"
 $buildABuffXpGrantCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgePlayerBuildABuffAndXpGrantBuffState" `
+    "public static void retirePostNgePlayerTcgXpBonusBuffState"
+$tcgXpBonusPredicateBody = Get-SourceSlice $buffText `
+    "public static boolean isRetiredPostNgePlayerTcgXpBonusBuff(obj_id target" `
+    "public static boolean isRetiredPostNgePlayerBuildABuffOrXpGrantBuffName"
+$tcgXpBonusCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgePlayerTcgXpBonusBuffState" `
     "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_INSPIRATION_BUFFS"
 $professionImmunityInventoryBody = Get-SourceSlice $buffText `
     "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_IMMUNITY_BUFFS" `
@@ -234,6 +243,26 @@ Assert-Contract ($actualBuildABuffXpGrantAdmissionNames.Count -eq
     $buildABuffXpGrantExistingBuffReturn -gt $buildABuffXpGrantAdmissionGate -and
     -not [bool]$contract.expected.buildABuffGenericPlayerAdmissionReachable) `
     "p14.buff-progression.buildabuff-and-xp-grant.generic-admission-fail-closed"
+$expectedTcgXpBonusAdmissionNames = @(
+    $contract.expected.retiredTcgXpBonusAdmissionBuffs |
+        ForEach-Object { [string]$_ })
+$actualTcgXpBonusAdmissionNames = @([regex]::Matches(
+    $tcgXpBonusInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$tcgXpBonusAdmissionGate = $buffAdmissionBody.IndexOf(
+    "isRetiredPostNgePlayerTcgXpBonusBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+Assert-Contract ($actualTcgXpBonusAdmissionNames.Count -eq
+        [int]$contract.expected.retiredTcgXpBonusAdmissionBuffCount -and
+    (($actualTcgXpBonusAdmissionNames -join "`n") -ceq
+        ($expectedTcgXpBonusAdmissionNames -join "`n")) -and
+    $tcgXpBonusPredicateBody.Contains("isPlayer(target)") -and
+    $tcgXpBonusCleanupBody.Contains("removeBuff(player, retiredBuff)") -and
+    $cleanupBody.Contains("retirePostNgePlayerTcgXpBonusBuffState(player);") -and
+    $tcgXpBonusAdmissionGate -gt $buildABuffXpGrantAdmissionGate -and
+    $buildABuffXpGrantExistingBuffReturn -gt $tcgXpBonusAdmissionGate -and
+    -not [bool]$contract.expected.tcgXpBonusGenericPlayerAdmissionReachable) `
+    "p14.buff-progression.tcg-xp-bonus.generic-admission-fail-closed"
 $professionInspirationNames = @([regex]::Matches(
     $professionInspirationInventoryBody, '"([^"\r\n]+)"') |
     ForEach-Object { $_.Groups[1].Value })

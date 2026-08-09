@@ -7795,9 +7795,18 @@ printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series1_nuna_ball_adv
 printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series2_versafunction88_datapad'
 printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series9_lepese_dictionary'
 printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerBuildABuffOrXpGrantBuff'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series1_radtrooper_badge'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series1_hans_hydrospanner'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series2_mandalorian_strongbox'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series2_keelkana_tooth'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series3_general_grievous_gutsack'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series5_klorri_clan_shield'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series6_ponda_baba_arm'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerTcgXpBonusBuff'
 tcg_instant_click_bytecode="$(javap -classpath "$class_root" -c -p script.item.buff_click_item)"
 printf '%s\n' "$tcg_instant_click_bytecode" | grep -Fq 'isRetiredPostNgePlayerInstantXpGrantBuffName'
-tcg_instant_adapter_bytecode="$(printf '%s\n' "$tcg_instant_click_bytecode" | sed -n '/public void grantPrecuTcgInstantXpReplacement/,/^}/p')"
+printf '%s\n' "$tcg_instant_click_bytecode" | grep -Fq 'isRetiredPostNgePlayerTcgXpBonusBuffName'
+tcg_instant_adapter_bytecode="$(printf '%s\n' "$tcg_instant_click_bytecode" | sed -n '/public void grantPrecuTcgXpReplacement/,/^}/p')"
 printf '%s\n' "$tcg_instant_adapter_bytecode" | grep -Fq 'grantRandomCollectionItem'
 printf '%s\n' "$tcg_instant_adapter_bytecode" | grep -Fq 'decrementStaticItem'
 test "$(printf '%s\n' "$tcg_instant_adapter_bytecode" | grep -Fc 'decrementStaticItem')" -eq 1
