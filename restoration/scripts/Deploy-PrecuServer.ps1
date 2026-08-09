@@ -84,6 +84,10 @@ Write-Host "Verifying direct-source post-NGE passive profession runtime retireme
 & (Join-Path $PSScriptRoot "Test-P14PostNgePassiveProfessionRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying direct-source post-NGE droid combat-module runtime retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PostNgeDroidCombatModuleRuntimeRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying direct-source post-NGE player proc runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerProcRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
@@ -620,6 +624,8 @@ source_ai="$source_script/ai/ai.java"
 work_ai="$work_script/ai/ai.java"
 source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
+source_pet_library="$source_script/library/pet_lib.java"
+work_pet_library="$work_script/library/pet_lib.java"
 source_buff_library="$source_script/library/buff.java"
 work_buff_library="$work_script/library/buff.java"
 source_static_item_library="$source_script/library/static_item.java"
@@ -1301,6 +1307,7 @@ cmp -s "$source_mission_escort" "$work_mission_escort"
 cmp -s "$source_player_utility" "$work_player_utility"
 cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
+cmp -s "$source_pet_library" "$work_pet_library"
 cmp -s "$source_base_class" "$work_base_class"
 cmp -s "$source_buff_library" "$work_buff_library"
 cmp -s "$source_static_item_library" "$work_static_item_library"
@@ -2498,7 +2505,31 @@ grep -Fq 'retirePostNgePlayerDamageReductionState(player);' "$work_buff_library"
 passive_profession_cleanup_source="$(sed -n '/private void retirePostNgePassiveProfessionState/,/private void retirePostNgeQueuedBattlefieldPlayerState/p' "$work_base_player")"
 printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'buff.retirePostNgeForceSensitiveStanceState(self);'
 printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'combat.retirePostNgeKillMeterPlayerState(self);'
+printf '%s' "$passive_profession_cleanup_source" | grep -Fq 'pet_lib.retirePostNgeDroidCombatModuleState(self);'
 ! printf '%s' "$passive_profession_cleanup_source" | grep -Eq 'jedi\.JEDI_(STANCE|FOCUS)'
+droid_module_player_inventory_source="$(sed -n '/RETIRED_POST_NGE_DROID_COMBAT_MODULE_PLAYER_ACTIONS/,/RETIRED_POST_NGE_DROID_COMBAT_MODULE_SERVER_ACTIONS/p' "$work_pet_library")"
+droid_module_server_inventory_source="$(sed -n '/RETIRED_POST_NGE_DROID_COMBAT_MODULE_SERVER_ACTIONS/,/RETIRED_POST_NGE_DROID_COMBAT_MODULE_BUFFS/p' "$work_pet_library")"
+droid_module_buff_inventory_source="$(sed -n '/RETIRED_POST_NGE_DROID_COMBAT_MODULE_BUFFS/,/SID_SYS_CANT_TAME/p' "$work_pet_library")"
+test "$(printf '%s' "$droid_module_player_inventory_source" | grep -Ec '^        "droid_(flame_jet|droideka_shield|battery_dump|regenerative_plating|electrical_shock|torturous_needle)_[123]"[,]?$')" -eq 18
+test "$(printf '%s' "$droid_module_server_inventory_source" | grep -Ec '^        "server_droid_(flame_jet|battery_dump|regenerative_plating|electrical_shock|torturous_needle)_[123]"[,]?$')" -eq 15
+test "$(printf '%s' "$droid_module_buff_inventory_source" | grep -Ec '^        "droideka_shield_[123]"[,]?$')" -eq 3
+droid_module_validate_source="$(sed -n '/public static obj_id validateDroidCommand/,/public static boolean isRetiredPostNgeDroidCombatModuleAction/p' "$work_pet_library")"
+printf '%s' "$droid_module_validate_source" | grep -Fq 'retirePostNgeDroidCombatModuleState(player);'
+printf '%s' "$droid_module_validate_source" | grep -Fq 'if (isIdValid(player) && isPlayer(player))'
+droid_module_predicate_source="$(sed -n '/public static boolean isRetiredPostNgeDroidCombatModuleAction/,/public static void retirePostNgeDroidCombatModuleState/p' "$work_pet_library")"
+printf '%s' "$droid_module_predicate_source" | grep -Fq 'obj_id master = getMaster(actor);'
+printf '%s' "$droid_module_predicate_source" | grep -Fq 'isPlayer(master)'
+droid_module_cleanup_source="$(sed -n '/public static void retirePostNgeDroidCombatModuleState/,/^}/p' "$work_pet_library")"
+printf '%s' "$droid_module_cleanup_source" | grep -Fq 'while (hasCommand(player, retiredAction))'
+printf '%s' "$droid_module_cleanup_source" | grep -Fq 'buff.removeBuff(droid, retiredBuff);'
+droid_module_standard_action_source="$(sed -n '/public boolean combatStandardAction(String actionName, obj_id self, obj_id target, obj_id objWeapon, String params, combat_data actionData, boolean isTangibleAttacking, boolean testPetBar, int overloadDamage)/,/public boolean doCombatPreCheck/p' "$work_combat_base")"
+printf '%s' "$droid_module_standard_action_source" | grep -Fq 'pet_lib.isRetiredPostNgeDroidCombatModuleAction(self, actionName)'
+printf '%s' "$droid_module_standard_action_source" | grep -Fq 'pet_lib.retirePostNgeDroidCombatModuleState(player);'
+test "$(grep -Fc 'pet_lib.validateDroidCommand(self)' "$work_combat_actions")" -eq 18
+awk -F '\t' '$1 ~ /^(droid_(flame_jet|droideka_shield|battery_dump|regenerative_plating|electrical_shock|torturous_needle)_[123]|server_droid_(flame_jet|battery_dump|regenerative_plating|electrical_shock|torturous_needle)_[123])$/ { found++ } END { if (found != 33) exit 3 }' "$work_command_table"
+awk -F '\t' '$1 ~ /^(droid_(flame_jet|droideka_shield|battery_dump|regenerative_plating|electrical_shock|torturous_needle)_[123]|server_droid_(flame_jet|battery_dump|regenerative_plating|electrical_shock|torturous_needle)_[123])$/ { found++ } END { if (found != 33) exit 3 }' "$work_combat_data"
+awk -F '\t' '$1 ~ /^droideka_shield_[123]$/ { found++ } END { if (found != 3) exit 3 }' "$work_buff_table"
+awk -F '\t' '$1 == "detonateDroid" { found++ } END { if (found != 1) exit 3 }' "$work_command_table"
 kill_meter_cleanup_source="$(sed -n '/public static void retirePostNgeKillMeterPlayerState/,/public static boolean setKillMeter/p' "$work_combat_library")"
 printf '%s' "$kill_meter_cleanup_source" | grep -Fq 'if (!isPlayer(player))'
 printf '%s' "$kill_meter_cleanup_source" | grep -Fq 'incrementKillMeter(player, -current);'
@@ -5935,6 +5966,11 @@ printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'getKillMeter'
 printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'incrementKillMeter'
 printf '%s' "$kill_meter_cleanup_bytecode" | grep -Fq 'removeScriptVarTree'
 javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeKillMeterPlayerState'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'retirePostNgeDroidCombatModuleState'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'RETIRED_POST_NGE_DROID_COMBAT_MODULE_PLAYER_ACTIONS'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'server_droid_torturous_needle_3'
+javap -classpath "$class_root" -v script.library.pet_lib | grep -Fq 'droideka_shield_3'
+javap -classpath "$class_root" -v script.systems.combat.combat_base | grep -Fq 'isRetiredPostNgeDroidCombatModuleAction'
 for kill_meter_writer_class in script.library.gcw script.library.xp script.systems.combat.combat_actions script.systems.combat.combat_base; do
     javap -classpath "$class_root" -v "$kill_meter_writer_class" | grep -Fq 'modifyKillMeter'
     ! javap -classpath "$class_root" -v "$kill_meter_writer_class" | grep -Fq 'incrementKillMeter'
