@@ -753,9 +753,9 @@ cmp -s "$source_command_table" "$work_command_table"
 awk -F '\t' '
 BEGIN {
     split("bleedingShot confusionShot eyeShot fastBlast forceOfWill knockdownFire lastDitch lowBlow meditate panicShot powerBoost sprayShot torsoShot tumbleToKneeling tumbleToProne tumbleToStanding underHandShot", retained_names, " ")
-    for (index in retained_names) retained[retained_names[index]] = 1
+    for (slot in retained_names) retained[retained_names[slot]] = 1
     split("startDance startMusic stopDance stopMusic groupdance", noncombat_names, " ")
-    for (index in noncombat_names) noncombat[noncombat_names[index]] = 1
+    for (slot in noncombat_names) noncombat[noncombat_names[slot]] = 1
 }
 NR > 2 && ($1 in retained) {
     retained_seen[$1]++
