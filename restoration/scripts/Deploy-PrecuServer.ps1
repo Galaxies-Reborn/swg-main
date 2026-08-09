@@ -254,6 +254,10 @@ Write-Host "Verifying player-facing NGE respec and veteran migration retirement 
 & (Join-Path $PSScriptRoot "Test-P14RespecAutolevelEntrypointRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build
+Write-Host "Verifying canonical PRE-CU admin and test-center skill authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuAdminSkillAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1") `
     -SourceRoot $repositoryRoot
 Write-Host "Verifying native NGE skill and blank-ability command admission retirement before build..."
