@@ -23,6 +23,18 @@ $xpPath = Join-Path $scriptRoot "library/xp.java"
 $collectionPath = Join-Path $scriptRoot "library/collection.java"
 $magsealPath = Join-Path $dataRoot "loot/loot_items/collectible/magseal_loot.tab"
 $buffHandlerPath = Join-Path $scriptRoot "systems/buff/buff_handler.java"
+$buffLibraryPath = Join-Path $scriptRoot "library/buff.java"
+$buffClickItemPath = Join-Path $scriptRoot "item/buff_click_item.java"
+$buffTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+$effectMappingPath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"
+$templatePaths = [ordered]@{
+    "object/tangible/tcg/series1/consumable_nuna_ball_advertisement.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series1/consumable_nuna_ball_advertisement.tpf")
+    "object/tangible/tcg/series2/house_capacity_organizational_datapad.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series2/house_capacity_organizational_datapad.tpf")
+    "object/tangible/tcg/series9/consumable_lepese_dictionary.tpf" =
+        (Join-Path $source "dsrc/sku.0/sys.server/compiled/game/object/tangible/tcg/series9/consumable_lepese_dictionary.tpf")
+}
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Assert-Contract([bool]$Condition, [string]$Name)
@@ -50,30 +62,43 @@ function Get-BracedSurface([string]$Text, [string]$Signature)
     return ""
 }
 
-foreach ($path in @($tcgPath, $masterItemPath, $itemStatsPath, $xpPath,
-    $collectionPath, $magsealPath, $buffHandlerPath))
+$requiredPaths = @($tcgPath, $masterItemPath, $itemStatsPath, $xpPath,
+    $collectionPath, $magsealPath, $buffHandlerPath, $buffLibraryPath,
+    $buffClickItemPath, $buffTablePath, $effectMappingPath) + @($templatePaths.Values)
+foreach ($path in $requiredPaths)
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
         "p14.tcg-xp-adapter.source.$([System.IO.Path]::GetFileName($path)).exists"
 }
 
 $tcg = Get-Content -LiteralPath $tcgPath -Raw
-$master = @(Import-Csv -LiteralPath $masterItemPath -Delimiter "`t" | Where-Object {
+$masterRows = @(Import-Csv -LiteralPath $masterItemPath -Delimiter "`t")
+$itemStatRows = @(Import-Csv -LiteralPath $itemStatsPath -Delimiter "`t")
+$series4Master = @($masterRows | Where-Object {
     $_.name -ceq "item_tcg_loot_reward_series4_t16_toy_02_01"
 })
-$stats = @(Import-Csv -LiteralPath $itemStatsPath -Delimiter "`t" | Where-Object {
+$series4Stats = @($itemStatRows | Where-Object {
     $_.name -ceq "item_tcg_loot_reward_series4_t16_toy_02_01"
 })
 
-foreach ($property in $contract.buildEvidence.sourceSha256.PSObject.Properties)
+$authenticatedPaths = [ordered]@{
+    "systems/tcg/tcg_instant_xp_grant.java" = $tcgPath
+    "item/buff_click_item.java" = $buffClickItemPath
+    "library/buff.java" = $buffLibraryPath
+    "datatables/item/master_item/master_item.tab" = $masterItemPath
+    "datatables/item/master_item/item_stats.tab" = $itemStatsPath
+    "datatables/buff/buff.tab" = $buffTablePath
+    "datatables/buff/effect_mapping.tab" = $effectMappingPath
+}
+foreach ($entry in $templatePaths.GetEnumerator())
 {
-    $path = if ($property.Name -ceq "systems/tcg/tcg_instant_xp_grant.java") {
-        $tcgPath
-    } else {
-        $masterItemPath
-    }
-    Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant() -ceq
-        [string]$property.Value) "p14.tcg-xp-adapter.$($property.Name).authenticated"
+    $authenticatedPaths[$entry.Key] = $entry.Value
+}
+foreach ($entry in $authenticatedPaths.GetEnumerator())
+{
+    Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Value).Hash.ToLowerInvariant() -ceq
+        [string]$contract.buildEvidence.sourceSha256.($entry.Key)) `
+        "p14.tcg-xp-adapter.$($entry.Key).authenticated"
 }
 
 $select = Get-BracedSurface $tcg "public int OnObjectMenuSelect"
@@ -106,17 +131,99 @@ Assert-Contract ($select.Contains("item was not consumed") -and
     -not $select.Contains("was granted XP")) `
     "p14.tcg-xp-adapter.truthful-result-reporting"
 
-Assert-Contract ($master.Count -eq [int]$contract.diagnosis.authoredItemRows -and
-    [string]$master[0].template_name -ceq "object/tangible/tcg/series4/consumable_t16_toy.iff" -and
-    @(([string]$master[0].scripts -split ',') | Where-Object {
+Assert-Contract ($series4Master.Count -eq [int]$contract.diagnosis.authoredItemRows -and
+    [string]$series4Master[0].template_name -ceq "object/tangible/tcg/series4/consumable_t16_toy.iff" -and
+    @(([string]$series4Master[0].scripts -split ',') | Where-Object {
         $_ -ceq "systems.tcg.tcg_instant_xp_grant"
     }).Count -eq 1 -and
-    [string]$master[0].string_detail -like "*grants a random collection item*" -and
-    [string]$master[0].comments -like "PRE-CU collection replacement*") `
+    [string]$series4Master[0].string_detail -like "*grants a random collection item*" -and
+    [string]$series4Master[0].comments -like "PRE-CU collection replacement*") `
     "p14.tcg-xp-adapter.authored-item-and-description"
-Assert-Contract ($stats.Count -eq 1 -and
-    [string]$stats[0].objvars -ceq "float:grant_xp_percent=0.2") `
+Assert-Contract ($series4Stats.Count -eq 1 -and
+    [string]$series4Stats[0].objvars -ceq "float:grant_xp_percent=0.2") `
     "p14.tcg-xp-adapter.authored-compatibility-objvar"
+
+$instantBuffNames = @($contract.inventory.buffBackedInstantXpBuffs |
+    ForEach-Object { [string]$_ })
+$instantItemNames = @($contract.inventory.buffBackedInstantXpItems |
+    ForEach-Object { [string]$_ })
+$instantMasterRows = @($masterRows | Where-Object { $instantItemNames -ccontains [string]$_.name })
+$instantItemStatRows = @($itemStatRows | Where-Object { $instantItemNames -ccontains [string]$_.name })
+$instantBuffRows = @(Import-Csv -LiteralPath $buffTablePath -Delimiter "`t" |
+    Where-Object { $instantBuffNames -ccontains [string]$_.NAME })
+$instantMappingRows = @(Import-Csv -LiteralPath $effectMappingPath -Delimiter "`t" |
+    Where-Object { [string]$_.NAME -ceq "tcg_xp_granted" })
+Assert-Contract ($instantMasterRows.Count -eq [int]$contract.expected.buffBackedInstantXpItemRows -and
+    @($instantMasterRows | Where-Object { [string]$_.scripts -notmatch '(^|,)item\.buff_click_item(,|$)' }).Count -eq 0 -and
+    $instantItemStatRows.Count -eq [int]$contract.expected.buffBackedInstantXpItemRows -and
+    ((@($instantItemStatRows.buff_name | Sort-Object) -join "`n") -ceq
+        (@($instantBuffNames | Sort-Object) -join "`n")) -and
+    $instantBuffRows.Count -eq [int]$contract.expected.buffBackedInstantXpBuffRows -and
+    @($instantBuffRows | Where-Object { [string]$_.EFFECT1_PARAM -cne "tcg_xp_granted" }).Count -eq 0 -and
+    $instantMappingRows.Count -eq [int]$contract.expected.buffBackedInstantXpEffectMappings -and
+    [string]$instantMappingRows[0].TYPE -ceq "xpGrantedGeneral" -and
+    [string]$instantMappingRows[0].SUBTYPE -ceq "tcg_xp_buff") `
+    "p14.tcg-xp-adapter.buff-backed-data-inventory-authenticated"
+
+$buffLibrary = Get-Content -LiteralPath $buffLibraryPath -Raw
+$instantInventoryStart = $buffLibrary.IndexOf(
+    "RETIRED_POST_NGE_PLAYER_INSTANT_XP_GRANT_BUFFS", [StringComparison]::Ordinal)
+$instantInventoryEnd = $buffLibrary.IndexOf(
+    "public static boolean isRetiredPostNgePlayerInstantXpGrantBuffName",
+    $instantInventoryStart, [StringComparison]::Ordinal)
+$instantInventory = if ($instantInventoryStart -ge 0 -and $instantInventoryEnd -gt $instantInventoryStart) {
+    $buffLibrary.Substring($instantInventoryStart, $instantInventoryEnd - $instantInventoryStart)
+} else { "" }
+$instantSourceNames = @([regex]::Matches($instantInventory, '"([a-z0-9_]+)"') |
+    ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+$combinedPredicate = Get-BracedSurface $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerBuildABuffOrXpGrantBuffName"
+$playerPredicate = Get-BracedSurface $buffLibrary `
+    "public static boolean isRetiredPostNgePlayerBuildABuffOrXpGrantBuff(obj_id target"
+$admission = Get-BracedSurface $buffLibrary `
+    "public static boolean canApplyBuff(obj_id target, obj_id owner, int nameCrc)"
+$admissionGate = $admission.IndexOf(
+    "isRetiredPostNgePlayerBuildABuffOrXpGrantBuff(target, bdata)", [StringComparison]::Ordinal)
+$existingBuffReturn = $admission.IndexOf("hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($instantSourceNames.Count -eq $instantBuffNames.Count -and
+    (($instantSourceNames -join "`n") -ceq (@($instantBuffNames | Sort-Object) -join "`n")) -and
+    $combinedPredicate.Contains("RETIRED_POST_NGE_PLAYER_BUILDABUFF") -and
+    $combinedPredicate.Contains("isRetiredPostNgePlayerInstantXpGrantBuffName(buffName)") -and
+    $playerPredicate.Contains("isPlayer(target)") -and
+    $admissionGate -ge 0 -and $existingBuffReturn -gt $admissionGate) `
+    "p14.tcg-xp-adapter.generic-buff-admission-fails-closed"
+
+$buffClickItem = Get-Content -LiteralPath $buffClickItemPath -Raw
+$buffClickSelect = Get-BracedSurface $buffClickItem "public int OnObjectMenuSelect"
+$buffClickAdapter = Get-BracedSurface $buffClickItem `
+    "public void grantPrecuTcgInstantXpReplacement"
+$routeIndex = $buffClickSelect.IndexOf(
+    "buff.isRetiredPostNgePlayerInstantXpGrantBuffName(buffName)", [StringComparison]::Ordinal)
+$genericAdmissionIndex = $buffClickSelect.IndexOf(
+    "buff.canApplyBuff(player, buffName)", [StringComparison]::Ordinal)
+$adapterGrantIndex = $buffClickAdapter.IndexOf(
+    "collection.grantRandomCollectionItem(player", [StringComparison]::Ordinal)
+$adapterFailureIndex = $buffClickAdapter.IndexOf(
+    "!isValidId(collectionItem) || !exists(collectionItem)", [StringComparison]::Ordinal)
+$adapterFailureReturnIndex = $buffClickAdapter.IndexOf(
+    "return;", $adapterFailureIndex, [StringComparison]::Ordinal)
+$adapterEffectIndex = $buffClickAdapter.IndexOf(
+    "playClientEffectObj(player, clientEffect", [StringComparison]::Ordinal)
+$adapterDecrementIndex = $buffClickAdapter.IndexOf(
+    "static_item.decrementStaticItem(self)", [StringComparison]::Ordinal)
+Assert-Contract ($routeIndex -ge 0 -and $genericAdmissionIndex -gt $routeIndex -and
+    $buffClickSelect.Contains("grantPrecuTcgInstantXpReplacement(self, player, itemName, clientEffect, clientAnimation)") -and
+    $adapterGrantIndex -ge 0 -and $adapterFailureIndex -gt $adapterGrantIndex -and
+    $adapterFailureReturnIndex -gt $adapterFailureIndex -and
+    $adapterEffectIndex -gt $adapterFailureReturnIndex -and
+    $adapterDecrementIndex -gt $adapterEffectIndex -and
+    [regex]::Matches($buffClickAdapter, 'decrementStaticItem\(self\)').Count -eq 1 -and
+    -not $buffClickAdapter.Contains("buff.applyBuff") -and
+    -not $buffClickAdapter.Contains("BUFF_APPLIED") -and
+    [bool]$contract.expected.buffBackedCollectionReplacementGranted -and
+    [bool]$contract.expected.buffBackedConsumeOnlyAfterSuccessfulDelivery -and
+    [bool]$contract.expected.buffBackedFailedDeliveryPreservesConsumable) `
+    "p14.tcg-xp-adapter.buff-backed-delivery-before-consume"
 
 Assert-Contract ((Get-FileHash -Algorithm SHA256 -LiteralPath $itemStatsPath).Hash.ToLowerInvariant() -ceq
         [string]$contract.continuityEvidence.itemStatsSha256 -and
@@ -171,7 +278,7 @@ if ($Expectation -eq "Ready")
 }
 else
 {
-    Assert-Contract (@("implemented-build-verified-live-pending", "ready") -contains
+    Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -contains
         [string]$contract.status) "p14.tcg-xp-adapter.source-status"
 }
 

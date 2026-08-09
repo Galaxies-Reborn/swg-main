@@ -79,6 +79,10 @@ Write-Host "Verifying post-NGE player XP-buff admission retirement before build.
 & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerXpBuffAdmissionRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying the complete PRE-CU TCG instant-XP compatibility adapter before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuTcgInstantXpAdapter.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying direct-source post-NGE Beast Master creation-runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterCreationPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
@@ -7786,6 +7790,18 @@ grep -Fq 'getAttackableTargetsInRadius(droid, PRECU_DETONATION_RADIUS, true)' "$
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_ACTION_BASE_COST = 124'
 javap -classpath "$class_root" -constants script.item.survey_tool.survey_tool_script | grep -Fq 'PRECU_SAMPLE_QUICKNESS_DIVISOR = 12.5f'
 ! javap -classpath "$class_root" -v script.item.buff_click_item | grep -Fq 'required_level_for_effect'
+tcg_instant_buff_bytecode="$(javap -classpath "$class_root" -c -p script.library.buff)"
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series1_nuna_ball_advertisement'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series2_versafunction88_datapad'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'tcg_series9_lepese_dictionary'
+printf '%s\n' "$tcg_instant_buff_bytecode" | grep -Fq 'isRetiredPostNgePlayerBuildABuffOrXpGrantBuff'
+tcg_instant_click_bytecode="$(javap -classpath "$class_root" -c -p script.item.buff_click_item)"
+printf '%s\n' "$tcg_instant_click_bytecode" | grep -Fq 'isRetiredPostNgePlayerInstantXpGrantBuffName'
+tcg_instant_adapter_bytecode="$(printf '%s\n' "$tcg_instant_click_bytecode" | sed -n '/public void grantPrecuTcgInstantXpReplacement/,/^}/p')"
+printf '%s\n' "$tcg_instant_adapter_bytecode" | grep -Fq 'grantRandomCollectionItem'
+printf '%s\n' "$tcg_instant_adapter_bytecode" | grep -Fq 'decrementStaticItem'
+test "$(printf '%s\n' "$tcg_instant_adapter_bytecode" | grep -Fc 'decrementStaticItem')" -eq 1
+! printf '%s\n' "$tcg_instant_adapter_bytecode" | grep -Fq 'applyBuff'
 ! javap -classpath "$class_root" -v script.item.full_heal_item | grep -Fq 'required_level_for_effect'
 ! javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq 'player_level.iff'
 ! javap -classpath "$class_root" -v script.item.levelup_orb.levelup_orb | grep -Fq 'combat_general'

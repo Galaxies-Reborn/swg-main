@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-tcg-instant-xp-adapter",
-  "status": "ready",
-  "scope": "Preserve the retained Series 4 T-16 Skyhopper consumable without allowing its NGE percentage-to-next-level XP path to override Publish 14.1 skill-box progression.",
+  "status": "implemented-build-pending",
+  "scope": "Preserve the complete retained four-item TCG instant-XP family without allowing its NGE percentage-to-next-level XP paths to override Publish 14.1 skill-box progression: the Series 4 T-16 Skyhopper and the buff-backed Nuna-ball Advertisement, Versafunction88 Datapad, and Lepese Dictionary all deliver their authored collection fallback and consume only after successful delivery.",
   "eraEvidence": {
     "targetEra": "Publish 14.1 PRE-CU progression with retained expansion content",
     "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
@@ -10,8 +10,24 @@
     "findings": [
       "Publish 14.1 XP grants name an authored XP pool and feed owned skill-box progression rather than a class-template level.",
       "The retained TCG script already authored a random collection-item fallback for NGE level-cap players.",
-      "Using that content fallback for every PRE-CU player preserves the item without inventing a generic XP pool or visible combat level."
+      "The three retained buff-backed instant-XP items route through tcg_xp_granted and the same authored random collection-item fallback in their inherited level-cap branch.",
+      "Using that content fallback for every PRE-CU player preserves all four items without inventing a generic XP pool or visible combat level."
     ]
+  },
+  "inventory": {
+    "scriptBackedInstantXpItem": "item_tcg_loot_reward_series4_t16_toy_02_01",
+    "buffBackedInstantXpItems": [
+      "item_tcg_loot_reward_series1_nuna_ball_advertisement",
+      "item_tcg_loot_reward_series2_versafunction88_datapad",
+      "item_tcg_loot_reward_series9_lepese_dictionary"
+    ],
+    "buffBackedInstantXpBuffs": [
+      "tcg_series1_nuna_ball_advertisement",
+      "tcg_series2_versafunction88_datapad",
+      "tcg_series9_lepese_dictionary"
+    ],
+    "buffBackedEffect": "tcg_xp_granted",
+    "collectionFallback": "datatables/loot/loot_items/collectible/magseal_loot.iff"
   },
   "diagnosis": {
     "authoredItemRows": 1,
@@ -35,24 +51,48 @@
     "failedDeliveryPreservesConsumable": true,
     "authoredItemAndObjvarPreserved": true,
     "userFacingDescriptionAccurate": true,
+    "buffBackedInstantXpItemRows": 3,
+    "buffBackedInstantXpBuffRows": 3,
+    "buffBackedInstantXpEffectMappings": 1,
+    "buffBackedGenericAdmissionReachable": false,
+    "buffBackedCollectionReplacementGranted": true,
+    "buffBackedConsumeOnlyAfterSuccessfulDelivery": true,
+    "buffBackedFailedDeliveryPreservesConsumable": true,
     "adjacentNgeBuffXpRuntimeRetired": true,
     "missionCoreChanged": false
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "42533bb539296806c701239384595f2df03a9b32",
+    "directSourceGitlink": "4f151f4f8a0fd6d65b7a23c6893a04ac69e690ae",
     "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "systems/tcg/tcg_instant_xp_grant.java": "1b4cb6a66db7ea1dfdb31f8e368eb8b25bf97680f3084f85894582225a8d9792",
-      "datatables/item/master_item/master_item.tab": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d"
+      "item/buff_click_item.java": "7be7d330f5baf1ac81d0646fb4857ef1903cc92f837a4105d2c035db755eb913",
+      "library/buff.java": "e8ca55725f73eefbba1d0ad44a136722bd0d2eaf8063e26c7b11cc967ab28ae2",
+      "datatables/item/master_item/master_item.tab": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+      "datatables/item/master_item/item_stats.tab": "e83dc1529cafd1a3fb0b4f1d8aa6be6090374cd2a632779e41b460a037ea0a93",
+      "datatables/buff/buff.tab": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
+      "datatables/buff/effect_mapping.tab": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a",
+      "object/tangible/tcg/series1/consumable_nuna_ball_advertisement.tpf": "3567ddfdf65ce67a7656ff3f4cd9fc735a45df056235eb3b4f0bc1efb700e6eb",
+      "object/tangible/tcg/series2/house_capacity_organizational_datapad.tpf": "47df6a91421b33d848ca983e5def2f5aea8078a7fedab53dc150029dbb7c9101",
+      "object/tangible/tcg/series9/consumable_lepese_dictionary.tpf": "af6f95432f83556fbed742e26823912ec59f7dfa2ec2b48f208297903c5f0c9c"
+    },
+    "focusedJavaCompile": "passed OpenJDK 11 Java 8-target compilation of library/buff.java and item/buff_click_item.java from direct dsrc 4f151f4f8a0fd6d65b7a23c6893a04ac69e690ae against the canonical deployed x64 classpath with -g and -implicit:none; emitted SHA-256 8d2f5bf2de4648d8243bd093c2b9c99afd358fd693b1c189c49db0a20dd09316 at 93767 bytes and a5b0cc522ae8ae45eefcdb1dc73f7982b8e3c33556cc28a5596677745c70f566 at 7589 bytes; /dev/shm was empty afterward",
+    "focusedCompiledClassSha256": {
+      "script.library.buff": "8d2f5bf2de4648d8243bd093c2b9c99afd358fd693b1c189c49db0a20dd09316",
+      "script.item.buff_click_item": "a5b0cc522ae8ae45eefcdb1dc73f7982b8e3c33556cc28a5596677745c70f566"
+    },
+    "focusedCompiledClassBytes": {
+      "script.library.buff": 93767,
+      "script.item.buff_click_item": 7589
     },
     "fullJavaCompile": "passed from pushed direct source; adapted class emitted 2026-08-04T10:44:23Z",
     "compiledClassSha256": "4ee4123e20137e0232ebf013788f5278449da8edbd2f7dd932caf87e73542c54",
     "compiledMasterItemIffSha256": "0a792ed838267036a8c4f3d2beb066c411d1550efdfd601bc5aa76dace4924a0",
     "compiledItemStatsIffSha256": "02794ec95e4bef8fa799136e954e78cb8d40e1ea8baada7f43399a0b3abc2905",
     "bytecodeAudit": "zero player_level, getLevel, or grantXpByTemplate symbols; one grantRandomCollectionItem and one decrementCount symbol",
-    "fullServerBuild": "passed and reverified in the cumulative M325 full x64 Docker build (506.4 seconds) from pushed direct source",
+    "fullServerBuild": "pending canonical clean x86-64 deployment",
     "architecture": "ELF 64-bit LSB x86-64; six core server binaries verified",
     "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
     "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
@@ -73,34 +113,29 @@
     }
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
+    "date": "pending",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-04T11:10:09.092334643Z",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "sourceWorkParityFiles": 2,
-    "compiledClassPresent": true,
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 364,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
-    "processCounts": {
-      "LoginServer": 1,
-      "TaskManager": 1,
-      "ConnectionServer": 1,
-      "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
-    },
-    "postStartLogAudit": "344 lines; one exact player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, ABI, or database-conversion matches",
-    "result": "passed"
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParityFiles": 0,
+    "compiledClassPresent": false,
+    "liveProcessMappedBuiltBinary": false,
+    "liveGameProcessPid": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "processCounts": {},
+    "postStartLogAudit": "pending canonical deployment",
+    "result": "pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the live T-16 TCG percentage-to-next-level calculation, player-level table reads, generic template-XP call, false XP success report, and premature consumable decrement",
-    "preserved": "the T-16 item, use radial, authored containment and objvar guards, flyby effect, random Magseal collection reward, collection inventory/error handling, retained expansion content, and mission behavior",
+    "closedInThisMilestone": "the complete four-item TCG instant-XP family: the live T-16 percentage-to-next-level calculation plus the three buff-backed generic admission/status-icon paths, player-level table reads, generic template-XP calls, false XP success reports, and premature consumable decrements",
+    "preserved": "all four TCG items, use radials, authored containment and item guards, client effects, random Magseal collection rewards, collection inventory/error handling, retained expansion content, and mission behavior",
     "notClaimedComplete": "other dormant post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Canonical clean x86-64 server deployment, bytecode audit, controlled restart, and runtime readiness evidence"
+  ]
 }

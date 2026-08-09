@@ -144,6 +144,15 @@ $professionInspirationScriptVarCleanupBody = Get-SourceSlice $buffText `
 $professionInspirationCleanupBody = Get-SourceSlice $buffText `
     "public static void retirePostNgePlayerProfessionInspirationState" `
     "private static final String[] RETIRED_POST_NGE_PLAYER_GROUP_BUFFS"
+$buildABuffXpGrantInventoryBody = Get-SourceSlice $buffText `
+    "private static final String RETIRED_POST_NGE_PLAYER_BUILDABUFF" `
+    "public static boolean isRetiredPostNgePlayerInstantXpGrantBuffName"
+$buildABuffXpGrantPredicateBody = Get-SourceSlice $buffText `
+    "public static boolean isRetiredPostNgePlayerBuildABuffOrXpGrantBuff(obj_id target" `
+    "public static void retirePostNgePlayerBuildABuffAndXpGrantBuffState"
+$buildABuffXpGrantCleanupBody = Get-SourceSlice $buffText `
+    "public static void retirePostNgePlayerBuildABuffAndXpGrantBuffState" `
+    "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_INSPIRATION_BUFFS"
 $professionImmunityInventoryBody = Get-SourceSlice $buffText `
     "private static final String[] RETIRED_POST_NGE_PLAYER_PROFESSION_IMMUNITY_BUFFS" `
     "public static boolean isRetiredPostNgePlayerProfessionImmunityBuffName"
@@ -192,9 +201,39 @@ foreach ($buffName in @($contract.expected.retiredBuffs))
             $cleanupBody.Contains(
                 "retirePostNgePlayerProfessionInspirationState(player);")
     }
+    elseif ($buffName -ceq "buildabuff_inspiration")
+    {
+        $retiredByCentralLifecycle =
+            $buildABuffXpGrantInventoryBody.Contains('"buildabuff_inspiration"') -and
+            $buildABuffXpGrantCleanupBody.Contains(
+                "removeBuff(player, RETIRED_POST_NGE_PLAYER_BUILDABUFF)") -and
+            $cleanupBody.Contains(
+                "retirePostNgePlayerBuildABuffAndXpGrantBuffState(player);")
+    }
     Assert-Contract $retiredByCentralLifecycle `
         "p14.buff-progression.cleanup.buff.$buffName"
 }
+$expectedBuildABuffXpGrantAdmissionNames = @(
+    $contract.expected.retiredBuildABuffAndXpGrantAdmissionBuffs |
+        ForEach-Object { [string]$_ })
+$actualBuildABuffXpGrantAdmissionNames = @([regex]::Matches(
+    $buildABuffXpGrantInventoryBody, '"([^"\r\n]+)"') |
+    ForEach-Object { $_.Groups[1].Value })
+$buildABuffXpGrantAdmissionGate = $buffAdmissionBody.IndexOf(
+    "isRetiredPostNgePlayerBuildABuffOrXpGrantBuff(target, bdata)",
+    [StringComparison]::Ordinal)
+$buildABuffXpGrantExistingBuffReturn = $buffAdmissionBody.IndexOf(
+    "hasBuff(target, nameCrc)", [StringComparison]::Ordinal)
+Assert-Contract ($actualBuildABuffXpGrantAdmissionNames.Count -eq
+        [int]$contract.expected.retiredBuildABuffAndXpGrantAdmissionBuffCount -and
+    (($actualBuildABuffXpGrantAdmissionNames -join "`n") -ceq
+        ($expectedBuildABuffXpGrantAdmissionNames -join "`n")) -and
+    $buildABuffXpGrantPredicateBody.Contains("isPlayer(target)") -and
+    $buildABuffXpGrantCleanupBody.Contains("removeBuff(player, retiredBuff)") -and
+    $buildABuffXpGrantAdmissionGate -ge 0 -and
+    $buildABuffXpGrantExistingBuffReturn -gt $buildABuffXpGrantAdmissionGate -and
+    -not [bool]$contract.expected.buildABuffGenericPlayerAdmissionReachable) `
+    "p14.buff-progression.buildabuff-and-xp-grant.generic-admission-fail-closed"
 $professionInspirationNames = @([regex]::Matches(
     $professionInspirationInventoryBody, '"([^"\r\n]+)"') |
     ForEach-Object { $_.Groups[1].Value })
