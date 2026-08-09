@@ -10,6 +10,9 @@ $relativeFiles = [ordered]@{
     "npe.java" = "dsrc/sku.0/sys.server/compiled/game/script/library/npe.java"
     "trigger_journal.java" = "dsrc/sku.0/sys.server/compiled/game/script/npe/trigger_journal.java"
     "handoff_to_tatooine.java" = "dsrc/sku.0/sys.server/compiled/game/script/npe/handoff_to_tatooine.java"
+    "npe_boba_fett.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_boba_fett.java"
+    "npe_job_pointer.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_job_pointer.java"
+    "npe_officer.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_officer.java"
     "npe_station_han_solo2.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_station_han_solo2.java"
     "npe_force_sensitive.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_force_sensitive.java"
     "npe_commando.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/npe_commando.java"
@@ -60,9 +63,23 @@ foreach ($retired in @("grantQuest(", "sendSignal(", "newbieTutorialSetToolbarEl
 $failClosedCount = ([regex]::Matches(
     $surface,
     "condition_[A-Za-z0-9_]+\(obj_id player, obj_id npc\) throws InterruptedException\s*\{\s*return false;\s*\}")).Count
-if ($failClosedCount -lt 10)
+if ($failClosedCount -ne 14)
 {
-    throw "Expected at least ten fail-closed NPE class gates; found $failClosedCount."
+    throw "Expected exactly fourteen fail-closed NPE class gates; found $failClosedCount."
+}
+$requiredFailClosed = [ordered]@{
+    "npe_boba_fett.java" = "npe_boba_fett_condition_isBHTemplate"
+    "npe_job_pointer.java" = "npe_job_pointer_condition_isBH"
+    "npe_officer.java" = "npe_officer_condition_isOffTemplate"
+}
+foreach ($entry in $requiredFailClosed.GetEnumerator())
+{
+    $pattern = [regex]::Escape($entry.Value) +
+        '\(obj_id player, obj_id npc\) throws InterruptedException\s*\{\s*return false;\s*\}'
+    if ($texts[$entry.Key] -notmatch $pattern)
+    {
+        throw "NPE class-chain predicate remains reachable: $($entry.Value)"
+    }
 }
 $npe = $texts["npe.java"]
 $pointerStart = $npe.IndexOf("public static void giveTemplatePointer")
