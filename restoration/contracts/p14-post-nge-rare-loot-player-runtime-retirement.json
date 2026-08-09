@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-post-nge-rare-loot-player-runtime-retirement",
+  "status": "implemented-build-pending",
+  "scope": "Retire the post-NGE Rare Loot System's player chest generation, opening, collection mutation, and persisted cooldown/location authority while preserving ordinary authored PRE-CU loot and serialized later-era content for database and expansion compatibility.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "finding": "Pinned Publish 14.1 Core3 has no Rare Loot System chest producer, RLS loot tables, or player RLS persistence. Its creature loot authority is authored corpse loot rather than a player-level bonus chest roll.",
+    "retainedBoundary": "Ordinary authored loot, cash, Scout harvesting and forage, treasure maps, quests, collections data, static-item rows, chest templates, and RLS tables remain loadable. Only live player RLS gameplay authority is retired."
+  },
+  "inventory": {
+    "authoritativeSources": [
+      "library/loot.java",
+      "player/base/base_player.java",
+      "systems/loot/rare_loot_chest.java"
+    ],
+    "playerChestLifecycleCallbacks": [
+      "OnAttach",
+      "OnInitialize",
+      "OnTransferred",
+      "OnObjectMenuRequest",
+      "OnObjectMenuSelect"
+    ],
+    "retainedSerializedContent": [
+      "datatables/item/master_item/master_item.tab",
+      "datatables/collection/rewards.tab",
+      "datatables/loot/loot_types/rls/rare_loot.tab",
+      "datatables/loot/loot_types/rls/exceptional_loot.tab",
+      "datatables/loot/loot_types/rls/legendary_loot.tab",
+      "object/tangible/item/rare_loot_chest_1.tpf",
+      "object/tangible/item/rare_loot_chest_2.tpf",
+      "object/tangible/item/rare_loot_chest_3.tpf"
+    ]
+  },
+  "expected": {
+    "rareLootProducerEnabled": false,
+    "rareLootChestCreationEnabled": false,
+    "rareLootChestOpeningEnabled": false,
+    "rareLootCollectionMutationEnabled": false,
+    "playerRlsPersistenceWriters": 0,
+    "playerRlsLifecycleCleanupEntrypoints": 2,
+    "playerOwnedChestRetirementCallbacks": 5,
+    "retainedStaticItemRows": 3,
+    "retainedCollectionRewardRows": 3,
+    "retainedRlsLootTables": 3,
+    "retainedChestTemplates": 3
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "fe86017a08d135d2df70c24459563d8a4edf67ad",
+    "hostMaterializationWorkflow": "retired; no host artifact, staging, generated overlay, or duplicate source tree",
+    "sourceSha256": {
+      "library/loot.java": "f0fd844089276673fd7d2438ee4329678d59afe8ef86d6dea4c4cf69b639ed89",
+      "player/base/base_player.java": "c635a6d1d3669be17ad4cd994826348b524fe570a141d4b12d3064db51b287db",
+      "systems/loot/rare_loot_chest.java": "2e96a3d772ae2a6e7eb9d70bf6cb2dc96f3eed2a1f129b681dc10b8099fd415a"
+    },
+    "retainedContentSha256": {
+      "datatables/item/master_item/master_item.tab": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
+      "datatables/collection/rewards.tab": "7f45166db045f0f93711d216dbfcdad1c42ae2d503aa2d35830d84ea0b3fa5ad",
+      "datatables/loot/loot_types/rls/rare_loot.tab": "5a3463b44685579f143528f87721aa36e7958dc78f96d11bae83a621702f496d",
+      "datatables/loot/loot_types/rls/exceptional_loot.tab": "3ada091126d5c993fd53777660728237d996b81fc95be7b17832ddcdfa967925",
+      "datatables/loot/loot_types/rls/legendary_loot.tab": "5dd681faeb57cedb59f311f48258079057763716e050b23cdce49f40c7f88a00",
+      "object/tangible/item/rare_loot_chest_1.tpf": "8288ef0fd9aa3155999e4e8db10a3f27de73005e5335281ef96556a8c687bec4",
+      "object/tangible/item/rare_loot_chest_2.tpf": "4ea99f7d130b11c43ce5a24e08ae4d48df0e72416c8e0d3a870fb4c2bfa7aeaf",
+      "object/tangible/item/rare_loot_chest_3.tpf": "ae8d3f07e449016e7de03489a340b7305ca57c0d9ca50628c2bc9de16364f136"
+    },
+    "focusedJavaCompile": "passed with Java 8 source/target against the canonical deployed x64 classpath in an ephemeral /dev/shm directory that was removed immediately",
+    "focusedClassSha256": {
+      "library/loot.class": "cfcadf669d0b9aed5830534c3c8cb60126ee553131897189aa89c17b2c8fd023",
+      "player/base/base_player.class": "4a008dcb811c516f35de68be0ccc595a39015677cde24e3da4ff84f64736ef42",
+      "systems/loot/rare_loot_chest.class": "fb2fe28537460e62673ee85e7f692c93e4a6daa04e77ba83c0965e54e3caa535"
+    },
+    "focusedClassBytes": {
+      "library/loot.class": 58280,
+      "player/base/base_player.class": 269912,
+      "systems/loot/rare_loot_chest.class": 1474
+    },
+    "fullServerBuild": "pending canonical clean x64 deployment",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "result": "pending canonical clean x64 deployment",
+    "serverHealthy": false,
+    "clusterReadyForPlayers": false
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "post-NGE RLS generation, persistent player state, stale chest opening and collection mutation, plus player-owned chest lifecycle cleanup",
+    "notClaimedComplete": "the broader PRE-CU precedence audit continues across other dormant later-era mechanics and live-verification-only contracts"
+  },
+  "requiredBeforeReady": [
+    "canonical clean x64 build and deployment",
+    "source/work parity and deployed bytecode verification",
+    "healthy player-ready cluster evidence"
+  ]
+}
