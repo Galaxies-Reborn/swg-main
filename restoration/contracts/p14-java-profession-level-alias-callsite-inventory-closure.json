@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-profession-level-alias-callsite-inventory-closure",
+  "status": "ready",
+  "scope": "Close the Java profession-level alias surface that can otherwise reconstruct NGE combat, entertainer, or trader levels without using getLevel or player_level.iff, while preserving the unrelated combat-simulator NPC profession UI.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 professions advance through skill boxes, XP pools, prerequisites, skill points, and training rather than a stored combat/entertainer/trader level tuple.",
+      "All respec profession-level alias calls are internal to the retired NGE profession-respec compatibility library, with no qualified external consumers.",
+      "The same-named combat simulator methods configure authored NPC actor professions in local script variables and do not read or mutate player respec state."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\b(?:getProfessionLevelArray|getCombatLevel|getEntertainerLevel|getTraderLevel|setProfessionLevel|setProfessionLevelArray)\\s*\\(",
+    "javaSources": 5717,
+    "callSites": 19,
+    "sourceFiles": 2,
+    "inventorySha256": "46cab347e3734b4887733e9cce7323fe982903f1d482c42bbda402b6d10ed3c0",
+    "sourceSetSha256": "a3a7dbd8ca95cfba98b1a11e5a4e15b7be7176bc484ea6ca388c9336853b3217",
+    "sourceContentSha256": "bb9689ee0b4844900944c1835b3536696580757f01df66cf5a4617527e4b4c17",
+    "methodCounts": {
+      "getProfessionLevelArray": 5,
+      "getCombatLevel": 2,
+      "getEntertainerLevel": 2,
+      "getTraderLevel": 2,
+      "setProfessionLevel": 7,
+      "setProfessionLevelArray": 1
+    },
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/library/respec.java": 17,
+      "sku.0/sys.server/compiled/game/script/simulator/combat_simulator_user.java": 2
+    }
+  },
+  "classification": {
+    "retiredRespecCompatibility": {
+      "callSites": 17,
+      "inventorySha256": "d56ceb2eb053272f432fd6e7be124707d2cc952138c59bfbd2b047c02ab6176f",
+      "authority": "The six compatibility methods and their internal calls are confined to respec.java; the sole workflow consumer is dominated by retireNgePlayerRespecEntrypoint and persisted state is removed during player lifecycle and CTS handling."
+    },
+    "retainedNpcCombatSimulatorUi": {
+      "callSites": 2,
+      "inventorySha256": "09d2faadbc70fe62f092f71af4eef10d920062a15601f60d6f37757058182d03",
+      "authority": "The standalone combat simulator's setProfessionLevel methods edit local simulated-actor configuration only and never invoke respec or mutate a player's profession-level array."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-respec-autolevel-entrypoint-retirement.json",
+    "p14-post-nge-player-migration-authority-retirement.json",
+    "p14-java-player-level-datatable-callsite-inventory-closure.json",
+    "p14-java-player-level-callsite-inventory-closure.json",
+    "p14-java-level-mutation-callsite-inventory-closure.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 0,
+    "qualifiedExternalRespecAliasCalls": 0,
+    "retiredRespecCompatibilityCalls": 17,
+    "retainedNpcCombatSimulatorUiCalls": 2,
+    "unclassifiedCalls": 0,
+    "playerProfessionLevelArrayRuntimeAuthority": false,
+    "persistedProfessionLevelArrayRemoved": true,
+    "retainedNpcCombatSimulatorPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "7dab96a595ee5f24166da6241f603e238116d226",
+    "nativeSourceCommit": "e44ba83276ec4c4feb419b32a2ae982a68e1926b",
+    "sourceSha256": {
+      "library/respec.java": "b24248616509197101c86b837c641500ffc0f186115c0c76e410a8289f6ce33b",
+      "simulator/combat_simulator_user.java": "8083b927dca416c0d27add9c797fdcb60a3cb6c24479c3470a4d62d81b9edeb9",
+      "library/utils.java": "86909a18bbb9fcd72f6ff6969c78dd52095580c7d9637289e3cdbcb152f3695c",
+      "player/live_conversions.java": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e"
+    },
+    "sourceAudit": "passed; all 19 Java profession-level alias references are classified as retired respec compatibility or retained NPC combat-simulator UI, with zero external respec alias calls",
+    "gameplayBuildReused": "No gameplay source or data changed; the authenticated 5,717-source x64 deployment at the pinned dsrc/native revisions remains authoritative.",
+    "serverBinarySha256": "e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8",
+    "serverBinaryBuildId": "0ac0c8a439a388150c4a0f687874d1b38edc9eed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T03:37:26.6776976-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-10T07:01:16.806234084Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141610,
+    "liveBinaryBytes": 22561064,
+    "clientProcessId": 52252,
+    "clientResponsive": true,
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete Java profession-level alias inventory, external respec consumer boundary, retired player-state lifecycle, and unrelated combat-simulator name collision",
+    "preserved": "PRE-CU skill-box profession progression, retained later content, and the NPC combat-simulator actor configuration UI",
+    "notClaimedComplete": "unrelated later-era aliases and gameplay systems outside this profession-level API surface remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}
