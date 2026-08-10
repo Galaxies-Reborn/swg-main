@@ -183,6 +183,123 @@ Assert-Contract (
     [bool]$contract.expected.stalePgcCountdownCleanup -and
     [bool]$contract.expected.staleChroniclesScriptVarTreesRemoved
 ) "Chronicles player-state cleanup boundary drifted."
+
+$loot = [string]$texts.loot
+$lootRetirementSurfaces = [ordered]@{
+    "public static boolean addChronicleLoot" = [ordered]@{ mutation = "String creatureName ="; return = "return false;" }
+    "public static obj_id chroniclesCraftingLootDrop" = [ordered]@{ mutation = "if (hasToggledChroniclesLootOff(player))"; return = "return obj_id.NULL_ID;" }
+    "public static obj_id chroniclesPvpLootDrop" = [ordered]@{ mutation = "if (hasToggledChroniclesLootOff(player))"; return = "return obj_id.NULL_ID;" }
+    "public static obj_id chroniclesNonCorpseLootDrop" = [ordered]@{ mutation = 'String configChance_string = getConfigSetting("GameServer", "chroniclesLootChanceOverride");'; return = "return obj_id.NULL_ID;" }
+    "public static boolean hasToggledChroniclesLootOff" = [ordered]@{ mutation = "return hasObjVar(player, CHRONICLES_LOOT_TOGGLE_OBJVAR);"; return = "return true;" }
+    "public static void disableChroniclesLoot" = [ordered]@{ mutation = "setObjVar(player, CHRONICLES_LOOT_TOGGLE_OBJVAR, true);"; return = "return;" }
+    "public static void enableChroniclesLoot" = [ordered]@{ mutation = "removeObjVar(player, CHRONICLES_LOOT_TOGGLE_OBJVAR);"; return = "return;" }
+}
+foreach ($entry in $lootRetirementSurfaces.GetEnumerator())
+{
+    $surface = Get-BracedSurface $loot $entry.Key
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $retirementReturn = $surface.IndexOf([string]$entry.Value.return, $guard + 1, [StringComparison]::Ordinal)
+    $mutation = $surface.LastIndexOf([string]$entry.Value.mutation, [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $retirementReturn -gt $guard -and $mutation -gt $retirementReturn
+    ) "Chronicles loot surface is not dominated by retirement: $($entry.Key)"
+}
+Assert-Contract (
+    -not ([string]$texts.baseTool).Contains("loot.chroniclesCraftingLootDrop(") -and
+    -not ([string]$texts.gcw).Contains("loot.chroniclesPvpLootDrop(") -and
+    [int]$contract.expected.chroniclesCraftingHookCalls -eq 0 -and
+    [int]$contract.expected.chroniclesPvpHookCalls -eq 0 -and
+    -not [bool]$contract.expected.chroniclesCreatureLootEnabled -and
+    -not [bool]$contract.expected.chroniclesCraftingLootEnabled -and
+    -not [bool]$contract.expected.chroniclesPvpLootEnabled
+) "Normal crafting or PvP flow still invokes Chronicles relic loot."
+
+$addRelic = Get-BracedSurface $pgcQuests "public static void addRelicToQuestBuilder"
+$addRelicGuard = $addRelic.IndexOf("if (isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+$addRelicCleanup = $addRelic.IndexOf("retireChroniclesPlayerProgressionState(player);", [StringComparison]::Ordinal)
+$addRelicReturn = $addRelic.IndexOf("return;", $addRelicCleanup + 1, [StringComparison]::Ordinal)
+$addRelicMutation = $addRelic.IndexOf("if (!utils.isNestedWithin(relic, player))", [StringComparison]::Ordinal)
+$canUseRelic = Get-BracedSurface $pgcQuests "public static boolean canUseRelic"
+$canUseRelicGuard = $canUseRelic.IndexOf("if (isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+$canUseRelicReturn = $canUseRelic.IndexOf("return false;", $canUseRelicGuard + 1, [StringComparison]::Ordinal)
+$canUseRelicMutation = $canUseRelic.IndexOf("getEnhancedSkillStatisticModifierUncapped(", [StringComparison]::Ordinal)
+Assert-Contract (
+    $addRelicGuard -ge 0 -and $addRelicCleanup -gt $addRelicGuard -and
+    $addRelicReturn -gt $addRelicCleanup -and $addRelicMutation -gt $addRelicReturn -and
+    $canUseRelicGuard -ge 0 -and $canUseRelicReturn -gt $canUseRelicGuard -and
+    $canUseRelicMutation -gt $canUseRelicReturn -and
+    -not [bool]$contract.expected.chroniclesRelicCollectionMutationEnabled
+) "Central Chronicles relic collection mutation is not dominated by retirement."
+
+$fragment = [string]$texts.consumeFragment
+foreach ($signature in @("public int OnInitialize", "public int OnAttach"))
+{
+    $surface = Get-BracedSurface $fragment $signature
+    Assert-Contract ($surface.Contains("retireChroniclesFragment(self, obj_id.NULL_ID);")) "Chronicles fragment does not detach from $signature."
+}
+$fragmentHelper = Get-BracedSurface $fragment "private void retireChroniclesFragment"
+Assert-Contract (
+    $fragmentHelper.Contains("forceCloseSUIPage(pid);") -and
+    $fragmentHelper.Contains("sui.removePid(player, PID_NAME);") -and
+    $fragmentHelper.Contains('detachScript(self, "systems.player_quest.consume_fragment");')
+) "Chronicles fragment retirement cleanup drifted."
+$fragmentMutationSurfaces = [ordered]@{
+    "public int OnObjectMenuRequest" = [ordered]@{ mutation = "mi.addRootMenu("; return = "return SCRIPT_CONTINUE;" }
+    "public int OnObjectMenuSelect" = [ordered]@{ mutation = "sendDirtyObjectMenuNotification(self);"; return = "return SCRIPT_CONTINUE;" }
+    "public boolean getUiConsumeMessageBox" = [ordered]@{ mutation = "sui.msgbox("; return = "return false;" }
+    "public int handlerSuiFragmentReconstruct" = [ordered]@{ mutation = "int bp = sui.getIntButtonPressed(params);"; return = "return SCRIPT_CONTINUE;" }
+    "public void reconstructFragment" = [ordered]@{ mutation = "if (!utils.isNestedWithin(self, player))"; return = "return;" }
+}
+foreach ($entry in $fragmentMutationSurfaces.GetEnumerator())
+{
+    $surface = Get-BracedSurface $fragment $entry.Key
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $cleanup = $surface.IndexOf("retireChroniclesFragment(self, player);", [StringComparison]::Ordinal)
+    $retirementReturn = $surface.IndexOf([string]$entry.Value.return, $cleanup + 1, [StringComparison]::Ordinal)
+    $mutation = $surface.IndexOf([string]$entry.Value.mutation, [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $cleanup -gt $guard -and $retirementReturn -gt $cleanup -and $mutation -gt $retirementReturn
+    ) "Chronicles fragment mutation is not dominated by retirement: $($entry.Key)"
+}
+
+$relic = [string]$texts.consumeRelic
+foreach ($signature in @("public int OnInitialize", "public int OnAttach"))
+{
+    $surface = Get-BracedSurface $relic $signature
+    Assert-Contract ($surface.Contains("retireChroniclesRelic(self, obj_id.NULL_ID);")) "Chronicles relic does not detach from $signature."
+}
+$relicHelper = Get-BracedSurface $relic "private void retireChroniclesRelic"
+Assert-Contract (
+    $relicHelper.Contains("forceCloseSUIPage(pid);") -and
+    $relicHelper.Contains('utils.removeScriptVar(self, "relic_addQuestBuilderAll");') -and
+    $relicHelper.Contains('utils.removeScriptVar(self, "relic_deconstructAll");') -and
+    $relicHelper.Contains('detachScript(self, "systems.player_quest.consume_relic");')
+) "Chronicles relic retirement cleanup drifted."
+$relicMutationSurfaces = [ordered]@{
+    "public int OnObjectMenuRequest" = [ordered]@{ mutation = "if (utils.isNestedWithinAPlayer(self))"; return = "return SCRIPT_CONTINUE;" }
+    "public int OnObjectMenuSelect" = [ordered]@{ mutation = "sendDirtyObjectMenuNotification(self);"; return = "return SCRIPT_CONTINUE;" }
+    "public boolean getUiConsumeMessageBox" = [ordered]@{ mutation = "sui.msgbox("; return = "return false;" }
+    "public int handlerSuiAddToQuestBuilder" = [ordered]@{ mutation = "int bp = sui.getIntButtonPressed(params);"; return = "return SCRIPT_CONTINUE;" }
+    "public int handlerSuiRelicDeconstruct" = [ordered]@{ mutation = "int bp = sui.getIntButtonPressed(params);"; return = "return SCRIPT_CONTINUE;" }
+    "public void deconstructRelic" = [ordered]@{ mutation = "if (!utils.isNestedWithin(self, player))"; return = "return;" }
+}
+foreach ($entry in $relicMutationSurfaces.GetEnumerator())
+{
+    $surface = Get-BracedSurface $relic $entry.Key
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $cleanup = $surface.IndexOf("retireChroniclesRelic(self, player);", [StringComparison]::Ordinal)
+    $retirementReturn = $surface.IndexOf([string]$entry.Value.return, $cleanup + 1, [StringComparison]::Ordinal)
+    $mutation = $surface.IndexOf([string]$entry.Value.mutation, [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $cleanup -gt $guard -and $retirementReturn -gt $cleanup -and $mutation -gt $retirementReturn
+    ) "Chronicles relic mutation is not dominated by retirement: $($entry.Key)"
+}
+Assert-Contract (
+    -not [bool]$contract.expected.chroniclesRelicMenusEnabled -and
+    -not [bool]$contract.expected.chroniclesRelicConversionEnabled -and
+    [int]$contract.expected.unguardedChroniclesRelicMutations -eq 0
+) "Chronicles relic lifecycle policy drifted."
+
 foreach ($signature in @("public int OnObjectMenuRequest", "public int OnObjectMenuSelect"))
 {
     $surface = Get-BracedSurface $holocron $signature
@@ -511,6 +628,12 @@ if ($Expectation -ceq "Ready")
         questHolocron = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_holocron.class"
         legacyCraft = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/craft.class"
         groundCraft = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/ground/craft.class"
+        pgcQuests = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/pgc_quests.class"
+        loot = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/loot.class"
+        gcw = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/gcw.class"
+        baseTool = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/crafting/base_tool.class"
+        consumeFragment = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_fragment.class"
+        consumeRelic = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_relic.class"
         questControlDevice = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_control_device.class"
         creditItem = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/credit_item.class"
         chroniclesRewardVendor = "/swg-precu/data/sku.0/sys.server/compiled/game/script/conversation/chronicles_reward_vendor.class"
