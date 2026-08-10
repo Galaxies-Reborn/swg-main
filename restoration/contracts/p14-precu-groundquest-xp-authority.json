@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-precu-groundquest-xp-authority",
   "status": "ready",
-  "scope": "Retain authored later-content ground quests and their level/tier reward table while removing the NGE player-level-derived quest XP cap; PRE-CU XP-type pools and their existing skill-specific limits remain authoritative.",
+  "scope": "Retain authored later-content ground quests and their level/tier reward table while removing the NGE player-level-derived quest XP cap; PRE-CU XP-type pools and their existing skill-specific limits remain authoritative. Close the complete OnQuestReceivedReward callback inventory and prove that its sole production listener dispatches retained content rewards without introducing player level, profession, expertise, or skill-template authority.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -15,7 +15,20 @@
       "The retained quest_experience table is authored quest content keyed by quest level and reward tier and is preserved.",
       "The removed helper converted hidden player difficulty back into player_level.iff xp_required rows and capped every quest reward to half of that NGE level delta.",
       "All retained ground-quest XP routes already enter the PRE-CU combat, crafting, social, or explicit XP grant adapters.",
-      "The shared XP grant and native PlayerObject grantExperiencePoints path enforce the receiving XP pool's skill-derived experience limit."
+      "The shared XP grant and native PlayerObject grantExperiencePoints path enforce the receiving XP pool's skill-derived experience limit.",
+      "The complete Java source tree contains exactly one OnQuestReceivedReward callback. It reads authored quest content, dispatches it through the authenticated ground-quest reward adapter, and records metrics through the PRE-CU skill-difficulty adapter without mutating player level, profession, expertise, or skill template."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnQuestReceivedReward\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 1,
+    "sourceFiles": 1,
+    "productionContentDispatchers": 1,
+    "inventorySha256": "839756f7df6a93728625e8fbf3f6c87788a33af3c4700a7d3fb82b9349ccd62d",
+    "sourceSetSha256": "2310549fdf6c7b2d7d9aa1cd5745058b7e8851ffbe73d8f640b69907fc97813d",
+    "sourcePaths": [
+      "player/base/base_player.java"
     ]
   },
   "expected": {
@@ -24,6 +37,10 @@
     "ngeQuestXpCapHelpers": 0,
     "groundquestRewardCalculations": 2,
     "rewardMetricCalculations": 1,
+    "questRewardCallbacks": 1,
+    "questRewardContentDispatches": 1,
+    "questRewardMetricsDispatches": 1,
+    "questRewardNgePlayerProgressionMutations": 0,
     "combatXpRoutes": 1,
     "craftingXpRoutes": 1,
     "socialXpRoutes": 1,
@@ -91,7 +108,7 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the active player_level.iff-derived XP cap applied to retained ground-quest rewards",
+    "closedInThisMilestone": "the active player_level.iff-derived XP cap applied to retained ground-quest rewards and the complete sole-listener OnQuestReceivedReward callback inventory",
     "preserved": "authored NGE-era quests and zones, quest level/tier reward lookup, explicit XP-type routing, XP-pool limits, credits, items, faction standing, independent retained GCW rewards, quest completion, and metrics",
     "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },

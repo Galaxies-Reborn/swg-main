@@ -17,11 +17,22 @@ $contractPath = Join-Path $restorationRoot `
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
     if ($Condition) { Write-Host "  [PASS] $Name" }
     else { Write-Host "  [FAIL] $Name"; $failures.Add($Name) }
+}
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try
+    {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant()
+    }
+    finally { $sha.Dispose() }
 }
 
 function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker)
@@ -56,6 +67,35 @@ foreach ($name in $sourcePaths.Keys)
     }
 }
 
+$scriptRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script"
+$questRewardRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.inventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+        "p14.groundquest-xp.reward-callback.inventory-line-parsed"
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    Assert-Contract ($absolutePath.StartsWith(
+        $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) `
+        "p14.groundquest-xp.reward-callback.inventory-contained"
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $questRewardRecords.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
+}
+$questRewardRecords = @($questRewardRecords | Sort-Object)
+$questRewardPaths = @($questRewardRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') `
+        "p14.groundquest-xp.reward-callback.path-isolated"
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedQuestRewardPaths = @($contract.inventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($questRewardRecords.Count -eq [int]$contract.inventory.handlers -and
+    $questRewardRecords.Count -eq [int]$contract.expected.questRewardCallbacks -and
+    $questRewardPaths.Count -eq [int]$contract.inventory.sourceFiles -and
+    ($questRewardPaths -join "`n") -ceq ($expectedQuestRewardPaths -join "`n") -and
+    (Get-TextSha256 ($questRewardRecords -join "`n")) -ceq [string]$contract.inventory.inventorySha256 -and
+    (Get-TextSha256 ($questRewardPaths -join "`n")) -ceq [string]$contract.inventory.sourceSetSha256) `
+    "p14.groundquest-xp.reward-callback.complete-inventory"
+
 $groundquests = [string]$texts.groundquests
 $reward = Get-SourceSlice $groundquests `
     "public static int getQuestExperienceReward(" `
@@ -74,6 +114,29 @@ Assert-Contract ([regex]::Matches($groundquests,
     "p14.groundquest-xp.authored-level-tier-table-preserved"
 
 $basePlayer = [string]$texts.basePlayer
+$questRewardCallback = Get-SourceSlice $basePlayer `
+    "public int OnQuestReceivedReward(" `
+    "public int OnQuestCompleted("
+$ngeProgressionPatterns = @(
+    '(?<![A-Za-z0-9_\.])getLevel\s*\(', '\bsetLevel\s*\(',
+    '\bsetSkillTemplate\s*\(', '\bskill\.(grant|grantSkill|purchaseSkill)',
+    '\bgrantSkill\s*\(', '\brevokeSkill\s*\(', '\bexpertise\.',
+    '\bprofession\.'
+)
+$ngeProgressionMatches = @($ngeProgressionPatterns | Where-Object {
+    [regex]::IsMatch($questRewardCallback, $_)
+})
+Assert-Contract ([int]$contract.inventory.productionContentDispatchers -eq 1 -and
+    [regex]::Matches($questRewardCallback, 'groundquests\.grantQuestReward\s*\(').Count -eq
+        [int]$contract.expected.questRewardContentDispatches -and
+    [regex]::Matches($questRewardCallback, 'metrics\.doQuestMetrics\s*\(').Count -eq
+        [int]$contract.expected.questRewardMetricsDispatches -and
+    $questRewardCallback.Contains("groundquests.getQuestExperienceReward(self, questLevel, questTier, experienceAmount)") -and
+    $questRewardCallback.Contains("grantGcwReward") -and
+    $questRewardCallback.Contains("bankCredits") -and
+    $questRewardCallback.Contains("exclusiveItemChoice") -and
+    $ngeProgressionMatches.Count -eq [int]$contract.expected.questRewardNgePlayerProgressionMutations) `
+    "p14.groundquest-xp.reward-callback.content-preserved-progression-isolated"
 Assert-Contract ([regex]::Matches($groundquests,
         'getQuestExperienceReward\s*\(').Count -eq
         [int]$contract.expected.groundquestRewardCalculations -and
