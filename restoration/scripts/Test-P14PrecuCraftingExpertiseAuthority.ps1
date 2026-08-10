@@ -17,11 +17,22 @@ $contractPath = Join-Path $restorationRoot `
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
     if ($Condition) { Write-Host "  [PASS] $Name" }
     else { Write-Host "  [FAIL] $Name"; $failures.Add($Name) }
+}
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try
+    {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant()
+    }
+    finally { $sha.Dispose() }
 }
 
 function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker)
@@ -49,6 +60,35 @@ foreach ($property in $contract.sourceFiles.PSObject.Properties)
     Assert-Contract ($hash -ceq $expectedHash) `
         "p14.crafting-expertise.source.$($property.Name).authenticated"
 }
+
+$scriptRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script"
+$experimentCallbackRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.inventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+        "p14.crafting-expertise.experiment-callback.inventory-line-parsed"
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    Assert-Contract ($absolutePath.StartsWith(
+        $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) `
+        "p14.crafting-expertise.experiment-callback.inventory-contained"
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $experimentCallbackRecords.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
+}
+$experimentCallbackRecords = @($experimentCallbackRecords | Sort-Object)
+$experimentCallbackPaths = @($experimentCallbackRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') `
+        "p14.crafting-expertise.experiment-callback.path-isolated"
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedExperimentCallbackPaths = @($contract.inventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($experimentCallbackRecords.Count -eq [int]$contract.inventory.handlers -and
+    $experimentCallbackRecords.Count -eq [int]$contract.expected.craftingExperimentCallbacks -and
+    $experimentCallbackPaths.Count -eq [int]$contract.inventory.sourceFiles -and
+    ($experimentCallbackPaths -join "`n") -ceq ($expectedExperimentCallbackPaths -join "`n") -and
+    (Get-TextSha256 ($experimentCallbackRecords -join "`n")) -ceq [string]$contract.inventory.inventorySha256 -and
+    (Get-TextSha256 ($experimentCallbackPaths -join "`n")) -ceq [string]$contract.inventory.sourceSetSha256) `
+    "p14.crafting-expertise.experiment-callback.complete-inventory"
 
 $gameplayNames = @("craftinglib", "resource", "playerStructure", "craftingBase", "cybernetic")
 $gameplayText = ($gameplayNames | ForEach-Object { [string]$texts[$_] }) -join "`n"
@@ -82,6 +122,32 @@ Assert-Contract (-not $experiment.Contains('"expertise_experimentation_increase_
     "p14.crafting-expertise.experimentation.precu-authority"
 
 $craftingBase = [string]$texts.craftingBase
+$experimentCallback = Get-SourceSlice $craftingBase `
+    "public int OnCraftingExperiment(" `
+    "public int doCraftingExperiment("
+$experimentImplementation = Get-SourceSlice $craftingBase `
+    "public int doCraftingExperiment(" `
+    "public int OnFinalizeSchematic("
+$playerLevelPatterns = @(
+    '(?<![A-Za-z0-9_\.])getLevel\s*\(\s*player\s*\)',
+    '\bsetLevel\s*\(', '\bsetSkillTemplate\s*\(', '\bgetSkillTemplate\s*\(',
+    '\bcombatLevel\b', '\bplayerLevel\b'
+)
+$playerLevelMatches = @($playerLevelPatterns | Where-Object {
+    [regex]::IsMatch($experimentCallback + $experimentImplementation, $_)
+})
+Assert-Contract ([int]$contract.inventory.precuExperimentDispatchers -eq 1 -and
+    [regex]::Matches($experimentCallback, '\bdoCraftingExperiment\s*\(').Count -eq
+        [int]$contract.expected.craftingExperimentPrecuDispatches -and
+    $experimentCallback.Contains('"skipCraftingExperiment"') -and
+    $experimentImplementation.Contains("craftinglib.calcExpFullSinglePointValue") -and
+    $experimentImplementation.Contains("craftinglib.calcPerExperimentationCheckMod") -and
+    $experimentImplementation.Contains("craftinglib.calcSuccessPerAttributeExperimentation") -and
+    $experimentImplementation.Contains('obj_attributes[i].equals("coreLevel")') -and
+    $experimentImplementation.Contains("objectAttribs[i].currentValue = coreLevel;") -and
+    -not $experimentImplementation.Contains('"expertise_') -and
+    $playerLevelMatches.Count -eq [int]$contract.expected.craftingExperimentPlayerLevelReadsOrWrites) `
+    "p14.crafting-expertise.experiment-callback.precu-authority"
 Assert-Contract (-not $craftingBase.Contains('"expertise_complexity_decrease_"') -and
     $craftingBase.Contains("calcAndSetPrototypeProperties") -and
     $craftingBase.Contains("xp.grantCraftingStyleXp")) `

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-precu-crafting-expertise-authority",
   "status": "ready",
-  "scope": "Remove executable NGE expertise modifiers from the active Publish 14.1 crafting, resource-sampling yield, structure-management, and retained cybernetic-crafting paths while preserving authored PRE-CU skill, resource, structure, and experimentation behavior.",
+  "scope": "Remove executable NGE expertise modifiers from the active Publish 14.1 crafting, resource-sampling yield, structure-management, and retained cybernetic-crafting paths while preserving authored PRE-CU skill, resource, structure, and experimentation behavior. Close the complete OnCraftingExperiment callback inventory and distinguish the retained weapon-component coreLevel attribute from retired player combat-level authority.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -16,13 +16,29 @@
       "The inherited active crafting path still allowed NGE expertise modifiers to raise resource-quality caps, alter experimentation rolls, and reduce crafted-item complexity.",
       "Resource sampling yield and structure placement/load still allowed NGE expertise modifiers to increase yield, extraction rate, hopper size, and reduce power or maintenance costs.",
       "The retained cybernetic crafting path allowed an NGE expertise modifier to reduce its authored protection penalty.",
-      "Persisted factory and harvester power-expertise objvars are removed when the compatibility helper runs so stale later-era state cannot remain authoritative."
+      "Persisted factory and harvester power-expertise objvars are removed when the compatibility helper runs so stale later-era state cannot remain authoritative.",
+      "The complete Java source tree contains exactly one OnCraftingExperiment callback. It dispatches into the authenticated PRE-CU resource, skill-mod, Force/city/food, and Luck experimentation path; its coreLevel argument is copied only into the authored weapon-component attribute of the same name and never reads or writes player combat level."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnCraftingExperiment\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 1,
+    "sourceFiles": 1,
+    "precuExperimentDispatchers": 1,
+    "inventorySha256": "0f5947b1b657f8ed00feda4b6cf8f62574a8637df234273b33f151d41755ef32",
+    "sourceSetSha256": "9a7e8f109faeec5410c582064f408951b55cdbffeef74e51ebb62cc1efbb8c1f",
+    "sourcePaths": [
+      "systems/crafting/crafting_base.java"
     ]
   },
   "expected": {
     "changedGameplaySourceFiles": 5,
     "historicalExecutableExpertiseReads": 11,
     "remainingExecutableExpertiseReads": 0,
+    "craftingExperimentCallbacks": 1,
+    "craftingExperimentPrecuDispatches": 1,
+    "craftingExperimentPlayerLevelReadsOrWrites": 0,
     "resourceQualityExpertiseReads": 0,
     "experimentationExpertiseReads": 0,
     "complexityExpertiseReads": 0,
@@ -107,7 +123,7 @@
     "result": "passed"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all 11 active NGE expertise-modifier reads in the shared crafting, sampling-yield, structure-management, and retained cybernetic-crafting calculation surface",
+    "closedInThisMilestone": "all 11 active NGE expertise-modifier reads in the shared crafting, sampling-yield, structure-management, and retained cybernetic-crafting calculation surface plus the complete sole-listener OnCraftingExperiment callback inventory",
     "preserved": "resource weighting, crafting inspiration, city and food adjustments, Force experimentation, Publish 14.1 Luck, ordinary crafting skill mods, authored deed extraction/hopper/power values, structure maintenance and factory-efficiency mods, TCG sampling content, and the retained cybernetic base penalty",
     "notClaimedComplete": "other retained NGE buffs, TCG bonuses, and dormant or content-specific expertise references remain subject to later reachability audits"
   },
