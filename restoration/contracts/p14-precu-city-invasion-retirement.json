@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-city-invasion-retirement",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Retire the post-NGE recurring Bestine, Dearic, and Keren GCW city-invasion scheduler and runtime authority while preserving Publish 14 faction standing/rank, static faction bases, PRE-CU open-world battlefields, mission terminals, and reusable city-event assets.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -30,6 +30,7 @@
     "stalePlayerCityInvasionStateScrubbed": true,
     "queuedPlayerCityCallbacksReachable": false,
     "queuedPlayerCityGameplayCallbacksReachable": false,
+    "queuedPlayerFatigueDecayReachable": false,
     "cityGameplayMutatorsReachable": false,
     "cityInvasionCreditWriterReachable": false,
     "cityInvasionParticipantRewardsReachable": false,
@@ -66,6 +67,7 @@
     "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
     "dsrc/sku.0/sys.server/compiled/game/script/player/player_faction.java",
     "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java",
+    "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java",
     "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_pylon.java",
     "dsrc/sku.0/sys.server/compiled/game/script/terminal/gcw_supply_terminal.java",
     "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_general.java",
@@ -134,7 +136,7 @@
     "dsrc/sku.0/sys.server/compiled/game/datatables/gcw/gcw_city_keren.tab"
   ],
   "buildEvidence": {
-    "directSourceCommit": "7f7a9ce05061ae6faba215941c90c85880aaf1fa",
+    "directSourceCommit": "9b6056d0ae60773293b48f3f2ad833f336911385",
     "overlayPatch": {
       "path": "restoration/patches/dsrc/366-p14-precu-city-invasion-retirement.patch",
       "bytes": 16269,
@@ -147,6 +149,7 @@
       "script.player.base.base_player": "c635a6d1d3669be17ad4cd994826348b524fe570a141d4b12d3064db51b287db",
       "script.player.player_faction": "89f5986734f05dbf7ff9e556a01e58dacb1e78ad188c2d2bdb905d82102199d0",
       "script.player.player_utility": "ac7d04a644ab29ee0c883b90793a061eed99f15e9a794cdcfcadcce6e017229c",
+      "script.systems.buff.buff_handler": "471d1cfa3dad3414af75981f67687ec53b564835787f0f2e195802560ccbaa3f",
       "script.systems.gcw.gcw_city_pylon": "845bc8fb0f198f4d54be1497b877429182188f35c0a183ff187f3bafb3fbbaa2",
       "script.terminal.gcw_supply_terminal": "1eae146e6cb6a6b870c9dc90357ea9811c103e9503600c2b30bb7c52217e9d34",
       "script.conversation.imperial_general": "af2aabf34b6d1fea4dc5627194ba29abef05d1000f1da2fdd5499dce5a0189f2",
@@ -192,7 +195,7 @@
     "sourceExtensionSetSha256": "46c10f1e1fb818e8e602df05d85200e28ffd2c39a97cadedf38d108e36aa8cfa",
     "sourceExtensionContentSha256": "2410a739d6def69746d116c1a213b94a370a18cc95cefee89700dab410fc59de",
     "staticContract": "passed against synchronized direct source with all 20 intrinsic template controller attachments retired and all 22 persisted city-asset, child-actor, and kit runtime scripts fail-closed before quest, participant, reward, combat, or spawn authority; preserved source content remains available for later-zone quest and asset compatibility",
-    "isolatedJavaCompile": "the prior city-invasion closure compile remains historical evidence for the 22 unchanged city-asset, child-actor, and kit runtime scripts; current gcw.java is authenticated by the canonical exact zero-class full build, and no ephemeral output remains",
+    "isolatedJavaCompile": "passed Java 8-target compile for the changed buff_handler.java against the canonical deployed class root; SHA-256 7b4f86d45c40375fc51372a934c8c356d356d7595faa2aa1ec113a96284e3c5f, 138292 bytes; the exact /dev/shm output was removed",
     "compiledClassSha256": {
       "script.library.gcw.isolated": "42466d4130a338dc38aaaea94e693e4f9891869efaa3dc51770392f4fc428308",
       "script.systems.gcw.gcw_barricade.isolated": "29c8894ec60422f764499783363796b0f85ccbd90e7a8a138deefffaa4fb0030",
@@ -227,6 +230,7 @@
       "script.conversation.rebel_defensive_supply_terminal.isolated": "b1c5eb03c062dc44b66aa9784ad977f10bbc620e84cb6717f3b89bd6ec874b38",
       "script.player.player_faction.isolated": "fad30f28a8aa43ec6a4f640966ef6b22aacf85c9d79c84d9a7d36ed5aa3f18b6",
       "script.player.player_utility.isolated": "9bae151992530f5ce51ecc37f56410dbc0a70207dcc0db722f85d53d9abeb092",
+      "script.systems.buff.buff_handler.isolated": "7b4f86d45c40375fc51372a934c8c356d356d7595faa2aa1ec113a96284e3c5f",
       "script.systems.gcw.gcw_city.isolated": "6fcae9042d49e65b4f0341523667ad1644262a386bc6df55f57cf4fbd4ecf54e",
       "script.planet.planet_base.isolated": "3b82e35a6a7fce63b33114611366bcf751a4317883752054c04f00c260ae6011",
       "script.player.base.base_player.isolated": "85b5cd5ab1cac3ea632bcb04d6371dcf218b4819df690c2d3becc5837628fd59",
@@ -303,11 +307,11 @@
     "compiledTemplateControllerStrings": 0,
     "compiledGenericCampScriptsPreserved": 1,
     "compiledDestructibleKillCreditScriptsPreserved": 2,
-    "fullX64Build": "passed; the current canonical clean x64 build and deployment completed in 1003.3 seconds from pushed parent 9d41404ffe88becaa15d67e3f3769463714a41dc, direct dsrc 7f7a9ce05061ae6faba215941c90c85880aaf1fa, and native src 2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "fullX64Build": "pending for the pushed direct dsrc 9b6056d0ae60773293b48f3f2ad833f336911385; the previous canonical clean x64 deployment remains parent 9d41404ffe88becaa15d67e3f3769463714a41dc, direct dsrc 7f7a9ce05061ae6faba215941c90c85880aaf1fa, and native src 2e64bf715fb14463570f39dd71c7db15f3aefa01",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "9f022e9273f5cf53595b0d976d40f38dea80077b4c4279fb42be2b58617ba6d7",
     "serverBinaryBuildId": "3bc114af0d3c0d0555b166752473e1389c567b8a",
-    "deploymentProbe": "passed repository-wide preflight; exact source/work parity for gcw and all 22 persisted city asset/child/kit runtime sources; authenticated deployed class hashes; exact 104 asset-family retirement calls in addition to the existing central, pylon, terminal, conversation, and queued-player gates; preserved city content and PRE-CU mission/faction/battlefield authority; verified ELF x86-64 mapped-binary identity, health/readiness, exact 15-scene process counts, and clean fresh logs"
+    "deploymentProbe": "pending canonical x64 rebuild and deployment of the authenticated city-invasion fatigue callback closure"
   },
   "runtimeEvidence": {
     "result": "swg-precu restarted healthy and reported Cluster swg is ready for players with fifteen configured PlanetServer and SwgGameServer scene processes",
@@ -323,11 +327,11 @@
     "requiredProcessCounts": "LoginServer=1, TaskManager=1, ConnectionServer=1, SwgDatabaseServer=1, TransferServer=1, PlanetServer=15, SwgGameServer=15",
     "mappedBinaryIdentity": "all 15 SwgGameServer processes map /swg-precu/build/bin/SwgGameServer; 30 process-map entries resolve to deployed inode 12141658 and size 22561640",
     "postStartLogAudit": "the canonical deployment read post-restart Docker logs, observed the exact player-ready marker, and returned successfully after all mandatory artifact and runtime probes",
-    "fullPhaseAReady": "passed in the current canonical clean x64 deployment from pushed parent 9d41404ffe88becaa15d67e3f3769463714a41dc against direct dsrc 7f7a9ce05061ae6faba215941c90c85880aaf1fa and native src 2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "fullPhaseAReady": "the previous canonical clean x64 deployment remains ready from pushed parent 9d41404ffe88becaa15d67e3f3769463714a41dc against direct dsrc 7f7a9ce05061ae6faba215941c90c85880aaf1fa and native src 2e64bf715fb14463570f39dd71c7db15f3aefa01; the fatigue callback closure is build-pending",
     "missionTerminalContinuity": "After the Milestone 296 deployment, the user physically reached a combat mission terminal and confirmed that it works; the protected source and reward hashes also remained unchanged and passed the clean-materialization regressions."
   },
   "auditBoundary": {
-    "closedInThisMilestone": "all known buildout, scheduler, persisted-controller, forced-start, planet-state, cloning-restriction, intrinsic template, persisted barricade/tower/turret/patrol/vehicle/general/support actor, city-kit respawn, player scoreboard/help, pylon, supply-terminal, conversation, construction/repair/entertainment gameplay, participant reward, invasion credit, schedule query, quest-icon, queued callback, and stale player state entrypoints for the later recurring Bestine/Dearic/Keren city-invasion system",
+    "closedInThisMilestone": "all known buildout, scheduler, persisted-controller, forced-start, planet-state, cloning-restriction, intrinsic template, persisted barricade/tower/turret/patrol/vehicle/general/support actor, city-kit respawn, player scoreboard/help, pylon, supply-terminal, conversation, construction/repair/entertainment gameplay, participant reward, invasion credit, schedule query, quest-icon, queued callback including the persisted player fatigue-decay callback, and stale player state entrypoints for the later recurring Bestine/Dearic/Keren city-invasion system",
     "retainedContent": "mission terminals and rewards, faction standing/rank and recruiter perks, static faction bases, PRE-CU open-world battlefield gameplay and standing, GCW city kit/data assets, later zones, and authored quests",
     "notClaimedComplete": "PRE-CU open-world battlefield balance, static faction-base behavior, and wider regional planet-control presentation remain separate audits"
   },

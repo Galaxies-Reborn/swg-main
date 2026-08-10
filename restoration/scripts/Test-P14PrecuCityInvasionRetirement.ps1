@@ -72,6 +72,7 @@ $paths = [ordered]@{
     "script.player.base.base_player" = "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
     "script.player.player_faction" = "dsrc/sku.0/sys.server/compiled/game/script/player/player_faction.java"
     "script.player.player_utility" = "dsrc/sku.0/sys.server/compiled/game/script/player/player_utility.java"
+    "script.systems.buff.buff_handler" = "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
     "script.systems.gcw.gcw_city_pylon" = "dsrc/sku.0/sys.server/compiled/game/script/systems/gcw/gcw_city_pylon.java"
     "script.terminal.gcw_supply_terminal" = "dsrc/sku.0/sys.server/compiled/game/script/terminal/gcw_supply_terminal.java"
     "script.conversation.imperial_general" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/imperial_general.java"
@@ -202,6 +203,7 @@ $planet = [string]$texts["script.planet.planet_base"]
 $player = [string]$texts["script.player.base.base_player"]
 $playerFaction = [string]$texts["script.player.player_faction"]
 $playerUtility = [string]$texts["script.player.player_utility"]
+$buffHandler = [string]$texts["script.systems.buff.buff_handler"]
 $cityPylon = [string]$texts["script.systems.gcw.gcw_city_pylon"]
 $supplyTerminal = [string]$texts["script.terminal.gcw_supply_terminal"]
 
@@ -447,6 +449,30 @@ Assert-Contract (@($cityGameplayUtilityHandlers | Where-Object {
 }).Count -eq 0 -and
     ([regex]::Matches($playerUtility, 'gcw\.cleanupRetiredCityInvasionPlayerState\(self\);')).Count -eq 7) `
     "p14.city-invasion.queued-gameplay-callbacks-retired"
+
+$fatigueDecay = Get-FunctionSlice $buffHandler `
+    "public int gcwFatigueDecay" `
+    "public int gcwMiniTurretAddBuffHandler"
+$fatigueGuardIndex = $fatigueDecay.IndexOf("gcw.isPostNgeCityInvasionRetired()", [System.StringComparison]::Ordinal)
+$fatigueCleanupIndex = $fatigueDecay.IndexOf("gcw.cleanupRetiredCityInvasionPlayerState(self)", [System.StringComparison]::Ordinal)
+$fatigueReturnIndex = $fatigueDecay.IndexOf("return SCRIPT_CONTINUE;", $fatigueCleanupIndex, [System.StringComparison]::Ordinal)
+$fatigueMutationMarkers = @(
+    'params.getInt("gcwFatigueTime")',
+    'utils.getIntScriptVar(self, "gcw.fatigueTime")',
+    'buff.removeBuff(self, "gcw_fatigue")',
+    'buff.applyBuffWithStackCount(self, "gcw_fatigue"',
+    'utils.setScriptVar(self, "gcw.fatigueTime"',
+    'messageTo(self, "gcwFatigueDecay"'
+)
+$fatigueMutationIndexes = @($fatigueMutationMarkers | ForEach-Object {
+    $fatigueDecay.IndexOf($_, [System.StringComparison]::Ordinal)
+})
+Assert-Contract ($fatigueGuardIndex -ge 0 -and
+    $fatigueCleanupIndex -gt $fatigueGuardIndex -and
+    $fatigueReturnIndex -gt $fatigueCleanupIndex -and
+    @($fatigueMutationIndexes | Where-Object { $_ -lt 0 -or $_ -le $fatigueReturnIndex }).Count -eq 0 -and
+    -not [bool]$contract.expected.queuedPlayerFatigueDecayReachable) `
+    "p14.city-invasion.queued-player-fatigue-decay-retired"
 
 $pylonHandlers = [ordered]@{
     OnAttach = @("public int OnAttach", "public int OnHearSpeech", 'messageTo(self, "handleSetup"')
