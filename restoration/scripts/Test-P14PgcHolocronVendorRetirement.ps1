@@ -300,6 +300,43 @@ Assert-Contract (
     [int]$contract.expected.unguardedChroniclesRelicMutations -eq 0
 ) "Chronicles relic lifecycle policy drifted."
 
+$boosterPack = [string]$texts.consumeBoosterPack
+foreach ($signature in @("public int OnInitialize", "public int OnAttach"))
+{
+    $surface = Get-BracedSurface $boosterPack $signature
+    Assert-Contract ($surface.Contains("retireChroniclesBoosterPack(self, obj_id.NULL_ID);")) "Chronicles booster pack does not detach from $signature."
+}
+$boosterPackHelper = Get-BracedSurface $boosterPack "private void retireChroniclesBoosterPack"
+Assert-Contract (
+    $boosterPackHelper.Contains("forceCloseSUIPage(pid);") -and
+    $boosterPackHelper.Contains("sui.removePid(player, PID_NAME);") -and
+    $boosterPackHelper.Contains('detachScript(self, "systems.player_quest.consume_relic_booster_pack");') -and
+    [bool]$contract.expected.persistedBoosterPackScriptsDetach
+) "Chronicles booster-pack retirement cleanup drifted."
+$boosterPackMutationSurfaces = [ordered]@{
+    "public int OnObjectMenuRequest" = [ordered]@{ mutation = "string_id openMenu"; return = "return SCRIPT_CONTINUE;" }
+    "public int OnObjectMenuSelect" = [ordered]@{ mutation = "sendDirtyObjectMenuNotification(self);"; return = "return SCRIPT_CONTINUE;" }
+    "public boolean getUiConsumeMessageBox" = [ordered]@{ mutation = "sui.msgbox("; return = "return false;" }
+    "public int handlerSuiBoosterPackOpen" = [ordered]@{ mutation = "int bp = sui.getIntButtonPressed(params);"; return = "return SCRIPT_CONTINUE;" }
+}
+foreach ($entry in $boosterPackMutationSurfaces.GetEnumerator())
+{
+    $surface = Get-BracedSurface $boosterPack $entry.Key
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $cleanup = $surface.IndexOf("retireChroniclesBoosterPack(self, player);", [StringComparison]::Ordinal)
+    $retirementReturn = $surface.IndexOf([string]$entry.Value.return, $cleanup + 1, [StringComparison]::Ordinal)
+    $mutation = $surface.IndexOf([string]$entry.Value.mutation, [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $cleanup -gt $guard -and $retirementReturn -gt $cleanup -and $mutation -gt $retirementReturn
+    ) "Chronicles booster-pack mutation is not dominated by retirement: $($entry.Key)"
+}
+Assert-Contract (
+    -not $boosterPack.Contains("isChroniclesBoosterPackEnabled") -and
+    -not [bool]$contract.expected.chroniclesBoosterPackMenusEnabled -and
+    -not [bool]$contract.expected.chroniclesBoosterPackRelicGrantsEnabled -and
+    [int]$contract.expected.unguardedChroniclesBoosterPackMutations -eq 0
+) "Chronicles booster-pack lifecycle policy drifted."
+
 foreach ($signature in @("public int OnObjectMenuRequest", "public int OnObjectMenuSelect"))
 {
     $surface = Get-BracedSurface $holocron $signature
@@ -634,6 +671,7 @@ if ($Expectation -ceq "Ready")
         baseTool = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/crafting/base_tool.class"
         consumeFragment = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_fragment.class"
         consumeRelic = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_relic.class"
+        consumeBoosterPack = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_relic_booster_pack.class"
         questControlDevice = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_control_device.class"
         creditItem = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/credit_item.class"
         chroniclesRewardVendor = "/swg-precu/data/sku.0/sys.server/compiled/game/script/conversation/chronicles_reward_vendor.class"

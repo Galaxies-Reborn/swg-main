@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "pgc-holocron-vendor-retirement",
-  "status": "ready",
-  "scope": "Fail Player Generated Chronicles holocron, control-device, donated-credit, profession/vendor, Storyteller acquisition, relic loot/conversion/collection mutation, and the complete 46-callback surface across the player-saga and quest-holocron scripts closed while retaining loadable compatibility classes, later-era item data, and normal Publish 14.1 quest progression.",
+  "status": "implemented-build-pending",
+  "scope": "Fail Player Generated Chronicles holocron, control-device, donated-credit, profession/vendor, Storyteller acquisition, relic loot/conversion/collection/booster-pack mutation, and the complete 46-callback surface across the player-saga and quest-holocron scripts closed while retaining loadable compatibility classes, later-era item data, and normal Publish 14.1 quest progression.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "core3Boundary": "No saga holocron object, PGC control device, donated-credit reward item, Chronicles reward vendor, Fan Faire profession grant, Storyteller token vendor, or matching Player Generated Chronicles crafted-prototype progression exists in the pinned Publish 14.1 Core3 tree.",
@@ -10,7 +10,7 @@
     "retainedCraftBoundary": "The legacy quest.task.craft and later compatible quest.task.ground.craft listeners remain authoritative for authored quest crafting and are not routed through Chronicles.",
     "retainedLocationBoundary": "The 99 unrelated production OnArrivedAtLocation listeners remain authoritative for expansion quests, encounters, and world content; only the player-saga Chronicles listener is retired.",
     "retainedActivityBoundary": "The 11 unrelated production kill-credit and performance handlers remain byte-identical, including normal ground-quest performance and authored kill-credit listeners; only the 11 player-saga/PGC holocron activity and delayed-completion handlers are retired.",
-    "retainedDataBoundary": "Chronicles relic templates, static-item rows, names, and persisted objects remain loadable for expansion-content compatibility, while crafting/PvP hooks, loot grants, menus, delayed SUI callbacks, conversion, deconstruction, and collection mutation fail closed."
+    "retainedDataBoundary": "Chronicles relic and booster-pack templates, static-item rows, names, and persisted objects remain loadable for expansion-content compatibility, while crafting/PvP hooks, loot and booster-pack grants, menus, delayed SUI callbacks, conversion, deconstruction, and collection mutation fail closed."
   },
   "sourceFiles": {
     "playerSaga": "dsrc/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java",
@@ -23,6 +23,7 @@
     "baseTool": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/base_tool.java",
     "consumeFragment": "dsrc/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_fragment.java",
     "consumeRelic": "dsrc/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_relic.java",
+    "consumeBoosterPack": "dsrc/sku.0/sys.server/compiled/game/script/systems/player_quest/consume_relic_booster_pack.java",
     "questControlDevice": "dsrc/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_control_device.java",
     "creditItem": "dsrc/sku.0/sys.server/compiled/game/script/quest/task/pgc/credit_item.java",
     "chroniclesRewardVendor": "dsrc/sku.0/sys.server/compiled/game/script/conversation/chronicles_reward_vendor.java",
@@ -154,11 +155,15 @@
     "chroniclesRelicMenusEnabled": false,
     "chroniclesRelicConversionEnabled": false,
     "chroniclesRelicCollectionMutationEnabled": false,
+    "chroniclesBoosterPackMenusEnabled": false,
+    "chroniclesBoosterPackRelicGrantsEnabled": false,
+    "persistedBoosterPackScriptsDetach": true,
     "chroniclesCraftingHookCalls": 0,
     "chroniclesPvpHookCalls": 0,
     "unguardedChroniclesRelicMutations": 0,
-    "retiredCompatibilitySources": 9,
-    "authoritativeSources": 18,
+    "unguardedChroniclesBoosterPackMutations": 0,
+    "retiredCompatibilitySources": 10,
+    "authoritativeSources": 19,
     "craftedPrototypeCallbacks": 4,
     "retainedCraftCallbacks": 2,
     "retiredChroniclesCraftCallbacks": 2,
@@ -194,7 +199,7 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "dsrcSourceCommit": "12a96ced7acb6c7f0ab2b11c9e2e9db76917b3e3",
+    "dsrcSourceCommit": "7f7a9ce05061ae6faba215941c90c85880aaf1fa",
     "nativeSourceCommit": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
     "sourceSha256": {
       "playerSaga": "b544b0185f1621dacbb0ea69342857705e99b656a2add3f9432ed14c662d1dd8",
@@ -207,6 +212,7 @@
       "baseTool": "6382936c7efb38b6d87a8e809953e485737012b9cd928079500935df90441248",
       "consumeFragment": "a9ac3824cad3128fd5b52da5f0ae60662558266203e3cde6fa7e74bf462e9755",
       "consumeRelic": "5beaddcf9b93ffbd00e5ee875a29730fcc6a2405eeb861ed31fc8b4c7608f7a1",
+      "consumeBoosterPack": "7da7ef60e879b1c6078dbb897ac71b88416f5a75172ca694febb62b4ccf34961",
       "questControlDevice": "350d29393186db5d59c2fdb4f96991dc34f4f32fbd014f8cf2d216d8d9055213",
       "creditItem": "06351b3deedb4f63cd0748ccecb15ebe9e264f710a5df69f52944547e731d64c",
       "chroniclesRewardVendor": "991988b329462d066c8b6329f3e50523005dc9518d4254553e3ad3317089ee70",
@@ -216,8 +222,8 @@
       "scriptFunctionTable": "50771f4f689c48a7df2a514b2ece82b3bf0c60507ad213f58670cefa5e9510ee",
       "playerObject": "1339b58e55c2581c669de31122ca60017b851633f77fda2cee876669a883918c"
     },
-    "sourceAudit": "passed direct-source inspection; the complete 47-public-int-method inventory remains pinned, every live relic loot/conversion/collection mutation surface is dominated by retirement, and normal PRE-CU crafting/PvP flows no longer invoke Chronicles loot hooks",
-    "javaCompile": "passed canonical exact zero-class Java 8-target rebuild; 5,717 Java sources produced 5,751 classes",
+    "sourceAudit": "passed direct-source inspection; the complete 47-public-int-method inventory remains pinned, every live relic loot/conversion/collection/booster-pack mutation surface is dominated by central retirement, persisted booster scripts self-detach, and normal PRE-CU crafting/PvP flows no longer invoke Chronicles loot hooks",
+    "javaCompile": "passed focused Java 8-target compile for consume_relic_booster_pack.java; canonical exact zero-class rebuild pending",
     "classSha256": {
       "playerSaga": "2c0197d7afaaeb2f0d8897ce7184e3c1440a5e1fe8eed2fb58b0297bc8e41ac2",
       "questHolocron": "5467d9b9f2f6b96386547dfa3975862b0721868300ccfe47b9b67c0b5ed786fe",
@@ -254,19 +260,19 @@
       "fanFairePgcC3po": 138966,
       "storytellerVendorController": 2149
     },
-    "fullServerBuild": "passed the 980.2-second canonical exact zero-class Java rebuild, cumulative source/data/bytecode/native artifact gates, controlled x64 restart, and player-readiness deployment from pushed parent 164051b7e302aa2a2cb7304620fa18583c3ff95c, dsrc 12a96ced7acb6c7f0ab2b11c9e2e9db76917b3e3, and src 2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "fullServerBuild": "pending canonical exact zero-class Java rebuild, cumulative source/data/bytecode/native artifact gates, controlled x64 restart, and player-readiness deployment for dsrc 7f7a9ce05061ae6faba215941c90c85880aaf1fa",
     "javaSourcesCompiled": 5717,
     "javaClassesEmitted": 5751,
     "serverGameArchiveSha256": "7b4f690d3b508dada04b2e05c8136087b722f81d19ccce5eec1f46236a70e4d4",
     "architecture": "ELF 64-bit LSB x86-64",
     "serverBinarySha256": "9f022e9273f5cf53595b0d976d40f38dea80077b4c4279fb42be2b58617ba6d7",
     "serverBinaryBuildId": "3bc114af0d3c0d0555b166752473e1389c567b8a",
-    "result": "passed"
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-10",
     "container": "swg-precu",
-    "result": "passed",
+    "result": "previous-build",
     "containerStartedAt": "2026-08-10T21:24:49.235517037Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
@@ -291,9 +297,13 @@
     "hostArtifactOrStagingDirectories": 0
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the live Chronicles relic lifecycle across creature/crafting/PvP loot grants, crafting and PvP hooks, fragment reconstruction, relic consumption/deconstruction, delayed SUI callbacks, and central collection mutation, in addition to the previously closed complete player-saga and quest-holocron callback surfaces",
-    "preserved": "all 11 unrelated production activity/completion handlers, all 99 unrelated production location-arrival listeners, legacy and ground authored quest-crafting completion, normal crafting and PvP rewards, persisted later relic object types and static-item data for compatibility, and all unrelated expansion zones, quests, conversations, NPCs, crafting, and Storyteller world assets",
+    "closedInThisMilestone": "the live Chronicles relic lifecycle across creature/crafting/PvP loot grants, crafting and PvP hooks, fragment reconstruction, relic consumption/deconstruction, booster-pack menus/grants and persisted scripts, delayed SUI callbacks, and central collection mutation, in addition to the previously closed complete player-saga and quest-holocron callback surfaces",
+    "preserved": "all 11 unrelated production activity/completion handlers, all 99 unrelated production location-arrival listeners, legacy and ground authored quest-crafting completion, normal crafting and PvP rewards, persisted later relic and booster-pack object types and static-item data for compatibility, and all unrelated expansion zones, quests, conversations, NPCs, crafting, and Storyteller world assets",
     "notClaimedComplete": "remaining PGC library, template, data, and read-only compatibility helpers outside the closed player-facing mutation surfaces remain subject to the next bounded audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "run the canonical exact zero-class Java 8-target x64 server rebuild and cumulative verification gates",
+    "deploy the pushed parent/dsrc/src commit set to swg-precu and reach the player-ready marker",
+    "capture exact consume_relic_booster_pack bytecode and refreshed runtime evidence"
+  ]
 }
