@@ -3,157 +3,265 @@ param(
     [Parameter(Mandatory = $true)][string]$SourceRoot,
     [ValidateSet("Build", "Ready")][string]$Expectation = "Build"
 )
+
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
 $root = (Resolve-Path -LiteralPath $SourceRoot).Path
-$files = [ordered]@{
-    "quest_control_device.java" = "dsrc/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_control_device.java"
-    "quest_holocron.java" = "dsrc/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_holocron.java"
-    "credit_item.java" = "dsrc/sku.0/sys.server/compiled/game/script/quest/task/pgc/credit_item.java"
-    "chronicles_reward_vendor.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/chronicles_reward_vendor.java"
-    "storyteller_vendor_conversation.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/storyteller_vendor.java"
-    "fan_faire_pgc_c3po.java" = "dsrc/sku.0/sys.server/compiled/game/script/conversation/fan_faire_pgc_c3po.java"
-    "storyteller_vendor_controller.java" = "dsrc/sku.0/sys.server/compiled/game/script/systems/storyteller/storyteller_vendor.java"
-}
-$text = [ordered]@{}
-foreach ($entry in $files.GetEnumerator())
+$manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw | ConvertFrom-Json
+$contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14PgcHolocronVendorRetirement)
+$contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
+$scriptRoot = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script"
+$utf8NoBom = [Text.UTF8Encoding]::new($false)
+
+function Assert-Contract([bool]$Condition, [string]$Message)
 {
-    $text[$entry.Key] = Get-Content -LiteralPath (Join-Path $root $entry.Value) -Raw
+    if (-not $Condition) { throw $Message }
 }
-function Get-MethodText([string]$Body, [string]$Signature)
+
+function Get-TextSha256([string]$Text)
 {
-    $start = $Body.IndexOf($Signature)
-    if ($start -lt 0)
-    {
-        throw "Method is missing: $Signature"
-    }
-    $next = $Body.IndexOf("`n    public ", $start + $Signature.Length)
-    if ($next -lt 0)
-    {
-        $next = $Body.Length
-    }
-    return $Body.Substring($start, $next - $start)
-}
-$control = $text["quest_control_device.java"]
-if ($control.Contains("menuInfo.addRootMenu") -or
-    $control.Contains("pgc_quests.setQuestAbandoned"))
-{
-    throw "PGC control-device menu mutation remains."
-}
-$credit = $text["credit_item.java"]
-foreach ($forbidden in @("mi.addRootMenu", 'money.bankTo("pgc_player_donated_credits"', "destroyObject(self)"))
-{
-    if ($credit.Contains($forbidden))
-    {
-        throw "PGC donated-credit mutation remains: $forbidden"
-    }
-}
-if (-not $credit.Contains('detachScript(self, "quest.task.pgc.credit_item")'))
-{
-    throw "PGC credit item does not detach."
-}
-$holocron = $text["quest_holocron.java"]
-if (([regex]::Matches(
-    $holocron,
-    [regex]::Escape('detachScript(self, "quest.task.pgc.quest_holocron")'))).Count -ne 2)
-{
-    throw "PGC holocron does not detach at attach and initialize."
-}
-foreach ($method in @("public int OnObjectMenuRequest", "public int OnObjectMenuSelect"))
-{
-    $body = Get-MethodText $holocron $method
-    if ($body.IndexOf("return SCRIPT_CONTINUE;") -lt 0 -or
-        $body.IndexOf("return SCRIPT_CONTINUE;") -gt $body.IndexOf("/*"))
-    {
-        throw "PGC holocron menu is not fail closed: $method"
-    }
-}
-foreach ($name in @(
-    "chronicles_reward_vendor.java",
-    "storyteller_vendor_conversation.java",
-    "fan_faire_pgc_c3po.java"
-))
-{
-    $body = $text[$name]
-    foreach ($method in @("public int OnInitialize", "public int OnAttach"))
-    {
-        $section = Get-MethodText $body $method
-        if (-not $section.Contains("detachScript(self,"))
-        {
-            throw "$name does not detach in $method."
-        }
-    }
-    $menu = Get-MethodText $body "public int OnObjectMenuRequest"
-    if ($menu.Contains("addRootMenu"))
-    {
-        throw "$name still exposes a conversation menu."
-    }
-    $start = Get-MethodText $body "public int OnStartNpcConversation"
-    if (-not $start.Contains("return SCRIPT_OVERRIDE;") -or
-        ($start.Contains("npcStartConversation(") -and -not $start.Contains("/*")))
-    {
-        throw "$name can still start a conversation."
-    }
-}
-$controller = $text["storyteller_vendor_controller.java"]
-foreach ($method in @(
-    "public int msgStorytellerTokenTypeSelected",
-    "public int msgStorytellerTokenPurchaseSelected",
-    "public int msgStorytellerChargesSelected"
-))
-{
-    $section = Get-MethodText $controller $method
-    if ($section.Contains("storyteller."))
-    {
-        throw "Storyteller vendor callback still mutates state: $method"
-    }
-}
-if ($Expectation -eq "Ready")
-{
-    $contract = Get-Content -LiteralPath (Join-Path $restorationRoot "contracts/p14-pgc-holocron-vendor-retirement.json") -Raw | ConvertFrom-Json
-    if ($contract.status -ne "ready" -or
-        $contract.runtimeEvidence.result -ne "passed" -or
-        -not $contract.runtimeEvidence.serverHealthy)
-    {
-        throw "Runtime evidence is not ready."
-    }
-    foreach ($entry in $files.GetEnumerator())
-    {
-        $path = Join-Path $root $entry.Value
-        $bytes = [Text.Encoding]::UTF8.GetBytes(
-            ([IO.File]::ReadAllText($path) -replace "`r`n", "`n"))
-        $sha = [Security.Cryptography.SHA256]::Create()
-        try
-        {
-            $actual = ([BitConverter]::ToString(
-                $sha.ComputeHash($bytes))).Replace("-", "").ToLowerInvariant()
-        }
-        finally
-        {
-            $sha.Dispose()
-        }
-        if ($actual -ne $contract.buildEvidence.sourceSha256.($entry.Key))
-        {
-            throw "Source evidence mismatch: $($entry.Key)"
-        }
-    }
-    $patchPath = Join-Path $restorationRoot "patches/dsrc/168-p14-pgc-holocron-vendor-retirement.patch"
-    $bytes = [Text.Encoding]::UTF8.GetBytes(
-        ([IO.File]::ReadAllText($patchPath) -replace "`r`n", "`n"))
     $sha = [Security.Cryptography.SHA256]::Create()
     try
     {
-        $hash = ([BitConverter]::ToString(
-            $sha.ComputeHash($bytes))).Replace("-", "").ToLowerInvariant()
+        return ([BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace("-", "").ToLowerInvariant()
     }
-    finally
-    {
-        $sha.Dispose()
-    }
-    if ($bytes.Length -ne $contract.buildEvidence.overlayPatchBytes -or
-        $hash -ne $contract.buildEvidence.overlayPatchSha256)
-    {
-        throw "Patch evidence mismatch."
-    }
+    finally { $sha.Dispose() }
 }
-Write-Host "Publish 14.1 PGC holocron/vendor retirement contract passed."
+
+function Get-BracedSurface([string]$Text, [string]$Signature)
+{
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    Assert-Contract ($start -ge 0) "Missing source surface: $Signature"
+    $brace = $Text.IndexOf("{", $start, [StringComparison]::Ordinal)
+    Assert-Contract ($brace -ge 0) "Missing opening brace: $Signature"
+    $depth = 0
+    for ($index = $brace; $index -lt $Text.Length; ++$index)
+    {
+        if ($Text[$index] -eq '{') { ++$depth }
+        elseif ($Text[$index] -eq '}')
+        {
+            --$depth
+            if ($depth -eq 0) { return $Text.Substring($start, $index - $start + 1) }
+        }
+    }
+    throw "Missing closing brace: $Signature"
+}
+
+Assert-Contract (@($contract.sourceFiles.PSObject.Properties).Count -eq [int]$contract.expected.authoritativeSources) "PGC authoritative source count drifted."
+$paths = [ordered]@{}
+$texts = @{}
+foreach ($property in $contract.sourceFiles.PSObject.Properties)
+{
+    $paths[$property.Name] = Join-Path $root ([string]$property.Value)
+    Assert-Contract (Test-Path -LiteralPath $paths[$property.Name] -PathType Leaf) "Missing PGC source: $($property.Name)"
+    $texts[$property.Name] = Get-Content -LiteralPath $paths[$property.Name] -Raw
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $paths[$property.Name]).Hash.ToLowerInvariant()
+    Assert-Contract ($hash -ceq [string]$contract.buildEvidence.sourceSha256.PSObject.Properties[$property.Name].Value) "PGC source hash drifted: $($property.Name)"
+}
+
+$control = [string]$texts.questControlDevice
+Assert-Contract (-not $control.Contains("menuInfo.addRootMenu") -and -not $control.Contains("pgc_quests.setQuestAbandoned")) "PGC control-device menu mutation remains."
+$credit = [string]$texts.creditItem
+foreach ($forbidden in @("mi.addRootMenu", 'money.bankTo("pgc_player_donated_credits"', "destroyObject(self)"))
+{
+    Assert-Contract (-not $credit.Contains($forbidden)) "PGC donated-credit mutation remains: $forbidden"
+}
+Assert-Contract ($credit.Contains('detachScript(self, "quest.task.pgc.credit_item")')) "PGC credit item does not detach."
+
+$holocron = [string]$texts.questHolocron
+$saga = [string]$texts.playerSaga
+Assert-Contract (
+    [regex]::Matches($holocron, [regex]::Escape('detachScript(self, "quest.task.pgc.quest_holocron")')).Count -eq [int]$contract.expected.questHolocronDetachBoundaries -and
+    [regex]::Matches($saga, [regex]::Escape('detachScript(self, "player.player_saga_quest")')).Count -eq [int]$contract.expected.playerSagaDetachBoundaries
+) "PGC holocron/player-saga detach boundary drifted."
+foreach ($signature in @("public int OnObjectMenuRequest", "public int OnObjectMenuSelect"))
+{
+    $surface = Get-BracedSurface $holocron $signature
+    $returnIndex = $surface.IndexOf("return SCRIPT_CONTINUE;", [StringComparison]::Ordinal)
+    $commentIndex = $surface.IndexOf("/*", [StringComparison]::Ordinal)
+    Assert-Contract ($returnIndex -ge 0 -and ($commentIndex -lt 0 -or $returnIndex -lt $commentIndex)) "PGC holocron menu is not fail closed: $signature"
+}
+
+foreach ($name in @("chroniclesRewardVendor", "storytellerVendorConversation", "fanFairePgcC3po"))
+{
+    $body = [string]$texts[$name]
+    foreach ($signature in @("public int OnInitialize", "public int OnAttach"))
+    {
+        $surface = Get-BracedSurface $body $signature
+        Assert-Contract ($surface.Contains("detachScript(self,")) "$name does not detach in $signature."
+    }
+    $menu = Get-BracedSurface $body "public int OnObjectMenuRequest"
+    Assert-Contract (-not $menu.Contains("addRootMenu")) "$name still exposes a conversation menu."
+    $conversation = Get-BracedSurface $body "public int OnStartNpcConversation"
+    $overrideIndex = $conversation.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+    $startIndex = $conversation.IndexOf("npcStartConversation(", [StringComparison]::Ordinal)
+    Assert-Contract ($overrideIndex -ge 0 -and ($startIndex -lt 0 -or $overrideIndex -lt $startIndex)) "$name can still start a conversation."
+}
+
+$controller = [string]$texts.storytellerVendorController
+foreach ($signature in @("public int msgStorytellerTokenTypeSelected", "public int msgStorytellerTokenPurchaseSelected", "public int msgStorytellerChargesSelected"))
+{
+    $surface = Get-BracedSurface $controller $signature
+    Assert-Contract (-not $surface.Contains("storyteller.")) "Storyteller vendor callback still mutates state: $signature"
+}
+
+$callbackRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.craftedPrototypeCallbackInventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') "Invalid OnCraftedPrototype inventory line."
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $callbackRecords.Add($relativePath + ":" + $Matches[2] + "|" + $Matches[3].Trim())
+}
+$callbackRecords = @($callbackRecords | Sort-Object)
+$callbackPaths = @($callbackRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') "Invalid callback record."
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedRetained = @($contract.craftedPrototypeCallbackInventory.retainedPaths | ForEach-Object { [string]$_ } | Sort-Object)
+$expectedRetired = @($contract.craftedPrototypeCallbackInventory.retiredPaths | ForEach-Object { [string]$_ } | Sort-Object)
+$retainedCallbacks = @($callbackRecords | Where-Object {
+    $record = $_
+    @($expectedRetained | Where-Object { $record.StartsWith($_ + ":") }).Count -eq 1
+})
+$retiredCallbacks = @($callbackRecords | Where-Object {
+    $record = $_
+    @($expectedRetired | Where-Object { $record.StartsWith($_ + ":") }).Count -eq 1
+})
+Assert-Contract (
+    $callbackRecords.Count -eq [int]$contract.expected.craftedPrototypeCallbacks -and
+    $callbackPaths.Count -eq [int]$contract.craftedPrototypeCallbackInventory.sourceFiles -and
+    $retainedCallbacks.Count -eq [int]$contract.expected.retainedCraftCallbacks -and
+    $retiredCallbacks.Count -eq [int]$contract.expected.retiredChroniclesCraftCallbacks -and
+    (Get-TextSha256 ($callbackRecords -join [Environment]::NewLine)) -ceq [string]$contract.craftedPrototypeCallbackInventory.inventorySha256 -and
+    (Get-TextSha256 ($callbackPaths -join [Environment]::NewLine)) -ceq [string]$contract.craftedPrototypeCallbackInventory.sourceSetSha256
+) "Complete OnCraftedPrototype inventory drifted."
+
+$sagaCraft = Get-BracedSurface $saga "public int OnCraftedPrototype"
+$sagaGuard = $sagaCraft.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+$sagaMutation = $sagaCraft.IndexOf("pgc_quests.getActivateQuestHolocrons(", [StringComparison]::Ordinal)
+Assert-Contract (
+    $sagaGuard -ge 0 -and $sagaMutation -gt $sagaGuard -and
+    $sagaCraft.Contains("pgc_quests.retireChroniclesPlayerProgressionState(self);") -and
+    $sagaCraft.Contains('detachScript(self, "player.player_saga_quest");') -and
+    $sagaCraft.Substring($sagaGuard, $sagaMutation - $sagaGuard).Contains("return SCRIPT_CONTINUE;")
+) "Player-saga crafted-prototype mutation is not dominated by retirement."
+
+$holocronCraft = Get-BracedSurface $holocron "public int OnCraftedPrototype"
+$holocronGuard = $holocronCraft.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+$holocronMutation = $holocronCraft.IndexOf("pgc_quests.incrementTaskCounter(", [StringComparison]::Ordinal)
+Assert-Contract (
+    $holocronGuard -ge 0 -and $holocronMutation -gt $holocronGuard -and
+    $holocronCraft.Contains("pgc_quests.retireChroniclesPlayerProgressionState(player);") -and
+    $holocronCraft.Contains('detachScript(self, "quest.task.pgc.quest_holocron");') -and
+    $holocronCraft.Substring($holocronGuard, $holocronMutation - $holocronGuard).Contains("return SCRIPT_CONTINUE;") -and
+    [int]$contract.expected.unguardedRetiredCraftMutations -eq 0
+) "PGC holocron crafted-prototype mutation is not dominated by retirement."
+
+$legacyCraft = Get-BracedSurface ([string]$texts.legacyCraft) "public int OnCraftedPrototype"
+$groundCraft = Get-BracedSurface ([string]$texts.groundCraft) "public int OnCraftedPrototype"
+Assert-Contract (
+    $legacyCraft.Contains("quests.complete(") -and
+    $groundCraft.Contains("questCompleteTask(") -and
+    [bool]$contract.expected.legacyQuestCraftCompletionPreserved -and
+    [bool]$contract.expected.groundQuestCraftCompletionPreserved
+) "Normal quest-crafting completion authority drifted."
+
+$nativeRegistrationCount = [regex]::Matches([string]$texts.scriptFunctionTable, '\{Scripting::TRIG_CRAFTED_PROTOTYPE,\s*"OnCraftedPrototype",\s*"OD"\}').Count
+$nativeDispatcherCount = [regex]::Matches([string]$texts.playerObject, 'trigAllScripts\(Scripting::TRIG_CRAFTED_PROTOTYPE,\s*craftparams\)').Count
+Assert-Contract (
+    $nativeRegistrationCount -eq [int]$contract.expected.nativeCraftedPrototypeRegistrations -and
+    $nativeDispatcherCount -eq [int]$contract.expected.nativeCraftedPrototypeDispatchers
+) "Native crafted-prototype registration/dispatcher boundary drifted."
+
+$chroniclesPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14ChroniclesScriptLifecycleRetirement)
+$chroniclesContract = Get-Content -LiteralPath $chroniclesPath -Raw | ConvertFrom-Json
+$eligibleChroniclesStates = if ($Expectation -ceq "Ready") { @("ready") } else { @("implemented-build-pending", "ready") }
+Assert-Contract (
+    $eligibleChroniclesStates -contains [string]$chroniclesContract.status -and
+    [bool]$contract.expected.chroniclesLifecycleDependencyBuildEligible
+) "Chronicles lifecycle dependency is not build eligible."
+
+$obsoletePatch = Join-Path $restorationRoot "patches/dsrc/168-p14-pgc-holocron-vendor-retirement.patch"
+Assert-Contract (
+    -not (Test-Path -LiteralPath $obsoletePatch) -and
+    [int]$contract.expected.obsoleteOverlayPatchFiles -eq 0
+) "Obsolete PGC overlay patch still exists."
+
+if ($Expectation -ceq "Ready")
+{
+    Assert-Contract (
+        [string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$contract.buildEvidence.architecture -ceq "ELF 64-bit LSB x86-64" -and
+        [string]$contract.buildEvidence.serverBinarySha256 -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.serverBinaryBuildId -match '^[a-f0-9]{40}$' -and
+        [string]$contract.runtimeEvidence.result -ceq "passed" -and
+        [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
+        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary -and
+        [bool]$contract.runtimeEvidence.clientResponsive -and
+        [int]$contract.runtimeEvidence.hostArtifactOrStagingDirectories -eq 0 -and
+        @($contract.requiredBeforeReady).Count -eq 0
+    ) "PGC retirement lacks complete Ready evidence."
+
+    $container = [string]$contract.runtimeEvidence.container
+    $health = (& docker inspect $container --format '{{.State.Health.Status}}').Trim()
+    Assert-Contract ($LASTEXITCODE -eq 0 -and $health -ceq "healthy") "PGC runtime container is not healthy."
+    foreach ($property in $contract.sourceFiles.PSObject.Properties)
+    {
+        $relativePath = ([string]$property.Value).Replace("\", "/")
+        & docker exec $container cmp -s "/swg-precu-source/$relativePath" "/swg-precu/$relativePath"
+        Assert-Contract ($LASTEXITCODE -eq 0) "PGC source/work parity failed: $($property.Name)"
+    }
+
+    $classPaths = [ordered]@{
+        playerSaga = "/swg-precu/data/sku.0/sys.server/compiled/game/script/player/player_saga_quest.class"
+        questHolocron = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_holocron.class"
+        legacyCraft = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/craft.class"
+        groundCraft = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/ground/craft.class"
+        questControlDevice = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/quest_control_device.class"
+        creditItem = "/swg-precu/data/sku.0/sys.server/compiled/game/script/quest/task/pgc/credit_item.class"
+        chroniclesRewardVendor = "/swg-precu/data/sku.0/sys.server/compiled/game/script/conversation/chronicles_reward_vendor.class"
+        storytellerVendorConversation = "/swg-precu/data/sku.0/sys.server/compiled/game/script/conversation/storyteller_vendor.class"
+        fanFairePgcC3po = "/swg-precu/data/sku.0/sys.server/compiled/game/script/conversation/fan_faire_pgc_c3po.class"
+        storytellerVendorController = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/storyteller/storyteller_vendor.class"
+    }
+    foreach ($name in $classPaths.Keys)
+    {
+        $hash = ((& docker exec $container sha256sum $classPaths[$name]).Trim() -split '\s+')[0]
+        $bytes = [int]((& docker exec $container stat -c '%s' $classPaths[$name]).Trim())
+        Assert-Contract (
+            $hash -ceq [string]$contract.buildEvidence.classSha256.PSObject.Properties[$name].Value -and
+            $bytes -eq [int]$contract.buildEvidence.classBytes.PSObject.Properties[$name].Value
+        ) "PGC deployed bytecode drifted: $name"
+    }
+
+    $serverPid = (& docker exec $container pgrep -n SwgGameServer).Trim()
+    $serverExe = (& docker exec $container readlink -f "/proc/$serverPid/exe").Trim()
+    $binaryHash = ((& docker exec $container sha256sum $serverExe).Trim() -split '\s+')[0]
+    $buildLine = @(& docker exec $container readelf -n $serverExe | Select-String 'Build ID:')
+    $buildId = ($buildLine[0].Line -replace '^.*Build ID:\s*', '').Trim()
+    Assert-Contract (
+        $binaryHash -ceq [string]$contract.buildEvidence.serverBinarySha256 -and
+        $buildId -ceq [string]$contract.buildEvidence.serverBinaryBuildId
+    ) "PGC deployed server binary drifted."
+
+    $client = Get-Process -Id ([int]$contract.runtimeEvidence.clientProcessId) -ErrorAction SilentlyContinue
+    Assert-Contract (
+        $null -ne $client -and $client.Responding -and
+        $client.ProcessName -ceq [string]$contract.runtimeEvidence.clientProcessName
+    ) "PGC client is not responsive."
+}
+else
+{
+    Assert-Contract (@("implemented-build-pending", "ready") -contains [string]$contract.status) "PGC source status is invalid."
+}
+
+$contractText = Get-Content -LiteralPath $contractPath -Raw
+Assert-Contract (
+    -not $contractText.Contains("overlayPatch") -and
+    -not $contractText.Contains("/Artifacts/") -and
+    -not $contractText.Contains("/Staging/")
+) "PGC contract references retired artifact/staging evidence."
+Write-Host "Publish 14.1 PGC holocron/vendor and crafted-prototype retirement passed."

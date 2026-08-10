@@ -143,14 +143,17 @@ $sourceSet = $sourceFiles -join "`n"
 $sourceContent = @($sourceFiles | ForEach-Object {
     "$_|" + (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scriptRoot $_)).Hash.ToLowerInvariant()
 }) -join "`n"
+$actualInventorySha256 = Get-InventorySha256 $sortedRecords
+$actualSourceSetSha256 = Get-TextSha256 $sourceSet
+$actualSourceContentSha256 = Get-TextSha256 $sourceContent
 Assert-Contract ($sortedRecords.Count -eq [int]$contract.inventory.referenceOccurrences -and
     $matchingLines.Count -eq [int]$contract.inventory.matchingLines -and
     $sourceFiles.Count -eq [int]$contract.inventory.sourceFiles -and
     $fileCategory.Count -eq $sourceFiles.Count -and
-    (Get-InventorySha256 $sortedRecords) -ceq [string]$contract.inventory.inventorySha256 -and
-    (Get-TextSha256 $sourceSet) -ceq [string]$contract.inventory.sourceSetSha256 -and
-    (Get-TextSha256 $sourceContent) -ceq [string]$contract.inventory.sourceContentSha256) `
-    "Complete Java explicit-NGE textual inventory drifted."
+    $actualInventorySha256 -ceq [string]$contract.inventory.inventorySha256 -and
+    $actualSourceSetSha256 -ceq [string]$contract.inventory.sourceSetSha256 -and
+    $actualSourceContentSha256 -ceq [string]$contract.inventory.sourceContentSha256) `
+    "Complete Java explicit-NGE textual inventory drifted: occurrences=$($sortedRecords.Count), lines=$($matchingLines.Count), files=$($sourceFiles.Count), inventory=$actualInventorySha256, sourceSet=$actualSourceSetSha256, sourceContent=$actualSourceContentSha256."
 
 $classifiedCount = 0
 foreach ($categoryName in $categoryNames)
@@ -159,11 +162,12 @@ foreach ($categoryName in $categoryNames)
     $classifiedLines = @($classified | ForEach-Object { "$($_.Path):$($_.Line)" } | Sort-Object -Unique)
     $classifiedFiles = @($classified.Path | Sort-Object -Unique)
     $expectedCategory = $contract.classification.$categoryName
+    $actualCategorySha256 = Get-InventorySha256 $classified
     Assert-Contract ($classified.Count -eq [int]$expectedCategory.referenceOccurrences -and
         $classifiedLines.Count -eq [int]$expectedCategory.matchingLines -and
         $classifiedFiles.Count -eq [int]$expectedCategory.sourceFileCount -and
-        (Get-InventorySha256 $classified) -ceq [string]$expectedCategory.inventorySha256) `
-        "Java explicit-NGE classification drifted: $categoryName"
+        $actualCategorySha256 -ceq [string]$expectedCategory.inventorySha256) `
+        "Java explicit-NGE classification drifted: $categoryName; occurrences=$($classified.Count), lines=$($classifiedLines.Count), files=$($classifiedFiles.Count), inventory=$actualCategorySha256."
     $classifiedCount += $classified.Count
 }
 Assert-Contract ($classifiedCount -eq $sortedRecords.Count -and
