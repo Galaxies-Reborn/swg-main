@@ -15,7 +15,7 @@ $bridge = Join-Path $ToolsRoot "scripts/Invoke-PrecuBackgroundInput.ps1"
 if (-not (Test-Path -LiteralPath $bridge -PathType Leaf)) { throw "Background-input helper not found: $bridge" }
 function Invoke-Fixture([string]$Action, [string]$Lifecycle) {
     $serverCommand = "game tatooine runScript test.precu_meditate_fixture executeFixture $Action $PlayerOid $Lifecycle"
-    $bashCommand = "cd /swg-precu/exe/linux && printf '%-1024s' '$serverCommand' | ./bin/ServerConsole -- @servercommon.cfg -s ServerConsole serverAddress=127.0.0.1 serverPort=61000"
+    $bashCommand = "cd /swg-precu/exe/linux && printf '%-1023s\0' '$serverCommand' | ./bin/ServerConsole -- @servercommon.cfg -s ServerConsole serverAddress=127.0.0.1 serverPort=61000"
     $previous = $ErrorActionPreference
     try {
         $ErrorActionPreference = "Continue"

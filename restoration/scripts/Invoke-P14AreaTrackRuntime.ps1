@@ -33,7 +33,7 @@ function Invoke-Fixture([string]$Action, [string]$Lifecycle)
     $arguments = "$Action $PlayerOid $Lifecycle"
     $serverCommand = "game tatooine runScript " +
         "test.precu_area_track_command_fixture executeFixture $arguments"
-    $bashCommand = "cd /swg-precu/exe/linux && printf '%-1024s' " +
+    $bashCommand = "cd /swg-precu/exe/linux && printf '%-1023s\0' " +
         "'$serverCommand' | ./bin/ServerConsole -- @servercommon.cfg " +
         "-s ServerConsole serverAddress=127.0.0.1 serverPort=61000"
     $previous = $ErrorActionPreference

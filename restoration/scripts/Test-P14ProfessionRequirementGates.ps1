@@ -231,6 +231,25 @@ if (-not [bool]$contract.expected.serverConsoleScriptParametersReconstructedFrom
     throw "ServerConsole script parameters are not reconstructed from the complete forwarded token vector."
 }
 
+$serverConsoleRuntimeHelpers = @(Get-ChildItem -LiteralPath $PSScriptRoot -File -Filter "Invoke-*.ps1" |
+    Where-Object {
+        (Get-Content -LiteralPath $_.FullName -Raw).Contains("ServerConsole --")
+    })
+if (-not [bool]$contract.expected.serverConsoleRuntimeFramesNullTerminated -or
+    $serverConsoleRuntimeHelpers.Count -ne [int]$contract.expected.serverConsoleRuntimeHelperCount)
+{
+    throw "Unexpected ServerConsole runtime-helper inventory."
+}
+foreach ($helper in $serverConsoleRuntimeHelpers)
+{
+    $helperSource = Get-Content -LiteralPath $helper.FullName -Raw
+    if (-not $helperSource.Contains("printf '%-1023s\0'") -or
+        $helperSource.Contains("printf '%-1024s'"))
+    {
+        throw "ServerConsole runtime framing is not NUL-terminated in $($helper.Name)."
+    }
+}
+
 if ($Expectation -eq "Ready")
 {
     if ($contract.status -ne "ready" -or $contract.runtimeEvidence.result -ne "passed")
