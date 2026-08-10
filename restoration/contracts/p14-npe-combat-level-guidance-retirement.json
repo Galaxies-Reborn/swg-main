@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-npe-combat-level-guidance-retirement",
   "status": "ready",
-  "scope": "Preserve retained Tansarii quests, conversations, transfers, and non-level tutorial guidance while retiring its NGE combat-level-two popup, persistent completion marker, and delayed stale callback authority.",
+  "scope": "Close all three exact Java OnCombatLevelChanged callbacks while preserving retained Tansarii quests, conversations, transfers, non-level tutorial guidance, and command synchronization; retire the NGE combat-level-two popup, persistent completion marker, automatic reward/stat authority, and delayed stale callback, and prove the lone test callback is dormant diagnostic-only code.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -10,14 +10,23 @@
     "retainedBoundary": "Later Tansarii content remains loadable and playable. Only the NGE player-level presentation and its state are retired."
   },
   "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnCombatLevelChanged\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "allCombatLevelChangedCallbacks": 3,
     "productionCombatLevelChangedCallbacks": 2,
+    "dormantTestCallbacks": 1,
+    "inventorySha256": "934554ca10769aa8286d00d542ab8b466d899819dd08fe9175b1b08e7bba265d",
+    "sourceSetSha256": "17719018f92828677592aaa48129fdeae57a8b1c8158572dc9fe0d6bdada0915",
+    "sourceContentSha256": "6b96f0892e0c2cc774cf788b20525cf9741b2493a714f17d1dc4d468f08876b3",
     "callbacks": [
       "npe/trigger_journal.java",
-      "player/base/base_player.java"
+      "player/base/base_player.java",
+      "test/tford_test.java"
     ],
     "disposition": {
       "npe/trigger_journal.java": "retired level presentation with lifecycle and delayed-callback cleanup",
-      "player/base/base_player.java": "retained link-compatible command-series synchronization without level rewards or stats"
+      "player/base/base_player.java": "retained link-compatible command-series synchronization without level rewards or stats",
+      "test/tford_test.java": "dormant unattached diagnostic text only, with no progression mutation"
     }
   },
   "expected": {
@@ -30,53 +39,58 @@
     "stationDeathSignalsPreserved": true,
     "firstSkillGuidancePreserved": true,
     "stationTransfersPreserved": true,
+    "dormantTestProductionAttachments": 0,
+    "dormantTestProgressionMutations": 0,
     "visiblePlayerCombatLevelProgression": false
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
+    "parentSourceCommit": "6b0c43bc313343f33f6e14161f7f615a1cf809e1",
     "dsrcSourceCommit": "38f7112afe2b50f933a38109b2341c9837502f47",
+    "nativeSourceCommit": "4511b725f099886c3c5f3e97df6f2f3ed9d81de8",
     "hostMaterializationWorkflow": "retired; no host artifact, staging, generated overlay, or duplicate source tree",
     "sourceSha256": {
-      "trigger_journal.java": "2c7c253fda9b491ed27f8927a70708eed47beadde84aa2996b51608d64d4b37d"
+      "triggerJournal": "2c7c253fda9b491ed27f8927a70708eed47beadde84aa2996b51608d64d4b37d",
+      "basePlayer": "c635a6d1d3669be17ad4cd994826348b524fe570a141d4b12d3064db51b287db",
+      "tfordTest": "82630c32a22bca81a60d59ed7a4535641f3217173cfa6a20b4bd75630c25963b"
     },
-    "focusedJavaCompile": "passed with Java 8 source/target against the canonical deployed classpath in an ephemeral /dev/shm directory that was removed immediately",
-    "focusedClassSha256": {
-      "trigger_journal.class": "a8861ef4cf6064421e83a4fbba8ad4a064a846e6a14153dc2b792a1d75f3758d"
-    },
-    "fullServerBuild": "passed the 1317.4-second canonical mandatory source/data/bytecode/native gate suite, clean x86-64 rebuild, controlled restart, and player-readiness deployment from pushed parent 269bc69050f31d0cc362ed4962ff99fe442d77ca and dsrc fbc6fa47231a687893bb6ca157ed2b96e49d5e1e",
-    "javaSourcesCompiled": 5713,
-    "javaClassesEmitted": 5747,
+    "fullServerBuild": "passed the 952.4-second canonical direct-source preflight, zero-class Java/data/native x64 build, controlled restart, and player-readiness gates from pushed parent 6b0c43bc313343f33f6e14161f7f615a1cf809e1 and dsrc 38f7112afe2b50f933a38109b2341c9837502f47",
+    "javaSourcesCompiled": 5717,
+    "javaClassesEmitted": 5751,
     "compiledClassSha256": {
-      "trigger_journal.class": "ff2bab39b9b0ff9bc81234801af011ca89067277fffe9683b4a00c6682bd92e4"
+      "triggerJournal": "ff2bab39b9b0ff9bc81234801af011ca89067277fffe9683b4a00c6682bd92e4",
+      "basePlayer": "1178e5d021526941b51e12a1ca7635b2a026ae1459d15caca1f61b4abcb8d2b2",
+      "tfordTest": "7f78d1e83d322a9b3b626855cf9bc79f1836acffa2852d1eee3f1a445f55e853"
     },
     "compiledClassBytes": {
-      "trigger_journal.class": 7909
+      "triggerJournal": 7909,
+      "basePlayer": 315327,
+      "tfordTest": 5145
     },
-    "serverBinarySha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
-    "serverBinaryBuildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa",
-    "serverGameArchiveSha256": "db86201560944ce97864f3010c7abd7f74eb771e2908ddd10a76802ec42aad52",
+    "serverBinarySha256": "dd82d28b1f011d5b6234b8948befc620dbae3c63c67a88a97980134f6a18ad97",
+    "serverBinaryBuildId": "b3434e343d7f36fcc2de45a01cb59ee92a40a67c",
     "architecture": "ELF 64-bit LSB x86-64",
-    "sourceWorkParity": "passed byte-for-byte for npe/trigger_journal.java between the read-only direct-source mount and canonical Docker work volume",
-    "artifactAudit": "passed compiled OnCombatLevelChanged cleanup call and stale pop_first_level delayed-callback early return before commTutorialPlayer",
+    "sourceWorkParity": "passed through the canonical mandatory direct-source/work parity gate",
+    "artifactAudit": "passed all three deployed OnCombatLevelChanged classes: cleanup-only NPE, command-sync-only base player, and unattached diagnostic-only test callback",
     "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "2026-08-09",
+    "date": "2026-08-10",
     "result": "passed",
     "container": "swg-precu",
-    "containerStartedAt": "2026-08-09T04:51:08.292365138Z",
+    "containerStartedAt": "2026-08-10T12:25:33.819677119Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "serverHealthy": true,
-    "deployedParentCommit": "269bc69050f31d0cc362ed4962ff99fe442d77ca",
-    "deployedDsrcCommit": "fbc6fa47231a687893bb6ca157ed2b96e49d5e1e",
-    "deployedSrcCommit": "3f530f88a1b904d349cc08bced37e84d57df1e4d",
+    "deployedParentCommit": "6b0c43bc313343f33f6e14161f7f615a1cf809e1",
+    "deployedDsrcCommit": "38f7112afe2b50f933a38109b2341c9837502f47",
+    "deployedSrcCommit": "4511b725f099886c3c5f3e97df6f2f3ed9d81de8",
     "liveGameProcessPid": 374,
     "liveGameProcessCount": 15,
     "liveGameProcessesMappedBuiltBinary": 15,
     "livePlanetProcessCount": 15,
-    "liveBinaryInode": 12141592,
-    "liveBinarySize": 22561640,
+    "liveBinaryInode": 12141706,
+    "liveBinarySize": 22560392,
     "liveBinaryMapEntriesPerSampleProcess": 2,
     "processCounts": {
       "LoginServer": 1,
@@ -91,12 +105,11 @@
       "PlanetServer": 15,
       "SwgGameServer": 15
     },
-    "transferServerEndpoint": "one TransferServer process owns 172.26.0.3:50005 on PID 357",
-    "devShmResidueEntries": 0,
+    "transferServerProcessId": 366,
     "postStartLogAudit": "357 fresh-start lines; one exact final player-ready marker after 16 readiness polls; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the only retained production callback that still produced NGE combat-level presentation",
+    "closedInThisMilestone": "all three exact Java OnCombatLevelChanged callbacks: two production callbacks and one dormant test diagnostic",
     "notClaimedComplete": "the broader PRE-CU precedence audit continues across other dormant later-era mechanics and live-verification-only contracts"
   },
   "requiredBeforeReady": []
