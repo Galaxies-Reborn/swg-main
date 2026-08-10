@@ -156,6 +156,10 @@ Write-Host "Verifying the complete Java explicit NGE textual inventory before bu
 & (Join-Path $PSScriptRoot "Test-P14JavaExplicitNgeTextualInventoryClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build
+Write-Host "Verifying the complete Java roadmap textual inventory before build..."
+& (Join-Path $PSScriptRoot "Test-P14JavaRoadmapTextualInventoryClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying the complete native explicit NGE textual inventory before build..."
 & (Join-Path $PSScriptRoot "Test-P14NativeExplicitNgeTextualInventoryClosure.ps1") `
     -SourceRoot $repositoryRoot `
