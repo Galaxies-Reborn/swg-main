@@ -43,6 +43,7 @@ function Assert-Excludes([string]$Text, [string[]]$Forbidden, [string]$Surface)
 $skill = Get-SourceText "skillLibrary"
 $xpLibrary = Get-SourceText "xpLibrary"
 $qaLibrary = Get-SourceText "qaLibrary"
+$spaceSkillLibrary = Get-SourceText "spaceSkillLibrary"
 $gm = Get-SourceText "gmLibrary"
 $gmCommand = Get-SourceText "gmCommand"
 $playerUtility = Get-SourceText "playerUtility"
@@ -63,11 +64,17 @@ $developerXpTest = Get-SourceText "developerXpTest"
 $betaPetTest = Get-SourceText "betaPetTest"
 $betaSurveySpecialist = Get-SourceText "betaSurveySpecialist"
 $developerAiTest = Get-SourceText "developerAiTest"
+$qaJtlTools = Get-SourceText "qaJtlTools"
+$qaPilotRoadmapRebel = Get-SourceText "qaPilotRoadmapRebel"
+$qaPilotRoadmapImperial = Get-SourceText "qaPilotRoadmapImperial"
+$developerTeidsonTest = Get-SourceText "developerTeidsonTest"
 $workingJcarpenterUtil = Get-SourceText "workingJcarpenterUtil"
 $workingJustinUtilities = Get-SourceText "workingJustinUtilities"
 $workingSteveMyscript = Get-SourceText "workingSteveMyscript"
 $workingDantest = Get-SourceText "workingDantest"
 $workingGrievousTest = Get-SourceText "workingGrievousTest"
+$workingWwallaceTest = Get-SourceText "workingWwallaceTest"
+$workingCreateSpaceWeapons = Get-SourceText "workingCreateSpaceWeapons"
 
 $rootConstant = Get-Slice $skill `
     "public static final String[] PRECU_PUBLIC_PROFESSION_ROOTS" `
@@ -82,6 +89,29 @@ if ($codeRoots.Count -ne 33 -or ($codeRoots -join "`n") -cne ($expectedRoots -jo
 $skillTablePath = Join-Path $root ([string]$contract.sourceFiles.skillTable)
 $skillTableLines = Get-Content -LiteralPath $skillTablePath
 $rows = @(@($skillTableLines[0]) + @($skillTableLines | Select-Object -Skip 2) | ConvertFrom-Csv -Delimiter "`t")
+$pilotRows = @($rows | Where-Object { ([string]$_.NAME).StartsWith("pilot_", [StringComparison]::Ordinal) })
+$pilotFactionRoots = @("pilot_rebel_navy", "pilot_imperial_navy", "pilot_neutral")
+$pilotTrainablePattern = '^pilot_(rebel_navy|imperial_navy|neutral)_(novice|master|starships_0[1-4]|weapons_0[1-4]|procedures_0[1-4]|droid_0[1-4])$'
+$pilotTrainableRows = @($pilotRows | Where-Object { [string]$_.NAME -match $pilotTrainablePattern })
+if ($pilotRows.Count -ne [int]$contract.expected.retainedJtlPilotRows -or
+    $pilotFactionRoots.Count -ne [int]$contract.expected.retainedJtlPilotFactionRoots -or
+    $pilotTrainableRows.Count -ne [int]$contract.expected.retainedJtlTrainableBoxes -or
+    @($pilotRows | Where-Object { [int]$_.POINTS_REQUIRED -ne [int]$contract.expected.retainedJtlGroundSkillPointsRequired }).Count -ne 0)
+{
+    throw "The retained JTL pilot table no longer preserves three zero-ground-point faction trees and 54 trainable boxes."
+}
+foreach ($pilotFactionRoot in $pilotFactionRoots)
+{
+    $factionRows = @($pilotTrainableRows | Where-Object {
+        ([string]$_.NAME).StartsWith($pilotFactionRoot + "_", [StringComparison]::Ordinal)
+    })
+    if ($factionRows.Count -ne 18 -or
+        $factionRows.NAME -notcontains ($pilotFactionRoot + "_novice") -or
+        $factionRows.NAME -notcontains ($pilotFactionRoot + "_master"))
+    {
+        throw "Unexpected retained JTL pilot tree shape for $pilotFactionRoot."
+    }
+}
 $tableRoots = @($rows | Where-Object {
     $expectedRoots -ccontains [string]$_.NAME -and
     $_.IS_PROFESSION -eq "1" -and $_.GOD_ONLY -eq "0" -and
@@ -597,10 +627,155 @@ if ([int]$contract.expected.dormantWorkingProgressionSurfaces -ne 5 -or
     $contract.expected.dormantWorkingNativeGrantReachable -or
     $contract.expected.dormantWorkingNativeRevokeReachable -or
     $contract.expected.dormantWorkingDirectJediConversionReachable -or
-    $contract.expected.dormantWorkingUnauthorizedAttachReachable -or
-    -not $contract.expected.retainedJtlPilotGrantAuditDeferred)
+    $contract.expected.dormantWorkingUnauthorizedAttachReachable)
 {
     throw "The dormant working progression authority contract is not bounded to PRE-CU rules."
+}
+
+Assert-Contains $spaceSkillLibrary @(
+    'public static final String REBEL = "pilot_rebel_navy"',
+    'public static final String IMPERIAL = "pilot_imperial_navy"',
+    'public static final String NEUTRAL = "pilot_neutral"',
+    'public static final String[] SKILL_NAMES',
+    'public static void retire(obj_id player, String profession)'
+) "retained JTL pilot skill library"
+Assert-Contains $qaLibrary @(
+    'public static final String[] PILOT_FACTION_SKILL_ROOTS',
+    'space_skill.REBEL',
+    'space_skill.IMPERIAL',
+    'space_skill.NEUTRAL',
+    'public static String getPilotFactionSkillRoot(',
+    'public static boolean isPilotFactionSkillRoot(',
+    'public static boolean grantPilotingSkills(',
+    'public static boolean revokeAndGrantPilot(',
+    'if (!isIdValid(player) || !isPlayer(player))',
+    'for (String pilotSkillRoot : PILOT_FACTION_SKILL_ROOTS)',
+    'skill.revokeSkill(player, pilotSkillRoot)',
+    'skill.grantSkill(player, pilotSkillRoot + grantSpaceSkill)',
+    'if (!hasSkill(player, pilotSkillRoot + grantSpaceSkill))',
+    'revokePilotingSkills(player);'
+) "faction-exclusive retained JTL QA helper"
+Assert-Excludes $qaLibrary @(
+    'toLower(factionType) ==',
+    '"pilot_" + factionToggle',
+    'pilotFaction = "rebel_navy"',
+    'pilotFaction = "imperial_navy"'
+) "faction-exclusive retained JTL QA helper"
+
+Assert-Contains $characterBuilder @(
+    'if (idx < 0 || idx >= PILOT_SKILLS.length)',
+    'qa.revokePilotingSkills(player);',
+    'qa.revokeAndGrantPilot(player, pilotFaction)',
+    'qa.revokeAndGrantPilot(player, "Rebel Ships")'
+) "retained JTL test-center selector"
+Assert-Excludes $characterBuilder @(
+    'public boolean revokePilotingSkills(',
+    'skill.grantSkill(player, "pilot_'
+) "retained JTL test-center selector"
+if (([regex]::Matches($characterBuilder, [regex]::Escape('qa.revokeAndGrantPilot('))).Count -ne 2)
+{
+    throw "The retained JTL test-center helper-call inventory changed."
+}
+
+foreach ($entry in @{
+    "JTL QA tool" = [pscustomobject]@{ Text=$qaJtlTools; Script="test.qa_jtl_tools" }
+    "Rebel JTL roadmap" = [pscustomobject]@{ Text=$qaPilotRoadmapRebel; Script="test.qa_pilot_roadmap_tatooine_rebel" }
+    "Imperial JTL roadmap" = [pscustomobject]@{ Text=$qaPilotRoadmapImperial; Script="test.qa_pilot_roadmap_tatooine_imperial" }
+}.GetEnumerator())
+{
+    Assert-Contains $entry.Value.Text @(
+        'if (!isPlayer(self) || !isGod(self) || getGodLevel(self) < 10)',
+        ('detachScript(self, "' + $entry.Value.Script + '")'),
+        'return SCRIPT_CONTINUE;'
+    ) $entry.Key
+}
+Assert-Contains $qaJtlTools @(
+    'qa.revokeAndGrantPilot(self, "Imperial Ships")',
+    'qa.revokeAndGrantPilot(self, "Rebel Ships")',
+    'qa.revokeAndGrantPilot(self, "Neutral/Freelancer Ships")'
+) "JTL QA tool"
+Assert-Contains $qaPilotRoadmapRebel @(
+    'qa.grantPilotSkill(self,',
+    'detachScript(self, "test.qa_pilot_roadmap_tatooine_rebel")'
+) "Rebel JTL roadmap"
+Assert-Excludes $qaPilotRoadmapRebel @(
+    'detachScript(self, "test.qa_pilot_roadmap_tatooine_imperial")'
+) "Rebel JTL roadmap"
+Assert-Contains $qaPilotRoadmapImperial @(
+    'qa.grantPilotSkill(self,',
+    'detachScript(self, "test.qa_pilot_roadmap_tatooine_imperial")'
+) "Imperial JTL roadmap"
+
+Assert-Contains $developerTeidsonTest @(
+    'if (!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self))',
+    'detachScript(self, "test.teidson_test")',
+    'qa.revokeAndGrantPilot(self, "Rebel Ships")'
+) "GM50 Teidson JTL test"
+Assert-Excludes $developerTeidsonTest @(
+    'skill.grantSkill(self, "pilot_'
+) "GM50 Teidson JTL test"
+Assert-Contains $workingWwallaceTest @(
+    'if (!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self))',
+    'detachScript(self, "working.wwallace.wwallace_test")',
+    'qa.revokeAndGrantPilot(self, "Rebel Ships")'
+) "GM50 Wallace JTL test"
+Assert-Excludes $workingWwallaceTest @(
+    'skill.grantSkill(self, "pilot_'
+) "GM50 Wallace JTL test"
+Assert-Contains $workingCreateSpaceWeapons @(
+    'if (!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self))',
+    'detachScript(self, "working.wwallace.create_space_weapons")',
+    'The all-faction pilot grant is retired',
+    'Use the authenticated JTL QA or test-center pilot selector and choose one faction.'
+) "retired all-faction JTL grant"
+Assert-Excludes $workingCreateSpaceWeapons @(
+    'grantSkill(',
+    'qa.revokeAndGrantPilot('
+) "retired all-faction JTL grant"
+
+$conversationRoot = Join-Path $scriptRoot "conversation"
+$productionPilotGrantFiles = @(Get-ChildItem -LiteralPath $conversationRoot -Filter "*.java" | Where-Object {
+    (Get-Content -LiteralPath $_.FullName -Raw) -match '(?:skill\.)?(?:noisyGrantSkill|grantSkill)\([^\r\n]*"pilot_'
+} | ForEach-Object { $_.Name } | Sort-Object)
+if ($productionPilotGrantFiles.Count -ne [int]$contract.expected.retainedJtlProductionConversationGrantSurfaces)
+{
+    throw "The production JTL pilot trainer/conversation grant inventory changed."
+}
+$fullPilotHelperMatches = @(Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter "*.java" |
+    Select-String -SimpleMatch 'qa.revokeAndGrantPilot(')
+$fullPilotHelperConsumerFiles = @($fullPilotHelperMatches.Path | Sort-Object -Unique)
+if ($fullPilotHelperMatches.Count -ne [int]$contract.expected.retainedJtlFullTreeHelperCallSites -or
+    $fullPilotHelperConsumerFiles.Count -ne [int]$contract.expected.retainedJtlFullTreeHelperConsumerFiles)
+{
+    throw "The faction-exclusive retained JTL full-tree helper inventory changed."
+}
+$nonProductionPilotNativeGrantFiles = @(Get-ChildItem -LiteralPath $scriptRoot -Recurse -Filter "*.java" | Where-Object {
+    -not $_.FullName.StartsWith($conversationRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and
+    (Get-Content -LiteralPath $_.FullName -Raw) -match '(?:skill\.)?(?:noisyGrantSkill|grantSkill)\([^\r\n]*"pilot_'
+} | ForEach-Object { $_.FullName.Substring($scriptRoot.Length + 1).Replace("\", "/") } | Sort-Object)
+$expectedAuthenticatedRoadmaps = @(
+    "test/qa_pilot_roadmap_tatooine_imperial.java",
+    "test/qa_pilot_roadmap_tatooine_rebel.java"
+)
+if ($nonProductionPilotNativeGrantFiles.Count -ne [int]$contract.expected.retainedJtlAuthenticatedRoadmapSurfaces -or
+    ($nonProductionPilotNativeGrantFiles -join "`n") -cne ($expectedAuthenticatedRoadmaps -join "`n"))
+{
+    throw "A direct non-production pilot grant exists outside the two authenticated JTL roadmap tools."
+}
+if ($contract.expected.retainedJtlPilotGrantAuditDeferred -or
+    -not $contract.expected.retainedJtlProductionProgressionPreserved -or
+    [int]$contract.expected.retainedJtlGm10QaSurfaces -ne 3 -or
+    [int]$contract.expected.retainedJtlGm50DeveloperSurfaces -ne 3 -or
+    -not $contract.expected.retainedJtlFactionExclusiveAdminGrants -or
+    -not $contract.expected.retainedJtlConflictingFactionCleanup -or
+    -not $contract.expected.retainedJtlGrantVerification -or
+    $contract.expected.retainedJtlDirectBuilderGrantReachable -or
+    $contract.expected.retainedJtlMultiFactionDeveloperGrantReachable -or
+    $contract.expected.retainedJtlUnauthorizedAttachReachable -or
+    $contract.expected.retainedJtlStringIdentityComparisonReachable -or
+    $contract.expected.retainedJtlWrongRoadmapDetachIdentityReachable)
+{
+    throw "The retained JTL pilot authority contract is not bounded to PRE-CU/JTL rules."
 }
 
 Assert-Contains $qaItem @(
@@ -712,7 +887,7 @@ if ($Expectation -eq "Ready")
     }
     $classRoot = [string]$contract.buildEvidence.compiledClassRoot
     $classFiles = @($contract.compiledClasses.PSObject.Properties)
-    if ($classFiles.Count -ne 28) { throw "PRE-CU admin compiled-class inventory is incomplete." }
+    if ($classFiles.Count -ne 35) { throw "PRE-CU admin compiled-class inventory is incomplete." }
     foreach ($property in $classFiles)
     {
         $classPath = $classRoot + "/" + [string]$property.Value
@@ -743,6 +918,7 @@ if ($Expectation -eq "Ready")
     $skillBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.skill | Out-String)
     $xpLibraryBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.xp | Out-String)
     $qaLibraryBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.qa | Out-String)
+    $spaceSkillLibraryBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.library.space_skill | Out-String)
     Assert-Contains $skillBytecode @(
         "collectPrecuSkillPrerequisites",
         "getAvailableSkillPoints",
@@ -778,11 +954,17 @@ if ($Expectation -eq "Ready")
     $betaPetTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.pet_test | Out-String)
     $betaSurveySpecialistBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.skills_survey_specialist | Out-String)
     $developerAiTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.ai_test | Out-String)
+    $qaJtlToolsBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qa_jtl_tools | Out-String)
+    $qaPilotRoadmapRebelBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qa_pilot_roadmap_tatooine_rebel | Out-String)
+    $qaPilotRoadmapImperialBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.qa_pilot_roadmap_tatooine_imperial | Out-String)
+    $developerTeidsonTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.teidson_test | Out-String)
     $workingJcarpenterUtilBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.jcarpenter.util | Out-String)
     $workingJustinUtilitiesBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.justin.utilities | Out-String)
     $workingSteveMyscriptBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.steve.myscript | Out-String)
     $workingDantestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.dantest | Out-String)
     $workingGrievousTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.wwallace.grievous_test | Out-String)
+    $workingWwallaceTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.wwallace.wwallace_test | Out-String)
+    $workingCreateSpaceWeaponsBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.wwallace.create_space_weapons | Out-String)
     foreach ($entry in @{
         "deployed GM bytecode" = $playerUtilityBytecode
         "deployed test-center bytecode" = $builderBytecode
@@ -827,6 +1009,25 @@ if ($Expectation -eq "Ready")
     Assert-Excludes $qaLibraryBytecode @(
         "public static void revokeAllSkills("
     ) "deployed shared QA library bytecode"
+    Assert-Contains $spaceSkillLibraryBytecode @(
+        "pilot_rebel_navy",
+        "pilot_imperial_navy",
+        "pilot_neutral",
+        "public static void retire("
+    ) "deployed retained JTL pilot skill bytecode"
+    Assert-Contains $qaLibraryBytecode @(
+        "PILOT_FACTION_SKILL_ROOTS",
+        "getPilotFactionSkillRoot",
+        "isPilotFactionSkillRoot",
+        "grantPilotingSkills",
+        "revokeAndGrantPilot",
+        "script/library/skill.grantSkill:",
+        "script/library/skill.revokeSkill:"
+    ) "deployed faction-exclusive retained JTL QA bytecode"
+    Assert-Contains $builderBytecode @(
+        "script/library/qa.revokePilotingSkills:",
+        "script/library/qa.revokeAndGrantPilot:"
+    ) "deployed retained JTL test-center bytecode"
     if (([regex]::Matches($qaToolBytecode, "Method retiredNgeSpecTester")).Count -ne 0)
     {
         throw "Deployed QA bytecode calls the retired NGE spec implementation."
@@ -962,6 +1163,60 @@ if ($Expectation -eq "Ready")
             "// Method script/library/skill.grantSkillToPlayer:"
         ) $entry.Key
     }
+    foreach ($entry in @{
+        "deployed JTL QA tool bytecode" = [pscustomobject]@{ Text=$qaJtlToolsBytecode; Script="test.qa_jtl_tools" }
+        "deployed Rebel JTL roadmap bytecode" = [pscustomobject]@{ Text=$qaPilotRoadmapRebelBytecode; Script="test.qa_pilot_roadmap_tatooine_rebel" }
+        "deployed Imperial JTL roadmap bytecode" = [pscustomobject]@{ Text=$qaPilotRoadmapImperialBytecode; Script="test.qa_pilot_roadmap_tatooine_imperial" }
+    }.GetEnumerator())
+    {
+        Assert-Contains $entry.Value.Text @(
+            "isPlayer:",
+            "isGod:",
+            "getGodLevel:",
+            $entry.Value.Script
+        ) $entry.Key
+    }
+    Assert-Contains $qaJtlToolsBytecode @(
+        "script/library/qa.revokeAndGrantPilot:"
+    ) "deployed JTL QA tool bytecode"
+    foreach ($entry in @{
+        "deployed Rebel JTL roadmap bytecode" = $qaPilotRoadmapRebelBytecode
+        "deployed Imperial JTL roadmap bytecode" = $qaPilotRoadmapImperialBytecode
+    }.GetEnumerator())
+    {
+        Assert-Contains $entry.Value @(
+            "script/library/qa.grantPilotSkill:"
+        ) $entry.Key
+    }
+    Assert-Excludes $qaPilotRoadmapRebelBytecode @(
+        "test.qa_pilot_roadmap_tatooine_imperial"
+    ) "deployed Rebel JTL roadmap bytecode"
+    foreach ($entry in @{
+        "deployed GM50 Teidson JTL test bytecode" = [pscustomobject]@{ Text=$developerTeidsonTestBytecode; Script="test.teidson_test" }
+        "deployed GM50 Wallace JTL test bytecode" = [pscustomobject]@{ Text=$workingWwallaceTestBytecode; Script="working.wwallace.wwallace_test" }
+    }.GetEnumerator())
+    {
+        Assert-Contains $entry.Value.Text @(
+            "isPlayer:",
+            "isGod:",
+            "getGodLevel:",
+            $entry.Value.Script,
+            "script/library/qa.revokeAndGrantPilot:"
+        ) $entry.Key
+    }
+    Assert-Contains $workingCreateSpaceWeaponsBytecode @(
+        "isPlayer:",
+        "isGod:",
+        "getGodLevel:",
+        "working.wwallace.create_space_weapons",
+        "The all-faction pilot grant is retired",
+        "Use the authenticated JTL QA or test-center pilot selector and choose one faction."
+    ) "deployed retired all-faction JTL grant bytecode"
+    Assert-Excludes $workingCreateSpaceWeaponsBytecode @(
+        "// Method grantSkill:",
+        "// Method script/library/skill.grantSkill:",
+        "// Method script/library/qa.revokeAndGrantPilot:"
+    ) "deployed retired all-faction JTL grant bytecode"
     Assert-Contains $qaItemBytecode @(
         "Get Later-Content Item Packs",
         "datatables/roadmap/item_rewards.iff",
