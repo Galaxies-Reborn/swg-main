@@ -193,6 +193,65 @@ Assert-Contract (
     (Get-TextSha256 ($locationRetainedSourceContent -join "`n")) -ceq [string]$contract.locationArrivalCallbackInventory.retainedProductionSourceContentSha256
 ) "Complete OnArrivedAtLocation inventory or retained production source set drifted."
 
+$activityRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.activityCompletionCallbackInventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') "Invalid PGC activity/completion inventory line."
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $signature = ($Matches[3].Trim() -replace '\s+', ' ')
+    $activityRecords.Add($relativePath + ":" + $Matches[2] + "|" + $signature)
+}
+$activityRecords = @($activityRecords | Sort-Object)
+$activityPaths = @($activityRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') "Invalid activity/completion callback record."
+    $Matches[1]
+} | Sort-Object -Unique)
+$activityProduction = @($activityRecords | Where-Object { $_ -notmatch '^(test|working)/' })
+$activityRetiredPaths = @($contract.activityCompletionCallbackInventory.retiredPaths |
+    ForEach-Object { [string]$_ } | Sort-Object)
+$activityRetired = @($activityProduction | Where-Object {
+    $record = $_
+    @($activityRetiredPaths | Where-Object { $record.StartsWith($_ + ":") }).Count -eq 1
+})
+$activityRetained = @($activityProduction | Where-Object {
+    $record = $_
+    @($activityRetiredPaths | Where-Object { $record.StartsWith($_ + ":") }).Count -eq 0
+})
+$activityNonProduction = @($activityRecords | Where-Object { $_ -match '^(test|working)/' })
+$activityNonProductionPaths = @($activityNonProduction | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') "Invalid non-production activity/completion callback record."
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedActivityNonProductionPaths = @($contract.activityCompletionCallbackInventory.nonProductionPaths |
+    ForEach-Object { [string]$_ } | Sort-Object)
+$activityRetainedPaths = @($activityRetained | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') "Invalid retained activity/completion callback record."
+    $Matches[1]
+} | Sort-Object -Unique)
+$activitySourceContent = @($activityPaths | ForEach-Object {
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scriptRoot $_)).Hash.ToLowerInvariant()
+    "$_|$hash"
+} | Sort-Object)
+$activityRetainedSourceContent = @($activityRetainedPaths | ForEach-Object {
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scriptRoot $_)).Hash.ToLowerInvariant()
+    "$_|$hash"
+} | Sort-Object)
+Assert-Contract (
+    $activityRecords.Count -eq [int]$contract.expected.activityCompletionCallbacks -and
+    $activityPaths.Count -eq [int]$contract.activityCompletionCallbackInventory.sourceFiles -and
+    $activityProduction.Count -eq [int]$contract.expected.activityCompletionProductionCallbacks -and
+    $activityRetained.Count -eq [int]$contract.expected.retainedActivityCompletionProductionCallbacks -and
+    $activityRetired.Count -eq [int]$contract.expected.retiredChroniclesActivityCompletionCallbacks -and
+    $activityNonProduction.Count -eq [int]$contract.expected.activityCompletionNonProductionCallbacks -and
+    ($activityNonProductionPaths -join "`n") -ceq ($expectedActivityNonProductionPaths -join "`n") -and
+    $activityRetainedPaths.Count -eq [int]$contract.activityCompletionCallbackInventory.retainedProductionSourceFiles -and
+    (Get-TextSha256 ($activityRecords -join "`n")) -ceq [string]$contract.activityCompletionCallbackInventory.inventorySha256 -and
+    (Get-TextSha256 ($activityPaths -join "`n")) -ceq [string]$contract.activityCompletionCallbackInventory.sourceSetSha256 -and
+    (Get-TextSha256 ($activitySourceContent -join "`n")) -ceq [string]$contract.activityCompletionCallbackInventory.sourceContentSha256 -and
+    (Get-TextSha256 ($activityRetainedSourceContent -join "`n")) -ceq [string]$contract.activityCompletionCallbackInventory.retainedProductionSourceContentSha256
+) "Complete PGC activity/completion inventory or retained production source set drifted."
+
 $sagaCraft = Get-BracedSurface $saga "public int OnCraftedPrototype"
 $sagaGuard = $sagaCraft.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
 $sagaMutation = $sagaCraft.IndexOf("pgc_quests.getActivateQuestHolocrons(", [StringComparison]::Ordinal)
@@ -234,6 +293,52 @@ Assert-Contract (
     $holocronArrival.Substring($holocronArrivalGuard, $holocronArrivalMutation - $holocronArrivalGuard).Contains("return SCRIPT_CONTINUE;") -and
     [int]$contract.expected.unguardedRetiredLocationArrivalMutations -eq 0
 ) "PGC holocron location-arrival mutation is not dominated by retirement."
+
+$sagaActivityMethods = @(
+    "receiveCreditForKill",
+    "recivedGcwCreditForKill",
+    "startPerform",
+    "stopPerform"
+)
+Assert-Contract ($sagaActivityMethods.Count -eq [int]$contract.expected.playerSagaActivityRelays) `
+    "Player-saga activity relay inventory drifted."
+foreach ($method in $sagaActivityMethods)
+{
+    $surface = Get-BracedSurface $saga ("public int " + $method)
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $mutation = $surface.IndexOf("messageTo(questHolocron,", [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $mutation -gt $guard -and
+        $surface.Contains("pgc_quests.retireChroniclesPlayerProgressionState(self);") -and
+        $surface.Contains('detachScript(self, "player.player_saga_quest");') -and
+        $surface.Substring($guard, $mutation - $guard).Contains("return SCRIPT_CONTINUE;")
+    ) "Player-saga activity relay is not dominated by retirement: $method"
+}
+
+$holocronActivityMethods = [ordered]@{
+    receiveCreditForKill = "pgc_quests.checkForKillTaskCredit("
+    recivedGcwCreditForKill = "pgc_quests.handlePvpPlayerKillCredit("
+    handleCommMessageTaskCompletion = "pgc_quests.setTaskComplete("
+    ChroniclesMessageBoxCompleted = "pgc_quests.setTaskComplete("
+    startPerform = "utils.setScriptVar("
+    stopPerform = "clearPerformScriptVars("
+    CheckPerformanceComplete = "pgc_quests.setTaskComplete("
+}
+Assert-Contract ($holocronActivityMethods.Count -eq [int]$contract.expected.questHolocronActivityCompletionCallbacks) `
+    "PGC holocron activity/completion method inventory drifted."
+foreach ($entry in $holocronActivityMethods.GetEnumerator())
+{
+    $surface = Get-BracedSurface $holocron ("public int " + $entry.Key)
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $mutation = $surface.IndexOf([string]$entry.Value, [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $mutation -gt $guard -and
+        $surface.Contains("pgc_quests.retireChroniclesPlayerProgressionState(player);") -and
+        $surface.Contains('detachScript(self, "quest.task.pgc.quest_holocron");') -and
+        $surface.Substring($guard, $mutation - $guard).Contains("return SCRIPT_CONTINUE;") -and
+        [int]$contract.expected.unguardedRetiredActivityCompletionMutations -eq 0
+    ) "PGC holocron activity/completion mutation is not dominated by retirement: $($entry.Key)"
+}
 
 $legacyCraft = Get-BracedSurface ([string]$texts.legacyCraft) "public int OnCraftedPrototype"
 $groundCraft = Get-BracedSurface ([string]$texts.groundCraft) "public int OnCraftedPrototype"
@@ -342,4 +447,4 @@ Assert-Contract (
     -not $contractText.Contains("/Artifacts/") -and
     -not $contractText.Contains("/Staging/")
 ) "PGC contract references retired artifact/staging evidence."
-Write-Host "Publish 14.1 PGC holocron/vendor, crafted-prototype, and location-arrival retirement passed."
+Write-Host "Publish 14.1 PGC holocron/vendor, crafted-prototype, location-arrival, and activity-completion retirement passed."
