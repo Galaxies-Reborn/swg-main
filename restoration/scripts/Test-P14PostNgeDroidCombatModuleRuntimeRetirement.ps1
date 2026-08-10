@@ -14,11 +14,22 @@ $root = (Resolve-Path -LiteralPath $SourceRoot).Path
 $scriptRoot = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script"
 $sharedTableRoot = Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/datatables"
 $failures = [System.Collections.Generic.List[string]]::new()
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
     if ($Condition) { Write-Host "  [PASS] $Name" }
     else { Write-Host "  [FAIL] $Name"; $failures.Add($Name) }
+}
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try
+    {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant()
+    }
+    finally { $sha.Dispose() }
 }
 
 function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker)
@@ -66,6 +77,90 @@ foreach ($entry in $sourceMap.GetEnumerator())
             "p14.droid-module.source.$($entry.Key).authenticated"
     }
 }
+
+$droidProgrammingRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.inventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+        "p14.droid-module.programming-callback.inventory-line-parsed"
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    Assert-Contract ($absolutePath.StartsWith(
+        $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) `
+        "p14.droid-module.programming-callback.inventory-contained"
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $droidProgrammingRecords.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
+}
+$droidProgrammingRecords = @($droidProgrammingRecords | Sort-Object)
+$droidProgrammingPaths = @($droidProgrammingRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') `
+        "p14.droid-module.programming-callback.path-isolated"
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedDroidProgrammingPaths = @($contract.inventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($droidProgrammingRecords.Count -eq [int]$contract.inventory.handlers -and
+    $droidProgrammingRecords.Count -eq [int]$contract.expected.droidProgrammingCallbacks -and
+    $droidProgrammingPaths.Count -eq [int]$contract.inventory.sourceFiles -and
+    ($droidProgrammingPaths -join "`n") -ceq ($expectedDroidProgrammingPaths -join "`n") -and
+    (Get-TextSha256 ($droidProgrammingRecords -join "`n")) -ceq [string]$contract.inventory.inventorySha256 -and
+    (Get-TextSha256 ($droidProgrammingPaths -join "`n")) -ceq [string]$contract.inventory.sourceSetSha256) `
+    "p14.droid-module.programming-callback.complete-inventory"
+
+$supportingPaths = [ordered]@{
+    "space/combat/combat_ship_player.java" = Join-Path $scriptRoot "space/combat/combat_ship_player.java"
+    "test/esebesta_test.java" = Join-Path $scriptRoot "test/esebesta_test.java"
+    "player/live_conversions.java" = Join-Path $scriptRoot "player/live_conversions.java"
+}
+$supportingTexts = @{}
+foreach ($entry in $supportingPaths.GetEnumerator())
+{
+    Assert-Contract (Test-Path -LiteralPath $entry.Value -PathType Leaf) `
+        "p14.droid-module.supporting-source.$($entry.Key).exists"
+    if (Test-Path -LiteralPath $entry.Value -PathType Leaf)
+    {
+        $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Value).Hash.ToLowerInvariant()
+        Assert-Contract ($actual -ceq [string]$contract.buildEvidence.supportingSourceSha256.($entry.Key)) `
+            "p14.droid-module.supporting-source.$($entry.Key).authenticated"
+        $supportingTexts[$entry.Key] = Get-Content -LiteralPath $entry.Value -Raw
+    }
+}
+
+$shipPlayer = [string]$supportingTexts["space/combat/combat_ship_player.java"]
+$developerTest = [string]$supportingTexts["test/esebesta_test.java"]
+$liveConversions = [string]$supportingTexts["player/live_conversions.java"]
+$productionProgramming = Get-SourceSlice $shipPlayer `
+    "public int OnCommitDroidProgramCommands(" `
+    "public int commandTimerTimeout("
+$developerProgramming = Get-SourceSlice $developerTest `
+    "public int OnCommitDroidProgramCommands(" `
+    "public int __missing_after_last_method("
+$developerAttach = Get-SourceSlice $developerTest `
+    "public int OnAttach(" `
+    "public int OnFormCreateObject("
+$groundCombatPatterns = @(
+    '\bpet_lib\.', '\bcombatStandardAction\s*\(', '\bbuff\.apply',
+    '\bgrantCommand\s*\(', '\bgrantSkill\s*\(', '\bsetLevel\s*\('
+)
+$groundCombatMatches = @($groundCombatPatterns | Where-Object {
+    [regex]::IsMatch($productionProgramming, $_)
+})
+$jtlModuleWrites = [regex]::Matches($productionProgramming,
+    'space_combat\.(destroyObject|addModuleToDatapad)\s*\(').Count
+Assert-Contract ([int]$contract.inventory.productionJtlHandlers -eq
+        [int]$contract.expected.droidProgrammingProductionJtlCallbacks -and
+    [int]$contract.inventory.guardedDeveloperHandlers -eq
+        [int]$contract.expected.droidProgrammingGuardedDeveloperCallbacks -and
+    $productionProgramming.Contains("utils.getDatapad(objControlDevice)") -and
+    $productionProgramming.Contains("getVolumeFree(objDatapad)") -and
+    $jtlModuleWrites -eq [int]$contract.expected.droidProgrammingJtlModuleWrites -and
+    $groundCombatMatches.Count -eq [int]$contract.expected.droidProgrammingGroundCombatMutations -and
+    $liveConversions.Contains('attachScript(player, "space.combat.combat_ship_player")') -and
+    $developerProgramming.Contains('debugSpeakMsg(self, "OnCommitDroidProgramCommands hit")') -and
+    $developerAttach.Contains("!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self)") -and
+    [regex]::Matches($developerAttach, 'detachScript\(self, "test\.esebesta_test"\)').Count -eq
+        [int]$contract.expected.developerDroidProgrammingSelfDetachGuards -and
+    [bool]$contract.expected.precuJtlDroidProgrammingPreserved) `
+    "p14.droid-module.programming-callback.jtl-preserved-ground-authority-isolated"
 
 $playerActions = @(
     "droid_flame_jet_1", "droid_flame_jet_2", "droid_flame_jet_3",

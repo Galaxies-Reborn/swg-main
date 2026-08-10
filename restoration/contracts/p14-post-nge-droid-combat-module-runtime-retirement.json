@@ -2,12 +2,27 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-droid-combat-module-runtime-retirement",
   "status": "ready",
-  "scope": "Retire the six tiered post-NGE droid combat-module families for players and player-owned droids while preserving Publish 14.1 droid controls, Detonate Droid, module data/assets, and non-player expansion droid behavior.",
+  "scope": "Retire the six tiered post-NGE droid combat-module families for players and player-owned droids while preserving Publish 14.1 droid controls, Detonate Droid, JTL flight-computer programming, module data/assets, and non-player expansion droid behavior. Close the complete OnCommitDroidProgramCommands callback inventory so the retained JTL listener cannot be confused with retired ground-combat modules.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "finding": "Pinned Publish 14.1 Core3 contains the classic droid command lifecycle and Detonate Droid but none of the flame-jet, droideka-shield, battery-dump, regenerative-plating, electrical-shock, or torturous-needle command/module families.",
-    "retainedContentBoundary": "Later command, combat, buff, crafting, examine, visual, and encounter data remain loadable; only player runtime authority is denied."
+    "jtlDroidProgrammingSource": "MMOCoreORB/src/server/zone/ZonePacketHandler.cpp registers DroidCommandProgrammingCallback as a space callback at controller message 0x435.",
+    "retainedContentBoundary": "Later command, combat, buff, crafting, examine, visual, and encounter data remain loadable; only player runtime authority is denied. JTL droid flight-computer programming remains active."
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnCommitDroidProgramCommands\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 2,
+    "productionJtlHandlers": 1,
+    "guardedDeveloperHandlers": 1,
+    "inventorySha256": "dfcd8be344418f35b410fcf3093941d884c0d2fb33c686d36c3a859cd585f58c",
+    "sourceSetSha256": "15c0b2e3397d32796e8fdfbed57cc6247a5ce482b1c50ddae3f93017d7ed8f6a",
+    "sourcePaths": [
+      "space/combat/combat_ship_player.java",
+      "test/esebesta_test.java"
+    ]
   },
   "expected": {
     "authoritativeSourceFiles": 7,
@@ -20,10 +35,17 @@
     "retainedShieldBuffRows": 3,
     "classicDroidCommands": 16,
     "detonateDroidRows": 1,
+    "droidProgrammingCallbacks": 2,
+    "droidProgrammingProductionJtlCallbacks": 1,
+    "droidProgrammingGuardedDeveloperCallbacks": 1,
+    "droidProgrammingGroundCombatMutations": 0,
+    "droidProgrammingJtlModuleWrites": 3,
+    "developerDroidProgrammingSelfDetachGuards": 1,
     "playerOwnedRuntimeFailsClosed": true,
     "nonPlayerExpansionCompatibilityPreserved": true,
     "classicDroidControlsPreserved": true,
     "precuDroidDetonationPreserved": true,
+    "precuJtlDroidProgrammingPreserved": true,
     "laterDataAndAssetsPreserved": true
   },
   "buildEvidence": {
@@ -40,6 +62,11 @@
       "command/command_table.tab": "8598fc35b6ba06177f6936f1ef58121ca5314ffc5b3bf90a8ffd04a1f9ebc672",
       "combat/combat_data.tab": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
       "buff/buff.tab": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9"
+    },
+    "supportingSourceSha256": {
+      "space/combat/combat_ship_player.java": "0cbe62c29eb441b7b4ae1811213901691d5ad783edf79be6b83943e42abc3b7d",
+      "test/esebesta_test.java": "75bca6e2160651a790fb82939057bfccec58bc1219a15963babc1591e33c1b35",
+      "player/live_conversions.java": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e"
     },
     "focusedJavaCompile": "passed OpenJDK 11 Java 8-target compilation of pet_lib.java, combat_base.java, and base_player.java against the deployed x64 class tree in an isolated /dev/shm directory that was removed immediately",
     "fullJavaCompile": "passed canonical exact zero-class dependency rebuild; 5713 Java sources produced 5747 class files under OpenJDK 11",
