@@ -148,6 +148,10 @@ Write-Host "Verifying the complete Java expertise literal inventory before build
 & (Join-Path $PSScriptRoot "Test-P14JavaExpertiseLiteralCallsiteInventoryClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build
+Write-Host "Verifying the complete Java combatLevel textual inventory before build..."
+& (Join-Path $PSScriptRoot "Test-P14JavaCombatLevelTextualInventoryClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying the direct-source PRE-CU zone transition level authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuZoneTransitionLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
