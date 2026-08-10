@@ -89,9 +89,48 @@ $diagnosticFiles = @(
     "sku.0/sys.server/compiled/game/script/test/thicks_test.java",
     "sku.0/sys.server/compiled/game/script/working/jhaskell_test.java"
 )
+$residualRuntimeFiles = @(
+    "sku.0/sys.server/compiled/game/script/library/combat.java",
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+    "sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java",
+    "sku.0/sys.server/compiled/game/script/library/buff.java",
+    "sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+    "sku.0/sys.server/compiled/game/script/library/armor.java",
+    "sku.0/sys.server/compiled/game/script/library/static_item.java",
+    "sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+)
+$residualFrameworkFiles = @(
+    "sku.0/sys.server/compiled/game/script/library/expertise.java",
+    "sku.0/sys.server/compiled/game/script/library/skill.java",
+    "sku.0/sys.server/compiled/game/script/library/proc.java",
+    "sku.0/sys.server/compiled/game/script/player/live_conversions.java",
+    "sku.0/sys.server/compiled/game/script/library/respec.java",
+    "sku.0/sys.server/compiled/game/script/conversation/respecseller.java",
+    "sku.0/sys.server/compiled/game/script/library/utils.java",
+    "sku.0/sys.server/compiled/game/script/player_levels.java",
+    "sku.0/sys.server/compiled/game/script/base_class.java"
+)
+$residualHelperFiles = @(
+    "sku.0/sys.server/compiled/game/script/library/player_structure.java",
+    "sku.0/sys.server/compiled/game/script/library/weapons.java",
+    "sku.0/sys.server/compiled/game/script/library/factions.java",
+    "sku.0/sys.server/compiled/game/script/systems/image_designer/image_designer_response.java"
+)
+$residualDiagnosticFiles = @(
+    "sku.0/sys.server/compiled/game/script/test/precu_skill_library_retirement_fixture.java",
+    "sku.0/sys.server/compiled/game/script/working/jbenjtest.java",
+    "sku.0/sys.server/compiled/game/script/test/precu_creature_combat_profile_runtime.java",
+    "sku.0/sys.server/compiled/game/script/library/qa.java",
+    "sku.0/sys.server/compiled/game/script/library/dump.java",
+    "sku.0/sys.server/compiled/game/script/test/qatool.java",
+    "sku.0/sys.server/compiled/game/script/working/ahunter/my_script.java",
+    "sku.0/sys.server/compiled/game/script/test/qasetup.java"
+)
 
 $pattern = [string]$contract.inventory.pattern
+$residualPattern = [string]$contract.residualInventory.pattern
 $records = [Collections.Generic.List[object]]::new()
+$residualRecords = [Collections.Generic.List[object]]::new()
 foreach ($file in $javaFiles)
 {
     $text = Get-Content -LiteralPath $file.FullName -Raw
@@ -99,7 +138,8 @@ foreach ($file in $javaFiles)
     $relative = $file.FullName.Substring($dsrcRoot.Length + 1).Replace("\", "/")
     for ($lineIndex = 0; $lineIndex -lt $lines.Count; ++$lineIndex)
     {
-        foreach ($match in [regex]::Matches($lines[$lineIndex], $pattern))
+        $prefixMatches = @([regex]::Matches($lines[$lineIndex], $pattern))
+        foreach ($match in $prefixMatches)
         {
             if ($combatFiles -contains $relative) { $category = "combatBuffPlayerGuards" }
             elseif ($frameworkFiles -contains $relative) { $category = "retiredPlayerFramework" }
@@ -117,6 +157,29 @@ foreach ($file in $javaFiles)
                 Value = $match.Value
                 Expression = $lines[$lineIndex].Trim()
                 Category = $category
+            })
+        }
+        foreach ($match in [regex]::Matches($lines[$lineIndex], $residualPattern))
+        {
+            if (@($prefixMatches | Where-Object { $_.Index -eq $match.Index }).Count -gt 0)
+            {
+                continue
+            }
+            if ($residualRuntimeFiles -contains $relative) { $residualCategory = "combatBuffRuntimeGuards" }
+            elseif ($residualFrameworkFiles -contains $relative)
+            {
+                $residualCategory = "retiredProgressionRespecProcFramework"
+            }
+            elseif ($residualHelperFiles -contains $relative) { $residualCategory = "precuCompatibilityHelpers" }
+            elseif ($residualDiagnosticFiles -contains $relative) { $residualCategory = "adminTestDiagnostics" }
+            else { $residualCategory = "unclassified" }
+            $residualRecords.Add([pscustomobject]@{
+                Path = $relative
+                Line = $lineIndex + 1
+                Column = $match.Index + 1
+                Value = $match.Value
+                Expression = $lines[$lineIndex].Trim()
+                Category = $residualCategory
             })
         }
     }
@@ -178,6 +241,70 @@ Assert-Contract ($classifiedCount -eq $records.Count -and
     [int]$contract.expected.playerExpertiseProgressionOrGameplayAuthorityOccurrences -eq 0) `
     "Java expertise literal inventory is not fully closed."
 
+$residualRecords = @($residualRecords | Sort-Object Path, Line, Column, Value)
+$residualSourceFiles = @($residualRecords.Path | Sort-Object -Unique)
+$residualMatchingLines = @($residualRecords |
+    ForEach-Object { "$($_.Path)|$($_.Line)" } | Sort-Object -Unique)
+$residualCanonical = (@($residualRecords | ForEach-Object {
+    "$($_.Path)|$($_.Line)|$($_.Column)|$($_.Value)|$($_.Expression)"
+}) -join "`n") + "`n"
+$residualSourceSet = ($residualSourceFiles -join "`n") + "`n"
+$residualSourceContent = (@($residualSourceFiles | ForEach-Object {
+    "$_=" + (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $dsrcRoot $_)).Hash.ToLowerInvariant()
+}) -join "`n") + "`n"
+$combinedSourceFiles = @($sourceFiles + $residualSourceFiles | Sort-Object -Unique)
+Assert-Contract ($residualRecords.Count -eq [int]$contract.residualInventory.referenceOccurrences -and
+    $residualMatchingLines.Count -eq [int]$contract.residualInventory.matchingLines -and
+    $residualSourceFiles.Count -eq [int]$contract.residualInventory.sourceFiles -and
+    $records.Count + $residualRecords.Count -eq
+        [int]$contract.residualInventory.combinedExpertiseSubstringOccurrences -and
+    $combinedSourceFiles.Count -eq [int]$contract.residualInventory.combinedSourceFiles -and
+    (Get-TextSha256 $residualCanonical) -ceq [string]$contract.residualInventory.inventorySha256 -and
+    (Get-TextSha256 $residualSourceSet) -ceq [string]$contract.residualInventory.sourceSetSha256 -and
+    (Get-TextSha256 $residualSourceContent) -ceq [string]$contract.residualInventory.sourceContentSha256) `
+    "Residual Java expertise inventory drifted."
+
+$actualResidualFileCounts = @{}
+foreach ($group in @($residualRecords | Group-Object Path))
+{
+    $actualResidualFileCounts[$group.Name] = $group.Count
+}
+$expectedResidualFileProperties = @($contract.residualInventory.fileCounts.PSObject.Properties)
+Assert-Contract ($actualResidualFileCounts.Count -eq $expectedResidualFileProperties.Count) `
+    "Residual Java expertise source-file set changed."
+foreach ($property in $expectedResidualFileProperties)
+{
+    Assert-Contract ($actualResidualFileCounts.ContainsKey($property.Name) -and
+        [int]$actualResidualFileCounts[$property.Name] -eq [int]$property.Value) `
+        "Residual Java expertise count drifted: $($property.Name)"
+}
+
+$residualClassificationNames = @(
+    "combatBuffRuntimeGuards",
+    "retiredProgressionRespecProcFramework",
+    "precuCompatibilityHelpers",
+    "adminTestDiagnostics"
+)
+$residualClassifiedCount = 0
+foreach ($category in $residualClassificationNames)
+{
+    $classified = @($residualRecords | Where-Object { $_.Category -ceq $category })
+    $categoryCanonical = (@($classified | ForEach-Object {
+        "$($_.Path)|$($_.Line)|$($_.Column)|$($_.Value)|$($_.Expression)"
+    }) -join "`n") + "`n"
+    $expected = $contract.residualClassification.$category
+    Assert-Contract ($classified.Count -eq [int]$expected.referenceOccurrences -and
+        (Get-TextSha256 $categoryCanonical) -ceq [string]$expected.inventorySha256) `
+        "Residual Java expertise classification drifted: $category"
+    $residualClassifiedCount += $classified.Count
+}
+Assert-Contract ($residualClassifiedCount -eq $residualRecords.Count -and
+    @($residualRecords | Where-Object { $_.Category -ceq "unclassified" }).Count -eq 0 -and
+    [int]$contract.residualClassification.unclassifiedReferenceOccurrences -eq 0 -and
+    [bool]$contract.expected.residualReferencesClassified -and
+    [int]$contract.expected.residualPlayerExpertiseAuthorityOccurrences -eq 0) `
+    "Residual Java expertise inventory is not fully closed."
+
 foreach ($dependencyName in @($contract.requiredReadyContracts))
 {
     $dependencyPath = Join-Path $restorationRoot ("contracts/" + [string]$dependencyName)
@@ -208,6 +335,11 @@ Assert-Contract ($skill.Contains('skillName.equals("expertise")') -and
     $skill.Contains('skillName.startsWith("internal_expertise_")') -and
     $skill.Contains("if (isPlayer(target) && isRetiredNgeProgressionSkillName(skillName))")) `
     "Shared skill admission no longer rejects expertise roots."
+$validateExpertise = Get-BracedSurface $skill `
+    "public static boolean validateExpertise(obj_id player)"
+Assert-Contract ($validateExpertise.Contains("resetExpertises(player);") -and
+    -not $validateExpertise.Contains("utils.fullExpertiseReset")) `
+    "Login expertise validation no longer limits itself to persisted expertise cleanup."
 
 $respec = Get-Content -LiteralPath (Join-Path $scriptRoot "library/respec.java") -Raw
 Assert-Contract ($respec.Contains("NGE_PLAYER_RESPEC_RUNTIME_RETIRED = true") -and
@@ -218,6 +350,11 @@ $liveConversions = Get-Content -LiteralPath (Join-Path $scriptRoot "player/live_
 Assert-Contract ($liveConversions.Contains('removeObjVar(player, "expertise_reset")') -and
     $liveConversions.Contains("retirePostNgePlayerMigrationState")) `
     "Persisted NGE expertise migration state is not retired."
+$respecSeller = Get-Content -LiteralPath (Join-Path $scriptRoot "conversation/respecseller.java") -Raw
+Assert-Contract ($respecSeller.Contains("return false;") -and
+    [regex]::Matches($respecSeller, 'if \(!isNgeRespecSellerEnabled\(\)\)').Count -eq
+        [int]$contract.expected.respecSellerFailClosedCallbacks) `
+    "NGE respec seller callbacks are no longer fail-closed."
 
 $heroic = Get-Content -LiteralPath (Join-Path $scriptRoot "item/heroic_random_stat_item.java") -Raw
 Assert-Contract ([regex]::Matches($heroic, '"expertise_action_weapon_[0-9]+"').Count -eq 10 -and
@@ -228,6 +365,20 @@ Assert-Contract ([regex]::Matches($heroic, '"expertise_action_weapon_[0-9]+"').C
 $beast = Get-Content -LiteralPath (Join-Path $scriptRoot "library/beast_lib.java") -Raw
 Assert-Contract ($beast.Contains('removeAttribOrSkillModModifier(beast, "expertise_damage_line_beast_only")')) `
     "Retained Beast expertise reference is no longer cleanup-only."
+$weapons = Get-Content -LiteralPath (Join-Path $scriptRoot "library/weapons.java") -Raw
+$weaponRange = Get-BracedSurface $weapons `
+    "public static void adjustWeaponRangeForExpertise(obj_id player, obj_id self, boolean modify)"
+Assert-Contract ($weaponRange.Contains("restorePrecuWeaponRange(self);") -and
+    -not $weaponRange.Contains("getSkillStatisticModifier")) `
+    "Legacy weapon-range helper regained expertise authority."
+$playerStructure = Get-Content -LiteralPath (Join-Path $scriptRoot "library/player_structure.java") -Raw
+$powerRate = Get-BracedSurface $playerStructure `
+    "public static float expertiseModifyPowerRate(obj_id structure, obj_id owner, float power_rate)"
+Assert-Contract ($powerRate.Contains("removeObjVar(structure, VAR_POWER_MOD_FACTORY);") -and
+    $powerRate.Contains("removeObjVar(structure, VAR_POWER_MOD_HARVESTER);") -and
+    $powerRate.Contains("return power_rate;") -and
+    -not $powerRate.Contains("getSkillStatisticModifier")) `
+    "Legacy structure-power helper regained expertise authority."
 
 if ($Expectation -eq "Ready")
 {
