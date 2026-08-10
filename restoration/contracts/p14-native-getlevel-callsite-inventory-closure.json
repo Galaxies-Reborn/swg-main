@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-native-getlevel-callsite-inventory-closure",
+  "status": "implemented-build-pending",
+  "scope": "Close the complete native C++ getLevel() reference frontier, proving that no remaining native callsite restores NGE player combat-level progression or gameplay authority while preserving authored NPC, creature, quest, template, compatibility, watcher, and diagnostic level data.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 player progression is skill-box and named-XP-pool based; a player combat level is not a profession, item, reward, combat, mission, or admission authority.",
+      "Authored NPC and creature difficulty plus authored quest and template levels remain valid content data and do not create player progression.",
+      "Native level fields retained solely for ABI, cross-process compatibility, PlanetWatcher telemetry, neutral social presentation, NPC sentinels, and diagnostics are safe only when player-facing gameplay consumers are absent or explicitly neutralized."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bgetLevel\\s*\\(",
+    "cppHeaderSources": 7367,
+    "callSites": 36,
+    "sourceFiles": 18,
+    "inventorySha256": "602bb9a116047dcabd02b0f0963551b3d00dbe7c9b038f4e24f2b683c26fb37d",
+    "sourceSetSha256": "c54651eae1b2c2559f36a671ded8775292338df36adb185d1bfe6ef637bf841e",
+    "sourceContentSha256": "acedd0c631eee23c3f5af792421472c26b4ade6bddd00b39595f4364b46b0cd9",
+    "fileCounts": {
+      "engine/server/application/PlanetServer/src/shared/PlanetProxyObject.h": 2,
+      "engine/server/application/PlanetServer/src/shared/Scene.cpp": 1,
+      "engine/server/library/serverGame/src/shared/console/ConsoleCommandParserAi.cpp": 1,
+      "engine/server/library/serverGame/src/shared/console/ConsoleCommandParserServer.cpp": 1,
+      "engine/server/library/serverGame/src/shared/console/ConsoleCommandParserSkill.cpp": 1,
+      "engine/server/library/serverGame/src/shared/controller/AiCreatureController.cpp": 4,
+      "engine/server/library/serverGame/src/shared/object/BuildingObject.cpp": 1,
+      "engine/server/library/serverGame/src/shared/object/CreatureObject.cpp": 3,
+      "engine/server/library/serverGame/src/shared/object/CreatureObject.h": 2,
+      "engine/server/library/serverGame/src/shared/object/ServerObject.cpp": 1,
+      "engine/server/library/serverGame/src/shared/objectTemplate/ServerObjectTemplate.cpp": 5,
+      "engine/server/library/serverGame/src/shared/objectTemplate/ServerObjectTemplate.h": 1,
+      "engine/server/library/serverNetworkMessages/src/shared/gamePlanetServer/UpdateObjectOnPlanetMessage.h": 2,
+      "engine/server/library/serverScript/src/shared/ScriptMethodsObjectInfo.cpp": 3,
+      "engine/shared/library/sharedGame/src/shared/quest/Quest.cpp": 3,
+      "engine/shared/library/sharedGame/src/shared/quest/Quest.h": 1,
+      "engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/AIDebuggingMessages.h": 2,
+      "game/server/library/swgServerNetworkMessages/src/shared/jedi/MessageQueueJediData.h": 2
+    }
+  },
+  "classification": {
+    "authoredContent": {
+      "callSites": 10,
+      "inventorySha256": "150bccace29358caa95824a739565ae887531c50ba54740e379098300bc06a42",
+      "authority": "Server object-template XP parameters and shared quest rows retain authored content-level data; the ground-quest XP closure prevents those values from becoming player combat-level progression."
+    },
+    "neutralCompatibilityTransport": {
+      "callSites": 12,
+      "inventorySha256": "8d5f07618e0bd96c373d9efdff9d0507f3fcc5e78174a3c0100c23476d1a38db",
+      "authority": "Planet transport terminates in PlanetWatcher status telemetry; LFG and group writers emit zero for players; Jedi registry and cross-server producers emit zero; AI debugging messages carry diagnostics only."
+    },
+    "precuDualDomainAbi": {
+      "callSites": 8,
+      "inventorySha256": "df812e64ac60f281b0afc195c5e4d45c40fa5a3a527d860325edfffd0e9bec42",
+      "authority": "The Java object-info ABI is governed by the complete Java level-read closures; CreatureObject exposes authored NPC level and the bounded PRE-CU hidden player encounter-difficulty score; ServerObject only formats diagnostics; the respect-radius bridge is retained for an explicit test diagnostic but has zero production Java callers."
+    },
+    "npcSentinelDiagnostics": {
+      "callSites": 6,
+      "inventorySha256": "b57195ad245ba7c1815661a5d8c76c370861d2af936e4b2b9689723278097f7f",
+      "authority": "Private-building admission is gated to non-player creatures with a negative authored sentinel, while console and AI debug surfaces only report NPC or object state."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "semanticEvidence": {
+    "javaSources": 5717,
+    "javaRespectRadiusProductionCalls": 0,
+    "javaRespectRadiusDiagnosticCalls": 1,
+    "nativeRespectRadiusBridgePreserved": true,
+    "planetLevelTerminatesAtPlanetWatcher": true,
+    "lfgPlayerLevel": 0,
+    "groupPlayerLevel": 0,
+    "jediTransportLevel": 0,
+    "buildingLevelBranchPlayerExcluded": true,
+    "authoredNpcCreatureQuestAndTemplateLevelsPreserved": true
+  },
+  "requiredReadyContracts": [
+    "p14-native-precu-player-difficulty-authority.json",
+    "p14-neutral-progression-presentation.json",
+    "p14-precu-groundquest-xp-authority.json",
+    "p14-precu-player-bounty-level-authority.json",
+    "p14-precu-ai-aggro-radius-authority.json",
+    "p14-java-player-level-callsite-inventory-closure.json",
+    "p14-java-level-mutation-callsite-inventory-closure.json",
+    "p14-java-player-level-table-service-retirement.json",
+    "p14-java-residual-object-level-callsite-inventory-closure.json",
+    "p14-java-complex-level-callsite-inventory-closure.json",
+    "p14-java-player-level-datatable-callsite-inventory-closure.json",
+    "p14-java-profession-level-alias-callsite-inventory-closure.json",
+    "p14-java-loot-rarity-level-callsite-inventory-closure.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 1,
+    "allCallSitesClassified": true,
+    "playerCombatLevelGameplayAuthorityCallSites": 0,
+    "laterZonesQuestsConversationsAndNpcCompatibilityPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "61b7218d2935172879468ee3eda76e54c38c264a",
+    "nativeSourceCommit": "4511b725f099886c3c5f3e97df6f2f3ed9d81de8",
+    "sourceAudit": "passed; all 36 native C++ getLevel() references classified with zero remaining NGE player combat-level gameplay authority",
+    "gameplayBuild": "pending canonical clean deployment of the PRE-CU AI aggro-radius closure discovered by this inventory",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "architecture": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T08:59:20-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-10T08:47:35.457999119Z",
+    "containerHealth": "previous-deployment-only",
+    "clusterReadyForPlayers": false,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141706,
+    "liveBinaryBytes": 22560392,
+    "liveBinaryMapEntries": 2,
+    "liveProcessMappedBuiltBinary": false,
+    "freshLogAudit": "357 fresh-start lines; ready markers present; zero fatal, severe, exception, undefined-symbol, Oracle-error, or empty ConGenericMessage matches",
+    "clientProcessId": 52252,
+    "clientProcessName": "Galaxies Reborn PRECU",
+    "clientResponsive": true,
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete 36-reference native C++ getLevel() inventory across all 7,367 C++ and header sources, including authored content, compatibility transports, Java ABI, hidden PRE-CU encounter difficulty, NPC sentinels, and diagnostics",
+    "preserved": "PRE-CU skill-box and named-XP progression; authored NPC, creature, quest, template, mission, Jedi bounty, later-zone, conversation, social, watcher, and diagnostic compatibility",
+    "notClaimedComplete": "unrelated native methods and later-era gameplay systems outside the exact getLevel() reference frontier remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

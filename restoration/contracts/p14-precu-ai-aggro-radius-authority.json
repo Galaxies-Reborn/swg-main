@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-ai-aggro-radius-authority",
+  "status": "implemented-build-pending",
+  "scope": "Retire the post-P14 player-versus-creature level-difference respect-radius rule from production ground AI aggro while preserving authored/configured AI aggro radii, line-of-sight, interior vertical checks, PvP hostility, stealth, storyteller, pet, test, and later-content compatibility.",
+  "eraEvidence": {
+    "publish17Archive": "https://www.tradealliance.nl/community/star-wars-galaxies-emu/publish-17-test-center/",
+    "publish17Finding": "Publish 17 explicitly introduced shrinking AI aggro radius as a player became higher level than an NPC or creature, including gray-con non-aggro and a faction-enemy exception; that post-P14 level-difference rule must not govern Publish 14.1 gameplay.",
+    "core3Repository": "https://github.com/swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Source": "MMOCoreORB/src/server/zone/objects/creature/ai/AiAgentImplementation.cpp",
+    "core3Finding": "Pinned Publish 14.1 Core3 preserves authored creature levels and level-aware camouflage, but does not apply a player-versus-creature level difference to the ordinary AI aggro radius."
+  },
+  "sourceFiles": {
+    "aiAggro": "dsrc/sku.0/sys.server/compiled/game/script/ai/ai_aggro.java",
+    "aiLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/ai_lib.java",
+    "baseClass": "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
+    "respectDiagnostic": "dsrc/sku.0/sys.server/compiled/game/script/test/thicks_test.java",
+    "aiController": "src/engine/server/library/serverGame/src/shared/controller/AiCreatureController.cpp",
+    "scriptMethodsAi": "src/engine/server/library/serverScript/src/shared/ScriptMethodsAi.cpp"
+  },
+  "expected": {
+    "productionRespectRadiusCalls": 0,
+    "productionAggroRadiusCallsInDistanceGate": 1,
+    "respectRadiusDiagnosticCalls": 1,
+    "baseAggroRadiusUsesServerConfig": true,
+    "authoredCreatureAggroOverridePreserved": true,
+    "playerLevelDifferenceAggroAuthority": false,
+    "interiorVerticalLosPvpStealthStorytellerAndPetChecksPreserved": true,
+    "laterZonesQuestsConversationsAndNpcCompatibilityPreserved": true
+  },
+  "requiredReadyContracts": [
+    "p14-native-precu-player-difficulty-authority.json",
+    "p14-core3-ai-attack-interval.json",
+    "p14-precu-mobile-stealth-detection-authority.json"
+  ],
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "61b7218d2935172879468ee3eda76e54c38c264a",
+    "nativeSourceCommit": "4511b725f099886c3c5f3e97df6f2f3ed9d81de8",
+    "sourceSha256": {
+      "aiAggro": "0f371ff125ebb34a42b7a39592a6319557b8cb70c085338c65f00ae13256552c",
+      "aiLibrary": "5912df65ddcc794b37cfbc74c328185b264e3aff7327e25e3aca1cafc5f1f599",
+      "baseClass": "8da4ac2e73ca9aacb8f17c4e2ee6c9b0ef9f9782f13bcbdb9a79a6d19eff9189",
+      "respectDiagnostic": "9b1f226efe58eaf177061d01f12fba425da8f65b69957d4a55e94709695b48c1",
+      "aiController": "4ffa41fb5f42fdb929f2381256ef0e55017db715b9e87f152282944e3d5d3d60",
+      "scriptMethodsAi": "7781ff3eb78a86c573fd03560a741a3cb026f7fd3782be209ef896e80feb8e0d"
+    },
+    "focusedJavaCompile": "passed OpenJDK 11 Java 8-target compilation against the canonical deployed package root; emitted an 8,410-byte ai_aggro.class with one aiGetAggroRadius invocation and zero aiGetRespectRadius invocations, then removed the isolated in-memory output directory",
+    "focusedClassSha256": "c0a89b1ac8184f501d2542b8f40da41ce7d6bf4f96a6e97487b2a57d280ae217",
+    "fullServerBuild": "pending",
+    "compiledClassSha256": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "architecture": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "container": "swg-precu",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the only production aiGetRespectRadius call and its post-P14 player-versus-creature level-difference aggro-radius authority",
+    "preserved": "authored/configured aggro volumes and radii, faction hostility, PvP attackability, interior vertical rejection, line of sight, stealth detection, storyteller combat admission, pet/master compatibility, the native ABI, and the explicit test diagnostic",
+    "notClaimedComplete": "unrelated AI behavior and native level consumers remain governed by their dedicated PRE-CU contracts and the complete native getLevel inventory closure"
+  },
+  "requiredBeforeReady": [
+    "canonical clean Java and x64 server build",
+    "source/work parity and compiled-bytecode verification",
+    "controlled server restart and readiness validation"
+  ]
+}

@@ -154,6 +154,14 @@ Write-Host "Verifying the direct-source PRE-CU dynamic mission difficulty author
     -Expectation Source
 Write-Host "Verifying PRE-CU player-bounty skill and level authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuPlayerBountyLevelAuthority.ps1") -SourceRoot $repositoryRoot -Expectation Source
+Write-Host "Verifying PRE-CU authored AI aggro-radius authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuAiAggroRadiusAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+Write-Host "Verifying the complete native getLevel callsite inventory before build..."
+& (Join-Path $PSScriptRoot "Test-P14NativeGetLevelCallsiteInventoryClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying direct-source post-NGE buff progression retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBuffProgressionRetirement.ps1") `
     -SourceRoot $repositoryRoot
