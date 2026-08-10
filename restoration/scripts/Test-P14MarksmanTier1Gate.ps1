@@ -93,7 +93,7 @@ Assert-Contract -Condition (
     [string]$contract.runtimeSeams.secondaryDefense.status -ceq "live-verified" -and
     [string]$contract.runtimeSeams.attackerWeaponProfiles.status -ceq "live-verified" -and
     [string]$contract.runtimeSeams.ricochetDefense.status -ceq
-        "implemented-build-verified-live-pending") -Name "p14.marksman-tier1.runtime-seams.live-verified"
+        "live-verified") -Name "p14.marksman-tier1.runtime-seams.live-verified"
 
 $blockedTokens = @($contract.materializerPolicy.rejectPatchTextWhileBlocked | ForEach-Object { [string]$_ })
 Assert-Contract -Condition (

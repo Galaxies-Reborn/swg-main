@@ -158,10 +158,12 @@ Assert-Contract -Condition (
     $secondary.Contains('getState(defenderData.id, STATE_BERSERK) > 0') -and
     $secondary.Contains('vehicle.isVehicle(defenderData.id)')) -Name "p14.secondary-defense.runtime.core3-state-suppression"
 Assert-Contract -Condition (
-    $secondary.Contains('int evadeSkill = getLevel(defenderData.id);') -and
+    $secondary.Contains('int evadeSkill = 0;') -and
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, secondaryDefenseSkill)') -and
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_" + secondaryDefenseSkill)') -and
-    $secondary.Contains('if (evadeSkill > 125)')) -Name "p14.secondary-defense.runtime.skill-stack-and-cap"
+    $secondary.Contains('if (evadeSkill > 125)') -and
+    -not $secondary.Contains('getLevel(defenderData.id)') -and
+    [int]$contract.currentAuthority.playerLevelContribution -eq 0) -Name "p14.secondary-defense.runtime.skill-stack-and-cap"
 Assert-Contract -Condition (
     $secondary.Contains('getEnhancedSkillStatisticModifierUncapped(defenderData.id, "private_center_of_being")') -and
     $secondary.Contains('getPrecuRangedDefenseLocomotionModifier(defenderData.locomotion)') -and
