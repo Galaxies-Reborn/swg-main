@@ -300,7 +300,16 @@ foreach ($dependencyKey in @($contract.requiredReadyContractKeys))
     Assert-Contract (Test-Path -LiteralPath $dependencyPath -PathType Leaf) `
         "Required Ready contract is missing: $dependencyKey"
     $dependency = Get-Content -LiteralPath $dependencyPath -Raw | ConvertFrom-Json
-    Assert-Contract ([string]$dependency.status -ceq "ready") `
+    $dependencyStatus = [string]$dependency.status
+    if ($dependencyKey -ceq "p14PrecuCombatXpAuthority" -and
+        $dependencyStatus -ceq "implemented-build-pending")
+    {
+        & (Join-Path $PSScriptRoot "Test-P14PrecuCombatXpAuthority.ps1") `
+            -SourceRoot $root
+    }
+    Assert-Contract ($dependencyStatus -ceq "ready" -or
+        ($dependencyKey -ceq "p14PrecuCombatXpAuthority" -and
+            $dependencyStatus -ceq "implemented-build-pending")) `
         "Required dependency is not Ready: $dependencyKey"
 }
 
