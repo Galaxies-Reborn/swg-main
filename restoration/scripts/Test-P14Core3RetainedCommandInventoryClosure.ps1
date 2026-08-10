@@ -113,15 +113,35 @@ if ($Expectation -ceq "Ready") {
         [bool]$contract.commandBrowserClassification.allRetainedCommandsCategorizedCombat -and
         [bool]$contract.commandBrowserClassification.nonCombatExamplesRemainOther -and
         [bool]$contract.evidenceClosure.readyContractsVerified -and
-        [bool]$contract.evidenceClosure.mcpEvidenceVerified) "M330 closure evidence missing"
+        [bool]$contract.evidenceClosure.mcpEvidenceVerified -and
+        [int]$contract.evidenceClosure.readyContractCoverage -eq 82 -and
+        [int]$contract.evidenceClosure.mcpEvidenceCoverage -eq 82 -and
+        [int]$contract.auditEvidence.missingReadyContracts -eq 0 -and
+        [int]$contract.auditEvidence.missingMcpEvidence -eq 0 -and
+        [int]$contract.auditEvidence.duplicatePatchAdditions -eq 0 -and
+        [int]$contract.auditEvidence.missingHistoricalRows -eq 0 -and
+        [int]$contract.auditEvidence.missingCurrentRows -eq 0 -and
+        [int]$contract.auditEvidence.missingRetainedOwners -eq 0 -and
+        [int]$contract.auditEvidence.uncategorizedCommands -eq 0) "M330 closure evidence missing"
     Assert ($LASTEXITCODE -eq 0 -and
         [string]$contract.deploymentEvidence.result -ceq "passed" -and
         [string]$contract.deploymentEvidence.directSourceCommit -ceq $directCommit -and
+        [string]$contract.deploymentEvidence.directSourceCommit -ceq
+            "65011421af6c91aec8af822803ee944edad7136a" -and
+        [string]$contract.deploymentEvidence.nativeSourceCommit -ceq
+            "e44ba83276ec4c4feb419b32a2ae982a68e1926b" -and
         [string]$contract.deploymentEvidence.architecture -like "ELF 64-bit*" -and
-        [int]$contract.deploymentEvidence.javaSources -eq 5713 -and
-        [int]$contract.deploymentEvidence.javaClasses -eq 5747 -and
-        [string]$contract.deploymentEvidence.commandTableIffSha256 -match '^[a-f0-9]{64}$' -and
-        [int]$contract.deploymentEvidence.commandTableIffBytes -gt 0 -and
+        [int]$contract.deploymentEvidence.javaSources -eq 5717 -and
+        [int]$contract.deploymentEvidence.javaClasses -eq 5751 -and
+        [string]$contract.deploymentEvidence.commandTableIffSha256 -ceq
+            "87b2bf0e709d013f5d04f99c566a426fe4ab8acd270c55bbc7cf86d7b257a874" -and
+        [int]$contract.deploymentEvidence.commandTableIffBytes -eq 879910 -and
+        [string]$contract.deploymentEvidence.serverBinarySha256 -ceq
+            "e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8" -and
+        [string]$contract.deploymentEvidence.serverBinaryBuildId -ceq
+            "0ac0c8a439a388150c4a0f687874d1b38edc9eed" -and
+        [long]$contract.deploymentEvidence.liveBinaryInode -eq 12141610 -and
+        [long]$contract.deploymentEvidence.liveBinaryBytes -eq 22561064 -and
         [bool]$contract.deploymentEvidence.clusterReadyForPlayers -and
         [int]$contract.deploymentEvidence.liveGameProcessCount -eq 15 -and
         [int]$contract.deploymentEvidence.livePlanetProcessCount -eq 15 -and

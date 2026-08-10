@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "core3-unarmed-ability-branch-closure",
-  "status": "implemented-build-verified-live-validation-pending",
+  "status": "ready",
   "scope": "Restore the three Publish-era Teras Kasi ability commands still granted by the PRE-CU skill tree but absent from the NGE-derived command and combat source.",
   "eraEvidence": {
     "publish12CommandTable": {
@@ -70,7 +70,8 @@
     "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
     "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
     "combatSpam": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_spam.tab",
-    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "runtimeFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_unarmed_ability_runtime.java"
   },
   "authority": {
     "commandCategory": "combat",
@@ -80,16 +81,22 @@
   },
   "buildEvidence": {
     "result": "passed",
-    "directSourceCommit": "9e0b91ddcd25d34dec71227f33e67704f14100f7",
+    "directSourceCommit": "65011421af6c91aec8af822803ee944edad7136a",
     "sourceSha256": {
       "combatActions": "62c57e5131fce7bc958351c298605560536e5773849ed5294a613b0b68fe346e",
       "commandTable": "8598fc35b6ba06177f6936f1ef58121ca5314ffc5b3bf90a8ffd04a1f9ebc672",
       "combatData": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
       "combatOverrides": "ed4d713f9902f7f3775ef90f6173e0b09b5a35b104d4d9d581b9e942f48cccba",
-      "combatSpam": "8b3cdf2e47bf39c485eaa331a5832aea65b186b44459f2629fac11ff52ee2eeb"
+      "combatSpam": "8b3cdf2e47bf39c485eaa331a5832aea65b186b44459f2629fac11ff52ee2eeb",
+      "runtimeFixture": "edcc22f68bddef2aa3d8768a2fe44462595cbca0b6ab5bd0f8c2635ada1d9322"
+    },
+    "compiledClassSha256": {
+      "combat_actions.class": "a50d4207df6b1924f43c01802833133329bfa943e80f7ad4cea99bf43c50f5c2",
+      "combat_base.class": "9d26b6788a5c8794381c066ca49137c45bf62d1cb1ef6d36595e127570b56964",
+      "precu_unarmed_ability_runtime.class": "89a10f5588b38ad663b02cd49fac11808d1997acad0775f0738b787e3b409bd7"
     },
     "staticContract": "passed",
-    "x64ServerBuild": "passed: ELF 64-bit LSB x86-64; sha256 50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a; Build ID 566c0ccc35637239d9de4bba3a1f11117a62ddaa",
+    "x64ServerBuild": "passed: ELF 64-bit LSB x86-64; sha256 e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8; Build ID 0ac0c8a439a388150c4a0f687874d1b38edc9eed; 22561064 bytes; inode 12141610",
     "datatableCompile": {
       "result": "passed",
       "commandTable": "87b2bf0e709d013f5d04f99c566a426fe4ab8acd270c55bbc7cf86d7b257a874",
@@ -97,16 +104,161 @@
       "combatOverrides": "fc002fe002096253a497f395f0898e23896c2fe893bdb61e0297ba4d05b695ab",
       "combatSpam": "9ef711118aca15cf2efdbcbad4156112794db27baa87b9f2d98a3507bd7a63a3"
     },
-    "javaCompile": "passed: 5713 sources; 5747 classes; combat_actions.class sha256 a50d4207df6b1924f43c01802833133329bfa943e80f7ad4cea99bf43c50f5c2",
-    "deployment": "passed: pushed parent c2ec662 and dsrc b0ee5aa; healthy player-ready swg-precu started 2026-08-09T15:14:46.370747928Z; 15 game and 15 planet processes; zero suspicious fresh-log lines"
+    "javaCompile": "passed: 5717 sources; 5751 classes; runtime fixture and production combat classes compiled into the direct build volume",
+    "deployment": "passed: direct source 65011421af6c91aec8af822803ee944edad7136a pushed; deployed against parent baseline efb4e24a473a5cb0d2d0ed71b45c31bc4b5a54ea and native source e44ba83276ec4c4feb419b32a2ae982a68e1926b; healthy player-ready swg-precu started 2026-08-10T02:16:10.510115161Z; 15 game and 15 planet processes; zero suspicious delayed-audit lines"
   },
   "runtimeEvidence": {
-    "result": "pending",
-    "required": [
-      "Each command enters the combat queue and resolves with an unarmed weapon.",
-      "unarmedDizzy1 applies its defended 30-second Dizzy state on a successful state roll.",
-      "unarmedCombo1 and unarmedCombo2 distribute one attack's damage across Health, Action, and Mind with server-generated ratios.",
-      "HAM costs, cadence, animation, and command-name combat spam match the restored metadata."
-    ]
-  }
+    "result": "passed",
+    "observedDate": "2026-08-10",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-10T02:16:10.510115161Z",
+    "containerHealthy": true,
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "serverProcessId": 383,
+    "liveProcessMappedBuiltBinary": true,
+    "liveBinaryInode": 12141610,
+    "liveBinarySize": 22561064,
+    "primaryClient": {
+      "processId": 52252,
+      "processName": "Galaxies Reborn PRECU",
+      "stationId": 91001,
+      "playerOid": 44003778,
+      "avatar": "PrecuRuntime",
+      "remainedOpenAndResponsive": true
+    },
+    "fixture": {
+      "script": "test.precu_unarmed_ability_runtime",
+      "protocolVersion": 3,
+      "lifecycle": "64664664664664664664664664664664",
+      "authoritative": true,
+      "playerOid": 44003778,
+      "stationId": 91001,
+      "targetOid": 6615140303,
+      "targetCreature": "worrt",
+      "targetDisposable": true,
+      "targetLocation": "tatooine:1005,terrain,1000",
+      "targetVisible": true,
+      "pvpAdmissionReassertedBeforeEveryArm": true,
+      "skillBits": "111111111111",
+      "commandBits": "111",
+      "preparedAvailableSkillPoints": 51,
+      "originalAvailableSkillPoints": 100,
+      "weaponTemplate": "object/weapon/melee/unarmed/unarmed_default_player.iff",
+      "weaponType": 6,
+      "heldWeapon": "none",
+      "combatActionsScriptRemainedProductionHandler": true,
+      "fixtureObservedFailureHookOnly": true
+    },
+    "commands": {
+      "unarmedDizzy1": {
+        "result": "passed",
+        "queuedExecutions": 2,
+        "failureHook": "none",
+        "traceStage": "HIT_ENGINE",
+        "diagnosticAction": "unarmedDizzy1",
+        "primaryResult": "HIT",
+        "expectedHamCosts": [6, 15, 17],
+        "observedHamCosts": [6, 15, 17],
+        "costsMatch": true,
+        "targetPoolConfigured": 3,
+        "targetPoolResolved": 1,
+        "stateType": 1,
+        "stateDurationBaseSeconds": 30,
+        "stateResolvedDurationSeconds": 30,
+        "stateResult": "APPLIED",
+        "targetDizzyState": true,
+        "targetDizzyBuff": true,
+        "animation": "attack_special_wookiee_slap_medium",
+        "animationType": 2,
+        "spamKey": "cmd_n:unarmedDizzy1",
+        "damagePipeline": "PRECU_CORE3",
+        "cadence": {
+          "executionTimes": [46457.260, 46458.369],
+          "observedGapSeconds": 1.109,
+          "assignedIntervalSeconds": 1.0,
+          "weaponSpeed": 2.0,
+          "familySpeedModifier": 95,
+          "otherSpeedModifiers": 0
+        }
+      },
+      "unarmedCombo1": {
+        "result": "passed",
+        "queuedExecutions": 2,
+        "failureHook": "none",
+        "traceStage": "HIT_ENGINE",
+        "diagnosticAction": "unarmedCombo1",
+        "primaryResult": "HIT",
+        "expectedHamCosts": [6, 15, 17],
+        "observedHamCosts": [6, 15, 17],
+        "costsMatch": true,
+        "targetPoolConfigured": 4,
+        "targetPoolResolved": 4,
+        "poolMultipliers": [0.89, 0.1, 0.01],
+        "multiplierTotal": 1.0,
+        "poolDamageApplied": [631, 71, 7],
+        "animation": "combo_4b_medium",
+        "animationType": 2,
+        "spamKey": "cmd_n:unarmedCombo1",
+        "damagePipeline": "PRECU_CORE3",
+        "cadence": {
+          "executionTimes": [46516.524, 46517.626],
+          "observedGapSeconds": 1.102,
+          "assignedIntervalSeconds": 1.0,
+          "weaponSpeed": 2.0,
+          "familySpeedModifier": 95,
+          "otherSpeedModifiers": 0
+        }
+      },
+      "unarmedCombo2": {
+        "result": "passed",
+        "queuedExecutions": 2,
+        "failureHook": "none",
+        "traceStage": "HIT_ENGINE",
+        "diagnosticAction": "unarmedCombo2",
+        "primaryResult": "HIT",
+        "expectedHamCosts": [8, 20, 23],
+        "observedHamCosts": [8, 20, 23],
+        "costsMatch": true,
+        "targetPoolConfigured": 4,
+        "targetPoolResolved": 4,
+        "poolMultipliers": [0.357143, 0.357143, 0.285714],
+        "multiplierTotal": 1.0,
+        "poolDamageApplied": [372, 372, 297],
+        "animation": "combo_4a_medium",
+        "animationType": 2,
+        "spamKey": "cmd_n:unarmedCombo2",
+        "damagePipeline": "PRECU_CORE3",
+        "cadence": {
+          "executionTimes": [46529.673, 46530.774],
+          "observedGapSeconds": 1.101,
+          "assignedIntervalSeconds": 1.0,
+          "weaponSpeed": 2.0,
+          "familySpeedModifier": 95,
+          "otherSpeedModifiers": 0
+        }
+      }
+    },
+    "cleanup": {
+      "firstCleanupAlreadyClean": false,
+      "firstCleanupRestored": true,
+      "secondCleanupAlreadyClean": true,
+      "secondCleanupRestored": true,
+      "availableSkillPointsRestored": 100,
+      "exactSkillAndCommandBitsRestored": true,
+      "exactLocationPostureLocomotionHamWoundsRegenShockWeaponAndScriptsRestored": true,
+      "disposableTargetDestroyed": true
+    },
+    "delayedErrorAudit": {
+      "fatalLines": 0,
+      "exceptionLines": 0,
+      "errorLines": 0,
+      "restorationFailureLines": 0,
+      "result": "passed"
+    }
+  },
+  "requiredBeforeReady": []
 }
