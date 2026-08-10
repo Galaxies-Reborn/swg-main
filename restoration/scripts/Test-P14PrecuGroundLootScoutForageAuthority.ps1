@@ -13,11 +13,22 @@ $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14Precu
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
     if ($Condition) { Write-Host "  [PASS] $Name" }
     else { Write-Host "  [FAIL] $Name"; $failures.Add($Name) }
+}
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try
+    {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant()
+    }
+    finally { $sha.Dispose() }
 }
 
 function Get-FunctionSlice([string]$Text, [string]$Start, [string]$Next)
@@ -63,6 +74,84 @@ foreach ($name in $paths.Keys)
             "p14.ground-loot-forage.source.$name.authenticated"
     }
 }
+
+$lootLotteryRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.inventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+        "p14.ground-loot-forage.loot-lottery.inventory-line-parsed"
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    Assert-Contract ($absolutePath.StartsWith(
+        $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) `
+        "p14.ground-loot-forage.loot-lottery.inventory-contained"
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $lootLotteryRecords.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
+}
+$lootLotteryRecords = @($lootLotteryRecords | Sort-Object)
+$lootLotteryPaths = @($lootLotteryRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') `
+        "p14.ground-loot-forage.loot-lottery.path-isolated"
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedLootLotteryPaths = @($contract.inventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($lootLotteryRecords.Count -eq [int]$contract.inventory.handlers -and
+    $lootLotteryRecords.Count -eq [int]$contract.expected.lootLotteryCallbacks -and
+    $lootLotteryPaths.Count -eq [int]$contract.inventory.sourceFiles -and
+    ($lootLotteryPaths -join "`n") -ceq ($expectedLootLotteryPaths -join "`n") -and
+    (Get-TextSha256 ($lootLotteryRecords -join "`n")) -ceq [string]$contract.inventory.inventorySha256 -and
+    (Get-TextSha256 ($lootLotteryPaths -join "`n")) -ceq [string]$contract.inventory.sourceSetSha256) `
+    "p14.ground-loot-forage.loot-lottery.complete-inventory"
+
+$lootLotterySupportingPaths = [ordered]@{
+    "corpse/ai_corpse.java" = Join-Path $scriptRoot "corpse/ai_corpse.java"
+    "test/tford_test.java" = Join-Path $scriptRoot "test/tford_test.java"
+}
+$lootLotterySupportingTexts = @{}
+foreach ($entry in $lootLotterySupportingPaths.GetEnumerator())
+{
+    Assert-Contract (Test-Path -LiteralPath $entry.Value -PathType Leaf) `
+        "p14.ground-loot-forage.loot-lottery.source.$($entry.Key).exists"
+    if (Test-Path -LiteralPath $entry.Value -PathType Leaf)
+    {
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Value).Hash.ToLowerInvariant()
+        Assert-Contract ($actualHash -ceq [string]$contract.buildEvidence.supportingSourceSha256.($entry.Key)) `
+            "p14.ground-loot-forage.loot-lottery.source.$($entry.Key).authenticated"
+        $lootLotterySupportingTexts[$entry.Key] = Get-Content -LiteralPath $entry.Value -Raw
+    }
+}
+$corpseLottery = Get-FunctionSlice `
+    ([string]$lootLotterySupportingTexts["corpse/ai_corpse.java"]) `
+    "public int OnLootLotterySelected(" `
+    "public int __missing_after_last_method("
+$developerLotteryText = [string]$lootLotterySupportingTexts["test/tford_test.java"]
+$developerLottery = Get-FunctionSlice $developerLotteryText `
+    "public int OnLootLotterySelected(" `
+    "public int OnHearSpeech("
+$developerAttach = Get-FunctionSlice $developerLotteryText `
+    "public int OnAttach(" `
+    "public int OnLocomotionChanged("
+$ngeLotteryPatterns = @(
+    '\baddRareLoot\s*\(', '\baddBeastEnzymes\s*\(', '\baddChronicleLoot\s*\(',
+    '\bscheduled_drop\b', '\bgetLevel\s*\(', '\bsetLevel\s*\('
+)
+$ngeLotteryMatches = @($ngeLotteryPatterns | Where-Object {
+    [regex]::IsMatch($corpseLottery, $_)
+})
+Assert-Contract ([int]$contract.inventory.productionCorpseHandlers -eq
+        [int]$contract.expected.lootLotteryProductionCorpseCallbacks -and
+    [int]$contract.inventory.guardedDeveloperHandlers -eq
+        [int]$contract.expected.lootLotteryGuardedDeveloperCallbacks -and
+    $corpseLottery.Contains('getIntObjVar(self, "numWindowsOpen")') -and
+    $corpseLottery.Contains('setObjVar(thisObject, "lotteryPlayer1", player)') -and
+    $corpseLottery.Contains('setObjVar(thisObject, "numLotteryPlayers", numLotteryPlayers)') -and
+    $ngeLotteryMatches.Count -eq [int]$contract.expected.lootLotteryNgeRewardInjections -and
+    $developerLottery.Contains('debugConsoleMsg(self, "loot lottery by "') -and
+    $developerAttach.Contains("!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self)") -and
+    [regex]::Matches($developerAttach, 'detachScript\(self, "test\.tford_test"\)').Count -eq
+        [int]$contract.expected.lootLotteryDeveloperSelfDetachGuards -and
+    [bool]$contract.expected.precuGroupLootLotteryPreserved) `
+    "p14.ground-loot-forage.loot-lottery.precu-authority"
 
 $loot = [string]$texts["script.library.loot"]
 $playerUtility = [string]$texts["script.player.player_utility"]

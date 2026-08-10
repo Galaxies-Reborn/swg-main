@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-precu-ground-loot-scout-forage-authority",
   "status": "ready",
-  "scope": "Restore Publish 14.1 authored creature loot and Scout foraging while preventing global NGE reward systems or visible combat-level rules from taking precedence over ordinary ground kills and retained treasure-map content.",
+  "scope": "Restore Publish 14.1 authored creature loot, group loot lottery, and Scout foraging while preventing global NGE reward systems or visible combat-level rules from taking precedence over ordinary ground kills and retained treasure-map content. Close the complete OnLootLotterySelected callback inventory.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -15,10 +15,25 @@
     ],
     "findings": [
       "Normal creature loot is selected from the defeated creature's authored loot groups; it is not supplemented by player-level RLS chests, Beast Master enzymes, Chronicles fragments, or scheduled TCG cards.",
+      "Pinned Publish 14.1 Core3 registers GroupLootCommand and implements LootLotterySession, ballots, player selections, timeout, and lottery draw; group loot lottery is authenticated PRE-CU behavior rather than an NGE reward system.",
       "Scout forage is a single delayed task, costs Quickness-adjusted Action, fails if the player moves more than two meters or enters combat, and exhausts a ten-meter area after three attempts for thirty minutes.",
       "Scout forage chance is min(100, 15 + foraging * 0.8), tested against a random roll from zero through eighty.",
       "Successful forage awards authored food on rolls 0-159, bait on 160-199, and a treasure map on 200, with independent bonus-item chances at Scout Camps III and Scout Master.",
       "The nine later treasure-map bands are retained content, not PRE-CU player progression: selection and ambush scaling consume the hidden PRE-CU combat-skill difficulty adapter and expose no combat-level stat or language."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnLootLotterySelected\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 2,
+    "productionCorpseHandlers": 1,
+    "guardedDeveloperHandlers": 1,
+    "inventorySha256": "16837804d662378ea3b4cf624239dac89fdee9cdd04d832d44fbc4b852a10b2e",
+    "sourceSetSha256": "d53a7ea6865973374bd130e1ebfeca0facf0e4888864ba5691591fd7609c9933",
+    "sourcePaths": [
+      "corpse/ai_corpse.java",
+      "test/tford_test.java"
     ]
   },
   "expected": {
@@ -26,6 +41,12 @@
     "cashLootPreserved": true,
     "collectionLootPreserved": true,
     "creatureResourceMarkerPreserved": true,
+    "lootLotteryCallbacks": 2,
+    "lootLotteryProductionCorpseCallbacks": 1,
+    "lootLotteryGuardedDeveloperCallbacks": 1,
+    "lootLotteryNgeRewardInjections": 0,
+    "lootLotteryDeveloperSelfDetachGuards": 1,
+    "precuGroupLootLotteryPreserved": true,
     "explicitGoldenTicketEventPreserved": true,
     "globalNgeRlsChestInjection": false,
     "globalBeastMasterEnzymeInjection": false,
@@ -88,6 +109,10 @@
       "datatables.item.master_item.master_item": "d40f3f5cc7f42d1f2d318a06df8a146be5455b084ddf5fdd5a08bbfb3a7c6f3d",
       "datatables.treasure_map.treasure_map": "3c3b7724419dd27cc1153354f660cda5234ad5a9d794ef0e37c613d51e8ea1b2"
     },
+    "supportingSourceSha256": {
+      "corpse/ai_corpse.java": "010ecb395a3f43fd0dfa5e6f2a3aa7add5893a9589a6227efe79b8c4df53c335",
+      "test/tford_test.java": "82630c32a22bca81a60d59ed7a4535641f3217173cfa6a20b4bd75630c25963b"
+    },
     "fullJavaCompile": "passed in the 873.1-second canonical clean x64 deployment from pushed parent 6434cdf99720109bbdec4c9f5afe19ef3ab6d3e0 and direct dsrc 0e750f699d681ae9bb20047ed23dedb98921ebe3; 5713 Java sources produced 5747 classes",
     "compiledClassSha256": {
       "script.library.loot": "f3753772038da4452b4c65c2c7065e90172999e06ab2575d6142adeb5deecac0",
@@ -135,7 +160,7 @@
     "missionTerminalContinuity": "user confirmed mission terminals working in-world after running into interaction range; authenticated mission sources remained unchanged through deployment"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "ordinary ground-corpse loot injection, the Scout forage command/reward loop, and retained treasure-map band selection/ambush authority",
+    "closedInThisMilestone": "ordinary ground-corpse loot injection, the complete OnLootLotterySelected callback inventory, the Scout forage command/reward loop, and retained treasure-map band selection/ambush authority",
     "retainedContent": "authored creature loot, cash, collections, quest-created rewards, persisted later-era reward items, and the explicitly configured golden-ticket event",
     "notClaimedComplete": "other dormant later reward mechanics remain in the broader PRE-CU precedence audit"
   },
