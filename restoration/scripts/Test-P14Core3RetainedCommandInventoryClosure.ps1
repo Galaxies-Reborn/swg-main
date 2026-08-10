@@ -127,7 +127,7 @@ if ($Expectation -ceq "Ready") {
         [string]$contract.deploymentEvidence.result -ceq "passed" -and
         [string]$contract.deploymentEvidence.directSourceCommit -ceq $directCommit -and
         [string]$contract.deploymentEvidence.directSourceCommit -ceq
-            "65011421af6c91aec8af822803ee944edad7136a" -and
+            "7dab96a595ee5f24166da6241f603e238116d226" -and
         [string]$contract.deploymentEvidence.nativeSourceCommit -ceq
             "e44ba83276ec4c4feb419b32a2ae982a68e1926b" -and
         [string]$contract.deploymentEvidence.architecture -like "ELF 64-bit*" -and

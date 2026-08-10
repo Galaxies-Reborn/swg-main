@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-player-level-table-service-retirement",
+  "status": "ready",
+  "scope": "Retire the Java player_levels service as NGE player progression authority while preserving its compatibility types, private loaders, and later-era source data.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "fa82ea3b73065c11d33556a9d51b711117985bc0",
+    "findings": [
+      "Publish 14.1 HAM, regeneration, and secondary attributes are not derived from a singular profession plus level table.",
+      "Publish 14.1 characters own independent skill boxes rather than one class-template roadmap.",
+      "Compatibility data and types may remain available for retained later content, but public player progression loaders must fail closed."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\b(getPlayerLevelData|getSkillTemplateData|loadLevelData|loadSkillTemplateData)\\s*\\(",
+    "javaSources": 5717,
+    "callSites": 5,
+    "sourceFiles": 2,
+    "inventorySha256": "161baf02052b38e4c55687204ffbadbd8ef8e6e5408a59f0fe7f05e5779cb7db",
+    "sourceSetSha256": "b7a60ad59ccb0f9a86d2cf3bb58326b5249dec86a1b5ea71ef754fd18c11b3bd",
+    "sourceContentSha256": "7bf6dc261016acc41dd885442ca857266b566492681094c5eccb11a435c93e10",
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/library/skill.java": 1,
+      "sku.0/sys.server/compiled/game/script/player_levels.java": 4
+    }
+  },
+  "classification": {
+    "compatibilityImplementation": {
+      "callSites": 4,
+      "inventorySha256": "08e4cd27df23cbc6bbc190c08af5f02881fed0231d8f50557d8b544c48f1babb",
+      "authority": "Two public null adapters plus two unreachable private loaders retained for source and data compatibility."
+    },
+    "retiredRespecConsumer": {
+      "callSites": 1,
+      "inventorySha256": "c02688bc144c5c161f6e5bdc55f1293e96d8a390cb28a57e4b3e9625a5b7d2dc",
+      "authority": "The sole external template lookup receives null and is consumed only by two fail-closed NGE respec version helpers."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-java-player-level-callsite-inventory-closure.json",
+    "p14-java-skill-template-callsite-inventory-closure.json",
+    "p14-native-precu-player-difficulty-authority.json",
+    "p14-respec-autolevel-entrypoint-retirement.json",
+    "p14-skill-library-progression-retirement.json"
+  ],
+  "expected": {
+    "publicPlayerLevelData": null,
+    "publicSkillTemplateData": null,
+    "externalPlayerLevelDataConsumers": 0,
+    "externalSkillTemplateDataConsumers": 1,
+    "skillProfessionNameConsumers": 2,
+    "respecVersionMutationReachable": false,
+    "privateCompatibilityLoadersPreserved": true,
+    "playerLevelTableReferencePreserved": true,
+    "skillTemplateTableReferencePreserved": true,
+    "gameplaySourceFilesChanged": 1
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "7dab96a595ee5f24166da6241f603e238116d226",
+    "nativeSourceCommit": "e44ba83276ec4c4feb419b32a2ae982a68e1926b",
+    "sourceSha256": {
+      "player_levels.java": "7b23d8a84ad2057e36e67c8c13a514f6a096e512bedf57128097af71ea855838",
+      "skill.java": "cac72d8a614b074d2a3591cc617e0b988f0e4b8401fe0ac0eccd1c2e83a43a32"
+    },
+    "javaCompile": "passed canonical clean x64 dependency rebuild in 373.7 seconds (5717 Java sources -> 5751 classes)",
+    "classSha256": "dfaba0c3a99542f1d71167ed28d006b1d5428e3d622d79c3f90344b68e57e8aa",
+    "classBytes": 3359,
+    "serverBinarySha256": "e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8",
+    "serverBinaryBuildId": "0ac0c8a439a388150c4a0f687874d1b38edc9eed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T03:02:37.7404135-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-10T07:01:16.806234084Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141610,
+    "liveBinaryBytes": 22561064,
+    "devShmResidueEntries": 0,
+    "freshLogAudit": "358 lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "both public Java player_levels loaders, their complete callsite inventory, the sole skill-library bridge, and both downstream respec-version consumers",
+    "preserved": "PRE-CU skill-box/XP progression, private compatibility loaders and data classes, later-era level/template data, NGE quests and zones, and link-compatible Java method signatures",
+    "notClaimedComplete": "unrelated later-era gameplay systems outside the Java player_levels service remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}

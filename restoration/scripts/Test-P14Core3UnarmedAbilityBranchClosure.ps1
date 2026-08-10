@@ -215,7 +215,7 @@ if ($Expectation -ceq "Ready") {
         [string]$runtime.result -ceq "passed" -and
         @($contract.requiredBeforeReady).Count -eq 0) "Unarmed ability branch lacks ready live evidence"
     Assert ([string]$contract.buildEvidence.directSourceCommit -ceq
-            "65011421af6c91aec8af822803ee944edad7136a" -and
+            "7dab96a595ee5f24166da6241f603e238116d226" -and
         [string]$contract.buildEvidence.compiledClassSha256.'combat_actions.class' -ceq
             "a50d4207df6b1924f43c01802833133329bfa943e80f7ad4cea99bf43c50f5c2" -and
         [string]$contract.buildEvidence.compiledClassSha256.'combat_base.class' -ceq

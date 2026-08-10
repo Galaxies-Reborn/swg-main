@@ -258,6 +258,10 @@ Write-Host "Verifying canonical PRE-CU admin and test-center skill authority bef
 & (Join-Path $PSScriptRoot "Test-P14PrecuAdminSkillAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build
+Write-Host "Verifying Java player-level table service retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14JavaPlayerLevelTableServiceRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1") `
     -SourceRoot $repositoryRoot
 Write-Host "Verifying native NGE skill and blank-ability command admission retirement before build..."
