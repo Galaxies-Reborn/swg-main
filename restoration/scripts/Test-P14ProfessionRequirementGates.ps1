@@ -211,6 +211,26 @@ if ($advancedSearchText -match '@ui_roadmap:' -or
     throw "NGE class roadmap values remain in bazaar search metadata."
 }
 
+$centralConsolePath = Join-Path $root ([string]$contract.sourceFiles.centralConsole)
+$centralConsole = Get-Content -LiteralPath $centralConsolePath -Raw
+$runScriptStart = $centralConsole.IndexOf('if(cmd == "runScript")',
+    [System.StringComparison]::Ordinal)
+$systemMessageStart = $centralConsole.IndexOf('else if(cmd == "systemMessage")',
+    $runScriptStart, [System.StringComparison]::Ordinal)
+if ($runScriptStart -lt 0 -or $systemMessageStart -lt 0)
+{
+    throw "Central ServerConsole runScript handler is missing."
+}
+$runScriptSlice = $centralConsole.Substring($runScriptStart,
+    $systemMessageStart - $runScriptStart)
+if (-not [bool]$contract.expected.serverConsoleScriptParametersReconstructedFromForwardedTokens -or
+    -not $runScriptSlice.Contains("for(unsigned int i = 5; i < argv.size(); ++i)") -or
+    -not $runScriptSlice.Contains("strParam += argv[i];") -or
+    $runScriptSlice.Contains("originalMessage.find(argv[4])"))
+{
+    throw "ServerConsole script parameters are not reconstructed from the complete forwarded token vector."
+}
+
 if ($Expectation -eq "Ready")
 {
     if ($contract.status -ne "ready" -or $contract.runtimeEvidence.result -ne "passed")
