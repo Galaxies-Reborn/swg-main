@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-dynamic-mission-difficulty-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Keep retained mission boards, NPC jobs, expansion quests, and authored mission difficulty bands while preventing the removed NGE player combat level from regaining authority through residual or reactivated dynamic-mission helpers.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -60,56 +60,53 @@
       "npcMission05": "b2d683c4299b279030af0064ac567d22320332e9f25beeb8d6f380a506ab86a5"
     },
     "compiledClassSha256": {
-      "missionDynamic": "22e7dac5911e6f9c60f6af5f90a3834417ffd183c8e400a6fd09650ff3fcc1b1",
+      "missionDynamic": "3dfdbdb15f3e7ca617dbbac7cbffcc22cad4e2445ca40af074c3652b14da2a37",
       "missionEscort": "a57bc9f86007202cf99f41f8b89de0bec0ba9eddfe25bb32e9336e2b55d1405a"
     },
     "sourceTest": "passed; the mission tree contains no raw player combat-level reads, both retained planet helpers use PRE-CU skill difficulty, the unused escort read is absent, and all production mission difficulty consumers remain preserved",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, mission_dynamic_base.class was emitted 2026-08-04T17:32:41Z, and mission_escort_npc.class was emitted 2026-08-04T17:32:46Z",
-    "fullServerBuild": "passed in 742.6 seconds from pushed parent 07ddd6ce047ac5776e14aed4b64c3e842d09a998 and direct dsrc df6fb89ebd9c7ecb1b9759c34ba06f5448123b4b",
+    "fullJavaCompile": "passed after deleting every compiled Java class; 5717 sources produced 5751 classes and mission_dynamic_base.class was emitted 2026-08-10T08:38:23Z",
+    "fullServerBuild": "passed in 937.9 seconds from pushed parent 25cb74c, direct dsrc e3c1112513009c915eb6e5f22be2beffd02e4de8, and native src 4511b725f099886c3c5f3e97df6f2f3ed9d81de8",
     "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
+    "serverBinarySha256": "dd82d28b1f011d5b6234b8948befc620dbae3c63c67a88a97980134f6a18ad97",
+    "serverBinaryBuildId": "b3434e343d7f36fcc2de45a01cb59ee92a40a67c",
     "sourceWorkParity": "passed byte-for-byte for mission_dynamic_base.java and mission_escort_npc.java; source and work SHA-256 pairs are identical",
     "bytecodeAudit": "mission_dynamic_base.class contains exactly two skill.getPrecuEncounterDifficulty calls and zero getLevel calls; mission_escort_npc.class contains zero getLevel calls",
     "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused mission bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "pending"
+    "result": "passed"
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
+    "date": "2026-08-10",
     "container": "swg-precu",
     "sourceMountReadOnly": true,
     "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-04T17:39:05.907116357Z",
+    "containerStartedAt": "2026-08-10T08:47:35.457999119Z",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
     "compiledClassesPresent": true,
     "compiledClassSizes": {
-      "missionDynamic": 85395,
+      "missionDynamic": 85348,
       "missionEscort": 5980
     },
     "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 364,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
+    "liveGameProcessPid": 373,
+    "liveBinaryInode": 12141706,
+    "liveBinarySize": 22560392,
     "liveBinaryMapEntries": 2,
     "processCounts": {
       "LoginServer": 1,
       "TaskManager": 1,
       "ConnectionServer": 1,
       "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
+      "PlanetServer": 15,
+      "SwgGameServer": 15
     },
-    "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
-    "result": "pending"
+    "postStartLogAudit": "357 lines; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches; player-ready markers present",
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "the last three raw NGE player combat-level reads in the production mission script tree",
     "preserved": "mission-board generation, ten held missions, 24-player parties, full unsplit group credits, PRE-CU skill-box group scoring, retained NPC job conversations, authored mission-object difficulty, planet bands and feedback strings, expansion quests, and later content",
     "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": [
-    "Rebuild mission_dynamic_base.class from direct dsrc e3c1112513009c915eb6e5f22be2beffd02e4de8",
-    "Verify the healthy x64 runtime maps the rebuilt server binary"
-  ]
+  "requiredBeforeReady": []
 }
