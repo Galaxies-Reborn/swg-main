@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Build", "Ready")]
+    [string]$Expectation = "Build"
 )
 
 Set-StrictMode -Version Latest
@@ -78,6 +81,7 @@ Assert-Contract ($rifle.Count -eq 1 -and $rifle[0].accuracySkill -ceq "rifle_acc
     $twoHand.Count -eq 1 -and $twoHand[0].armorPiercing -ceq "2") "p14.hit-closure.catalog.representative-profiles"
 
 $combat = Get-Content -LiteralPath $paths.combatBase -Raw
+$runtimeFixture = Get-Content -LiteralPath $paths.runtimeFixture -Raw
 Assert-Contract ($combat.Contains('public int getPrecuWeaponProfileRow(weapon_data weaponData)') -and
     $combat.Contains('public int getPrecuWeaponFamilyProfileRow(int weaponType)') -and
     $combat.Contains('return getPrecuWeaponFamilyProfileRow(weaponData.weaponType);')) "p14.hit-closure.runtime.exact-then-family"
@@ -94,6 +98,87 @@ Assert-Contract ($combat.Contains('jedi.isLightsaber(defenderWeapon) ||') -and
 Assert-Contract ($combat.Contains('hasObjVar(attacker, "precu.combatProfile"))') -and
     $combat.Contains('combat.PRECU_TARGET_POOL_RANDOM')) "p14.hit-closure.runtime.profiled-random-pool"
 Assert-Contract (@("implemented-build-pending", "ready-for-live-verification", "ready") -contains [string]$contract.status) "p14.hit-closure.contract.status"
+Assert-Contract ($runtimeFixture.Contains("PLAYER_OID = 44003778L") -and
+    $runtimeFixture.Contains('ATTACK_COMMAND = "creatureMeleeAttack"') -and
+    $runtimeFixture.Contains('action=armCombatDiagnostics') -and
+    $runtimeFixture.Contains('action=diagnostics result=') -and
+    $runtimeFixture.Contains('action=cleanup alreadyClean=true restored=true') -and
+    $runtimeFixture.Contains('forceDestroy(object);')) `
+    "p14.hit-closure.runtime-fixture-identity-bound-and-reversible"
+
+if ($Expectation -eq "Ready")
+{
+    $runtime = $contract.liveEvidence
+    Assert-Contract ([string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$runtime.result -ceq "passed" -and
+        @($contract.requiredBeforeReady).Count -eq 0) `
+        "p14.hit-closure.ready-evidence-complete"
+
+    $fixtureHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $paths.runtimeFixture).
+        Hash.ToLowerInvariant()
+    Assert-Contract ($fixtureHash -ceq
+        [string]$contract.buildEvidence.runtimeFixtureSourceSha256 -and
+        [string]$contract.buildEvidence.runtimeFixtureJavaCompile -ceq "passed") `
+        "p14.hit-closure.ready-fixture-build"
+
+    $dsrcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "dsrc" })
+    $srcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "src" })
+    $checkedOutDsrc = (& git -C (Join-Path $source "dsrc") rev-parse HEAD).Trim()
+    $dsrcExit = $LASTEXITCODE
+    $checkedOutSrc = (& git -C (Join-Path $source "src") rev-parse HEAD).Trim()
+    $srcExit = $LASTEXITCODE
+    Assert-Contract ($dsrcExit -eq 0 -and $srcExit -eq 0 -and
+        $dsrcPin.Count -eq 1 -and $srcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq
+            [string]$contract.buildEvidence.directSourceGitlink -and
+        [string]$srcPin[0].commit -ceq
+            [string]$contract.buildEvidence.nativeSourceCommit -and
+        $checkedOutDsrc -ceq
+            [string]$contract.buildEvidence.directSourceGitlink -and
+        $checkedOutSrc -ceq
+            [string]$contract.buildEvidence.nativeSourceCommit) `
+        "p14.hit-closure.ready-source-pins"
+
+    $hit = $runtime.hitResolution
+    Assert-Contract ([string]$hit.primaryResult -ceq "HIT" -and
+        [double]$hit.primaryAccuracyBonus -eq 0.0 -and
+        [double]$hit.primaryHitChance -eq 97.5 -and
+        [string]$hit.secondaryProfile -ceq "RANDOM" -and
+        [string]$hit.secondaryResult -ceq "HIT" -and
+        [int]$hit.targetPoolResolved -eq 1 -and
+        -not [bool]$hit.inheritedNgeFallbackObserved -and
+        [string]$hit.result -ceq "passed") `
+        "p14.hit-closure.ready-live-core3-hit-resolution"
+
+    $cadence = $runtime.cadence
+    Assert-Contract ([int]$cadence.attackEvents -ge 3 -and
+        [double]$cadence.assignedIntervalSeconds -eq 2.0 -and
+        [double]$cadence.minimumObservedConsecutiveSeconds -ge 1.95 -and
+        [int]$cadence.pairsBelow1_95Seconds -eq 0 -and
+        [string]$cadence.result -ceq "passed") `
+        "p14.hit-closure.ready-live-cadence"
+
+    Assert-Contract ([bool]$runtime.fixtureCleanup.firstCleanupRestored -and
+        [bool]$runtime.fixtureCleanup.secondCleanupAlreadyClean -and
+        [bool]$runtime.fixtureCleanup.cadenceStableAfterCleanup -and
+        [int]$runtime.fixtureCleanup.delayedErrorCount -eq 0 -and
+        -not [bool]$runtime.fixtureCleanup.playerStateMutated -and
+        [bool]$runtime.environment.sourceAndBuildVolumeMatch -and
+        [bool]$runtime.environment.liveProcessMappedBuiltBinary -and
+        [bool]$runtime.environment.serverHealthy -and
+        [bool]$runtime.environment.clusterReadyForPlayers -and
+        [int]$runtime.environment.PlanetServer -eq 15 -and
+        [int]$runtime.environment.SwgGameServer -eq 15 -and
+        [bool]$runtime.environment.primaryClientRemainedOpenAndResponsive) `
+        "p14.hit-closure.ready-live-environment-and-cleanup"
+}
+
+$contractText = Get-Content -LiteralPath (Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14Core3HitResolutionClosure)) -Raw
+Assert-Contract (-not $contractText.Contains("/Artifacts/") -and
+    -not $contractText.Contains("/Staging/")) `
+    "p14.hit-closure.no-host-staging"
 
 if ($failures.Count -gt 0)
 {

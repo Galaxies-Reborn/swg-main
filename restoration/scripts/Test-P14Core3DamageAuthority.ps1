@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Build", "Ready")]
+    [string]$Expectation = "Build"
 )
 
 Set-StrictMode -Version Latest
@@ -28,8 +31,10 @@ $combatActionsPath = Join-Path $source ([string]$contract.sourceFiles.combatActi
 $basePlayerPath = Join-Path $source ([string]$contract.sourceFiles.basePlayer)
 $profilesPath = Join-Path $source ([string]$contract.sourceFiles.weaponProfiles)
 $generatorPath = Join-Path $restorationRoot (([string]$contract.sourceFiles.generator).Substring("restoration/".Length))
+$runtimeFixturePath = Join-Path $source ([string]$contract.sourceFiles.runtimeFixture)
 foreach ($path in @($combatPath, $combatLibraryPath, $xpPath, $gcwPath,
-    $combatActionsPath, $basePlayerPath, $profilesPath, $generatorPath))
+    $combatActionsPath, $basePlayerPath, $profilesPath, $generatorPath,
+    $runtimeFixturePath))
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) "p14.damage-authority.source.$([IO.Path]::GetFileName($path))"
 }
@@ -68,6 +73,7 @@ $xp = Get-Content -LiteralPath $xpPath -Raw
 $gcw = Get-Content -LiteralPath $gcwPath -Raw
 $combatActions = Get-Content -LiteralPath $combatActionsPath -Raw
 $basePlayer = Get-Content -LiteralPath $basePlayerPath -Raw
+$runtimeFixture = Get-Content -LiteralPath $runtimeFixturePath -Raw
 $precuPrimaryStart = $combat.IndexOf(
     "public int getPrecuPrimaryAttackResult", [StringComparison]::Ordinal)
 $precuPrimaryEnd = $combat.IndexOf(
@@ -125,7 +131,91 @@ Assert-Contract ([bool]$contract.expected.ngeKillMeterPlayerStateRetired -and
     "p14.damage-authority.runtime.nge-kill-meter-player-state-retired"
 Assert-Contract (-not $combat.Contains('minDamage = 5;') -and
     -not $combat.Contains('maxDamage = 10;')) "p14.damage-authority.runtime.uncertified-policy"
+Assert-Contract ($runtimeFixture.Contains("PLAYER_OID = 44003778L") -and
+    $runtimeFixture.Contains('ATTACK_COMMAND = "creatureMeleeAttack"') -and
+    $runtimeFixture.Contains('action=armCombatDiagnostics') -and
+    $runtimeFixture.Contains('action=diagnostics result=') -and
+    $runtimeFixture.Contains('action=cleanup alreadyClean=true restored=true') -and
+    $runtimeFixture.Contains('forceDestroy(object);')) `
+    "p14.damage-authority.runtime-fixture-identity-bound-and-reversible"
 Assert-Contract (@("implemented-build-pending", "ready-for-live-verification", "ready") -contains [string]$contract.status) "p14.damage-authority.contract.status"
+
+if ($Expectation -eq "Ready")
+{
+    $runtime = $contract.liveEvidence
+    Assert-Contract ([string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$runtime.result -ceq "passed" -and
+        @($contract.requiredBeforeReady).Count -eq 0) `
+        "p14.damage-authority.ready-evidence-complete"
+
+    $fixtureHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $runtimeFixturePath).
+        Hash.ToLowerInvariant()
+    Assert-Contract ($fixtureHash -ceq
+        [string]$contract.buildEvidence.runtimeFixtureSourceSha256 -and
+        [string]$contract.buildEvidence.runtimeFixtureJavaCompile -ceq "passed") `
+        "p14.damage-authority.ready-fixture-build"
+
+    $dsrcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "dsrc" })
+    $srcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "src" })
+    $checkedOutDsrc = (& git -C (Join-Path $source "dsrc") rev-parse HEAD).Trim()
+    $dsrcExit = $LASTEXITCODE
+    $checkedOutSrc = (& git -C (Join-Path $source "src") rev-parse HEAD).Trim()
+    $srcExit = $LASTEXITCODE
+    Assert-Contract ($dsrcExit -eq 0 -and $srcExit -eq 0 -and
+        $dsrcPin.Count -eq 1 -and $srcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq
+            [string]$contract.buildEvidence.directSourceCommit -and
+        [string]$srcPin[0].commit -ceq
+            [string]$contract.buildEvidence.nativeSourceCommit -and
+        $checkedOutDsrc -ceq
+            [string]$contract.buildEvidence.directSourceCommit -and
+        $checkedOutSrc -ceq
+            [string]$contract.buildEvidence.nativeSourceCommit) `
+        "p14.damage-authority.ready-source-pins"
+
+    Assert-Contract ([int]$runtime.actionCost.health -eq 0 -and
+        [int]$runtime.actionCost.action -eq 0 -and
+        [int]$runtime.actionCost.mind -eq 0 -and
+        [string]$runtime.actionCost.result -ceq "passed") `
+        "p14.damage-authority.ready-live-action-cost"
+    Assert-Contract ([string]$runtime.damage.pipeline -ceq "PRECU_CORE3" -and
+        [double]$runtime.damage.minimum -eq 525.0 -and
+        [double]$runtime.damage.maximum -eq 687.5 -and
+        [int]$runtime.damage.ngeExpertiseApplied -eq 0 -and
+        [int]$runtime.damage.ngeKillMeterApplied -eq 0 -and
+        [int]$runtime.damage.ngeNicheApplied -eq 0 -and
+        [string]$runtime.damage.result -ceq "passed") `
+        "p14.damage-authority.ready-live-core3-damage"
+
+    $cadence = $runtime.cadence
+    Assert-Contract ([int]$cadence.attackEvents -ge 3 -and
+        [double]$cadence.assignedIntervalSeconds -eq 2.0 -and
+        [double]$cadence.minimumObservedConsecutiveSeconds -ge 1.95 -and
+        [int]$cadence.pairsBelow1_95Seconds -eq 0 -and
+        [string]$cadence.result -ceq "passed") `
+        "p14.damage-authority.ready-live-cadence"
+
+    Assert-Contract ([bool]$runtime.fixtureCleanup.firstCleanupRestored -and
+        [bool]$runtime.fixtureCleanup.secondCleanupAlreadyClean -and
+        [bool]$runtime.fixtureCleanup.cadenceStableAfterCleanup -and
+        [int]$runtime.fixtureCleanup.delayedErrorCount -eq 0 -and
+        -not [bool]$runtime.fixtureCleanup.playerStateMutated -and
+        [bool]$runtime.environment.sourceAndBuildVolumeMatch -and
+        [bool]$runtime.environment.liveProcessMappedBuiltBinary -and
+        [bool]$runtime.environment.serverHealthy -and
+        [bool]$runtime.environment.clusterReadyForPlayers -and
+        [int]$runtime.environment.PlanetServer -eq 15 -and
+        [int]$runtime.environment.SwgGameServer -eq 15 -and
+        [bool]$runtime.environment.primaryClientRemainedOpenAndResponsive) `
+        "p14.damage-authority.ready-live-environment-and-cleanup"
+}
+
+$contractText = Get-Content -LiteralPath (Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14Core3DamageAuthority)) -Raw
+Assert-Contract (-not $contractText.Contains("/Artifacts/") -and
+    -not $contractText.Contains("/Staging/")) `
+    "p14.damage-authority.no-host-staging"
 
 if ($failures.Count -gt 0)
 {

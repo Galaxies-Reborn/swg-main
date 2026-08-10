@@ -168,6 +168,19 @@ Assert-Contract `
     -Condition ($weapon.Count -eq 1 -and [int]$weapon[0].healthCost -eq 10 -and [int]$weapon[0].actionCost -eq 15 -and [int]$weapon[0].mindCost -eq 10) `
     -Name "p14.combat-ham.data.cdef-costs-10-15-10"
 
+$creatureWeapon = @($weaponRows | Where-Object {
+    $_.templateName -ceq [string]$contract.profiledCreatureWeaponFixture.template
+})
+Assert-Contract `
+    -Condition ($creatureWeapon.Count -eq 1 -and
+        [int]$creatureWeapon[0].healthCost -eq 0 -and
+        [int]$creatureWeapon[0].actionCost -eq 0 -and
+        [int]$creatureWeapon[0].mindCost -eq 0 -and
+        $costVector.Contains('hasObjVar(self, "precu.combatProfile")') -and
+        $costVector.Contains('weaponTemplate.startsWith("object/weapon/creature/")') -and
+        $costVector.Contains('return new int[] { 0, 0, 0 };')) `
+    -Name "p14.combat-ham.data.profiled-creature-core3-zero-cost"
+
 $overrideRows = @(Import-Csv -LiteralPath $paths.combatOverrides -Delimiter "`t")
 $productionRows = @($overrideRows | Where-Object { $_.actionName -notin @("s", "__precu_runtime_probe") })
 $expectedProductionCommands = @(
