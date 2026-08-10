@@ -12,7 +12,9 @@ $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json"
 $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14PrecuFactionRankAuthority)
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
+$scriptRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script"
 $failures = [System.Collections.Generic.List[string]]::new()
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
@@ -27,6 +29,13 @@ function Get-FunctionSlice([string]$Text, [string]$Start, [string]$Next)
     $nextIndex = $Text.IndexOf($Next, $startIndex + $Start.Length, [System.StringComparison]::Ordinal)
     if ($nextIndex -lt 0) { return $Text.Substring($startIndex) }
     return $Text.Substring($startIndex, $nextIndex - $startIndex)
+}
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose() }
 }
 
 foreach ($component in @("dsrc", "src"))
@@ -67,6 +76,109 @@ $baseClass = [string]$texts["script.base_class"]
 $factions = [string]$texts["script.library.factions"]
 $creatureHeader = [string]$texts["CreatureObject.h"]
 $scriptPvp = [string]$texts["ScriptMethodsPvp.cpp"]
+
+$supportingRelativeSourceMap = [ordered]@{
+    "player/base/base_player.java" = "player/base/base_player.java"
+    "player/player_faction.java" = "player/player_faction.java"
+    "systems/turret/turret_ai.java" = "systems/turret/turret_ai.java"
+}
+$supportingTexts = @{}
+foreach ($entry in $supportingRelativeSourceMap.GetEnumerator())
+{
+    $path = Join-Path $scriptRoot $entry.Value
+    Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
+        "p14.faction-rank.pvp-state.source.$($entry.Key).exists"
+    if (Test-Path -LiteralPath $path -PathType Leaf)
+    {
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+        Assert-Contract ($actualHash -ceq [string]$contract.buildEvidence.supportingSourceSha256.($entry.Key)) `
+            "p14.faction-rank.pvp-state.source.$($entry.Key).authenticated"
+        $supportingTexts[$entry.Key] = Get-Content -LiteralPath $path -Raw
+    }
+}
+
+$callbackRecords = [System.Collections.Generic.List[string]]::new()
+$callbackRecordsByKind = @{}
+foreach ($property in $contract.callbackInventory.patterns.PSObject.Properties)
+{
+    $kind = [string]$property.Name
+    $kindRecords = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in @(& rg -n --no-heading ([string]$property.Value) $scriptRoot --glob "*.java"))
+    {
+        Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+            "p14.faction-rank.pvp-state.$kind.inventory-line-parsed"
+        $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+        Assert-Contract ($absolutePath.StartsWith(
+            $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+            [StringComparison]::OrdinalIgnoreCase)) `
+            "p14.faction-rank.pvp-state.$kind.inventory-contained"
+        $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+        $record = "${relativePath}:$($Matches[2])|$($Matches[3].Trim())"
+        $kindRecords.Add($record)
+        $callbackRecords.Add("$kind|$record")
+    }
+    if ($LASTEXITCODE -gt 1) { throw "rg failed while inventorying $kind PvP state callbacks." }
+    $callbackRecordsByKind[$kind] = @($kindRecords | Sort-Object)
+}
+$callbackRecords = @($callbackRecords | Sort-Object)
+$callbackPaths = @($callbackRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^[^|]+\|(.*?):\d+\|') `
+        "p14.faction-rank.pvp-state.path-isolated"
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedCallbackPaths = @($contract.callbackInventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($callbackRecords.Count -eq [int]$contract.callbackInventory.handlers -and
+    $callbackRecords.Count -eq [int]$contract.expected.pvpStateCallbacks -and
+    $callbackPaths.Count -eq [int]$contract.callbackInventory.sourceFiles -and
+    ($callbackPaths -join "`n") -ceq ($expectedCallbackPaths -join "`n") -and
+    (Get-TextSha256 ($callbackRecords -join "`n")) -ceq [string]$contract.callbackInventory.inventorySha256 -and
+    (Get-TextSha256 ($callbackPaths -join "`n")) -ceq [string]$contract.callbackInventory.sourceSetSha256 -and
+    $callbackRecordsByKind.faction.Count -eq [int]$contract.callbackInventory.factionHandlers -and
+    $callbackRecordsByKind.type.Count -eq [int]$contract.callbackInventory.typeHandlers -and
+    (Get-TextSha256 ($callbackRecordsByKind.faction -join "`n")) -ceq [string]$contract.callbackInventory.factionInventorySha256 -and
+    (Get-TextSha256 ($callbackRecordsByKind.type -join "`n")) -ceq [string]$contract.callbackInventory.typeInventorySha256) `
+    "p14.faction-rank.pvp-state.complete-inventory"
+
+$basePlayerTypeChange = Get-FunctionSlice ([string]$supportingTexts["player/base/base_player.java"]) `
+    "public int OnPvpTypeChanged" `
+    "public int OnQuestActivated"
+$playerFactionTypeChange = Get-FunctionSlice ([string]$supportingTexts["player/player_faction.java"]) `
+    "public int OnPvpTypeChanged" `
+    "public int OnPvpFactionChanged"
+$playerFactionChange = Get-FunctionSlice ([string]$supportingTexts["player/player_faction.java"]) `
+    "public int OnPvpFactionChanged" `
+    "public int OnEnterRegion"
+$turretFactionChange = Get-FunctionSlice ([string]$supportingTexts["systems/turret/turret_ai.java"]) `
+    "public int OnPvpFactionChanged" `
+    "public void setTurretAttributes"
+$playerStateCallbacks = $basePlayerTypeChange + "`n" + $playerFactionTypeChange + "`n" + $playerFactionChange
+$rewardOrProgressionPatterns = @(
+    '\bgrantSkill\b', '\brevokeSkill\b', '\bskill\.', '\bbuff\.apply',
+    '\baddGcw', '\bmodifyGcw', '\bsetGcw', '\bsetLevel\b', '\bgetLevel\b',
+    '\bexpertise\b', '\bprofession\b', '\bsetSkillTemplate\b', '\bgrantExperiencePoints\b'
+)
+$rewardOrProgressionMatches = @($rewardOrProgressionPatterns | Where-Object {
+    [regex]::IsMatch($playerStateCallbacks, $_, [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+})
+Assert-Contract ([int]$contract.callbackInventory.playerHandlers -eq [int]$contract.expected.pvpStatePlayerCallbacks -and
+    $rewardOrProgressionMatches.Count -eq [int]$contract.expected.pvpStateRewardOrProgressionMutations -and
+    $basePlayerTypeChange.Contains("oldType == PVPTYPE_DECLARED") -and
+    $basePlayerTypeChange.Contains("newType == PVPTYPE_COVERT") -and
+    $basePlayerTypeChange.Contains("newType == PVPTYPE_NEUTRAL") -and
+    $basePlayerTypeChange.Contains("getMountId(self)") -and
+    $basePlayerTypeChange.Contains("group.isGrouped(self)")) `
+    "p14.faction-rank.pvp-state.player-callbacks-precu-only"
+Assert-Contract ([int]$contract.expected.newlyDeclaredTimestampWriters -eq 1 -and
+    $playerFactionTypeChange.Contains("utils.setScriptVar(self, factions.VAR_NEWLY_DECLARED, getGameTime())") -and
+    $playerFactionTypeChange.Contains('messageTo(self, "msgNewlyDeclared", null, factions.NEWLY_DECLARED_INTERVAL, false)') -and
+    [regex]::IsMatch($playerFactionChange,
+        '(?s)^public int OnPvpFactionChanged.*?\{\s*return SCRIPT_CONTINUE;\s*\}\s*$')) `
+    "p14.faction-rank.pvp-state.declaration-and-inert-faction-change"
+Assert-Contract ([int]$contract.callbackInventory.nonPlayerTurretHandlers -eq [int]$contract.expected.pvpStateTurretCallbacks -and
+    [int]$contract.expected.turretFactionReconfigurationCallbacks -eq 1 -and
+    $turretFactionChange.Contains("setTurretAttributes(self, newFaction);") -and
+    $turretFactionChange.Contains("return SCRIPT_CONTINUE;")) `
+    "p14.faction-rank.pvp-state.turret-compatibility-preserved"
 
 Assert-Contract ($creatureHeader.Contains("getPrecuFactionRank() const") -and
     $creatureHeader.Contains("setPrecuFactionRank(int rank)") -and
