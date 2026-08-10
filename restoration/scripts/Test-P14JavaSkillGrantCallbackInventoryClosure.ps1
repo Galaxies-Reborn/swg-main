@@ -73,19 +73,31 @@ Assert-Contract ($null -ne (Get-Command rg -ErrorAction SilentlyContinue)) `
 
 $records = [Collections.Generic.List[string]]::new()
 $callbackPatterns = [ordered]@{
+    AboutToBeGranted = [string]$contract.inventory.patterns.aboutToBeGranted
+    AboutToBeRevoked = [string]$contract.inventory.patterns.aboutToBeRevoked
     Granted = [string]$contract.inventory.patterns.granted
     Revoked = [string]$contract.inventory.patterns.revoked
-    AboutToBeRevoked = [string]$contract.inventory.patterns.aboutToBeRevoked
+    ModDone = [string]$contract.inventory.patterns.modDone
+    ModsChanged = [string]$contract.inventory.patterns.modsChanged
+    TemplateChanged = [string]$contract.inventory.patterns.templateChanged
 }
 $callbackCounts = @{
+    AboutToBeGranted = [int]$contract.inventory.aboutToBeGrantedHandlers
+    AboutToBeRevoked = [int]$contract.inventory.aboutToBeRevokedHandlers
     Granted = [int]$contract.inventory.grantedHandlers
     Revoked = [int]$contract.inventory.revokedHandlers
-    AboutToBeRevoked = [int]$contract.inventory.aboutToBeRevokedHandlers
+    ModDone = [int]$contract.inventory.modDoneHandlers
+    ModsChanged = [int]$contract.inventory.modsChangedHandlers
+    TemplateChanged = [int]$contract.inventory.templateChangedHandlers
 }
 $callbackHashes = @{
+    AboutToBeGranted = [string]$contract.inventory.aboutToBeGrantedInventorySha256
+    AboutToBeRevoked = [string]$contract.inventory.aboutToBeRevokedInventorySha256
     Granted = [string]$contract.inventory.grantedInventorySha256
     Revoked = [string]$contract.inventory.revokedInventorySha256
-    AboutToBeRevoked = [string]$contract.inventory.aboutToBeRevokedInventorySha256
+    ModDone = [string]$contract.inventory.modDoneInventorySha256
+    ModsChanged = [string]$contract.inventory.modsChangedInventorySha256
+    TemplateChanged = [string]$contract.inventory.templateChangedInventorySha256
 }
 foreach ($callbackKind in $callbackPatterns.Keys)
 {
@@ -209,6 +221,37 @@ Assert-Contract ($baseRevoke -notmatch
     '\b(grantSkill|grantExperiencePoints|setLevel|setSkillTemplate|applyBuff)\s*\(') `
     "Base-player revoke callback regained NGE progression mutation authority."
 
+$baseModDone = Get-BracedSurface $texts.basePlayer "public int OnSkillModDone"
+Assert-Contract ($baseModDone.Contains('modName.indexOf("food_") == 0') -and
+    $baseModDone.Contains("utils.removeScriptVar(self, modName)") -and
+    $baseModDone.Contains('trial.bumpSession(self, "displayDefensiveMods")') -and
+    $baseModDone.Contains('messageTo(self, "setDisplayOnlyDefensiveMods"') -and
+    $baseModDone -notmatch
+        '\b(grantSkill|revokeSkill|grantExperiencePoints|setLevel|setSkillTemplate|applyBuff)\s*\(') `
+    "Base-player skill-mod completion escaped PRE-CU cleanup/presentation authority."
+
+$baseModsChanged = Get-BracedSurface $texts.basePlayer "public int OnSkillModsChanged"
+Assert-Contract ($baseModsChanged.Contains('modName.startsWith("constitution")') -and
+    $baseModsChanged.Contains('modName.startsWith("stamina")') -and
+    $baseModsChanged.Contains("skill.recalcPlayerPools(self, false)") -and
+    $baseModsChanged.Contains('modName.startsWith("movement_resist")') -and
+    $baseModsChanged.Contains('messageTo(self, "check_movement_immunity"') -and
+    $baseModsChanged.Contains('messageTo(self, "setDisplayOnlyDefensiveMods"') -and
+    $baseModsChanged -notmatch
+        '\b(grantSkill|revokeSkill|grantExperiencePoints|setLevel|setSkillTemplate|applyBuff)\s*\(') `
+    "Base-player skill-mod change escaped PRE-CU HAM/presentation authority."
+
+$baseTemplateChanged = Get-BracedSurface $texts.basePlayer "public int OnSkillTemplateChanged"
+Assert-Contract ($baseTemplateChanged.Contains('hasObjVar(self, "clickRespec")') -and
+    $baseTemplateChanged.Contains('removeObjVar(self, "clickRespec")') -and
+    $baseTemplateChanged.Contains('hasObjVar(self, "npcRespec")') -and
+    $baseTemplateChanged.Contains('removeObjVar(self, "npcRespec")') -and
+    $baseTemplateChanged.Contains(
+        'detachScript(self, "systems.respec.click_combat_respec")') -and
+    $baseTemplateChanged -notmatch
+        '\b(grantSkill|revokeSkill|grantExperiencePoints|setLevel|setSkillTemplate|applyBuff)\s*\(') `
+    "Base-player template-change callback regained NGE template or respec authority."
+
 $beastGrant = Get-BracedSurface $texts.playerBeastmaster "public int OnSkillGranted"
 Assert-Contract ($beastGrant.Contains("retirePostNgeBeastMasterPlayerState(self)") -and
     $beastGrant.Contains("return SCRIPT_OVERRIDE") -and
@@ -315,15 +358,28 @@ Assert-Contract ($forceQuestLibrary.Contains(
     -not $forceQuestLibrary.Contains($incorrectKickoffId)) `
     "Force-sensitive full cleanup no longer uses the canonical kickoff script identifier."
 
+$combatModDone = Get-BracedSurface $texts.combatActions "public int OnSkillModDone"
+Assert-Contract ($combatModDone.Contains("PRECU_AIM_MODIFIER.equals(modName)") -and
+    $combatModDone.Contains("PRECU_TUMBLE_MELEE_MODIFIER.equals(modName)") -and
+    $combatModDone.Contains("PRECU_TUMBLE_RANGED_MODIFIER.equals(modName)") -and
+    $combatModDone.Contains("setState(self, STATE_AIMING, false)") -and
+    $combatModDone.Contains("setState(self, STATE_TUMBLING, false)") -and
+    $combatModDone -notmatch
+        '\b(grantSkill|revokeSkill|grantExperiencePoints|setLevel|setSkillTemplate|applyBuff)\s*\(') `
+    "Combat skill-mod completion no longer owns only PRE-CU Aim/Tumble expiry."
+
 $workingGrant = Get-BracedSurface $texts.workingTriggerTest "public int OnSkillGranted"
 Assert-Contract ($workingGrant.Contains("debugSpeakMsg") -and
     $workingGrant.Contains('hasObjVar(self, "override_test")') -and
     $workingGrant -notmatch '\b(grantSkill|revokeSkill|grantExperiencePoints|setLevel|setSkillTemplate)\s*\(') `
     "Dormant working skill callback gained mutation authority."
 $workingRevoke = Get-BracedSurface $texts.workingTriggerTest "public int OnSkillRevoked"
+$workingAboutToGrant = Get-BracedSurface $texts.workingTriggerTest `
+    "public int OnSkillAboutToBeGranted"
 $workingAboutToRevoke = Get-BracedSurface $texts.workingTriggerTest `
     "public int OnSkillAboutToBeRevoked"
-foreach ($workingCallback in @($workingGrant, $workingRevoke, $workingAboutToRevoke))
+foreach ($workingCallback in @(
+    $workingAboutToGrant, $workingGrant, $workingRevoke, $workingAboutToRevoke))
 {
     Assert-Contract ($workingCallback.Contains("debugSpeakMsg") -and
         $workingCallback.Contains('hasObjVar(self, "override_test")') -and
@@ -337,6 +393,22 @@ $workingReferenceExit = $LASTEXITCODE
 Assert-Contract ($workingReferenceExit -eq 1 -and $workingReferences.Count -eq 0 -and
     [int]$contract.expected.dormantWorkingProductionAttachments -eq 0) `
     "Dormant working callback acquired a production attachment reference."
+
+$workingSteveModsChanged = Get-BracedSurface $texts.workingSteveDiagnostic `
+    "public int OnSkillModsChanged"
+Assert-Contract ($workingSteveModsChanged.Contains("debugSpeakMsg") -and
+    $workingSteveModsChanged -notmatch
+        '\b(grantSkill|revokeSkill|grantExperiencePoints|setLevel|setSkillTemplate|applyBuff)\s*\(') `
+    "Dormant Steve skill-mod diagnostic gained progression authority."
+$workingSteveAttachments = @(& rg -n --glob "*.java" --glob "*.tab" --glob "*.tpf" `
+    '\battachScript\s*\([^;]*"working\.steve\.myscript"' $dsrcRoot)
+$workingSteveAttachmentExit = $LASTEXITCODE
+Assert-Contract ($workingSteveAttachmentExit -eq 1 -and
+    $workingSteveAttachments.Count -eq 0 -and
+    $texts.workingSteveDiagnostic.Contains(
+        'detachScript(self, "working.steve.myscript")') -and
+    [int]$contract.expected.dormantWorkingSelfDetachGuards -eq 1) `
+    "Dormant Steve diagnostic acquired a production attachment or lost its player guard."
 
 foreach ($dependencyKey in @($contract.requiredReadyContractKeys))
 {
@@ -353,7 +425,18 @@ foreach ($dependencyKey in @($contract.requiredReadyContractKeys))
         "Required dependency is not Ready: $dependencyKey"
 }
 
+$classifiedHandlerCount =
+    [int]$contract.classification.basePlayerPrecuAuthority.handlers +
+    [int]$contract.classification.retainedPrecuAndContentCallbacks.handlers +
+    [int]$contract.classification.forceSensitiveKickoffLifecycle.handlers +
+    [int]$contract.classification.retiredBeastMasterCallback.handlers +
+    [int]$contract.classification.precuCombatModifierLifecycle.handlers +
+    [int]$contract.classification.dormantWorkingDiagnostic.handlers
 Assert-Contract ([bool]$contract.expected.allHandlersClassified -and
+    $classifiedHandlerCount -eq [int]$contract.inventory.handlers -and
+    [int]$contract.inventory.productionHandlers +
+        [int]$contract.inventory.dormantWorkingHandlers -eq
+        [int]$contract.inventory.handlers -and
     [int]$contract.classification.unclassifiedHandlers -eq 0 -and
     [int]$contract.expected.retiredNgeSkillSideEffectsBeforeRevocation -eq 0 -and
     [int]$contract.expected.retiredBeastMasterCallbackMutations -eq 0 -and
@@ -362,6 +445,9 @@ Assert-Contract ([bool]$contract.expected.allHandlersClassified -and
     [int]$contract.expected.basePlayerRevocationNgeProgressionMutations -eq 0 -and
     [int]$contract.expected.retainedCallbackCombatLevelMutations -eq 0 -and
     [int]$contract.expected.retainedCallbackAutomaticRewards -eq 0 -and
+    [int]$contract.expected.precuCombatModifierCompletionCallbacks -eq 1 -and
+    [int]$contract.expected.skillTemplateProgressionMutations -eq 0 -and
+    [int]$contract.expected.skillModifierNgeProgressionMutations -eq 0 -and
     [int]$contract.expected.gameplaySourceFilesChanged -eq 1 -and
     [bool]$contract.expected.laterZonesQuestsConversationsNpcsJtlAndForceRankPreserved) `
     "Skill lifecycle callback expected PRE-CU boundary is incomplete."
