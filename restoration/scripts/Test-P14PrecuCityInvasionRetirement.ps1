@@ -471,6 +471,8 @@ Assert-Contract ($fatigueGuardIndex -ge 0 -and
     $fatigueCleanupIndex -gt $fatigueGuardIndex -and
     $fatigueReturnIndex -gt $fatigueCleanupIndex -and
     @($fatigueMutationIndexes | Where-Object { $_ -lt 0 -or $_ -le $fatigueReturnIndex }).Count -eq 0 -and
+    [string]$contract.buildEvidence.compiledClassSha256."script.systems.buff.buff_handler.deployedFullBuild" -match '^[a-f0-9]{64}$' -and
+    [int64]$contract.buildEvidence.buffHandlerDeployedClassBytes -gt 0 -and
     -not [bool]$contract.expected.queuedPlayerFatigueDecayReachable) `
     "p14.city-invasion.queued-player-fatigue-decay-retired"
 
