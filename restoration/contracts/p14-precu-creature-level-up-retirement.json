@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-creature-level-up-retirement",
+  "status": "implemented-build-pending",
+  "scope": "Retire the inherited kill-triggered creature level-up and reinitialization path so a creature retains its authored Publish 14.1 combat profile after incapacitating a player, while preserving the public helper signature for later-content linkage and dormant administrator diagnostics.",
+  "semanticReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "searchedRoot": "MMOCoreORB/src/server/zone/objects/creature",
+    "finding": "The pinned Publish 14.1 Core3 creature runtime contains no creatureLevelUp, level_up, or level_granted kill-progression surface; creature difficulty remains the authored profile initialized for that creature."
+  },
+  "sourceFiles": {
+    "ai": "dsrc/sku.0/sys.server/compiled/game/script/ai/ai.java",
+    "aiLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/ai_lib.java",
+    "diagnosticCaller": "dsrc/sku.0/sys.server/compiled/game/script/working/reecetest.java"
+  },
+  "inventory": {
+    "methodPattern": "\\bcreatureLevelUp\\s*\\(",
+    "javaSources": 5717,
+    "methodReferences": 2,
+    "declarations": 1,
+    "productionInvocations": 0,
+    "dormantDiagnosticInvocations": 1,
+    "productionCallback": "ai.ai.OnIncapacitateTarget",
+    "compatibilityHelper": "library.ai_lib.creatureLevelUp"
+  },
+  "expected": {
+    "incapacitateCallbackReturnsWithoutMutation": true,
+    "randomKillLevelRolls": 0,
+    "experiencedScriptVarReadsOrWrites": 0,
+    "creatureReinitializations": 0,
+    "levelUpFlyTextOrEffects": 0,
+    "compatibilityHelperSignaturePreserved": true,
+    "authoredCreatureProfilePreserved": true,
+    "laterZonesQuestsConversationsAndNpcContentPreserved": true
+  },
+  "requiredReadyContracts": [
+    "p14-core3-creature-combat-profiles.json",
+    "p14-core3-ai-attack-interval.json"
+  ],
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "2ba200341bb1f9ddacdb7a81d6b5a6e2d33bfe7b",
+    "nativeSourceCommit": "4511b725f099886c3c5f3e97df6f2f3ed9d81de8",
+    "overlayPatch": "restoration/patches/dsrc/383-p14-precu-creature-level-up-retirement.patch",
+    "overlayPatchBytes": 2508,
+    "overlayPatchSha256": "245a56d72234badd6291e2e6c1eb06f42d542a5524e61d602beb571641de6123",
+    "sourceSha256": {
+      "ai": "69a2bf02a3512ddec3da3399b8b4ad3a344df728ad9c2e852f32a452666b8825",
+      "aiLibrary": "b6c58e7c2f9457255679c0692ae8263b0f8d4440478aa97b78cc16108c0e7b29",
+      "diagnosticCaller": "362a919efcccb1e987c7c25e04122fa7ebb32334a5ac05e836deb8395aa7331c"
+    },
+    "focusedJavaCompile": "passed OpenJDK Java 8-target compilation against the canonical live classpath; isolated in-memory output was removed",
+    "focusedClassSha256": {
+      "ai": "48474678fed4f229c7cc798968da211bf2e62c86052c84a62c3d304491ec20e3",
+      "aiLibrary": "5e4108f0341709ee62d689d4b2f4330b00050ff5eff9e7ac39625be4e7f04208"
+    },
+    "fullJavaCompile": "pending clean x64 Docker deployment",
+    "compiledClassSha256": {
+      "ai": "pending",
+      "aiLibrary": "pending"
+    },
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "architecture": "pending",
+    "result": "source-verified"
+  },
+  "runtimeEvidence": {
+    "container": "swg-precu",
+    "clusterReadyForPlayers": false,
+    "sourceWorkParity": false,
+    "productionKillLevelMutationCalls": 0,
+    "hostArtifactOrStagingDirectories": 0,
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the production incapacitate callback, its kill-triggered random level grant, creature reinitialization, visual level-grant presentation, and the remaining link-compatible helper implementation",
+    "preserved": "authored PRE-CU creature profiles and cadence, the public Java helper signature, dormant working-script diagnostics, and later zones, quests, conversations, NPCs, and encounter content",
+    "notClaimedComplete": "unrelated later-era gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Complete the clean x64 Docker build and controlled server restart.",
+    "Authenticate deployed ai.class and ai_lib.class against the rebuilt direct source.",
+    "Verify source/work parity, healthy topology, player readiness, and clean fresh-start logs."
+  ]
+}

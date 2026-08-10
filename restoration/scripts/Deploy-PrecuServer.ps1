@@ -170,6 +170,10 @@ Write-Host "Verifying PRE-CU authored AI aggro-radius authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuAiAggroRadiusAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying kill-triggered creature level-up retirement before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuCreatureLevelUpRetirement.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying the complete native getLevel callsite inventory before build..."
 & (Join-Path $PSScriptRoot "Test-P14NativeGetLevelCallsiteInventoryClosure.ps1") `
     -SourceRoot $repositoryRoot `

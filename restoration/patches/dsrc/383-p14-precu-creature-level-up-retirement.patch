@@ -1,0 +1,48 @@
+diff --git a/sku.0/sys.server/compiled/game/script/ai/ai.java b/sku.0/sys.server/compiled/game/script/ai/ai.java
+index f26332e65..18d4d630b 100755
+--- a/sku.0/sys.server/compiled/game/script/ai/ai.java
++++ b/sku.0/sys.server/compiled/game/script/ai/ai.java
+@@ -2046,20 +2046,9 @@ public class ai extends script.base_script
+     }
+     public int OnIncapacitateTarget(obj_id self, obj_id victim) throws InterruptedException
+     {
+-        if (!utils.hasScriptVar(self, "experienced"))
+-        {
+-            if (isIdValid(victim))
+-            {
+-                if (isPlayer(victim))
+-                {
+-                    if (rand(1, 1000) == 999)
+-                    {
+-                        ai_lib.creatureLevelUp(self, victim);
+-                        utils.setScriptVar(self, "experienced", 1);
+-                    }
+-                }
+-            }
+-        }
++        // Publish 14.1 creatures retain their authored PRE-CU combat profile.
++        // Incapacitating a player must not grant a later-era level or reinitialize
++        // the creature with progressively stronger level-derived statistics.
+         return SCRIPT_CONTINUE;
+     }
+     public int clearCollectionCameraParticle(obj_id self, dictionary params) throws InterruptedException
+diff --git a/sku.0/sys.server/compiled/game/script/library/ai_lib.java b/sku.0/sys.server/compiled/game/script/library/ai_lib.java
+index 33984cabf..69a42f3c3 100755
+--- a/sku.0/sys.server/compiled/game/script/library/ai_lib.java
++++ b/sku.0/sys.server/compiled/game/script/library/ai_lib.java
+@@ -1541,13 +1541,8 @@ public class ai_lib extends script.base_script
+     }
+     public static void creatureLevelUp(obj_id creature, obj_id victim) throws InterruptedException
+     {
+-        showFlyText(creature, new string_id("cbt_spam", "level_up"), 2.5f, colors.CORNFLOWERBLUE);
+-        playClientEffectObj(victim, "clienteffect/level_granted.cef", creature, null);
+-        String creatureName = getCreatureName(creature);
+-        if (creatureName.indexOf("elite_") < 1 && creatureName.indexOf("boss_") < 1)
+-        {
+-            create.initializeCreature(creature, creatureName, utils.dataTableGetRow(CREATURE_TABLE, creatureName), getLevel(creature) + 1);
+-        }
++        // Link-compatible no-op. Publish 14.1 creatures do not gain levels for
++        // incapacitating players; their authored PRE-CU profile remains fixed.
+     }
+     public static boolean mindTrick(obj_id player, obj_id target) throws InterruptedException
+     {
