@@ -73,6 +73,66 @@ foreach ($entry in $relativeSourceMap.GetEnumerator())
 }
 Assert-Contract ((Get-TextSha256 $contentRecords) -ceq [string]$contract.buildEvidence.sourceContentSha256) "p14.gcw-reward.source-content.authenticated"
 
+$rankCallbackRecords = [Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.inventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+        "p14.gcw-reward.rank-callback.inventory-line-parsed"
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    Assert-Contract ($absolutePath.StartsWith(
+        $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase)) `
+        "p14.gcw-reward.rank-callback.inventory-contained"
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $rankCallbackRecords.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
+}
+$rankCallbackRecords = @($rankCallbackRecords | Sort-Object)
+$rankCallbackPaths = @($rankCallbackRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') `
+        "p14.gcw-reward.rank-callback.path-isolated"
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedRankCallbackPaths = @($contract.inventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($rankCallbackRecords.Count -eq [int]$contract.inventory.handlers -and
+    $rankCallbackRecords.Count -eq [int]$contract.expected.pvpRankCallbacks -and
+    $rankCallbackPaths.Count -eq [int]$contract.inventory.sourceFiles -and
+    ($rankCallbackPaths -join "`n") -ceq ($expectedRankCallbackPaths -join "`n") -and
+    (Get-TextSha256 ($rankCallbackRecords -join "`n")) -ceq [string]$contract.inventory.inventorySha256 -and
+    (Get-TextSha256 ($rankCallbackPaths -join "`n")) -ceq [string]$contract.inventory.sourceSetSha256) `
+    "p14.gcw-reward.rank-callback.complete-inventory"
+
+$developerRankPath = Join-Path $scriptRoot "hnguyen/cwdm_test.java"
+Assert-Contract (Test-Path -LiteralPath $developerRankPath -PathType Leaf) `
+    "p14.gcw-reward.rank-callback.developer-source.exists"
+$developerRankHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $developerRankPath).Hash.ToLowerInvariant()
+Assert-Contract ($developerRankHash -ceq [string]$contract.buildEvidence.supportingSourceSha256.'hnguyen/cwdm_test.java') `
+    "p14.gcw-reward.rank-callback.developer-source.authenticated"
+$developerRankText = Get-Content -LiteralPath $developerRankPath -Raw
+$developerRankChange = Get-SourceSlice $developerRankText `
+    "public int OnPvpRankingChanged" `
+    "public int huyHourlyAlarmClock"
+$developerRankAttachments = @(& rg -n --no-heading `
+    '\battachScript\s*\([^;\r\n]*"hnguyen\.cwdm_test"' $scriptRoot --glob "*.java")
+if ($LASTEXITCODE -gt 1) { throw "rg failed while inventorying hnguyen.cwdm_test attachments." }
+$developerProgressionPatterns = @(
+    '\bskill\.', '\bgrantSkill\b', '\brevokeSkill\b', '\bsetLevel\b',
+    '\bsetSkillTemplate\b', '\bsetExperiencePoints\b', '\bgrantExperiencePoints\b',
+    '\bsetObjVar\b', '\bbuff\.apply'
+)
+$developerProgressionMatches = @($developerProgressionPatterns | Where-Object {
+    [regex]::IsMatch($developerRankChange, $_)
+})
+Assert-Contract ([int]$contract.inventory.productionHandlers -eq
+    [int]$contract.expected.pvpRankProductionCallbacks -and
+    [int]$contract.inventory.dormantDeveloperHandlers -eq
+    [int]$contract.expected.pvpRankDormantDeveloperCallbacks -and
+    $developerRankChange.Contains('sendSystemMessageTestingOnly(self, "OnPvpRankingChanged oldRank="') -and
+    $developerRankChange.Contains('LOG("***HUY_ONPVPRANKINGCHANGED***"') -and
+    $developerRankChange.Contains("return SCRIPT_CONTINUE;") -and
+    $developerRankAttachments.Count -eq [int]$contract.expected.pvpRankDormantDeveloperProductionAttachments -and
+    $developerProgressionMatches.Count -eq [int]$contract.expected.pvpRankDormantDeveloperProgressionMutations) `
+    "p14.gcw-reward.rank-callback.developer-diagnostic-dormant"
+
 $expectedSkills = @(
     "pvp_imperial_retaliation_ability", "pvp_imperial_adrenaline_ability",
     "pvp_imperial_unstoppable_ability", "pvp_imperial_last_man_ability",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "feature": "p14-post-nge-gcw-rank-reward-runtime-retirement",
   "status": "ready",
-  "scope": "Retire post-NGE GCW rank ability skills, buffs, all direct combat-action handlers, the direct aura effect add writer, and player aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, retained battle content, remove-side cleanup, and non-player compatibility.",
+  "scope": "Retire post-NGE GCW rank ability skills, buffs, all direct combat-action handlers, the direct aura effect add writer, and player aura runtime while preserving authenticated Publish 14.1 faction rank, standing, recruiters, titles/badges, retained battle content, remove-side cleanup, and non-player compatibility; close the complete Java OnPvpRankingChanged callback inventory so no alternate listener restores later rank rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -11,7 +11,22 @@
       "The inherited pvp_imperial_* and pvp_rebel_* skill rows grant six later GCW combat ability tiers per faction, including an expertise-protection aura and airstrike.",
       "Faction rank, badges/titles, recruiters, bases, battles, quests, zones, and compatibility data can remain active without granting those later combat abilities.",
       "The retained 12 command rows fan into 20 command/effect handlers, and the aura controller can reschedule itself independently of skill grants; both runtime surfaces require player-only fail-closed gates in addition to persisted-skill cleanup.",
-      "Two retained aura effect mappings route both faction self-buffs through pvpAuraBuffSelfAddBuffHandler. Generic admission and all controller callbacks were already player-inert, but this direct add-side handler could still attach the later aura controller before those downstream guards ran. It now performs central player reward cleanup and returns before attachment; the remove-side handler remains available for cleanup and non-player behavior is unchanged."
+      "Two retained aura effect mappings route both faction self-buffs through pvpAuraBuffSelfAddBuffHandler. Generic admission and all controller callbacks were already player-inert, but this direct add-side handler could still attach the later aura controller before those downstream guards ran. It now performs central player reward cleanup and returns before attachment; the remove-side handler remains available for cleanup and non-player behavior is unchanged.",
+      "The complete Java source tree contains exactly two OnPvpRankingChanged callbacks: the authenticated player callback that clears later GCW rewards while retaining rank badges, and one unattached developer diagnostic callback with no progression mutation."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnPvpRankingChanged\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 2,
+    "productionHandlers": 1,
+    "dormantDeveloperHandlers": 1,
+    "inventorySha256": "1c62531f52491f33f8846540ce171fe32b81611b4a41fd6916dcb63d95183ff1",
+    "sourceSetSha256": "36a99c55c34a7ffec2cadcd529be4853a28dfcd129c2d08c8b994335f9bc33c4",
+    "sourcePaths": [
+      "hnguyen/cwdm_test.java",
+      "player/base/base_player.java"
     ]
   },
   "expected": {
@@ -35,6 +50,11 @@
     "auraFactionStateRemoved": true,
     "precuFactionRankPreserved": true,
     "rankBadgePresentationPreserved": true,
+    "pvpRankCallbacks": 2,
+    "pvpRankProductionCallbacks": 1,
+    "pvpRankDormantDeveloperCallbacks": 1,
+    "pvpRankDormantDeveloperProductionAttachments": 0,
+    "pvpRankDormantDeveloperProgressionMutations": 0,
     "rewardCompatibilityRowsPreserved": true,
     "missionCoreChanged": false
   },
@@ -53,6 +73,9 @@
       "systems/buff/buff_handler.java": "0c6625047edde96fcc3cbeda082b48b043883425c1d4dcb45275f5f492347218",
       "systems/combat/combat_actions.java": "62c57e5131fce7bc958351c298605560536e5773849ed5294a613b0b68fe346e",
       "systems/combat/combat_base.java": "ec6887511704349f5c8c0b270fe08e98f895017c751305d8a99abbc27d912a93"
+    },
+    "supportingSourceSha256": {
+      "hnguyen/cwdm_test.java": "4c1e4121337db392fcdda9c4a95dbd1e38406094296d711d2e042f8777818b3d"
     },
     "focusedJavaCompile": "passed focused OpenJDK compilation of systems/buff/buff_handler.java from pushed direct dsrc 4ce9fbea352a58009f53ebdd978f512081a03504 against the production package root; one class emitted in /dev/shm/precu-pvp-aura-handler-check and /dev/shm was verified empty afterward",
     "focusedBuffHandlerClassSha256": "0a3f3c33e942686579325685bf1872bc8dc5f95fd121ce09c7873531c21d12fa",
