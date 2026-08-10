@@ -59,6 +59,10 @@ Write-Host "Verifying the data-grant and persistence closure before build..."
 & (Join-Path $PSScriptRoot "Test-P14DataGrantPersistenceClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying PRE-CU Force-sensitive Village quest authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuVillageQuestAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying retained NPE combat-level guidance retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14NpeCombatLevelGuidanceRetirement.ps1") `
     -SourceRoot $repositoryRoot `

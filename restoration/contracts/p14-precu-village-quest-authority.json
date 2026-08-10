@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-village-quest-authority",
+  "status": "implemented-build-pending",
+  "scope": "Restore Publish 14.1 Force-sensitive Village admission from the persisted Village eligibility flag and close the complete OnForceSensitiveQuestCompleted callback family while preserving the authored Village counterstrike, defense-task, conversation, trainer, survey, branch-unlock, and later ground-quest compatibility paths.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3VillageIntroSource": "MMOCoreORB/bin/scripts/screenplays/village/intro/fs_intro.lua",
+    "finding": "Pinned Publish 14.1 Core3 grants Village access, sets Jedi state 1 for a non-Jedi player, and awards force_title_jedi_novice when the Village elder introduction completes. The retained SWGSource path already writes fs_quest.village_eligible at the equivalent completion point; only its reader had been hard-disabled by the later-era source baseline.",
+    "retainedBoundary": "Village quest progression uses its authored flag, Jedi state, force-sensitive branches, named quests, and quest objvars. It does not use an NGE class template, combat level, expertise, profession roadmap, or groundquest level award. The later ground wait-for-tasks implementation remains intact and preserves the legacy Village objvar during detach."
+  },
+  "sourceFiles": {
+    "attributes": "dsrc/.gitattributes",
+    "fsQuests": "dsrc/sku.0/sys.server/compiled/game/script/library/fs_quests.java",
+    "quests": "dsrc/sku.0/sys.server/compiled/game/script/library/quests.java",
+    "fsCsPlayer": "dsrc/sku.0/sys.server/compiled/game/script/systems/fs_quest/fs_cs_player.java",
+    "legacyWaitForTasks": "dsrc/sku.0/sys.server/compiled/game/script/quest/task/wait_for_tasks.java",
+    "groundWaitForTasks": "dsrc/sku.0/sys.server/compiled/game/script/quest/task/ground/wait_for_tasks.java",
+    "fsCounterstrike": "dsrc/sku.0/sys.server/compiled/game/script/library/fs_counterstrike.java",
+    "combatQuestP3": "dsrc/sku.0/sys.server/compiled/game/script/conversation/combat_quest_p3.java",
+    "fsKickoff": "dsrc/sku.0/sys.server/compiled/game/script/quest/force_sensitive/fs_kickoff.java",
+    "questTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/player/quests.tab",
+    "scriptFunctionTable": "src/engine/server/library/serverScript/src/shared/ScriptFunctionTable.cpp"
+  },
+  "callbackInventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnForceSensitiveQuestCompleted\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 2,
+    "inventorySha256": "d22788fde8c639d6660c0f9d1e7b4a615a41250273ad002eae29d30317979161",
+    "sourceSetSha256": "2886f22433dc9f5f628255d224ec027bc99491f3ae16bbe9550cfd2d5bac1952",
+    "sourcePaths": [
+      "quest/task/wait_for_tasks.java",
+      "systems/fs_quest/fs_cs_player.java"
+    ]
+  },
+  "eligibilityConsumerInventory": {
+    "pattern": "\\bfs_quests\\.isVillageEligible\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedLine, lexicographically sorted and LF-joined without a trailing newline",
+    "callSites": 23,
+    "sourceFiles": 16,
+    "inventorySha256": "ddd506eaa8680ed2e5281de91088aa45181a5dac723b6c45d260ef04eaff4062",
+    "sourceSetSha256": "9a97e8d5b38c7ff9796ceeecfd8cacf6bb504351755fb8eee6984440b1965a43",
+    "sourceContentSha256": "0cf0a8363858a6ec2aa6ff187c025249c82f64f43585476834908f98ef6a87a4"
+  },
+  "authoredQuestRows": {
+    "counterstrikeRows": 9,
+    "counterstrikeRowsSha256": "f64025d569c1f239b16f53c61e2a6688c6a6e9e093de365b4afe355f634ea3c2",
+    "legacyWaitForTasksRows": 2,
+    "legacyWaitForTasksRowsSha256": "70acb369f52233ed5732490d4e049743733a716cac3fcbfc135c416d51cabf15"
+  },
+  "expected": {
+    "villageEligibilityFlag": "fs_quest.village_eligible",
+    "invalidPlayerFailsClosed": true,
+    "ngeClassTemplateGates": 0,
+    "ngeCombatLevelGates": 0,
+    "callbackHandlers": 2,
+    "callbackProgressionMutations": 0,
+    "fsCounterstrikeCallbacks": 1,
+    "legacyCompositeTaskCallbacks": 1,
+    "legacyCompositeCompletionCallSites": 3,
+    "fsCounterstrikeProductionAttachCallSites": 2,
+    "javaProductionDispatchers": 1,
+    "javaDeveloperDispatchers": 1,
+    "nativeTriggerRegistrations": 1,
+    "laterGroundWaitForTasksPreserved": true,
+    "forceSensitiveEligibilityDependencyReady": true,
+    "laterZonesQuestsConversationsAndNpcCompatibilityPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "c880de8bcc259cf60b268751dfd529b392950085",
+    "nativeSourceCommit": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "sourceSha256": {
+      "attributes": "36f5af789448f03a1f264d8ff724b2a49e5658f178220689696c4e3f2d864588",
+      "fsQuests": "3dbf1d957a459cf7e6c2d2c632c57ded48bf7ebc0b98169bcb407b64569db824",
+      "quests": "246e79505f9812fe78ba962ecbd916a088b6b0cb1b5ea6eb872f501188d445d0",
+      "fsCsPlayer": "ae3bb2e1b9ed40c7b67ceb41347b0d96c1a2537f9b0d217ada50ada8e7130f93",
+      "legacyWaitForTasks": "8472c56e753ffa6b13af60dd9ed46a439aec3e854827c3abd6dda169528b180c",
+      "groundWaitForTasks": "3ac780c8b068c75cc5d5465270389b47b235020da57d241a69fb03e1d9837eb1",
+      "fsCounterstrike": "3c49dfe8efa28c068b23c03c055278d2b6847070e66e1a64cdad29826762b9df",
+      "combatQuestP3": "3b38fcf821a97283df13167d5bca6bf5b2fa68ee46420fdb2ace741673b2a76f",
+      "fsKickoff": "058d5ee62a5a679bdf80628437e3e701117d20ca5b730341c0925a9c2fe1b399",
+      "questTable": "957f15eace82d9b53f99c9ddb981078007a56e64eaf090207588a572d44820be",
+      "scriptFunctionTable": "50771f4f689c48a7df2a514b2ece82b3bf0c60507ad213f58670cefa5e9510ee"
+    },
+    "sourceAudit": "passed source inspection; the Village eligibility reader now uses the authored persisted flag, all two completion callbacks are classified, and all 23 production consumers are authenticated",
+    "fullServerBuild": "pending canonical x64 rebuild and deployment",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "compiledFsQuestsClassSha256": "pending",
+    "compiledFsQuestsClassBytes": 0,
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "container": "swg-precu",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the hard-disabled Village eligibility reader, its complete 23-call production consumer frontier, the complete two-handler OnForceSensitiveQuestCompleted family, both authored composite defense rows, all nine counterstrike rows, and both counterstrike script-attachment routes",
+    "preserved": "Publish 14.1 Village Jedi state and branch progression, counterstrike and defense quests, conversations, trainers, survey NPCs, authored quest data, the later groundquest wait-for-tasks implementation, and all unrelated expansion content",
+    "notClaimedComplete": "other Force-sensitive and Jedi callback families remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Pin the pushed dsrc source commit in the parent repository.",
+    "Pass the canonical x64 rebuild, deployment probes, restart, readiness, and live mapped-binary verification."
+  ]
+}
