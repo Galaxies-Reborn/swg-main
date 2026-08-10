@@ -247,8 +247,16 @@ foreach ($dependencyKey in @($contract.requiredReadyContractKeys))
             -SourceRoot $root `
             -Expectation Source
     }
+    elseif ($dependencyKey -ceq "p14ChroniclesScriptLifecycleRetirement" -and
+        $dependencyStatus -ceq "implemented-build-pending")
+    {
+        & (Join-Path $PSScriptRoot "Test-P14ChroniclesScriptLifecycleRetirement.ps1") `
+            -SourceRoot $root `
+            -Expectation Build
+    }
     Assert-Contract ($dependencyStatus -ceq "ready" -or
-        ($dependencyKey -ceq "p14DataGrantPersistenceClosure" -and
+        (@("p14DataGrantPersistenceClosure", "p14ChroniclesScriptLifecycleRetirement") -contains
+            $dependencyKey -and
             $dependencyStatus -ceq "implemented-build-pending")) `
         "Required dependency is not Ready: $dependencyKey"
 }

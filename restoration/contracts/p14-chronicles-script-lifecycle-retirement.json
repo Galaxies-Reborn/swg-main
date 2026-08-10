@@ -1,55 +1,97 @@
 {
   "schemaVersion": 1,
   "feature": "chronicles-script-lifecycle-retirement",
-  "status": "ready",
-  "scope": "Keep Player Generated Chronicles attachment inert, retire it during initialization or tutorial response, and retire Storyteller player scripts while retaining their bodies for old serialized data.",
+  "status": "implemented-build-pending",
+  "scope": "Keep Player Generated Chronicles and Storyteller player-script lifecycle inert under Publish 14.1 rules, fail closed the complete OnAbandonPlayerQuest callback family, and retain later serialized types only for compatibility.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "core3Boundary": "No Player Generated Chronicles, Chronicler profession, Storyteller command, saga-holocron authoring, or matching player-script lifecycle exists in the pinned Publish 14.1 Core3 tree.",
-    "attachmentBoundary": "The only residual storyteller attachment call is inside player.live_conversions, which is itself detached by both its OnInitialize handler and base_player."
+    "attachmentBoundary": "No production caller attaches player.player_saga_quest. The sole residual Storyteller attachment call is inside player.live_conversions, which is itself retired on initialization and detached by base_player.",
+    "directSourceBoundary": "The obsolete overlay patch evidence was removed; the pushed dsrc/src branches and parent gitlinks are the only source of truth."
+  },
+  "sourceFiles": {
+    "playerSaga": "dsrc/sku.0/sys.server/compiled/game/script/player/player_saga_quest.java",
+    "storyteller": "dsrc/sku.0/sys.server/compiled/game/script/systems/storyteller/storyteller_commands.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "liveConversions": "dsrc/sku.0/sys.server/compiled/game/script/player/live_conversions.java",
+    "testListener": "dsrc/sku.0/sys.server/compiled/game/script/test/mboudreaux_test.java",
+    "pgcQuests": "dsrc/sku.0/sys.server/compiled/game/script/library/pgc_quests.java",
+    "scriptFunctionTable": "src/engine/server/library/serverScript/src/shared/ScriptFunctionTable.cpp",
+    "creatureController": "src/engine/server/library/serverGame/src/shared/controller/CreatureController.cpp"
+  },
+  "abandonCallbackInventory": {
+    "pattern": "\\bpublic\\s+int\\s+OnAbandonPlayerQuest\\s*\\(",
+    "canonicalRecord": "relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 2,
+    "sourceFiles": 2,
+    "productionHandlers": 1,
+    "testHandlers": 1,
+    "inventorySha256": "fc78a2a2a9902497577cd73aa1461a5da5ff1f42f07f6e8b82a45672684ed81c",
+    "sourceSetSha256": "a28bd342b75ce81a9dd86c4be179e6494d6826890b9e20a62fe824f37aa06d3d",
+    "sourcePaths": [
+      "player/player_saga_quest.java",
+      "test/mboudreaux_test.java"
+    ]
   },
   "expected": {
     "playerSagaQuestEnabled": false,
     "storytellerCommandsEnabled": false,
-    "playerSagaDetachBoundaries": 2,
+    "playerSagaDetachBoundaries": 3,
     "storytellerDetachBoundaries": 2,
-    "activeProductionAttachmentCalls": 0,
-    "chroniclesTermsOrReserveMessagesOnClientReady": 0
+    "activePlayerSagaAttachmentCalls": 0,
+    "compatibilityStorytellerAttachmentCalls": 1,
+    "chroniclesTermsOrReserveMessagesOnClientReady": 0,
+    "abandonCallbacks": 2,
+    "abandonProductionCallbacks": 1,
+    "abandonTestCallbacks": 1,
+    "unguardedChroniclesAbandonMutations": 0,
+    "nativeAbandonTriggerRegistrations": 1,
+    "nativeAbandonDispatchers": 1,
+    "retainedGroundQuestLifecycleUnaffected": true,
+    "dataGrantDependencyReady": true,
+    "obsoleteOverlayPatchFiles": 0
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceCommit": "c880de8bcc259cf60b268751dfd529b392950085",
-    "overlayPatch": "restoration/patches/dsrc/167-p14-chronicles-script-lifecycle-retirement.patch",
-    "overlayPatchBytes": 2806,
-    "overlayPatchSha256": "69cc1977f0c7f1651fb00ceef433146be40cf99f042d1782247df36fc5260480",
-    "sourceEvidenceEncoding": "UTF-8 with LF line endings",
+    "dsrcSourceCommit": "5705433fef4cba29836a56e62c4303b16c8be914",
+    "nativeSourceCommit": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
     "sourceSha256": {
-      "player_saga_quest.java": "d6bc3e9fe1643ed8fc96b48b67d84f790aab1f2c4eee89d154d59932a087222a",
-      "storyteller_commands.java": "1e7be916cd5ac7124b51b0b6b7fd60e0c5349c6d03616b42419084eaafe8600a"
+      "playerSaga": "aa439eb83fb1b984a284600f624bf8f6d1d4a14065963d4859e5a37c2de3bc32",
+      "storyteller": "1e7be916cd5ac7124b51b0b6b7fd60e0c5349c6d03616b42419084eaafe8600a",
+      "basePlayer": "c635a6d1d3669be17ad4cd994826348b524fe570a141d4b12d3064db51b287db",
+      "liveConversions": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e",
+      "testListener": "3816b14900809342e52213d79b074b021e5304d5d29ca6fe87bbb803b0b07a88",
+      "pgcQuests": "d7984c6420bb521b2963d47c8c38238c94d36222d0317f9ab5b83295d2545537",
+      "scriptFunctionTable": "50771f4f689c48a7df2a514b2ece82b3bf0c60507ad213f58670cefa5e9510ee",
+      "creatureController": "0762b593d7fd124a0c10f34227b8d1656cabb102649d2b12767d894d08c6dc23"
     },
-    "javaCompile": "passed in the canonical exact zero-class Java 8-target rebuild of 5713 sources into 5747 classes",
+    "sourceAudit": "passed direct-source inspection; all two abandonment listeners are classified, the sole production listener fails closed before setQuestAbandoned, and the native registration/dispatcher pair is bounded",
+    "javaCompile": "pending canonical exact zero-class Java 8-target rebuild",
     "classSha256": {
-      "player_saga_quest.class": "485325d33f330b7f067a9a5226b22228faa9b7965e754c3fe56e4b2a05868818",
-      "storyteller_commands.class": "773141e114787c5302879360a6a4581e40c9ea3e3b76e23ace48867692cf8e02"
+      "playerSaga": "pending",
+      "storyteller": "pending"
     },
-    "fullServerBuild": "passed the 1138.3-second canonical x86-64 deployment from pushed parent 40302ecc59ba5fce98261d4b66ca4edf1dfe2bc6 and direct source 6193173a6e96d395ec3aa43413ab67cde64d8a3a",
-    "serverBinarySha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
-    "serverBinaryBuildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa"
+    "classBytes": {
+      "playerSaga": 0,
+      "storyteller": 0
+    },
+    "fullServerBuild": "pending canonical x64 rebuild and deployment",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "result": "pending"
   },
   "runtimeEvidence": {
-    "result": "passed",
     "container": "swg-precu",
-    "containerStartedAt": "2026-08-09T04:07:19.54859972Z",
-    "clusterReadyForPlayers": true,
-    "clientProcessId": 30812,
-    "backgroundInputProtocol": 85,
-    "characterOid": 39008597,
-    "professionRequirementProbe": "passed-and-restored",
-    "serverHealthy": true,
-    "liveGameProcessCount": 15,
-    "livePlanetProcessCount": 15,
-    "structuredLogFatalSevereExceptionCount": 0,
-    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches"
+    "result": "pending"
   },
-  "requiredBeforeReady": []
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete OnAbandonPlayerQuest family, its production/test classification, the retired player-saga attachment frontier, its native registration/dispatcher pair, and the obsolete overlay patch dependency",
+    "preserved": "retained ground quests and their normal completion/clear lifecycle, later serialized Chronicles types for compatibility, unrelated Storyteller world content, and all unrelated expansion zones, quests, conversations, and NPCs",
+    "notClaimedComplete": "other callback families remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Pin the pushed dsrc source commit in the parent repository.",
+    "Pass the canonical x64 rebuild, deployment probes, restart, readiness, and live mapped-binary verification."
+  ]
 }
