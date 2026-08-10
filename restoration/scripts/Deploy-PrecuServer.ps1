@@ -156,6 +156,10 @@ Write-Host "Verifying the complete Java explicit NGE textual inventory before bu
 & (Join-Path $PSScriptRoot "Test-P14JavaExplicitNgeTextualInventoryClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build
+Write-Host "Verifying the complete native explicit NGE textual inventory before build..."
+& (Join-Path $PSScriptRoot "Test-P14NativeExplicitNgeTextualInventoryClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying the direct-source PRE-CU zone transition level authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuZoneTransitionLevelAuthority.ps1") `
     -SourceRoot $repositoryRoot `
