@@ -122,8 +122,16 @@ $encounterContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14PrecuEncounterDifficultyAuthority)) -Raw | ConvertFrom-Json
 $xpContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14PrecuCombatXpAuthority)) -Raw | ConvertFrom-Json
+$xpStatus = [string]$xpContract.status
+if ($Expectation -eq "Source" -and $xpStatus -ceq "implemented-build-pending")
+{
+    & (Join-Path $PSScriptRoot "Test-P14PrecuCombatXpAuthority.ps1") `
+        -SourceRoot $source
+}
 Assert-Contract ([string]$encounterContract.status -ceq "ready" -and
-    [string]$xpContract.status -ceq "ready") `
+    ($xpStatus -ceq "ready" -or
+        ($Expectation -eq "Source" -and
+            $xpStatus -ceq "implemented-build-pending"))) `
     "p14.metrics-level.adjacent-authority-continuity"
 
 if ($Expectation -eq "Ready")
