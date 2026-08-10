@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-dynamic-mission-difficulty-authority",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Keep retained mission boards, NPC jobs, expansion quests, and authored mission difficulty bands while preventing the removed NGE player combat level from regaining authority through residual or reactivated dynamic-mission helpers.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -43,13 +43,13 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "7dab96a595ee5f24166da6241f603e238116d226",
+    "directSourceGitlink": "e3c1112513009c915eb6e5f22be2beffd02e4de8",
     "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "attributes": "bdeb990a027951e13a76edba533a7e6036e1adada9cea934208754dea98d21b7",
       "skill": "cac72d8a614b074d2a3591cc617e0b988f0e4b8401fe0ac0eccd1c2e83a43a32",
-      "missionDynamic": "b7e0c6ff2c0194769fdaaeb2a32f04f471237047dcef627b6b03d30837a907ae",
+      "missionDynamic": "984f53c76fc2051e8784c43a9fc86e7ad72b7e39b0a36e8940b128c54efce3ec",
       "missionPlayer": "9bbc93b3b1f3e2b30ad6c792c4002022c5b61a940a29eea66cf0db25efad39f6",
       "missionEscort": "adadf077511fe9178c8267a3eecb6c7e78718a7dda9520be5a34fac582295c09",
       "npcMission": "e2da348d57b13577ee32d627f99cc2ec42d075b09ee985735ffd4a8f223699de",
@@ -72,7 +72,7 @@
     "sourceWorkParity": "passed byte-for-byte for mission_dynamic_base.java and mission_escort_npc.java; source and work SHA-256 pairs are identical",
     "bytecodeAudit": "mission_dynamic_base.class contains exactly two skill.getPrecuEncounterDifficulty calls and zero getLevel calls; mission_escort_npc.class contains zero getLevel calls",
     "deploymentProbe": "passed all direct-source preflight contracts, mandatory source/work parity, focused mission bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-04",
@@ -101,12 +101,15 @@
       "SwgGameServer": 14
     },
     "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
-    "result": "passed"
+    "result": "pending"
   },
   "auditBoundary": {
     "closedInThisMilestone": "the last three raw NGE player combat-level reads in the production mission script tree",
     "preserved": "mission-board generation, ten held missions, 24-player parties, full unsplit group credits, PRE-CU skill-box group scoring, retained NPC job conversations, authored mission-object difficulty, planet bands and feedback strings, expansion quests, and later content",
     "notClaimedComplete": "other dormant or production-reachable post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Rebuild mission_dynamic_base.class from direct dsrc e3c1112513009c915eb6e5f22be2beffd02e4de8",
+    "Verify the healthy x64 runtime maps the rebuilt server binary"
+  ]
 }

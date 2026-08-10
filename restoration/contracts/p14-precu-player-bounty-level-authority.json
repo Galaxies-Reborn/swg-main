@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-player-bounty-level-authority",
+  "status": "implemented-build-pending",
+  "scope": "Restore Publish 14.1 player-bounty admission and target selection: novice Bounty Hunter admits the terminal, Investigation III admits player targets, and neither hunter nor target combat level controls eligibility.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "core3Reference": "https://github.com/swgemu/Core3/blob/6ea64f60ef33b89121c2a8d188b93f4bc6f158e8/MMOCoreORB/src/server/zone/managers/mission/MissionManagerImplementation.cpp",
+    "findings": [
+      "Publish 14.1 bounty terminals require combat_bountyhunter_novice.",
+      "Player-target bounty missions require combat_bountyhunter_investigation_03.",
+      "Player-target validity is based on visibility, online and availability state, active bounty limits, account/building exclusions, and cooldowns rather than a combat-level comparison.",
+      "The inherited mission script instead rejected low hidden hunter scores and derived a 75%-150% target-level band, while the native Jedi registry stored the repurposed player difficulty as target level."
+    ]
+  },
+  "expected": {
+    "terminalAdmissionSkill": "combat_bountyhunter_novice",
+    "playerTargetAdmissionSkill": "combat_bountyhunter_investigation_03",
+    "minimumBountyValue": 15000,
+    "maximumExistingHunters": 2,
+    "hunterCombatLevelAdmission": false,
+    "targetCombatLevelFiltering": false,
+    "compatibilityLevelValue": 0,
+    "visibilityFilterPreserved": true,
+    "onlineAndAvailabilityFiltersPreserved": true,
+    "bountyConcurrencyFilterPreserved": true,
+    "factionAndSelfTargetFiltersPreserved": true,
+    "npcBountyFallbackPreserved": true,
+    "laterBountyContentPreserved": true
+  },
+  "sourceFiles": {
+    "missionDynamic": "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_dynamic_base.java",
+    "missionPlayer": "dsrc/sku.0/sys.server/compiled/game/script/systems/missions/base/mission_player.java",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "jediManager": "src/game/server/application/SwgGameServer/src/shared/object/JediManagerObject.cpp",
+    "scriptMethodsJedi": "src/engine/server/library/serverScript/src/shared/ScriptMethodsJedi.cpp",
+    "swgCreature": "src/game/server/application/SwgGameServer/src/shared/object/SwgCreatureObject.cpp",
+    "jediController": "src/game/server/application/SwgGameServer/src/shared/controller/JediManagerController.cpp"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceGitlink": "e3c1112513009c915eb6e5f22be2beffd02e4de8",
+    "nativeSourceCommit": "4511b725f099886c3c5f3e97df6f2f3ed9d81de8",
+    "hostMaterializationWorkflow": "retired; direct source is mounted read-only and the existing Docker work volume is used",
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "sourceSha256": {
+      "missionDynamic": "984f53c76fc2051e8784c43a9fc86e7ad72b7e39b0a36e8940b128c54efce3ec",
+      "missionPlayer": "9bbc93b3b1f3e2b30ad6c792c4002022c5b61a940a29eea66cf0db25efad39f6",
+      "skillTable": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
+      "jediManager": "40139b0b13f1e3af4c472bfed8ee6933013475b44b1b5e46b7f7a175f392f971",
+      "scriptMethodsJedi": "849074418966f44ddcd548aaf42f92d3268429ef7cba28dd88db320b51bc25cd",
+      "swgCreature": "abadf7a5fc5015cbfa4f75aaacd1664039d9014b683241466263c05eb4850a29",
+      "jediController": "2ac0d8c5868ae903a68374d8720c2ea15155da0d916e31d676f26bc9dd05871d"
+    },
+    "focusedJavaCompile": "passed in /dev/shm and cleaned immediately",
+    "fullJavaCompile": "pending",
+    "fullNativeBuild": "pending",
+    "architecture": "pending x86-64 verification",
+    "compiledClassSha256": "",
+    "serverBinarySha256": "",
+    "serverBinaryBuildId": "",
+    "sourceWorkParity": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "date": "",
+    "container": "swg-precu",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "liveProcessMappedBuiltBinary": false,
+    "processCounts": {
+      "PlanetServer": 0,
+      "SwgGameServer": 0
+    },
+    "postStartLogAudit": "pending",
+    "result": "pending"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "NGE combat-level admission and target bands in player/Jedi bounty mission creation and the native Jedi registry",
+    "preserved": "novice Bounty Hunter terminal use, Investigation III player-bounty progression, visibility and bounty thresholds, hunter concurrency, online state, faction behavior, droid/informant flow, NPC bounty fallback, and later bounty mission content",
+    "notClaimedComplete": "the remaining classified native getLevel consumers and other post-NGE gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": [
+    "Clean x64 Java and native server build",
+    "Source/work parity and compiled-class verification",
+    "Healthy player-ready runtime mapped to the rebuilt x64 binary"
+  ]
+}
