@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-core3-combat-admission-lifecycle-authority",
-  "status": "ready-for-live-verification",
+  "status": "ready",
   "scope": "Close the remaining NGE combat-admission and lifecycle paths for authenticated PRE-CU attacks, revalidate Novice Scout at final native and Java corpse-command execution, and expose every effective Core3 cadence input for live diagnosis.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
@@ -37,6 +37,7 @@
     "aiCorpse": "dsrc/sku.0/sys.server/compiled/game/script/corpse/ai_corpse.java",
     "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
     "commandQueueHeader": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.h",
+    "aiCadenceRuntime": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_ai_attack_interval_runtime.java",
     "localOptions": "exe/linux/localOptions.cfg"
   },
   "expected": {
@@ -77,35 +78,102 @@
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
     "sourceSha256": {
       "CommandQueue.cpp": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba",
-      "combat_base.java": "77056f741a0c7db01df656e5dab4a4a3e284b1894cf94b249ff4a23568e8ab50",
+      "CommandQueue.h": "a7c29f84c5dadc4750c9289556ad58035cd3b37166e63b4b89475d1ebfce3593",
+      "combat_base.java": "b9f7b5e452c4cdab95007b377200774be4d622dcf7d2845cd874c65f8f120ab9",
       "combat_player.java": "36c82422c3ea523aa71187bd31086bb9f21f2bb954d0d4f8e1a583923d9b70ed",
-      "ai_corpse.java": "010ecb395a3f43fd0dfa5e6f2a3aa7add5893a9589a6227efe79b8c4df53c335"
+      "ai_corpse.java": "010ecb395a3f43fd0dfa5e6f2a3aa7add5893a9589a6227efe79b8c4df53c335",
+      "precu_ai_attack_interval_runtime.java": "2d6b372534bff765e1fcc71c6365ef7020637a154a43ee38887c0f7fffb10721"
     },
     "compiledClassSha256": {
-      "combat_base.class": "bdfab1ef7c12b4cddcac6e66b0f6521c082abbcc4d3991d74412130d6ecd5032",
+      "combat_base.class": "e79bebc953ec7ccb4fd27d534113220326b0136e6555464bb9c7ed1157df0a7e",
       "combat_player.class": "af3e206478b9ccccc9da5c377c1881e97c3949989e266a67b068f6ab67da1848",
-      "ai_corpse.class": "5df2c5cc6b5b7634db44c870aa08e99270fef634520e8032cf6bad09db0894c4"
+      "ai_corpse.class": "5df2c5cc6b5b7634db44c870aa08e99270fef634520e8032cf6bad09db0894c4",
+      "precu_ai_attack_interval_runtime.class": "700cc111659c18939ab21b7d278ac03c983bcc0c5a453d9a9db039a11ba6d92b"
     },
     "cppCompile": "passed",
     "javaCompile": "passed",
-    "serverGameArchiveSha256": "384508c110838f5111687b90f3625040fe913c27effe7de25af58f550e194691",
+    "serverGameArchiveSha256": "a0dd0e14df9567c390099d6488f03500343e1093a15f74d3058600e7c60d5832",
     "architecture": "x86-64",
-    "buildIdSha1": "f8beb5508bcd1efc30e18cfa6ae13bb5e7266010",
-    "serverBinarySha256": "43f8561460d6480570a2946219739c141c3d17b181e5d9482b10146a0cf29c8a",
+    "buildIdSha1": "0ac0c8a439a388150c4a0f687874d1b38edc9eed",
+    "serverBinarySha256": "e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8",
+    "serverBinarySize": 22561064,
+    "serverBinaryInode": 12141610,
+    "nativeSourceCommit": "e44ba83276ec4c4feb419b32a2ae982a68e1926b",
+    "directSourceGitlink": "9f259fb0bf2fc4bb12ade3ae7f4875f84707e12f",
     "container": "swg-precu",
-    "containerStartedAt": "2026-08-01T16:54:53.353975818Z",
+    "containerStartedAt": "2026-08-10T02:16:10.510115161Z",
     "containerHealthy": true,
     "clusterReady": true,
     "sourceAndBuildVolumeMatch": true,
     "liveProcessMatchesBinary": true,
     "result": "passed"
   },
-  "requiredBeforeReady": [
-    "clean overlay materialization passes",
-    "x64 server build passes",
-    "deployed server is healthy and player-ready",
-    "live non-Scout harvest attempt is rejected at enqueue or execution",
-    "live player attack intervals meet the preceding assigned Core3 interval",
-    "zero same-owner AI attack pairs below 1.95 seconds after restart"
-  ]
+  "runtimeEvidence": {
+    "result": "passed",
+    "observedUtc": "2026-08-10T03:20:22Z/2026-08-10T03:41:02Z",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-10T02:16:10.510115161Z",
+    "containerHealthy": true,
+    "clusterReadyForPlayers": true,
+    "processCounts": {
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "serverProcessId": 383,
+    "sourceAndBuildVolumeMatch": true,
+    "liveProcessMappedBuiltBinary": true,
+    "liveBinaryInode": 12141610,
+    "liveBinarySize": 22561064,
+    "primaryClient": {
+      "processId": 52252,
+      "stationId": 91001,
+      "playerOid": 44003778,
+      "avatar": "PrecuRuntime",
+      "remainedOpenAndResponsive": true
+    },
+    "nonScoutHarvestAdmission": {
+      "stationId": 1001,
+      "playerOid": 1433054682,
+      "noviceScoutOwned": false,
+      "command": "harvestCorpse",
+      "queueCommandReturned": true,
+      "rejectedAtNativeEnqueue": true,
+      "nativeLogLine": "20260810032022:SwgGameServer:383:PreCuScoutHarvest:rejected owner=1433054682 command=harvestCorpse target=0",
+      "stateFree": true,
+      "result": "passed"
+    },
+    "playerCadence": {
+      "owner": "44003778",
+      "playerControlled": true,
+      "command": "meleeHit",
+      "attackEvents": 3,
+      "consecutiveSameServerOwnerPairs": 2,
+      "assignedIntervalSeconds": 2.0,
+      "observedPairSeconds": [96.975, 38.869],
+      "minimumObservedConsecutiveSeconds": 38.869,
+      "pairsBelowAssignedInterval": 0,
+      "result": "passed"
+    },
+    "aiCadence": {
+      "fixture": "test.precu_ai_attack_interval_runtime",
+      "fixtureLifecycle": "41041041041041041041041041041041",
+      "owner": "6615094797",
+      "target": "6615094804",
+      "playerControlled": false,
+      "command": "meleeHit",
+      "attackEvents": 7,
+      "consecutiveSameServerOwnerPairs": 6,
+      "assignedIntervalSeconds": 2.0,
+      "observedPairSeconds": [60.920, 2.776, 2.777, 2.776, 2.777, 2.776],
+      "minimumObservedConsecutiveSeconds": 2.776,
+      "pairsBelow1_95Seconds": 0,
+      "gateEvents": 1,
+      "gateLine": "20260810033947:SwgGameServer:383:PreCuCombatCadence:gate time=39926.210 owner=6615094797 command=meleeHit target=6615094804 remaining=1.989 lastInterval=2.000",
+      "cleanupRestored": true,
+      "secondCleanupAlreadyClean": true,
+      "playerStateMutated": false,
+      "result": "passed"
+    }
+  },
+  "requiredBeforeReady": []
 }

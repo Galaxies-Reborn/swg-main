@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-core3-ai-attack-interval",
-  "status": "implemented-build-verified-live-validation-pending",
+  "status": "ready",
   "scope": "Apply Core3's two-second AI action interval to server-authoritative creature attacks before inherited NGE creature speed modifiers can collapse cadence, and preserve the completed attack interval across target changes and queue clearing.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
@@ -23,15 +23,23 @@
     "overlayPatchBytes": 1034,
     "overlayPatchSha256": "d4008a0b755cd37c725f55aeaedeadc13a9a2aadd0269fb943fe73ea6974d3e6",
     "sourceSha256": {
-      "CommandQueue.cpp": "3010c6a10b1fbb3c318fcf86c388ecb1e9e95a4c3e28580d4b026f67735de110",
+      "CommandQueue.cpp": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba",
       "CommandQueue.h": "a7c29f84c5dadc4750c9289556ad58035cd3b37166e63b4b89475d1ebfce3593"
     },
     "cppCompile": "passed",
     "architecture": "x86-64",
+    "nativeSourceCommit": "e44ba83276ec4c4feb419b32a2ae982a68e1926b",
+    "directSourceGitlink": "9f259fb0bf2fc4bb12ade3ae7f4875f84707e12f",
+    "runtimeFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_ai_attack_interval_runtime.java",
+    "runtimeFixtureSourceSha256": "2d6b372534bff765e1fcc71c6365ef7020637a154a43ee38887c0f7fffb10721",
+    "runtimeFixtureClassSha256": "700cc111659c18939ab21b7d278ac03c983bcc0c5a453d9a9db039a11ba6d92b",
+    "runtimeFixtureJavaCompile": "passed",
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
-    "buildIdSha1": "351490615204e50e0e67cded55e423149d0956ef",
-    "serverBinarySha256": "9cf8920ca3512c246d4649bc7ee23f38243340d0f0b6957253b50b4bf88a319b",
-    "serverGameArchiveSha256": "5c4cc1fdd15b3bdde0e816d19380e6fc9830dce76fb78c0d53d9c5185bfac7bd",
+    "buildIdSha1": "0ac0c8a439a388150c4a0f687874d1b38edc9eed",
+    "serverBinarySha256": "e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8",
+    "serverBinarySize": 22561064,
+    "serverBinaryInode": 12141610,
+    "serverGameArchiveSha256": "a0dd0e14df9567c390099d6488f03500343e1093a15f74d3058600e7c60d5832",
     "cadenceTelemetryPatch": "restoration/patches/src/345-p14-combat-cadence-telemetry.patch",
     "cadenceTelemetryCategory": "PreCuCombatCadence",
     "retargetGuardPatch": {
@@ -41,13 +49,14 @@
     }
   },
   "runtimeEvidence": {
-    "result": "player-and-retarget-passed-ai-sample-pending",
+    "result": "passed",
     "container": "swg-precu",
-    "containerStartedAt": "2026-08-01T14:58:41.086767915Z",
-    "serverProcessId": 365,
-    "clientProcessId": 73796,
+    "containerStartedAt": "2026-08-10T02:16:10.510115161Z",
+    "serverProcessId": 383,
+    "clientProcessId": 52252,
     "sourceAndBuildVolumeMatch": true,
     "liveBinaryMatchesBuild": true,
+    "liveProcessMappedBuiltBinary": true,
     "scoutHarvestBytecodeGate": "passed",
     "clusterReady": true,
     "serverHealthy": true,
@@ -108,10 +117,47 @@
       ],
       "retargetGateEvents": 1,
       "retargetGate": "time=476050.547 command=unarmedLunge1 target=0 remaining=2.109 lastInterval=2.850",
-      "interpretation": "The current x64 build preserved the assigned player weapon interval across a live target transition and emitted the owner-lifetime cadence gate before allowing the next attack. A current-build AI attack sample is the only remaining live requirement."
+      "interpretation": "The x64 build preserved the assigned player weapon interval across a live target transition and emitted the owner-lifetime cadence gate before allowing the next attack."
+    },
+    "currentProcessPlayerCadenceValidation": {
+      "source": "/swg-precu/exe/linux/logs/precuCombatCadence.log",
+      "containerStartedAt": "2026-08-10T02:16:10.510115161Z",
+      "serverProcessId": 383,
+      "owner": "44003778",
+      "command": "meleeHit",
+      "playerAttackEvents": 3,
+      "consecutiveSameServerOwnerPairs": 2,
+      "assignedIntervalSeconds": 2.0,
+      "observedPairSeconds": [96.975, 38.869],
+      "minimumObservedConsecutiveSeconds": 38.869,
+      "pairsBelowAssignedInterval": 0,
+      "result": "passed"
+    },
+    "currentBuildAiValidation": {
+      "source": "/swg-precu/exe/linux/logs/precuCombatCadence.log",
+      "observedUtcStart": "2026-08-10T03:39:47Z",
+      "observedUtcEnd": "2026-08-10T03:41:02Z",
+      "serverProcessId": 383,
+      "fixture": "test.precu_ai_attack_interval_runtime",
+      "fixtureLifecycle": "41041041041041041041041041041041",
+      "owner": "6615094797",
+      "target": "6615094804",
+      "command": "meleeHit",
+      "playerControlled": false,
+      "attackEvents": 7,
+      "consecutiveSameServerOwnerPairs": 6,
+      "assignedIntervalSeconds": 2.0,
+      "observedPairSeconds": [60.920, 2.776, 2.777, 2.776, 2.777, 2.776],
+      "minimumObservedConsecutiveSeconds": 2.776,
+      "pairsBelow1_95Seconds": 0,
+      "gateEvents": 1,
+      "gateLine": "20260810033947:SwgGameServer:383:PreCuCombatCadence:gate time=39926.210 owner=6615094797 command=meleeHit target=6615094804 remaining=1.989 lastInterval=2.000",
+      "sourceAndBuildVolumeMatch": true,
+      "cleanupRestored": true,
+      "secondCleanupAlreadyClean": true,
+      "playerStateMutated": false,
+      "result": "passed"
     }
   },
-  "requiredBeforeReady": [
-    "zero nonnegative same-server same-owner AI attack pairs below 1.95 seconds after restart"
-  ]
+  "requiredBeforeReady": []
 }

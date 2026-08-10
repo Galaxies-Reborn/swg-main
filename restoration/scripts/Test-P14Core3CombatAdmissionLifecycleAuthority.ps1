@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Build", "Ready")]
+    [string]$Expectation = "Build"
 )
 
 Set-StrictMode -Version Latest
@@ -41,6 +44,7 @@ $combatPlayer = Get-Content -LiteralPath $paths.combatPlayer -Raw
 $aiCorpse = Get-Content -LiteralPath $paths.aiCorpse -Raw
 $queue = Get-Content -LiteralPath $paths.commandQueue -Raw
 $queueHeader = Get-Content -LiteralPath $paths.commandQueueHeader -Raw
+$aiCadenceRuntime = Get-Content -LiteralPath $paths.aiCadenceRuntime -Raw
 $localOptions = Get-Content -LiteralPath $paths.localOptions -Raw
 
 foreach ($evidence in @($contract.buildEvidence.overlayPatches))
@@ -144,8 +148,117 @@ Assert-Contract ($localOptions.Contains(
     "logTarget=file:logs/precuScoutHarvest.log{c-*:c+PreCuScoutHarvest}")) `
     "p14.combat-lifecycle.filtered-runtime-log-targets"
 
-Assert-Contract (@("implemented-build-pending", "ready-for-live-verification", "ready") -contains
-    [string]$contract.status) "p14.combat-lifecycle.contract.status"
+Assert-Contract ($aiCadenceRuntime.Contains("PLAYER_OID = 44003778L") -and
+    $aiCadenceRuntime.Contains("PLAYER_STATION_ID = 91001") -and
+    $aiCadenceRuntime.Contains('ATTACK_COMMAND = "meleeHit"') -and
+    $aiCadenceRuntime.Contains("queueCommand(") -and
+    $aiCadenceRuntime.Contains("createFixtureCreature") -and
+    $aiCadenceRuntime.Contains("destroyTracked(") -and
+    $aiCadenceRuntime.Contains("playerStateMutated=false")) `
+    "p14.combat-lifecycle.ai-runtime-reversible-production-queue"
+
+if ($Expectation -eq "Ready")
+{
+    $runtime = $contract.runtimeEvidence
+    Assert-Contract ([string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$runtime.result -ceq "passed" -and
+        @($contract.requiredBeforeReady).Count -eq 0) `
+        "p14.combat-lifecycle.ready-evidence-complete"
+
+    $dsrcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "dsrc" })
+    $srcPin = @($manifest.gitlinks | Where-Object { $_.name -ceq "src" })
+    $checkedOutDsrc = (& git -C (Join-Path $source "dsrc") rev-parse HEAD).Trim()
+    $checkedOutSrc = (& git -C (Join-Path $source "src") rev-parse HEAD).Trim()
+    Assert-Contract ($LASTEXITCODE -eq 0 -and $dsrcPin.Count -eq 1 -and
+        $srcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq
+            [string]$contract.buildEvidence.directSourceGitlink -and
+        [string]$srcPin[0].commit -ceq
+            [string]$contract.buildEvidence.nativeSourceCommit -and
+        $checkedOutDsrc -ceq
+            [string]$contract.buildEvidence.directSourceGitlink -and
+        $checkedOutSrc -ceq
+            [string]$contract.buildEvidence.nativeSourceCommit) `
+        "p14.combat-lifecycle.ready-source-pins"
+
+    $hashChecks = [ordered]@{
+        combatBase = "combat_base.java"
+        combatPlayer = "combat_player.java"
+        aiCorpse = "ai_corpse.java"
+        commandQueue = "CommandQueue.cpp"
+        commandQueueHeader = "CommandQueue.h"
+        aiCadenceRuntime = "precu_ai_attack_interval_runtime.java"
+    }
+    $sourceHashesMatch = $true
+    foreach ($entry in $hashChecks.GetEnumerator())
+    {
+        $actual = (Get-FileHash -LiteralPath $paths[$entry.Key] -Algorithm SHA256).
+            Hash.ToLowerInvariant()
+        $expectedHash = $contract.buildEvidence.sourceSha256.PSObject.
+            Properties[$entry.Value]
+        $sourceHashesMatch = $sourceHashesMatch -and
+            $null -ne $expectedHash -and
+            $actual -ceq [string]$expectedHash.Value
+    }
+    Assert-Contract $sourceHashesMatch `
+        "p14.combat-lifecycle.ready-source-hashes"
+
+    $harvest = $runtime.nonScoutHarvestAdmission
+    Assert-Contract (-not [bool]$harvest.noviceScoutOwned -and
+        [string]$harvest.command -ceq "harvestCorpse" -and
+        [bool]$harvest.queueCommandReturned -and
+        [bool]$harvest.rejectedAtNativeEnqueue -and
+        [bool]$harvest.stateFree -and
+        [string]$harvest.result -ceq "passed" -and
+        [string]$harvest.nativeLogLine -match
+            '^20260810032022:SwgGameServer:[0-9]+:PreCuScoutHarvest:rejected owner=1433054682 command=harvestCorpse target=0$') `
+        "p14.combat-lifecycle.ready-harvest-admission"
+
+    $player = $runtime.playerCadence
+    Assert-Contract ([bool]$player.playerControlled -and
+        [int]$player.attackEvents -ge 2 -and
+        [int]$player.consecutiveSameServerOwnerPairs -ge 1 -and
+        [double]$player.minimumObservedConsecutiveSeconds -ge
+            [double]$player.assignedIntervalSeconds -and
+        [int]$player.pairsBelowAssignedInterval -eq 0 -and
+        [string]$player.result -ceq "passed") `
+        "p14.combat-lifecycle.ready-player-cadence"
+
+    $ai = $runtime.aiCadence
+    Assert-Contract (-not [bool]$ai.playerControlled -and
+        [int]$ai.attackEvents -ge 3 -and
+        [int]$ai.consecutiveSameServerOwnerPairs -ge 2 -and
+        [double]$ai.assignedIntervalSeconds -eq 2.0 -and
+        [double]$ai.minimumObservedConsecutiveSeconds -ge 1.95 -and
+        [int]$ai.pairsBelow1_95Seconds -eq 0 -and
+        [int]$ai.gateEvents -ge 1 -and
+        [bool]$ai.cleanupRestored -and
+        [bool]$ai.secondCleanupAlreadyClean -and
+        -not [bool]$ai.playerStateMutated -and
+        [string]$ai.result -ceq "passed") `
+        "p14.combat-lifecycle.ready-ai-cadence"
+
+    Assert-Contract ([bool]$runtime.containerHealthy -and
+        [bool]$runtime.clusterReadyForPlayers -and
+        [bool]$runtime.sourceAndBuildVolumeMatch -and
+        [bool]$runtime.liveProcessMappedBuiltBinary -and
+        [int]$runtime.processCounts.PlanetServer -eq 15 -and
+        [int]$runtime.processCounts.SwgGameServer -eq 15 -and
+        [bool]$runtime.primaryClient.remainedOpenAndResponsive) `
+        "p14.combat-lifecycle.ready-live-environment"
+}
+else
+{
+    Assert-Contract (@("implemented-build-pending", "ready-for-live-verification", "ready") -contains
+        [string]$contract.status) "p14.combat-lifecycle.contract.status"
+}
+
+$contractText = Get-Content -LiteralPath (Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14Core3CombatAdmissionLifecycleAuthority)) -Raw
+Assert-Contract (-not $contractText.Contains("/Artifacts/") -and
+    -not $contractText.Contains("/Staging/")) `
+    "p14.combat-lifecycle.no-host-staging"
 
 if ($failures.Count -gt 0)
 {
