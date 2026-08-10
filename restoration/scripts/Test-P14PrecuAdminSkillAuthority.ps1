@@ -63,6 +63,11 @@ $developerXpTest = Get-SourceText "developerXpTest"
 $betaPetTest = Get-SourceText "betaPetTest"
 $betaSurveySpecialist = Get-SourceText "betaSurveySpecialist"
 $developerAiTest = Get-SourceText "developerAiTest"
+$workingJcarpenterUtil = Get-SourceText "workingJcarpenterUtil"
+$workingJustinUtilities = Get-SourceText "workingJustinUtilities"
+$workingSteveMyscript = Get-SourceText "workingSteveMyscript"
+$workingDantest = Get-SourceText "workingDantest"
+$workingGrievousTest = Get-SourceText "workingGrievousTest"
 
 $rootConstant = Get-Slice $skill `
     "public static final String[] PRECU_PUBLIC_PROFESSION_ROOTS" `
@@ -510,6 +515,94 @@ if ($contract.expected.broadBetaXpMutationReachable -or
     throw "The dormant beta/developer progression reachability contract must fail closed."
 }
 
+Assert-Contains $workingJcarpenterUtil @(
+    'godLevel >= 50',
+    'detachScript(self, "working.jcarpenter.util")',
+    'return SCRIPT_CONTINUE;',
+    'skill.grantPrecuSkillWithPrerequisites(self, masterSkill)',
+    'within the 250-point skill cap',
+    'bulk skill revocation is retired; use normal PRE-CU skill surrender'
+) "dormant jcarpenter PRE-CU profession utility"
+Assert-Excludes $workingJcarpenterUtil @(
+    'detachScript(self, "jcarpenter.util")',
+    'grantSkill(self,',
+    'revokeSkill(self,',
+    'skill.grantSkill(',
+    'skill.grantSkillToPlayer('
+) "dormant jcarpenter PRE-CU profession utility"
+
+Assert-Contains $workingJustinUtilities @(
+    'if (!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self))',
+    'detachScript(self, "working.justin.utilities")',
+    'skill.grantPrecuSkillWithPrerequisites(self, "combat_unarmed_master")',
+    'within the 250-point skill cap',
+    'fs_quests.makeVillageEligible(self)',
+    'fs_quests.unlockBranch(self, arg1)'
+) "dormant Justin PRE-CU utility"
+Assert-Excludes $workingJustinUtilities @(
+    'grantSkill(self,',
+    'skill.grantSkill(',
+    'skill.grantSkillToPlayer(',
+    'revokeSkill(self,'
+) "dormant Justin PRE-CU utility"
+
+Assert-Contains $workingSteveMyscript @(
+    'if (!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self))',
+    'detachScript(self, "working.steve.myscript")',
+    'Direct Jedi conversion is retired; use PRE-CU Force-sensitive and Jedi progression.',
+    'Direct legacy Jedi skill grants are retired; use PRE-CU Force-sensitive and Jedi progression.',
+    'fs_quests.makeVillageEligible(self)'
+) "dormant Steve PRE-CU diagnostic"
+Assert-Excludes $workingSteveMyscript @(
+    'setJediState(',
+    'jedi_padawan',
+    'jedi.skillsNeeded',
+    'grantSkill(self,',
+    'skill.grantSkillToPlayer('
+) "dormant Steve PRE-CU diagnostic"
+
+Assert-Contains $workingDantest @(
+    'if (!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self))',
+    'detachScript(self, "working.dantest")',
+    'Direct Jedi setup is retired; use PRE-CU Force-sensitive and Jedi progression.',
+    'Direct Jedi skill completion is retired; use PRE-CU Force-sensitive and Jedi progression.',
+    'Direct Jedi skill grants are retired; use PRE-CU Force-sensitive and Jedi progression.'
+) "dormant Dan PRE-CU diagnostic"
+Assert-Excludes $workingDantest @(
+    'jedi_padawan',
+    'pclib.OBJVAR_JEDI_SKILL_REQUIREMENTS',
+    'grantSkill(self,',
+    'skill.grantSkill(',
+    'skill.grantSkillToPlayer('
+) "dormant Dan PRE-CU diagnostic"
+
+Assert-Contains $workingGrievousTest @(
+    'if (!isGod(self) || getGodLevel(self) < 50 || !isPlayer(self))',
+    'detachScript(self, "working.wwallace.grievous_test")',
+    'public boolean grantPrecuLoadout(',
+    'skill.grantPrecuSkillWithPrerequisites(player, masterSkill)',
+    'within the 250-point skill cap',
+    'BRAWLER[BRAWLER.length - 1]',
+    'BOUNTY_HUNTER[BOUNTY_HUNTER.length - 1]'
+) "dormant Grievous PRE-CU loadout test"
+Assert-Excludes $workingGrievousTest @(
+    'grantSkill(self,',
+    'skill.grantSkill(',
+    'skill.grantSkillToPlayer(',
+    'revokeSkill(self,'
+) "dormant Grievous PRE-CU loadout test"
+
+if ([int]$contract.expected.dormantWorkingProgressionSurfaces -ne 5 -or
+    [int]$contract.expected.dormantWorkingCanonicalGrantSurfaces -ne 3 -or
+    $contract.expected.dormantWorkingNativeGrantReachable -or
+    $contract.expected.dormantWorkingNativeRevokeReachable -or
+    $contract.expected.dormantWorkingDirectJediConversionReachable -or
+    $contract.expected.dormantWorkingUnauthorizedAttachReachable -or
+    -not $contract.expected.retainedJtlPilotGrantAuditDeferred)
+{
+    throw "The dormant working progression authority contract is not bounded to PRE-CU rules."
+}
+
 Assert-Contains $qaItem @(
     "Get Later-Content Item Packs",
     'ITEM_REWARD_TABLE = "datatables/roadmap/item_rewards.iff"',
@@ -619,7 +712,7 @@ if ($Expectation -eq "Ready")
     }
     $classRoot = [string]$contract.buildEvidence.compiledClassRoot
     $classFiles = @($contract.compiledClasses.PSObject.Properties)
-    if ($classFiles.Count -ne 23) { throw "PRE-CU admin compiled-class inventory is incomplete." }
+    if ($classFiles.Count -ne 28) { throw "PRE-CU admin compiled-class inventory is incomplete." }
     foreach ($property in $classFiles)
     {
         $classPath = $classRoot + "/" + [string]$property.Value
@@ -685,6 +778,11 @@ if ($Expectation -eq "Ready")
     $betaPetTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.pet_test | Out-String)
     $betaSurveySpecialistBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.beta.skills_survey_specialist | Out-String)
     $developerAiTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.test.ai_test | Out-String)
+    $workingJcarpenterUtilBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.jcarpenter.util | Out-String)
+    $workingJustinUtilitiesBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.justin.utilities | Out-String)
+    $workingSteveMyscriptBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.steve.myscript | Out-String)
+    $workingDantestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.dantest | Out-String)
+    $workingGrievousTestBytecode = (& docker exec $Container javap -classpath $classRoot -c -p script.working.wwallace.grievous_test | Out-String)
     foreach ($entry in @{
         "deployed GM bytecode" = $playerUtilityBytecode
         "deployed test-center bytecode" = $builderBytecode
@@ -828,6 +926,42 @@ if ($Expectation -eq "Ready")
     Assert-Contains $betaPetTestBytecode @("getGodLevel:", "beta.pet_test") "deployed beta PRE-CU pet test bytecode"
     Assert-Contains $betaSurveySpecialistBytecode @("getGodLevel:", "remain learned when the survey test script is detached") "deployed beta PRE-CU survey specialist bytecode"
     Assert-Contains $developerAiTestBytecode @("getGodLevel:", "fasttame") "deployed PRE-CU AI test bytecode"
+    foreach ($entry in @{
+        "deployed jcarpenter PRE-CU profession utility bytecode" = $workingJcarpenterUtilBytecode
+        "deployed Justin PRE-CU utility bytecode" = $workingJustinUtilitiesBytecode
+        "deployed Grievous PRE-CU loadout test bytecode" = $workingGrievousTestBytecode
+    }.GetEnumerator())
+    {
+        Assert-Contains $entry.Value @(
+            "script/library/skill.grantPrecuSkillWithPrerequisites:",
+            "250-point skill cap"
+        ) $entry.Key
+        Assert-Excludes $entry.Value @(
+            "// Method grantSkill:",
+            "// Method revokeSkill:",
+            "// Method script/library/skill.grantSkill:",
+            "// Method script/library/skill.grantSkillToPlayer:",
+            "// Method script/library/skill.revokeSkill:"
+        ) $entry.Key
+    }
+    Assert-Contains $workingJcarpenterUtilBytecode @("getGodLevel:", "working.jcarpenter.util", "bulk skill revocation is retired") "deployed jcarpenter PRE-CU profession utility bytecode"
+    Assert-Contains $workingJustinUtilitiesBytecode @("getGodLevel:", "working.justin.utilities", "combat_unarmed_master", "makeVillageEligible:") "deployed Justin PRE-CU utility bytecode"
+    Assert-Contains $workingGrievousTestBytecode @("getGodLevel:", "working.wwallace.grievous_test", "grantPrecuLoadout") "deployed Grievous PRE-CU loadout test bytecode"
+    foreach ($entry in @{
+        "deployed Steve PRE-CU diagnostic bytecode" = $workingSteveMyscriptBytecode
+        "deployed Dan PRE-CU diagnostic bytecode" = $workingDantestBytecode
+    }.GetEnumerator())
+    {
+        Assert-Contains $entry.Value @("getGodLevel:", "Direct Jedi") $entry.Key
+        Assert-Excludes $entry.Value @(
+            "setJediState:",
+            "jedi_padawan",
+            "OBJVAR_JEDI_SKILL_REQUIREMENTS",
+            "// Method grantSkill:",
+            "// Method script/library/skill.grantSkill:",
+            "// Method script/library/skill.grantSkillToPlayer:"
+        ) $entry.Key
+    }
     Assert-Contains $qaItemBytecode @(
         "Get Later-Content Item Packs",
         "datatables/roadmap/item_rewards.iff",
