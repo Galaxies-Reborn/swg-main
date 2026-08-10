@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-combat-xp-authority",
-  "status": "ready",
-  "scope": "Replace NGE player-level combat XP, group XP, mission XP, free-trial XP, tutorial-level XP, and collection-level XP authority with the pinned Publish 14.1 creature and weapon-skill model.",
+  "status": "implemented-build-pending",
+  "scope": "Replace NGE player-level combat XP, group XP, mission XP, free-trial XP, tutorial-level XP, and collection-level XP authority with the pinned Publish 14.1 creature and weapon-skill model; close the complete OnCollectionSlotModified and OnCollectionServerFirst callback inventories while preserving later collection content through PRE-CU-safe reward adapters.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -15,7 +15,29 @@
       "Publish 14.1 combat XP begins with the defeated AiAgent authored baseXp, not the attacking player's combat level.",
       "XP is apportioned by weapon damage and capped per weapon XP type at min(25, private_<weapon>_combat_difficulty / 100 + 1) multiplied by 300.",
       "A grouped combatant receives the configured fixed 1.2 XP multiplier; the reward is not divided by group size.",
-      "Normal terminal mission completion awards credits; weapon and combat_general XP come from defeated mission creatures rather than an NGE daily mission-level award."
+      "Normal terminal mission completion awards credits; weapon and combat_general XP come from defeated mission creatures rather than an NGE daily mission-level award.",
+      "The complete Java source tree contains two production collection callbacks and two unattached developer diagnostics. Production completion retains authored badges, items, quests, commands, quest signals, and JTL skill-tier rewards; ground profession-level collection XP remains inert and later-only skill modifiers remain filtered."
+    ]
+  },
+  "callbackInventory": {
+    "patterns": {
+      "serverFirst": "\\bpublic\\s+int\\s+OnCollectionServerFirst\\s*\\(",
+      "slotModified": "\\bpublic\\s+int\\s+OnCollectionSlotModified\\s*\\("
+    },
+    "canonicalRecord": "callbackKind|relativePath:line|trimmedSignature, lexicographically sorted and LF-joined without a trailing newline",
+    "handlers": 4,
+    "sourceFiles": 2,
+    "productionHandlers": 2,
+    "dormantDeveloperHandlers": 2,
+    "serverFirstHandlers": 2,
+    "slotModifiedHandlers": 2,
+    "inventorySha256": "ac13ea5763cc5a4cb0a9d3ace47b4f7ca92a406b81707e141ce6c98a2dc95832",
+    "serverFirstInventorySha256": "bf64fdcfac9e7368f849ed49983dbadee3eec8a53151ee4929dee002a4b58f3f",
+    "slotModifiedInventorySha256": "ae2b4ad38e8c6fec97abb4c4f90dd24baae5b66695e28036a90055e9dadf5e95",
+    "sourceSetSha256": "d060c07697f78e8523aaa8c351a2c6700d4410a0d9e508d97e5d861cd2915abe",
+    "sourcePaths": [
+      "hnguyen/cwdm_test.java",
+      "player/player_collection.java"
     ]
   },
   "expected": {
@@ -33,7 +55,18 @@
     "freeTrialCombatLevelCap": false,
     "npeTutorialCombatLevelCap": false,
     "groundCollectionProfessionLevelXp": false,
-    "spaceCollectionXpUnchanged": true
+    "spaceCollectionXpUnchanged": true,
+    "collectionCallbacks": 4,
+    "collectionProductionCallbacks": 2,
+    "collectionDormantDeveloperCallbacks": 2,
+    "collectionDormantDeveloperProductionAttachments": 0,
+    "collectionDormantDeveloperProgressionMutations": 0,
+    "collectionProductionRewardDispatches": 5,
+    "collectionServerFirstBadgeGrants": 1,
+    "retainedCollectionCommandRows": 4,
+    "retainedCollectionLaterSkillModifierRows": 5,
+    "groundCollectionXpAwardPaths": 0,
+    "spaceCollectionSkillTierXpPreserved": true
   },
   "sourceFiles": [
     "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
@@ -59,6 +92,12 @@
       "script.library.group": "2613971b109c5d551407992fb8764fade87815f0f443536149664686b88eda16",
       "script.systems.missions.base.mission_base": "7e817a2f6ce29d6cb790ee95ef0d722ed1c8438c5c807a28857ef6b7169cca03"
     },
+    "supportingSourceSha256": {
+      "hnguyen/cwdm_test.java": "4c1e4121337db392fcdda9c4a95dbd1e38406094296d711d2e042f8777818b3d",
+      "player/player_collection.java": "7f1dd39f010e4336824632dba6b64fc77f519c42bebf287ea8e1057425561e0d",
+      "library/collection.java": "a4da8b416f8aaed91e3c8953fb925a6525f6c421c269ff0254a48c2be5393172",
+      "datatables/collection/rewards.tab": "7f45166db045f0f93711d216dbfcdad1c42ae2d503aa2d35830d84ea0b3fa5ad"
+    },
     "fullJavaCompile": "passed (Ant compile_java compiled the 4 changed sources in the x64 server build volume)",
     "compiledClassSha256": {
       "script.library.xp": "42652073fafbd2c9f3ce69333575380900cf89317fd4c43be745f42d90e915f8",
@@ -73,11 +112,11 @@
     "architecture": "x86-64",
     "serverBinarySha256": "f5f6f9affdd566390fe81fdb4b9dda42b261ed37d5effde8e8e932e24afffd8a",
     "serverBinaryBuildId": "4267f31a32953b954e9ea8ef22a6bcd1b2ace7fb",
-    "deploymentProbe": "passed",
-    "result": "passed"
+    "deploymentProbe": "pending collection command authority x64 rebuild and deployment",
+    "result": "pending"
   },
   "runtimeEvidence": {
-    "result": "passed",
+    "result": "pending",
     "container": "swg-precu",
     "sourceMount": "E:/SWG/PRE-CU-Reborn/Artifacts/materialize-xp290-final-b",
     "startedAtUtc": "2026-08-02T08:09:10.496762388Z",
@@ -94,8 +133,11 @@
     "missionTerminalContinuity": "static mission-board/full-credit contract passed; user confirmed populated combat mission terminals immediately before this Java-only XP deployment"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "active ground combat XP seed, weapon-skill kill cap, group XP multiplier, daily mission XP, ground collection level XP, and XP fly-text level gates",
+    "closedInThisMilestone": "active ground combat XP seed, weapon-skill kill cap, group XP multiplier, daily mission XP, ground collection level XP, XP fly-text level gates, and the complete OnCollectionSlotModified/OnCollectionServerFirst callback inventories",
     "notClaimedComplete": "other dormant later reward mechanics outside the separately closed loot-rarity and treasure-map authority remain in the broader PRE-CU precedence audit"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Commit and pin the direct dsrc/src collection command authority changes.",
+    "Pass the canonical x64 rebuild, deployment probes, restart, readiness, and live mapped-binary verification."
+  ]
 }

@@ -116,14 +116,20 @@ Assert-Contract ($grantLines.Count -eq [int]$contract.inventory.grantSourceLines
 $creature = [string]$texts["CreatureObject.cpp"]
 $header = [string]$texts["CreatureObject.h"]
 $nativePredicate = Get-BracedSurface $creature "bool isRetiredNgeProgressionCommandName"
+$skillOnlyPredicate = Get-BracedSurface $creature "bool isPreCuSkillOnlyCommandName"
 $nativeGrant = Get-BracedSurface $creature "bool CreatureObject::grantCommand"
 $nativeCleanup = Get-BracedSurface $creature "void CreatureObject::clearRetiredNgeProgressionCommands"
 $nativeLoad = Get-BracedSurface $creature "void CreatureObject::onClientAboutToLoad"
 $nativeWarmup = Get-BracedSurface $creature "void CreatureObject::doWarmupChecks"
 Assert-Contract (([regex]::Matches($nativePredicate, 'commandName == "')).Count -eq
     [int]$contract.expected.retiredNativeCommandNames) "p14.data-grant.native-command-inventory"
+Assert-Contract (([regex]::Matches($skillOnlyPredicate, 'commandName == "')).Count -eq
+        [int]$contract.expected.preCuSkillOnlyCommandNames -and
+    $skillOnlyPredicate.Contains('commandName == "meditate"')) `
+    "p14.data-grant.precu-skill-only-command-inventory"
 Assert-Contract ($nativeGrant.Contains("isPlayerControlled()") -and
     $nativeGrant.Contains("isRetiredNgeProgressionCommandName(commandName)") -and
+    $nativeGrant.Contains("!fromSkill && CreatureObjectNamespace::isPreCuSkillOnlyCommandName(commandName)") -and
     $nativeGrant.IndexOf("return false;", [System.StringComparison]::Ordinal) -lt
         $nativeGrant.IndexOf("setObjVarItem", [System.StringComparison]::Ordinal)) `
     "p14.data-grant.authoritative-command-writer-fails-before-persistence"
@@ -132,9 +138,18 @@ Assert-Contract ($header.Contains("void clearRetiredNgeProgressionCommands();") 
     $nativeCleanup.Contains("DynamicVariableList::NestedList") -and
     $nativeCleanup.Contains("isRetiredNgeProgressionCommandName(iter.getName())") -and
     $nativeCleanup.Contains("revokeCommand(*iter, false, true)") -and
+    $nativeCleanup.Contains("isPreCuSkillOnlyCommandName(iter.getName())") -and
+    $nativeCleanup.Contains("revokeCommand(*iter, false, false)") -and
     $nativeCleanup.Contains('removeObjVarItem(OBJVAR_NOT_SKILL_COMMANDS + "." + *iter)') -and
     $nativeWarmup.Contains("isRetiredNgeProgressionCommandName(command.m_commandName)")) `
     "p14.data-grant.persisted-and-executable-command-boundaries"
+Assert-Contract ([bool]$contract.expected.nonSkillPreCuCommandGrantsRejectedBeforePersistence -and
+    [bool]$contract.expected.persistedNonSkillPreCuCommandCopiesRemovedOnLoad -and
+    [bool]$contract.expected.skillProvidedPreCuCommandPreserved -and
+    $nativeGrant.Contains("!fromSkill") -and
+    $nativeCleanup.Contains("revokeCommand(*iter, false, false)") -and
+    -not $nativeWarmup.Contains("isPreCuSkillOnlyCommandName(command.m_commandName)")) `
+    "p14.data-grant.precu-skill-command-owned-only-by-skill"
 
 $skill = [string]$texts["skill.java"]
 $skillPredicate = Get-BracedSurface $skill "public static boolean isRetiredNgeProgressionSkillName"
@@ -206,7 +221,9 @@ $xpPurchase = [string]$texts["xp_purchase.java"]
 $lootSchematic = [string]$texts["loot_schematic.java"]
 $buffHandler = [string]$texts["buff_handler.java"]
 Assert-Contract ($basePlayer.Contains("pgc_quests.retireChroniclesPlayerProgressionState(self);") -and
-    $collection.Contains("grantCommand(player, command1)") -and
+    $collection.Contains("if (grantCommand(player, command1))") -and
+    $collection.Contains("was rejected by PRE-CU progression authority") -and
+    [bool]$contract.expected.collectionCommandGrantLoggingAccurate -and
     $cybernetic.Contains("isRetiredPostNgePlayerCyberneticCommandActor(player)") -and
     $respec.Contains("retireNgePlayerRespecEntrypoint(player)") -and
     $xpPurchase.Contains("xp.grantUnmodifiedExperience(player, xpType, xpAmt)") -and

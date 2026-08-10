@@ -13,6 +13,8 @@ $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14Precu
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $failures = [System.Collections.Generic.List[string]]::new()
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+Import-Module (Join-Path $PSScriptRoot "Restoration.Common.psm1") -Force
 
 function Assert-Contract([bool]$Condition, [string]$Name)
 {
@@ -27,6 +29,13 @@ function Get-FunctionSlice([string]$Text, [string]$Start, [string]$Next)
     $nextIndex = $Text.IndexOf($Next, $startIndex + $Start.Length, [System.StringComparison]::Ordinal)
     if ($nextIndex -lt 0) { return $Text.Substring($startIndex) }
     return $Text.Substring($startIndex, $nextIndex - $startIndex)
+}
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose() }
 }
 
 $patchPath = Join-Path $repositoryRoot ([string]$contract.buildEvidence.overlayPatch)
@@ -65,6 +74,135 @@ $xp = [string]$texts["script.library.xp"]
 $missions = [string]$texts["script.library.missions"]
 $group = [string]$texts["script.library.group"]
 $missionBase = [string]$texts["script.systems.missions.base.mission_base"]
+
+$supportingRelativeSourceMap = [ordered]@{
+    "hnguyen/cwdm_test.java" = Join-Path $scriptRoot "hnguyen/cwdm_test.java"
+    "player/player_collection.java" = Join-Path $scriptRoot "player/player_collection.java"
+    "library/collection.java" = Join-Path $scriptRoot "library/collection.java"
+    "datatables/collection/rewards.tab" = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/collection/rewards.tab"
+}
+$supportingTexts = @{}
+foreach ($entry in $supportingRelativeSourceMap.GetEnumerator())
+{
+    Assert-Contract (Test-Path -LiteralPath $entry.Value -PathType Leaf) `
+        "p14.combat-xp.collection.source.$($entry.Key).exists"
+    if (Test-Path -LiteralPath $entry.Value -PathType Leaf)
+    {
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Value).Hash.ToLowerInvariant()
+        Assert-Contract ($actualHash -ceq [string]$contract.buildEvidence.supportingSourceSha256.($entry.Key)) `
+            "p14.combat-xp.collection.source.$($entry.Key).authenticated"
+        $supportingTexts[$entry.Key] = Get-Content -LiteralPath $entry.Value -Raw
+    }
+}
+
+$callbackRecords = [System.Collections.Generic.List[string]]::new()
+$callbackRecordsByKind = @{}
+foreach ($property in $contract.callbackInventory.patterns.PSObject.Properties)
+{
+    $kind = [string]$property.Name
+    $kindRecords = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in @(& rg -n --no-heading ([string]$property.Value) $scriptRoot --glob "*.java"))
+    {
+        Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+            "p14.combat-xp.collection.$kind.inventory-line-parsed"
+        $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+        Assert-Contract ($absolutePath.StartsWith(
+            $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+            [StringComparison]::OrdinalIgnoreCase)) `
+            "p14.combat-xp.collection.$kind.inventory-contained"
+        $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+        $record = "${relativePath}:$($Matches[2])|$($Matches[3].Trim())"
+        $kindRecords.Add($record)
+        $callbackRecords.Add("$kind|$record")
+    }
+    if ($LASTEXITCODE -gt 1) { throw "rg failed while inventorying $kind collection callbacks." }
+    $callbackRecordsByKind[$kind] = @($kindRecords | Sort-Object)
+}
+$callbackRecords = @($callbackRecords | Sort-Object)
+$callbackPaths = @($callbackRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^[^|]+\|(.*?):\d+\|') `
+        "p14.combat-xp.collection.path-isolated"
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedCallbackPaths = @($contract.callbackInventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract ($callbackRecords.Count -eq [int]$contract.callbackInventory.handlers -and
+    $callbackRecords.Count -eq [int]$contract.expected.collectionCallbacks -and
+    $callbackPaths.Count -eq [int]$contract.callbackInventory.sourceFiles -and
+    ($callbackPaths -join "`n") -ceq ($expectedCallbackPaths -join "`n") -and
+    (Get-TextSha256 ($callbackRecords -join "`n")) -ceq [string]$contract.callbackInventory.inventorySha256 -and
+    (Get-TextSha256 ($callbackPaths -join "`n")) -ceq [string]$contract.callbackInventory.sourceSetSha256 -and
+    $callbackRecordsByKind.serverFirst.Count -eq [int]$contract.callbackInventory.serverFirstHandlers -and
+    $callbackRecordsByKind.slotModified.Count -eq [int]$contract.callbackInventory.slotModifiedHandlers -and
+    (Get-TextSha256 ($callbackRecordsByKind.serverFirst -join "`n")) -ceq [string]$contract.callbackInventory.serverFirstInventorySha256 -and
+    (Get-TextSha256 ($callbackRecordsByKind.slotModified -join "`n")) -ceq [string]$contract.callbackInventory.slotModifiedInventorySha256) `
+    "p14.combat-xp.collection.complete-callback-inventory"
+
+$playerCollection = [string]$supportingTexts["player/player_collection.java"]
+$developerCollection = [string]$supportingTexts["hnguyen/cwdm_test.java"]
+$collectionLibrary = [string]$supportingTexts["library/collection.java"]
+$productionSlot = Get-FunctionSlice $playerCollection `
+    "public int OnCollectionSlotModified" `
+    "public int OnCollectionServerFirst"
+$productionServerFirst = Get-FunctionSlice $playerCollection `
+    "public int OnCollectionServerFirst" `
+    "public int modifySlot"
+$developerSlot = Get-FunctionSlice $developerCollection `
+    "public int OnCollectionSlotModified" `
+    "public int OnCollectionServerFirst"
+$developerServerFirst = Get-FunctionSlice $developerCollection `
+    "public int OnCollectionServerFirst" `
+    "public int OnIncubatorCommitted"
+$developerAttachments = @(& rg -n --no-heading `
+    '\battachScript\s*\([^;\r\n]*"hnguyen\.cwdm_test"' $scriptRoot --glob "*.java")
+if ($LASTEXITCODE -gt 1) { throw "rg failed while inventorying hnguyen.cwdm_test attachments." }
+$progressionPatterns = @(
+    '\bgrantSkill\b', '\brevokeSkill\b', '\bsetLevel\b', '\bgetLevel\b',
+    '\bsetSkillTemplate\b', '\bexpertise\.', '\bprofession\.', '\bgrantExperiencePoints\b'
+)
+$productionProgressionMatches = @($progressionPatterns | Where-Object {
+    [regex]::IsMatch($productionSlot + "`n" + $productionServerFirst, $_)
+})
+$developerProgressionMatches = @($progressionPatterns | Where-Object {
+    [regex]::IsMatch($developerSlot + "`n" + $developerServerFirst, $_)
+})
+Assert-Contract ([int]$contract.callbackInventory.productionHandlers -eq
+        [int]$contract.expected.collectionProductionCallbacks -and
+    [regex]::Matches($productionSlot, 'collection\.grantCollectionReward\s*\(').Count -eq
+        [int]$contract.expected.collectionProductionRewardDispatches -and
+    [regex]::Matches($productionServerFirst, 'badge\.grantBadge\s*\(').Count -eq
+        [int]$contract.expected.collectionServerFirstBadgeGrants -and
+    $productionProgressionMatches.Count -eq 0) `
+    "p14.combat-xp.collection.production-content-dispatch-progression-isolated"
+Assert-Contract ([int]$contract.callbackInventory.dormantDeveloperHandlers -eq
+        [int]$contract.expected.collectionDormantDeveloperCallbacks -and
+    $developerSlot.Contains('sendSystemMessageTestingOnly(self, "OnCollectionSlotModified') -and
+    $developerServerFirst.Contains('sendSystemMessageTestingOnly(self, "OnCollectionServerFirst') -and
+    $developerAttachments.Count -eq [int]$contract.expected.collectionDormantDeveloperProductionAttachments -and
+    $developerProgressionMatches.Count -eq [int]$contract.expected.collectionDormantDeveloperProgressionMutations) `
+    "p14.combat-xp.collection.developer-diagnostics-dormant"
+
+$collectionReward = Get-FunctionSlice $collectionLibrary `
+    "public static boolean grantCollectionReward" `
+    "public static boolean updateCraftingSlot"
+$collectionRows = @(Import-SwgTab -Path $supportingRelativeSourceMap["datatables/collection/rewards.tab"])
+$collectionCommandRows = @($collectionRows | Where-Object {
+    -not [string]::IsNullOrWhiteSpace([string]$_.command)
+})
+$collectionSkillModifierRows = @($collectionRows | Where-Object {
+    -not [string]::IsNullOrWhiteSpace([string]$_.skill_mod)
+})
+$expectedCollectionCommands = @("creature_milking_buff", "flangedjessoon", "lair_egg_buff", "meditate") | Sort-Object
+Assert-Contract ($collectionCommandRows.Count -eq [int]$contract.expected.retainedCollectionCommandRows -and
+    (($collectionCommandRows.command | Sort-Object) -join "`n") -ceq ($expectedCollectionCommands -join "`n") -and
+    $collectionSkillModifierRows.Count -eq [int]$contract.expected.retainedCollectionLaterSkillModifierRows -and
+    $collectionReward.Contains("xp.grantCollectionXP(player, collectionName)") -and
+    $collectionReward.Contains("xp.grantCollectionSpaceXP(player, collectionName)") -and
+    $collectionReward.Contains("static_item.isRetiredNgeStaticItemSkillModifier(skillMod1)") -and
+    $collectionReward.Contains("if (grantCommand(player, command1))") -and
+    $collectionReward.Contains("was rejected by PRE-CU progression authority") -and
+    $collectionReward.Contains("groundquests.grantQuestNoAcceptUI") -and
+    $collectionReward.Contains("groundquests.sendSignal")) `
+    "p14.combat-xp.collection.retained-rewards-precu-adapted"
 
 $seed = Get-FunctionSlice $xp `
     "public static int getLevelBasedXP(obj_id player, obj_id npc)" `
