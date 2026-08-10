@@ -68,6 +68,8 @@ foreach ($property in $contract.sourceFiles.PSObject.Properties)
 $saga = [string]$texts.playerSaga
 $storyteller = [string]$texts.storyteller
 $attach = Get-BracedSurface $saga "public int OnAttach(obj_id self)"
+$retireCallback = Get-BracedSurface $saga `
+    "public void retireChroniclesPlayerCallback(obj_id self)"
 $initialize = Get-BracedSurface $saga "public int OnInitialize(obj_id self)"
 $clientReady = Get-BracedSurface $saga `
     "public int OnNewbieTutorialResponse(obj_id self, String action)"
@@ -79,8 +81,10 @@ Assert-Contract ($attach.Contains("return SCRIPT_CONTINUE;") -and
     -not $attach.Contains("messageTo(") -and
     -not $attach.Contains("grantSkill(")) `
     "Player saga OnAttach is not inert."
-Assert-Contract ($initialize.Contains('detachScript(self, "player.player_saga_quest");') -and
-    $clientReady.Contains('detachScript(self, "player.player_saga_quest");') -and
+Assert-Contract ($retireCallback.Contains("pgc_quests.retireChroniclesPlayerProgressionState(self);") -and
+    $retireCallback.Contains('detachScript(self, "player.player_saga_quest");') -and
+    $initialize.Contains("retireChroniclesPlayerCallback(self);") -and
+    $clientReady.Contains("retireChroniclesPlayerCallback(self);") -and
     -not $clientReady.Contains("handleChroniclesTermsOfService") -and
     -not $clientReady.Contains("handleChroniclesReserveReminder") -and
     -not $clientReady.Contains("chroniclesTermsOfServiceShown")) `

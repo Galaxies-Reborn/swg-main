@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "chronicles-script-lifecycle-retirement",
-  "status": "ready",
-  "scope": "Keep Player Generated Chronicles and Storyteller player-script lifecycle inert under Publish 14.1 rules, fail closed the complete OnAbandonPlayerQuest callback family, and retain later serialized types only for compatibility.",
+  "status": "implemented-build-pending",
+  "scope": "Keep Player Generated Chronicles and Storyteller player-script lifecycle inert under Publish 14.1 rules, fail closed abandonment plus the complete player-saga/quest-holocron callback surface tracked by the PGC retirement dependency, and retain later serialized types only for compatibility.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
     "core3Boundary": "No Player Generated Chronicles, Chronicler profession, Storyteller command, saga-holocron authoring, or matching player-script lifecycle exists in the pinned Publish 14.1 Core3 tree.",
@@ -26,7 +26,7 @@
     "sourceFiles": 2,
     "productionHandlers": 1,
     "testHandlers": 1,
-    "inventorySha256": "fc78a2a2a9902497577cd73aa1461a5da5ff1f42f07f6e8b82a45672684ed81c",
+    "inventorySha256": "e95a0163fe58b0d8486dad80be921040266022efb0d93d1e1cd326d310faf7e5",
     "sourceSetSha256": "a28bd342b75ce81a9dd86c4be179e6494d6826890b9e20a62fe824f37aa06d3d",
     "sourcePaths": [
       "player/player_saga_quest.java",
@@ -53,59 +53,53 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "dsrcSourceCommit": "cfbbe1cdf718a82293e1e329be86e17c8ad62e2b",
+    "dsrcSourceCommit": "a8fddcc09abc55a6af0af8201185b2d2b6e82feb",
     "nativeSourceCommit": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
     "sourceSha256": {
-      "playerSaga": "6ab8458840120bb4837a119b977cc9354d134a41f898ca255ccf09ddb2ee3bf9",
+      "playerSaga": "b544b0185f1621dacbb0ea69342857705e99b656a2add3f9432ed14c662d1dd8",
       "storyteller": "1e7be916cd5ac7124b51b0b6b7fd60e0c5349c6d03616b42419084eaafe8600a",
       "basePlayer": "c635a6d1d3669be17ad4cd994826348b524fe570a141d4b12d3064db51b287db",
       "liveConversions": "46aba8218cd7d796571b515be7302f4b1ae31d0a385602b70b32c1eed1e1595e",
       "testListener": "3816b14900809342e52213d79b074b021e5304d5d29ca6fe87bbb803b0b07a88",
-      "pgcQuests": "d7984c6420bb521b2963d47c8c38238c94d36222d0317f9ab5b83295d2545537",
+      "pgcQuests": "4385cfd828cb546e6eb08b4543e64eca36a9b9e744f26df8230cc50c866e011a",
       "scriptFunctionTable": "50771f4f689c48a7df2a514b2ece82b3bf0c60507ad213f58670cefa5e9510ee",
       "creatureController": "0762b593d7fd124a0c10f34227b8d1656cabb102649d2b12767d894d08c6dc23"
     },
-    "sourceAudit": "passed direct-source inspection; all two abandonment listeners are classified, the sole production listener fails closed before setQuestAbandoned, and the native registration/dispatcher pair is bounded",
-    "javaCompile": "passed the canonical exact zero-class Java 8-target rebuild from all 5717 direct Java sources, emitting 5751 classes",
-    "classSha256": {
-      "playerSaga": "1596b0ad60d60a33586900d17abf09dee95605b9356b13dac97024001c9582af",
-      "storyteller": "773141e114787c5302879360a6a4581e40c9ea3e3b76e23ace48867692cf8e02"
-    },
-    "classBytes": {
-      "playerSaga": 34815,
-      "storyteller": 30766
-    },
-    "fullServerBuild": "passed the canonical exact zero-class Java rebuild plus the 726-second mandatory source/data/bytecode/native artifact verification, controlled x64 restart, and player-readiness deployment from pushed parent 757e6cb73e736566c692b74406c03a115443f412, dsrc cfbbe1cdf718a82293e1e329be86e17c8ad62e2b, and src 2e64bf715fb14463570f39dd71c7db15f3aefa01",
-    "javaSourcesCompiled": 5717,
-    "javaClassesEmitted": 5751,
-    "serverGameArchiveSha256": "7b4f690d3b508dada04b2e05c8136087b722f81d19ccce5eec1f46236a70e4d4",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "9f022e9273f5cf53595b0d976d40f38dea80077b4c4279fb42be2b58617ba6d7",
-    "serverBinaryBuildId": "3bc114af0d3c0d0555b166752473e1389c567b8a",
-    "result": "passed"
+    "sourceAudit": "passed direct-source inspection; both abandonment listeners are classified, the sole production listener fails closed before setQuestAbandoned, the native registration/dispatcher pair is bounded, and the PGC dependency pins the complete two-script callback surface",
+    "javaCompile": "focused Java 8 source/target compile passed for the changed Chronicles callback classes; canonical zero-class rebuild pending",
+    "classSha256": {},
+    "classBytes": {},
+    "fullServerBuild": "pending canonical exact zero-class Java rebuild and controlled x64 deployment",
+    "javaSourcesCompiled": 0,
+    "javaClassesEmitted": 0,
+    "serverGameArchiveSha256": "pending",
+    "architecture": "pending",
+    "serverBinarySha256": "pending",
+    "serverBinaryBuildId": "pending",
+    "result": "pending"
   },
   "runtimeEvidence": {
     "date": "2026-08-10",
     "container": "swg-precu",
-    "result": "passed",
-    "containerStartedAt": "2026-08-10T17:26:00.105874981Z",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "serverHealthy": true,
-    "deployedParentCommit": "757e6cb73e736566c692b74406c03a115443f412",
-    "deployedDsrcCommit": "cfbbe1cdf718a82293e1e329be86e17c8ad62e2b",
-    "deployedSrcCommit": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
-    "liveGameProcessPid": 375,
-    "liveGameProcessCount": 15,
-    "liveGameProcessesMappedBuiltBinary": 15,
-    "livePlanetProcessCount": 15,
-    "liveBinaryInode": 12141658,
-    "liveBinarySize": 22561640,
-    "liveBinaryMapEntries": 30,
-    "transferServerEndpoint": "one stable TransferServer process exclusively owns 172.26.0.2:50005 on PID 379",
-    "devShmResidueEntries": 0,
-    "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
-    "liveProcessMappedBuiltBinary": true,
+    "result": "pending",
+    "containerStartedAt": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "serverHealthy": false,
+    "deployedParentCommit": "pending",
+    "deployedDsrcCommit": "pending",
+    "deployedSrcCommit": "pending",
+    "liveGameProcessPid": 0,
+    "liveGameProcessCount": 0,
+    "liveGameProcessesMappedBuiltBinary": 0,
+    "livePlanetProcessCount": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySize": 0,
+    "liveBinaryMapEntries": 0,
+    "transferServerEndpoint": "pending",
+    "devShmResidueEntries": -1,
+    "postStartLogAudit": "pending",
+    "liveProcessMappedBuiltBinary": false,
     "clientProcessId": 22364,
     "clientProcessName": "Galaxies Reborn PRECU",
     "clientResponsive": true,
@@ -114,7 +108,11 @@
   "auditBoundary": {
     "closedInThisMilestone": "the complete OnAbandonPlayerQuest family, its production/test classification, the retired player-saga attachment frontier, its native registration/dispatcher pair, and the obsolete overlay patch dependency",
     "preserved": "retained ground quests and their normal completion/clear lifecycle, later serialized Chronicles types for compatibility, unrelated Storyteller world content, and all unrelated expansion zones, quests, conversations, and NPCs",
-    "notClaimedComplete": "other callback families remain in the wider PRE-CU precedence audit"
+    "notClaimedComplete": "PGC library, template, data, and compatibility helpers outside the complete two-script callback surface remain separately bounded by existing retirement contracts"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical exact zero-class Java rebuild",
+    "controlled x64 deployment and player-readiness validation",
+    "deployed Chronicles callback bytecode hash and size capture"
+  ]
 }

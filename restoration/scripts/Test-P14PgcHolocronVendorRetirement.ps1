@@ -75,6 +75,114 @@ Assert-Contract (
     [regex]::Matches($holocron, [regex]::Escape('detachScript(self, "quest.task.pgc.quest_holocron")')).Count -eq [int]$contract.expected.questHolocronDetachBoundaries -and
     [regex]::Matches($saga, [regex]::Escape('detachScript(self, "player.player_saga_quest")')).Count -eq [int]$contract.expected.playerSagaDetachBoundaries
 ) "PGC holocron/player-saga detach boundary drifted."
+
+$residualRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($relativePath in @($contract.residualScriptCallbackInventory.sourcePaths | ForEach-Object { [string]$_ }))
+{
+    $path = Join-Path $scriptRoot $relativePath
+    foreach ($match in @(Select-String -LiteralPath $path -Pattern ([string]$contract.residualScriptCallbackInventory.pattern)))
+    {
+        $residualRecords.Add($relativePath + ":" + $match.LineNumber + "|" + $match.Line.Trim())
+    }
+}
+$residualRecords = @($residualRecords | Sort-Object)
+$residualMethods = @($residualRecords | ForEach-Object {
+    Assert-Contract ($_ -match '\|\s*public\s+int\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(') "Invalid PGC public-int inventory record."
+    $Matches[1]
+})
+$helperMethods = @($residualMethods | Where-Object { $_ -ceq "performGetTime" } | Sort-Object -Unique)
+$callbackMethods = @($residualMethods | Where-Object { $_ -cne "performGetTime" })
+$playerSagaRecords = @($residualRecords | Where-Object { $_.StartsWith("player/player_saga_quest.java:") })
+$questHolocronRecords = @($residualRecords | Where-Object { $_.StartsWith("quest/task/pgc/quest_holocron.java:") })
+$expectedHelperMethods = @($contract.residualScriptCallbackInventory.helperMethodNames | ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract (
+    $residualRecords.Count -eq [int]$contract.residualScriptCallbackInventory.publicIntMethods -and
+    $playerSagaRecords.Count -eq [int]$contract.residualScriptCallbackInventory.playerSagaPublicIntMethods -and
+    $questHolocronRecords.Count -eq [int]$contract.residualScriptCallbackInventory.questHolocronPublicIntMethods -and
+    $callbackMethods.Count -eq [int]$contract.residualScriptCallbackInventory.callbackMethods -and
+    $helperMethods.Count -eq [int]$contract.residualScriptCallbackInventory.helperMethods -and
+    ($helperMethods -join "`n") -ceq ($expectedHelperMethods -join "`n") -and
+    (Get-TextSha256 ($residualRecords -join "`n")) -ceq [string]$contract.residualScriptCallbackInventory.inventorySha256
+) "Complete PGC player-saga/quest-holocron public-int inventory drifted."
+
+$playerSagaResidualMarkers = [ordered]@{
+    handleChroniclesTermsOfService = "sui.createSUIPage("
+    OnCreateSaga = "showHolocronCreationCountdownUi("
+    handleSharedPgcHolocronOffer = "sui.msgbox("
+    handleSharedChroniclesQuestResponse = 'utils.removeScriptVar(self, player + ".sharedHolocron")'
+    handleSharedPgcHolocronCreation = "createChronicleQuestObject("
+    handlePgcHolocronCreation = "showHolocronCreationCountdownUi("
+    handlePgcHolocronCreationCountdownTimer = "createChronicleQuestObject("
+    handleCheckForGainedChroniclesLevelDelay = "pgc_quests.checkForGainedChroniclesLevel("
+    OnLogin = "pgc_quests.activatePlayerQuestWaypointFromHolocron("
+    playerQuestSetLocationTarget = "addLocationTarget("
+    playerQuestRemoveLocationTarget = "removeLocationTarget(locationName);"
+}
+$expectedPlayerSagaResidualMethods = @($contract.residualScriptCallbackInventory.playerSagaResidualMethodNames |
+    ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract (
+    $playerSagaResidualMarkers.Count -eq [int]$contract.residualScriptCallbackInventory.playerSagaResidualCallbacks -and
+    (@($playerSagaResidualMarkers.Keys | Sort-Object) -join "`n") -ceq ($expectedPlayerSagaResidualMethods -join "`n")
+) "Player-saga residual callback classification drifted."
+foreach ($entry in $playerSagaResidualMarkers.GetEnumerator())
+{
+    $surface = Get-BracedSurface $saga ("public int " + $entry.Key)
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $cleanup = $surface.IndexOf("retireChroniclesPlayerCallback(self);", [StringComparison]::Ordinal)
+    $return = $surface.IndexOf("return SCRIPT_CONTINUE;", $cleanup + 1, [StringComparison]::Ordinal)
+    $mutation = $surface.IndexOf([string]$entry.Value, [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $cleanup -gt $guard -and $return -gt $cleanup -and $mutation -gt $return
+    ) "Player-saga residual callback is not dominated by retirement: $($entry.Key)"
+}
+
+$questHolocronResidualMarkers = [ordered]@{
+    handleCheckCompletedHolocron = "if (hasObjVar("
+    OnObjectMenuRequest = "/*"
+    OnObjectMenuSelect = "/*"
+    OnGetAttributes = "if (!exists(self))"
+    OnAboutToReceiveItem = "if (hasObjVar("
+    OnAboutToLoseItem = "if (utils.hasScriptVar("
+    handleQuestHolocronActivated = "pgc_quests.handlePhaseActived("
+    handleQuestHolocronInitializeTaskStatus = "pgc_quests.initializeQuestTasksStatus("
+    handleQuestHolocronAbandoned = "if (isIdValid(player))"
+    handleHolocronSharedSuccess = "if (params != null"
+}
+$expectedQuestHolocronResidualMethods = @($contract.residualScriptCallbackInventory.questHolocronResidualMethodNames |
+    ForEach-Object { [string]$_ } | Sort-Object)
+Assert-Contract (
+    $questHolocronResidualMarkers.Count -eq [int]$contract.residualScriptCallbackInventory.questHolocronResidualCallbacks -and
+    (@($questHolocronResidualMarkers.Keys | Sort-Object) -join "`n") -ceq ($expectedQuestHolocronResidualMethods -join "`n")
+) "Quest-holocron residual callback classification drifted."
+foreach ($entry in $questHolocronResidualMarkers.GetEnumerator())
+{
+    $surface = Get-BracedSurface $holocron ("public int " + $entry.Key)
+    $guard = $surface.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+    $cleanup = $surface.IndexOf("retireChroniclesHolocronCallback(self,", [StringComparison]::Ordinal)
+    $expectedReturn = if ($entry.Key -ceq "OnAboutToReceiveItem") { "return SCRIPT_OVERRIDE;" } else { "return SCRIPT_CONTINUE;" }
+    $return = $surface.IndexOf($expectedReturn, $cleanup + 1, [StringComparison]::Ordinal)
+    $mutation = $surface.IndexOf([string]$entry.Value, [StringComparison]::Ordinal)
+    Assert-Contract (
+        $guard -ge 0 -and $cleanup -gt $guard -and $return -gt $cleanup -and $mutation -gt $return
+    ) "Quest-holocron residual callback is not dominated by retirement: $($entry.Key)"
+}
+Assert-Contract (
+    [int]$contract.expected.unguardedResidualCallbacks -eq 0 -and
+    -not [bool]$contract.expected.retiredHolocronDepositsAllowed -and
+    [bool]$contract.expected.persistedHolocronRewardRemovalAllowed
+) "PGC residual item-transfer policy drifted."
+
+$pgcQuests = [string]$texts.pgcQuests
+$retirementState = Get-BracedSurface $pgcQuests "public static void retireChroniclesPlayerProgressionState"
+Assert-Contract (
+    $retirementState.Contains('utils.removeScriptVarTree(player, "chronicles");') -and
+    $retirementState.Contains('utils.removeScriptVarTree(player, "chroniclesRewards");') -and
+    $retirementState.Contains('utils.hasScriptVar(player, "temp_pgcTaskDictionary")') -and
+    $retirementState.Contains("forceCloseSUIPage(countdownPage);") -and
+    $retirementState.Contains("detachScript(player, sui.COUNTDOWNTIMER_PLAYER_SCRIPT);") -and
+    [bool]$contract.expected.stalePgcCountdownCleanup -and
+    [bool]$contract.expected.staleChroniclesScriptVarTreesRemoved
+) "Chronicles player-state cleanup boundary drifted."
 foreach ($signature in @("public int OnObjectMenuRequest", "public int OnObjectMenuSelect"))
 {
     $surface = Get-BracedSurface $holocron $signature
@@ -447,4 +555,4 @@ Assert-Contract (
     -not $contractText.Contains("/Artifacts/") -and
     -not $contractText.Contains("/Staging/")
 ) "PGC contract references retired artifact/staging evidence."
-Write-Host "Publish 14.1 PGC holocron/vendor, crafted-prototype, location-arrival, and activity-completion retirement passed."
+Write-Host "Publish 14.1 PGC holocron/vendor and complete player-saga/quest-holocron callback retirement passed."
