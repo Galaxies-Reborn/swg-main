@@ -138,6 +138,61 @@ Assert-Contract (
     (Get-TextSha256 ($callbackPaths -join [Environment]::NewLine)) -ceq [string]$contract.craftedPrototypeCallbackInventory.sourceSetSha256
 ) "Complete OnCraftedPrototype inventory drifted."
 
+$locationRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.locationArrivalCallbackInventory.pattern) $scriptRoot --glob "*.java"))
+{
+    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') "Invalid OnArrivedAtLocation inventory line."
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $signature = ($Matches[3].Trim() -replace '\s+', ' ')
+    $locationRecords.Add($relativePath + ":" + $Matches[2] + "|" + $signature)
+}
+$locationRecords = @($locationRecords | Sort-Object)
+$locationPaths = @($locationRecords | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') "Invalid location-arrival callback record."
+    $Matches[1]
+} | Sort-Object -Unique)
+$locationProduction = @($locationRecords | Where-Object { $_ -notmatch '^(test|working)/' })
+$locationRetired = @($locationProduction | Where-Object {
+    $_.StartsWith(([string]$contract.locationArrivalCallbackInventory.retiredPath) + ":")
+})
+$locationRetained = @($locationProduction | Where-Object {
+    -not $_.StartsWith(([string]$contract.locationArrivalCallbackInventory.retiredPath) + ":")
+})
+$locationNonProduction = @($locationRecords | Where-Object { $_ -match '^(test|working)/' })
+$locationNonProductionPaths = @($locationNonProduction | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') "Invalid non-production location-arrival callback record."
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedLocationNonProductionPaths = @($contract.locationArrivalCallbackInventory.nonProductionPaths |
+    ForEach-Object { [string]$_ } | Sort-Object)
+$locationRetainedPaths = @($locationRetained | ForEach-Object {
+    Assert-Contract ($_ -match '^(.*?):\d+\|') "Invalid retained location-arrival callback record."
+    $Matches[1]
+} | Sort-Object -Unique)
+$locationSourceContent = @($locationPaths | ForEach-Object {
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scriptRoot $_)).Hash.ToLowerInvariant()
+    "$_|$hash"
+} | Sort-Object)
+$locationRetainedSourceContent = @($locationRetainedPaths | ForEach-Object {
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $scriptRoot $_)).Hash.ToLowerInvariant()
+    "$_|$hash"
+} | Sort-Object)
+Assert-Contract (
+    $locationRecords.Count -eq [int]$contract.expected.locationArrivalCallbacks -and
+    $locationPaths.Count -eq [int]$contract.locationArrivalCallbackInventory.sourceFiles -and
+    $locationProduction.Count -eq [int]$contract.expected.locationArrivalProductionCallbacks -and
+    $locationRetained.Count -eq [int]$contract.expected.retainedLocationArrivalProductionCallbacks -and
+    $locationRetired.Count -eq [int]$contract.expected.retiredChroniclesLocationArrivalCallbacks -and
+    $locationNonProduction.Count -eq [int]$contract.expected.locationArrivalNonProductionCallbacks -and
+    ($locationNonProductionPaths -join "`n") -ceq ($expectedLocationNonProductionPaths -join "`n") -and
+    $locationRetainedPaths.Count -eq [int]$contract.locationArrivalCallbackInventory.retainedProductionSourceFiles -and
+    (Get-TextSha256 ($locationRecords -join "`n")) -ceq [string]$contract.locationArrivalCallbackInventory.inventorySha256 -and
+    (Get-TextSha256 ($locationPaths -join "`n")) -ceq [string]$contract.locationArrivalCallbackInventory.sourceSetSha256 -and
+    (Get-TextSha256 ($locationSourceContent -join "`n")) -ceq [string]$contract.locationArrivalCallbackInventory.sourceContentSha256 -and
+    (Get-TextSha256 ($locationRetainedSourceContent -join "`n")) -ceq [string]$contract.locationArrivalCallbackInventory.retainedProductionSourceContentSha256
+) "Complete OnArrivedAtLocation inventory or retained production source set drifted."
+
 $sagaCraft = Get-BracedSurface $saga "public int OnCraftedPrototype"
 $sagaGuard = $sagaCraft.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
 $sagaMutation = $sagaCraft.IndexOf("pgc_quests.getActivateQuestHolocrons(", [StringComparison]::Ordinal)
@@ -159,6 +214,27 @@ Assert-Contract (
     [int]$contract.expected.unguardedRetiredCraftMutations -eq 0
 ) "PGC holocron crafted-prototype mutation is not dominated by retirement."
 
+$sagaArrival = Get-BracedSurface $saga "public int OnArrivedAtLocation"
+$sagaArrivalGuard = $sagaArrival.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+$sagaArrivalMutation = $sagaArrival.IndexOf("pgc_quests.getActivateQuestHolocrons(", [StringComparison]::Ordinal)
+Assert-Contract (
+    $sagaArrivalGuard -ge 0 -and $sagaArrivalMutation -gt $sagaArrivalGuard -and
+    $sagaArrival.Contains("pgc_quests.retireChroniclesPlayerProgressionState(self);") -and
+    $sagaArrival.Contains('detachScript(self, "player.player_saga_quest");') -and
+    $sagaArrival.Substring($sagaArrivalGuard, $sagaArrivalMutation - $sagaArrivalGuard).Contains("return SCRIPT_CONTINUE;")
+) "Player-saga location-arrival mutation is not dominated by retirement."
+
+$holocronArrival = Get-BracedSurface $holocron "public int pqOnArrivedAtLocation"
+$holocronArrivalGuard = $holocronArrival.IndexOf("if (pgc_quests.isRetiredChroniclesPlayerProgression())", [StringComparison]::Ordinal)
+$holocronArrivalMutation = $holocronArrival.IndexOf("pgc_quests.setTaskComplete(", [StringComparison]::Ordinal)
+Assert-Contract (
+    $holocronArrivalGuard -ge 0 -and $holocronArrivalMutation -gt $holocronArrivalGuard -and
+    $holocronArrival.Contains("pgc_quests.retireChroniclesPlayerProgressionState(player);") -and
+    $holocronArrival.Contains('detachScript(self, "quest.task.pgc.quest_holocron");') -and
+    $holocronArrival.Substring($holocronArrivalGuard, $holocronArrivalMutation - $holocronArrivalGuard).Contains("return SCRIPT_CONTINUE;") -and
+    [int]$contract.expected.unguardedRetiredLocationArrivalMutations -eq 0
+) "PGC holocron location-arrival mutation is not dominated by retirement."
+
 $legacyCraft = Get-BracedSurface ([string]$texts.legacyCraft) "public int OnCraftedPrototype"
 $groundCraft = Get-BracedSurface ([string]$texts.groundCraft) "public int OnCraftedPrototype"
 Assert-Contract (
@@ -170,10 +246,12 @@ Assert-Contract (
 
 $nativeRegistrationCount = [regex]::Matches([string]$texts.scriptFunctionTable, '\{Scripting::TRIG_CRAFTED_PROTOTYPE,\s*"OnCraftedPrototype",\s*"OD"\}').Count
 $nativeDispatcherCount = [regex]::Matches([string]$texts.playerObject, 'trigAllScripts\(Scripting::TRIG_CRAFTED_PROTOTYPE,\s*craftparams\)').Count
+$nativeLocationArrivalRegistrationCount = [regex]::Matches([string]$texts.scriptFunctionTable, '\{Scripting::TRIG_ARRIVE_AT_LOCATION,\s*"OnArrivedAtLocation",\s*"u"\}').Count
 Assert-Contract (
     $nativeRegistrationCount -eq [int]$contract.expected.nativeCraftedPrototypeRegistrations -and
-    $nativeDispatcherCount -eq [int]$contract.expected.nativeCraftedPrototypeDispatchers
-) "Native crafted-prototype registration/dispatcher boundary drifted."
+    $nativeDispatcherCount -eq [int]$contract.expected.nativeCraftedPrototypeDispatchers -and
+    $nativeLocationArrivalRegistrationCount -eq [int]$contract.expected.nativeLocationArrivalRegistrations
+) "Native crafted-prototype or location-arrival registration/dispatcher boundary drifted."
 
 $chroniclesPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14ChroniclesScriptLifecycleRetirement)
 $chroniclesContract = Get-Content -LiteralPath $chroniclesPath -Raw | ConvertFrom-Json
@@ -264,4 +342,4 @@ Assert-Contract (
     -not $contractText.Contains("/Artifacts/") -and
     -not $contractText.Contains("/Staging/")
 ) "PGC contract references retired artifact/staging evidence."
-Write-Host "Publish 14.1 PGC holocron/vendor and crafted-prototype retirement passed."
+Write-Host "Publish 14.1 PGC holocron/vendor, crafted-prototype, and location-arrival retirement passed."
