@@ -133,6 +133,30 @@ if (-not $combatBase.Contains("public static boolean isRetiredPostNgeMigrationPl
     throw "Java combat admission does not reject the NGE veteran migration action for players."
 }
 $base = $text["base_player.java"]
+$surveySetupStart = $base.IndexOf(
+    "public int handleSurveyToolbarSetup", [StringComparison]::Ordinal)
+$factionRefundStart = $base.IndexOf(
+    "public int factionBaseUnitRefund", $surveySetupStart,
+    [StringComparison]::Ordinal)
+if ($surveySetupStart -lt 0 -or $factionRefundStart -le $surveySetupStart)
+{
+    throw "Queued NGE survey-toolbar callback boundary is missing."
+}
+$surveySetup = $base.Substring(
+    $surveySetupStart, $factionRefundStart - $surveySetupStart)
+if (-not $surveySetup.Contains("retired later-era crafter respec") -or
+    -not $surveySetup.Contains("return SCRIPT_CONTINUE;") -or
+    $surveySetup.Contains("utils.getInventoryContainer(self)") -or
+    $surveySetup.Contains("createObject(") -or
+    $surveySetup.Contains("newbieTutorialSetToolbarElement("))
+{
+    throw "A queued NGE survey-toolbar callback can still mutate a PRE-CU player."
+}
+if (([regex]::Matches($respec,
+        'messageTo\(self,\s*"handleSurveyToolbarSetup"')).Count -ne 1)
+{
+    throw "Retained survey-toolbar producer inventory changed."
+}
 foreach ($forbidden in @(
     "respec.handleNpcRespec(self, skillTemplateName)",
     "respec.earnProfessionSkills(self, skillTemplateName",
