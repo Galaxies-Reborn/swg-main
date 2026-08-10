@@ -46,6 +46,44 @@ function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker
     return $Text.Substring($start, $end - $start)
 }
 
+function Test-CallbackInventory(
+    [object]$Inventory,
+    [int]$ExpectedHandlers,
+    [string]$Name)
+{
+    $records = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in @(& rg -n --no-heading ([string]$Inventory.pattern) `
+        $scriptRoot --glob "*.java"))
+    {
+        Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
+            "p14.groundquest-xp.$Name.inventory-line-parsed"
+        $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+        Assert-Contract ($absolutePath.StartsWith(
+            $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+            [StringComparison]::OrdinalIgnoreCase)) `
+            "p14.groundquest-xp.$Name.inventory-contained"
+        $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+        $records.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
+    }
+    $records = @($records | Sort-Object)
+    $paths = @($records | ForEach-Object {
+        Assert-Contract ($_ -match '^(.*?):\d+\|') `
+            "p14.groundquest-xp.$Name.path-isolated"
+        $Matches[1]
+    } | Sort-Object -Unique)
+    $expectedPaths = @($Inventory.sourcePaths | ForEach-Object {
+        [string]$_
+    } | Sort-Object)
+    Assert-Contract ($records.Count -eq [int]$Inventory.handlers -and
+        $records.Count -eq $ExpectedHandlers -and
+        $paths.Count -eq [int]$Inventory.sourceFiles -and
+        ($paths -join "`n") -ceq ($expectedPaths -join "`n") -and
+        (Get-TextSha256 ($records -join "`n")) -ceq [string]$Inventory.inventorySha256 -and
+        (Get-TextSha256 ($paths -join "`n")) -ceq [string]$Inventory.sourceSetSha256) `
+        "p14.groundquest-xp.$Name.complete-inventory"
+    return $records
+}
+
 $sourcePaths = [ordered]@{}
 foreach ($property in $contract.sourceFiles.PSObject.Properties)
 {
@@ -68,33 +106,12 @@ foreach ($name in $sourcePaths.Keys)
 }
 
 $scriptRoot = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/script"
-$questRewardRecords = [System.Collections.Generic.List[string]]::new()
-foreach ($line in @(& rg -n --no-heading ([string]$contract.inventory.pattern) $scriptRoot --glob "*.java"))
-{
-    Assert-Contract ($line -match '^(.*?):(\d+):(.*)$') `
-        "p14.groundquest-xp.reward-callback.inventory-line-parsed"
-    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
-    Assert-Contract ($absolutePath.StartsWith(
-        $scriptRoot + [IO.Path]::DirectorySeparatorChar,
-        [StringComparison]::OrdinalIgnoreCase)) `
-        "p14.groundquest-xp.reward-callback.inventory-contained"
-    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
-    $questRewardRecords.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
-}
-$questRewardRecords = @($questRewardRecords | Sort-Object)
-$questRewardPaths = @($questRewardRecords | ForEach-Object {
-    Assert-Contract ($_ -match '^(.*?):\d+\|') `
-        "p14.groundquest-xp.reward-callback.path-isolated"
-    $Matches[1]
-} | Sort-Object -Unique)
-$expectedQuestRewardPaths = @($contract.inventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
-Assert-Contract ($questRewardRecords.Count -eq [int]$contract.inventory.handlers -and
-    $questRewardRecords.Count -eq [int]$contract.expected.questRewardCallbacks -and
-    $questRewardPaths.Count -eq [int]$contract.inventory.sourceFiles -and
-    ($questRewardPaths -join "`n") -ceq ($expectedQuestRewardPaths -join "`n") -and
-    (Get-TextSha256 ($questRewardRecords -join "`n")) -ceq [string]$contract.inventory.inventorySha256 -and
-    (Get-TextSha256 ($questRewardPaths -join "`n")) -ceq [string]$contract.inventory.sourceSetSha256) `
-    "p14.groundquest-xp.reward-callback.complete-inventory"
+$questRewardRecords = @(Test-CallbackInventory $contract.inventory `
+    ([int]$contract.expected.questRewardCallbacks) "reward-callback")
+$questCompletionRecords = @(Test-CallbackInventory $contract.completionInventory `
+    ([int]$contract.expected.questCompletionCallbacks) "completion-callback")
+$questClearRecords = @(Test-CallbackInventory $contract.clearInventory `
+    ([int]$contract.expected.questClearCallbacks) "clear-callback")
 
 $groundquests = [string]$texts.groundquests
 $reward = Get-SourceSlice $groundquests `
@@ -137,6 +154,82 @@ Assert-Contract ([int]$contract.inventory.productionContentDispatchers -eq 1 -an
     $questRewardCallback.Contains("exclusiveItemChoice") -and
     $ngeProgressionMatches.Count -eq [int]$contract.expected.questRewardNgePlayerProgressionMutations) `
     "p14.groundquest-xp.reward-callback.content-preserved-progression-isolated"
+
+$completionProductionRecords = @($questCompletionRecords | Where-Object {
+    $_ -notmatch '^test/'
+})
+$completionTestRecords = @($questCompletionRecords | Where-Object {
+    $_ -match '^test/'
+})
+Assert-Contract ($completionProductionRecords.Count -eq
+        [int]$contract.expected.questCompletionProductionCallbacks -and
+    $completionTestRecords.Count -eq [int]$contract.expected.questCompletionTestCallbacks -and
+    [int]$contract.completionInventory.productionHandlers -eq
+        [int]$contract.expected.questCompletionProductionCallbacks -and
+    [int]$contract.completionInventory.testHandlers -eq
+        [int]$contract.expected.questCompletionTestCallbacks -and
+    [int]$contract.clearInventory.productionHandlers -eq
+        [int]$contract.expected.questClearCallbacks) `
+    "p14.groundquest-xp.lifecycle-callback.classification"
+
+$baseCompletion = Get-SourceSlice $basePlayer `
+    "public int OnQuestCompleted(" "public int OnQuestCleared("
+$baseClear = Get-SourceSlice $basePlayer `
+    "public int OnQuestCleared(" "public int OnRequestStaticItemData("
+$obiwanCompletion = Get-SourceSlice ([string]$texts.obiwanMonitor) `
+    "public int OnQuestCompleted(" "public int OnSomeTaskActivated("
+$testCompletion = Get-SourceSlice ([string]$texts.testQuestListener) `
+    "public int OnQuestCompleted(" "public int OnQuestActivated("
+$lifecycleBodies = $baseCompletion + "`n" + $baseClear + "`n" +
+    $obiwanCompletion + "`n" + $testCompletion
+$lifecycleProgressionPatterns = @(
+    '(?<![A-Za-z0-9_\.])getLevel\s*\(', '\bsetLevel\s*\(',
+    '\bgetCombatLevel\s*\(', '\bsetCombatLevel\s*\(',
+    '\bgrantSkill\s*\(', '\brevokeSkill\s*\(',
+    '\bsetSkillTemplate\s*\(', '\bsetJediState\s*\(',
+    '\bgrantExperiencePoints\s*\(', '\bxp\.(grant|grantUnmodifiedExperience)',
+    '\bexpertise\.', '\bprofession\.', '\broadmap\.'
+)
+$lifecycleProgressionMatches = @($lifecycleProgressionPatterns | Where-Object {
+    [regex]::IsMatch($lifecycleBodies, $_)
+})
+Assert-Contract ($baseCompletion.Contains("groundquests.requestGrantQuest(self, conditionalQuestToGrant);") -and
+    $baseCompletion.Contains("collection.grantQuestBasedCollections(questString, self);") -and
+    $baseCompletion.Contains("smuggler.removeFromBountyTerminal(self, questCrc, false);") -and
+    $baseClear.Contains("groundquests.applyQuestPenalty(self, factionName, factionAmount);") -and
+    $baseClear.Contains("smuggler.removeFromBountyTerminal(self, questCrc, true);") -and
+    [bool]$contract.expected.conditionalQuestChainsPreserved -and
+    [bool]$contract.expected.questCollectionRewardsPreserved -and
+    [bool]$contract.expected.smugglerBountyCleanupPreserved -and
+    [bool]$contract.expected.authoredQuestClearPenaltiesPreserved) `
+    "p14.groundquest-xp.base-lifecycle-content-preserved"
+Assert-Contract ($obiwanCompletion.Contains('questName.indexOf("som_kenobi")') -and
+    $obiwanCompletion.Contains('planetName.startsWith("mustafar")') -and
+    $obiwanCompletion.Contains("mustafar.hasCompletedTrials(self)") -and
+    $obiwanCompletion.Contains("mustafar.canCallObiwan(self)") -and
+    $obiwanCompletion.Contains('messageTo(self, "callObiWanNow"') -and
+    [bool]$contract.expected.mustafarObiwanSequencePreserved) `
+    "p14.groundquest-xp.mustafar-completion-preserved"
+Assert-Contract ($testCompletion.Contains('debugSpeakMsg(self, "OnQuestCompleted called with: " + questCrc);') -and
+    $lifecycleProgressionMatches.Count -eq
+        [int]$contract.expected.questLifecycleNgePlayerProgressionMutations) `
+    "p14.groundquest-xp.lifecycle-progression-isolated"
+
+$scriptFunctionTable = [string]$texts.scriptFunctionTable
+$nativeRegistrations = [regex]::Matches($scriptFunctionTable,
+    '\{Scripting::TRIG_QUEST_(COMPLETED|CLEARED|GRANT_REWARD),').Count
+$nativeDispatchers = [regex]::Matches([string]$texts.playerObject,
+    'trigAllScripts\(Scripting::TRIG_QUEST_(COMPLETED|CLEARED|GRANT_REWARD),').Count
+Assert-Contract ($nativeRegistrations -eq
+        [int]$contract.expected.nativeQuestLifecycleTriggerRegistrations -and
+    $nativeDispatchers -eq [int]$contract.expected.nativeQuestLifecycleDispatchers) `
+    "p14.groundquest-xp.native-lifecycle-boundary"
+
+$dataGrantContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14DataGrantPersistenceClosure)) -Raw | ConvertFrom-Json
+Assert-Contract ([string]$dataGrantContract.status -ceq "ready" -and
+    [bool]$contract.expected.collectionDataGrantDependencyReady) `
+    "p14.groundquest-xp.collection-data-grant-dependency"
 Assert-Contract ([regex]::Matches($groundquests,
         'getQuestExperienceReward\s*\(').Count -eq
         [int]$contract.expected.groundquestRewardCalculations -and
@@ -198,10 +291,62 @@ if ($Expectation -eq "Ready")
         "p14.groundquest-xp.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.groundquests -match
             '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.basePlayer -match
+            '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.obiwanMonitor -match
+            '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.compiledClassPresent -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
-        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
+        [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary -and
+        [int]$contract.runtimeEvidence.liveGameProcessCount -eq 15 -and
+        [int]$contract.runtimeEvidence.liveGameProcessesMappedBuiltBinary -eq 15 -and
+        [bool]$contract.runtimeEvidence.clientResponsive -and
+        [int]$contract.runtimeEvidence.hostArtifactOrStagingDirectories -eq 0) `
         "p14.groundquest-xp.live-evidence"
+
+    $container = [string]$contract.runtimeEvidence.container
+    $health = (& docker inspect $container --format '{{.State.Health.Status}}').Trim()
+    Assert-Contract ($LASTEXITCODE -eq 0 -and $health -ceq "healthy") `
+        "p14.groundquest-xp.live-container-health"
+    foreach ($property in $contract.sourceFiles.PSObject.Properties)
+    {
+        $relativePath = ([string]$property.Value).Replace("\", "/")
+        & docker exec $container cmp -s "/swg-precu-source/$relativePath" `
+            "/swg-precu/$relativePath"
+        Assert-Contract ($LASTEXITCODE -eq 0) `
+            "p14.groundquest-xp.source-work-parity.$($property.Name)"
+    }
+
+    $classPaths = [ordered]@{
+        groundquests = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/groundquests.class"
+        basePlayer = "/swg-precu/data/sku.0/sys.server/compiled/game/script/player/base/base_player.class"
+        obiwanMonitor = "/swg-precu/data/sku.0/sys.server/compiled/game/script/theme_park/dungeon/mustafar_trials/obiwan_finale/obiwan_quest_monitor.class"
+    }
+    foreach ($name in $classPaths.Keys)
+    {
+        $classHash = ((& docker exec $container sha256sum $classPaths[$name]).Trim() -split '\s+')[0]
+        $classBytes = [int]((& docker exec $container stat -c '%s' $classPaths[$name]).Trim())
+        Assert-Contract ($classHash -ceq
+                [string]$contract.buildEvidence.compiledClassSha256.PSObject.Properties[$name].Value -and
+            $classBytes -eq
+                [int]$contract.buildEvidence.compiledClassBytes.PSObject.Properties[$name].Value) `
+            "p14.groundquest-xp.live-bytecode.$name"
+    }
+
+    $serverPid = (& docker exec $container pgrep -n SwgGameServer).Trim()
+    $serverExe = (& docker exec $container readlink -f "/proc/$serverPid/exe").Trim()
+    $binaryHash = ((& docker exec $container sha256sum $serverExe).Trim() -split '\s+')[0]
+    $buildLine = @(& docker exec $container readelf -n $serverExe | Select-String 'Build ID:')
+    $buildId = ($buildLine[0].Line -replace '^.*Build ID:\s*', '').Trim()
+    Assert-Contract ($binaryHash -ceq [string]$contract.buildEvidence.serverBinarySha256 -and
+        $buildId -ceq [string]$contract.buildEvidence.serverBinaryBuildId) `
+        "p14.groundquest-xp.live-binary-identity"
+
+    $client = Get-Process -Id ([int]$contract.runtimeEvidence.clientProcessId) `
+        -ErrorAction SilentlyContinue
+    Assert-Contract ($null -ne $client -and $client.Responding -and
+        $client.ProcessName -ceq [string]$contract.runtimeEvidence.clientProcessName) `
+        "p14.groundquest-xp.client-responsive"
 }
 else
 {
