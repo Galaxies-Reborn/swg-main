@@ -20,13 +20,101 @@ $resolvedRoot = (Resolve-Path -LiteralPath $SourceRoot).Path
 $jediPath = Join-Path $resolvedRoot ([string]$contract.sourceFiles.jediLibrary)
 $saberPath = Join-Path $resolvedRoot ([string]$contract.sourceFiles.saberComponent)
 $fixturePath = Join-Path $resolvedRoot ([string]$contract.sourceFiles.liveFixture)
+$sadBasicTaskPath = Join-Path $resolvedRoot ([string]$contract.sourceFiles.sadBasicTask)
+$questTablePath = Join-Path $resolvedRoot ([string]$contract.sourceFiles.questTable)
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
-foreach ($path in @($jediPath, $saberPath, $fixturePath))
+foreach ($path in @($jediPath, $saberPath, $fixturePath, $sadBasicTaskPath, $questTablePath))
 {
     if (-not (Test-Path -LiteralPath $path))
     {
         throw "Required Force-sensitive source path is missing: $path"
     }
+}
+
+function Get-TextSha256([string]$Text)
+{
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try
+    {
+        return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant()
+    }
+    finally { $sha.Dispose() }
+}
+
+function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker)
+{
+    $start = $Text.IndexOf($StartMarker, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $end = $Text.IndexOf($EndMarker, $start + $StartMarker.Length, [StringComparison]::Ordinal)
+    if ($end -lt 0) { return $Text.Substring($start) }
+    return $Text.Substring($start, $end - $start)
+}
+
+$scriptRoot = Join-Path $resolvedRoot "dsrc/sku.0/sys.server/compiled/game/script"
+$sadCallbackRecords = [System.Collections.Generic.List[string]]::new()
+foreach ($line in @(& rg -n --no-heading ([string]$contract.inventory.pattern) $scriptRoot --glob "*.java"))
+{
+    if ($line -notmatch '^(.*?):(\d+):(.*)$')
+    {
+        throw "Could not parse Force-sensitive killable callback inventory line: $line"
+    }
+    $absolutePath = (Resolve-Path -LiteralPath $Matches[1]).Path
+    if (-not $absolutePath.StartsWith(
+            $scriptRoot + [IO.Path]::DirectorySeparatorChar,
+            [StringComparison]::OrdinalIgnoreCase))
+    {
+        throw "Force-sensitive killable callback escaped the Java source root: $absolutePath"
+    }
+    $relativePath = $absolutePath.Substring($scriptRoot.Length + 1).Replace("\", "/")
+    $sadCallbackRecords.Add("${relativePath}:$($Matches[2])|$($Matches[3].Trim())")
+}
+$sadCallbackRecords = @($sadCallbackRecords | Sort-Object)
+$sadCallbackPaths = @($sadCallbackRecords | ForEach-Object {
+    if ($_ -notmatch '^(.*?):\d+\|') { throw "Could not isolate Force-sensitive callback path: $_" }
+    $Matches[1]
+} | Sort-Object -Unique)
+$expectedSadCallbackPaths = @($contract.inventory.sourcePaths | ForEach-Object { [string]$_ } | Sort-Object)
+if ($sadCallbackRecords.Count -ne [int]$contract.inventory.handlers -or
+    $sadCallbackRecords.Count -ne [int]$contract.expected.sadKillableCallbacks -or
+    $sadCallbackPaths.Count -ne [int]$contract.inventory.sourceFiles -or
+    ($sadCallbackPaths -join "`n") -cne ($expectedSadCallbackPaths -join "`n") -or
+    (Get-TextSha256 ($sadCallbackRecords -join "`n")) -cne [string]$contract.inventory.inventorySha256 -or
+    (Get-TextSha256 ($sadCallbackPaths -join "`n")) -cne [string]$contract.inventory.sourceSetSha256)
+{
+    throw "Force-sensitive killable callback inventory drifted."
+}
+
+$sadBasicTask = Get-Content -LiteralPath $sadBasicTaskPath -Raw
+$createdKillable = Get-SourceSlice $sadBasicTask `
+    "public int OnCreatedKillableObject(" `
+    "public int OnIncapacitatedKillableObject("
+$incapacitatedKillable = Get-SourceSlice $sadBasicTask `
+    "public int OnIncapacitatedKillableObject(" `
+    "public void checkForPhaseChange("
+$ngeProgressionPatterns = @(
+    '(?<![A-Za-z0-9_\.])getLevel\s*\(', '\bsetLevel\s*\(',
+    '\bgetSkillTemplate\s*\(', '\bsetSkillTemplate\s*\(',
+    '\bgrantSkill\s*\(', '\brevokeSkill\s*\(', '\bexpertise\.', '\bprofession\.'
+)
+$ngeProgressionMatches = @($ngeProgressionPatterns | Where-Object {
+    [regex]::IsMatch($createdKillable + $incapacitatedKillable, $_)
+})
+$sadQuestRows = @(Get-Content -LiteralPath $questTablePath | Where-Object {
+    $_ -match 'quest\.task\.fs_quest_sad\.basic_task'
+})
+if ([int]$contract.inventory.createdHandlers -ne [int]$contract.expected.sadCreatedCallbacks -or
+    [int]$contract.inventory.incapacitatedHandlers -ne [int]$contract.expected.sadIncapacitatedCallbacks -or
+    -not $createdKillable.Contains("quantityKillable++;") -or
+    -not $incapacitatedKillable.Contains("quantityKillable--;") -or
+    -not $incapacitatedKillable.Contains('dataTableGetNumRows("datatables/player/quests.iff")') -or
+    -not $incapacitatedKillable.Contains('quests.isMyQuest(iter, "quest.task.fs_quest_sad.basic_task")') -or
+    -not $incapacitatedKillable.Contains("completeTask(self, questName, true);") -or
+    $sadQuestRows.Count -ne [int]$contract.expected.sadAuthoredQuestRows -or
+    $ngeProgressionMatches.Count -ne [int]$contract.expected.sadNgePlayerProgressionMutations -or
+    -not [bool]$contract.expected.sadVillageQuestLifecyclePreserved)
+{
+    throw "Force-sensitive Village killable-object callbacks do not preserve the authenticated PRE-CU quest boundary."
 }
 
 $jedi = Get-Content -LiteralPath $jediPath -Raw
@@ -121,6 +209,8 @@ foreach ($entry in $contract.buildEvidence.sourceSha256.psobject.Properties)
         "jedi.java" { $jediPath }
         "jedi_saber_component.java" { $saberPath }
         "precu_force_sensitive_eligibility_fixture.java" { $fixturePath }
+        "basic_task.java" { $sadBasicTaskPath }
+        "quests.tab" { $questTablePath }
         default { throw "Unknown Force-sensitive source hash '$($entry.Name)'." }
     }
     $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
