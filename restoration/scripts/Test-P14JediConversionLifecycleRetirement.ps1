@@ -3,7 +3,9 @@ param(
     [string]$SourceRoot,
 
     [ValidateSet("Build", "Ready")]
-    [string]$Expectation = "Build"
+    [string]$Expectation = "Build",
+
+    [string]$Container = "swg-precu"
 )
 
 Set-StrictMode -Version Latest
@@ -14,94 +16,220 @@ $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json"
 $contract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14JediConversionLifecycleRetirement)) -Raw | ConvertFrom-Json
 $resolvedRoot = (Resolve-Path -LiteralPath $SourceRoot).Path
 $conversionPath = Join-Path $resolvedRoot ([string]$contract.sourceFiles.jediConversion)
+$gmPath = Join-Path $resolvedRoot ([string]$contract.sourceFiles.gmLibrary)
 
-if (-not (Test-Path -LiteralPath $conversionPath -PathType Leaf))
+foreach ($path in @($conversionPath, $gmPath))
 {
-    throw "Required source file is missing: $conversionPath"
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf))
+    {
+        throw "Required source file is missing: $path"
+    }
 }
 
 $conversion = Get-Content -LiteralPath $conversionPath -Raw
+$gm = Get-Content -LiteralPath $gmPath -Raw
 
-function Get-Section([string]$Text, [string]$Start, [string]$End)
+function Get-BracedSurface([string]$Text, [string]$Signature)
 {
-    $startIndex = $Text.IndexOf($Start, [StringComparison]::Ordinal)
-    if ($startIndex -lt 0)
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    if ($start -lt 0)
     {
-        throw "Missing section start: $Start"
+        throw "Missing method signature: $Signature"
     }
-    $endIndex = $Text.IndexOf($End, $startIndex + $Start.Length, [StringComparison]::Ordinal)
-    if ($endIndex -lt 0)
+    $open = $Text.IndexOf('{', $start)
+    if ($open -lt 0)
     {
-        throw "Missing section end: $End"
+        throw "Missing method body: $Signature"
     }
-    return $Text.Substring($startIndex, $endIndex - $startIndex)
+    $depth = 0
+    for ($index = $open; $index -lt $Text.Length; $index++)
+    {
+        if ($Text[$index] -eq '{')
+        {
+            $depth++
+        }
+        elseif ($Text[$index] -eq '}')
+        {
+            $depth--
+            if ($depth -eq 0)
+            {
+                return $Text.Substring($start, $index - $start + 1)
+            }
+        }
+    }
+    throw "Unterminated method body: $Signature"
 }
 
-function Assert-InertLifecycle([string]$Section, [string]$Name)
+function Assert-Contains([string]$Text, [string]$Needle, [string]$Message)
 {
-    if (-not $Section.Contains('detachScript(self, "player.player_jedi_conversion");'))
+    if (-not $Text.Contains($Needle))
     {
-        throw "$Name does not detach the inherited conversion script."
+        throw $Message
     }
-    foreach ($forbidden in @(
-        "convertOldJedi(",
-        "setSkillTemplate(",
-        "setWorkingSkill(",
-        "combatLevel",
-        "forceSensitiveSui(",
-        "jediSui(",
-        "regularSkillSui("
-    ))
+}
+
+function Assert-Excludes([string]$Text, [string[]]$Needles, [string]$Surface)
+{
+    foreach ($needle in $Needles)
     {
-        if ($Section.Contains($forbidden))
+        if ($Text.Contains($needle))
         {
-            throw "$Name still invokes inherited conversion behavior '$forbidden'."
+            throw "$Surface still contains retired mutation '$needle'."
         }
     }
 }
 
-$onAttach = Get-Section $conversion `
-    "public int OnAttach(obj_id self)" `
-    "public void convertOldJedi(obj_id self)"
-$onLogin = Get-Section $conversion `
-    "public int OnLogin(obj_id self)" `
-    "public int OnInitialize(obj_id self)"
-$onInitialize = Get-Section $conversion `
-    "public int OnInitialize(obj_id self)" `
-    "public void restartConversionSUI()"
+$cleanup = Get-BracedSurface $conversion "public static void retireNgeJediConversionState(obj_id player)"
+Assert-Contains $cleanup '!isIdValid(player) || !exists(player) || !isPlayer(player)' `
+    "The Jedi conversion cleanup does not fail closed for invalid or non-player objects."
+Assert-Contains $cleanup 'if (hasObjVar(player, "jedi.conversionSui"))' `
+    "The Jedi conversion cleanup does not detect a persisted conversion SUI."
+Assert-Contains $cleanup 'forceCloseSUIPage(pid);' `
+    "The Jedi conversion cleanup does not close a persisted conversion SUI."
+Assert-Contains $cleanup 'removeObjVar(player, retiredObjVar);' `
+    "The Jedi conversion cleanup does not remove its bounded objvar inventory."
+Assert-Contains $cleanup 'utils.removeScriptVar(player, retiredScriptVar);' `
+    "The Jedi conversion cleanup does not remove its bounded scriptvar inventory."
 
-Assert-InertLifecycle $onAttach "OnAttach"
-Assert-InertLifecycle $onLogin "OnLogin"
-Assert-InertLifecycle $onInitialize "OnInitialize"
+$objVarCount = 0
+foreach ($name in @($contract.inventory.retiredObjVars))
+{
+    if ($cleanup.Contains('"' + [string]$name + '"'))
+    {
+        $objVarCount++
+    }
+}
+$scriptVarCount = 0
+foreach ($name in @($contract.inventory.retiredScriptVars))
+{
+    if ($cleanup.Contains('"' + [string]$name + '"'))
+    {
+        $scriptVarCount++
+    }
+}
+if ($objVarCount -ne [int]$contract.expected.retiredObjVars -or
+    $scriptVarCount -ne [int]$contract.expected.retiredScriptVars)
+{
+    throw "The Jedi conversion cleanup inventory does not match the contract."
+}
+Assert-Excludes $cleanup @("setObjVar(", "grantSkill(", "revokeSkill(", "grantExperiencePoints(") `
+    "Jedi conversion cleanup helper"
+
+$scriptSurfaces = @(
+    @{ Name = "OnAttach"; Signature = "public int OnAttach(obj_id self)"; Detach = $true },
+    @{ Name = "convertOldJedi"; Signature = "public void convertOldJedi(obj_id self)"; Detach = $true },
+    @{ Name = "OnLogin"; Signature = "public int OnLogin(obj_id self)"; Detach = $true },
+    @{ Name = "OnInitialize"; Signature = "public int OnInitialize(obj_id self)"; Detach = $true },
+    @{ Name = "OnDetach"; Signature = "public int OnDetach(obj_id self)"; Detach = $false }
+)
+$scriptCleanupCalls = 0
+foreach ($entry in $scriptSurfaces)
+{
+    $surface = Get-BracedSurface $conversion ([string]$entry.Signature)
+    Assert-Contains $surface "retireNgeJediConversionState(self);" `
+        "$($entry.Name) does not invoke the canonical Jedi conversion cleanup."
+    $scriptCleanupCalls++
+    if ([bool]$entry.Detach)
+    {
+        Assert-Contains $surface 'detachScript(self, "player.player_jedi_conversion");' `
+            "$($entry.Name) does not detach the retired conversion script."
+    }
+    Assert-Excludes $surface @("setObjVar(", "setSkillTemplate(", "setWorkingSkill(", "forceSensitiveSui(", "jediSui(", "regularSkillSui(") `
+        ([string]$entry.Name)
+}
+if ($scriptCleanupCalls -ne [int]$contract.expected.scriptLifecycleCleanupEntrypoints)
+{
+    throw "The script lifecycle cleanup entrypoint count does not match the contract."
+}
 
 $convertCallCount = ([regex]::Matches($conversion, "\bconvertOldJedi\s*\(")).Count
 if ($convertCallCount -ne 1)
 {
-    throw "convertOldJedi must remain as one uncalled historical method; found $convertCallCount references."
+    throw "convertOldJedi must remain an uncalled fail-closed compatibility method; found $convertCallCount references."
 }
-if (-not $conversion.Contains('setObjVar(self, "combatLevel", 80);'))
+if ([regex]::IsMatch($conversion, 'setObjVar\s*\([^;\r\n]*"combatLevel"'))
 {
-    throw "The historical conversion body was removed instead of being isolated."
+    throw "The Jedi conversion script still writes the retired combatLevel objvar."
 }
 
-$actualSourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $conversionPath).Hash.ToLowerInvariant()
-if ($actualSourceHash -cne [string]$contract.buildEvidence.sourceSha256."player_jedi_conversion.java")
+$gmReset = Get-BracedSurface $gm "public static void cmdResetJedi(obj_id player)"
+Assert-Contains $gmReset '!isIdValid(player) || !exists(player) || !isPlayer(player)' `
+    "The GM Jedi cleanup does not validate its player target."
+Assert-Contains $gmReset 'script.player.player_jedi_conversion.retireNgeJediConversionState(player);' `
+    "The GM Jedi cleanup does not use the canonical conversion-state cleanup."
+Assert-Contains $gmReset 'detachScript(player, "player.player_jedi_conversion");' `
+    "The GM Jedi cleanup does not detach a persisted conversion script."
+Assert-Excludes $gmReset @("attachScript(", "setObjVar(", "grantSkill(", "revokeSkill(", "grantExperiencePoints(") `
+    "GM Jedi cleanup"
+
+$allJava = Get-ChildItem -LiteralPath (Join-Path $resolvedRoot "dsrc/sku.0/sys.server/compiled/game/script") `
+    -Recurse -File -Filter "*.java"
+$conversionAttachCount = 0
+$convertOldJediReferenceCount = 0
+foreach ($javaFile in $allJava)
 {
-    throw "player_jedi_conversion.java hash mismatch. Expected $($contract.buildEvidence.sourceSha256.'player_jedi_conversion.java'), got $actualSourceHash."
+    $java = Get-Content -LiteralPath $javaFile.FullName -Raw
+    $conversionAttachCount += ([regex]::Matches($java, 'attachScript\s*\([^;\r\n]*"player\.player_jedi_conversion"')).Count
+    $convertOldJediReferenceCount += ([regex]::Matches($java, '\bconvertOldJedi\s*\(')).Count
+}
+if ($conversionAttachCount -ne 0 -or $convertOldJediReferenceCount -ne 1)
+{
+    throw "The inherited Jedi conversion UI is reachable: attach=$conversionAttachCount, convertOldJedi references=$convertOldJediReferenceCount."
+}
+if (([int]$contract.expected.cleanupEntrypoints) -ne ($scriptCleanupCalls + 1))
+{
+    throw "The total Jedi conversion cleanup entrypoint count does not match the contract."
+}
+
+$sourceHashes = @{
+    "player_jedi_conversion.java" = (Get-FileHash -Algorithm SHA256 -LiteralPath $conversionPath).Hash.ToLowerInvariant()
+    "gm.java" = (Get-FileHash -Algorithm SHA256 -LiteralPath $gmPath).Hash.ToLowerInvariant()
+}
+foreach ($name in @($sourceHashes.Keys))
+{
+    if ([string]$sourceHashes[$name] -cne [string]$contract.buildEvidence.sourceSha256.$name)
+    {
+        throw "$name hash mismatch. Expected $($contract.buildEvidence.sourceSha256.$name), got $($sourceHashes[$name])."
+    }
+}
+
+$patchPath = Join-Path $restorationRoot ([string]$contract.buildEvidence.overlayPatch -replace "^restoration/", "")
+$patchHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $patchPath).Hash.ToLowerInvariant()
+if ((Get-Item -LiteralPath $patchPath).Length -ne [long]$contract.buildEvidence.overlayPatchBytes -or
+    $patchHash -cne [string]$contract.buildEvidence.overlayPatchSha256)
+{
+    throw "The Jedi conversion lifecycle overlay patch does not match its locked evidence."
 }
 
 if ($Expectation -eq "Ready")
 {
-    if ([string]$contract.status -cne "ready" -or [string]$contract.runtimeEvidence.result -cne "passed")
+    if ([string]$contract.status -cne "ready" -or
+        [string]$contract.runtimeEvidence.result -cne "passed" -or
+        [string]$contract.buildEvidence.fullJavaBuild.result -cne "passed")
     {
-        throw "The Jedi conversion lifecycle retirement does not yet contain passed runtime evidence."
+        throw "The Jedi conversion lifecycle retirement is not backed by passed build and runtime evidence."
     }
-    $patchPath = Join-Path $restorationRoot ([string]$contract.buildEvidence.overlayPatch -replace "^restoration/", "")
-    $patchHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $patchPath).Hash.ToLowerInvariant()
-    if ((Get-Item -LiteralPath $patchPath).Length -ne [long]$contract.buildEvidence.overlayPatchBytes -or
-        $patchHash -cne [string]$contract.buildEvidence.overlayPatchSha256)
+    $state = (& docker inspect --format "{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}" $Container).Trim()
+    if ($LASTEXITCODE -ne 0 -or $state -cne "running healthy")
     {
-        throw "The Jedi conversion lifecycle overlay patch does not match its locked evidence."
+        throw "PRE-CU x64 server is not running and healthy."
+    }
+    $deployedClasses = @{
+        "player_jedi_conversion.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.class"
+        "gm.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/gm.class"
+    }
+    foreach ($name in @($deployedClasses.Keys))
+    {
+        $output = (& docker exec $Container sha256sum ([string]$deployedClasses[$name]))
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw "Unable to hash deployed $name."
+        }
+        $actualHash = ([string]$output).Split(' ', [StringSplitOptions]::RemoveEmptyEntries)[0].ToLowerInvariant()
+        if ($actualHash -cne [string]$contract.buildEvidence.fullJavaBuild.$name.sha256)
+        {
+            throw "Deployed $name hash mismatch. Expected $($contract.buildEvidence.fullJavaBuild.$name.sha256), got $actualHash."
+        }
     }
 }
 

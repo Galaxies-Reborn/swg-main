@@ -1,58 +1,96 @@
 {
   "schemaVersion": 1,
   "feature": "jedi-conversion-lifecycle-retirement",
-  "status": "ready",
-  "scope": "Make the inherited CU/NGE Jedi conversion script inert at every automatic lifecycle entry while retaining its source for historical and administrative compatibility.",
+  "status": "implemented-build-pending",
+  "scope": "Retire inherited CU/NGE Jedi conversion authority at every lifecycle, message, detach, and GM-reset entry while preserving PRE-CU Jedi skills and experience.",
   "sourceFiles": {
-    "jediConversion": "dsrc/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.java"
+    "jediConversion": "dsrc/sku.0/sys.server/compiled/game/script/player/player_jedi_conversion.java",
+    "gmLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/gm.java"
   },
   "observedDefect": {
-    "OnAttach": "Called convertOldJedi, which set the combatLevel objvar to 80 before detaching.",
-    "OnLogin": "Set skillTemplate to a before detaching.",
-    "OnInitialize": "Set skillTemplate to a before detaching.",
-    "precuCollision": "jedi_padawan_novice is a valid restored Pre-CU skill and must not imply CU/NGE conversion."
+    "convertOldJedi": "The isolated historical method could still set the combatLevel objvar to 80 when invoked directly.",
+    "gmResetJedi": "The GM reset path attached the retired conversion script and recreated conversion state.",
+    "detachCleanup": "The inherited detach cleanup did not remove combatLevel, all conversion markers, or a persisted conversion SUI.",
+    "precuCollision": "jedi_padawan_novice is a valid restored PRE-CU skill and must never imply CU/NGE conversion."
   },
   "expected": {
-    "onAttachDetachesOnly": true,
-    "onLoginDetachesOnly": true,
-    "onInitializeDetachesOnly": true,
-    "lifecycleSetsCombatLevel": false,
-    "lifecycleSetsSkillTemplate": false,
-    "lifecycleOpensConversionSui": false,
-    "convertOldJediHasNoCallers": true,
-    "historicalConversionBodyRetained": true
+    "cleanupEntrypoints": 6,
+    "scriptLifecycleCleanupEntrypoints": 5,
+    "retiredObjVars": 11,
+    "retiredScriptVars": 5,
+    "persistedConversionSuiClosed": true,
+    "convertOldJediWritesCombatLevel": false,
+    "gmResetAttachesConversionScript": false,
+    "gmResetMutatesPrecuJediSkills": false,
+    "historicalConversionUiBodyReachable": false
   },
-  "consumerInventory": {
-    "remainingTemplateWorkingSkillOccurrences": 216,
-    "remainingMutationOccurrences": 66,
-    "normalLifecycleMutationOccurrences": 0
+  "inventory": {
+    "retiredObjVars": [
+      "combatLevel",
+      "jedi.converted",
+      "jedi.reverted",
+      "jedi.usingSui",
+      "jedi.currentPoints",
+      "jedi.forceSensitivePoints",
+      "jedi.nonJediPoints",
+      "jedi.conversionSui",
+      "jedi.grantingSkill",
+      "jedi.revokeAllowed",
+      "jedi.currentXp"
+    ],
+    "retiredScriptVars": [
+      "last_force_skill_picked",
+      "last_jedi_skill_picked",
+      "last_regular_skill_picked",
+      "fullNameList",
+      "skill_list"
+    ],
+    "cleanupEntrypoints": [
+      "player.player_jedi_conversion.OnAttach",
+      "player.player_jedi_conversion.convertOldJedi",
+      "player.player_jedi_conversion.OnLogin",
+      "player.player_jedi_conversion.OnInitialize",
+      "player.player_jedi_conversion.OnDetach",
+      "library.gm.cmdResetJedi"
+    ]
   },
   "buildEvidence": {
+    "dsrcDirectSourceCommit": "d1651276775b7595374a557bc2b8f68237c97636",
+    "overlayBaseDsrcCommit": "61b7218d2935172879468ee3eda76e54c38c264a",
     "overlayPatch": "restoration/patches/dsrc/143-p14-jedi-conversion-lifecycle-retirement.patch",
-    "overlayPatchBytes": 1224,
-    "overlayPatchSha256": "4bfc299a4633aa5cac233e89323e7e9ad90fa8c1ef731e15fe41c7e09eadcc4a",
-    "cleanApplyCheck": "passed",
+    "overlayPatchBytes": 6286,
+    "overlayPatchSha256": "6914bddb3a3afdbc1f77b6634b07455fdebee1a9936d6ef0ebdaf5473697e9f1",
+    "cleanReverseApplyCheck": "passed-with-line-ending-tolerance",
     "sourceSha256": {
-      "player_jedi_conversion.java": "42fe51da51f020dcc3824cbdd896f59884c6744796400434ba4d62ce305dae5f"
+      "player_jedi_conversion.java": "9d44a8de4020ae3cac2834e64b675bbf6178a8f4431430649032d4d60b0f33ba",
+      "gm.java": "10c1ba9a79bb0a82c0e6476480ec7e557b60030f11b03c5e4f1ec46b6767fddc"
     },
-    "javaCompile": {
+    "focusedJavaCompile": {
       "result": "passed",
+      "classpath": "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game",
       "player_jedi_conversion.class": {
-        "sha256": "1758bdaa74b824239cff7af98414a077b411b3db8278051da3e8c9101dbd40b9"
+        "sha256": "baaca94032bc797fd9669a1e727d4bfa9eb21495d034a182c575ae43e0e2e2f9"
+      },
+      "gm.class": {
+        "sha256": "198aff137d7d9a6fdf15b24d39aff12f1fb46b35c29e61a38fdc9b41d972d781"
       }
+    },
+    "fullJavaBuild": {
+      "result": "pending"
     }
   },
-  "runtimeEvidence": {
+  "previousRuntimeEvidence": {
     "result": "passed",
-    "container": "swg-precu",
-    "clientProcessId": 45524,
     "character": "Icai Darkwave",
     "characterOid": 39008597,
-    "stationId": 1001,
-    "scene": "tatooine",
-    "allProfessionRows": 33,
-    "serverHealthy": true,
-    "fatalExceptionSevereCount": 0
+    "scene": "tatooine"
   },
-  "requiredBeforeReady": []
+  "runtimeEvidence": {
+    "result": "pending"
+  },
+  "requiredBeforeReady": [
+    "Run the canonical complete x64 Java dependency rebuild.",
+    "Restart the swg-precu server and prove healthy readiness with clean fresh logs.",
+    "Verify the deployed player_jedi_conversion and gm bytecode hashes and cleanup calls."
+  ]
 }
