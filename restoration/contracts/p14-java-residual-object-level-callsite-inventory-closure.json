@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-java-residual-object-level-callsite-inventory-closure",
+  "status": "ready",
+  "scope": "Close the disjoint residual Java getLevel(simple object identifier) frontier left after player/self/owner closure, proving that combat participants cannot restore NGE player combat-level authority while preserving authored NPC, pet, creature, PRE-CU profession, test, and later-content level behavior.",
+  "eraEvidence": {
+    "core3Repository": "swgemu/Core3",
+    "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "findings": [
+      "Publish 14.1 player progression is skill-box and XP-pool based; player combat level is not a damage, hit-table, profession, item, reward, or eligibility authority.",
+      "Creature, NPC, pet, harvest, tame, trap, mission, storyteller, and retained expansion objects may continue using authored object level as content data.",
+      "Residual attacker and defender reads are safe only when PRE-CU hit/damage routing dominates them or a direct player exclusion prevents their execution."
+    ]
+  },
+  "inventory": {
+    "pattern": "\\b(?:ai_lib\\.)?getLevel\\s*\\(\\s*(?!player\\b|self\\b|owner\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*\\)",
+    "excludedClosedArguments": [
+      "player",
+      "self",
+      "owner"
+    ],
+    "javaSources": 5717,
+    "callSites": 69,
+    "sourceFiles": 34,
+    "inventorySha256": "6f712116e7ee50efe73e6d323e8a0c94d3bba952ac93b51f68c35226f6b18ec7",
+    "sourceSetSha256": "d867a427cebd849e092f3f55117190cfeef80ef8cdb17235745dbac3c4fb8ad9",
+    "sourceContentSha256": "8c14e25f3627dcf797f7ca4f9bdc76a0933dce7ef1d7c6ba95875f490f8bfd0d",
+    "fileCounts": {
+      "sku.0/sys.server/compiled/game/script/ai/ai_combat.java": 1,
+      "sku.0/sys.server/compiled/game/script/ai/pet.java": 1,
+      "sku.0/sys.server/compiled/game/script/ai/smuggler_spawn_enemy.java": 1,
+      "sku.0/sys.server/compiled/game/script/beta/debugger.java": 1,
+      "sku.0/sys.server/compiled/game/script/event/ewok_festival/loveday_reward_crossbow.java": 1,
+      "sku.0/sys.server/compiled/game/script/item/trap/trap_base.java": 2,
+      "sku.0/sys.server/compiled/game/script/library/ai_lib.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/beast_lib.java": 9,
+      "sku.0/sys.server/compiled/game/script/library/bio_engineer.java": 2,
+      "sku.0/sys.server/compiled/game/script/library/bounty_hunter.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/camping.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/combat.java": 9,
+      "sku.0/sys.server/compiled/game/script/library/corpse.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/factions.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/gcw.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/loot.java": 4,
+      "sku.0/sys.server/compiled/game/script/library/metrics.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/pet_lib.java": 7,
+      "sku.0/sys.server/compiled/game/script/library/scout.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/stealth.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/storyteller.java": 1,
+      "sku.0/sys.server/compiled/game/script/library/xp.java": 2,
+      "sku.0/sys.server/compiled/game/script/player/player_building.java": 1,
+      "sku.0/sys.server/compiled/game/script/player/skill/taming.java": 3,
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java": 5,
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base_old.java": 1,
+      "sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/harvest_module.java": 1,
+      "sku.0/sys.server/compiled/game/script/systems/crafting/droid/modules/trap_thrower.java": 1,
+      "sku.0/sys.server/compiled/game/script/systems/storyteller/npc_difficulty_token.java": 1,
+      "sku.0/sys.server/compiled/game/script/test/precu_creature_combat_profile_runtime.java": 2,
+      "sku.0/sys.server/compiled/game/script/test/precu_headshot1_fixture.java": 1,
+      "sku.0/sys.server/compiled/game/script/test/precu_marksman_tier1_fixture.java": 1,
+      "sku.0/sys.server/compiled/game/script/test/precu_sample_dna_command_fixture.java": 1,
+      "sku.0/sys.server/compiled/game/script/test/precu_tame_command_fixture.java": 1
+    }
+  },
+  "classification": {
+    "precuBypassedOrPlayerExcludedCombat": {
+      "callSites": 15,
+      "inventorySha256": "f555656b402a1c93da9fe7ae2a8ca903779acfda4154fe41d60d9fd07d71ca50",
+      "authority": "PRE-CU attacks select Core3 hit and raw-damage paths before inherited NGE glancing, punishing, and level-add damage; AI-level helpers reject player attackers, critical scaling selects a fixed player branch, and kill-meter mutation excludes both player roles."
+    },
+    "precuPlayerFacingNpcSystems": {
+      "callSites": 20,
+      "inventorySha256": "03a76e54baba53f1b145bff178976cd237790fed79555cb40238fc04883a2870",
+      "authority": "Publish 14.1 traps, Bio-Engineer sampling, corpse harvest, faction awards, loot, metrics, Scout scent mask, combat XP, building privacy, taming, and droid modules read only authenticated NPC, creature, corpse, pet, or non-player content difficulty."
+    },
+    "retainedCreaturePetSystems": {
+      "callSites": 13,
+      "inventorySha256": "3dde226115b9210f1d78b34719b8dd7a728c180902371a0d59eaf031a8f14bab",
+      "authority": "AI healing and advancement, creature-handler pets, camps, GCW NPC credit, pet growth/training, and NPC theft retain authored non-player level semantics."
+    },
+    "retainedLaterContent": {
+      "callSites": 14,
+      "inventorySha256": "9697088bc7191b4692c145f7584f7fcf7e4aef97bc02cde8672f5e871a7cf4f4",
+      "authority": "Smuggler patrols, Love Day content, NGE Beast compatibility, NPC bounty checks, and storyteller objects remain available without writing or deriving player progression."
+    },
+    "adminTestDiagnostics": {
+      "callSites": 7,
+      "inventorySha256": "06e7a6f5480dceb113fa19ba76b7692f414e6821fb3c9f5fe4c84df33236cbfd",
+      "authority": "One God-gated beta diagnostic and six explicit PRE-CU runtime fixtures report object difficulty without production progression authority."
+    },
+    "unclassifiedCallSites": 0
+  },
+  "requiredReadyContracts": [
+    "p14-java-player-level-callsite-inventory-closure.json",
+    "p14-java-level-mutation-callsite-inventory-closure.json",
+    "p14-native-precu-player-difficulty-authority.json",
+    "p14-core3-hit-resolution-closure.json",
+    "p14-core3-damage-authority.json",
+    "p14-post-nge-beast-master-player-runtime-retirement.json",
+    "p14-post-nge-beast-master-creation-player-runtime-retirement.json",
+    "p14-player-owned-retained-content-controller-closure.json",
+    "p14-precu-trap-admission-authority.json",
+    "p14-tame-command-lifecycle.json",
+    "p14-scout-harvest-native-admission.json",
+    "p14-precu-faction-cloning-authority.json",
+    "p14-precu-metrics-level-authority.json",
+    "p14-precu-retained-system-level-authority.json",
+    "p14-precu-combat-expertise-isolation.json",
+    "p14-precu-smuggler-content-expertise-authority.json"
+  ],
+  "expected": {
+    "gameplaySourceFilesChanged": 0,
+    "allCallSitesClassified": true,
+    "playerCombatLevelGameplayAuthorityCallSites": 0,
+    "closedPlayerSelfOwnerCallSitesExcluded": 56,
+    "laterZonesQuestsConversationsAndNpcCompatibilityPreserved": true
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "7dab96a595ee5f24166da6241f603e238116d226",
+    "nativeSourceCommit": "e44ba83276ec4c4feb419b32a2ae982a68e1926b",
+    "criticalSourceSha256": {
+      "combat.java": "48510810c4794beb95de1954f0dbb516fa15ed7bea73f9bf1380633ded3ca910",
+      "combat_base.java": "ec6887511704349f5c8c0b270fe08e98f895017c751305d8a99abbc27d912a93",
+      "bounty_hunter.java": "e5ccadfa18aa3810254d61e89a60a1b93eeaaf26a048b7f5bbbb80b21ff43d1f",
+      "beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
+      "player_building.java": "4a5fab76a86d74d273704ee3a2cf0fdc5c1b5697ca43fffae3355a7ff45915c1",
+      "xp.java": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a"
+    },
+    "sourceAudit": "passed; all 69 residual simple-object Java level reads classified with zero player combat-level gameplay authority",
+    "gameplayBuildReused": "No gameplay source or data changed; the authenticated 5,717-source x64 deployment at the pinned dsrc/native revisions remains authoritative.",
+    "serverBinarySha256": "e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8",
+    "serverBinaryBuildId": "0ac0c8a439a388150c4a0f687874d1b38edc9eed",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "result": "passed"
+  },
+  "runtimeEvidence": {
+    "capturedAt": "2026-08-10T03:20:10.6470740-04:00",
+    "container": "swg-precu",
+    "containerStartedAt": "2026-08-10T07:01:16.806234084Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveGameProcessCount": 15,
+    "livePlanetProcessCount": 15,
+    "liveBinaryInode": 12141610,
+    "liveBinaryBytes": 22561064,
+    "freshLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
+    "result": "passed"
+  },
+  "auditBoundary": {
+    "closedInThisMilestone": "the complete 69-call disjoint residual Java simple-object level-read inventory after excluding the already-closed player/self/owner argument set, including every attacker, defender, target, medic, NPC, creature, pet, Beast, corpse, and diagnostic use",
+    "preserved": "PRE-CU skill-box/XP progression and Core3 combat routing; authored NPC, creature, pet, trap, tame, Scout, Bio-Engineer, loot, faction, mission, storyteller, later-zone, quest, and conversation content",
+    "notClaimedComplete": "complex-expression level reads and unrelated later-era gameplay systems remain in the wider PRE-CU precedence audit"
+  },
+  "requiredBeforeReady": []
+}
