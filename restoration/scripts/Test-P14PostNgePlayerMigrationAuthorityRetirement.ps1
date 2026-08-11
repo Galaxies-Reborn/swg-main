@@ -349,17 +349,32 @@ $compiledClassProperties = @($contract.buildEvidence.compiledClassSha256.PSObjec
 
 if ($Expectation -ceq "Build")
 {
-    Assert-Contract (
+    $sourceBuildPending = (
         [string]$contract.status -ceq "implemented-build-pending" -and
         [string]$contract.buildEvidence.staticContract -like "passed source-level*" -and
         [string]$contract.buildEvidence.result -ceq "implemented-build-pending" -and
         $contract.requiredBeforeReady.Count -gt 0 -and
-        [string]$contract.buildEvidence.directSourceCommit -ceq "a67641a286f845e9dc86e580d02f2499254316c7" -and
         [string]$contract.buildEvidence.fullJavaCompile -like "*current*a67641a286f845e9dc86e580d02f2499254316c7*pending" -and
         [string]$contract.buildEvidence.directSourceBuild -like "pending for current*" -and
         [string]$contract.buildEvidence.deploymentProbe -like "pending current*" -and
         -not [bool]$contract.runtimeEvidence.currentSourceDeployed
-    ) "p14.player-migration.implemented-build-pending-contract"
+    )
+    $liveVerificationPending = (
+        [string]$contract.status -ceq "ready-for-live-verification" -and
+        [string]$contract.buildEvidence.staticContract -like "passed source-level*canonical current x64 build/deployment*" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        $contract.requiredBeforeReady.Count -eq 1 -and
+        [string]$contract.buildEvidence.fullJavaCompile -like "passed clean Java 8-target compile*" -and
+        [string]$contract.buildEvidence.directSourceBuild -like "passed canonical clean x64 build and deployment*" -and
+        [string]$contract.buildEvidence.deploymentProbe -like "passed current*CTS stat allocation*" -and
+        [bool]$contract.runtimeEvidence.currentSourceDeployed -and
+        -not [bool]$contract.runtimeEvidence.liveCtsRoundTripPerformed -and
+        [string]$contract.runtimeEvidence.result -ceq "passed"
+    )
+    Assert-Contract (
+        [string]$contract.buildEvidence.directSourceCommit -ceq "a67641a286f845e9dc86e580d02f2499254316c7" -and
+        ($sourceBuildPending -or $liveVerificationPending)
+    ) "p14.player-migration.build-or-live-verification-pending-contract"
 }
 elseif ($Expectation -ceq "Ready")
 {

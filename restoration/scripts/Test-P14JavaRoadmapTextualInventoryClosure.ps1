@@ -256,7 +256,7 @@ foreach ($dependencyKey in @($contract.requiredReadyContractKeys))
     }
     $playerMigrationBuildPending = ($Expectation -ceq "Build" -and
         $dependencyKey -ceq "p14PostNgePlayerMigrationAuthorityRetirement" -and
-        $dependencyStatus -ceq "implemented-build-pending")
+        (@("implemented-build-pending", "ready-for-live-verification") -contains $dependencyStatus))
     if ($playerMigrationBuildPending)
     {
         & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1") `
