@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$SourceRoot,
 
-    [ValidateSet("Source", "Ready")]
+    [ValidateSet("Source", "Build", "Ready")]
     [string]$Expectation = "Source"
 )
 
@@ -21,6 +21,43 @@ function Assert-Contract([bool]$Condition, [string]$Name)
 {
     if ($Condition) { Write-Host "  [PASS] $Name" }
     else { Write-Host "  [FAIL] $Name"; $failures.Add($Name) }
+}
+
+function Get-DockerArtifactEvidence([string]$Container, [string]$Path)
+{
+    $hashOutput = (& docker exec $Container sha256sum $Path 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($hashOutput)) { return $null }
+    $statOutput = (& docker exec $Container stat -Lc "%s|%i" $Path 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($statOutput)) { return $null }
+    $statParts = $statOutput.Split('|')
+    if ($statParts.Count -ne 2) { return $null }
+    return [pscustomobject]@{
+        Sha256 = $hashOutput.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)[0]
+        Bytes = [long]$statParts[0]
+        Inode = [long]$statParts[1]
+    }
+}
+
+function Assert-DockerArtifactSet(
+    [string]$Container,
+    [string]$Root,
+    [object]$ArtifactSet,
+    [bool]$RequireInode,
+    [string]$NamePrefix)
+{
+    foreach ($property in $ArtifactSet.PSObject.Properties)
+    {
+        $expected = $property.Value
+        $pathProperty = $expected.PSObject.Properties['path']
+        $artifactPath = if ($null -ne $pathProperty) { [string]$pathProperty.Value } else { "$Root$($property.Name)" }
+        $actual = Get-DockerArtifactEvidence -Container $Container -Path $artifactPath
+        $inodeMatches = -not $RequireInode -or ($null -ne $actual -and [long]$expected.inode -eq $actual.Inode)
+        Assert-Contract (
+            $null -ne $actual -and
+            [string]$expected.sha256 -ceq $actual.Sha256 -and
+            [long]$expected.bytes -eq $actual.Bytes -and
+            $inodeMatches) "$NamePrefix.$($property.Name)"
+    }
 }
 
 function Get-BracedSurface([string]$Text, [string]$Signature)
@@ -613,16 +650,112 @@ Assert-Contract (
     $nativeBountyRequest.Contains("cms_minimumJediBountyVisibility")) `
     "p14.player-bounty.native-script-request-revalidation"
 
-if ($Expectation -eq "Ready")
+if ($Expectation -in @("Build", "Ready"))
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
     $srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
-    Assert-Contract ([string]$contract.status -ceq "ready" -and [string]$contract.buildEvidence.result -ceq "passed" -and [string]$contract.runtimeEvidence.result -ceq "passed" -and $contract.requiredBeforeReady.Count -eq 0) `
-        "p14.player-bounty.ready-evidence"
     Assert-Contract ($dsrcPin.Count -eq 1 -and $srcPin.Count -eq 1 -and [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink -and [string]$srcPin[0].commit -ceq [string]$contract.buildEvidence.nativeSourceCommit) `
         "p14.player-bounty.direct-source-pins"
-    Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256 -match '^[a-f0-9]{64}$' -and [string]$contract.buildEvidence.serverBinarySha256 -match '^[a-f0-9]{64}$' -and [string]$contract.buildEvidence.serverBinaryBuildId -match '^[a-f0-9]{40}$' -and [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
-        "p14.player-bounty.live-x64-evidence"
+    Assert-Contract (
+        [string]$contract.buildEvidence.deploymentParentCommit -ceq "b4eff3c83f4234f5c1d46237b7cd94f1cf66a001" -and
+        [string]$contract.buildEvidence.fullJavaCompile.result -ceq "passed" -and
+        [int]$contract.buildEvidence.fullJavaCompile.sourceCount -eq 5717 -and
+        [int]$contract.buildEvidence.fullJavaCompile.classCount -eq 5751 -and
+        [bool]$contract.buildEvidence.fullJavaCompile.zeroClassDependencyClean -and
+        [string]$contract.buildEvidence.result -ceq "passed") `
+        "p14.player-bounty.clean-build-evidence"
+    Assert-Contract (
+        [string]$contract.buildEvidence.sourceWorkParity.result -ceq "passed" -and
+        [int]$contract.buildEvidence.sourceWorkParity.checkedFiles -eq 28 -and
+        [int]$contract.buildEvidence.sourceWorkParity.matchedFiles -eq 28) `
+        "p14.player-bounty.source-work-parity-evidence"
+    Assert-Contract (
+        @($contract.buildEvidence.compiledJavaArtifacts.PSObject.Properties).Count -eq 17 -and
+        @($contract.buildEvidence.compiledDataArtifacts.PSObject.Properties).Count -eq 3 -and
+        @($contract.buildEvidence.nativeObjectArtifacts.PSObject.Properties).Count -eq 5 -and
+        @($contract.buildEvidence.nativeArchiveArtifacts.PSObject.Properties).Count -eq 2) `
+        "p14.player-bounty.artifact-cardinality"
+
+    $container = [string]$contract.runtimeEvidence.container
+    Assert-DockerArtifactSet -Container $container -Root "/swg-precu/data/sku.0/sys.server/compiled/game/" `
+        -ArtifactSet $contract.buildEvidence.compiledJavaArtifacts -RequireInode $false -NamePrefix "p14.player-bounty.class"
+    Assert-DockerArtifactSet -Container $container -Root "/swg-precu/data/" `
+        -ArtifactSet $contract.buildEvidence.compiledDataArtifacts -RequireInode $false -NamePrefix "p14.player-bounty.iff"
+    Assert-DockerArtifactSet -Container $container -Root "" `
+        -ArtifactSet $contract.buildEvidence.nativeObjectArtifacts -RequireInode $true -NamePrefix "p14.player-bounty.native-object"
+    Assert-DockerArtifactSet -Container $container -Root "" `
+        -ArtifactSet $contract.buildEvidence.nativeArchiveArtifacts -RequireInode $true -NamePrefix "p14.player-bounty.native-archive"
+    $binary = Get-DockerArtifactEvidence -Container $container -Path ([string]$contract.buildEvidence.serverBinary.path)
+    Assert-Contract (
+        $null -ne $binary -and
+        [string]$contract.buildEvidence.serverBinary.sha256 -ceq $binary.Sha256 -and
+        [long]$contract.buildEvidence.serverBinary.bytes -eq $binary.Bytes -and
+        [long]$contract.buildEvidence.serverBinary.inode -eq $binary.Inode) `
+        "p14.player-bounty.server-binary-identity"
+    $binaryFile = (& docker exec $container file -L ([string]$contract.buildEvidence.serverBinary.path) 2>&1 | Out-String)
+    $binaryNotes = (& docker exec $container readelf -n ([string]$contract.buildEvidence.serverBinary.path) 2>&1 | Out-String)
+    Assert-Contract (
+        $LASTEXITCODE -eq 0 -and
+        $binaryFile.Contains("ELF 64-bit") -and
+        $binaryFile.Contains("x86-64") -and
+        $binaryNotes.Contains([string]$contract.buildEvidence.serverBinary.buildIdSha1)) `
+        "p14.player-bounty.server-binary-elf64-build-id"
+
+    $parityMatches = 0
+    foreach ($property in $contract.sourceFiles.PSObject.Properties)
+    {
+        $relativePath = ([string]$property.Value).Replace('\', '/')
+        & docker exec $container cmp -s "/swg-precu-source/$relativePath" "/swg-precu/$relativePath"
+        if ($LASTEXITCODE -eq 0) { ++$parityMatches }
+    }
+    Assert-Contract ($parityMatches -eq 28) "p14.player-bounty.live-source-work-parity"
+
+    $inspection = @((& docker inspect $container 2>&1 | Out-String) | ConvertFrom-Json)[0]
+    Assert-Contract (
+        [string]$inspection.State.Status -ceq "running" -and
+        [string]$inspection.State.Health.Status -ceq [string]$contract.runtimeEvidence.containerHealth -and
+        [string]$inspection.State.StartedAt -ceq [string]$contract.runtimeEvidence.containerStartedAt -and
+        [string]$contract.runtimeEvidence.result -ceq "passed" -and
+        [bool]$contract.runtimeEvidence.clusterReadyForPlayers) `
+        "p14.player-bounty.container-runtime-evidence"
+    $gamePids = @(& docker exec $container pgrep -f "bin/SwgGameServer")
+    $mappedCount = 0
+    foreach ($gamePidValue in $gamePids)
+    {
+        $processIdentity = (& docker exec $container stat -Lc "%i|%s" "/proc/$gamePidValue/exe" 2>&1 | Out-String).Trim()
+        if ($LASTEXITCODE -eq 0 -and $processIdentity -ceq "$($contract.runtimeEvidence.liveBinaryInode)|$($contract.runtimeEvidence.liveBinarySizeBytes)") { ++$mappedCount }
+    }
+    Assert-Contract (
+        $gamePids.Count -eq [int]$contract.runtimeEvidence.liveGameProcessCount -and
+        $mappedCount -eq $gamePids.Count -and
+        [bool]$contract.runtimeEvidence.allLiveGameProcessesMatchBinary) `
+        "p14.player-bounty.all-live-processes-map-binary"
+    $logs = (& docker logs --since ([string]$contract.runtimeEvidence.containerStartedAt) $container 2>&1 | Out-String)
+    $badLogLines = @($logs -split "`n" | Select-String -Pattern "FATAL|SEVERE|Exception|undefined symbol|ORA-|ConGenericMessage constructed with empty message")
+    $readyMarkers = @($logs -split "`n" | Select-String -SimpleMatch "Cluster swg is ready for players.")
+    Assert-Contract (
+        $badLogLines.Count -eq 0 -and
+        $readyMarkers.Count -ge 1 -and
+        [string]$contract.runtimeEvidence.postStartLogAudit.result -ceq "passed") `
+        "p14.player-bounty.clean-ready-post-start-logs"
+
+    if ($Expectation -eq "Ready")
+    {
+        Assert-Contract (
+            [string]$contract.status -ceq "ready" -and
+            [string]$contract.liveGameplayEvidence.result -ceq "passed" -and
+            $contract.requiredBeforeReady.Count -eq 0) `
+            "p14.player-bounty.ready-evidence"
+    }
+    else
+    {
+        Assert-Contract (
+            [string]$contract.status -ceq "implemented-build-verified-live-pending" -and
+            [string]$contract.liveGameplayEvidence.result -ceq "pending" -and
+            [bool]$contract.liveGameplayEvidence.clientClosedDuringDeploymentEvidenceCapture -and
+            $contract.requiredBeforeReady.Count -eq 1) `
+            "p14.player-bounty.build-verified-live-pending-truthful"
+    }
 }
 else
 {
@@ -632,6 +765,15 @@ else
     {
         Assert-Contract ([string]$contract.buildEvidence.result -ceq "pending" -and [string]$contract.runtimeEvidence.result -ceq "pending" -and $contract.requiredBeforeReady.Count -gt 0) `
             "p14.player-bounty.pending-evidence-truthful"
+    }
+    elseif ([string]$contract.status -ceq "implemented-build-verified-live-pending")
+    {
+        Assert-Contract (
+            [string]$contract.buildEvidence.result -ceq "passed" -and
+            [string]$contract.runtimeEvidence.result -ceq "passed" -and
+            [string]$contract.liveGameplayEvidence.result -ceq "pending" -and
+            $contract.requiredBeforeReady.Count -eq 1) `
+            "p14.player-bounty.deployed-evidence-truthful"
     }
 }
 

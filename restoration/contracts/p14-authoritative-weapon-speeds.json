@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "feature": "p14-authoritative-weapon-speeds",
-  "status": "implemented-build-pending",
+  "status": "implemented-build-verified-live-pending",
   "scope": "Make Publish 14 weapon attack speeds authoritative for player cadence, authored default weapons, and weapon presentation while preserving legitimate crafted variation and retaining expansion-only weapons through PRE-CU family fallbacks; the base unarmed template is authored at 2.0 seconds and player initialization must not rewrite it to the NGE 0.50-second value. AI cadence uses Core3's separate two-second queue interval.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
@@ -105,13 +105,79 @@
       "unarmedDefaultPlayer": "0395c2b919d5f55903ecfcdcb5b25b215e0a8014e6a5fd27ac93c4d34ab9efa0",
       "basePlayer": "1d5553ba298dcaa88ccc1016a1065f0bc7b8abe36de4ca1244c7cebe12ac27ef"
     },
-    "focusedBasePlayerJavaCompile": "passed (exact source, Java 8 target)",
-    "unarmedTemplateSource": "authenticated attackSpeed 2.0; compiled IFF pending",
-    "fullJavaCompile": "pending",
-    "compiledUnarmedDefaultIff": "pending",
-    "fullX64Build": "pending",
-    "architecture": "pending x64 verification",
-    "result": "pending"
+    "deploymentParentCommit": "b4eff3c83f4234f5c1d46237b7cd94f1cf66a001",
+    "deploymentMode": "canonical zero-class Deploy-PrecuServer.ps1 run without SkipBuild",
+    "focusedBasePlayerJavaCompile": "passed through the zero-class full Java build",
+    "unarmedTemplateSource": "authenticated attackSpeed 2.0 and compiled to the deployed IFF",
+    "fullJavaCompile": {
+      "result": "passed",
+      "sourceCount": 5717,
+      "classCount": 5751,
+      "zeroClassDependencyClean": true
+    },
+    "compiledJavaArtifacts": {
+      "script/player/base/base_player.class": { "sha256": "93d2185853a236b47b68483080e9546395663662345b432c78d73fd08588d014", "bytes": 317000 }
+    },
+    "compiledDataArtifacts": {
+      "sku.0/sys.server/compiled/game/object/weapon/melee/unarmed/unarmed_default_player.iff": { "sha256": "14ae157fda2aee340e3e988a846fa9f6da388459cf605c1b700a6d428a925f3f", "bytes": 1230 },
+      "sku.0/sys.shared/compiled/game/datatables/combat/combat_data.iff": { "sha256": "14bb8b3cecb1bc8cd4cb74936cbdf3ac8acae442ad754794a1ac4f1fe8e4d991", "bytes": 773819 },
+      "sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.iff": { "sha256": "fc002fe002096253a497f395f0898e23896c2fe893bdb61e0297ba4d05b695ab", "bytes": 27757 },
+      "sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.iff": { "sha256": "3fff30c02a9151c9b64d459405dff8b42e2c7b667b3f9e58c08b6af0b8604102", "bytes": 24351 }
+    },
+    "nativeObjectArtifacts": {
+      "CommandQueue.cpp.o": { "path": "/swg-precu/build/engine/server/library/serverGame/src/CMakeFiles/serverGame.dir/shared/command/CommandQueue.cpp.o", "sha256": "94e76c9af9182ab8edcd71f4ef17d6678330dfe68bb18ac7ec868f092c7f0ec4", "bytes": 193688, "inode": 12051467 },
+      "WeaponObject.cpp.o": { "path": "/swg-precu/build/engine/server/library/serverGame/src/CMakeFiles/serverGame.dir/shared/object/WeaponObject.cpp.o", "sha256": "727f2a4bf6c9846f5faac876d70d8c60a0e51629d5163d7f6335acabca34eb3f", "bytes": 159136, "inode": 12141780 }
+    },
+    "nativeArchiveArtifacts": {
+      "libserverGame.a": { "path": "/swg-precu/build/engine/server/library/serverGame/src/libserverGame.a", "sha256": "1fdde15af6ab010f9a29b23fbfe8a8723c76122d7c3b5403f9736c2085f4f0db", "bytes": 32658992, "inode": 11801721 }
+    },
+    "serverBinary": {
+      "path": "/swg-precu/build/bin/SwgGameServer",
+      "sha256": "84c3d1aa9043eb61fd18f2b298ada84b789ea7079fea77a5cc611bace8d06e6c",
+      "buildIdSha1": "997fee93a4e1d273ca4e7027224f005e9b580406",
+      "bytes": 22582536,
+      "inode": 12141859
+    },
+    "sourceWorkParity": {
+      "checkedFiles": 8,
+      "matchedFiles": 8,
+      "result": "passed"
+    },
+    "fullX64Build": "passed from the pinned direct sources through the canonical deployment",
+    "architecture": "ELF 64-bit LSB shared object, x86-64",
+    "artifactProbe": "passed base_player bytecode, compiled unarmed IFF, weapon tables, WeaponObject and CommandQueue objects, libserverGame symbols, final binary, and ELF64 checks",
+    "result": "passed"
+  },
+  "deploymentEvidence": {
+    "container": "swg-precu",
+    "containerId": "bfc5d86014f2ab2570558541b13df6ff7db4c20547fca49c5648f3f51bebec7e",
+    "containerImage": "swg-precu-server-x64:local",
+    "containerImageId": "sha256:666082edac4672ecfc6b908235bb34437118176f83bb71f496ed6dc997b64874",
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-11T11:07:52.337807073Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "clusterReadyMarkerCount": 1,
+    "liveGameProcessCount": 15,
+    "allLiveGameProcessesMatchBinary": true,
+    "liveGameProcessPids": [374, 375, 376, 377, 378, 379, 380, 381, 382, 405, 406, 407, 408, 409, 410],
+    "liveBinaryInode": 12141859,
+    "liveBinarySizeBytes": 22582536,
+    "processCounts": {
+      "PlanetServer": 15,
+      "SwgGameServer": 15,
+      "TransferServer": 1
+    },
+    "transferServerPid": 367,
+    "transferServerPort": 50005,
+    "postStartLogAudit": {
+      "lineCount": 357,
+      "fatalSevereExceptionUndefinedSymbolOracleOrEmptyGenericMessageMatches": 0,
+      "playerReadyMarkerCount": 1,
+      "result": "passed"
+    },
+    "result": "passed"
   },
   "priorLiveAfterEvidence": {
     "date": "2026-08-01",
@@ -132,6 +198,7 @@
   },
   "liveAfterEvidence": {
     "result": "pending",
+    "clientClosedDuringDeploymentEvidenceCapture": true,
     "worldEntryConfirmed": false,
     "authoredDefaultUnarmedSpeed": 2.0,
     "persistedDefaultUnarmedSpeed": null,
@@ -139,10 +206,6 @@
     "liveAiCadenceConfirmed": false
   },
   "requiredBeforeReady": [
-    "Materialize source/work parity for the authenticated default-unarmed template and base_player source.",
-    "Run the zero-class full Java build and compile object/weapon/melee/unarmed/unarmed_default_player.iff from the authenticated template.",
-    "Run the full x64 server build and deployment probes, including base_player bytecode, compiled default-unarmed IFF, WeaponObject archive symbols, and the mapped ELF64 SwgGameServer binary.",
-    "Perform a controlled restart and prove every live process maps the newly built binary.",
     "Live-test a fresh/default weapon and a persisted player: stored unarmed speed is 2.0, player cadence follows the authenticated formula, and AI retains its separate two-second queue interval."
   ]
 }
