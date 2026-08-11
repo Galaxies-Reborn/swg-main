@@ -63,6 +63,16 @@ function Get-CommaValues([object]$Value)
     return @(([string]$Value).Trim('"').Split(',') | Where-Object { $_ -cne "" })
 }
 
+function Get-DockerSha256([string]$Container, [string]$Path)
+{
+    $output = (& docker exec $Container sha256sum $Path 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($output))
+    {
+        return ""
+    }
+    return $output.Split(' ', [StringSplitOptions]::RemoveEmptyEntries)[0]
+}
+
 foreach ($path in $paths.Values)
 {
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) `
@@ -326,6 +336,25 @@ Assert-Contract (@($retiredHandlers | Where-Object {
 if ($Expectation -eq 'Ready')
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq 'dsrc' })
+    $delegated = $contract.buildEvidence.delegatedDeploymentEvidence
+    $delegatedArtifacts = @($delegated.authenticatedArtifacts | ForEach-Object { [string]$_ })
+    $expectedDelegatedArtifacts = @(
+        'combat.class',
+        'CreatureObject.cpp.o',
+        'libserverGame.a',
+        'SwgGameServer'
+    )
+    Assert-Contract ([string]$delegated.contract -ceq 'contracts/p14-nine-attribute-runtime.json' -and
+        [string]$delegated.expectation -ceq 'Build' -and
+        ($delegatedArtifacts -join "`n") -ceq ($expectedDelegatedArtifacts -join "`n") -and
+        [bool]$delegated.includesExactLiveProcessAndPostStartLogAudit -and
+        [string]$delegated.result -ceq 'passed') `
+        "p14.species-innate.exact-nine-attribute-deployment-delegation"
+
+    & (Join-Path $PSScriptRoot "Test-P14NineAttributeRuntime.ps1") `
+        -SourceRoot $SourceRoot `
+        -Expectation Build
+
     Assert-Contract ([string]$contract.status -ceq 'ready' -and
         [string]$contract.buildEvidence.result -ceq 'passed' -and
         [string]$contract.runtimeEvidence.result -ceq 'passed' -and
@@ -351,6 +380,55 @@ if ($Expectation -eq 'Ready')
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.species-innate.live-evidence"
+
+    $container = [string]$contract.runtimeEvidence.container
+    $sourceParityMatches = 0
+    foreach ($property in $contract.sourceFiles.PSObject.Properties)
+    {
+        $relativePath = ([string]$property.Value).Replace('\', '/')
+        & docker exec $container cmp -s "/swg-precu-source/$relativePath" "/swg-precu/$relativePath"
+        if ($LASTEXITCODE -eq 0) { ++$sourceParityMatches }
+    }
+    Assert-Contract ($sourceParityMatches -eq 11 -and
+        [int]$contract.runtimeEvidence.sourceWorkParityFiles -eq 11) `
+        "p14.species-innate.live-source-work-parity"
+
+    $compiledClassMatches = 0
+    foreach ($property in $contract.buildEvidence.compiledClassSha256.PSObject.Properties)
+    {
+        $sourceProperty = $contract.sourceFiles.PSObject.Properties[[string]$property.Name]
+        $relativePath = (([string]$sourceProperty.Value).Replace('\', '/') -replace '^dsrc/', 'data/') `
+            -replace '[.]java$', '.class'
+        $actualHash = Get-DockerSha256 -Container $container -Path "/swg-precu/$relativePath"
+        if ($actualHash -ceq [string]$property.Value) { ++$compiledClassMatches }
+    }
+    Assert-Contract ($compiledClassMatches -eq 5) `
+        "p14.species-innate.exact-five-deployed-class-identities"
+
+    $compiledDataMatches = 0
+    foreach ($property in $contract.buildEvidence.compiledDataSha256.PSObject.Properties)
+    {
+        $sourceProperty = $contract.sourceFiles.PSObject.Properties[[string]$property.Name]
+        $relativePath = (([string]$sourceProperty.Value).Replace('\', '/') -replace '^dsrc/', 'data/') `
+            -replace '[.]tab$', '.iff'
+        $actualHash = Get-DockerSha256 -Container $container -Path "/swg-precu/$relativePath"
+        if ($actualHash -ceq [string]$property.Value) { ++$compiledDataMatches }
+    }
+    Assert-Contract ($compiledDataMatches -eq 5) `
+        "p14.species-innate.exact-five-deployed-data-identities"
+
+    $nineBinary = $nineAttributeContract.buildEvidence.serverBinary
+    Assert-Contract ([string]$contract.buildEvidence.serverBinarySha256 -ceq [string]$nineBinary.sha256 -and
+        [string]$contract.buildEvidence.serverBinaryBuildId -ceq [string]$nineBinary.buildIdSha1 -and
+        [string]$contract.runtimeEvidence.containerStartedAt -ceq
+            [string]$nineAttributeContract.runtimeEvidence.containerStartedAt -and
+        [string]$contract.runtimeEvidence.containerHealth -ceq
+            [string]$nineAttributeContract.runtimeEvidence.containerHealth -and
+        [long]$contract.runtimeEvidence.liveBinaryInode -eq [long]$nineBinary.inode -and
+        [long]$contract.runtimeEvidence.liveBinarySize -eq [long]$nineBinary.bytes -and
+        [int]$contract.runtimeEvidence.processCounts.SwgGameServer -eq
+            [int]$nineAttributeContract.runtimeEvidence.liveGameProcessCount) `
+        "p14.species-innate.exact-current-binary-and-runtime-identities"
 }
 else
 {

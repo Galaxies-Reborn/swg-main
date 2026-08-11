@@ -22,6 +22,12 @@ $contract =
                 p14IncapacitationRecoveryLifecycle
         )
     ) -Raw | ConvertFrom-Json
+$nineAttributeContract =
+    Get-Content -LiteralPath (
+        Join-Path $restorationRoot (
+            [string]$manifest.contracts.p14NineAttributeRuntime
+        )
+    ) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 
 $paths = @{}
@@ -238,6 +244,31 @@ if ($Expectation -ceq "Source")
 }
 else
 {
+    $delegated = $contract.buildEvidence.delegatedDeploymentEvidence
+    $delegatedArtifacts = @($delegated.authenticatedArtifacts | ForEach-Object { [string]$_ })
+    $expectedDelegatedArtifacts = @(
+        "combat.class",
+        "CreatureObject.cpp.o",
+        "libserverGame.a",
+        "SwgGameServer"
+    )
+    $nineCombatClass = $nineAttributeContract.buildEvidence.regenerationCompiledJavaArtifacts.artifacts."combat.class"
+    Assert-Contract -Condition (
+        [string]$delegated.contract -ceq "contracts/p14-nine-attribute-runtime.json" -and
+        [string]$delegated.expectation -ceq "Build" -and
+        ($delegatedArtifacts -join "`n") -ceq ($expectedDelegatedArtifacts -join "`n") -and
+        [bool]$delegated.includesExactLiveProcessAndPostStartLogAudit -and
+        [string]$delegated.result -ceq "passed" -and
+        [string]$contract.buildEvidence.currentCompiledSha256."combat.class" -ceq
+            [string]$nineCombatClass.sha256 -and
+        [string]$nineAttributeContract.buildEvidence.result -ceq "passed" -and
+        [string]$nineAttributeContract.runtimeEvidence.result -ceq "passed") `
+        -Name "p14.incap.build.exact-nine-attribute-deployment-delegation"
+
+    & (Join-Path $PSScriptRoot "Test-P14NineAttributeRuntime.ps1") `
+        -SourceRoot $SourceRoot `
+        -Expectation Build
+
     Assert-Contract -Condition (
         [string]$contract.status -ceq "ready" -and
         [string]$contract.buildEvidence.result -ceq "passed" -and

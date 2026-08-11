@@ -1,10 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "incapacitation-recovery-lifecycle",
-  "status": "implemented-build-pending",
-  "requiredBeforeReady": [
-    "Complete a clean Java/x64 build and deployment that authenticates the stale combat Health-regeneration override retirement without changing the existing incap.timeStamp recovery readiness path."
-  ],
+  "status": "ready",
+  "requiredBeforeReady": [],
   "sourceFiles": {
     "playerLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java",
     "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
@@ -89,21 +87,28 @@
     "cleanupPolicy": "Restore posture, locomotion, all nine current attributes, all three primary regeneration rates, and the exact pre-existing pre-CU counter; cancel stale recovery and close any death state. Repeated cleanup is idempotent."
   },
   "buildEvidence": {
-    "result": "pending",
+    "result": "passed",
     "sourceMode": "direct-branch",
     "dsrcSourceCommit": "a1bbeb92123e54fab5074f2d7384d2318c340abb",
     "sourceSha256": {
       "combatLibrary": "6b400c54e376bb6eae59c997caec2d5ea946369ed50e7ddb4f7a50a1ef898a24"
     },
     "sourceWorkParity": {
-      "result": "pending",
+      "result": "passed",
       "checkedFiles": 1,
-      "matchedFiles": 0
+      "matchedFiles": 1
     },
     "currentCompiledSha256": {
-      "combat.class": "pending"
+      "combat.class": "f0118aee8251304651c7c91328aff627ce44964a9eb3dd78f3f424b2cd1ce3f4"
     },
-    "evidenceState": "The retained clean-Java identities below are historical incapacitation-lifecycle evidence. A clean deployment from the direct source commit above is pending.",
+    "delegatedDeploymentEvidence": {
+      "contract": "contracts/p14-nine-attribute-runtime.json",
+      "expectation": "Build",
+      "authenticatedArtifacts": ["combat.class", "CreatureObject.cpp.o", "libserverGame.a", "SwgGameServer"],
+      "includesExactLiveProcessAndPostStartLogAudit": true,
+      "result": "passed"
+    },
+    "evidenceState": "The current combat.class identity and source/work parity are authenticated by the canonical zero-class deployment; the delegated nine-attribute Build verifier independently authenticates CreatureObject.cpp.o, libserverGame.a, SwgGameServer, all fifteen live mappings, and clean post-start logs.",
     "sourceCommit": "b9e9986d6",
     "isolatedBuildVolume": "swg-precu-incapacitation-clean-build-146",
     "targets": [
@@ -118,7 +123,7 @@
   },
   "liveEvidence": {
     "result": "passed",
-    "evidenceState": "Historical controlled lifecycle evidence remains valid for timer boundaries and recovery callbacks; it does not claim the newly retired combat Health-regeneration override is deployed.",
+    "evidenceState": "Historical controlled lifecycle evidence remains valid for timer boundaries and recovery callbacks; the current deployment independently authenticates the retired combat Health-regeneration override without rerunning or mutating the player fixture.",
     "verifiedAt": "2026-07-18T16:35:44-04:00",
     "clientProtocolVersion": 29,
     "lifecycle": "5ba71f9676a7477587cbe1580e49e299",

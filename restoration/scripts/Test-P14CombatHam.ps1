@@ -235,6 +235,35 @@ if ($Expectation -ceq "Source")
 }
 else
 {
+    $delegated = $contract.buildEvidence.delegatedDeploymentEvidence
+    $delegatedArtifacts = @($delegated.authenticatedArtifacts | ForEach-Object { [string]$_ })
+    $expectedDelegatedArtifacts = @(
+        "combat.class",
+        "CreatureObject.cpp.o",
+        "libserverGame.a",
+        "SwgGameServer"
+    )
+    Assert-Contract `
+        -Condition ([string]$delegated.contract -ceq "contracts/p14-nine-attribute-runtime.json" -and
+            [string]$delegated.expectation -ceq "Build" -and
+            ($delegatedArtifacts -join "`n") -ceq ($expectedDelegatedArtifacts -join "`n") -and
+            [bool]$delegated.includesExactLiveProcessAndPostStartLogAudit -and
+            [string]$delegated.result -ceq "passed" -and
+            [string]$contract.buildEvidence.sourceWorkParity.result -ceq "passed" -and
+            [int]$contract.buildEvidence.sourceWorkParity.checkedFiles -eq 2 -and
+            [int]$contract.buildEvidence.sourceWorkParity.matchedFiles -eq 2 -and
+            [string]$contract.buildEvidence.sourceSha256.combatLibrary -ceq
+                [string]$nineAttributeContract.buildEvidence.regenerationSourceSha256.combatLibrary -and
+            [string]$contract.buildEvidence.sourceSha256.creatureCpp -ceq
+                [string]$nineAttributeContract.buildEvidence.regenerationSourceSha256.creatureCpp -and
+            [string]$nineAttributeContract.buildEvidence.result -ceq "passed" -and
+            [string]$nineAttributeContract.runtimeEvidence.result -ceq "passed") `
+        -Name "p14.combat-ham.build.exact-nine-attribute-deployment-delegation"
+
+    & (Join-Path $PSScriptRoot "Test-P14NineAttributeRuntime.ps1") `
+        -SourceRoot $SourceRoot `
+        -Expectation Build
+
     Assert-Contract `
         -Condition ([string]$contract.status -ceq "ready" -and
             [string]$contract.buildEvidence.result -ceq "passed" -and
