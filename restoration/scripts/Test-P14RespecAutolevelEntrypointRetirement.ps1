@@ -157,6 +157,36 @@ if (([regex]::Matches($respec,
 {
     throw "Retained survey-toolbar producer inventory changed."
 }
+$respecInstructionsStart = $base.IndexOf(
+    "public int delayRespecInstructions", [StringComparison]::Ordinal)
+$removingFromWorldStart = $base.IndexOf(
+    "public int OnRemovingFromWorld", $respecInstructionsStart,
+    [StringComparison]::Ordinal)
+if ($respecInstructionsStart -lt 0 -or
+    $removingFromWorldStart -le $respecInstructionsStart)
+{
+    throw "Queued click-respec instruction callback boundary is missing."
+}
+$respecInstructions = $base.Substring(
+    $respecInstructionsStart,
+    $removingFromWorldStart - $respecInstructionsStart)
+if (-not $respecInstructions.Contains(
+        "Retired later-era click-respec instructions") -or
+    -not $respecInstructions.Contains("return SCRIPT_CONTINUE;") -or
+    $respecInstructions.Contains("createSUIPage(") -or
+    $respecInstructions.Contains("setSUIProperty(") -or
+    $respecInstructions.Contains("showSUIPage(") -or
+    $respecInstructions.Contains("flushSUIPage(") -or
+    $respecInstructions.Contains("@click_respec:"))
+{
+    throw "A queued click-respec callback can still present later-era instructions."
+}
+$scriptRoot = Join-Path $root "dsrc/sku.0/sys.server/compiled/game/script"
+$respecInstructionProducers = @(& rg -n --no-heading '\x22delayRespecInstructions\x22' $scriptRoot --glob "*.java")
+if ($LASTEXITCODE -gt 1 -or $respecInstructionProducers.Count -ne 0)
+{
+    throw "Click-respec instruction producer inventory changed."
+}
 foreach ($forbidden in @(
     "respec.handleNpcRespec(self, skillTemplateName)",
     "respec.earnProfessionSkills(self, skillTemplateName",
