@@ -95,19 +95,52 @@ if ($client.Contains('#include "sharedNetworkMessages/ExpertiseRequestMessage.h"
 }
 
 $nameGuard = Get-BracedSurface -Text $creature -Signature "bool isRetiredNgeProgressionSkillName"
-foreach ($required in @('find("class_") == 0', 'skillName == "expertise"', 'find("expertise_") == 0', 'find("internal_expertise_") == 0'))
+foreach ($required in @('find("class_") == 0', 'find("bh_title") == 0', 'skillName == "expertise"', 'find("expertise_") == 0', 'find("internal_expertise_") == 0'))
 {
     if (-not $nameGuard.Contains($required)) { throw "NGE skill-name guard is incomplete: $required" }
 }
 
 $skills = @(Import-SwgTab -Path $skillsPath)
 $commandRows = @(Import-SwgTab -Path $commandTablePath)
+$requiredBountyHunterTitleRows = @(
+    "bh_titleinformant",
+    "bh_title_inspector",
+    "bh_title_agent"
+)
+$contractBountyHunterTitleRows = @($contract.diagnosis.retainedBountyHunterTitleCompatibilityRows |
+    ForEach-Object { [string]$_ })
+$actualBountyHunterTitleRows = @($skills | Where-Object {
+    ([string]$_.NAME).StartsWith("bh_title", [StringComparison]::Ordinal)
+})
+$actualBountyHunterTitleNames = @($actualBountyHunterTitleRows | ForEach-Object {
+    [string]$_.NAME
+})
+$invalidBountyHunterTitleRows = @($actualBountyHunterTitleRows | Where-Object {
+    ([string]$_.IS_TITLE) -cne "1" -or
+    -not [string]::IsNullOrWhiteSpace([string]$_.COMMANDS) -or
+    -not [string]::IsNullOrWhiteSpace([string]$_.SKILL_MODS)
+})
+if ([int]$contract.diagnosis.retainedBountyHunterTitleCompatibilityRowCount -ne 3 -or
+    ($contractBountyHunterTitleRows -join ([char]0)) -cne
+        ($requiredBountyHunterTitleRows -join ([char]0)) -or
+    $actualBountyHunterTitleRows.Count -ne 3 -or
+    ($actualBountyHunterTitleNames -join ([char]0)) -cne
+        ($requiredBountyHunterTitleRows -join ([char]0)) -or
+    $invalidBountyHunterTitleRows.Count -ne 0 -or
+    [bool]$contract.expected.playerBountyHunterTitleSkillAdmission -or
+    -not [bool]$contract.expected.persistedRetiredSelectedSkillTitlesRemoved -or
+    -not [bool]$contract.expected.retainedBountyHunterTitleCompatibilityRowsPreserved)
+{
+    throw "The retained bh_title compatibility-row inventory or player-retirement boundary changed."
+}
+
 $retiredCommands = @{}
 $retainedCommands = @{}
 foreach ($skill in $skills)
 {
     $skillName = [string]$skill.NAME
     $isRetired = $skillName.StartsWith("class_", [StringComparison]::Ordinal) -or
+        $skillName.StartsWith("bh_title", [StringComparison]::Ordinal) -or
         $skillName -ceq "expertise" -or
         $skillName.StartsWith("expertise_", [StringComparison]::Ordinal) -or
         $skillName.StartsWith("internal_expertise_", [StringComparison]::Ordinal)
@@ -130,7 +163,11 @@ $retiredDirectGrantPlayerCommands = @($contract.diagnosis.retiredDirectGrantPlay
 $retiredCyberneticPlayerCommands = @($contract.diagnosis.retiredCyberneticPlayerCommands | ForEach-Object { [string]$_ } | Sort-Object)
 $retainedPreCuExceptions = @($contract.diagnosis.retainedPreCuExceptions | ForEach-Object { [string]$_ } | Sort-Object)
 $classifiedBlankAbilityNames = @(($retiredPlayerCommands + $retainedPreCuExceptions) | Sort-Object)
-if ($retiredCommands.Count -ne [int]$contract.diagnosis.retiredSkillCommands -or
+if ([int]$contract.diagnosis.retiredSkillCommands -ne 535 -or
+    [int]$contract.diagnosis.retainedSkillCommands -ne 1000 -or
+    [int]$contract.diagnosis.retiredOnlyCommands -ne 464 -or
+    [int]$contract.diagnosis.retiredOnlyBlankAbilityCommands -ne 11 -or
+    $retiredCommands.Count -ne [int]$contract.diagnosis.retiredSkillCommands -or
     $retainedCommands.Count -ne [int]$contract.diagnosis.retainedSkillCommands -or
     $retiredOnly.Count -ne [int]$contract.diagnosis.retiredOnlyCommands -or
     $blankAbility.Count -ne [int]$contract.diagnosis.retiredOnlyBlankAbilityCommands -or
@@ -284,6 +321,19 @@ foreach ($required in @("isPlayerControlled()", "isRetiredNgeProgressionSkillNam
     if (-not $grant.Contains($required)) { throw "Authoritative skill admission guard is incomplete: $required" }
 }
 
+$skillCleanup = Get-BracedSurface -Text $creature -Signature "void CreatureObject::clearRetiredNgeProgressionSkills"
+$selectedTitlePredicate = "isRetiredNgeProgressionSkillName(playerObject->getTitle())"
+$selectedTitleClear = "playerObject->setTitle(std::string());"
+if (-not $skillCleanup.Contains("PlayerCreatureController::getPlayerObject(this)") -or
+    -not $skillCleanup.Contains($selectedTitlePredicate) -or
+    -not $skillCleanup.Contains($selectedTitleClear) -or
+    $skillCleanup.IndexOf($selectedTitlePredicate, [StringComparison]::Ordinal) -gt
+        $skillCleanup.IndexOf($selectedTitleClear, [StringComparison]::Ordinal) -or
+    $skillCleanup.Contains("revokeSkill("))
+{
+    throw "Persisted retired selected-skill titles are not cleared idempotently during native load cleanup."
+}
+
 $remaining = Get-BracedSurface -Text $creature -Signature "int CreatureObject::getRemainingExpertisePoints() const"
 if (-not $remaining.Contains("return 0;")) { throw "The retired expertise point pool is not fixed at zero." }
 foreach ($retired in @("ExpertiseManager", "getLevel()", "getExpertisesForPlayer"))
@@ -324,6 +374,7 @@ if ($Expectation -eq "Ready")
     foreach ($entry in @{
         "Client.cpp" = $clientPath
         "CreatureObject.cpp" = $creaturePath
+        "skills.tab" = $skillsPath
         "buff.java" = $buffPath
         "buff_handler.java" = $buffHandlerPath
         "buff.tab" = $buffTablePath

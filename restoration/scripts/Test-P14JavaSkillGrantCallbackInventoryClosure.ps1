@@ -421,8 +421,13 @@ foreach ($dependencyKey in @($contract.requiredReadyContractKeys))
     Assert-Contract (Test-Path -LiteralPath $dependencyPath -PathType Leaf) `
         "Required Ready contract is missing: $dependencyKey"
     $dependency = Get-Content -LiteralPath $dependencyPath -Raw | ConvertFrom-Json
-    Assert-Contract ([string]$dependency.status -ceq "ready") `
-        "Required dependency is not Ready: $dependencyKey"
+    $dependencyStatus = [string]$dependency.status
+    $dependencyEligible = $dependencyStatus -ceq "ready" -or
+        ($Expectation -ceq "Build" -and
+            $dependencyStatus -ceq "implemented-build-pending" -and
+            @($dependency.requiredBeforeReady).Count -gt 0)
+    Assert-Contract $dependencyEligible `
+        "Required dependency is not eligible for $Expectation verification: $dependencyKey"
 }
 
 $classifiedHandlerCount =

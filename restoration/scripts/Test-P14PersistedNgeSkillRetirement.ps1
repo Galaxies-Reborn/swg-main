@@ -33,17 +33,23 @@ $headerPath = Join-Path $source ([string]$contract.sourceFiles.creatureObjectHea
 $xpPath = Join-Path $source ([string]$contract.sourceFiles.xpLibrary)
 $pgcPath = Join-Path $source ([string]$contract.sourceFiles.pgcLibrary)
 $basePlayerPath = Join-Path $source ([string]$contract.sourceFiles.basePlayer)
+$skillPath = Join-Path $source ([string]$contract.sourceFiles.skillLibrary)
+$skillsTablePath = Join-Path $source ([string]$contract.sourceFiles.skillsTable)
 Assert-Contract (Test-Path -LiteralPath $cppPath -PathType Leaf) "p14.persisted-nge-skills.source.cpp"
 Assert-Contract (Test-Path -LiteralPath $headerPath -PathType Leaf) "p14.persisted-nge-skills.source.header"
 Assert-Contract (Test-Path -LiteralPath $xpPath -PathType Leaf) "p14.persisted-nge-progression.source.xp"
 Assert-Contract (Test-Path -LiteralPath $pgcPath -PathType Leaf) "p14.persisted-nge-progression.source.pgc"
 Assert-Contract (Test-Path -LiteralPath $basePlayerPath -PathType Leaf) "p14.persisted-nge-progression.source.base-player"
+Assert-Contract (Test-Path -LiteralPath $skillPath -PathType Leaf) "p14.persisted-nge-skills.source.skill-library"
+Assert-Contract (Test-Path -LiteralPath $skillsTablePath -PathType Leaf) "p14.persisted-nge-skills.source.skills-table"
 
 $cpp = Get-Content -LiteralPath $cppPath -Raw
 $header = Get-Content -LiteralPath $headerPath -Raw
 $xp = Get-Content -LiteralPath $xpPath -Raw
 $pgc = Get-Content -LiteralPath $pgcPath -Raw
 $basePlayer = Get-Content -LiteralPath $basePlayerPath -Raw
+$skillLibrary = Get-Content -LiteralPath $skillPath -Raw
+$skillsTable = Get-Content -LiteralPath $skillsTablePath -Raw
 
 foreach ($entry in @{
     "CreatureObject.cpp" = $cppPath
@@ -51,6 +57,8 @@ foreach ($entry in @{
     "xp.java" = $xpPath
     "pgc_quests.java" = $pgcPath
     "base_player.java" = $basePlayerPath
+    "skill.java" = $skillPath
+    "skills.tab" = $skillsTablePath
 }.GetEnumerator())
 {
     $actual = (Get-FileHash -LiteralPath $entry.Value -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -74,10 +82,32 @@ foreach ($evidence in @($contract.buildEvidence.overlayPatches))
 
 $predicate = Get-FunctionSlice $cpp "bool isRetiredNgeProgressionSkillName(" "// ----------------------------------------------------------------------"
 Assert-Contract ($predicate.Contains('skillName.find("class_") == 0') -and
+    $predicate.Contains('skillName.find("bh_title") == 0') -and
     $predicate.Contains('skillName == "expertise"') -and
     $predicate.Contains('skillName.find("expertise_") == 0') -and
     $predicate.Contains('skillName.find("internal_expertise_") == 0')) `
     "p14.persisted-nge-skills.retired-families"
+
+$javaSkillPredicate = Get-FunctionSlice $skillLibrary `
+    "public static boolean isRetiredNgeProgressionSkillName(" `
+    "public static boolean isRetiredPostNgePvpRewardSkill("
+Assert-Contract ($javaSkillPredicate.Contains('skillName.startsWith("class_")') -and
+    $javaSkillPredicate.Contains('skillName.startsWith("bh_title")') -and
+    $javaSkillPredicate.Contains('skillName.equals("expertise")') -and
+    $javaSkillPredicate.Contains('skillName.startsWith("expertise_")') -and
+    $javaSkillPredicate.Contains('skillName.startsWith("internal_expertise_")')) `
+    "p14.persisted-nge-skills.bounty-title-family"
+
+$bountyTitleRows = @($skillsTable -split "`r?`n" | Where-Object {
+    $_ -match '^bh_title'
+} | ForEach-Object {
+    ($_ -split "`t", 2)[0]
+})
+$expectedBountyTitleRows = @($contract.expected.bountyTitleCompatibilitySkills)
+Assert-Contract ($bountyTitleRows.Count -eq 3 -and
+    @($bountyTitleRows | Where-Object { $_ -notmatch '^bh_title' }).Count -eq 0 -and
+    @(Compare-Object $expectedBountyTitleRows $bountyTitleRows).Count -eq 0) `
+    "p14.persisted-nge-skills.bounty-title-data-compatibility"
 
 $experiencePredicate = Get-FunctionSlice $cpp "bool isRetiredNgeProgressionExperienceType(" "bool isRetiredNgeProgressionCommandName("
 foreach ($experienceType in @($contract.expected.retiredExactExperienceTypes))
@@ -106,8 +136,22 @@ Assert-Contract ($cleanup.Contains("!isAuthoritative() || !isPlayerControlled()"
     $cleanup.Contains("std::vector<SkillObject const *> skillsToRetire") -and
     $cleanup.Contains("isRetiredNgeProgressionSkillName(skill->getSkillName())") -and
     $cleanup.Contains("m_skills.erase(*iter)") -and
+    $cleanup.Contains("PlayerCreatureController::getPlayerObject(this)") -and
+    $cleanup.Contains("isRetiredNgeProgressionSkillName(playerObject->getTitle())") -and
+    $cleanup.Contains("playerObject->setTitle(std::string())") -and
+    $cleanup.IndexOf("m_skills.erase(*iter)", [StringComparison]::Ordinal) -lt
+        $cleanup.IndexOf("playerObject->getTitle()", [StringComparison]::Ordinal) -and
+    $cleanup.IndexOf("playerObject->getTitle()", [StringComparison]::Ordinal) -lt
+        $cleanup.IndexOf("playerObject->setTitle(std::string())", [StringComparison]::Ordinal) -and
+    $cleanup.IndexOf("playerObject->setTitle(std::string())", [StringComparison]::Ordinal) -lt
+        $cleanup.IndexOf("if (!skillsToRetire.empty())", [StringComparison]::Ordinal) -and
     -not $cleanup.Contains("revokeSkill(")) `
     "p14.persisted-nge-skills.idempotent-authoritative-removal"
+
+Assert-Contract ([bool]$contract.expected.retiredSelectedTitleCleared -and
+    $cleanup.Contains("playerObject->getTitle()") -and
+    $cleanup.Contains("playerObject->setTitle(std::string())")) `
+    "p14.persisted-nge-skills.retired-selected-title"
 
 Assert-Contract ($experienceCleanup.Contains("!isAuthoritative() || !isPlayerControlled()") -and
     $experienceCleanup.Contains('char const * const chroniclesExperience = "chronicles";') -and
@@ -125,9 +169,12 @@ Assert-Contract ($databaseLoad.Contains("onClientAboutToLoad();") -and
     "p14.persisted-nge-skills.clean-set-rebuild"
 
 $grant = Get-FunctionSlice $cpp "const bool CreatureObject::grantSkill(" "void CreatureObject::revokeSkill("
+$javaGrant = Get-FunctionSlice $skillLibrary "public static boolean grant(" "public static boolean grantSkillToPlayer("
 $experienceGrant = Get-FunctionSlice $cpp "const int CreatureObject::grantExperiencePoints(" "const bool CreatureObject::grantSkill("
 $expertise = Get-FunctionSlice $cpp "bool CreatureObject::processExpertiseRequest(" "bool CreatureObject::clearAllExpertises()"
 Assert-Contract ($grant.Contains("isRetiredNgeProgressionSkillName") -and $grant.Contains("return false;") -and
+    $javaGrant.Contains("isRetiredNgeProgressionSkillName(skillName)") -and
+    $javaGrant.Contains("return false;") -and
     $expertise.Contains("Rejected retired NGE expertise request") -and $expertise.Contains("return false;")) `
     "p14.persisted-nge-skills.future-grants-contained"
 

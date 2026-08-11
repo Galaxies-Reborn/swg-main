@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-persisted-nge-progression-retirement",
-  "status": "ready",
-  "scope": "Retire persisted NGE class, expertise, and Chronicles XP progression authority when an authoritative player creature loads, and reject future player admission through native, shared-script, Chronicles, or character-transfer entrypoints while retaining expansion quests, conversations, zones, and their independent state.",
+  "status": "implemented-build-pending",
+  "scope": "Retire persisted NGE class, expertise, Bounty Hunter title-skill, and Chronicles XP progression authority when an authoritative player creature loads, reject future player admission through native, shared-script, Chronicles, or character-transfer entrypoints, and clear a stale selected retired title while retaining expansion quests, conversations, zones, and their independent state.",
   "diagnosis": {
     "date": "2026-08-01",
     "liveCharacter": "Icai Darkwave",
@@ -15,12 +15,13 @@
     "persistedRetiredExperienceTypes": [
       "chronicles"
     ],
-    "cause": "The PRE-CU skill and expertise guards prevented new NGE skills, but existing property-list skills and Chronicles XP survived database reload; positive Chronicles XP could also enter through shared grants, delayed messages, or character transfer."
+    "cause": "The PRE-CU skill and expertise guards prevented new NGE skills, but existing property-list skills and Chronicles XP survived database reload; positive Chronicles XP could also enter through shared grants, delayed messages, or character transfer. A later underworld quest callback could additionally grant the post-P14 bh_title family through the raw native skill surface, and a selected title persisted separately from the skill list."
   },
   "retainedContent": [
     "NGE and expansion quests",
     "NGE and expansion conversations",
     "Mustafar, Kashyyyk, Tansarii, and other expansion zones",
+    "Smuggler PvP quests, title and reward checks, and faction.underworld standing",
     "quest and object-variable state independent of the retired skill list"
   ],
   "sourceFiles": {
@@ -28,11 +29,14 @@
     "creatureObjectHeader": "src/engine/server/library/serverGame/src/shared/object/CreatureObject.h",
     "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
     "pgcLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pgc_quests.java",
-    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "skillLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
+    "skillsTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
   },
   "expected": {
     "retiredPrefixes": [
       "class_",
+      "bh_title",
       "expertise_",
       "internal_expertise_"
     ],
@@ -54,6 +58,12 @@
     "sharedXpEntryPointsRejected": true,
     "chroniclesXpAndLevelEntryPointsRejected": true,
     "characterTransferImportRejected": true,
+    "retiredSelectedTitleCleared": true,
+    "bountyTitleCompatibilitySkills": [
+      "bh_titleinformant",
+      "bh_title_inspector",
+      "bh_title_agent"
+    ],
     "retainedPreCuXpTypesAffected": false
   },
   "liveEvidence": {
@@ -125,8 +135,8 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "dsrcSourceCommit": "88c62817fe66432772c3cab08a25ca45d946e3d8",
-    "nativeSourceCommit": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "dsrcSourceCommit": "c7aa3324d2f0450848a8beea8a6e179b24559dfc",
+    "nativeSourceCommit": "c5698b7737d012ac3b75f6d37b170e3d0320781c",
     "overlayPatches": [
       {
         "component": "src",
@@ -137,37 +147,44 @@
     ],
     "materializationFingerprint": "b84d3812f8f89857f11885e673b0e7cda36d01f25c2e43788f2d1ef2043e5e1b",
     "sourceSha256": {
-      "CreatureObject.cpp": "d50cebe0b9e40f289d48af2cdabfa05be6bea9cdd7fb86c05e1e3272d6b7262d",
+      "CreatureObject.cpp": "a584fda631f7c88e1e9fe74e385452625f18f1b3223581c82e23d302a928aef3",
       "CreatureObject.h": "654838fe8cc7225673f68eed4bd744b97757da06d7a7a0bee054e70e458113ea",
       "xp.java": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a",
       "pgc_quests.java": "114ae751e742f71c5887b922aed91485af9ed2be95d75ccf0df4fcf86e44d423",
-      "base_player.java": "770c3d914518631e5bd11ba05a6e343e798adba1c4b0e8416b65fd6d8d094923"
+      "base_player.java": "770c3d914518631e5bd11ba05a6e343e798adba1c4b0e8416b65fd6d8d094923",
+      "skill.java": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
+      "skills.tab": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57"
     },
-    "cppCompile": "passed",
-    "cppCompileEvidence": "compiled and authenticated from pushed native source 2e64bf715fb14463570f39dd71c7db15f3aefa01 during the canonical Docker x86-64 Release build",
-    "javaCompile": "full-pass canonical exact zero-class rebuild; 5717 sources compiled and 5751 classes emitted",
+    "cppCompile": "pending canonical x64 rebuild",
+    "cppCompileEvidence": "direct native source is committed and pushed; canonical Docker x86-64 Release compilation is required",
+    "javaCompile": "focused Java 8-target skill.java compilation passed in an isolated /dev/shm directory removed immediately; canonical zero-class rebuild is pending",
     "focusedClassSha256": {
       "xp.class": "95c4eb02a2c622022e545af4f67196bc88dab8c062a137abfbae4f61a603c3cc",
       "pgc_quests.class": "6d3845a394afd8b8f0fc3302b02b50599034afc26d7df5a66d65fac6dd694420",
-      "base_player.class": "2eff0b7c86e537df8be361a4cceabdd93c0fbe0b16bc506fe984f82bdaf85f8b"
+      "base_player.class": "2eff0b7c86e537df8be361a4cceabdd93c0fbe0b16bc506fe984f82bdaf85f8b",
+      "skill.class": "886ff11f74bbe06244c3cf61dd382dc063ecb0e82fdb8139640431ccdef81055"
     },
     "deployedClassSha256": {
       "xp.class": "96c9b0f4fbc669d91362945b8d1535665d138c495776d14feb4b8abed1c5eae8",
       "pgc_quests.class": "e49beb9c3d4cd88a77891b16ba5e67d8ff9a0ded0abad39f01defe0f66b4e8f4",
       "base_player.class": "878cb4a7f87e8999f13ba32e01e32b1a6d5b4283d7dbf114a1aba4d182ee34a7"
     },
-    "fullServerBuild": "passed in the 1003.3-second canonical exact zero-class Java and Docker x86-64 deployment from pushed parent 9d41404ffe88becaa15d67e3f3769463714a41dc, direct dsrc 88c62817fe66432772c3cab08a25ca45d946e3d8, and native src 2e64bf715fb14463570f39dd71c7db15f3aefa01",
-    "serverGameArchiveSha256": "7b4f690d3b508dada04b2e05c8136087b722f81d19ccce5eec1f46236a70e4d4",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "buildIdSha1": "3bc114af0d3c0d0555b166752473e1389c567b8a",
-    "serverBinarySha256": "9f022e9273f5cf53595b0d976d40f38dea80077b4c4279fb42be2b58617ba6d7",
+    "fullServerBuild": "pending canonical exact zero-class Java and Docker x86-64 deployment",
+    "serverGameArchiveSha256": null,
+    "architecture": "pending canonical x64 verification",
+    "buildIdSha1": null,
+    "serverBinarySha256": null,
     "container": "swg-precu",
     "containerStartedAt": "2026-08-10T22:00:04.304386158Z",
     "containerHealthy": true,
     "clusterReady": true,
-    "sourceAndBuildVolumeMatch": true,
-    "liveProcessMatchesBinary": true,
-    "result": "passed"
+    "sourceAndBuildVolumeMatch": false,
+    "liveProcessMatchesBinary": false,
+    "result": "source-passed-build-pending"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical clean x64 Java/native/server build",
+    "deployed skill.class and CreatureObject admission/cleanup authentication",
+    "healthy restart, source/work parity, and live mapped-binary proof"
+  ]
 }

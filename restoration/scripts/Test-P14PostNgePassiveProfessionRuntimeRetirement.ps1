@@ -318,7 +318,31 @@ Assert-Contract ($retirementIndex -ge 0 -and $badgeIndex -gt $retirementIndex -a
 Assert-Contract ($grant.Contains("playClientEffectObj") -and $grant.Contains("showFlyText") -and -not $grant.Contains("getLevel(self)")) "p14.passive-profession.skill-feedback.precu"
 
 $factions = [string]$sourceTexts["library/factions.java"]
-Assert-Contract ($factions.Contains("smuggler.checkSmugglerTitleGrants(target, value)") -and $factions.Contains("smuggler.checkRewardQuestGrants(target, value)") -and -not $factions.Contains('messageTo(target, "applySmugglingBonuses"')) "p14.passive-profession.underworld-content-preserved"
+$factionStandingRead = Get-SourceSlice $factions `
+    "public static float getFactionStanding" `
+    "public static float getFactionMax"
+$factionStandingWrite = Get-SourceSlice $factions `
+    "public static void setFactionStanding" `
+    "public static void setFaction(obj_id target"
+$underworldGuardIndex = $factionStandingWrite.IndexOf(
+    'factionName.equals("underworld")', [System.StringComparison]::Ordinal)
+$smugglerTitleIndex = $factionStandingWrite.IndexOf(
+    "smuggler.checkSmugglerTitleGrants(target, value)", [System.StringComparison]::Ordinal)
+$smugglerRewardIndex = $factionStandingWrite.IndexOf(
+    "smuggler.checkRewardQuestGrants(target, value)", [System.StringComparison]::Ordinal)
+$underworldPersistenceIndex = $factionStandingWrite.IndexOf(
+    'setObjVar(target, FACTION + "." + factionName, value)', [System.StringComparison]::Ordinal)
+Assert-Contract ([bool]$contract.expected.underworldFactionStandingPersistencePreserved -and
+    [bool]$contract.expected.smugglerTitlesAndRewardQuestsPreserved -and
+    $factions.Contains('public static final String FACTION = "faction";') -and
+    $factionStandingRead.Contains('hasObjVar(target, FACTION + "." + factionName)') -and
+    $factionStandingRead.Contains('getFloatObjVar(target, FACTION + "." + factionName)') -and
+    $underworldGuardIndex -ge 0 -and
+    $smugglerTitleIndex -gt $underworldGuardIndex -and
+    $smugglerRewardIndex -gt $smugglerTitleIndex -and
+    $underworldPersistenceIndex -gt $smugglerRewardIndex -and
+    -not $factionStandingWrite.Contains('messageTo(target, "applySmugglingBonuses"')) `
+    "p14.passive-profession.underworld-content-preserved"
 
 $buffTable = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
 $effectMapping = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/effect_mapping.tab"

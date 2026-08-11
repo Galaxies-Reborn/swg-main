@@ -1,18 +1,24 @@
 {
   "schemaVersion": 1,
   "feature": "native-nge-skill-and-command-admission-retirement",
-  "status": "ready",
-  "scope": "Fail closed the native server expertise packet, player skill-grant surfaces, blank-ability commands owned only by retired NGE class/expertise rows, direct and data-driven NGE command grants, and retained buff command-grant mappings so they cannot bypass the Publish 14.1 progression boundary.",
+  "status": "implemented-build-pending",
+  "scope": "Fail closed the native server expertise packet, player skill-grant surfaces including the retained post-Publish-14 Bounty Hunter title family, blank-ability commands owned only by retired NGE class/expertise rows, direct and data-driven NGE command grants, and retained buff command-grant mappings so they cannot bypass the Publish 14.1 progression boundary.",
   "eraEvidence": {
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
-    "core3Boundary": "The pinned Publish 14.1 Core3 tree has no expertise request protocol, expertise point pool, singular class skill progression, Beast Master DNA collection, Chronicles Ventriloquism, NGE bounty check, NGE Force-sensitive taunt, entertainer expertise buff packages, veteran migration primary-stat buff command, seven later cybernetic combat commands, or any of the eight retained buff-granted NGE species/class/set-bonus commands.",
-    "retainedCompatibilityBoundary": "Expertise cleanup helpers, retained buff/effect rows, and later-content NPC/data compatibility remain available. Player admission fails closed at packet dispatch, authoritative skill grant, exact blank-ability later-era commands, direct and data-driven command grants, buff admission/refresh, effect handlers, and persisted command state, while PRE-CU groupdance and imagedesign remain admitted."
+    "core3Boundary": "The pinned Publish 14.1 Core3 tree has no expertise request protocol, expertise point pool, singular class skill progression, bh_title skill family, Beast Master DNA collection, Chronicles Ventriloquism, NGE bounty check, NGE Force-sensitive taunt, entertainer expertise buff packages, veteran migration primary-stat buff command, seven later cybernetic combat commands, or any of the eight retained buff-granted NGE species/class/set-bonus commands.",
+    "retainedCompatibilityBoundary": "Expertise cleanup helpers, the three retained bh_title compatibility rows, retained buff/effect rows, and later-content NPC/data compatibility remain available. Player admission fails closed at packet dispatch, authoritative skill grant, exact blank-ability later-era commands, direct and data-driven command grants, buff admission/refresh, effect handlers, persisted skill/title cleanup, and persisted command state, while PRE-CU groupdance and imagedesign remain admitted."
   },
   "diagnosis": {
     "retiredSkillCommands": 535,
     "retainedSkillCommands": 1000,
     "retiredOnlyCommands": 464,
     "retiredOnlyBlankAbilityCommands": 11,
+    "retainedBountyHunterTitleCompatibilityRowCount": 3,
+    "retainedBountyHunterTitleCompatibilityRows": [
+      "bh_titleinformant",
+      "bh_title_inspector",
+      "bh_title_agent"
+    ],
     "retiredPlayerCommands": [
       "bm_collect_dna",
       "bountycheck",
@@ -63,6 +69,9 @@
     "combatLevelDerivedExpertisePoints": 0,
     "playerClassSkillAdmission": false,
     "playerExpertiseSkillAdmission": false,
+    "playerBountyHunterTitleSkillAdmission": false,
+    "persistedRetiredSelectedSkillTitlesRemoved": true,
+    "retainedBountyHunterTitleCompatibilityRowsPreserved": true,
     "blankAbilityNgeCommandAdmission": false,
     "directGrantNgeMigrationCommandAdmission": false,
     "dataDrivenNgeCyberneticCommandAdmission": false,
@@ -79,8 +88,8 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "88c62817fe66432772c3cab08a25ca45d946e3d8",
-    "nativeSourceCommit": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "directSourceGitlink": "c7aa3324d2f0450848a8beea8a6e179b24559dfc",
+    "nativeSourceCommit": "c5698b7737d012ac3b75f6d37b170e3d0320781c",
     "hostMaterializationWorkflow": "retired; host artifact and staging trees absent",
     "dockerWorkVolume": "swg-precu-work-x64",
     "overlayPatch": "restoration/patches/src/341-p14-native-nge-skill-admission-retirement.patch",
@@ -88,15 +97,16 @@
     "overlayPatchSha256": "2d758ea2ac8f10f75bbf6f2b5a6da3fc24ba52f46a6413ff0a5af1c99ffcf04c",
     "sourceSha256": {
       "Client.cpp": "195a43aeb640c8241a0633d2eb41e095e7a86d19d5e5d55f7922938490371b31",
-      "CreatureObject.cpp": "d50cebe0b9e40f289d48af2cdabfa05be6bea9cdd7fb86c05e1e3272d6b7262d",
+      "CreatureObject.cpp": "a584fda631f7c88e1e9fe74e385452625f18f1b3223581c82e23d302a928aef3",
+      "skills.tab": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "buff.java": "c05ffc14396a3991e45feae1ce32fbb0d89f921a4e9a014a43646cb88e8fd418",
       "buff_handler.java": "471d1cfa3dad3414af75981f67687ec53b564835787f0f2e195802560ccbaa3f",
       "buff.tab": "235f0b4b1bc5012f7c3e3fe58de62d44c1ff54e069ae3a1090f26473e61e5de9",
       "effect_mapping.tab": "d345254584bf78c358b149b5cc8aa159203f1b25ef9ff894682de688369a9a4a"
     },
-    "cppCompile": "passed",
-    "cppCompileEvidence": "compiled from pushed native source 3f530f88a1b904d349cc08bced37e84d57df1e4d during the canonical clean Docker x86-64 Release build",
-    "fullServerBuild": "passed in the 1138.3-second canonical clean Docker x86-64 deployment from pushed parent 40302ecc59ba5fce98261d4b66ca4edf1dfe2bc6, direct dsrc 6193173a6e96d395ec3aa43413ab67cde64d8a3a, and native source 3f530f88a1b904d349cc08bced37e84d57df1e4d, including clean Java/C++ build, artifact authentication, guarded restart, readiness, mapped-binary verification, and clean post-start audit",
+    "cppCompile": "pending",
+    "cppCompileEvidence": "The bh_title native admission and selected-title cleanup extension is implemented in direct source; a current canonical x86-64 compile is pending.",
+    "fullServerBuild": "pending current canonical x86-64 build and deployment evidence for the bh_title extension; prior binary and archive hashes are retained as historical evidence and are not claimed for the current source.",
     "architecture": "x86-64",
     "serverBinarySha256": "50554a224ef9895f645f9e5a8f8193fea621a22867a185275008e7eb0d18805a",
     "serverBinaryBuildId": "566c0ccc35637239d9de4bba3a1f11117a62ddaa",
@@ -111,14 +121,14 @@
       "buff.class": 91746,
       "buff_handler.class": 139364
     },
-    "sourceWorkParity": "passed byte-for-byte between the read-only direct-source mount and Docker work volume for CreatureObject.cpp plus all directly authenticated Java and data sources",
-    "nativeCommandAdmissionSymbol": "present exactly once in libserverGame.a together with CreatureObject::clearRetiredNgeProgressionCommands()",
-    "nativeCommandAdmissionLogMarker": "present in the linked SwgGameServer, including the persisted-command cleanup marker; all seven cybernetic command strings remain retained for compatibility",
-    "bytecodeAudit": "passed; deployed native command admission and persisted-command cleanup remain authenticated, and refreshed buff and buff-handler classes authenticate collocated player Luck-hit admission, persisted-state and modifier cleanup, and all four effect-handler guards",
-    "result": "passed"
+    "sourceWorkParity": "focused Source verifier passed against the pinned direct source; canonical Docker work-volume parity remains build-pending",
+    "nativeCommandAdmissionSymbol": "pending current build; prior symbol evidence is superseded for readiness by the bh_title source extension",
+    "nativeCommandAdmissionLogMarker": "pending current build; prior linked-binary marker evidence is retained only through the unchanged historical hashes",
+    "bytecodeAudit": "pending current build and deploy probe for bh_title native admission, exact three-row compatibility retention, and selected-title cleanup",
+    "result": "implemented-build-pending"
   },
   "runtimeEvidence": {
-    "result": "passed",
+    "result": "historical-passed-current-source-build-pending",
     "container": "swg-precu",
     "containerStartedAt": "2026-08-09T04:07:19.54859972Z",
     "serverProcessId": 373,
@@ -144,9 +154,11 @@
     "fatalSevereExceptionCount": 0
   },
   "auditBoundary": {
-    "closedInThisMilestone": "native player admission for later-era class/expertise commands plus generic buff admission, refresh, persisted state, and effect-handler grants for all eight retained NGE commandGrant mappings and their ten buff rows",
-    "preserved": "Publish 14.1 groupdance and imagedesign command admission, ordinary skill-box/quest/item command ownership, non-player buff command grants, retained buff/effect rows, cybernetic items and installation, expansion data, quests, conversations, zones, and NPC compatibility",
-    "notClaimedComplete": "runtime gameplay validation and unrelated client work remain outside this server audit; no bounded server audit group remains"
+    "closedInThisMilestone": "source-level native player admission for the retained bh_title family, later-era class/expertise commands, and generic buff admission, refresh, persisted state, and effect-handler grants for all eight retained NGE commandGrant mappings and their ten buff rows",
+    "preserved": "The exact three bh_title compatibility rows, Publish 14.1 groupdance and imagedesign command admission, ordinary skill-box/quest/item command ownership, non-player buff command grants, retained buff/effect rows, cybernetic items and installation, expansion data, quests, conversations, zones, and NPC compatibility",
+    "notClaimedComplete": "A current canonical x86-64 build, deploy probe, restart, and runtime validation remain pending; prior binary/runtime hashes are historical and unrelated client work remains outside this server audit."
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Run the canonical x86-64 build and exact deploy probe against the current pinned native/dsrc revisions, then refresh build and runtime evidence without reusing the historical hashes."
+  ]
 }

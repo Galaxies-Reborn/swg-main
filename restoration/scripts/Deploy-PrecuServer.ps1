@@ -8151,6 +8151,8 @@ grep -Fq 'reason=script-complete' "$work_player_controller"
 grep -Fq 'Ignored retired NGE ExpertiseRequestMessage' "$work_client"
 ! grep -Fq 'ExpertiseRequestMessage const m' "$work_client"
 grep -Fq 'isRetiredNgeProgressionSkillName' "$work_creature"
+grep -Fq 'skillName.find("bh_title") == 0' "$work_creature"
+awk -F '\t' '$1 ~ /^bh_title/ { found++; names[$1]++; if ($1 != "bh_titleinformant" && $1 != "bh_title_inspector" && $1 != "bh_title_agent") exit 2; if ($5 != 1 || $22 != "" || $23 != "") exit 3 } END { if (found != 3 || names["bh_titleinformant"] != 1 || names["bh_title_inspector"] != 1 || names["bh_title_agent"] != 1) exit 4 }' "$work_skills"
 grep -Fq 'isRetiredNgeProgressionCommandName' "$work_creature"
 grep -Fq 'ignored as a retired NGE progression command' "$work_creature"
 grep -Fq 'commandName == "bountycheck"' "$work_creature"
@@ -8159,6 +8161,11 @@ grep -Fq 'commandName == "bountycheck"' "$work_creature"
 grep -Fq 'Rejected retired NGE expertise request' "$work_creature"
 grep -Fq 'clearRetiredNgeProgressionSkills' "$work_creature"
 grep -Fq 'm_skills.erase(*iter)' "$work_creature"
+retired_skill_cleanup_source="$(sed -n '/void CreatureObject::clearRetiredNgeProgressionSkills()/,/void CreatureObject::clearRetiredNgeProgressionExperience()/p' "$work_creature")"
+printf '%s' "$retired_skill_cleanup_source" | grep -Fq 'PlayerCreatureController::getPlayerObject(this)'
+printf '%s' "$retired_skill_cleanup_source" | grep -Fq 'isRetiredNgeProgressionSkillName(playerObject->getTitle())'
+printf '%s' "$retired_skill_cleanup_source" | grep -Fq 'playerObject->setTitle(std::string());'
+! printf '%s' "$retired_skill_cleanup_source" | grep -Fq 'revokeSkill('
 grep -Fq 'clearRetiredNgeProgressionSkills' "$work_creature_header"
 grep -Fq 'Ignored retired NGE createGroupPickup command' "$work_commands"
 grep -Fq 'Ignored retired NGE useGroupPickup command' "$work_commands"
