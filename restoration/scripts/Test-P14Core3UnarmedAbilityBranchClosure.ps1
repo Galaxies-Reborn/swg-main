@@ -232,9 +232,9 @@ if ($Expectation -ceq "Ready") {
         [bool]$runtime.liveProcessMappedBuiltBinary -and
         [int]$runtime.processCounts.PlanetServer -eq 15 -and
         [int]$runtime.processCounts.SwgGameServer -eq 15 -and
-        [int]$runtime.serverProcessId -eq 383 -and
-        [long]$runtime.liveBinaryInode -eq 12141610 -and
-        [long]$runtime.liveBinarySize -eq 22561064 -and
+        [int]$runtime.serverProcessId -eq 373 -and
+        [long]$runtime.liveBinaryInode -eq 12141822 -and
+        [long]$runtime.liveBinarySize -eq 22587656 -and
         [bool]$runtime.primaryClient.remainedOpenAndResponsive -and
         [int]$runtime.primaryClient.processId -eq 52252 -and
         [int]$runtime.primaryClient.stationId -eq 91001 -and
