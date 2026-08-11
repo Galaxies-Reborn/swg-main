@@ -3392,7 +3392,7 @@ $healEffectActionWriter = $healEffectAdd.IndexOf(
     "healing.healDamage(self, ACTION, (int)value);",
     [StringComparison]::Ordinal)
 $healEffectHealthWriter = $healEffectAdd.IndexOf(
-    "healing.healDamage(caster, self, HEALTH, (int)value);",
+    "healing.healDamage(caster, self, HEALTH, (int)value, false);",
     [StringComparison]::Ordinal)
 Assert-Contract ($healEffectGuard -ge 0 -and
     $healEffectInspirationPredicate -gt $healEffectGuard -and
