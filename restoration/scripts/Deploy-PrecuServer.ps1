@@ -9074,8 +9074,9 @@ compile_force_table_and_compare \
     "$work_bounty_jedi_actions" "$force_jedi_actions_iff" \
     sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab \
     sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff
+# The three matching TAB fields compile to two exact string records per command.
 for force_defense_command in forceArmor1 forceArmor2 forceShield1 forceShield2; do
-    test "$(strings -a "$force_command_iff" | grep -Fxc "$force_defense_command" || true)" -eq 1
+    test "$(strings -a "$force_command_iff" | grep -Fxc "$force_defense_command" || true)" -eq 2
 done
 for force_compiled_iff in \
     "$force_command_iff" "$force_buff_iff" "$force_jedi_actions_iff"
