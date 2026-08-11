@@ -16,7 +16,16 @@ $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json"
 $contractPath = Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14PrecuSpeciesInnateAuthority)
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
+$nineAttributeContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14NineAttributeRuntime)) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
+$nativeRegenerationSourcePath = Join-Path $source `
+    ([string]$nineAttributeContract.sourceFiles.creatureCpp)
+if (-not (Test-Path -LiteralPath $nativeRegenerationSourcePath -PathType Leaf))
+{
+    throw "Required native regeneration source is missing: $nativeRegenerationSourcePath"
+}
+$srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq 'src' })
 $paths = [ordered]@{}
 foreach ($property in $contract.sourceFiles.PSObject.Properties)
 {
@@ -152,6 +161,19 @@ Assert-Contract ($regenBuff.Count -eq 1 -and
     [string]$regenBuff[0].EFFECT1_PARAM -ceq 'constitution' -and
     [string]$regenBuff[0].EFFECT1_VALUE -ceq '175') `
     "p14.species-innate.regeneration-effect"
+Assert-Contract ([string]$contract.regenerationDependency.contract -ceq
+        'contracts/p14-nine-attribute-runtime.json' -and
+    [string]$contract.regenerationDependency.governingAttribute -ceq 'Constitution' -and
+    [int]$contract.regenerationDependency.innateRegenerationBonus -eq 175 -and
+    (@($nineAttributeContract.regenerationGovernors | ForEach-Object { [string]$_ }) -ccontains
+        'Constitution') -and
+    $srcPin.Count -eq 1 -and
+    [string]$srcPin[0].commit -ceq [string]$nineAttributeContract.buildEvidence.nativeSourceCommit -and
+    (Get-FileHash -LiteralPath $nativeRegenerationSourcePath -Algorithm SHA256).Hash.ToLowerInvariant() -ceq
+        [string]$nineAttributeContract.buildEvidence.regenerationSourceSha256.creatureCpp -and
+    [string]$nineAttributeContract.regenerationAuthority.retiredCombatHealthOverride.policy -match
+        'never.*restore a Health regeneration override') `
+    "p14.species-innate.regeneration-feeds-native-constitution-authority"
 Assert-Contract ($vitalizeBuff.Count -eq 1 -and
     [string]$vitalizeBuff[0].DURATION -ceq '600' -and
     [string]$vitalizeBuff[0].EFFECT1_PARAM -ceq 'health' -and
@@ -306,7 +328,16 @@ if ($Expectation -eq 'Ready')
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq 'dsrc' })
     Assert-Contract ([string]$contract.status -ceq 'ready' -and
         [string]$contract.buildEvidence.result -ceq 'passed' -and
-        [string]$contract.runtimeEvidence.result -ceq 'passed') `
+        [string]$contract.runtimeEvidence.result -ceq 'passed' -and
+        @($contract.requiredBeforeReady).Count -eq 0 -and
+        @('implemented-build-verified-live-pending', 'ready') -contains
+            [string]$nineAttributeContract.status -and
+        [string]$nineAttributeContract.buildEvidence.result -ceq 'passed' -and
+        [string]$nineAttributeContract.runtimeEvidence.result -ceq 'passed' -and
+        [string]$nineAttributeContract.buildEvidence.regenerationSourceWorkParity.result -ceq
+            'passed' -and
+        [string]$nineAttributeContract.buildEvidence.regenerationCompiledJavaArtifacts.result -ceq
+            'passed') `
         "p14.species-innate.ready-evidence"
     Assert-Contract ($dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
@@ -323,6 +354,10 @@ if ($Expectation -eq 'Ready')
 }
 else
 {
+    $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq 'dsrc' })
+    Assert-Contract ($dsrcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
+        "p14.species-innate.current-direct-source-pin"
     Assert-Contract (@('implemented-build-pending', 'implemented-build-verified-live-pending', 'ready') -contains
         [string]$contract.status) "p14.species-innate.source-status"
 }

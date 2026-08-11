@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "feature": "p14-nine-attribute-runtime",
-  "status": "implemented-build-verified-live-pending",
-  "scope": "Restore the Publish 14 nine-attribute persistence and replication layout and make authored PRE-CU armor Health, Action, and Mind encumbrance authoritative for player equipment without applying cosmetic appearance-inventory contents or changing retained later armor content.",
+  "status": "implemented-build-pending",
+  "scope": "Restore the Publish 14 nine-attribute persistence and replication layout, primary-pool regeneration authority, and authored PRE-CU armor Health, Action, and Mind encumbrance for player equipment without applying cosmetic appearance-inventory contents or changing retained later armor content.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "commit": "6856f315a80b5250635b2272695caec1d64204ed",
@@ -73,6 +73,23 @@
     "strengthQuicknessFocusDefault": 300
   },
   "regenerationFormula": "max(1.0, max(0, governingAttribute) * 13 / 2100)",
+  "regenerationAuthority": {
+    "pools": ["Health", "Action", "Mind"],
+    "postureExclusions": ["Incapacitated", "Dead"],
+    "combatEligibility": "Player-controlled creatures regenerate in or out of combat; non-player creatures regenerate only while out of combat.",
+    "postureMultipliers": {
+      "default": 1.0,
+      "crouched": 1.25,
+      "sitting": 1.75
+    },
+    "fractionalAccumulation": "The existing per-pool float accumulator receives rate times elapsed time times the posture multiplier; only whole points are applied at the existing regeneration threshold and the fractional remainder is preserved.",
+    "explicitOverrides": "The existing nonnegative per-pool m_regenerationOverride remains authoritative through getRegenRate; a negative value selects the Publish 14 governing-attribute formula.",
+    "retiredCombatHealthOverride": {
+      "scriptVar": "fltNonCombatHealthRegen",
+      "policy": "Combat entry and exit remove stale instances only. They never read, write, zero, or restore a Health regeneration override.",
+      "incapacitationTimerReadiness": "clearCombatDebuffs returns current game time greater than incap.timeStamp independently of whether the stale regeneration scriptvar exists."
+    }
+  },
   "ctsAllocation": {
     "version": 1,
     "versionKey": "precuCtsStatAllocationVersion",
@@ -159,8 +176,13 @@
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "dsrcSourceCommit": "93878e4b3350f1e9391cd2bde25b3727243b6608",
-    "nativeSourceCommit": "b2a14e04c2c15f3b3f38a6375d84268ee600176e",
+    "dsrcSourceCommit": "a1bbeb92123e54fab5074f2d7384d2318c340abb",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "regenerationSourceSha256": {
+      "combatLibrary": "6b400c54e376bb6eae59c997caec2d5ea946369ed50e7ddb4f7a50a1ef898a24",
+      "creatureCpp": "488ba73664d20262d027b1191b37497071adf632eff5abe0f49c5274ee0a8be8"
+    },
+    "regenerationDirectSourceAggregateSha256": "88d29f9eb3b8339f2df91846cdae675a97b19a586fff807cc0e54863449ca6b2",
     "armorSourceSha256": {
       "craftingLibrary": "cba3f9eaa647f7070786eba53b8b34f3252d62717d11979f79825b639e9f335d",
       "craftingBase": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6",
@@ -168,15 +190,21 @@
       "craftingArmorNovice": "5ebdd44f8dae3208e3e4d6898059cf3891a57b38d111751ca695faabfabc9f15",
       "craftingArmorClothing": "afd1dcacf47e1123daae375b3fee69b00a9ec4633362b3ff61ede123d48b7fa5",
       "creatureHeader": "0ce57e5a1eccbe5dae444fe2c896e3b19c47726d6b227dbc5ff046815ae97747",
-      "creatureCpp": "d7323bd782c1a10c3a7d41fe9b870df739f6d61e4d813fc445fef64933d1f667",
+      "creatureCpp": "488ba73664d20262d027b1191b37497071adf632eff5abe0f49c5274ee0a8be8",
       "tangibleCpp": "49a49e0957546aa6fac6b344ad09abfcccdb0dc3851ddc0d71a381eb1dd5e31a",
       "serverArmorTemplateHeader": "22100e56d62fd81443993cc8fcc45a608bf3d35c7ac59b3ae97192e4454df026",
       "serverArmorTemplateCpp": "e8387ca8d567b67420563e41653ecc2783488b04a540bf431358d6097842460f",
       "serverTangibleTemplateHeader": "ed2a791ea5f27015cd04d4978284d5062e241b6e33d7ee03f68eef6f9147e0f2",
       "serverTangibleTemplateCpp": "78e6400242e616d495ac4d98952c3e3108dd51507c26264141ac7bfd58f4c7fd"
     },
-    "armorDirectSourceAggregateSha256": "bafaaef5ab7c94ef330f549fbb3abdd3fabe68d3d8291a9fcf816ffea03f7d91",
-    "sourceVerification": "passed: exact source hashes, Core3 pins, 112 to 110 plus 2 producer boundary, crafted/static/later authority, player-only direct-container admission, nonpersistent full rescan, and six-secondary mapping",
+    "armorDirectSourceAggregateSha256": "ad42c518c1f0ff52f97c4a70760385c607352b360919ccb310564b633a0fff9a",
+    "sourceVerification": "passed: exact source hashes, Core3 pins, three-pool regeneration eligibility and posture authority, stale combat Health-override retirement, 112 to 110 plus 2 armor producer boundary, crafted/static/later authority, player-only direct-container admission, nonpersistent full rescan, and six-secondary mapping",
+    "evidenceState": "The retained artifact identities below authenticate the immediately preceding armor deployment. A clean x64 rebuild and redeployment from the regeneration source commits is pending.",
+    "regenerationSourceWorkParity": {
+      "result": "pending",
+      "directCheckedFiles": 2,
+      "matchedFiles": 0
+    },
     "sourceWorkParity": {
       "result": "passed",
       "directCheckedFiles": 8,
@@ -213,6 +241,16 @@
           "path": "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/crafting/clothing/crafting_armor_clothing.class",
           "sha256": "6ab5fb57b89a225cf8e2375d9f90064a959db8da4c145d3f91a8ea608e06f174",
           "bytes": 4163
+        }
+      }
+    },
+    "regenerationCompiledJavaArtifacts": {
+      "result": "pending",
+      "artifacts": {
+        "combat.class": {
+          "path": "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/combat.class",
+          "sha256": "pending",
+          "bytes": 0
         }
       }
     },
@@ -261,10 +299,11 @@
       "inode": 12141854
     },
     "fullX64Build": "passed",
-    "result": "passed"
+    "result": "pending"
   },
   "runtimeEvidence": {
-    "result": "passed",
+    "result": "pending",
+    "evidenceState": "The retained container and process identities below are historical evidence for the immediately preceding armor deployment and do not claim the regeneration source commits are live.",
     "container": "swg-precu",
     "containerHealth": "healthy",
     "containerStartedAt": "2026-08-11T12:54:35.817975127Z",
@@ -280,9 +319,10 @@
   "knownLimitations": {
     "statMigrationImageDesignerCommit": "The client mediator and server-owned allocation session are restored by the p14-stat-migration contract; the normal-world Image Designer commit boundary remains a separate slice.",
     "persistedItemBonuses": "The dedicated fresh shard is the supported deployment. Numeric six-layout attribute bonuses from an imported NGE database are not automatically remapped.",
-    "stanceRegeneration": "Core3 stance-specific regeneration modifiers remain later combat-balance work."
+    "regenerationLiveValidation": "The native source and future clean-build gates authenticate posture, combat, and incapacitation eligibility. A controlled client-live cadence test remains advisable alongside the outstanding armor test."
   },
   "requiredBeforeReady": [
+    "Complete a clean x64 build, authenticate combat.class plus CreatureObject.cpp.o/libserverGame.a/SwgGameServer, restart the server, and verify all live game processes map the rebuilt binary.",
     "Live-test crafted, static-template, and retained later-schema armor: paired current/max reductions, additive stacking, equality/insufficient rejection without mutation, exact unequip reversal, inventory and A-tab exclusion, and one-time relog recomputation without double application."
   ]
 }

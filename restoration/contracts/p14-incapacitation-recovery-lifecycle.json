@@ -1,12 +1,15 @@
 {
   "schemaVersion": 1,
   "feature": "incapacitation-recovery-lifecycle",
-  "status": "ready",
-  "requiredBeforeReady": [],
+  "status": "implemented-build-pending",
+  "requiredBeforeReady": [
+    "Complete a clean Java/x64 build and deployment that authenticates the stale combat Health-regeneration override retirement without changing the existing incap.timeStamp recovery readiness path."
+  ],
   "sourceFiles": {
     "playerLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/pclib.java",
     "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
-    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_incapacitation_recovery_fixture.java"
+    "fixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_incapacitation_recovery_fixture.java",
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java"
   },
   "semanticReference": {
     "repository": "swgemu/Core3",
@@ -39,6 +42,9 @@
     "legacyNgeBuffRetired": "incapWeaken",
     "legacyNgeCounterRetired": "combat.intIncapacitationCount",
     "staleRecoveryGuard": "message recoveryTime must equal the current incap.timeStamp scriptvar",
+    "legacyCombatHealthRegenScriptVar": "fltNonCombatHealthRegen",
+    "legacyCombatHealthRegenPolicy": "doCombatDebuffs and clearCombatDebuffs remove stale instances only and never write or restore a Health regeneration override",
+    "timerReadiness": "clearCombatDebuffs returns current game time greater than the current incap.timeStamp without conditioning readiness on presence of the retired regeneration scriptvar",
     "primaryPools": [
       "Health",
       "Action",
@@ -83,7 +89,21 @@
     "cleanupPolicy": "Restore posture, locomotion, all nine current attributes, all three primary regeneration rates, and the exact pre-existing pre-CU counter; cancel stale recovery and close any death state. Repeated cleanup is idempotent."
   },
   "buildEvidence": {
-    "result": "passed",
+    "result": "pending",
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "a1bbeb92123e54fab5074f2d7384d2318c340abb",
+    "sourceSha256": {
+      "combatLibrary": "6b400c54e376bb6eae59c997caec2d5ea946369ed50e7ddb4f7a50a1ef898a24"
+    },
+    "sourceWorkParity": {
+      "result": "pending",
+      "checkedFiles": 1,
+      "matchedFiles": 0
+    },
+    "currentCompiledSha256": {
+      "combat.class": "pending"
+    },
+    "evidenceState": "The retained clean-Java identities below are historical incapacitation-lifecycle evidence. A clean deployment from the direct source commit above is pending.",
     "sourceCommit": "b9e9986d6",
     "isolatedBuildVolume": "swg-precu-incapacitation-clean-build-146",
     "targets": [
@@ -98,6 +118,7 @@
   },
   "liveEvidence": {
     "result": "passed",
+    "evidenceState": "Historical controlled lifecycle evidence remains valid for timer boundaries and recovery callbacks; it does not claim the newly retired combat Health-regeneration override is deployed.",
     "verifiedAt": "2026-07-18T16:35:44-04:00",
     "clientProtocolVersion": 29,
     "lifecycle": "5ba71f9676a7477587cbe1580e49e299",

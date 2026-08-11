@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Generic opt-in three-pool combat-cost and target-pool damage runtime. Individual combat commands remain separately gated.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
@@ -51,6 +51,11 @@
     "incapacitateWhenAnyPrimaryPoolIsEmpty": true,
     "recapacitateWhenAllPrimaryPoolsArePositive": true
   },
+  "regenerationAuthority": {
+    "contract": "contracts/p14-nine-attribute-runtime.json",
+    "boundary": "This combat-HAM contract owns atomic costs, pool damage, incapacitation, and recapacitation. The nine-attribute runtime owns primary-pool regeneration governors, posture multipliers, player/non-player combat eligibility, and direct incapacitated/dead suppression.",
+    "stanceRegenerationDeferred": false
+  },
   "initialWeaponFixture": {
     "template": "object/weapon/ranged/rifle/rifle_cdef.iff",
     "healthCost": 10,
@@ -67,7 +72,20 @@
   "knownLimitations": {
     "commandActivation": "Production overrides are limited to the authenticated Marksman tier-I headShot1, bodyShot1, and legShot1 matrix. Every additional command remains separately gated.",
     "weaponCoverage": "Pinned CDEF rifle, pistol, and carbine 10/15/10 fixtures cover the authenticated Marksman tier-I matrix. Generated PRE-CU creature-profile weapons use the pinned Core3 creature-default 0/0/0 vector; additional player weapon templates require provenance before activation.",
-    "woundsAndBattleFatigue": "Wounds, battle fatigue, stance-specific regeneration balance, healing balance, deathblow, and cloning remain later M3 work.",
+    "woundsAndBattleFatigue": "Wounds, battle fatigue, healing balance, deathblow, and cloning remain later M3 work. PRE-CU posture-specific regeneration is implemented by the nine-attribute runtime and is not deferred here.",
     "statMigrationUi": "The nine-value stat-migration message is wire-ready, but the Publish 14 client mediator remains a separate restoration slice."
-  }
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "a1bbeb92123e54fab5074f2d7384d2318c340abb",
+    "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
+    "sourceSha256": {
+      "combatLibrary": "6b400c54e376bb6eae59c997caec2d5ea946369ed50e7ddb4f7a50a1ef898a24",
+      "creatureCpp": "488ba73664d20262d027b1191b37497071adf632eff5abe0f49c5274ee0a8be8"
+    },
+    "result": "pending"
+  },
+  "requiredBeforeReady": [
+    "Complete a clean Java/x64 build and redeploy the current combat.java and CreatureObject.cpp while authenticating combat.class, CreatureObject.cpp.o, libserverGame.a, the x64 server binary, and live process mappings."
+  ]
 }

@@ -340,6 +340,18 @@ Write-Host "Verifying Publish 14 nine-attribute and armor encumbrance authority 
 & (Join-Path $PSScriptRoot "Test-P14NineAttributeRuntime.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying PRE-CU incapacitation timer independence from the retired combat Health-regeneration override before build..."
+& (Join-Path $PSScriptRoot "Test-P14IncapacitationRecovery.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+Write-Host "Verifying PRE-CU combat-HAM ownership of the restored nine-attribute regeneration authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14CombatHam.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+Write-Host "Re-verifying the PRE-CU species-innate Constitution path against the restored regeneration authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuSpeciesInnateAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -1330,6 +1342,29 @@ grep -Fq 'hasSkill(owner, "crafting_merchant_sales_02")' "$work_player_vendor"
 grep -Fq 'cost += 6 * loops;' "$work_player_vendor"
 grep -Fq 'cost += 6;' "$work_player_vendor"
 cmp -s "$source_combat_library" "$work_combat_library"
+combat_entry_regen_source="$(sed -n '/public static void doCombatDebuffs(obj_id self)/,/public static boolean clearCombatDebuffs(obj_id self)/p' "$work_combat_library")"
+combat_exit_regen_source="$(sed -n '/public static boolean clearCombatDebuffs(obj_id self)/,/public static boolean armPrecuFeignDeath(obj_id player)/p' "$work_combat_library")"
+test "$(grep -Fc '"fltNonCombatHealthRegen"' "$work_combat_library")" -eq 2
+test "$(printf '%s' "$combat_entry_regen_source" | grep -Fc 'utils.removeScriptVar(self, "fltNonCombatHealthRegen");')" -eq 1
+test "$(printf '%s' "$combat_exit_regen_source" | grep -Fc 'utils.removeScriptVar(self, "fltNonCombatHealthRegen");')" -eq 1
+! printf '%s' "$combat_entry_regen_source$combat_exit_regen_source" | grep -Eq 'getHealthRegenRate|setRegenRate|getFloatScriptVar|setScriptVar|hasScriptVar[^;]*fltNonCombatHealthRegen'
+printf '%s' "$combat_exit_regen_source" | grep -Fq 'return getGameTime() > utils.getIntScriptVar(self, "incap.timeStamp");'
+native_regen_source="$(sed -n '/void CreatureObject::decayAttributes(float time)/,/void CreatureObject::decayMentalStates(float time)/p' "$work_creature")"
+printf '%s' "$native_regen_source" | grep -Fq 'Postures::Enumerator const posture = getPosture();'
+printf '%s' "$native_regen_source" | grep -Fq 'posture != Postures::Incapacitated'
+printf '%s' "$native_regen_source" | grep -Fq 'posture != Postures::Dead'
+printf '%s' "$native_regen_source" | grep -Fq '(isPlayerControlled() || !isInCombat())'
+printf '%s' "$native_regen_source" | grep -Fq 'float regenerationModifier = 1.0f;'
+printf '%s' "$native_regen_source" | grep -Fq 'posture == Postures::Crouched'
+printf '%s' "$native_regen_source" | grep -Fq 'regenerationModifier = 1.25f;'
+printf '%s' "$native_regen_source" | grep -Fq 'posture == Postures::Sitting'
+printf '%s' "$native_regen_source" | grep -Fq 'regenerationModifier = 1.75f;'
+test "$(printf '%s' "$native_regen_source" | grep -Fc 'regenerationModifier =')" -eq 3
+printf '%s' "$native_regen_source" | grep -Fq 'm_regeneration[poolAttrib] += regenerationRate[i] * time * regenerationModifier;'
+native_regen_rate_source="$(sed -n '/float CreatureObject::getRegenRate(Attributes::Enumerator poolAttrib) const/,/void CreatureObject::setLastWaterDamageTime/p' "$work_creature")"
+printf '%s' "$native_regen_rate_source" | grep -Fq 'm_regenerationOverride[poolIndex] >= 0.0f'
+printf '%s' "$native_regen_rate_source" | grep -Fq 'return m_regenerationOverride[poolIndex];'
+printf '%s' "$native_regen_rate_source" | grep -Fq 'm_regenerationOverride[poolIndex] = value;'
 cmp -s "$source_heavyweapons_library" "$work_heavyweapons_library"
 ! grep -Fq 'isCommandoBonus' "$work_combat_library"
 ! grep -Fq 'getDevastationChance' "$work_combat_library"
@@ -6992,6 +7027,17 @@ test "$(printf '%s' "$armor_compiled_server_paths" | LC_ALL=C sort | sha256sum |
 test "$(printf '%s' "$armor_compiled_shared_paths" | LC_ALL=C sort | sha256sum | awk '{print $1}')" = '1d089acd1f51513b911d58ef9e568f29adfa50cb4ca5022d60e28968dbfe5ee2'
 test "$(printf '%s%s' "$armor_compiled_server_paths" "$armor_compiled_shared_paths" | LC_ALL=C sort | sha256sum | awk '{print $1}')" = '2a67a50bcdc4316223025a4cb08ca36a3c0f4769c0c4a1677f209b29ccf9955d'
 
+test -f "$class_root/script/library/combat.class"
+combat_regen_bytecode="$(javap -classpath "$class_root" -c -p script.library.combat)"
+combat_entry_regen_bytecode="$(printf '%s\n' "$combat_regen_bytecode" | sed -n '/public static void doCombatDebuffs(/,/public static boolean clearCombatDebuffs(/p')"
+combat_exit_regen_bytecode="$(printf '%s\n' "$combat_regen_bytecode" | sed -n '/public static boolean clearCombatDebuffs(/,/public static boolean armPrecuFeignDeath(/p')"
+test "$(printf '%s' "$combat_entry_regen_bytecode" | grep -Fc 'script/library/utils.removeScriptVar')" -eq 1
+test "$(printf '%s' "$combat_exit_regen_bytecode" | grep -Fc 'script/library/utils.removeScriptVar')" -eq 1
+printf '%s' "$combat_exit_regen_bytecode" | grep -Fq 'incap.timeStamp'
+printf '%s' "$combat_exit_regen_bytecode" | grep -Fq 'getGameTime'
+printf '%s' "$combat_exit_regen_bytecode" | grep -Fq 'script/library/utils.getIntScriptVar'
+! printf '%s' "$combat_entry_regen_bytecode$combat_exit_regen_bytecode" | grep -Eq 'setRegenRate|getHealthRegenRate|getFloatScriptVar|setScriptVar|hasScriptVar'
+
 for armor_class in \
     "$class_root/script/library/craftinglib.class" \
     "$class_root/script/systems/crafting/clothing/crafting_base_clothing.class" \
@@ -7019,6 +7065,9 @@ test -f "$creature_object"
 test -f "$tangible_object"
 for armor_symbol_artifact in "$creature_object" "$server_game_archive"
 do
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::decayAttributes(float)'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getRegenRate(int) const'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::setRegenRate(int, float)'
     nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::recomputePreCuArmorEncumbrances()'
     nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getPreCuArmorEncumbrance(int) const'
     nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getAdjustedAttribute(int, int) const'

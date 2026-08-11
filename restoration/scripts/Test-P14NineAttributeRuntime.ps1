@@ -226,9 +226,94 @@ $migrationReady = `
 Assert-Contract -Condition $migrationReady -Name "p14.nine-attribute.persistence.deterministic-six-to-nine-migration"
 
 $regen = Get-BracedBlock -Text $text.creatureCpp -Signature "float CreatureObject::getRegenRate("
+$setRegen = Get-BracedBlock -Text $text.creatureCpp -Signature "void CreatureObject::setRegenRate("
+$decayAttributes = Get-BracedBlock -Text $text.creatureCpp -Signature "void CreatureObject::decayAttributes(float time)"
+$computeTotalAttributes = Get-BracedBlock -Text $text.creatureCpp -Signature "void CreatureObject::computeTotalAttributes ()"
+$regenSliceStart = $decayAttributes.IndexOf("// regenerate attributes", [StringComparison]::Ordinal)
+$regenSliceEnd = if ($regenSliceStart -ge 0) {
+    $decayAttributes.IndexOf("//-- update player incapacitation timer", $regenSliceStart,
+        [StringComparison]::Ordinal)
+} else { -1 }
+$regenSlice = if ($regenSliceStart -ge 0 -and $regenSliceEnd -gt $regenSliceStart) {
+    $decayAttributes.Substring($regenSliceStart, $regenSliceEnd - $regenSliceStart)
+} else { "" }
 Assert-Contract `
-    -Condition ($regen.Contains("Attributes::Constitution") -and $regen.Contains("Attributes::Stamina") -and $regen.Contains("Attributes::Willpower") -and $regen.Contains("* 13.0f / 2100.0f") -and $regen.Contains("std::max(1.0f, rate)")) `
+    -Condition ($regen.Contains("Attributes::Constitution") -and $regen.Contains("Attributes::Stamina") -and $regen.Contains("Attributes::Willpower") -and $regen.Contains("* 13.0f / 2100.0f") -and $regen.Contains("std::max(1.0f, rate)") -and
+        $regen.IndexOf("m_regenerationOverride[poolIndex] >= 0.0f", [StringComparison]::Ordinal) -ge 0 -and
+        $regen.IndexOf("m_regenerationOverride[poolIndex] >= 0.0f", [StringComparison]::Ordinal) -lt
+            $regen.IndexOf("* 13.0f / 2100.0f", [StringComparison]::Ordinal) -and
+        $setRegen.Contains("m_regenerationOverride[poolIndex] = value")) `
     -Name "p14.nine-attribute.regeneration.core3-governors-and-formula"
+
+$regenAuthority = $contract.regenerationAuthority
+Assert-Contract `
+    -Condition ((@($regenAuthority.pools | ForEach-Object { [string]$_ }) -join ",") -ceq "Health,Action,Mind" -and
+        (@($regenAuthority.postureExclusions | ForEach-Object { [string]$_ }) -join ",") -ceq "Incapacitated,Dead" -and
+        [double]$regenAuthority.postureMultipliers.default -eq 1.0 -and
+        [double]$regenAuthority.postureMultipliers.crouched -eq 1.25 -and
+        [double]$regenAuthority.postureMultipliers.sitting -eq 1.75 -and
+        [string]$regenAuthority.retiredCombatHealthOverride.scriptVar -ceq "fltNonCombatHealthRegen") `
+    -Name "p14.nine-attribute.regeneration.contract-exact-pools-postures-and-multipliers"
+Assert-Contract `
+    -Condition ($regenSlice.Contains("Postures::Enumerator const posture = getPosture();") -and
+        $regenSlice.Contains("posture != Postures::Incapacitated") -and
+        $regenSlice.Contains("posture != Postures::Dead") -and
+        $regenSlice.Contains("(isPlayerControlled() || !isInCombat())") -and
+        -not $regenSlice.Contains("isIncapacitated()") -and -not $regenSlice.Contains("isDead()")) `
+    -Name "p14.nine-attribute.regeneration.direct-posture-and-player-or-out-of-combat-gate"
+Assert-Contract `
+    -Condition ($regenSlice.Contains("float regenerationModifier = 1.0f;") -and
+        $regenSlice.Contains("posture == Postures::Crouched") -and
+        $regenSlice.Contains("regenerationModifier = 1.25f;") -and
+        $regenSlice.Contains("posture == Postures::Sitting") -and
+        $regenSlice.Contains("regenerationModifier = 1.75f;") -and
+        ([regex]::Matches($regenSlice, "regenerationModifier\s*=").Count -eq 3)) `
+    -Name "p14.nine-attribute.regeneration.exact-default-crouch-and-sit-multipliers"
+Assert-Contract `
+    -Condition ($regenSlice.Contains("for (i = 0; i < 3; ++i)") -and
+        $regenSlice.Contains("regenerationRate[i] = getRegenRate(poolAttrib);") -and
+        ([regex]::Matches($regenSlice, [regex]::Escape("m_regeneration[poolAttrib] += regenerationRate[i] * time * regenerationModifier;")).Count -eq 1) -and
+        $computeTotalAttributes.Contains("floor(m_regeneration[") -and
+        $computeTotalAttributes.Contains("m_regeneration[poolAttrib] -= delta;") -and
+        $computeTotalAttributes.Contains("ConfigServerGame::getRegenThreshold()")) `
+    -Name "p14.nine-attribute.regeneration.three-pool-fractional-accumulator-and-threshold-preserved"
+
+$doCombatDebuffs = Get-BracedBlock -Text $text.combatLibrary -Signature "public static void doCombatDebuffs(obj_id self)"
+$clearCombatDebuffs = Get-BracedBlock -Text $text.combatLibrary -Signature "public static boolean clearCombatDebuffs(obj_id self)"
+$staleRegenVar = '"fltNonCombatHealthRegen"'
+$staleRemove = 'utils.removeScriptVar(self, "fltNonCombatHealthRegen");'
+$combatHealthOverrideWriter = [regex]::IsMatch($text.combatLibrary,
+    'setRegenRate\s*\([^;\r\n]*\bHEALTH\b|setScriptVar\s*\([^;\r\n]*"fltNonCombatHealthRegen"')
+Assert-Contract `
+    -Condition (-not $combatHealthOverrideWriter -and
+        [regex]::Matches($text.combatLibrary, [regex]::Escape($staleRegenVar)).Count -eq 2 -and
+        [regex]::Matches($text.combatLibrary, [regex]::Escape($staleRemove)).Count -eq 2 -and
+        -not $text.combatLibrary.Contains("getHealthRegenRate(self)") -and
+        -not $text.combatLibrary.Contains('getFloatScriptVar(self, "fltNonCombatHealthRegen")')) `
+    -Name "p14.nine-attribute.regeneration.no-combat-health-override-writer-and-two-remove-only-sites"
+Assert-Contract `
+    -Condition ([regex]::Matches($doCombatDebuffs, [regex]::Escape($staleRemove)).Count -eq 1 -and
+        -not $doCombatDebuffs.Contains("setRegenRate") -and -not $doCombatDebuffs.Contains("setScriptVar") -and
+        [regex]::Matches($clearCombatDebuffs, [regex]::Escape($staleRemove)).Count -eq 1 -and
+        -not $clearCombatDebuffs.Contains("hasScriptVar") -and -not $clearCombatDebuffs.Contains("setRegenRate") -and
+        $clearCombatDebuffs.Contains('return getGameTime() > utils.getIntScriptVar(self, "incap.timeStamp");') -and
+        $clearCombatDebuffs.IndexOf($staleRemove, [StringComparison]::Ordinal) -lt
+            $clearCombatDebuffs.IndexOf("return getGameTime()", [StringComparison]::Ordinal)) `
+    -Name "p14.nine-attribute.regeneration.stale-cleanup-and-incap-timer-independent-of-stale-var"
+
+$regenerationHashRows = [System.Collections.Generic.List[string]]::new()
+foreach ($property in $contract.buildEvidence.regenerationSourceSha256.PSObject.Properties)
+{
+    $name = [string]$property.Name
+    $actualHash = (Get-FileHash -LiteralPath $paths[$name] -Algorithm SHA256).Hash.ToLowerInvariant()
+    Assert-Contract ($actualHash -ceq [string]$property.Value) `
+        "p14.nine-attribute.regeneration.source.$name.authenticated"
+    $regenerationHashRows.Add("$([string]$contract.sourceFiles.$name)=$actualHash")
+}
+Assert-Contract `
+    -Condition ((Get-CanonicalInventoryHash -Lines @($regenerationHashRows | Sort-Object)) -ceq
+        [string]$contract.buildEvidence.regenerationDirectSourceAggregateSha256) `
+    -Name "p14.nine-attribute.regeneration.direct-source-aggregate-authenticated"
 
 $damageCallbackReady = $text.creatureCpp.Contains("int damageArray[] = {healthDamage, 0, 0, actionDamage, 0, 0, mindDamage, 0, 0};")
 Assert-Contract -Condition $damageCallbackReady -Name "p14.nine-attribute.damage-callback.nine-value-vector"
@@ -598,8 +683,10 @@ if ($Expectation -in @("Build", "Ready"))
     Assert-Contract `
         -Condition ($status -in @("implemented-build-verified-live-pending", "ready") -and
             [string]$contract.buildEvidence.sourceWorkParity.result -ceq "passed" -and
+            [string]$contract.buildEvidence.regenerationSourceWorkParity.result -ceq "passed" -and
             [string]$contract.buildEvidence.fullJavaCompile.result -ceq "passed" -and
             [string]$contract.buildEvidence.compiledJavaArtifacts.result -ceq "passed" -and
+            [string]$contract.buildEvidence.regenerationCompiledJavaArtifacts.result -ceq "passed" -and
             [string]$contract.buildEvidence.compiledDataArtifacts.result -ceq "passed" -and
             [string]$contract.buildEvidence.nativeObjectArtifacts.result -ceq "passed" -and
             [string]$contract.buildEvidence.nativeArchiveArtifacts.result -ceq "passed" -and
@@ -613,6 +700,8 @@ if ($Expectation -in @("Build", "Ready"))
             [int]$contract.buildEvidence.sourceWorkParity.directCheckedFiles -eq 8 -and
             [int]$contract.buildEvidence.sourceWorkParity.schematicCheckedFiles -eq 224 -and
             [int]$contract.buildEvidence.sourceWorkParity.matchedFiles -eq 232 -and
+            [int]$contract.buildEvidence.regenerationSourceWorkParity.directCheckedFiles -eq 2 -and
+            [int]$contract.buildEvidence.regenerationSourceWorkParity.matchedFiles -eq 2 -and
             [bool]$contract.buildEvidence.fullJavaCompile.zeroClassDependencyClean -and
             [int]$contract.buildEvidence.fullJavaCompile.expectedSourceCount -eq 5717 -and
             [int]$contract.buildEvidence.fullJavaCompile.expectedClassCount -eq 5751 -and
@@ -629,6 +718,16 @@ if ($Expectation -in @("Build", "Ready"))
     }
     Assert-Contract ($directParityMatches -eq 8) "p14.nine-attribute.armor.live-direct-source-work-parity"
 
+    $regenerationParityMatches = 0
+    foreach ($name in @("combatLibrary", "creatureCpp"))
+    {
+        $relativePath = ([string]$contract.sourceFiles.$name).Replace('\', '/')
+        & docker exec $container cmp -s "/swg-precu-source/$relativePath" "/swg-precu/$relativePath"
+        if ($LASTEXITCODE -eq 0) { ++$regenerationParityMatches }
+    }
+    Assert-Contract ($regenerationParityMatches -eq 2) `
+        "p14.nine-attribute.regeneration.live-direct-source-work-parity"
+
     $schematicParityMatches = 0
     foreach ($schematic in $schematicCandidates)
     {
@@ -641,15 +740,19 @@ if ($Expectation -in @("Build", "Ready"))
     Assert-Contract ($schematicParityMatches -eq 224) "p14.nine-attribute.armor.live-schematic-source-work-parity"
 
     $javaArtifacts = $contract.buildEvidence.compiledJavaArtifacts.artifacts
+    $regenerationJavaArtifacts = $contract.buildEvidence.regenerationCompiledJavaArtifacts.artifacts
     $nativeObjects = $contract.buildEvidence.nativeObjectArtifacts.artifacts
     $nativeArchives = $contract.buildEvidence.nativeArchiveArtifacts.artifacts
     Assert-Contract `
         -Condition (@($javaArtifacts.PSObject.Properties).Count -eq 4 -and
+            @($regenerationJavaArtifacts.PSObject.Properties).Count -eq 1 -and
             @($nativeObjects.PSObject.Properties).Count -eq 2 -and
             @($nativeArchives.PSObject.Properties).Count -eq 1) `
         -Name "p14.nine-attribute.armor.focused-artifact-cardinality"
     Assert-DockerArtifactSet -Container $container -ArtifactSet $javaArtifacts -RequireInode $false `
         -NamePrefix "p14.nine-attribute.armor.class"
+    Assert-DockerArtifactSet -Container $container -ArtifactSet $regenerationJavaArtifacts -RequireInode $false `
+        -NamePrefix "p14.nine-attribute.regeneration.class"
     Assert-DockerArtifactSet -Container $container -ArtifactSet $nativeObjects -RequireInode $true `
         -NamePrefix "p14.nine-attribute.armor.native-object"
     Assert-DockerArtifactSet -Container $container -ArtifactSet $nativeArchives -RequireInode $true `
@@ -670,6 +773,15 @@ for armor_class in \
 do
     test -f "$armor_class"
 done
+test -f "$class_root/script/library/combat.class"
+combat_regen_bytecode="$(javap -classpath "$class_root" -c -p script.library.combat)"
+combat_entry_regen_bytecode="$(printf '%s\n' "$combat_regen_bytecode" | sed -n '/public static void doCombatDebuffs(/,/public static boolean clearCombatDebuffs(/p')"
+combat_exit_regen_bytecode="$(printf '%s\n' "$combat_regen_bytecode" | sed -n '/public static boolean clearCombatDebuffs(/,/public static boolean armPrecuFeignDeath(/p')"
+printf '%s' "$combat_entry_regen_bytecode" | grep -Fq 'script/library/utils.removeScriptVar'
+printf '%s' "$combat_exit_regen_bytecode" | grep -Fq 'script/library/utils.removeScriptVar'
+printf '%s' "$combat_exit_regen_bytecode" | grep -Fq 'incap.timeStamp'
+printf '%s' "$combat_exit_regen_bytecode" | grep -Fq 'getGameTime'
+! printf '%s' "$combat_entry_regen_bytecode$combat_exit_regen_bytecode" | grep -Eq 'setRegenRate|getHealthRegenRate|getFloatScriptVar|setScriptVar'
 craftinglib_constants="$(javap -classpath "$class_root" -constants -p script.library.craftinglib)"
 printf '%s' "$craftinglib_constants" | grep -Fq 'COMPONENT_ATTRIBUTE_OBJVAR_NAME'
 printf '%s' "$craftinglib_constants" | grep -Fq 'crafting_components'
@@ -686,6 +798,9 @@ javap -classpath "$class_root" -p script.systems.crafting.clothing.crafting_armo
 javap -classpath "$class_root" -p script.systems.crafting.clothing.crafting_armor_clothing | grep -Fq 'extends script.systems.crafting.clothing.crafting_base_clothing'
 for armor_symbol_artifact in "$creature_object" "$server_game_archive"
 do
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::decayAttributes(float)'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getRegenRate(int) const'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::setRegenRate(int, float)'
     nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::recomputePreCuArmorEncumbrances()'
     nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getPreCuArmorEncumbrance(int) const'
     nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getAdjustedAttribute(int, int) const'

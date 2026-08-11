@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Build", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -10,6 +13,7 @@ $ErrorActionPreference = "Stop"
 $restorationRoot = Split-Path -Parent $PSScriptRoot
 $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw | ConvertFrom-Json
 $contract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14CombatHam)) -Raw | ConvertFrom-Json
+$nineAttributeContract = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14NineAttributeRuntime)) -Raw | ConvertFrom-Json
 $gate = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.headShot1Gate)) -Raw | ConvertFrom-Json
 $marksmanMatrix = Get-Content -LiteralPath (Join-Path $restorationRoot ([string]$manifest.contracts.p14MarksmanTier1Matrix)) -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
@@ -95,8 +99,8 @@ function Get-BracedBlock
 Write-Host "Publish 14.1 three-pool combat runtime checks:"
 
 Assert-Contract `
-    -Condition ([string]$contract.status -ceq "ready") `
-    -Name "p14.combat-ham.contract.generic-runtime-ready"
+    -Condition (@("implemented-build-pending", "ready") -contains [string]$contract.status) `
+    -Name "p14.combat-ham.contract.generic-runtime-status"
 Assert-Contract `
     -Condition (([string]$gate.status -ceq "ready") -and [string]$gate.acceptanceContract -ceq "contracts/p14-headshot1.json") `
     -Name "p14.combat-ham.first-command-gate-ready"
@@ -123,6 +127,17 @@ $incapBlock = Get-BracedBlock -Text $text.creatureCpp -Signature "void CreatureO
 Assert-Contract `
     -Condition ($incapBlock.Contains("health <= 0 || action <= 0 || mind <= 0") -and $incapBlock.Contains("health > 0 && action > 0 && mind > 0") -and $incapBlock.Contains("setIncapacitated(true, attackerId)") -and $incapBlock.Contains("setIncapacitated(false, attackerId)")) `
     -Name "p14.combat-ham.incapacitation.any-empty-and-all-positive-recovery"
+
+Assert-Contract `
+    -Condition ([string]$contract.regenerationAuthority.contract -ceq "contracts/p14-nine-attribute-runtime.json" -and
+        -not [bool]$contract.regenerationAuthority.stanceRegenerationDeferred -and
+        [string]$contract.knownLimitations.woundsAndBattleFatigue -notmatch "stance-specific regeneration balance" -and
+        [string]$contract.knownLimitations.woundsAndBattleFatigue -match "not deferred" -and
+        (@($nineAttributeContract.regenerationGovernors | ForEach-Object { [string]$_ }) -join ",") -ceq
+            "Constitution,Stamina,Willpower" -and
+        [double]$nineAttributeContract.regenerationAuthority.postureMultipliers.crouched -eq 1.25 -and
+        [double]$nineAttributeContract.regenerationAuthority.postureMultipliers.sitting -eq 1.75) `
+    -Name "p14.combat-ham.regeneration-owned-by-nine-attribute-and-no-longer-deferred"
 
 $costAdjustment = Get-BracedBlock -Text $text.combatLibrary -Signature "private static int calculatePrecuHamCost("
 $costVector = Get-BracedBlock -Text $text.combatLibrary -Signature "private static int[] getPrecuHamActionCost("
@@ -194,6 +209,38 @@ Assert-Contract `
 Assert-Contract `
     -Condition ((Get-Content -LiteralPath $paths.combatOverrides -Raw).Contains([string]$gate.feature)) `
     -Name "p14.combat-ham.data.ready-command-activated"
+
+$dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
+Assert-Contract `
+    -Condition ($dsrcPin.Count -eq 1 -and $srcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.dsrcSourceCommit -and
+        [string]$srcPin[0].commit -ceq [string]$contract.buildEvidence.nativeSourceCommit -and
+        (Get-FileHash -LiteralPath $paths.combatLibrary -Algorithm SHA256).Hash.ToLowerInvariant() -ceq
+            [string]$contract.buildEvidence.sourceSha256.combatLibrary -and
+        (Get-FileHash -LiteralPath $paths.creatureCpp -Algorithm SHA256).Hash.ToLowerInvariant() -ceq
+            [string]$contract.buildEvidence.sourceSha256.creatureCpp) `
+    -Name "p14.combat-ham.source.direct-pins-and-regeneration-source-hashes"
+
+if ($Expectation -ceq "Source")
+{
+    Assert-Contract `
+        -Condition (([string]$contract.status -ceq "implemented-build-pending" -and
+                [string]$contract.buildEvidence.result -ceq "pending" -and
+                @($contract.requiredBeforeReady).Count -ge 1) -or
+            ([string]$contract.status -ceq "ready" -and
+                [string]$contract.buildEvidence.result -ceq "passed" -and
+                @($contract.requiredBeforeReady).Count -eq 0)) `
+        -Name "p14.combat-ham.status.truthful-source-or-ready-transition"
+}
+else
+{
+    Assert-Contract `
+        -Condition ([string]$contract.status -ceq "ready" -and
+            [string]$contract.buildEvidence.result -ceq "passed" -and
+            @($contract.requiredBeforeReady).Count -eq 0) `
+        -Name "p14.combat-ham.build.current-deployment-evidence"
+}
 
 if ($failures.Count -gt 0)
 {
