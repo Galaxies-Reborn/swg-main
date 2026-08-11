@@ -149,8 +149,16 @@ Write-Host "Verifying the direct-source PRE-CU Teras Kasi ability branch before 
 Write-Host "Verifying pinned Core3 damage and NGE kill-meter player isolation before build..."
 & (Join-Path $PSScriptRoot "Test-P14Core3DamageAuthority.ps1") `
     -SourceRoot $repositoryRoot
+Write-Host "Verifying the direct-source Force Armor/Shield mitigation and ordering contract before build..."
+& (Join-Path $PSScriptRoot "Test-P14ArmorMitigationOrdering.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying the direct-source PRE-CU profession and Officer runtime authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuProfessionAuthorityClosure.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+Write-Host "Verifying the classified Jedi grant inventory and bounded Force-defense command restoration before build..."
+& (Join-Path $PSScriptRoot "Test-P14NonstandardProfessionMatrixClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
 Write-Host "Verifying direct-source post-NGE passive profession runtime retirement before build..."
@@ -357,13 +365,22 @@ if (-not $SkipBuild)
 {
     $javaDependencyClean = @'
 set -eu
+test "$SWG_WORK_DIR" = "/swg-precu"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/script"
 if [ -d "$class_root" ]; then
     find "$class_root" -type f -name '*.class' -delete
     test "$(find "$class_root" -type f -name '*.class' -print -quit)" = ""
 fi
+for force_defense_iff in \
+    "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
+do
+    rm -f -- "$force_defense_iff"
+    test ! -e "$force_defense_iff"
+done
 '@
-    Write-Host "Removing compiled Java classes to enforce a complete dependency rebuild..."
+    Write-Host "Removing compiled Java classes and the three exact Force-defense IFF targets to enforce a complete dependency rebuild..."
     Invoke-DockerScript -ContainerName $Container -Script $javaDependencyClean
     Write-Host "Synchronizing the read-only source mount and building the writable server volume..."
     Invoke-Docker -Arguments @("exec", $Container, "/usr/local/bin/swg-entrypoint", "build")
@@ -8777,6 +8794,83 @@ strings "$server_game_archive" | grep -Fq 'request actor=%s target=%s sequence=%
 strings "$server_game_archive" | grep -Fq 'ignored as a retired NGE progression command'
 strings "$binary" | grep -Fq '_pvpSetPrecuFactionRank'
 
+# The bounded PRE-CU Jedi defense slice must survive direct-source
+# materialization with its exact command rows, persistent buff rows, drain
+# values, callbacks, and action-name classifier intact.
+awk -F '\t' '
+NR == 1 {
+    for (column = 1; column <= NF; column++) field[$column] = column
+    next
+}
+NR > 2 && ($1 == "forceArmor1" || $1 == "forceArmor2" ||
+           $1 == "forceShield1" || $1 == "forceShield2") {
+    found++
+    if (NF != 94 ||
+        $(field["commandCategory"]) != "combat" ||
+        $(field["scriptHook"]) != $1 ||
+        $(field["failScriptHook"]) != "failSpecialAttack" ||
+        $(field["defaultTime"]) != 1.5 ||
+        $(field["executeTime"]) != 1.5 ||
+        $(field["target"]) != "other" ||
+        $(field["targetType"]) != "optional" ||
+        $(field["visible"]) != 2 ||
+        $(field["displayGroup"]) != -1478973933 ||
+        $(field["addToCombatQueue"]) != 1 ||
+        $(field["validWeapon"]) != "ALL" ||
+        $(field["invalidWeapon"]) != "NONE") exit 2
+}
+END { if (found != 4) exit 3 }
+' "$work_command_table"
+awk -F '\t' '
+BEGIN {
+    priority["forceArmor"] = 1; priority["forceArmor_1"] = 2
+    priority["forceShield"] = 1; priority["forceShield_1"] = 2
+    duration["forceArmor"] = 900; duration["forceArmor_1"] = 1800
+    duration["forceShield"] = 900; duration["forceShield_1"] = 1800
+    strength["forceArmor"] = 25; strength["forceArmor_1"] = 45
+    strength["forceShield"] = 25; strength["forceShield_1"] = 45
+}
+NR == 1 { for (column = 1; column <= NF; column++) field[$column] = column; next }
+NR > 2 && ($1 in priority) {
+    found++
+    if ($(field["PRIORITY"]) != priority[$1] ||
+        $(field["DURATION"]) != duration[$1] ||
+        $(field["EFFECT1_VALUE"]) != strength[$1] ||
+        $(field["IS_PERSISTENT"]) != 1) exit 2
+}
+END { if (found != 4) exit 3 }
+' "$work_buff_table"
+awk -F '\t' '
+BEGIN {
+    cost["forceArmor"] = 75; cost["forceArmor_1"] = 150
+    cost["forceShield"] = 75; cost["forceShield_1"] = 150
+    drain["forceArmor"] = 0.5; drain["forceArmor_1"] = 0.3
+    drain["forceShield"] = 0.5; drain["forceShield_1"] = 0.3
+    strength["forceArmor"] = 25; strength["forceArmor_1"] = 45
+    strength["forceShield"] = 25; strength["forceShield_1"] = 45
+}
+NR == 1 { for (column = 1; column <= NF; column++) field[$column] = column; next }
+NR > 2 && ($1 in cost) {
+    found++
+    if ($(field["intJediPowerCost"]) != cost[$1] ||
+        $(field["extraForceCost"]) != drain[$1] ||
+        $(field["buffName"]) != $1 ||
+        $(field["buffAmount1"]) != strength[$1]) exit 2
+}
+END { if (found != 4) exit 3 }
+' "$work_bounty_jedi_actions"
+for force_defense_command in forceArmor1 forceArmor2 forceShield1 forceShield2; do
+    grep -Fq "public int $force_defense_command(" "$work_bounty_combat_actions"
+    grep -Fq "jedi.performPrecuForceDefenseCommand(self, \"$force_defense_command\")" "$work_bounty_combat_actions"
+done
+grep -Fq 'public static boolean performPrecuForceDefenseCommand' "$work_bounty_jedi"
+grep -Fq 'public static boolean isPrecuForceAttackAction' "$work_bounty_jedi"
+grep -Fq 'public static int applyPrecuForceDefenseMitigation' "$work_bounty_jedi"
+grep -Fq 'jedi.isPrecuForceAttackAction(actionData.actionName)' "$work_bounty_combat_base"
+test "$(grep -Fc 'jedi.applyPrecuForceDefenseMitigation(' "$work_bounty_combat_base")" -eq 2
+grep -Fq 'public static int getPrecuFoodMitigationEffectiveness' "$work_combat_library"
+grep -Fq 'public static void consumePrecuFoodMitigationUse' "$work_combat_library"
+
 # Publish 14.1 player bounties are produced by witnessed exact-title Jedi
 # visibility and a canonical skill/rank reward.  The retained later Smuggler
 # path is explicitly tagged and carries a separate reward/provenance channel.
@@ -8917,6 +9011,121 @@ for bounty_class in \
 do
     test -f "$class_root/$bounty_class"
 done
+for force_defense_artifact in \
+    script/library/combat.class \
+    script/library/jedi.class \
+    script/systems/combat/combat_actions.class \
+    script/systems/combat/combat_base.class \
+    datatables/jedi/jedi_actions.iff
+do
+    test -s "$class_root/$force_defense_artifact"
+done
+test -s "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+test -s "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+force_command_iff="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+force_buff_iff="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+force_jedi_actions_iff="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
+force_iff_tmp="$(mktemp -d /dev/shm/precu-force-defense-iff.XXXXXX)"
+cleanup_force_iff_probe() {
+    case "${force_iff_tmp:-}" in
+        /dev/shm/precu-force-defense-iff.*) ;;
+        *) return 97 ;;
+    esac
+    force_iff_tmp_resolved="$(readlink -f -- "$force_iff_tmp")"
+    case "$force_iff_tmp_resolved" in
+        /dev/shm/precu-force-defense-iff.*) ;;
+        *) return 98 ;;
+    esac
+    rm -rf -- "$force_iff_tmp_resolved"
+}
+trap cleanup_force_iff_probe 0 HUP INT TERM
+force_datatable_tool="$SWG_WORK_DIR/build/bin/DataTableTool"
+test -x "$force_datatable_tool"
+compile_force_table_and_compare() {
+    force_source_tab="$1"
+    force_canonical_iff="$2"
+    force_relative_tab="$3"
+    force_relative_iff="$4"
+    force_temp_tab="$force_iff_tmp/dsrc/$force_relative_tab"
+    force_fresh_iff="$force_iff_tmp/data/$force_relative_iff"
+    mkdir -p -- "$(dirname "$force_temp_tab")" "$(dirname "$force_fresh_iff")"
+    cp -- "$force_source_tab" "$force_temp_tab"
+    (
+        cd "$force_iff_tmp"
+        PATH="$PATH:$SWG_WORK_DIR/build/bin" "$force_datatable_tool" \
+            -i "dsrc/$force_relative_tab" \
+            -- -s SharedFile \
+            "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game" \
+            "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game" \
+            "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
+    ) >/dev/null
+    test -s "$force_fresh_iff"
+    cmp -s "$force_fresh_iff" "$force_canonical_iff"
+}
+compile_force_table_and_compare \
+    "$work_command_table" "$force_command_iff" \
+    sku.0/sys.shared/compiled/game/datatables/command/command_table.tab \
+    sku.0/sys.shared/compiled/game/datatables/command/command_table.iff
+compile_force_table_and_compare \
+    "$work_buff_table" "$force_buff_iff" \
+    sku.0/sys.shared/compiled/game/datatables/buff/buff.tab \
+    sku.0/sys.shared/compiled/game/datatables/buff/buff.iff
+compile_force_table_and_compare \
+    "$work_bounty_jedi_actions" "$force_jedi_actions_iff" \
+    sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab \
+    sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff
+for force_defense_command in forceArmor1 forceArmor2 forceShield1 forceShield2; do
+    test "$(strings -a "$force_command_iff" | grep -Fxc "$force_defense_command" || true)" -eq 1
+done
+for force_compiled_iff in \
+    "$force_command_iff" "$force_buff_iff" "$force_jedi_actions_iff"
+do
+    force_iff_hash="$(sha256sum "$force_compiled_iff" | awk '{ print $1 }')"
+    force_iff_bytes="$(stat -Lc '%s' "$force_compiled_iff")"
+    test "${#force_iff_hash}" -eq 64
+    test "$force_iff_bytes" -gt 0
+done
+cleanup_force_iff_probe
+trap - 0 HUP INT TERM
+test ! -e "$force_iff_tmp"
+force_defense_jedi_constants="$(javap -classpath "$class_root" -constants -p script.library.jedi)"
+for force_defense_constant in \
+    'PRECU_FORCE_DEFENSE_1_COST = 75' \
+    'PRECU_FORCE_DEFENSE_2_COST = 150' \
+    'PRECU_FORCE_DEFENSE_1_DURATION = 900.0f' \
+    'PRECU_FORCE_DEFENSE_2_DURATION = 1800.0f' \
+    'PRECU_FORCE_DEFENSE_1_STRENGTH = 25' \
+    'PRECU_FORCE_DEFENSE_2_STRENGTH = 45' \
+    'PRECU_FORCE_DEFENSE_1_FRS_BUFF_MODIFIER = 0.25f' \
+    'PRECU_FORCE_DEFENSE_2_FRS_BUFF_MODIFIER = 0.35f' \
+    'PRECU_FORCE_DEFENSE_FRS_DRAIN_MODIFIER = -0.003f'
+do
+    printf '%s\n' "$force_defense_jedi_constants" | grep -Fq "$force_defense_constant"
+done
+force_defense_jedi_bytecode="$(javap -classpath "$class_root" -c -p script.library.jedi)"
+printf '%s\n' "$force_defense_jedi_bytecode" | grep -Fq 'performPrecuForceDefenseCommand'
+printf '%s\n' "$force_defense_jedi_bytecode" | grep -Fq 'isPrecuForceAttackAction'
+printf '%s\n' "$force_defense_jedi_bytecode" | grep -Fq 'applyPrecuForceDefenseMitigation'
+force_defense_jedi_verbose="$(javap -classpath "$class_root" -v script.library.jedi)"
+for force_action_name in \
+    animalAttack animalCalm animalScare forceChoke forceIntimidate1 \
+    forceIntimidate2 forceKnockdown1 forceKnockdown2 forceKnockdown3 \
+    forceLightningCone1 forceLightningCone2 forceLightningSingle1 \
+    forceLightningSingle2 forceThrow1 forceThrow2 forceWeaken1 \
+    forceWeaken2 jediMindTrick mindBlast1 mindBlast2
+do
+    printf '%s\n' "$force_defense_jedi_verbose" | grep -Fq "$force_action_name"
+done
+force_defense_action_signatures="$(javap -classpath "$class_root" -p script.systems.combat.combat_actions)"
+for force_defense_command in forceArmor1 forceArmor2 forceShield1 forceShield2; do
+    printf '%s\n' "$force_defense_action_signatures" | grep -Fq " int $force_defense_command("
+done
+force_defense_combat_base_verbose="$(javap -classpath "$class_root" -v script.systems.combat.combat_base)"
+printf '%s\n' "$force_defense_combat_base_verbose" | grep -Fq 'isPrecuForceAttackAction'
+printf '%s\n' "$force_defense_combat_base_verbose" | grep -Fq 'applyPrecuForceDefenseMitigation'
+force_defense_combat_signatures="$(javap -classpath "$class_root" -p script.library.combat)"
+printf '%s\n' "$force_defense_combat_signatures" | grep -Fq 'getPrecuFoodMitigationEffectiveness'
+printf '%s\n' "$force_defense_combat_signatures" | grep -Fq 'consumePrecuFoodMitigationUse'
 weapon_base_player_bytecode="$(javap -classpath "$class_root" -c -p script.player.base.base_player)"
 weapon_base_player_initialize_bytecode="$(printf '%s\n' "$weapon_base_player_bytecode" | awk '
 /^  public int OnInitialize\(/ { capture = 1; print; next }

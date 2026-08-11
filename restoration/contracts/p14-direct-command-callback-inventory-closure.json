@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-direct-command-callback-inventory-closure",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Close the residual direct combat-command callback audit by classifying every command-signature handler that intentionally bypasses combatStandardAction, authenticating all player-retirement boundaries, and preserving Publish 14.1/system and retained expansion-content callbacks.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -11,17 +11,17 @@
   },
   "expected": {
     "authoritativeSourceFiles": 8,
-    "commandSignatureHandlers": 1275,
+    "commandSignatureHandlers": 1279,
     "standardCombatHandlers": 1196,
-    "directHandlers": 79,
-    "primaryCommandHandlers": 71,
+    "directHandlers": 83,
+    "primaryCommandHandlers": 75,
     "rowlessInternalHandlers": [
       "combatTarget",
       "failDefaultAttack"
     ],
     "failScriptHandlers": {
       "failProc": 78,
-      "failSpecialAttack": 1359,
+      "failSpecialAttack": 1363,
       "failThrowGrenade": 8,
       "kneelFail": 1,
       "proneFail": 1,
@@ -37,6 +37,10 @@
       "failProc",
       "failSpecialAttack",
       "failThrowGrenade",
+      "forceArmor1",
+      "forceArmor2",
+      "forceShield1",
+      "forceShield2",
       "gallop",
       "gallopStop",
       "kneel",
@@ -137,29 +141,86 @@
     "unclassifiedDirectHandlers": 0,
     "playerRetiredDirectHandlers": 46,
     "retainedDirectHandlers": 16,
-    "precuAndSystemDirectHandlers": 17
+    "precuAndSystemDirectHandlers": 21
   },
   "buildEvidence": {
+    "scope": "Current direct-source classification with historical pre-Force-defense compiled deployment fields retained below.",
     "sourceMode": "direct-branch",
-    "directSourceCommit": "a1bbeb92123e54fab5074f2d7384d2318c340abb",
+    "directSourceCommit": "34db6f06c3b9f3c414c8b1614d64a42281060a03",
     "sourceSha256": {
-      "systems/combat/combat_actions.java": "cb3a2df7abdfe488ae4a6743c5ff9fbb94bfeeae5ae78841bad96d0a1c62a911",
-      "systems/combat/combat_base.java": "8b6ff4b9df7e4ed78c8195bbb90e72c13c65a98d7201a37f9d8bbf4d9f9815f1",
+      "systems/combat/combat_actions.java": "7e524b9fecf13dd5181a02cb7696a635a2c303cfc065a6dcf3cf93372aa24d66",
+      "systems/combat/combat_base.java": "5cdeeacad424839de68aa4a5e1be2e7cbb5fac6d5d6ea049639843ae9fdbc514",
       "library/beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
-      "command/command_table.tab": "8598fc35b6ba06177f6936f1ef58121ca5314ffc5b3bf90a8ffd04a1f9ebc672",
+      "command/command_table.tab": "c2bc2abfdf3c44f6ca7a177566b53e87131eb9f678338ed6e5a63dc6963af1fe",
       "combat/combat_data.tab": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
       "skill/skills.tab": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "terminal/terminal_character_builder.java": "5bdfde35e321e7846ceb59bcf85e236de1ff21b16839d07cebf8f1bae0937945",
       "test/qatool.java": "a7400e5ffbd7d790fde281a40b15dc2d364f6fede1c80e5d24f5737900edf4c4"
     },
-    "classificationAudit": "source-passed exact 1275-handler inventory: 1196 standard handlers, including the server-authenticated unarmed combo wrapper, and a disjoint 79-handler direct inventory containing 46 player-retired, 17 PRE-CU/system, 16 retained content, and zero unclassified callbacks",
-    "deployedSourceAuthentication": "the audited direct source is the same dsrc 67922cb1dc9416e33f370007b997b165f73e6174 authenticated by the healthy canonical x64 deployment started 2026-08-09T22:51:06.325781571Z",
+    "classificationAudit": "source-passed exact 1279-handler inventory: 1196 standard handlers, including the server-authenticated unarmed combo wrapper, and a disjoint 83-handler direct inventory containing 46 player-retired, 21 PRE-CU/system (including the four bounded Force-defense callbacks), 16 retained content, and zero unclassified callbacks",
+    "deployedSourceAuthentication": "Historical only: direct source 67922cb1dc9416e33f370007b997b165f73e6174 was authenticated by the healthy canonical x64 deployment started 2026-08-09T22:51:06.325781571Z; these historical fields do not authenticate current direct source 34db6f06c3b9f3c414c8b1614d64a42281060a03.",
     "compiledCombatActionsSha256": "a50d4207df6b1924f43c01802833133329bfa943e80f7ad4cea99bf43c50f5c2",
     "serverBinarySha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
     "serverBinaryBuildId": "186028aec5352e367a12a74626984a4a5a7aeeb1",
-    "result": "passed"
+    "result": "historical-passed"
+  },
+  "currentBuildEvidence": {
+    "result": "pending",
+    "container": "swg-precu",
+    "directSourceCommit": "34db6f06c3b9f3c414c8b1614d64a42281060a03",
+    "validatedContainerStartedAt": "",
+    "fullJavaCompile": {"result":"pending"},
+    "sourceWorkParity": {
+      "result":"pending",
+      "checkedFiles":3,
+      "matchedFiles":0,
+      "files":[
+        "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+        "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+        "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+      ]
+    },
+    "requiredArtifacts": ["combat_actions.class","command_table.iff"],
+    "requiredArtifactPaths": {
+      "combat_actions.class":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class",
+      "command_table.iff":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+    },
+    "compiledArtifacts": {},
+    "compiledDataBuildOwner": "p14-nonstandard-profession-matrix-closure",
+    "serverBinary": {
+      "path":"/swg-precu/build/bin/SwgGameServer",
+      "sha256":"",
+      "buildIdSha1":"",
+      "bytes":0,
+      "inode":0
+    }
+  },
+  "currentDeploymentEvidence": {
+    "result":"pending",
+    "directSourceCommit":"34db6f06c3b9f3c414c8b1614d64a42281060a03",
+    "container":"swg-precu",
+    "containerId":"",
+    "containerImage":"",
+    "containerImageId":"",
+    "containerStartedAt":"",
+    "containerHealth":"pending",
+    "clusterReadyForPlayers":false,
+    "liveGameProcessCount":0,
+    "liveGameProcessPids":[],
+    "allLiveGameProcessesMatchBinary":false,
+    "liveBinaryPath":"/swg-precu/build/bin/SwgGameServer",
+    "liveBinaryInode":0,
+    "liveBinarySizeBytes":0,
+    "postStartLogAudit":{
+      "lineCount":0,
+      "fatalSevereExceptionErrorDatabaseConversionUndefinedSymbolOracleOrEmptyGenericMessageMatches":0,
+      "playerReadyMarkerCount":0,
+      "result":"pending"
+    },
+    "forceLiveAcceptanceOwner":"p14-armor-mitigation-ordering"
   },
   "runtimeEvidence": {
+    "scope": "Historical deployment evidence predating the four Force-defense direct callbacks.",
     "container": "swg-precu",
     "containerHealth": "healthy",
     "clusterReadyForPlayers": true,
@@ -168,5 +229,8 @@
     "postStartLogAudit": "357 fresh-start lines; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
     "result": "passed"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Run the canonical no-SkipBuild deployment and authenticate combat_actions.class, command_table.iff, and the exact server binary for direct source 34db6f06c3b9f3c414c8b1614d64a42281060a03.",
+    "Authenticate the same-start healthy runtime, every live game process mapping the exact built binary, clean ready logs, and the reversible Force-defense acceptance owned by p14-armor-mitigation-ordering."
+  ]
 }

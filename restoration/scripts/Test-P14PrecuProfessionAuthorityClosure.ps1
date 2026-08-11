@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$SourceRoot,
 
-    [ValidateSet("Source", "Ready")]
+    [ValidateSet("Source", "Build", "Ready")]
     [string]$Expectation = "Source"
 )
 
@@ -14,6 +14,9 @@ $repositoryRoot = Split-Path -Parent $restorationRoot
 $manifest = Get-Content -LiteralPath (Join-Path $restorationRoot "manifest.json") -Raw | ConvertFrom-Json
 $contractPath = Join-Path $restorationRoot ([string]$manifest.contracts.p14PrecuProfessionAuthorityClosure)
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
+$nonstandardContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
+    ([string]$manifest.contracts.p14NonstandardProfessionMatrixClosure)) -Raw |
+    ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 $dsrc = Join-Path $source "dsrc"
 $failures = [System.Collections.Generic.List[string]]::new()
@@ -33,6 +36,36 @@ function Get-TextSha256([string]$Text)
         return ([System.BitConverter]::ToString($sha.ComputeHash($utf8NoBom.GetBytes($Text)))).Replace('-', '').ToLowerInvariant()
     }
     finally { $sha.Dispose() }
+}
+
+function Get-OrdinalNames($Values)
+{
+    $set = [Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::Ordinal)
+    foreach ($value in @($Values))
+    {
+        if (-not [string]::IsNullOrWhiteSpace([string]$value))
+        {
+            [void]$set.Add([string]$value)
+        }
+    }
+    $names = [string[]]@($set)
+    [Array]::Sort($names, [StringComparer]::Ordinal)
+    return @($names)
+}
+
+function Get-NameSetSha256($Values)
+{
+    $names = @(Get-OrdinalNames $Values)
+    return Get-TextSha256 (($names -join "`n") + "`n")
+}
+
+function Test-ExactOrdinalNames($Actual, $Expected)
+{
+    $actualNames = @(Get-OrdinalNames $Actual)
+    $expectedNames = @(Get-OrdinalNames $Expected)
+    return $actualNames.Count -eq $expectedNames.Count -and
+        (($actualNames -join "`n") -ceq ($expectedNames -join "`n"))
 }
 
 function Get-FunctionSlice([string]$Text, [string]$Start, [string]$Next)
@@ -1214,6 +1247,99 @@ Assert-Contract (([regex]::Matches($officerSkillsTable, '(?m)^class_forcesensiti
     -not ($precuJediAndVillageCommands -ccontains "forceThrow")) `
     "p14.profession-closure.force-sensitive-runtime.data-and-precu-command-boundary"
 
+$grantCrossCheck = $contract.jediCommandGrantCrossCheck
+$grantOwner = $nonstandardContract.jediCommandGrantClosure
+$broadJediRows = @($skillRows | Where-Object {
+    [string]$_.NAME -cmatch [string]$grantCrossCheck.selector
+})
+$broadGrantTokens = @(Get-OrdinalNames ($broadJediRows | ForEach-Object {
+    ([string]$_.COMMANDS).Trim('"') -split ','
+}))
+$excludedGrantTokens = @(Get-OrdinalNames $grantOwner.classifiedNonCommandTokens.names)
+$excludedGrantSet = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::Ordinal)
+foreach ($name in $excludedGrantTokens) { [void]$excludedGrantSet.Add($name) }
+$authenticatedGrantTokens = @(Get-OrdinalNames ($broadGrantTokens |
+    Where-Object { -not $excludedGrantSet.Contains([string]$_) }))
+$preexistingGrantTokens = @(Get-OrdinalNames `
+    $grantOwner.preexistingRegisteredActions.names)
+$preexistingGrantSet = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::Ordinal)
+foreach ($name in $preexistingGrantTokens) { [void]$preexistingGrantSet.Add($name) }
+$restoredGrantTokens = @(Get-OrdinalNames $grantCrossCheck.restoredActions.names)
+$restoredGrantSet = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::Ordinal)
+foreach ($name in $restoredGrantTokens) { [void]$restoredGrantSet.Add($name) }
+$actionableGrantGap = @(Get-OrdinalNames ($authenticatedGrantTokens |
+    Where-Object { -not $preexistingGrantSet.Contains([string]$_) }))
+$residualGrantGap = @(Get-OrdinalNames ($actionableGrantGap |
+    Where-Object { -not $restoredGrantSet.Contains([string]$_) }))
+$commandTableRows = @(Import-SwgTab `
+    "sku.0/sys.shared/compiled/game/datatables/command/command_table.tab")
+$registeredCommandSet = [Collections.Generic.HashSet[string]]::new(
+    [StringComparer]::Ordinal)
+foreach ($row in $commandTableRows)
+{
+    [void]$registeredCommandSet.Add([string]$row.commandName)
+}
+$registeredGrantTokens = @(Get-OrdinalNames ($authenticatedGrantTokens |
+    Where-Object { $registeredCommandSet.Contains([string]$_) }))
+$expectedRegisteredGrantTokens = @(Get-OrdinalNames (
+    $preexistingGrantTokens + $restoredGrantTokens))
+
+Assert-Contract (
+    [string]$grantCrossCheck.owner -ceq
+        "p14-nonstandard-profession-matrix-closure") `
+    "p14.profession-closure.jedi-grants.existing-owner-reference"
+Assert-Contract (
+    [int]$grantCrossCheck.skillRows -eq [int]$grantOwner.skillRows -and
+    [string]$grantCrossCheck.allGrantTokens.sha256 -ceq
+        [string]$grantOwner.allGrantTokens.sha256 -and
+    [string]$grantCrossCheck.authenticatedCore3Actions.sha256 -ceq
+        [string]$grantOwner.authenticatedCore3Actions.sha256 -and
+    [string]$grantCrossCheck.classifiedNonCommandTokens.sha256 -ceq
+        [string]$grantOwner.classifiedNonCommandTokens.sha256 -and
+    [string]$grantCrossCheck.actionableGapBefore.sha256 -ceq
+        [string]$grantOwner.actionableGapBefore.sha256 -and
+    [string]$grantCrossCheck.restoredActions.sha256 -ceq
+        [string]$grantOwner.restoredActions.sha256 -and
+    [string]$grantCrossCheck.residualActionableGap.sha256 -ceq
+        [string]$grantOwner.residualActionableGap.sha256) `
+    "p14.profession-closure.jedi-grants.owner-cross-check-pins"
+Assert-Contract (
+    $broadJediRows.Count -eq [int]$grantCrossCheck.skillRows -and
+    $broadGrantTokens.Count -eq [int]$grantCrossCheck.allGrantTokens.count -and
+    (Get-NameSetSha256 $broadGrantTokens) -ceq
+        [string]$grantCrossCheck.allGrantTokens.sha256 -and
+    $authenticatedGrantTokens.Count -eq
+        [int]$grantCrossCheck.authenticatedCore3Actions.count -and
+    (Get-NameSetSha256 $authenticatedGrantTokens) -ceq
+        [string]$grantCrossCheck.authenticatedCore3Actions.sha256 -and
+    $excludedGrantTokens.Count -eq
+        [int]$grantCrossCheck.classifiedNonCommandTokens.count -and
+    (Get-NameSetSha256 $excludedGrantTokens) -ceq
+        [string]$grantCrossCheck.classifiedNonCommandTokens.sha256 -and
+    ($authenticatedGrantTokens.Count + $excludedGrantTokens.Count) -eq
+        $broadGrantTokens.Count -and
+    [int]$grantCrossCheck.unclassifiedGrantTokens -eq 0) `
+    "p14.profession-closure.jedi-grants.303-131-114-17-zero-unclassified"
+Assert-Contract (
+    $actionableGrantGap.Count -eq [int]$grantCrossCheck.actionableGapBefore.count -and
+    (Get-NameSetSha256 $actionableGrantGap) -ceq
+        [string]$grantCrossCheck.actionableGapBefore.sha256 -and
+    $restoredGrantTokens.Count -eq [int]$grantCrossCheck.restoredActions.count -and
+    (Get-NameSetSha256 $restoredGrantTokens) -ceq
+        [string]$grantCrossCheck.restoredActions.sha256 -and
+    $residualGrantGap.Count -eq [int]$grantCrossCheck.residualActionableGap.count -and
+    (Get-NameSetSha256 $residualGrantGap) -ceq
+        [string]$grantCrossCheck.residualActionableGap.sha256 -and
+    (Test-ExactOrdinalNames $registeredGrantTokens $expectedRegisteredGrantTokens) -and
+    $registeredGrantTokens.Count -eq
+        [int]$grantCrossCheck.registeredActionsAfter.count -and
+    (Get-NameSetSha256 $registeredGrantTokens) -ceq
+        [string]$grantCrossCheck.registeredActionsAfter.sha256) `
+    "p14.profession-closure.jedi-grants.112-to-4-to-108-command-resolution"
+
 $buffTablePath = Join-Path $dsrc `
     "sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
 $buffTableLines = @(Get-Content -LiteralPath $buffTablePath)
@@ -1469,8 +1595,181 @@ Assert-Contract ($missionTerminal.Contains("menu_info_types.MISSION_TERMINAL_LIS
 Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -ccontains
     [string]$contract.status) "p14.profession-closure.contract.status"
 
+$currentForceCrossCheck = $contract.currentForceDefenseCrossCheck
+$currentDsrcCommit = (& git -C $dsrc rev-parse HEAD 2>$null | Out-String).Trim()
+Assert-Contract ($currentDsrcCommit -ceq
+    [string]$currentForceCrossCheck.directSourceCommit) `
+    "p14.profession-closure.force-defense-cross-check.source-pin"
+
+if ($Expectation -in @("Build", "Ready"))
+{
+    $currentBuild = $currentForceCrossCheck.build
+    $canonicalArtifactPaths = [ordered]@{
+        "combat_actions.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class"
+        "command_table.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+    }
+    $parityPaths = @(
+        "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+        "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+        "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+    )
+    $artifactProperties = @($currentBuild.compiledArtifacts.PSObject.Properties)
+    $artifactNames = @($artifactProperties | ForEach-Object { [string]$_.Name })
+    $requiredPathProperties = @(
+        $currentBuild.requiredArtifactPaths.PSObject.Properties)
+    $requiredPathNames = @($requiredPathProperties |
+        ForEach-Object { [string]$_.Name })
+    $requiredPaths = @($requiredPathProperties |
+        ForEach-Object { [string]$_.Value })
+    $container = [string]$currentBuild.container
+    $buildReady = (
+        [string]$currentBuild.result -ceq "passed" -and
+        [string]$currentBuild.sourceWorkParity.result -ceq "passed" -and
+        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 3 -and
+        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 3 -and
+        (Test-ExactOrdinalNames $currentBuild.sourceWorkParity.files `
+            $parityPaths) -and
+        @("implemented-build-verified-live-pending", "ready") -ccontains
+            [string]$contract.status -and
+        (Test-ExactOrdinalNames $artifactNames $currentBuild.requiredArtifacts) -and
+        (Test-ExactOrdinalNames $requiredPathNames $currentBuild.requiredArtifacts) -and
+        (Test-ExactOrdinalNames $requiredPathNames $canonicalArtifactPaths.Keys) -and
+        @(Get-OrdinalNames $requiredPaths).Count -eq $requiredPaths.Count -and
+        [string]$currentBuild.compiledDataBuildOwner -ceq
+            "p14-nonstandard-profession-matrix-closure" -and
+        [string]$currentBuild.compiledJavaBuildOwner -ceq
+            "p14-direct-command-callback-inventory-closure" -and
+        [string]$currentBuild.readyOwner -ceq
+            "p14-direct-command-callback-inventory-closure" -and
+        -not [string]::IsNullOrWhiteSpace($container)
+    )
+    foreach ($entry in $canonicalArtifactPaths.GetEnumerator())
+    {
+        $buildReady = $buildReady -and
+            [string]$currentBuild.requiredArtifactPaths.($entry.Key) -ceq
+                [string]$entry.Value
+    }
+    foreach ($property in $artifactProperties)
+    {
+        $expectedArtifact = $property.Value
+        $pathProperty = $expectedArtifact.PSObject.Properties['path']
+        $hashProperty = $expectedArtifact.PSObject.Properties['sha256']
+        $bytesProperty = $expectedArtifact.PSObject.Properties['bytes']
+        if ($null -eq $pathProperty -or $null -eq $hashProperty -or
+            $null -eq $bytesProperty)
+        {
+            $buildReady = $false
+            continue
+        }
+        $artifactPath = if ($canonicalArtifactPaths.Contains(
+            [string]$property.Name))
+        {
+            [string]$canonicalArtifactPaths[[string]$property.Name]
+        }
+        else { "" }
+        if ([string]::IsNullOrWhiteSpace($artifactPath) -or
+            [string]$pathProperty.Value -cne $artifactPath)
+        {
+            $buildReady = $false
+            continue
+        }
+        $hashOutput = (& docker exec $container sha256sum `
+            $artifactPath 2>&1 | Out-String).Trim()
+        $hashExit = $LASTEXITCODE
+        $bytesOutput = (& docker exec $container stat -Lc "%s" `
+            $artifactPath 2>&1 | Out-String).Trim()
+        $bytesExit = $LASTEXITCODE
+        $actualHash = if ([string]::IsNullOrWhiteSpace($hashOutput))
+        {
+            ""
+        }
+        else
+        {
+            $hashOutput.Split(' ', [StringSplitOptions]::RemoveEmptyEntries)[0]
+        }
+        $buildReady = $buildReady -and
+            $hashExit -eq 0 -and $bytesExit -eq 0 -and
+            [string]$hashProperty.Value -cmatch '^[a-f0-9]{64}$' -and
+            $actualHash -ceq [string]$hashProperty.Value -and
+            [long]$bytesProperty.Value -gt 0 -and
+            [long]$bytesOutput -eq [long]$bytesProperty.Value
+    }
+    $parityMatches = 0
+    foreach ($relativePath in $parityPaths)
+    {
+        & docker exec $container cmp -s "/swg-precu-source/$relativePath" `
+            "/swg-precu/$relativePath"
+        if ($LASTEXITCODE -eq 0) { ++$parityMatches }
+    }
+    $buildReady = $buildReady -and $parityMatches -eq 3
+    if ($buildReady)
+    {
+        & (Join-Path $PSScriptRoot `
+            "Test-P14DirectCommandCallbackInventoryClosure.ps1") `
+            -SourceRoot $source `
+            -Expectation Build
+        $directContract = Get-Content -LiteralPath (
+            Join-Path $restorationRoot (
+                [string]$manifest.contracts.
+                    p14DirectCommandCallbackInventoryClosure)
+        ) -Raw | ConvertFrom-Json
+        $directBuild = $directContract.currentBuildEvidence
+        $directCommand = $directBuild.compiledArtifacts."command_table.iff"
+        $directActions = $directBuild.compiledArtifacts."combat_actions.class"
+        $professionCommand = $currentBuild.compiledArtifacts."command_table.iff"
+        $professionActions = $currentBuild.compiledArtifacts."combat_actions.class"
+        $buildReady =
+            @("implemented-build-verified-live-pending", "ready") -ccontains
+                [string]$directContract.status -and
+            [string]$directBuild.result -ceq "passed" -and
+            [string]$directCommand.path -ceq [string]$professionCommand.path -and
+            [string]$directCommand.sha256 -ceq
+                [string]$professionCommand.sha256 -and
+            [long]$directCommand.bytes -eq [long]$professionCommand.bytes -and
+            [string]$directActions.path -ceq [string]$professionActions.path -and
+            [string]$directActions.sha256 -ceq
+                [string]$professionActions.sha256 -and
+            [long]$directActions.bytes -eq [long]$professionActions.bytes
+    }
+    Assert-Contract $buildReady `
+        "p14.profession-closure.force-defense-cross-check.deployed-artifacts-and-parity"
+}
+elseif ([string]$contract.status -ceq "implemented-build-pending")
+{
+    Assert-Contract ([string]$currentForceCrossCheck.build.result -ceq "pending" -and
+        [string]$currentForceCrossCheck.build.sourceWorkParity.result -ceq
+            "pending" -and
+        [int]$currentForceCrossCheck.build.sourceWorkParity.checkedFiles -eq 3 -and
+        [int]$currentForceCrossCheck.build.sourceWorkParity.matchedFiles -eq 0 -and
+        (Test-ExactOrdinalNames `
+            $currentForceCrossCheck.build.sourceWorkParity.files @(
+                "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
+                "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+                "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+            )) -and
+        [string]$currentForceCrossCheck.build.compiledDataBuildOwner -ceq
+            "p14-nonstandard-profession-matrix-closure" -and
+        [string]$currentForceCrossCheck.build.compiledJavaBuildOwner -ceq
+            "p14-direct-command-callback-inventory-closure" -and
+        [string]$currentForceCrossCheck.build.readyOwner -ceq
+            "p14-direct-command-callback-inventory-closure" -and
+        @($contract.requiredBeforeReady).Count -eq 1) `
+        "p14.profession-closure.force-defense-cross-check.pending-truthful"
+}
+
 if ($Expectation -eq "Ready")
 {
+    & (Join-Path $PSScriptRoot `
+        "Test-P14DirectCommandCallbackInventoryClosure.ps1") `
+        -SourceRoot $source `
+        -Expectation Ready
+    $directReadyContract = Get-Content -LiteralPath (
+        Join-Path $restorationRoot (
+            [string]$manifest.contracts.
+                p14DirectCommandCallbackInventoryClosure)
+    ) -Raw | ConvertFrom-Json
+    $directReadyBuild = $directReadyContract.currentBuildEvidence
+    $directReadyDeployment = $directReadyContract.currentDeploymentEvidence
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
     $officerClassHashesValid = $null -ne $contract.buildEvidence.officerRuntimeClassEvidence -and
         @($contract.buildEvidence.officerRuntimeClassEvidence.PSObject.Properties |
@@ -1503,7 +1802,30 @@ if ($Expectation -eq "Ready")
         $dsrcPin.Count -eq 1 -and
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.profession-closure.direct-source-pin"
-    Assert-Contract ([string]$contract.buildEvidence.result -ceq "passed" -and
+    Assert-Contract ([string]$contract.buildEvidence.scope -cmatch
+            'Current 34db6f06 source hashes authenticate source only' -and
+        [string]$contract.buildEvidence.scope -cmatch
+            'historical proof for direct source 67922cb1dc9416e33f370007b997b165f73e6174' -and
+        [string]$contract.buildEvidence.historicalCompiledEvidenceDirectSourceCommit -ceq
+            "67922cb1dc9416e33f370007b997b165f73e6174" -and
+        [bool]$contract.buildEvidence.historicalCompiledEvidenceOnly -and
+        [string]$contract.buildEvidence.historicalCompiledEvidenceDirectSourceCommit -cne
+            [string]$contract.buildEvidence.directSourceGitlink -and
+        [string]$currentForceCrossCheck.build.readyOwner -ceq
+            "p14-direct-command-callback-inventory-closure" -and
+        [string]$directReadyContract.status -ceq "ready" -and
+        [string]$directReadyBuild.result -ceq "passed" -and
+        [string]$directReadyBuild.directSourceCommit -ceq
+            [string]$currentForceCrossCheck.directSourceCommit -and
+        [string]$directReadyDeployment.result -ceq "passed" -and
+        [string]$directReadyDeployment.directSourceCommit -ceq
+            [string]$currentForceCrossCheck.directSourceCommit -and
+        [string]$directReadyDeployment.forceLiveAcceptanceOwner -ceq
+            "p14-armor-mitigation-ordering" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$currentForceCrossCheck.build.result -ceq "passed" -and
+        [string]$contract.status -ceq "ready" -and
+        @($contract.requiredBeforeReady).Count -eq 0 -and
         [string]$contract.runtimeEvidence.result -ceq "passed" -and
         $officerClassHashesValid -and
         $forceSensitiveClassHashesValid -and

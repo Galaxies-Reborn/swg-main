@@ -1,10 +1,11 @@
 {
   "schemaVersion":1,
   "feature":"nonstandard-profession-matrix-closure",
-  "status":"ready",
-  "scope":"Exact Publish 14.1 closure of Shipwright, pilot, Force-sensitive, rank, and Jedi profession families.",
+  "status":"implemented-build-pending",
+  "scope":"Exact Publish 14.1 closure of Shipwright, pilot, Force-sensitive, rank, and Jedi profession families, including a classified Jedi command-grant inventory and the bounded Force Armor 1/2 plus Force Shield 1/2 restoration.",
   "sourceFiles":{
     "skillTable":"dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "commandTable":"dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
     "liveFixture":"dsrc/sku.0/sys.server/compiled/game/script/test/precu_nonstandard_profession_fixture.java"
   },
   "families":[
@@ -30,7 +31,120 @@
     {"root":"pilot_neutral","rows":19,"bytes":5509,"sha256":"22410c0ab34b89d2b0f53ae2f0a9d85978dcb16a0c3f5495c5c7eea77ddb96bd"},
     {"root":"pilot_rebel_navy","rows":19,"bytes":5990,"sha256":"8f3bba5f6ca2e4606414ef8033bdee4b2a9a0e7dd697f847085577075d90fbe2"}
   ],
+  "jediCommandGrantClosure":{
+    "selector":"^(?:force_|jedi_)",
+    "serialization":"Case-sensitive ordinal sort, UTF-8 without BOM, LF separators, and exactly one trailing LF.",
+    "core3Reference":{
+      "repository":"swgemu/Core3",
+      "checkout":"MCP/SWGEmu/upstream/Core3-field-map",
+      "commit":"6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+      "commandDirectory":"MMOCoreORB/bin/scripts/commands"
+    },
+    "skillRows":303,
+    "allGrantTokens":{"count":131,"sha256":"879c87742f7e7a260e5b4badae6d7889da1197fc954af2d785b5d4a28b80bfd9"},
+    "authenticatedCore3Actions":{"count":114,"sha256":"51f6464ca163061b7d80e1308f389c328ba967b04e0998394bc7a8d16dcb825a"},
+    "classifiedNonCommandTokens":{
+      "count":17,
+      "sha256":"02885fca1de430f93a41a16bdca02fbbd051e3f757f79fc5373f7fb24fea916b",
+      "names":[
+        "cert_onehandlightsaber",
+        "cert_onehandlightsaber_gen1",
+        "cert_onehandlightsaber_gen2",
+        "cert_onehandlightsaber_gen3",
+        "cert_onehandlightsaber_gen4",
+        "cert_onehandlightsaber_training",
+        "cert_polearmlightsaber",
+        "cert_polearmlightsaber_gen1",
+        "cert_polearmlightsaber_gen2",
+        "cert_polearmlightsaber_gen3",
+        "cert_polearmlightsaber_gen4",
+        "cert_twohandlightsaber",
+        "cert_twohandlightsaber_gen1",
+        "cert_twohandlightsaber_gen2",
+        "cert_twohandlightsaber_gen3",
+        "cert_twohandlightsaber_gen4",
+        "forceIntimidate"
+      ]
+    },
+    "preexistingRegisteredActions":{"count":2,"sha256":"39e16f41a7cdcac2bbeae2fc7d2870e319363d3a4c41e9e179101bf68ac233ed","names":["sample","survey"]},
+    "actionableGapBefore":{"count":112,"sha256":"5766162a8455fc7f78c3f583505bdba28c9b054b979c7c1bc0d28a99c620bd22"},
+    "restoredActions":{"count":4,"sha256":"dc7029225cd4ab85f303bb94780b80b20be5d4c3c6f92d96a16f8b1a0b23ae2b","names":["forceArmor1","forceArmor2","forceShield1","forceShield2"]},
+    "registeredActionsAfter":{"count":6,"sha256":"fff58456952699207323ae02031d0b6345b2fb9b87910c44cdebcae6e07a545c"},
+    "residualActionableGap":{"count":108,"sha256":"a563ad1745fe6963cdb668670baa504e7454d055d4aaa1108250fec4827dbf6d"},
+    "unclassifiedGrantTokens":0,
+    "skillGrantRows":[
+      {"name":"force_discipline_enhancements_protection_02","commands":["forceArmor1"],"columns":27,"rawRowSha256":"2022a7e0599a772e5e9107b3b6a04e7eece556ea95bbfaad32fd5d9c4cc595f9"},
+      {"name":"force_discipline_enhancements_protection_04","commands":["forceAbsorb2","forceArmor2"],"columns":27,"rawRowSha256":"e3ac1698e7ea4cba48e2ad6b42d051fe58158289114e13988a8ecaa5c9641cb0"},
+      {"name":"force_discipline_enhancements_synergy_02","commands":["channelForce","forceShield1"],"columns":27,"rawRowSha256":"19ad01dd57bbbd2691db38268a089c391bc7693c65b30c8098914cf919ff7a16"},
+      {"name":"force_discipline_enhancements_synergy_04","commands":["forceMeditate","forceShield2"],"columns":27,"rawRowSha256":"361cb280680059671974f34e108f8178cc076228c0e2757fb31e8f207d185a32"}
+    ],
+    "commandRowProvenance":{
+      "legacyTable":"Source/legacy/precu-restore/precu_command_table_additions.tab",
+      "legacyTableBytes":85814,
+      "legacyTableSha256":"29e2954f766b2835a6b11d983a0a70aa87791ba82ed29d151767dd6a9e5c19bd",
+      "publish12Extract":"MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
+      "publish12ExtractBytes":247092,
+      "publish12ExtractSha256":"09179c383095ee784d6bdf14fd52836982c063b0cbc8b1138893c8c0f2e4b9b8"
+    },
+    "commandRows":[
+      {"name":"forceArmor1","columns":94,"rawRowSha256":"6bac5af23322203bb0f36de01591cd146063ec370c7a89aab5dda7c1ce4da962"},
+      {"name":"forceArmor2","columns":94,"rawRowSha256":"86538760e7868bb16f5441efb6a3c673f7a389e6c3b5e6076d021c6d55f6ac2a"},
+      {"name":"forceShield1","columns":94,"rawRowSha256":"a0bf2c59745246cf4a00847ede7125d99cafe6d26aaa8b526181e513f3a10003"},
+      {"name":"forceShield2","columns":94,"rawRowSha256":"0ba048574c2d78ebb88b552a7e82da4a531b0f0f8a1f59afcedd05529775d384"}
+    ]
+  },
+  "forceDefenseRestorationEvidence":{
+    "directSourceCommit":"34db6f06c3b9f3c414c8b1614d64a42281060a03",
+    "sourceSha256":{
+      "skills.tab":"cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
+      "command_table.tab":"c2bc2abfdf3c44f6ca7a177566b53e87131eb9f678338ed6e5a63dc6963af1fe"
+    },
+    "build":{
+      "result":"pending",
+      "container":"swg-precu",
+      "sourceWorkParity":{
+        "result":"pending",
+        "checkedFiles":2,
+        "matchedFiles":0,
+        "files":[
+          "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+          "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+        ]
+      },
+      "requiredArtifacts":["command_table.iff"],
+      "requiredArtifactPaths":{
+        "command_table.iff":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+      },
+      "compiledArtifacts":{},
+      "deterministicTableRecompile":{
+        "result":"pending",
+        "compiler":"/swg-precu/build/bin/DataTableTool",
+        "temporaryRoot":"/dev/shm",
+        "cleanupVerified":false,
+        "tables":{
+          "command_table.iff":{
+            "sourcePath":"/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+            "sourceSha256":"c2bc2abfdf3c44f6ca7a177566b53e87131eb9f678338ed6e5a63dc6963af1fe",
+            "canonicalPath":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff",
+            "freshOutputMatchesCanonical":false
+          }
+        }
+      }
+    },
+    "live":{
+      "result":"pending",
+      "acceptanceOwner":"p14-armor-mitigation-ordering",
+      "directSourceCommit":"34db6f06c3b9f3c414c8b1614d64a42281060a03",
+      "requiredOwnerStatus":"ready",
+      "requiredProof":[
+        "Each exact skill grant exposes and removes its exact restored command.",
+        "All four commands resolve through the deployed command table and callback surface.",
+        "Fixture-owned state is cleaned exactly and the server remains healthy."
+      ]
+    }
+  },
   "buildEvidence":{
+    "scope":"Historical 21-family skill-matrix and fixture proof retained unchanged from before the bounded Force-defense command restoration.",
     "result":"passed",
     "overlayPatch":"restoration/patches/dsrc/137-p14-nonstandard-profession-matrix-closure.patch",
     "overlayPatchBytes":209530,
@@ -68,6 +182,7 @@
     "exactCleanupRequired":true
   },
   "runtimeEvidence":{
+    "scope":"Historical 21-family ownership, relog, restart, cleanup, and health evidence; it does not certify the newly restored command callbacks.",
     "result":"passed",
     "lastRevalidatedDate":"2026-08-09",
     "validatedBuildStartedAtUtc":"2026-08-10T02:16:10.510115161Z",
@@ -116,6 +231,9 @@
     "exactCleanup":"passed",
     "serverHealthy":true
   },
-  "requiredBeforeReady":[],
-  "nextBoundary":"The Publish 14.1 profession matrix inventory is exhausted; continue only if a new source-backed boundary is discovered."
+  "requiredBeforeReady":[
+    "Run the canonical no-SkipBuild deployment and authenticate command_table.iff against direct source 34db6f06c3b9f3c414c8b1614d64a42281060a03.",
+    "Run the reversible live Force Armor/Shield acceptance and prove exact skill-grant command exposure, removal, cleanup, and server health."
+  ],
+  "nextBoundary":"The classified Jedi grant audit retains 108 Core3-authenticated actionable commands after this exact four-command slice; do not describe that residual as zero."
 }
