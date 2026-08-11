@@ -227,7 +227,16 @@ Assert-Contract ($nativeRegistrations -eq
 
 $dataGrantContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14DataGrantPersistenceClosure)) -Raw | ConvertFrom-Json
-Assert-Contract ([string]$dataGrantContract.status -ceq "ready" -and
+$dataGrantStatus = [string]$dataGrantContract.status
+$dataGrantVerifiedBuildPending = $false
+if ($Expectation -ceq "Source" -and $dataGrantStatus -ceq "implemented-build-pending")
+{
+    & (Join-Path $PSScriptRoot "Test-P14DataGrantPersistenceClosure.ps1") `
+        -SourceRoot $SourceRoot `
+        -Expectation Source
+    $dataGrantVerifiedBuildPending = $true
+}
+Assert-Contract (($dataGrantStatus -ceq "ready" -or $dataGrantVerifiedBuildPending) -and
     [bool]$contract.expected.collectionDataGrantDependencyReady) `
     "p14.groundquest-xp.collection-data-grant-dependency"
 Assert-Contract ([regex]::Matches($groundquests,

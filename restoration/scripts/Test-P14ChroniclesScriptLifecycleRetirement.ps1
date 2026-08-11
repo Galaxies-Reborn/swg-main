@@ -168,7 +168,16 @@ Assert-Contract ($nativeRegistrationCount -eq
 
 $dataGrantContract = Get-Content -LiteralPath (Join-Path $restorationRoot `
     ([string]$manifest.contracts.p14DataGrantPersistenceClosure)) -Raw | ConvertFrom-Json
-Assert-Contract ([string]$dataGrantContract.status -ceq "ready" -and
+$dataGrantStatus = [string]$dataGrantContract.status
+$dataGrantVerifiedBuildPending = $false
+if ($Expectation -ceq "Build" -and $dataGrantStatus -ceq "implemented-build-pending")
+{
+    & (Join-Path $PSScriptRoot "Test-P14DataGrantPersistenceClosure.ps1") `
+        -SourceRoot $SourceRoot `
+        -Expectation Source
+    $dataGrantVerifiedBuildPending = $true
+}
+Assert-Contract (($dataGrantStatus -ceq "ready" -or $dataGrantVerifiedBuildPending) -and
     [bool]$contract.expected.dataGrantDependencyReady) `
     "Chronicles data-grant dependency is not Ready."
 
