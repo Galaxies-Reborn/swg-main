@@ -22,6 +22,9 @@ $source = (Resolve-Path $SourceRoot).Path
 $workspaceRoot = Split-Path -Parent (Split-Path -Parent $source)
 $skillPath = Join-Path $source ([string]$contract.sourceFiles.skillTable)
 $commandPath = Join-Path $source ([string]$contract.sourceFiles.commandTable)
+$buffPath = Join-Path $source ([string]$contract.sourceFiles.buffTable)
+$jediPath = Join-Path $source ([string]$contract.sourceFiles.jediLibrary)
+$combatActionsPath = Join-Path $source ([string]$contract.sourceFiles.combatActions)
 $fixturePath = Join-Path $source ([string]$contract.sourceFiles.liveFixture)
 $skillLines = Get-Content $skillPath
 $utf8NoBom = [Text.UTF8Encoding]::new($false)
@@ -72,48 +75,88 @@ function Test-ExactOrdinalNames
         (($actualNames -join "`n") -ceq ($expectedNames -join "`n"))
 }
 
-function Test-CommandTableFreshRecompile
+function Get-BracedSurface
+{
+    param([string]$Text, [string]$Marker)
+    $start = $Text.IndexOf($Marker, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $open = $Text.IndexOf('{', $start)
+    if ($open -lt 0) { return "" }
+    $depth = 1
+    for ($index = $open + 1; $index -lt $Text.Length; ++$index)
+    {
+        if ($Text[$index] -eq '{') { ++$depth }
+        elseif ($Text[$index] -eq '}')
+        {
+            --$depth
+            if ($depth -eq 0)
+            {
+                return $Text.Substring($start, $index - $start + 1)
+            }
+        }
+    }
+    return ""
+}
+
+function Test-ForceTablesFreshRecompile
 {
     param([Parameter(Mandatory = $true)][string]$Container)
     $probe = @'
 set -eu
-tmp_dir="$(mktemp -d /dev/shm/precu-force-command-iff.XXXXXX)"
+tmp_dir="$(mktemp -d /dev/shm/precu-force-speed-iff.XXXXXX)"
 cleanup() {
     case "${tmp_dir:-}" in
-        /dev/shm/precu-force-command-iff.*) ;;
+        /dev/shm/precu-force-speed-iff.*) ;;
         *) return 97 ;;
     esac
     resolved_tmp="$(readlink -f -- "$tmp_dir")"
     case "$resolved_tmp" in
-        /dev/shm/precu-force-command-iff.*) ;;
+        /dev/shm/precu-force-speed-iff.*) ;;
         *) return 98 ;;
     esac
     rm -rf -- "$resolved_tmp"
 }
 trap cleanup 0 HUP INT TERM
 tool="$SWG_WORK_DIR/build/bin/DataTableTool"
-source_tab="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
-canonical_iff="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
-relative_tab="sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
-relative_iff="sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
-temp_tab="$tmp_dir/dsrc/$relative_tab"
-fresh_iff="$tmp_dir/data/$relative_iff"
 test -x "$tool"
-mkdir -p -- "$(dirname "$temp_tab")" "$(dirname "$fresh_iff")"
-cp -- "$source_tab" "$temp_tab"
-(
-    cd "$tmp_dir"
-    PATH="$PATH:$SWG_WORK_DIR/build/bin" "$tool" \
-        -i "dsrc/$relative_tab" \
-        -- -s SharedFile \
-        "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game" \
-        "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game" \
-        "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
-) >/dev/null
-test -s "$fresh_iff"
-cmp -s "$fresh_iff" "$canonical_iff"
-for command_name in forceArmor1 forceArmor2 forceShield1 forceShield2; do
-    test "$(strings -a "$canonical_iff" | grep -Fxc "$command_name" || true)" -eq 2
+compile_and_compare() {
+    source_tab="$1"
+    canonical_iff="$2"
+    relative_tab="$3"
+    relative_iff="$4"
+    temp_tab="$tmp_dir/dsrc/$relative_tab"
+    fresh_iff="$tmp_dir/data/$relative_iff"
+    mkdir -p -- "$(dirname "$temp_tab")" "$(dirname "$fresh_iff")"
+    cp -- "$source_tab" "$temp_tab"
+    (
+        cd "$tmp_dir"
+        PATH="$PATH:$SWG_WORK_DIR/build/bin" "$tool" \
+            -i "dsrc/$relative_tab" \
+            -- -s SharedFile \
+            "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game" \
+            "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game" \
+            "searchPath10=$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
+    ) >/dev/null
+    test -s "$fresh_iff"
+    cmp -s "$fresh_iff" "$canonical_iff"
+}
+command_iff="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+buff_iff="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+compile_and_compare \
+    "$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab" \
+    "$command_iff" \
+    sku.0/sys.shared/compiled/game/datatables/command/command_table.tab \
+    sku.0/sys.shared/compiled/game/datatables/command/command_table.iff
+compile_and_compare \
+    "$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab" \
+    "$buff_iff" \
+    sku.0/sys.shared/compiled/game/datatables/buff/buff.tab \
+    sku.0/sys.shared/compiled/game/datatables/buff/buff.iff
+for command_name in forceArmor1 forceArmor2 forceShield1 forceShield2 forceSpeed1 forceSpeed2; do
+    test "$(strings -a "$command_iff" | grep -Fxc "$command_name" || true)" -eq 2
+done
+for buff_name in forceSpeed forceSpeed_1; do
+    test "$(strings -a "$buff_iff" | grep -Fxc "$buff_name" || true)" -ge 1
 done
 cleanup
 trap - 0 HUP INT TERM
@@ -253,7 +296,7 @@ Assert-JediGrant ($actionableGap.Count -eq [int]$grant.actionableGapBefore.count
     $residualGap.Count -eq [int]$grant.residualActionableGap.count -and
     (Get-NameSetSha256 $residualGap) -ceq
         [string]$grant.residualActionableGap.sha256) `
-    "p14.nonstandard.jedi-grants.112-to-4-to-108-boundary"
+    "p14.nonstandard.jedi-grants.112-to-6-to-106-boundary"
 Assert-JediGrant ($preexistingActions.Count -eq [int]$grant.preexistingRegisteredActions.count -and
     (Get-NameSetSha256 $preexistingActions) -ceq
         [string]$grant.preexistingRegisteredActions.sha256 -and
@@ -261,7 +304,7 @@ Assert-JediGrant ($preexistingActions.Count -eq [int]$grant.preexistingRegistere
     $registeredActions.Count -eq [int]$grant.registeredActionsAfter.count -and
     (Get-NameSetSha256 $registeredActions) -ceq
         [string]$grant.registeredActionsAfter.sha256) `
-    "p14.nonstandard.jedi-grants.current-registration-is-two-plus-four"
+    "p14.nonstandard.jedi-grants.current-registration-is-two-plus-six"
 
 $skillGrantRowsExact = $true
 foreach ($expected in $grant.skillGrantRows)
@@ -284,7 +327,7 @@ foreach ($expected in $grant.skillGrantRows)
         (Test-ExactOrdinalNames $actualCommands $expected.commands)
 }
 Assert-JediGrant $skillGrantRowsExact `
-    "p14.nonstandard.jedi-grants.exact-four-skill-grant-rows"
+    "p14.nonstandard.jedi-grants.exact-six-skill-grant-rows"
 
 $commandRowsExact = $true
 foreach ($expected in $grant.commandRows)
@@ -314,7 +357,7 @@ foreach ($expected in $grant.commandRows)
         [string]$parsed[0].invalidWeapon -ceq "NONE"
 }
 Assert-JediGrant $commandRowsExact `
-    "p14.nonstandard.jedi-grants.exact-four-publish-command-rows"
+    "p14.nonstandard.jedi-grants.exact-six-publish-command-rows"
 
 $provenance = $grant.commandRowProvenance
 $legacyTable = Join-Path $workspaceRoot ([string]$provenance.legacyTable)
@@ -329,6 +372,137 @@ Assert-JediGrant ((Test-Path -LiteralPath $legacyTable -PathType Leaf) -and
         [string]$provenance.publish12ExtractSha256) `
     "p14.nonstandard.jedi-grants.command-row-provenance"
 
+$forceSpeed = $contract.forceDefenseRestorationEvidence.forceSpeed
+$buffLines = @(Get-Content -LiteralPath $buffPath)
+$buffRows = @(Import-SwgTab -Path $buffPath)
+$speedRowsExact = $true
+foreach ($rank in $forceSpeed.ranks)
+{
+    $expectedPriority = if ([int]$rank.rank -eq 1) { 1 } else { 3 }
+    $raw = @($buffLines | Where-Object {
+        ($_ -split "`t", 2)[0] -ceq [string]$rank.buff
+    })
+    $parsed = @($buffRows | Where-Object {
+        [string]$_.NAME -ceq [string]$rank.buff
+    })
+    $speedRowsExact = $speedRowsExact -and
+        $raw.Count -eq 1 -and
+        ($raw[0] -split "`t", -1).Count -eq 34 -and
+        (Get-TextSha256 $raw[0]) -ceq [string]$rank.buffRowSha256 -and
+        $parsed.Count -eq 1 -and
+        [string]$parsed[0].GROUP1 -ceq "forceSpeed" -and
+        [string]$parsed[0].GROUP2 -ceq "haste" -and
+        [int]$parsed[0].PRIORITY -eq $expectedPriority -and
+        [int]$parsed[0].DURATION -eq [int]$rank.durationSeconds -and
+        [string]$parsed[0].EFFECT1_PARAM -ceq "combat_haste" -and
+        [int]$parsed[0].EFFECT1_VALUE -eq [int]$rank.combatHaste -and
+        [int]$parsed[0].IS_PERSISTENT -eq 1
+}
+Assert-JediGrant $speedRowsExact `
+    "p14.nonstandard.force-speed.exact-persistent-buff-rows"
+
+$doctorRowsExact = $true
+foreach ($expected in $forceSpeed.crossHasteCanary.doctorHasteRows)
+{
+    $row = @($buffRows | Where-Object {
+        [string]$_.NAME -ceq [string]$expected.buff
+    })
+    $doctorRowsExact = $doctorRowsExact -and $row.Count -eq 1 -and
+        [string]$row[0].GROUP1 -ceq [string]$expected.primaryGroup -and
+        [string]$row[0].GROUP2 -ceq
+            [string]$forceSpeed.crossHasteCanary.secondaryGroup -and
+        [int]$row[0].PRIORITY -eq [int]$expected.priority
+}
+Assert-JediGrant ($doctorRowsExact -and
+    (Test-ExactOrdinalNames $forceSpeed.crossHasteCanary.forceSpeedPriorities @(1,3))) `
+    "p14.nonstandard.force-speed.cross-haste-priority-canary"
+
+$jediText = Get-Content -LiteralPath $jediPath -Raw
+$combatActionsText = Get-Content -LiteralPath $combatActionsPath -Raw
+$speedHelper = Get-BracedSurface $jediText `
+    "public static boolean performPrecuForceSpeedCommand"
+$toggleIndex = $speedHelper.IndexOf(
+    "if (buff.hasBuff(player, buffName))", [StringComparison]::Ordinal)
+$admissionIndex = $speedHelper.IndexOf(
+    "if (isDead(player) || isIncapacitated(player))", [StringComparison]::Ordinal)
+$armorIndex = $speedHelper.IndexOf(
+    "armor.SCRIPTVAR_ARMOR_COUNT", [StringComparison]::Ordinal)
+$rankBlockIndex = $speedHelper.IndexOf(
+    "!rankTwo && buff.hasBuff(player, PRECU_FORCE_SPEED_2_BUFF)",
+    [StringComparison]::Ordinal)
+$forceIndex = $speedHelper.IndexOf(
+    "getForcePower(player) < forceCost", [StringComparison]::Ordinal)
+$applyIndex = $speedHelper.IndexOf(
+    "buff.applyBuff(player, player, buffName, duration, buffStrength)",
+    [StringComparison]::Ordinal)
+$debitIndex = $speedHelper.IndexOf(
+    "alterForcePower(player, -forceCost)", [StringComparison]::Ordinal)
+$visibilityIndex = $speedHelper.IndexOf(
+    "jediActionPerformed(player, NONCOMBAT_VISIBILITY, VISIBILITY_WITNESS_RANGE)",
+    [StringComparison]::Ordinal)
+$effectIndex = $speedHelper.IndexOf(
+    '"clienteffect/pl_force_speed_self.cef"', [StringComparison]::Ordinal)
+Assert-JediGrant ($speedHelper.Length -gt 0 -and
+    $jediText.Contains('PRECU_FORCE_SPEED_1_BUFF = "forceSpeed"') -and
+    $jediText.Contains('PRECU_FORCE_SPEED_2_BUFF = "forceSpeed_1"') -and
+    $jediText.Contains("PRECU_FORCE_SPEED_1_COST = 150") -and
+    $jediText.Contains("PRECU_FORCE_SPEED_2_COST = 300") -and
+    $jediText.Contains("PRECU_FORCE_SPEED_1_DURATION = 180.0f") -and
+    $jediText.Contains("PRECU_FORCE_SPEED_2_DURATION = 360.0f") -and
+    $jediText.Contains("PRECU_FORCE_SPEED_1_STRENGTH = 15") -and
+    $jediText.Contains("PRECU_FORCE_SPEED_2_STRENGTH = 25") -and
+    $toggleIndex -ge 0 -and $toggleIndex -lt $admissionIndex -and
+    $admissionIndex -lt $armorIndex -and $armorIndex -lt $rankBlockIndex -and
+    $rankBlockIndex -lt $forceIndex -and $forceIndex -lt $applyIndex -and
+    $applyIndex -lt $debitIndex -and $debitIndex -lt $visibilityIndex -and
+    $visibilityIndex -lt $effectIndex -and
+    $speedHelper.Contains("lowerDuration = buff.getBuffTimeRemaining") -and
+    $speedHelper.Contains("lowerStrength = _getBuffCustomValue") -and
+    $speedHelper.Contains("!buff.hasBuff(player, PRECU_FORCE_SPEED_1_BUFF)") -and
+    ([regex]::Matches($speedHelper,
+        [regex]::Escape("alterForcePower(player, -forceCost)"))).Count -eq 1 -and
+    $speedHelper.Contains('"remove_" + commandName.toLowerCase()') -and
+    $speedHelper.Contains('"apply_" + commandName.toLowerCase()') -and
+    -not $speedHelper.Contains("getForceRank") -and
+    -not $speedHelper.Contains("performJediBuffCommand") -and
+    -not $speedHelper.Contains("alterAction") -and
+    -not $speedHelper.Contains("alterMind")) `
+    "p14.nonstandard.force-speed.exact-helper-lifecycle-and-resource-boundary"
+
+foreach ($name in @("forceSpeed1", "forceSpeed2"))
+{
+    $callback = Get-BracedSurface $combatActionsText (
+        "public int $name(obj_id self, obj_id target, String params, " +
+        "float defaultTime)")
+    $delegate = 'jedi.performPrecuForceSpeedCommand(self, "' + $name + '")'
+    Assert-JediGrant ($callback.Length -gt 0 -and
+        ([regex]::Matches($callback, [regex]::Escape($delegate))).Count -eq 1 -and
+        $callback.IndexOf($delegate, [StringComparison]::Ordinal) -lt
+            $callback.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal) -and
+        $callback.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal) -lt
+            $callback.IndexOf("return SCRIPT_CONTINUE;", [StringComparison]::Ordinal)) `
+        "p14.nonstandard.force-speed.$name.direct-fail-closed-callback"
+}
+
+$stf = $forceSpeed.publish12StringTable
+$stfPath = Join-Path $workspaceRoot ([string]$stf.path)
+$stfBytes = if (Test-Path -LiteralPath $stfPath -PathType Leaf)
+{
+    [IO.File]::ReadAllBytes($stfPath)
+}
+else { [byte[]]@() }
+$stfAscii = [Text.Encoding]::ASCII.GetString($stfBytes)
+$stfKeys = @(
+    "apply_forcespeed1", "apply_forcespeed2",
+    "remove_forcespeed1", "remove_forcespeed2",
+    "force_speed_1_n", "force_speed_2_n", "force_speed_d",
+    "no_force_power", "not_with_armor", "force_buff_present")
+Assert-JediGrant ($stfBytes.Length -eq [int]$stf.bytes -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $stfPath).Hash.ToLowerInvariant() -ceq
+        [string]$stf.sha256 -and
+    @($stfKeys | Where-Object { -not $stfAscii.Contains([string]$_) }).Count -eq 0) `
+    "p14.nonstandard.force-speed.publish12-localization-provenance"
+
 $forceEvidence = $contract.forceDefenseRestorationEvidence
 $dsrcRoot = Join-Path $source "dsrc"
 $dsrcCommit = (& git -C $dsrcRoot rev-parse HEAD 2>$null | Out-String).Trim()
@@ -336,7 +510,13 @@ Assert-JediGrant ($dsrcCommit -ceq [string]$forceEvidence.directSourceCommit -an
     (Get-FileHash -Algorithm SHA256 -LiteralPath $skillPath).Hash.ToLowerInvariant() -ceq
         [string]$forceEvidence.sourceSha256."skills.tab" -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath $commandPath).Hash.ToLowerInvariant() -ceq
-        [string]$forceEvidence.sourceSha256."command_table.tab") `
+        [string]$forceEvidence.sourceSha256."command_table.tab" -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $buffPath).Hash.ToLowerInvariant() -ceq
+        [string]$forceEvidence.sourceSha256."buff.tab" -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $jediPath).Hash.ToLowerInvariant() -ceq
+        [string]$forceEvidence.sourceSha256."jedi.java" -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $combatActionsPath).Hash.ToLowerInvariant() -ceq
+        [string]$forceEvidence.sourceSha256."combat_actions.java") `
     "p14.nonstandard.jedi-grants.direct-source-pin"
 Assert-JediGrant (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -ccontains
     [string]$contract.status) "p14.nonstandard.jedi-grants.status"
@@ -411,8 +591,12 @@ if ($Expectation -in @("Build", "Ready"))
         ForEach-Object { [string]$_.Name })
     $requiredPaths = @($requiredPathProperties |
         ForEach-Object { [string]$_.Value })
-    $canonicalCommandIff =
-        "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+    $canonicalArtifactPaths = [ordered]@{
+        "command_table.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+        "buff.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+        "jedi.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class"
+        "combat_actions.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class"
+    }
     $containerProperty = $currentBuild.PSObject.Properties['container']
     $container = if ($null -ne $containerProperty)
     {
@@ -422,20 +606,22 @@ if ($Expectation -in @("Build", "Ready"))
     $buildReady = (
         [string]$currentBuild.result -ceq "passed" -and
         [string]$currentBuild.sourceWorkParity.result -ceq "passed" -and
-        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 2 -and
-        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 2 -and
+        [string]$currentBuild.fullJavaCompile.result -ceq "passed" -and
+        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 4 -and
+        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 4 -and
         (Test-ExactOrdinalNames $currentBuild.sourceWorkParity.files @(
-            [string]$contract.sourceFiles.skillTable,
-            [string]$contract.sourceFiles.commandTable
+            [string]$contract.sourceFiles.commandTable,
+            [string]$contract.sourceFiles.buffTable,
+            [string]$contract.sourceFiles.jediLibrary,
+            [string]$contract.sourceFiles.combatActions
         )) -and
         @("implemented-build-verified-live-pending", "ready") -ccontains
             [string]$contract.status -and
         (Test-ExactOrdinalNames $artifactNames $currentBuild.requiredArtifacts) -and
         (Test-ExactOrdinalNames $requiredPathNames $currentBuild.requiredArtifacts) -and
-        $requiredPaths.Count -eq 1 -and
+        (Test-ExactOrdinalNames $requiredPathNames $canonicalArtifactPaths.Keys) -and
+        $requiredPaths.Count -eq 4 -and
         @(Get-OrdinalNames $requiredPaths).Count -eq $requiredPaths.Count -and
-        [string]$currentBuild.requiredArtifactPaths."command_table.iff" -ceq
-            $canonicalCommandIff -and
         -not [string]::IsNullOrWhiteSpace($container)
     )
     foreach ($property in $artifactProperties)
@@ -450,9 +636,10 @@ if ($Expectation -in @("Build", "Ready"))
             $buildReady = $false
             continue
         }
-        $artifactPath = if ([string]$property.Name -ceq "command_table.iff")
+        $artifactPath = if ($canonicalArtifactPaths.Contains(
+            [string]$property.Name))
         {
-            $canonicalCommandIff
+            [string]$canonicalArtifactPaths[[string]$property.Name]
         }
         else { "" }
         if ([string]::IsNullOrWhiteSpace($artifactPath) -or
@@ -484,21 +671,37 @@ if ($Expectation -in @("Build", "Ready"))
     }
     $recompile = $currentBuild.deterministicTableRecompile
     $recompileTables = @($recompile.tables.PSObject.Properties)
+    $expectedTableSources = [ordered]@{
+        "command_table.iff" = @(
+            "/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+            [string]$forceEvidence.sourceSha256."command_table.tab")
+        "buff.iff" = @(
+            "/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+            [string]$forceEvidence.sourceSha256."buff.tab")
+    }
     $recompileReady = (
         [string]$recompile.result -ceq "passed" -and
         [string]$recompile.compiler -ceq
             "/swg-precu/build/bin/DataTableTool" -and
         [string]$recompile.temporaryRoot -ceq "/dev/shm" -and
         [bool]$recompile.cleanupVerified -and
-        $recompileTables.Count -eq 1 -and
-        [string]$recompileTables[0].Name -ceq "command_table.iff" -and
-        [string]$recompileTables[0].Value.sourcePath -ceq
-            "/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab" -and
-        [string]$recompileTables[0].Value.sourceSha256 -ceq
-            [string]$forceEvidence.sourceSha256."command_table.tab" -and
-        [string]$recompileTables[0].Value.canonicalPath -ceq
-            $canonicalCommandIff -and
-        [bool]$recompileTables[0].Value.freshOutputMatchesCanonical)
+        $recompileTables.Count -eq 2 -and
+        (Test-ExactOrdinalNames ($recompileTables | ForEach-Object {
+            [string]$_.Name
+        }) $expectedTableSources.Keys))
+    foreach ($property in $recompileTables)
+    {
+        $name = [string]$property.Name
+        $table = $property.Value
+        $recompileReady = $recompileReady -and
+            [string]$table.sourcePath -ceq
+                [string]$expectedTableSources[$name][0] -and
+            [string]$table.sourceSha256 -ceq
+                [string]$expectedTableSources[$name][1] -and
+            [string]$table.canonicalPath -ceq
+                [string]$canonicalArtifactPaths[$name] -and
+            [bool]$table.freshOutputMatchesCanonical
+    }
     $buildReady = $buildReady -and $recompileReady
     $parityPaths = @($currentBuild.sourceWorkParity.files)
     $parityMatches = 0
@@ -509,41 +712,57 @@ if ($Expectation -in @("Build", "Ready"))
             "/swg-precu/$normalizedPath"
         if ($LASTEXITCODE -eq 0) { ++$parityMatches }
     }
-    $buildReady = $buildReady -and $parityMatches -eq 2
+    $buildReady = $buildReady -and $parityMatches -eq 4
     if ($buildReady)
     {
-        $buildReady = Test-CommandTableFreshRecompile -Container $container
+        $buildReady = Test-ForceTablesFreshRecompile -Container $container
     }
     if (-not $buildReady)
     {
-        throw "Current Force-defense command-table build evidence is incomplete or does not match the deployed artifact."
+        throw "Current Force command Java/data build evidence is incomplete or does not match the deployed artifacts."
     }
 }
 elseif ([string]$contract.status -ceq "implemented-build-pending")
 {
     if ([string]$forceEvidence.build.result -cne "pending" -or
+        [string]$forceEvidence.build.fullJavaCompile.result -cne "pending" -or
         [string]$forceEvidence.build.sourceWorkParity.result -cne "pending" -or
-        [int]$forceEvidence.build.sourceWorkParity.checkedFiles -ne 2 -or
+        [int]$forceEvidence.build.sourceWorkParity.checkedFiles -ne 4 -or
         [int]$forceEvidence.build.sourceWorkParity.matchedFiles -ne 0 -or
         -not (Test-ExactOrdinalNames `
             $forceEvidence.build.sourceWorkParity.files @(
-                [string]$contract.sourceFiles.skillTable,
-                [string]$contract.sourceFiles.commandTable
+                [string]$contract.sourceFiles.commandTable,
+                [string]$contract.sourceFiles.buffTable,
+                [string]$contract.sourceFiles.jediLibrary,
+                [string]$contract.sourceFiles.combatActions
             )) -or
+        @($forceEvidence.build.compiledArtifacts.PSObject.Properties |
+            Where-Object {
+                -not [string]::IsNullOrWhiteSpace([string]$_.Value.sha256) -or
+                [long]$_.Value.bytes -ne 0
+            }).Count -ne 0 -or
         [string]$forceEvidence.build.deterministicTableRecompile.result -cne
             "pending" -or
         [bool]$forceEvidence.build.deterministicTableRecompile.cleanupVerified -or
         [bool]$forceEvidence.build.deterministicTableRecompile.tables.
             "command_table.iff".freshOutputMatchesCanonical -or
+        [bool]$forceEvidence.build.deterministicTableRecompile.tables.
+            "buff.iff".freshOutputMatchesCanonical -or
         [string]$forceEvidence.live.result -cne "pending" -or
         [string]$forceEvidence.live.acceptanceOwner -cne
             "p14-armor-mitigation-ordering" -or
         [string]$forceEvidence.live.requiredOwnerStatus -cne "ready" -or
         [string]$forceEvidence.live.directSourceCommit -cne
             [string]$forceEvidence.directSourceCommit -or
-        @($contract.requiredBeforeReady).Count -ne 2)
+        [string]$forceEvidence.forceSpeedLive.result -cne "pending" -or
+        [string]$forceEvidence.forceSpeedLive.acceptanceOwner -cne
+            "p14-nonstandard-profession-matrix-closure" -or
+        [string]$forceEvidence.forceSpeedLive.directSourceCommit -cne
+            [string]$forceEvidence.directSourceCommit -or
+        @($forceEvidence.forceSpeedLive.activation).Count -ne 0 -or
+        @($contract.requiredBeforeReady).Count -ne 3)
     {
-        throw "Pending Force-defense source evidence is not truthful."
+        throw "Pending Force command source/build/live evidence is not truthful."
     }
 }
 
@@ -574,6 +793,47 @@ if ($Expectation -eq "Ready")
     {
         throw "Nonstandard Ready is not bound to the independently validated current Force-defense live owner."
     }
+    $speedLive = $forceEvidence.forceSpeedLive
+    $speedActivationNames = @($speedLive.activation | ForEach-Object {
+        [string]$_.command
+    })
+    if ([string]$speedLive.result -cne "passed" -or
+        [string]$speedLive.acceptanceOwner -cne
+            "p14-nonstandard-profession-matrix-closure" -or
+        [string]$speedLive.directSourceCommit -cne
+            [string]$forceEvidence.directSourceCommit -or
+        [string]::IsNullOrWhiteSpace([string]$speedLive.containerStartedAt) -or
+        [string]$speedLive.containerStartedAt -cne
+            [string]$armorForce.deployment.containerStartedAt -or
+        -not (Test-ExactOrdinalNames $speedActivationNames @(
+            "forceSpeed1", "forceSpeed2")) -or
+        -not [bool]$speedLive.tierLifecycle.sameRankToggleFirstAndFree -or
+        -not [bool]$speedLive.tierLifecycle.rank1BlockedByRank2 -or
+        -not [bool]$speedLive.tierLifecycle.rank2ReplacedRank1 -or
+        -not [bool]$speedLive.tierLifecycle.failedUpgradeRestoredLower -or
+        -not [bool]$speedLive.tierLifecycle.equalForceAllowed -or
+        -not [bool]$speedLive.tierLifecycle.armorRejected -or
+        [int]$speedLive.resourceAndEffect.rank1ForceDebit -ne 150 -or
+        [int]$speedLive.resourceAndEffect.rank2ForceDebit -ne 300 -or
+        [int]$speedLive.resourceAndEffect.actionDebit -ne 0 -or
+        [int]$speedLive.resourceAndEffect.mindDebit -ne 0 -or
+        [int]$speedLive.resourceAndEffect.visibilityPerActivation -ne 10 -or
+        -not [bool]$speedLive.resourceAndEffect.effectObserved -or
+        -not [bool]$speedLive.resourceAndEffect.lowercaseMessagesObserved -or
+        [int]$speedLive.persistence.rank1DurationSeconds -ne 180 -or
+        [int]$speedLive.persistence.rank2DurationSeconds -ne 360 -or
+        [int]$speedLive.persistence.rank1CombatHaste -ne 15 -or
+        [int]$speedLive.persistence.rank2CombatHaste -ne 25 -or
+        -not [bool]$speedLive.persistence.relogVerified -or
+        -not [bool]$speedLive.persistence.crossHastePriorityVerified -or
+        -not [bool]$speedLive.cleanup.commandsGrantedAndRevokedExactly -or
+        -not [bool]$speedLive.cleanup.buffsRemoved -or
+        -not [bool]$speedLive.cleanup.forcePowerRestored -or
+        -not [bool]$speedLive.cleanup.skillStateRestored -or
+        -not [bool]$speedLive.cleanup.serverHealthy)
+    {
+        throw "Nonstandard Ready lacks exact reversible Force Speed live evidence."
+    }
     $runtime = $contract.runtimeEvidence
     $proof = @($runtime.familyProof)
     $proofFamilies = @($proof | ForEach-Object { [string]$_.family })
@@ -584,6 +844,7 @@ if ($Expectation -eq "Ready")
         @($contract.requiredBeforeReady).Count -eq 0 -and
         [string]$forceEvidence.build.result -ceq "passed" -and
         [string]$forceEvidence.live.result -ceq "passed" -and
+        [string]$forceEvidence.forceSpeedLive.result -ceq "passed" -and
         [string]$runtime.result -ceq "passed" -and
         $proof.Count -eq 21 -and
         ((($proofFamilies | Sort-Object) -join ([char]0)) -ceq

@@ -132,6 +132,21 @@ foreach ($name in @("forceArmor1", "forceArmor2", "forceShield1", "forceShield2"
         $continueIndex -gt $overrideIndex) `
         "p14.direct-callback.force-defense.$name.exact-delegate"
 }
+foreach ($name in @("forceSpeed1", "forceSpeed2"))
+{
+    $body = [string]($directRecords | Where-Object Name -CEQ $name).Body
+    $delegate = 'jedi.performPrecuForceSpeedCommand(self, "' + $name + '")'
+    $delegateIndex = $body.IndexOf($delegate, [StringComparison]::Ordinal)
+    $overrideIndex = $body.IndexOf(
+        "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+    $continueIndex = $body.IndexOf(
+        "return SCRIPT_CONTINUE;", [StringComparison]::Ordinal)
+    Assert-Contract ($delegateIndex -ge 0 -and
+        ([regex]::Matches($body, [regex]::Escape($delegate))).Count -eq 1 -and
+        $overrideIndex -gt $delegateIndex -and
+        $continueIndex -gt $overrideIndex) `
+        "p14.direct-callback.force-speed.$name.exact-delegate"
+}
 
 $commandRows = @(Import-Csv -Delimiter "`t" -LiteralPath $sourceMap["command/command_table.tab"] | Select-Object -Skip 1)
 $rowlessInternal = @($contract.expected.rowlessInternalHandlers)
@@ -429,14 +444,31 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
                 "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
                 "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
             )) -and
+        @($contract.currentBuildEvidence.compiledArtifacts.PSObject.Properties |
+            Where-Object {
+                -not [string]::IsNullOrWhiteSpace([string]$_.Value.sha256) -or
+                [long]$_.Value.bytes -ne 0
+            }).Count -eq 0 -and
+        [string]::IsNullOrWhiteSpace(
+            [string]$contract.currentBuildEvidence.serverBinary.sha256) -and
+        [string]::IsNullOrWhiteSpace(
+            [string]$contract.currentBuildEvidence.serverBinary.buildIdSha1) -and
+        [long]$contract.currentBuildEvidence.serverBinary.bytes -eq 0 -and
+        [long]$contract.currentBuildEvidence.serverBinary.inode -eq 0 -and
         [string]$contract.currentDeploymentEvidence.result -ceq "pending" -and
         [string]$contract.currentDeploymentEvidence.directSourceCommit -ceq
             $directCommit -and
-        [string]$contract.currentDeploymentEvidence.forceLiveAcceptanceOwner -ceq
+        [string]$contract.currentDeploymentEvidence.forceDefenseLiveAcceptanceOwner -ceq
             "p14-armor-mitigation-ordering" -and
+        [string]$contract.currentDeploymentEvidence.forceSpeedLiveAcceptanceOwner -ceq
+            "p14-nonstandard-profession-matrix-closure" -and
         [string]$contract.currentDeploymentEvidence.containerHealth -ceq
             "pending" -and
-        $contract.requiredBeforeReady.Count -eq 2) `
+        [string]::IsNullOrWhiteSpace(
+            [string]$contract.currentDeploymentEvidence.container) -and
+        [int]$contract.currentDeploymentEvidence.liveGameProcessCount -eq 0 -and
+        -not [bool]$contract.currentDeploymentEvidence.clusterReadyForPlayers -and
+        $contract.requiredBeforeReady.Count -eq 3) `
         "p14.direct-callback.pending-evidence-truthful"
 }
 if ($Expectation -eq "Ready")
@@ -444,9 +476,17 @@ if ($Expectation -eq "Ready")
     & (Join-Path $PSScriptRoot "Test-P14ArmorMitigationOrdering.ps1") `
         -SourceRoot $source `
         -Expectation Ready
+    & (Join-Path $PSScriptRoot `
+        "Test-P14NonstandardProfessionMatrixClosure.ps1") `
+        -SourceRoot $source `
+        -Expectation Ready
     $armorContract = Get-Content -LiteralPath (
         Join-Path $restorationRoot (
             [string]$manifest.contracts.p14ArmorMitigationOrdering)
+    ) -Raw | ConvertFrom-Json
+    $nonstandardContract = Get-Content -LiteralPath (
+        Join-Path $restorationRoot (
+            [string]$manifest.contracts.p14NonstandardProfessionMatrixClosure)
     ) -Raw | ConvertFrom-Json
     $deployment = $contract.currentDeploymentEvidence
     $currentBuild = $contract.currentBuildEvidence
@@ -520,8 +560,10 @@ if ($Expectation -eq "Ready")
         [string]$contract.buildEvidence.result -ceq "historical-passed" -and
         [string]$contract.currentBuildEvidence.result -ceq "passed" -and
         [string]$contract.currentDeploymentEvidence.result -ceq "passed" -and
-        [string]$contract.currentDeploymentEvidence.forceLiveAcceptanceOwner -ceq
+        [string]$contract.currentDeploymentEvidence.forceDefenseLiveAcceptanceOwner -ceq
             "p14-armor-mitigation-ordering" -and
+        [string]$contract.currentDeploymentEvidence.forceSpeedLiveAcceptanceOwner -ceq
+            "p14-nonstandard-profession-matrix-closure" -and
         [string]$armorContract.status -ceq "ready" -and
         [string]$armorContract.forceDefenseContract.directSourceCommit -ceq
             $directCommit -and
@@ -545,6 +587,14 @@ if ($Expectation -eq "Ready")
         [long]$armorContract.forceDefenseContract.deployment.liveBinarySizeBytes -eq
             [long]$deployment.liveBinarySizeBytes -and
         [string]$armorContract.forceDefenseContract.live.result -ceq "passed" -and
+        [string]$nonstandardContract.status -ceq "ready" -and
+        [string]$nonstandardContract.forceDefenseRestorationEvidence.
+            directSourceCommit -ceq $directCommit -and
+        [string]$nonstandardContract.forceDefenseRestorationEvidence.
+            forceSpeedLive.result -ceq "passed" -and
+        [string]$nonstandardContract.forceDefenseRestorationEvidence.
+            forceSpeedLive.containerStartedAt -ceq
+            [string]$deployment.containerStartedAt -and
         $contract.requiredBeforeReady.Count -eq 0) "p14.direct-callback.ready-evidence"
 }
 Assert-Contract (-not (Test-Path -LiteralPath (Join-Path $source "Artifacts")) -and

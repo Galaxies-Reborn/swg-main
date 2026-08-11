@@ -762,6 +762,20 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
         [string]$force.build.result -ceq "pending" -and
         [string]::IsNullOrWhiteSpace(
             [string]$force.build.validatedContainerStartedAt) -and
+        [string]$force.build.fullJavaCompile.result -ceq "pending" -and
+        [string]$force.build.sourceWorkParity.result -ceq "pending" -and
+        [int]$force.build.sourceWorkParity.checkedFiles -eq 6 -and
+        [int]$force.build.sourceWorkParity.matchedFiles -eq 0 -and
+        @($force.build.compiledArtifacts.PSObject.Properties |
+            Where-Object {
+                -not [string]::IsNullOrWhiteSpace([string]$_.Value.sha256) -or
+                [long]$_.Value.bytes -ne 0
+            }).Count -eq 0 -and
+        [string]::IsNullOrWhiteSpace([string]$force.build.serverBinary.sha256) -and
+        [string]::IsNullOrWhiteSpace(
+            [string]$force.build.serverBinary.buildIdSha1) -and
+        [long]$force.build.serverBinary.bytes -eq 0 -and
+        [long]$force.build.serverBinary.inode -eq 0 -and
         [string]$force.build.deterministicTableRecompile.result -ceq
             "pending" -and
         -not [bool]$force.build.deterministicTableRecompile.cleanupVerified -and
@@ -770,6 +784,9 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
         -not [bool]$force.build.deterministicTableRecompile.tables.
             "jedi_actions.iff".freshOutputMatchesCanonical -and
         [string]$force.deployment.result -ceq "pending" -and
+        [string]$force.deployment.directSourceCommit -ceq
+            [string]$force.directSourceCommit -and
+        [string]::IsNullOrWhiteSpace([string]$force.deployment.container) -and
         [string]$force.deployment.containerHealth -ceq "pending" -and
         -not [bool]$force.deployment.clusterReadyForPlayers -and
         [int]$force.deployment.liveGameProcessCount -eq 0 -and
