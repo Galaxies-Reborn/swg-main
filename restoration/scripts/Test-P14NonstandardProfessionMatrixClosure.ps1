@@ -23,7 +23,9 @@ $workspaceRoot = Split-Path -Parent (Split-Path -Parent $source)
 $skillPath = Join-Path $source ([string]$contract.sourceFiles.skillTable)
 $commandPath = Join-Path $source ([string]$contract.sourceFiles.commandTable)
 $buffPath = Join-Path $source ([string]$contract.sourceFiles.buffTable)
+$jediActionsPath = Join-Path $source ([string]$contract.sourceFiles.jediActions)
 $jediPath = Join-Path $source ([string]$contract.sourceFiles.jediLibrary)
+$jediBasePath = Join-Path $source ([string]$contract.sourceFiles.jediBase)
 $combatActionsPath = Join-Path $source ([string]$contract.sourceFiles.combatActions)
 $fixturePath = Join-Path $source ([string]$contract.sourceFiles.liveFixture)
 $skillLines = Get-Content $skillPath
@@ -142,6 +144,7 @@ compile_and_compare() {
 }
 command_iff="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
 buff_iff="$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+jedi_actions_iff="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
 compile_and_compare \
     "$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab" \
     "$command_iff" \
@@ -152,8 +155,16 @@ compile_and_compare \
     "$buff_iff" \
     sku.0/sys.shared/compiled/game/datatables/buff/buff.tab \
     sku.0/sys.shared/compiled/game/datatables/buff/buff.iff
-for command_name in forceArmor1 forceArmor2 forceShield1 forceShield2 forceSpeed1 forceSpeed2; do
+compile_and_compare \
+    "$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab" \
+    "$jedi_actions_iff" \
+    sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab \
+    sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff
+for command_name in forceArmor1 forceArmor2 forceShield1 forceShield2 forceSpeed1 forceSpeed2 stopBleeding forceCureDisease forceCurePoison; do
     test "$(strings -a "$command_iff" | grep -Fxc "$command_name" || true)" -eq 2
+done
+for cure_name in stopBleeding forceCureDisease forceCurePoison; do
+    test "$(strings -a "$jedi_actions_iff" | grep -Fxc "$cure_name" || true)" -ge 1
 done
 for buff_name in forceSpeed forceSpeed_1; do
     test "$(strings -a "$buff_iff" | grep -Fxc "$buff_name" || true)" -ge 1
@@ -296,7 +307,7 @@ Assert-JediGrant ($actionableGap.Count -eq [int]$grant.actionableGapBefore.count
     $residualGap.Count -eq [int]$grant.residualActionableGap.count -and
     (Get-NameSetSha256 $residualGap) -ceq
         [string]$grant.residualActionableGap.sha256) `
-    "p14.nonstandard.jedi-grants.112-to-6-to-106-boundary"
+    "p14.nonstandard.jedi-grants.112-to-9-to-103-boundary"
 Assert-JediGrant ($preexistingActions.Count -eq [int]$grant.preexistingRegisteredActions.count -and
     (Get-NameSetSha256 $preexistingActions) -ceq
         [string]$grant.preexistingRegisteredActions.sha256 -and
@@ -304,7 +315,7 @@ Assert-JediGrant ($preexistingActions.Count -eq [int]$grant.preexistingRegistere
     $registeredActions.Count -eq [int]$grant.registeredActionsAfter.count -and
     (Get-NameSetSha256 $registeredActions) -ceq
         [string]$grant.registeredActionsAfter.sha256) `
-    "p14.nonstandard.jedi-grants.current-registration-is-two-plus-six"
+    "p14.nonstandard.jedi-grants.current-registration-is-two-plus-nine"
 
 $skillGrantRowsExact = $true
 foreach ($expected in $grant.skillGrantRows)
@@ -327,7 +338,7 @@ foreach ($expected in $grant.skillGrantRows)
         (Test-ExactOrdinalNames $actualCommands $expected.commands)
 }
 Assert-JediGrant $skillGrantRowsExact `
-    "p14.nonstandard.jedi-grants.exact-six-skill-grant-rows"
+    "p14.nonstandard.jedi-grants.exact-nine-skill-grant-rows"
 
 $commandRowsExact = $true
 foreach ($expected in $grant.commandRows)
@@ -357,15 +368,38 @@ foreach ($expected in $grant.commandRows)
         [string]$parsed[0].invalidWeapon -ceq "NONE"
 }
 Assert-JediGrant $commandRowsExact `
-    "p14.nonstandard.jedi-grants.exact-six-publish-command-rows"
+    "p14.nonstandard.jedi-grants.exact-nine-publish-command-rows"
 
 $provenance = $grant.commandRowProvenance
 $legacyTable = Join-Path $workspaceRoot ([string]$provenance.legacyTable)
+$normalizedTable = Join-Path $workspaceRoot `
+    ([string]$provenance.publish12NormalizedTable)
 $publishExtract = Join-Path $workspaceRoot ([string]$provenance.publish12Extract)
+$normalizedLines = if (Test-Path -LiteralPath $normalizedTable -PathType Leaf)
+{
+    @(Get-Content -LiteralPath $normalizedTable)
+}
+else { @() }
+$publishRowsExact = $true
+foreach ($expected in $provenance.publish12Rows)
+{
+    $raw = @($normalizedLines | Where-Object {
+        ($_ -split "`t", 2)[0] -ceq [string]$expected.name
+    })
+    $publishRowsExact = $publishRowsExact -and $raw.Count -eq 1 -and
+        ($raw[0] -split "`t", -1).Count -eq [int]$expected.columns -and
+        (Get-TextSha256 $raw[0]) -ceq [string]$expected.rawRowSha256
+}
 Assert-JediGrant ((Test-Path -LiteralPath $legacyTable -PathType Leaf) -and
     (Get-Item -LiteralPath $legacyTable).Length -eq [long]$provenance.legacyTableBytes -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath $legacyTable).Hash.ToLowerInvariant() -ceq
         [string]$provenance.legacyTableSha256 -and
+    (Test-Path -LiteralPath $normalizedTable -PathType Leaf) -and
+    (Get-Item -LiteralPath $normalizedTable).Length -eq
+        [long]$provenance.publish12NormalizedTableBytes -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $normalizedTable).Hash.ToLowerInvariant() -ceq
+        [string]$provenance.publish12NormalizedTableSha256 -and
+    $publishRowsExact -and
     (Test-Path -LiteralPath $publishExtract -PathType Leaf) -and
     (Get-Item -LiteralPath $publishExtract).Length -eq [long]$provenance.publish12ExtractBytes -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath $publishExtract).Hash.ToLowerInvariant() -ceq
@@ -484,6 +518,155 @@ foreach ($name in @("forceSpeed1", "forceSpeed2"))
         "p14.nonstandard.force-speed.$name.direct-fail-closed-callback"
 }
 
+$forceCure = $contract.forceDefenseRestorationEvidence.forceCure
+$jediActionLines = @(Get-Content -LiteralPath $jediActionsPath)
+$jediActionRows = @(Restoration.Common\Import-SwgTab -Path $jediActionsPath)
+$cureNames = @($forceCure.commands | ForEach-Object { [string]$_.command })
+Assert-JediGrant ((Test-ExactOrdinalNames $cureNames @(
+        "stopBleeding", "forceCureDisease", "forceCurePoison")) -and
+    -not ($restoredActions -ccontains [string]$forceCure.excludedAction) -and
+    -not $registeredCommandSet.Contains([string]$forceCure.excludedAction) -and
+    [double]$forceCure.timingAdaptation.publish12DefaultAndExecuteSeconds -eq 1.5 -and
+    [double]$forceCure.timingAdaptation.core3LuaDefaultSeconds -eq 2.0 -and
+    [double]$forceCure.timingAdaptation.implementedSeconds -eq 1.5) `
+    "p14.nonstandard.force-cure.exact-command-slice-and-timing-adaptation"
+
+$cureRowsExact = $true
+foreach ($expected in $forceCure.commands)
+{
+    $raw = @($jediActionLines | Where-Object {
+        ($_ -split "`t", 2)[0] -ceq [string]$expected.command
+    })
+    $parsed = @($jediActionRows | Where-Object {
+        [string]$_.actionName -ceq [string]$expected.command
+    })
+    $healColumn = switch ([string]$expected.command)
+    {
+        "stopBleeding" { "intHealBleeding" }
+        "forceCureDisease" { "intHealDisease" }
+        "forceCurePoison" { "intHealPoison" }
+    }
+    $cureRowsExact = $cureRowsExact -and $raw.Count -eq 1 -and
+        ($raw[0] -split "`t", -1).Count -eq 47 -and
+        (Get-TextSha256 $raw[0]) -ceq [string]$expected.jediActionRowSha256 -and
+        $parsed.Count -eq 1 -and
+        [int]$parsed[0].intJediPowerCost -eq [int]$expected.baseForceCost -and
+        [int]$parsed[0].($healColumn) -eq [int]$expected.healForceCost -and
+        ([int]$parsed[0].intJediPowerCost + [int]$parsed[0].($healColumn)) -eq 75 -and
+        [int]$parsed[0].intVisibilityValue -eq 10 -and
+        [int]$parsed[0].intVisibilityRange -eq 32 -and
+        [double]$parsed[0].fltRange -eq 32.0 -and
+        [double]$parsed[0].actionCost -eq 0.0 -and
+        [double]$parsed[0].mindCost -eq 0.0 -and
+        [string]$parsed[0].combatActionAnimation -ceq "force_healing_1" -and
+        [string]$parsed[0].clientEffectFile -ceq
+            "clienteffect/pl_force_heal_self.cef"
+}
+Assert-JediGrant $cureRowsExact `
+    "p14.nonstandard.force-cure.exact-jedi-action-rows"
+
+$jediBaseText = Get-Content -LiteralPath $jediBasePath -Raw
+$cureHelper = Get-BracedSurface $jediBaseText `
+    "public static boolean performPrecuForceCureCommand"
+$targetHelper = Get-BracedSurface $jediBaseText `
+    "private static obj_id getPrecuForceCureTarget"
+$resultHelper = Get-BracedSurface $jediBaseText `
+    "private static void sendPrecuForceCureResult"
+$effectHelper = Get-BracedSurface $jediBaseText `
+    "private static void playPrecuForceCureEffect"
+$dotGateIndex = $cureHelper.IndexOf(
+    "dotsBefore == null || dotsBefore.length == 0 || totalForceCost >= currentForce",
+    [StringComparison]::Ordinal)
+$reduceIndex = $cureHelper.IndexOf(
+    "dot.reduceDotTypeStrength", [StringComparison]::Ordinal)
+$dotsAfterIndex = $cureHelper.IndexOf(
+    "String[] dotsAfter = dot.getAllDotsType", [StringComparison]::Ordinal)
+$fullyRemovedIndex = $cureHelper.IndexOf(
+    "boolean fullyRemoved = dotsAfter == null || dotsAfter.length == 0",
+    [StringComparison]::Ordinal)
+$resultIndex = $cureHelper.IndexOf(
+    "sendPrecuForceCureResult", [StringComparison]::Ordinal)
+$cureEffectIndex = $cureHelper.IndexOf(
+    "playPrecuForceCureEffect", [StringComparison]::Ordinal)
+$debitIndex = $cureHelper.IndexOf(
+    "alterForcePower(player, -totalForceCost)", [StringComparison]::Ordinal)
+$visibilityIndex = $cureHelper.IndexOf(
+    "jedi.jediActionPerformed(", [StringComparison]::Ordinal)
+$pvpHelpIndex = $cureHelper.IndexOf(
+    "pvpHelpPerformed(player, healTarget)", [StringComparison]::Ordinal)
+$hardFailIndex = $targetHelper.IndexOf(
+    "(!isPlayer(target) && !creatureOrNpcPet) || isDead(target)",
+    [StringComparison]::Ordinal)
+$pvpFallbackIndex = $targetHelper.IndexOf(
+    "if (pvpCanAttack(player, target) || !pvpCanHelp(player, target)",
+    [StringComparison]::Ordinal)
+$selfEffectBranch = Get-BracedSurface $effectHelper "if (target == player)"
+$selfEffectIndex = $effectHelper.IndexOf(
+    "playClientEffectObj(player, clientEffect, player", [StringComparison]::Ordinal)
+$remoteEffectIndex = $effectHelper.IndexOf(
+    "doCombatResults(combatAnimation", [StringComparison]::Ordinal)
+Assert-JediGrant ($cureHelper.Length -gt 0 -and
+    $targetHelper.Length -gt 0 -and $resultHelper.Length -gt 0 -and
+    $effectHelper.Length -gt 0 -and
+    $jediBaseText.Contains("PRECU_FORCE_CURE_RANGE = 32") -and
+    $jediBaseText.Contains("PRECU_FORCE_CURE_TOTAL_COST = 75") -and
+    $jediBaseText.Contains("PRECU_BLEED_HEAL_STRENGTH = 250") -and
+    $jediBaseText.Contains("PRECU_DISEASE_HEAL_STRENGTH = 200") -and
+    $jediBaseText.Contains("PRECU_POISON_HEAL_STRENGTH = 250") -and
+    $cureHelper.Contains("currentForce < baseForceCost") -and
+    $cureHelper.Contains('new string_id("jedi_spam", "no_force_power")') -and
+    $dotGateIndex -ge 0 -and $dotGateIndex -lt $reduceIndex -and
+    $reduceIndex -lt $dotsAfterIndex -and $dotsAfterIndex -lt $fullyRemovedIndex -and
+    $fullyRemovedIndex -lt $resultIndex -and $resultIndex -lt $cureEffectIndex -and
+    $cureEffectIndex -lt $debitIndex -and $debitIndex -lt $visibilityIndex -and
+    $visibilityIndex -lt $pvpHelpIndex -and
+    ([regex]::Matches($cureHelper,
+        [regex]::Escape("dot.reduceDotTypeStrength"))).Count -eq 1 -and
+    ([regex]::Matches($cureHelper,
+        [regex]::Escape("alterForcePower(player, -totalForceCost)"))).Count -eq 1 -and
+    ([regex]::Matches($cureHelper,
+        [regex]::Escape("jedi.jediActionPerformed("))).Count -eq 1 -and
+    $cureHelper.Contains("armor.SCRIPTVAR_ARMOR_COUNT") -and
+    $cureHelper.Contains("buff.isParalyzed(player)") -and
+    $cureHelper.Contains("pet_lib.isMounted(player)") -and
+    $cureHelper.Contains("getDistance(player, healTarget)") -and
+    $cureHelper.Contains("canSee(player, healTarget)") -and
+    -not $cureHelper.Contains("getForceRank") -and
+    -not $cureHelper.Contains("alterAction") -and
+    -not $cureHelper.Contains("alterMind") -and
+    $hardFailIndex -ge 0 -and $hardFailIndex -lt $pvpFallbackIndex -and
+    $targetHelper.Contains("return player;") -and
+    $targetHelper.Contains('utils.hasScriptVar(target, "noBeneficialJediHelp")') -and
+    $resultHelper.Contains('(fullyRemoved ? "stop_" : "staunch_")') -and
+    $selfEffectBranch.Contains("playClientEffectObj(player, clientEffect, player") -and
+    $selfEffectBranch.Contains("return;") -and
+    $selfEffectIndex -ge 0 -and $remoteEffectIndex -gt
+        ($effectHelper.IndexOf($selfEffectBranch, [StringComparison]::Ordinal) +
+            $selfEffectBranch.Length) -and
+    ([regex]::Matches($cureHelper,
+        'if \(healTarget != player\)\s*\{\s*pvpHelpPerformed\(player, healTarget\);')).Count -eq 1 -and
+    -not $cureHelper.Contains("playJediActionEffect") -and
+    -not $cureHelper.Contains("messageTo(") -and
+    -not $effectHelper.Contains("playJediActionEffect") -and
+    -not $effectHelper.Contains("messageTo(")) `
+    "p14.nonstandard.force-cure.exact-helper-target-resource-message-effect-boundary"
+
+foreach ($name in $cureNames)
+{
+    $callback = Get-BracedSurface $combatActionsText (
+        "public int $name(obj_id self, obj_id target, String params, " +
+        "float defaultTime)")
+    $delegate = 'script.systems.jedi.jedi_base.performPrecuForceCureCommand(self, target, "' +
+        $name + '")'
+    Assert-JediGrant ($callback.Length -gt 0 -and
+        ([regex]::Matches($callback, [regex]::Escape($delegate))).Count -eq 1 -and
+        $callback.IndexOf($delegate, [StringComparison]::Ordinal) -lt
+            $callback.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal) -and
+        $callback.IndexOf("return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal) -lt
+            $callback.IndexOf("return SCRIPT_CONTINUE;", [StringComparison]::Ordinal)) `
+        "p14.nonstandard.force-cure.$name.direct-fail-closed-callback"
+}
+
 $stf = $forceSpeed.publish12StringTable
 $stfPath = Join-Path $workspaceRoot ([string]$stf.path)
 $stfBytes = if (Test-Path -LiteralPath $stfPath -PathType Leaf)
@@ -503,6 +686,28 @@ Assert-JediGrant ($stfBytes.Length -eq [int]$stf.bytes -and
     @($stfKeys | Where-Object { -not $stfAscii.Contains([string]$_) }).Count -eq 0) `
     "p14.nonstandard.force-speed.publish12-localization-provenance"
 
+$cureLocalizationExact = $true
+foreach ($tableProperty in $forceCure.publish12StringTables.PSObject.Properties)
+{
+    $table = $tableProperty.Value
+    $tablePath = Join-Path $workspaceRoot ([string]$table.path)
+    $tableBytes = if (Test-Path -LiteralPath $tablePath -PathType Leaf)
+    {
+        [IO.File]::ReadAllBytes($tablePath)
+    }
+    else { [byte[]]@() }
+    $tableAscii = [Text.Encoding]::ASCII.GetString($tableBytes)
+    $cureLocalizationExact = $cureLocalizationExact -and
+        $tableBytes.Length -eq [int]$table.bytes -and
+        (Get-FileHash -Algorithm SHA256 -LiteralPath $tablePath).Hash.ToLowerInvariant() -ceq
+            [string]$table.sha256 -and
+        @($table.keys | Where-Object {
+            -not $tableAscii.Contains([string]$_)
+        }).Count -eq 0
+}
+Assert-JediGrant $cureLocalizationExact `
+    "p14.nonstandard.force-cure.publish12-localization-provenance"
+
 $forceEvidence = $contract.forceDefenseRestorationEvidence
 $dsrcRoot = Join-Path $source "dsrc"
 $dsrcCommit = (& git -C $dsrcRoot rev-parse HEAD 2>$null | Out-String).Trim()
@@ -513,8 +718,12 @@ Assert-JediGrant ($dsrcCommit -ceq [string]$forceEvidence.directSourceCommit -an
         [string]$forceEvidence.sourceSha256."command_table.tab" -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath $buffPath).Hash.ToLowerInvariant() -ceq
         [string]$forceEvidence.sourceSha256."buff.tab" -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $jediActionsPath).Hash.ToLowerInvariant() -ceq
+        [string]$forceEvidence.sourceSha256."jedi_actions.tab" -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath $jediPath).Hash.ToLowerInvariant() -ceq
         [string]$forceEvidence.sourceSha256."jedi.java" -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath $jediBasePath).Hash.ToLowerInvariant() -ceq
+        [string]$forceEvidence.sourceSha256."jedi_base.java" -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath $combatActionsPath).Hash.ToLowerInvariant() -ceq
         [string]$forceEvidence.sourceSha256."combat_actions.java") `
     "p14.nonstandard.jedi-grants.direct-source-pin"
@@ -594,7 +803,9 @@ if ($Expectation -in @("Build", "Ready"))
     $canonicalArtifactPaths = [ordered]@{
         "command_table.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
         "buff.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+        "jedi_actions.iff" = "/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
         "jedi.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class"
+        "jedi_base.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.class"
         "combat_actions.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class"
     }
     $containerProperty = $currentBuild.PSObject.Properties['container']
@@ -607,12 +818,14 @@ if ($Expectation -in @("Build", "Ready"))
         [string]$currentBuild.result -ceq "passed" -and
         [string]$currentBuild.sourceWorkParity.result -ceq "passed" -and
         [string]$currentBuild.fullJavaCompile.result -ceq "passed" -and
-        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 4 -and
-        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 4 -and
+        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 6 -and
+        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 6 -and
         (Test-ExactOrdinalNames $currentBuild.sourceWorkParity.files @(
             [string]$contract.sourceFiles.commandTable,
             [string]$contract.sourceFiles.buffTable,
+            [string]$contract.sourceFiles.jediActions,
             [string]$contract.sourceFiles.jediLibrary,
+            [string]$contract.sourceFiles.jediBase,
             [string]$contract.sourceFiles.combatActions
         )) -and
         @("implemented-build-verified-live-pending", "ready") -ccontains
@@ -620,7 +833,7 @@ if ($Expectation -in @("Build", "Ready"))
         (Test-ExactOrdinalNames $artifactNames $currentBuild.requiredArtifacts) -and
         (Test-ExactOrdinalNames $requiredPathNames $currentBuild.requiredArtifacts) -and
         (Test-ExactOrdinalNames $requiredPathNames $canonicalArtifactPaths.Keys) -and
-        $requiredPaths.Count -eq 4 -and
+        $requiredPaths.Count -eq 6 -and
         @(Get-OrdinalNames $requiredPaths).Count -eq $requiredPaths.Count -and
         -not [string]::IsNullOrWhiteSpace($container)
     )
@@ -678,6 +891,9 @@ if ($Expectation -in @("Build", "Ready"))
         "buff.iff" = @(
             "/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
             [string]$forceEvidence.sourceSha256."buff.tab")
+        "jedi_actions.iff" = @(
+            "/swg-precu/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab",
+            [string]$forceEvidence.sourceSha256."jedi_actions.tab")
     }
     $recompileReady = (
         [string]$recompile.result -ceq "passed" -and
@@ -685,7 +901,7 @@ if ($Expectation -in @("Build", "Ready"))
             "/swg-precu/build/bin/DataTableTool" -and
         [string]$recompile.temporaryRoot -ceq "/dev/shm" -and
         [bool]$recompile.cleanupVerified -and
-        $recompileTables.Count -eq 2 -and
+        $recompileTables.Count -eq 3 -and
         (Test-ExactOrdinalNames ($recompileTables | ForEach-Object {
             [string]$_.Name
         }) $expectedTableSources.Keys))
@@ -712,7 +928,7 @@ if ($Expectation -in @("Build", "Ready"))
             "/swg-precu/$normalizedPath"
         if ($LASTEXITCODE -eq 0) { ++$parityMatches }
     }
-    $buildReady = $buildReady -and $parityMatches -eq 4
+    $buildReady = $buildReady -and $parityMatches -eq 6
     if ($buildReady)
     {
         $buildReady = Test-ForceTablesFreshRecompile -Container $container
@@ -746,13 +962,16 @@ if ($Expectation -in @("Build", "Ready"))
                     "implemented-build-verified-live-pending" -and
                 [string]$forceEvidence.live.result -ceq "pending" -and
                 [string]$forceEvidence.forceSpeedLive.result -ceq "pending" -and
-                @($contract.requiredBeforeReady).Count -eq 2) -or
+                [string]$forceEvidence.forceCureLive.result -ceq "pending" -and
+                @($contract.requiredBeforeReady).Count -eq 3) -or
              ([string]$contract.status -ceq "ready" -and
                 [string]$forceEvidence.live.result -ceq "passed" -and
                 [string]$forceEvidence.forceSpeedLive.result -ceq "passed" -and
+                [string]$forceEvidence.forceCureLive.result -ceq "passed" -and
                 @($contract.requiredBeforeReady).Count -eq 0))
         foreach ($artifactName in @(
-            "buff.iff", "jedi.class", "combat_actions.class"))
+            "buff.iff", "jedi_actions.iff", "jedi.class",
+            "combat_actions.class"))
         {
             $ownerArtifact = $currentBuild.compiledArtifacts.($artifactName)
             $armorArtifact = $armorForce.build.compiledArtifacts.($artifactName)
@@ -774,13 +993,15 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
     if ([string]$forceEvidence.build.result -cne "pending" -or
         [string]$forceEvidence.build.fullJavaCompile.result -cne "pending" -or
         [string]$forceEvidence.build.sourceWorkParity.result -cne "pending" -or
-        [int]$forceEvidence.build.sourceWorkParity.checkedFiles -ne 4 -or
+        [int]$forceEvidence.build.sourceWorkParity.checkedFiles -ne 6 -or
         [int]$forceEvidence.build.sourceWorkParity.matchedFiles -ne 0 -or
         -not (Test-ExactOrdinalNames `
             $forceEvidence.build.sourceWorkParity.files @(
                 [string]$contract.sourceFiles.commandTable,
                 [string]$contract.sourceFiles.buffTable,
+                [string]$contract.sourceFiles.jediActions,
                 [string]$contract.sourceFiles.jediLibrary,
+                [string]$contract.sourceFiles.jediBase,
                 [string]$contract.sourceFiles.combatActions
             )) -or
         @($forceEvidence.build.compiledArtifacts.PSObject.Properties |
@@ -795,6 +1016,8 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
             "command_table.iff".freshOutputMatchesCanonical -or
         [bool]$forceEvidence.build.deterministicTableRecompile.tables.
             "buff.iff".freshOutputMatchesCanonical -or
+        [bool]$forceEvidence.build.deterministicTableRecompile.tables.
+            "jedi_actions.iff".freshOutputMatchesCanonical -or
         [string]$forceEvidence.live.result -cne "pending" -or
         [string]$forceEvidence.live.acceptanceOwner -cne
             "p14-armor-mitigation-ordering" -or
@@ -807,7 +1030,13 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
         [string]$forceEvidence.forceSpeedLive.directSourceCommit -cne
             [string]$forceEvidence.directSourceCommit -or
         @($forceEvidence.forceSpeedLive.activation).Count -ne 0 -or
-        @($contract.requiredBeforeReady).Count -ne 3)
+        [string]$forceEvidence.forceCureLive.result -cne "pending" -or
+        [string]$forceEvidence.forceCureLive.acceptanceOwner -cne
+            "p14-nonstandard-profession-matrix-closure" -or
+        [string]$forceEvidence.forceCureLive.directSourceCommit -cne
+            [string]$forceEvidence.directSourceCommit -or
+        @($forceEvidence.forceCureLive.commands).Count -ne 0 -or
+        @($contract.requiredBeforeReady).Count -ne 4)
     {
         throw "Pending Force command source/build/live evidence is not truthful."
     }
@@ -881,6 +1110,52 @@ if ($Expectation -eq "Ready")
     {
         throw "Nonstandard Ready lacks exact reversible Force Speed live evidence."
     }
+    $cureLive = $forceEvidence.forceCureLive
+    $cureLiveNames = @($cureLive.commands | ForEach-Object {
+        [string]$_.command
+    })
+    if ([string]$cureLive.result -cne "passed" -or
+        [string]$cureLive.acceptanceOwner -cne
+            "p14-nonstandard-profession-matrix-closure" -or
+        [string]$cureLive.directSourceCommit -cne
+            [string]$forceEvidence.directSourceCommit -or
+        [string]::IsNullOrWhiteSpace([string]$cureLive.containerStartedAt) -or
+        [string]$cureLive.containerStartedAt -cne
+            [string]$armorForce.deployment.containerStartedAt -or
+        [string]::IsNullOrWhiteSpace([string]$cureLive.sessionId) -or
+        [long]$cureLive.healerObjectId -le 0 -or
+        [long]$cureLive.targetObjectId -le 0 -or
+        -not (Test-ExactOrdinalNames $cureLiveNames @(
+            "stopBleeding", "forceCureDisease", "forceCurePoison")) -or
+        -not [bool]$cureLive.threshold.force75Rejected -or
+        -not [bool]$cureLive.threshold.force76Admitted -or
+        [int]$cureLive.threshold.fixedDebit -ne 75 -or
+        [int]$cureLive.threshold.noDotDebit -ne 0 -or
+        [int]$cureLive.threshold.actionDebit -ne 0 -or
+        [int]$cureLive.threshold.mindDebit -ne 0 -or
+        -not [bool]$cureLive.threshold.frsIndependent -or
+        -not [bool]$cureLive.targeting.selfFallbackVerified -or
+        -not [bool]$cureLive.targeting.hardFailTargetsVerified -or
+        -not [bool]$cureLive.targeting.armorMedicalMountParalysisVerified -or
+        -not [bool]$cureLive.targeting.range32Verified -or
+        -not [bool]$cureLive.targeting.lineOfSightVerified -or
+        -not [bool]$cureLive.targeting.pvpHelpOnRemoteSuccess -or
+        -not [bool]$cureLive.outcomes.strengths250_200_250Verified -or
+        -not [bool]$cureLive.outcomes.fullRemovalMessageVerified -or
+        -not [bool]$cureLive.outcomes.partialReductionMessagesVerified -or
+        -not [bool]$cureLive.outcomes.insufficientForceMessageSplitVerified -or
+        -not [bool]$cureLive.outcomes.noDotNoDamageMessageVerified -or
+        -not [bool]$cureLive.outcomes.selfEffectVerified -or
+        -not [bool]$cureLive.outcomes.remoteAnimationVerified -or
+        -not [bool]$cureLive.outcomes.visibility10Range32Verified -or
+        -not [bool]$cureLive.cleanup.commandsGrantedAndRevokedExactly -or
+        -not [bool]$cureLive.cleanup.dotsRemoved -or
+        -not [bool]$cureLive.cleanup.forcePowerRestored -or
+        -not [bool]$cureLive.cleanup.skillStateRestored -or
+        -not [bool]$cureLive.cleanup.serverHealthy)
+    {
+        throw "Nonstandard Ready lacks exact reversible Force cure live evidence."
+    }
     $runtime = $contract.runtimeEvidence
     $proof = @($runtime.familyProof)
     $proofFamilies = @($proof | ForEach-Object { [string]$_.family })
@@ -892,6 +1167,7 @@ if ($Expectation -eq "Ready")
         [string]$forceEvidence.build.result -ceq "passed" -and
         [string]$forceEvidence.live.result -ceq "passed" -and
         [string]$forceEvidence.forceSpeedLive.result -ceq "passed" -and
+        [string]$forceEvidence.forceCureLive.result -ceq "passed" -and
         [string]$runtime.result -ceq "passed" -and
         $proof.Count -eq 21 -and
         ((($proofFamilies | Sort-Object) -join ([char]0)) -ceq

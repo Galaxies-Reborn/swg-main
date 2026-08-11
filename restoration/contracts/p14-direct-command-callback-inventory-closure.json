@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-direct-command-callback-inventory-closure",
-  "status": "implemented-build-verified-live-pending",
-  "scope": "Close the residual direct combat-command callback audit by classifying every command-signature handler that intentionally bypasses combatStandardAction, authenticating all player-retirement boundaries, and preserving Publish 14.1/system and retained expansion-content callbacks.",
+  "status": "implemented-build-pending",
+  "scope": "Close the residual direct combat-command callback audit by classifying every command-signature handler that intentionally bypasses combatStandardAction, including the exact stopBleeding/forceCureDisease/forceCurePoison callbacks, authenticating all player-retirement boundaries, and preserving Publish 14.1/system and retained expansion-content callbacks.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -10,18 +10,18 @@
     "retainedContentBoundary": "Spy device interaction, restored PRE-CU faction reinforcements, server-only heroic actions, and Hoth vehicle/content commands remain available; NGE profession, Beast, and droid player runtime stays fail-closed."
   },
   "expected": {
-    "authoritativeSourceFiles": 8,
-    "commandSignatureHandlers": 1281,
+    "authoritativeSourceFiles": 10,
+    "commandSignatureHandlers": 1284,
     "standardCombatHandlers": 1196,
-    "directHandlers": 85,
-    "primaryCommandHandlers": 77,
+    "directHandlers": 88,
+    "primaryCommandHandlers": 80,
     "rowlessInternalHandlers": [
       "combatTarget",
       "failDefaultAttack"
     ],
     "failScriptHandlers": {
       "failProc": 78,
-      "failSpecialAttack": 1365,
+      "failSpecialAttack": 1368,
       "failThrowGrenade": 8,
       "kneelFail": 1,
       "proneFail": 1,
@@ -43,6 +43,8 @@
       "forceShield2",
       "forceSpeed1",
       "forceSpeed2",
+      "forceCureDisease",
+      "forceCurePoison",
       "gallop",
       "gallopStop",
       "kneel",
@@ -50,7 +52,8 @@
       "prone",
       "proneFail",
       "stand",
-      "standFail"
+      "standFail",
+      "stopBleeding"
     ],
     "explicitPlayerRetirementHandlers": [
       "bountycheck",
@@ -143,87 +146,96 @@
     "unclassifiedDirectHandlers": 0,
     "playerRetiredDirectHandlers": 46,
     "retainedDirectHandlers": 16,
-    "precuAndSystemDirectHandlers": 23
+    "precuAndSystemDirectHandlers": 26
   },
   "buildEvidence": {
-    "scope": "Current direct-source classification with historical pre-Force-defense and pre-Force-Speed compiled deployment fields retained below.",
+    "scope": "Current direct-source classification with historical pre-Force-cure compiled deployment fields retained below.",
     "sourceMode": "direct-branch",
-    "directSourceCommit": "6955b771580e324b770c1a8d809a5d094e75a75a",
+    "directSourceCommit": "10f2b88285969329effcfc3aba975c17118fd0b4",
     "sourceSha256": {
-      "systems/combat/combat_actions.java": "09cae22c3126c5a9d8ba5273c0216a7a14af1b6f0499b0556bf232cd488ce0c8",
+      "systems/combat/combat_actions.java": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
       "systems/combat/combat_base.java": "5cdeeacad424839de68aa4a5e1be2e7cbb5fac6d5d6ea049639843ae9fdbc514",
+      "systems/jedi/jedi_base.java": "b3ab72431e94a5c6a09e6203a018827d364a18f22a640978201c67f4afc84064",
       "library/beast_lib.java": "4b7cf552ed93a474faf051244a5aa2acf721ce37a59539f129bee6b9d2820e41",
-      "command/command_table.tab": "75a1079922ffe60814ecfaa370a0dcdb8ac77c1eecb5f10879f2d914de54698b",
+      "command/command_table.tab": "d8ed8cbb286f5bd7ef698fecb44ca297d93fb4c2e5c7d198bb6de5f73b119c8d",
+      "jedi/jedi_actions.tab": "1f6363b77c1878586e7fdc475b398d05593bb4cc779a5d679aa8c629fefae68f",
       "combat/combat_data.tab": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
       "skill/skills.tab": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "terminal/terminal_character_builder.java": "5bdfde35e321e7846ceb59bcf85e236de1ff21b16839d07cebf8f1bae0937945",
       "test/qatool.java": "a7400e5ffbd7d790fde281a40b15dc2d364f6fede1c80e5d24f5737900edf4c4"
     },
-    "classificationAudit": "source-passed exact 1281-handler inventory: 1196 standard handlers, including the server-authenticated unarmed combo wrapper, and a disjoint 85-handler direct inventory containing 46 player-retired, 23 PRE-CU/system (including four Force-defense and two Force-Speed callbacks), 16 retained content, and zero unclassified callbacks",
-    "deployedSourceAuthentication": "Historical only: direct source 67922cb1dc9416e33f370007b997b165f73e6174 was authenticated by the healthy canonical x64 deployment started 2026-08-09T22:51:06.325781571Z; these historical fields do not authenticate current direct source 6955b771580e324b770c1a8d809a5d094e75a75a.",
+    "classificationAudit": "source-passed exact 1284-handler inventory: 1196 standard handlers, including the server-authenticated unarmed combo wrapper, and a disjoint 88-handler direct inventory containing 46 player-retired, 26 PRE-CU/system (including four Force-defense, two Force-Speed, and three Force-cure callbacks), 16 retained content, and zero unclassified callbacks",
+    "deployedSourceAuthentication": "Historical only: direct source 67922cb1dc9416e33f370007b997b165f73e6174 was authenticated by the healthy canonical x64 deployment started 2026-08-09T22:51:06.325781571Z; these historical fields do not authenticate current direct source 10f2b88285969329effcfc3aba975c17118fd0b4.",
     "compiledCombatActionsSha256": "a50d4207df6b1924f43c01802833133329bfa943e80f7ad4cea99bf43c50f5c2",
     "serverBinarySha256": "3182263cc9d39df49ebe1d11b70064ef66d050a74afc9c59fbad964e2e08c664",
     "serverBinaryBuildId": "186028aec5352e367a12a74626984a4a5a7aeeb1",
     "result": "historical-passed"
   },
   "currentBuildEvidence": {
-    "result": "passed",
-    "container": "swg-precu",
-    "directSourceCommit": "6955b771580e324b770c1a8d809a5d094e75a75a",
-    "validatedContainerStartedAt": "2026-08-11T19:33:27.545182504Z",
-    "fullJavaCompile": {"result":"passed"},
+    "result": "pending",
+    "container": "",
+    "directSourceCommit": "10f2b88285969329effcfc3aba975c17118fd0b4",
+    "validatedContainerStartedAt": "",
+    "fullJavaCompile": {"result":"pending"},
     "sourceWorkParity": {
-      "result":"passed",
-      "checkedFiles":3,
-      "matchedFiles":3,
+      "result":"pending",
+      "checkedFiles":5,
+      "matchedFiles":0,
       "files":[
         "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
         "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
-        "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+        "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.java",
+        "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+        "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
       ]
     },
-    "requiredArtifacts": ["combat_actions.class","command_table.iff"],
+    "requiredArtifacts": ["combat_actions.class","jedi_base.class","command_table.iff","jedi_actions.iff"],
     "requiredArtifactPaths": {
       "combat_actions.class":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class",
-      "command_table.iff":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+      "jedi_base.class":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.class",
+      "command_table.iff":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff",
+      "jedi_actions.iff":"/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
     },
     "compiledArtifacts": {
-      "combat_actions.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class","sha256":"8897d436301115665a21be2abd59912adb92e7866470debe41c678ca4707f2ff","bytes":323746},
-      "command_table.iff":{"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff","sha256":"c6afcab2b73fb99ac4fe0b7b5857a2470b4d7b563b8457b60ffdcb3bf05462e6","bytes":882430}
+      "combat_actions.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class","sha256":"","bytes":0},
+      "jedi_base.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.class","sha256":"","bytes":0},
+      "command_table.iff":{"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff","sha256":"","bytes":0},
+      "jedi_actions.iff":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff","sha256":"","bytes":0}
     },
     "compiledDataBuildOwner": "p14-nonstandard-profession-matrix-closure",
     "serverBinary": {
       "path":"/swg-precu/build/bin/SwgGameServer",
-      "sha256":"d1e2b7e9267de79beb5ac269007375ffc54a8d85f40ec545d51c8e674e44b425",
-      "buildIdSha1":"c4593d1c99ad9c1e2ebd620b054c341c40f85e46",
-      "bytes":22587656,
-      "inode":12141822
+      "sha256":"",
+      "buildIdSha1":"",
+      "bytes":0,
+      "inode":0
     }
   },
   "currentDeploymentEvidence": {
-    "result":"passed",
-    "directSourceCommit":"6955b771580e324b770c1a8d809a5d094e75a75a",
-    "container":"swg-precu",
-    "containerId":"bfc5d86014f2ab2570558541b13df6ff7db4c20547fca49c5648f3f51bebec7e",
-    "containerImage":"swg-precu-server-x64:local",
-    "containerImageId":"sha256:666082edac4672ecfc6b908235bb34437118176f83bb71f496ed6dc997b64874",
-    "containerStartedAt":"2026-08-11T19:33:27.545182504Z",
-    "containerHealth":"healthy",
-    "clusterReadyForPlayers":true,
-    "liveGameProcessCount":15,
-    "liveGameProcessPids":[383,384,385,386,387,388,389,390,391,414,415,416,417,418,419],
-    "allLiveGameProcessesMatchBinary":true,
+    "result":"pending",
+    "directSourceCommit":"10f2b88285969329effcfc3aba975c17118fd0b4",
+    "container":"",
+    "containerId":"",
+    "containerImage":"",
+    "containerImageId":"",
+    "containerStartedAt":"",
+    "containerHealth":"pending",
+    "clusterReadyForPlayers":false,
+    "liveGameProcessCount":0,
+    "liveGameProcessPids":[],
+    "allLiveGameProcessesMatchBinary":false,
     "liveBinaryPath":"/swg-precu/build/bin/SwgGameServer",
-    "liveBinaryInode":12141822,
-    "liveBinarySizeBytes":22587656,
+    "liveBinaryInode":0,
+    "liveBinarySizeBytes":0,
     "postStartLogAudit":{
-      "lineCount":321,
+      "lineCount":0,
       "fatalSevereExceptionErrorDatabaseConversionUndefinedSymbolOracleOrEmptyGenericMessageMatches":0,
-      "playerReadyMarkerCount":1,
-      "result":"passed"
+      "playerReadyMarkerCount":0,
+      "result":"pending"
     },
     "forceDefenseLiveAcceptanceOwner":"p14-armor-mitigation-ordering",
-    "forceSpeedLiveAcceptanceOwner":"p14-nonstandard-profession-matrix-closure"
+    "forceSpeedLiveAcceptanceOwner":"p14-nonstandard-profession-matrix-closure",
+    "forceCureLiveAcceptanceOwner":"p14-nonstandard-profession-matrix-closure"
   },
   "runtimeEvidence": {
     "scope": "Historical deployment evidence predating the four Force-defense direct callbacks.",
@@ -236,7 +248,9 @@
     "result": "passed"
   },
   "requiredBeforeReady": [
+    "Build and deploy immutable direct source 10f2b88285969329effcfc3aba975c17118fd0b4 with exact source/work, Java-class, command-IFF, Jedi-action-IFF, and primary-owner parity.",
     "Run the reversible Force-defense acceptance owned by p14-armor-mitigation-ordering and bind it to that deployment.",
-    "Run the reversible Force Speed acceptance owned by p14-nonstandard-profession-matrix-closure and bind it to that deployment."
+    "Run the reversible Force Speed acceptance owned by p14-nonstandard-profession-matrix-closure and bind it to that deployment.",
+    "Run the reversible Force cure acceptance owned by p14-nonstandard-profession-matrix-closure and bind it to that deployment."
   ]
 }

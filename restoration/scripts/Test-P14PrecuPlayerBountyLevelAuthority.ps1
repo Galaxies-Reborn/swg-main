@@ -120,9 +120,10 @@ Assert-Contract (
     [int]$expected.hunterTargetCooldownSeconds -eq (24 * 60 * 60) -and
     [int]$expected.hunterBountyHunterXpDivisor -eq 50 -and
     [int]$expected.hunterBountyHunterXpGrantCount -eq 1 -and
-    [int]$expected.activeVisibilityProducerCalls -eq 7 -and
+    [int]$expected.forceCureActiveProducerCalls -eq 1 -and
+    [int]$expected.activeVisibilityProducerCalls -eq 8 -and
     [int]$expected.retainedUnreachableVisibilityProducerCalls -eq 1 -and
-    [int]$expected.totalTextualVisibilityProducerCalls -eq 8 -and
+    [int]$expected.totalTextualVisibilityProducerCalls -eq 9 -and
     [int]$expected.forceRankMinimum -eq 0 -and
     [int]$expected.forceRankMaximum -eq 11 -and
     [int]$expected.lightCouncilValue -eq 2 -and
@@ -220,31 +221,48 @@ Assert-Contract (
 $jediLibraryProducerCount = [regex]::Matches($jedi, 'jedi\.jediActionPerformed\(').Count
 $combatProducerCount = [regex]::Matches([string]$texts["combatBase"], 'jedi\.jediActionPerformed\(').Count
 $saberProducerCount = [regex]::Matches([string]$texts["combatPlayer"], 'jedi\.jediActionPerformed\(').Count
-$legacyHealProducerCount = [regex]::Matches([string]$texts["jediBase"], 'jedi\.jediActionPerformed\(').Count
+$forceCureHelper = Get-BracedSurface ([string]$texts["jediBase"]) `
+    "public static boolean performPrecuForceCureCommand("
+$legacyHeal = Get-BracedSurface ([string]$texts["jediBase"]) `
+    "public boolean doJediHealCommand("
+$forceCureProducerCount = [regex]::Matches(
+    $forceCureHelper, 'jedi\.jediActionPerformed\(').Count
+$legacyHealProducerCount = [regex]::Matches(
+    $legacyHeal, 'jedi\.jediActionPerformed\(').Count
 Assert-Contract (
     $jediLibraryProducerCount -eq [int]$expected.jediLibraryActionProducerCalls -and
     $combatProducerCount -eq [int]$expected.combatResolutionProducerCalls -and
     $saberProducerCount -eq [int]$expected.saberEquipProducerCalls -and
-    ($jediLibraryProducerCount + $combatProducerCount + $saberProducerCount) -eq [int]$expected.activeVisibilityProducerCalls -and
+    $forceCureProducerCount -eq [int]$expected.forceCureActiveProducerCalls -and
+    ($jediLibraryProducerCount + $combatProducerCount + $saberProducerCount +
+        $forceCureProducerCount) -eq [int]$expected.activeVisibilityProducerCalls -and
     $legacyHealProducerCount -eq [int]$expected.retainedUnreachableVisibilityProducerCalls -and
-    ($jediLibraryProducerCount + $combatProducerCount + $saberProducerCount + $legacyHealProducerCount) -eq [int]$expected.totalTextualVisibilityProducerCalls -and
+    ($jediLibraryProducerCount + $combatProducerCount + $saberProducerCount +
+        $forceCureProducerCount + $legacyHealProducerCount) -eq
+        [int]$expected.totalTextualVisibilityProducerCalls -and
     ([string]$texts["combatBase"]).Contains("jedi.COMBAT_VISIBILITY") -and
     ([string]$texts["combatPlayer"]).Contains("jedi.SABER_EQUIP_VISIBILITY")) `
     "p14.player-bounty.visibility-producer-cardinality"
 
-$legacyHeal = Get-BracedSurface ([string]$texts["jediBase"]) "public boolean doJediHealCommand("
 $dsrcRoot = Join-Path $source "dsrc"
 $legacyMethodReferences = @(& git -C $dsrcRoot grep -n -I -E 'doJediHealCommand' -- '*.java' '*.tab' '*.tpf' 2>$null)
 $legacyMethodGrepExit = $LASTEXITCODE
-$legacyClassReferences = @(& git -C $dsrcRoot grep -n -I -E 'systems[./]jedi[./]jedi_base|extends[[:space:]]+([^[:space:]]*[.])?jedi_base' -- '*.java' '*.tab' '*.tpf' 2>$null)
-$legacyClassGrepExit = $LASTEXITCODE
+$activeHelperReferences = @(& git -C $dsrcRoot grep -n -I -E `
+    'performPrecuForceCureCommand' -- '*.java' '*.tab' '*.tpf' 2>$null)
+$activeHelperGrepExit = $LASTEXITCODE
 Assert-Contract (
     $legacyHeal.Contains("jedi.jediActionPerformed(self, intVisibilityValue, intVisibilityRange)") -and
     $legacyMethodGrepExit -eq 0 -and $legacyMethodReferences.Count -eq 1 -and
     [string]$legacyMethodReferences[0] -match 'systems/jedi/jedi_base\.java:' -and
-    $legacyClassGrepExit -eq 1 -and $legacyClassReferences.Count -eq 0 -and
+    $activeHelperGrepExit -eq 0 -and $activeHelperReferences.Count -eq 4 -and
+    @($activeHelperReferences | Where-Object {
+        [string]$_ -match 'systems/combat/combat_actions\.java:'
+    }).Count -eq 3 -and
+    @($activeHelperReferences | Where-Object {
+        [string]$_ -match 'systems/jedi/jedi_base\.java:'
+    }).Count -eq 1 -and
     -not [regex]::IsMatch([string]$texts["jediBase"], 'public\s+(?:int|boolean|void)\s+(?:On|handle)[A-Z]')) `
-    "p14.player-bounty.retained-jedi-base-producer-unreachable"
+    "p14.player-bounty.active-and-retained-jedi-base-producer-split"
 
 $missionBoard = Get-BracedSurface ([string]$texts["missionPlayer"]) "public int OnPlayerRequestMissionBoard("
 Assert-Contract (
@@ -656,6 +674,10 @@ if ($Expectation -in @("Build", "Ready"))
     $srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
     Assert-Contract ($dsrcPin.Count -eq 1 -and $srcPin.Count -eq 1 -and [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink -and [string]$srcPin[0].commit -ceq [string]$contract.buildEvidence.nativeSourceCommit) `
         "p14.player-bounty.direct-source-pins"
+    Assert-Contract (-not [bool]$contract.buildEvidence.historicalCompiledEvidenceOnly -and
+        [string]$contract.buildEvidence.historicalCompiledEvidenceDirectSourceCommit -cne
+            [string]$contract.buildEvidence.directSourceGitlink) `
+        "p14.player-bounty.current-build-evidence-not-historical"
     Assert-Contract (
         [string]$contract.buildEvidence.deploymentParentCommit -ceq "b4eff3c83f4234f5c1d46237b7cd94f1cf66a001" -and
         [string]$contract.buildEvidence.fullJavaCompile.result -ceq "passed" -and
@@ -763,7 +785,15 @@ else
         "p14.player-bounty.source-status"
     if ([string]$contract.status -ceq "implemented-build-pending")
     {
-        Assert-Contract ([string]$contract.buildEvidence.result -ceq "pending" -and [string]$contract.runtimeEvidence.result -ceq "pending" -and $contract.requiredBeforeReady.Count -gt 0) `
+        Assert-Contract ([bool]$contract.buildEvidence.historicalCompiledEvidenceOnly -and
+            [string]$contract.buildEvidence.historicalCompiledEvidenceDirectSourceCommit -ceq
+                "6955b771580e324b770c1a8d809a5d094e75a75a" -and
+            [string]$contract.buildEvidence.directSourceGitlink -ceq
+                "10f2b88285969329effcfc3aba975c17118fd0b4" -and
+            [string]$contract.buildEvidence.scope -cmatch
+                'Current 10f2b882 source hashes authenticate source only' -and
+            [string]$contract.liveGameplayEvidence.result -ceq "pending" -and
+            $contract.requiredBeforeReady.Count -eq 2) `
             "p14.player-bounty.pending-evidence-truthful"
     }
     elseif ([string]$contract.status -ceq "implemented-build-verified-live-pending")

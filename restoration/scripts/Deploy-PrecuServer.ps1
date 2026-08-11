@@ -8801,6 +8801,8 @@ cmp -s "$source_command_table" "$work_command_table"
 cmp -s "$source_buff_table" "$work_buff_table"
 cmp -s "$source_bounty_jedi" "$work_bounty_jedi"
 cmp -s "$source_bounty_combat_actions" "$work_bounty_combat_actions"
+cmp -s "$source_bounty_jedi_base" "$work_bounty_jedi_base"
+cmp -s "$source_bounty_jedi_actions" "$work_bounty_jedi_actions"
 awk -F '\t' '
 NR == 1 {
     for (column = 1; column <= NF; column++) field[$column] = column
@@ -8953,6 +8955,86 @@ for force_speed_command in forceSpeed1 forceSpeed2; do
     grep -Fq "jedi.performPrecuForceSpeedCommand(self, \"$force_speed_command\")" "$work_bounty_combat_actions"
 done
 
+# The bounded Publish 12 Force-cure slice keeps exact 1.5-second command-row
+# timing (the pinned Core3 Lua default is 2.0), fixed 75 Force cost, and a
+# dedicated helper whose success-only side effects remain ordered.
+awk -F '\t' '
+NR == 1 {
+    for (column = 1; column <= NF; column++) field[$column] = column
+    next
+}
+NR > 2 && ($1 == "stopBleeding" || $1 == "forceCureDisease" ||
+           $1 == "forceCurePoison") {
+    found++
+    if (NF != 94 ||
+        $(field["commandCategory"]) != "combat" ||
+        $(field["scriptHook"]) != $1 ||
+        $(field["failScriptHook"]) != "failSpecialAttack" ||
+        $(field["defaultTime"]) != 1.5 ||
+        $(field["executeTime"]) != 1.5 ||
+        $(field["target"]) != "other" ||
+        $(field["targetType"]) != "optional" ||
+        $(field["visible"]) != 2 ||
+        $(field["displayGroup"]) != -1478973933 ||
+        $(field["addToCombatQueue"]) != 1 ||
+        $(field["validWeapon"]) != "ALL" ||
+        $(field["invalidWeapon"]) != "NONE") exit 2
+}
+END { if (found != 3) exit 3 }
+' "$work_command_table"
+awk -F '\t' '
+NR == 1 {
+    for (column = 1; column <= NF; column++) field[$column] = column
+    next
+}
+NR > 2 && ($1 == "stopBleeding" || $1 == "forceCureDisease" ||
+           $1 == "forceCurePoison") {
+    found++
+    expectedBase = ($1 == "stopBleeding" ? 50 : 0)
+    expectedBleed = ($1 == "stopBleeding" ? 25 : 0)
+    expectedDisease = ($1 == "forceCureDisease" ? 75 : 0)
+    expectedPoison = ($1 == "forceCurePoison" ? 75 : 0)
+    if (NF != 47 ||
+        $(field["combatActionAnimation"]) != "force_healing_1" ||
+        $(field["clientEffectFile"]) != "clienteffect/pl_force_heal_self.cef" ||
+        $(field["intJediPowerCost"]) != expectedBase ||
+        $(field["intHealBleeding"]) != expectedBleed ||
+        $(field["intHealDisease"]) != expectedDisease ||
+        $(field["intHealPoison"]) != expectedPoison ||
+        $(field["intVisibilityValue"]) != 10 ||
+        $(field["intVisibilityRange"]) != 32 ||
+        $(field["fltRange"]) != 32 ||
+        $(field["actionCost"]) != 0 ||
+        $(field["mindCost"]) != 0) exit 2
+}
+END { if (found != 3) exit 3 }
+' "$work_bounty_jedi_actions"
+for force_cure_command in stopBleeding forceCureDisease forceCurePoison; do
+    grep -Fq "public int $force_cure_command(" "$work_bounty_combat_actions"
+    grep -Fq "jedi_base.performPrecuForceCureCommand(self, target, \"$force_cure_command\")" \
+        "$work_bounty_combat_actions"
+done
+force_cure_helper_source="$(sed -n '/public static boolean performPrecuForceCureCommand/,/private static obj_id getPrecuForceCureTarget/p' "$work_bounty_jedi_base")"
+for force_cure_constant in \
+    'PRECU_FORCE_CURE_RANGE = 32' \
+    'PRECU_FORCE_CURE_TOTAL_COST = 75' \
+    'PRECU_BLEED_HEAL_STRENGTH = 250' \
+    'PRECU_DISEASE_HEAL_STRENGTH = 200' \
+    'PRECU_POISON_HEAL_STRENGTH = 250'
+do
+    grep -Fq "$force_cure_constant" "$work_bounty_jedi_base"
+done
+printf '%s\n' "$force_cure_helper_source" | grep -Fq 'currentForce < baseForceCost'
+printf '%s\n' "$force_cure_helper_source" | grep -Fq 'totalForceCost >= currentForce'
+printf '%s\n' "$force_cure_helper_source" | grep -Fq 'dotsAfter == null || dotsAfter.length == 0'
+printf '%s\n' "$force_cure_helper_source" | grep -Fq 'sendPrecuForceCureResult'
+printf '%s\n' "$force_cure_helper_source" | grep -Fq 'playPrecuForceCureEffect'
+printf '%s\n' "$force_cure_helper_source" | grep -Fq 'pvpHelpPerformed(player, healTarget)'
+test "$(printf '%s\n' "$force_cure_helper_source" | grep -Fc 'dot.reduceDotTypeStrength')" -eq 1
+test "$(printf '%s\n' "$force_cure_helper_source" | grep -Fc 'alterForcePower(player, -totalForceCost)')" -eq 1
+test "$(printf '%s\n' "$force_cure_helper_source" | grep -Fc 'jedi.jediActionPerformed(')" -eq 1
+! printf '%s\n' "$force_cure_helper_source" | grep -Eq 'getForceRank|alterAction|alterMind|playJediActionEffect|messageTo\('
+
 # Publish 14.1 player bounties are produced by witnessed exact-title Jedi
 # visibility and a canonical skill/rank reward.  The retained later Smuggler
 # path is explicitly tagged and carries a separate reward/provenance channel.
@@ -8991,10 +9073,14 @@ grep -Fq 'FRIENDLY_VISIBILITY_MULTIPLIER = 0.25f' "$work_bounty_jedi"
 test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_jedi")" -eq 5
 test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_combat_base")" -eq 1
 test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_combat_player")" -eq 1
-test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_jedi_base")" -eq 1
-test "$(grep -R -F --include='*.java' 'jedi.jediActionPerformed(' "$work_script" | wc -l)" -eq 8
+legacy_jedi_heal_source="$(sed -n '/public boolean doJediHealCommand/,/public int doJediForceRun/p' "$work_bounty_jedi_base")"
+test "$(printf '%s\n' "$force_cure_helper_source" | grep -Fc 'jedi.jediActionPerformed(')" -eq 1
+test "$(printf '%s\n' "$legacy_jedi_heal_source" | grep -Fc 'jedi.jediActionPerformed(')" -eq 1
+test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_jedi_base")" -eq 2
+test "$(grep -R -F --include='*.java' 'jedi.jediActionPerformed(' "$work_script" | wc -l)" -eq 9
 test "$(grep -R -E --include='*.java' --include='*.tab' --include='*.tpf' 'doJediHealCommand' "$SWG_WORK_DIR/dsrc/sku.0" | wc -l)" -eq 1
-! grep -R -E --include='*.java' --include='*.tab' --include='*.tpf' 'systems[./]jedi[./]jedi_base|extends[[:space:]]+([^[:space:]]*[.])?jedi_base' "$SWG_WORK_DIR/dsrc/sku.0"
+test "$(grep -R -E --include='*.java' --include='*.tab' --include='*.tpf' 'performPrecuForceCureCommand' "$SWG_WORK_DIR/dsrc/sku.0" | wc -l)" -eq 4
+test "$(grep -R -E --include='*.java' --include='*.tab' --include='*.tpf' 'systems[./]jedi[./]jedi_base|extends[[:space:]]+([^[:space:]]*[.])?jedi_base' "$SWG_WORK_DIR/dsrc/sku.0" | wc -l)" -eq 3
 grep -Fq 'MAX_ACTIVE_PLAYER_BOUNTIES = 5' "$work_bounty_hunter"
 grep -Fq 'PLAYER_BOUNTY_PROVENANCE_JEDI = 1' "$work_bounty_hunter"
 grep -Fq 'PLAYER_BOUNTY_PROVENANCE_SMUGGLER = 2' "$work_bounty_hunter"
@@ -9098,6 +9184,7 @@ for force_defense_artifact in \
     script/library/jedi.class \
     script/systems/combat/combat_actions.class \
     script/systems/combat/combat_base.class \
+    script/systems/jedi/jedi_base.class \
     datatables/jedi/jedi_actions.iff
 do
     test -s "$class_root/$force_defense_artifact"
@@ -9157,8 +9244,11 @@ compile_force_table_and_compare \
     sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab \
     sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff
 # The three matching TAB fields compile to two exact string records per command.
-for force_defense_command in forceArmor1 forceArmor2 forceShield1 forceShield2 forceSpeed1 forceSpeed2; do
+for force_defense_command in forceArmor1 forceArmor2 forceShield1 forceShield2 forceSpeed1 forceSpeed2 stopBleeding forceCureDisease forceCurePoison; do
     test "$(strings -a "$force_command_iff" | grep -Fxc "$force_defense_command" || true)" -eq 2
+done
+for force_cure_command in stopBleeding forceCureDisease forceCurePoison; do
+    test "$(strings -a "$force_jedi_actions_iff" | grep -Fxc "$force_cure_command" || true)" -ge 1
 done
 for force_compiled_iff in \
     "$force_command_iff" "$force_buff_iff" "$force_jedi_actions_iff"
@@ -9216,6 +9306,20 @@ for force_defense_command in forceArmor1 forceArmor2 forceShield1 forceShield2; 
 done
 for force_speed_command in forceSpeed1 forceSpeed2; do
     printf '%s\n' "$force_defense_action_signatures" | grep -Fq " int $force_speed_command("
+done
+for force_cure_command in stopBleeding forceCureDisease forceCurePoison; do
+    printf '%s\n' "$force_defense_action_signatures" | grep -Fq " int $force_cure_command("
+done
+force_cure_combat_actions_bytecode="$(javap -classpath "$class_root" -c -p script.systems.combat.combat_actions)"
+for force_cure_command in stopBleeding forceCureDisease forceCurePoison; do
+    force_cure_callback_bytecode="$(printf '%s\n' "$force_cure_combat_actions_bytecode" | awk -v method="$force_cure_command" '
+$0 ~ "^  public int " method "\\(" { capture = 1 }
+capture && seen && /^  (public|protected|private) / { exit }
+capture { print; seen = 1 }
+')"
+    test -n "$force_cure_callback_bytecode"
+    test "$(printf '%s\n' "$force_cure_callback_bytecode" | grep -Fc 'performPrecuForceCureCommand')" -eq 1
+    test "$(printf '%s\n' "$force_cure_callback_bytecode" | grep -Fc "// String $force_cure_command")" -eq 1
 done
 force_defense_combat_base_verbose="$(javap -classpath "$class_root" -v script.systems.combat.combat_base)"
 printf '%s\n' "$force_defense_combat_base_verbose" | grep -Fq 'isPrecuForceAttackAction'
@@ -9280,8 +9384,34 @@ javap -classpath "$class_root" -v script.systems.missions.dynamic.mission_bounty
 javap -classpath "$class_root" -v script.systems.missions.dynamic.mission_bounty | grep -Fq 'recordPlayerBountyMissionCooldown'
 javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'requestJedi'
 ! javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'bounty.amount'
-javap -classpath "$class_root" -v script.systems.jedi.jedi_base | grep -Fq 'doJediHealCommand'
-javap -classpath "$class_root" -v script.systems.jedi.jedi_base | grep -Fq 'jediActionPerformed'
+force_cure_jedi_base_constants="$(javap -classpath "$class_root" -constants -p script.systems.jedi.jedi_base)"
+for force_cure_constant in \
+    'PRECU_FORCE_CURE_RANGE = 32' \
+    'PRECU_FORCE_CURE_TOTAL_COST = 75' \
+    'PRECU_BLEED_HEAL_STRENGTH = 250' \
+    'PRECU_DISEASE_HEAL_STRENGTH = 200' \
+    'PRECU_POISON_HEAL_STRENGTH = 250'
+do
+    printf '%s\n' "$force_cure_jedi_base_constants" | grep -Fq "$force_cure_constant"
+done
+force_cure_jedi_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.jedi.jedi_base)"
+force_cure_helper_bytecode="$(printf '%s\n' "$force_cure_jedi_base_bytecode" | awk '
+/^  public static boolean performPrecuForceCureCommand\(/ { capture = 1 }
+capture && seen && /^  (public|protected|private) / { exit }
+capture { print; seen = 1 }
+')"
+legacy_jedi_heal_bytecode="$(printf '%s\n' "$force_cure_jedi_base_bytecode" | awk '
+/^  public boolean doJediHealCommand\(/ { capture = 1 }
+capture && seen && /^  (public|protected|private) / { exit }
+capture { print; seen = 1 }
+')"
+test -n "$force_cure_helper_bytecode"
+test -n "$legacy_jedi_heal_bytecode"
+test "$(printf '%s\n' "$force_cure_helper_bytecode" | grep -Fc 'reduceDotTypeStrength')" -eq 1
+test "$(printf '%s\n' "$force_cure_helper_bytecode" | grep -Fc 'alterForcePower')" -eq 1
+test "$(printf '%s\n' "$force_cure_helper_bytecode" | grep -Fc 'jediActionPerformed')" -eq 1
+test "$(printf '%s\n' "$force_cure_helper_bytecode" | grep -Fc 'pvpHelpPerformed')" -eq 1
+test "$(printf '%s\n' "$legacy_jedi_heal_bytecode" | grep -Fc 'jediActionPerformed')" -eq 1
 
 grep -Fq 'ms_skillPointCostLabel               = "POINTS_REQUIRED"' "$work_bounty_skill_object"
 grep -Fq 'int SkillObject::getSkillPointCost() const' "$work_bounty_skill_object"

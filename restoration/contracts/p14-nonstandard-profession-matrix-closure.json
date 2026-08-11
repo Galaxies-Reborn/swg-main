@@ -1,13 +1,15 @@
 {
   "schemaVersion":1,
   "feature":"nonstandard-profession-matrix-closure",
-  "status":"implemented-build-verified-live-pending",
-  "scope":"Exact Publish 14.1 closure of Shipwright, pilot, Force-sensitive, rank, and Jedi profession families, including a classified Jedi command-grant inventory and the bounded Force Armor 1/2, Force Shield 1/2, and Force Speed 1/2 restoration.",
+  "status":"implemented-build-pending",
+  "scope":"Exact Publish 14.1 closure of Shipwright, pilot, Force-sensitive, rank, and Jedi profession families, including a classified Jedi command-grant inventory and the bounded Force Armor 1/2, Force Shield 1/2, Force Speed 1/2, stopBleeding, forceCureDisease, and forceCurePoison restoration.",
   "sourceFiles":{
     "skillTable":"dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
     "commandTable":"dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
     "buffTable":"dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "jediActions":"dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab",
     "jediLibrary":"dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+    "jediBase":"dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.java",
     "combatActions":"dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
     "liveFixture":"dsrc/sku.0/sys.server/compiled/game/script/test/precu_nonstandard_profession_fixture.java"
   },
@@ -71,9 +73,9 @@
     },
     "preexistingRegisteredActions":{"count":2,"sha256":"39e16f41a7cdcac2bbeae2fc7d2870e319363d3a4c41e9e179101bf68ac233ed","names":["sample","survey"]},
     "actionableGapBefore":{"count":112,"sha256":"5766162a8455fc7f78c3f583505bdba28c9b054b979c7c1bc0d28a99c620bd22"},
-    "restoredActions":{"count":6,"sha256":"5356753e0607f473c7eed48157c54703346424e71f2324bcfe928bfeb2146626","names":["forceArmor1","forceArmor2","forceShield1","forceShield2","forceSpeed1","forceSpeed2"]},
-    "registeredActionsAfter":{"count":8,"sha256":"885ed8ed6d1c7663303ca2eee247a07c3dbb7b491ed36ba4003f2bda49b5c0ee"},
-    "residualActionableGap":{"count":106,"sha256":"d1370daf1131ca73c3c94553ebecaadbf653e56fede27ee95123ab8e2e7c833c"},
+    "restoredActions":{"count":9,"sha256":"a2c97c0aba1068610ad5111bb84290c629ba908863817d797a340dd1ad67b8a5","names":["forceArmor1","forceArmor2","forceCureDisease","forceCurePoison","forceShield1","forceShield2","forceSpeed1","forceSpeed2","stopBleeding"]},
+    "registeredActionsAfter":{"count":11,"sha256":"437767f4ba46e1feaa83003fecdf985289d9dcd5c79bce6f894d9d1fafd344a5"},
+    "residualActionableGap":{"count":103,"sha256":"481f2873ef0251adc80fa2ddb32e06715a2ad31acea64dcb124be3d087102e51"},
     "unclassifiedGrantTokens":0,
     "skillGrantRows":[
       {"name":"force_discipline_enhancements_protection_02","commands":["forceArmor1"],"columns":27,"rawRowSha256":"2022a7e0599a772e5e9107b3b6a04e7eece556ea95bbfaad32fd5d9c4cc595f9"},
@@ -81,15 +83,26 @@
       {"name":"force_discipline_enhancements_synergy_02","commands":["channelForce","forceShield1"],"columns":27,"rawRowSha256":"19ad01dd57bbbd2691db38268a089c391bc7693c65b30c8098914cf919ff7a16"},
       {"name":"force_discipline_enhancements_synergy_04","commands":["forceMeditate","forceShield2"],"columns":27,"rawRowSha256":"361cb280680059671974f34e108f8178cc076228c0e2757fb31e8f207d185a32"},
       {"name":"force_discipline_enhancements_movement_01","commands":["forceSpeed1"],"columns":27,"rawRowSha256":"6f9091dce3857b8f14fea8b467e170a39cd9eb8fa6e37c22ce2d3b7ef5769957"},
-      {"name":"force_discipline_enhancements_movement_03","commands":["forceSpeed2"],"columns":27,"rawRowSha256":"fe2b18bc3ae4c35b6b2ab52d790aab242bdfe74b6109db7fa3a8cbd73983acc0"}
+      {"name":"force_discipline_enhancements_movement_03","commands":["forceSpeed2"],"columns":27,"rawRowSha256":"fe2b18bc3ae4c35b6b2ab52d790aab242bdfe74b6109db7fa3a8cbd73983acc0"},
+      {"name":"force_discipline_healing_states_01","commands":["stopBleeding"],"columns":27,"rawRowSha256":"796b011559aa07f0745f72cf3b72fc361784699892482074cbef654ddae290ff"},
+      {"name":"force_discipline_healing_states_02","commands":["forceCureDisease"],"columns":27,"rawRowSha256":"895882cb93be95d3a721cdfdb07f686408e563076410d807a9db50de5ffb8e5c"},
+      {"name":"force_discipline_healing_states_03","commands":["forceCurePoison"],"columns":27,"rawRowSha256":"01b9dd409b5d2fe76d5cadb782da39e8096e17511f49b43265d26bfb11779e8a"}
     ],
     "commandRowProvenance":{
       "legacyTable":"Source/legacy/precu-restore/precu_command_table_additions.tab",
       "legacyTableBytes":85814,
       "legacyTableSha256":"29e2954f766b2835a6b11d983a0a70aa87791ba82ed29d151767dd6a9e5c19bd",
+      "publish12NormalizedTable":"Source/legacy/precu-restore/precu_client_command_table.tab",
+      "publish12NormalizedTableBytes":160990,
+      "publish12NormalizedTableSha256":"f7acb20472cbfc78a182703b8cfbf48a3eeaa84af32acd5e638f9342822258d8",
       "publish12Extract":"MCP/SWGEmu/extracted/precu-patch-12-00/datatables/command/command_table.iff",
       "publish12ExtractBytes":247092,
-      "publish12ExtractSha256":"09179c383095ee784d6bdf14fd52836982c063b0cbc8b1138893c8c0f2e4b9b8"
+      "publish12ExtractSha256":"09179c383095ee784d6bdf14fd52836982c063b0cbc8b1138893c8c0f2e4b9b8",
+      "publish12Rows":[
+        {"name":"stopBleeding","columns":75,"rawRowSha256":"e922af52f637e0ae7f939f34b9fb5f01bdea9d23f89813920e34ea80a082db12"},
+        {"name":"forceCureDisease","columns":75,"rawRowSha256":"314861ac9debd30050d1dc5e8d5a8793f26d5948579bd94ad7745bea74b48029"},
+        {"name":"forceCurePoison","columns":75,"rawRowSha256":"99bf3e9aa903b5234be464da88f5cdafa3471fbc886a0ec4eacc972d5e5f9cea"}
+      ]
     },
     "commandRows":[
       {"name":"forceArmor1","columns":94,"rawRowSha256":"6bac5af23322203bb0f36de01591cd146063ec370c7a89aab5dda7c1ce4da962"},
@@ -97,17 +110,22 @@
       {"name":"forceShield1","columns":94,"rawRowSha256":"a0bf2c59745246cf4a00847ede7125d99cafe6d26aaa8b526181e513f3a10003"},
       {"name":"forceShield2","columns":94,"rawRowSha256":"0ba048574c2d78ebb88b552a7e82da4a531b0f0f8a1f59afcedd05529775d384"},
       {"name":"forceSpeed1","columns":94,"rawRowSha256":"1bd9d8062f09c6b7c835eaaab2d81a593f7bb22711bea79848260bc5885e64f2"},
-      {"name":"forceSpeed2","columns":94,"rawRowSha256":"30d64163f3a9504b26040e508b0cd4e5deeaf326086b80065c88dc91d7da6853"}
+      {"name":"forceSpeed2","columns":94,"rawRowSha256":"30d64163f3a9504b26040e508b0cd4e5deeaf326086b80065c88dc91d7da6853"},
+      {"name":"stopBleeding","columns":94,"rawRowSha256":"c680e459a1eef49819e984593a0c49a51f909bef2dff6160d6187d99d779cf22"},
+      {"name":"forceCureDisease","columns":94,"rawRowSha256":"df57dfc9c013aeaf57483b44b3bb3af1e96b08054874c748c6cc921abdf9dfbc"},
+      {"name":"forceCurePoison","columns":94,"rawRowSha256":"8b92df7b973cbe25d040720049959f88485969ed02b07f252ae65413f84c711d"}
     ]
   },
   "forceDefenseRestorationEvidence":{
-    "directSourceCommit":"6955b771580e324b770c1a8d809a5d094e75a75a",
+    "directSourceCommit":"10f2b88285969329effcfc3aba975c17118fd0b4",
     "sourceSha256":{
       "skills.tab":"cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
-      "command_table.tab":"75a1079922ffe60814ecfaa370a0dcdb8ac77c1eecb5f10879f2d914de54698b",
+      "command_table.tab":"d8ed8cbb286f5bd7ef698fecb44ca297d93fb4c2e5c7d198bb6de5f73b119c8d",
       "buff.tab":"ecd6cc2f7ed18b89babd07bfa4e662ece2376220761cf6507e7238232af88e5b",
+      "jedi_actions.tab":"1f6363b77c1878586e7fdc475b398d05593bb4cc779a5d679aa8c629fefae68f",
       "jedi.java":"3549b440320c7ca75a8e55a8f44e27405e38a4caf47c0c5891afba99b328fbc0",
-      "combat_actions.java":"09cae22c3126c5a9d8ba5273c0216a7a14af1b6f0499b0556bf232cd488ce0c8"
+      "jedi_base.java":"b3ab72431e94a5c6a09e6203a018827d364a18f22a640978201c67f4afc84064",
+      "combat_actions.java":"b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c"
     },
     "forceSpeed":{
       "core3Commit":"6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -121,52 +139,83 @@
       "persistence":{"buffAliases":["forceSpeed","forceSpeed_1"],"isPersistent":true},
       "crossHasteCanary":{"secondaryGroup":"haste","forceSpeedPriorities":[1,3],"doctorHasteRows":[{"buff":"adrenalBoost","primaryGroup":"doctorHaste","priority":2},{"buff":"adrenalBoost_1","primaryGroup":"doctorHaste","priority":4}],"rule":"Force Speed keeps its distinct primary group while participating in the retained haste priority boundary."}
     },
+    "forceCure":{
+      "core3Commit":"6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+      "publish12StringTables":{
+        "jediSpam":{"path":"MCP/SWGEmu/extracted/precu-patch-12-00/string/en/jedi_spam.stf","bytes":28078,"sha256":"fb49c1d240f6ea2f9dda053f196b61251943f1e4138c238cc6ade38102cbffb0","keys":["no_force_power","no_damage_heal_self","no_damage_heal_other","stop_bleeding_other","stop_disease_other","stop_poison_other","staunch_bleeding_other","staunch_disease_other","staunch_poison_other"]},
+        "dotMessage":{"path":"MCP/SWGEmu/extracted/precu-patch-12-00/string/en/dot_message.stf","bytes":1525,"sha256":"593230596680e3c302b5d11acd3d0d7f4d3cd2ab5bdf11cdc49d7d435897e019","keys":["stop_bleeding","stop_diseased","stop_poisoned","decrease_bleeding","decrease_diseased","decrease_poisoned"]}
+      },
+      "commands":[
+        {"command":"stopBleeding","skill":"force_discipline_healing_states_01","dotType":"bleeding","strength":250,"baseForceCost":50,"healForceCost":25,"jediActionRowSha256":"a3b6a11262e3e2c6770988d5001f499addf2227c389dcdf89a8046257ec42a1a"},
+        {"command":"forceCureDisease","skill":"force_discipline_healing_states_02","dotType":"disease","strength":200,"baseForceCost":0,"healForceCost":75,"jediActionRowSha256":"87015ad98d8dbc6ef1baa80d410a00ea9de55d81b30c70eba76f7d55099a789a"},
+        {"command":"forceCurePoison","skill":"force_discipline_healing_states_03","dotType":"poison","strength":250,"baseForceCost":0,"healForceCost":75,"jediActionRowSha256":"2353f2bc4ef0e4d8b1f3d4b75f238cccacfcf91435744da9c9ff0964d2161b3a"}
+      ],
+      "timingAdaptation":{"publish12DefaultAndExecuteSeconds":1.5,"core3LuaDefaultSeconds":2.0,"implementedSeconds":1.5,"authority":"Exact Publish 12 mapped command rows govern queue timing; Core3 2.0-second Lua timing is documented provenance, not the selected engine adaptation."},
+      "activation":{"strictCurrentForceGreaterThan":75,"forceDebit":75,"actionDebit":0,"mindDebit":0,"frsModifierApplied":false,"rangeMeters":32,"visibility":10,"visibilityRange":32,"noDotDebit":0,"debitOnlyAfterSuccessfulReduction":true},
+      "targeting":{"invalidOrNonCreatureFallsBackToSelf":true,"initialPvpUnhelpableFallsBackToSelf":true,"unsupportedDeadDroidVehicleArenaOrNoBeneficialHardFails":true,"medicalMountArmorParalysisRangeAndLineOfSightGated":true,"remoteSuccessPerformsPvpHelp":true},
+      "effects":{"selfClientEffect":"clienteffect/pl_force_heal_self.cef","remoteCombatAnimation":"force_healing_1","delayedRemoteClientEffect":false},
+      "messages":{"fullRemovalPrefix":"stop_","partialReductionPrefix":"staunch_","remoteTargetDotDecreaseOwnedByDotLibrary":true,"noDot":"no_damage_heal_self/no_damage_heal_other","insufficientForceSplit":"stopBleeding at Force 0-49 uses no_force_power and Force 50-75 uses no_damage; forceCureDisease/forceCurePoison at Force 0-75 use no_damage."},
+      "excludedAction":"healStatesSelf",
+      "visibilityProducer":{"activeHelper":"performPrecuForceCureCommand","retainedLegacyMethod":"doJediHealCommand"}
+    },
     "build":{
-      "result":"passed",
-      "container":"swg-precu",
-      "validatedContainerStartedAt":"2026-08-11T19:33:27.545182504Z",
-      "fullJavaCompile":{"result":"passed"},
+      "result":"pending",
+      "container":"",
+      "validatedContainerStartedAt":"",
+      "fullJavaCompile":{"result":"pending"},
       "sourceWorkParity":{
-        "result":"passed",
-        "checkedFiles":4,
-        "matchedFiles":4,
+        "result":"pending",
+        "checkedFiles":6,
+        "matchedFiles":0,
         "files":[
           "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
           "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+          "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab",
           "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+          "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.java",
           "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java"
         ]
       },
-      "requiredArtifacts":["command_table.iff","buff.iff","jedi.class","combat_actions.class"],
+      "requiredArtifacts":["command_table.iff","buff.iff","jedi_actions.iff","jedi.class","jedi_base.class","combat_actions.class"],
       "requiredArtifactPaths":{
         "command_table.iff":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff",
         "buff.iff":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff",
+        "jedi_actions.iff":"/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff",
         "jedi.class":"/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class",
+        "jedi_base.class":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.class",
         "combat_actions.class":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class"
       },
       "compiledArtifacts":{
-        "command_table.iff":{"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff","sha256":"c6afcab2b73fb99ac4fe0b7b5857a2470b4d7b563b8457b60ffdcb3bf05462e6","bytes":882430},
-        "buff.iff":{"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff","sha256":"5ad40453036f45431adcc256374e204b37c52778d484e28c620741c8d1bea679","bytes":366646},
-        "jedi.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class","sha256":"8b01dd4e3a30f695e94eb1adea64ff5c636d8a052ee099f9192b72e268ce7b1e","bytes":63031},
-        "combat_actions.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class","sha256":"8897d436301115665a21be2abd59912adb92e7866470debe41c678ca4707f2ff","bytes":323746}
+        "command_table.iff":{"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff","sha256":"","bytes":0},
+        "buff.iff":{"path":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff","sha256":"","bytes":0},
+        "jedi_actions.iff":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff","sha256":"","bytes":0},
+        "jedi.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class","sha256":"","bytes":0},
+        "jedi_base.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.class","sha256":"","bytes":0},
+        "combat_actions.class":{"path":"/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class","sha256":"","bytes":0}
       },
       "deterministicTableRecompile":{
-        "result":"passed",
+        "result":"pending",
         "compiler":"/swg-precu/build/bin/DataTableTool",
         "temporaryRoot":"/dev/shm",
-        "cleanupVerified":true,
+        "cleanupVerified":false,
         "tables":{
           "command_table.iff":{
             "sourcePath":"/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
-            "sourceSha256":"75a1079922ffe60814ecfaa370a0dcdb8ac77c1eecb5f10879f2d914de54698b",
+            "sourceSha256":"d8ed8cbb286f5bd7ef698fecb44ca297d93fb4c2e5c7d198bb6de5f73b119c8d",
             "canonicalPath":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff",
-            "freshOutputMatchesCanonical":true
+            "freshOutputMatchesCanonical":false
           },
           "buff.iff":{
             "sourcePath":"/swg-precu/dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
             "sourceSha256":"ecd6cc2f7ed18b89babd07bfa4e662ece2376220761cf6507e7238232af88e5b",
             "canonicalPath":"/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff",
-            "freshOutputMatchesCanonical":true
+            "freshOutputMatchesCanonical":false
+          },
+          "jedi_actions.iff":{
+            "sourcePath":"/swg-precu/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab",
+            "sourceSha256":"1f6363b77c1878586e7fdc475b398d05593bb4cc779a5d679aa8c629fefae68f",
+            "canonicalPath":"/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff",
+            "freshOutputMatchesCanonical":false
           }
         }
       }
@@ -174,7 +223,7 @@
     "live":{
       "result":"pending",
       "acceptanceOwner":"p14-armor-mitigation-ordering",
-      "directSourceCommit":"6955b771580e324b770c1a8d809a5d094e75a75a",
+      "directSourceCommit":"10f2b88285969329effcfc3aba975c17118fd0b4",
       "requiredOwnerStatus":"ready",
       "requiredProof":[
         "Each exact skill grant exposes and removes its exact restored command.",
@@ -185,7 +234,7 @@
     "forceSpeedLive":{
       "result":"pending",
       "acceptanceOwner":"p14-nonstandard-profession-matrix-closure",
-      "directSourceCommit":"6955b771580e324b770c1a8d809a5d094e75a75a",
+      "directSourceCommit":"10f2b88285969329effcfc3aba975c17118fd0b4",
       "containerStartedAt":"",
       "sessionId":"",
       "characterObjectId":0,
@@ -198,6 +247,25 @@
         "Both exact skill grants expose and revoke forceSpeed1/forceSpeed2 and both deployed callbacks resolve.",
         "Activation proves 150/300 Force, 180/360 seconds, combat_haste 15/25, equality admission, free same-rank toggle, rank block/upgrade, no FRS or HAM debit, lowercase messages, and the exact self effect.",
         "Persistent aliases survive relog as intended, retained doctor-haste priority remains exact, cleanup restores all fixture-owned state, and the server remains healthy."
+      ]
+    },
+    "forceCureLive":{
+      "result":"pending",
+      "acceptanceOwner":"p14-nonstandard-profession-matrix-closure",
+      "directSourceCommit":"10f2b88285969329effcfc3aba975c17118fd0b4",
+      "containerStartedAt":"",
+      "sessionId":"",
+      "healerObjectId":0,
+      "targetObjectId":0,
+      "commands":[],
+      "threshold":{"force75Rejected":false,"force76Admitted":false,"fixedDebit":0,"noDotDebit":0,"actionDebit":0,"mindDebit":0,"frsIndependent":false},
+      "targeting":{"selfFallbackVerified":false,"hardFailTargetsVerified":false,"armorMedicalMountParalysisVerified":false,"range32Verified":false,"lineOfSightVerified":false,"pvpHelpOnRemoteSuccess":false},
+      "outcomes":{"strengths250_200_250Verified":false,"fullRemovalMessageVerified":false,"partialReductionMessagesVerified":false,"insufficientForceMessageSplitVerified":false,"noDotNoDamageMessageVerified":false,"selfEffectVerified":false,"remoteAnimationVerified":false,"visibility10Range32Verified":false},
+      "cleanup":{"commandsGrantedAndRevokedExactly":false,"dotsRemoved":false,"forcePowerRestored":false,"skillStateRestored":false,"serverHealthy":false},
+      "requiredProof":[
+        "Exact states_01/02/03 grants expose and revoke only stopBleeding, forceCureDisease, and forceCurePoison; healStatesSelf remains outside this slice.",
+        "Same-build activation proves strict 75/76 Force admission, fixed 75 debit only after a DOT reduction, 250/200/250 strengths, range 32, action/mind zero, no FRS scaling, all target/admission gates, and remote PvP help.",
+        "Full removal versus partial reduction messages, self-only client effect, remote-only combat animation, successful-only 10/32 visibility, exact cleanup, and server health are observed."
       ]
     }
   },
@@ -291,7 +359,9 @@
   },
   "requiredBeforeReady":[
     "Run the reversible live Force Armor/Shield acceptance and prove exact skill-grant command exposure, removal, cleanup, and server health.",
-    "Run the reversible live Force Speed 1/2 acceptance and prove costs, durations, haste, toggle/block/upgrade, no FRS/HAM debit, persistence, cross-haste priority, cleanup, and server health."
+    "Run the reversible live Force Speed 1/2 acceptance and prove costs, durations, haste, toggle/block/upgrade, no FRS/HAM debit, persistence, cross-haste priority, cleanup, and server health.",
+    "Build immutable direct source 10f2b88285969329effcfc3aba975c17118fd0b4 and prove six-file source/work parity, six canonical artifacts, and deterministic command, buff, and Jedi-action IFF output.",
+    "Run the reversible live stopBleeding/forceCureDisease/forceCurePoison acceptance and bind it to the same build and deployment."
   ],
-  "nextBoundary":"The classified Jedi grant audit retains 106 Core3-authenticated actionable commands after this exact six-command slice; do not describe that residual as zero."
+  "nextBoundary":"The classified Jedi grant audit retains 103 Core3-authenticated actionable commands after this exact nine-command slice; do not describe that residual as zero."
 }

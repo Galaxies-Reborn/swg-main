@@ -575,6 +575,35 @@ Assert-Contract -Condition (
         [string]$contract.status) `
     -Name "p14.armor.force-defense.status"
 
+$historicalForce = $force.historicalForceDefenseEvidence
+Assert-Contract -Condition (
+    [string]$historicalForce.directSourceCommit -ceq
+        "6955b771580e324b770c1a8d809a5d094e75a75a" -and
+    -not [bool]$historicalForce.authenticatesCurrentSource -and
+    [string]$historicalForce.directSourceCommit -cne
+        [string]$force.directSourceCommit -and
+    [string]$historicalForce.build.result -ceq "passed" -and
+    [string]$historicalForce.build.fullJavaCompile.result -ceq "passed" -and
+    [string]$historicalForce.build.sourceWorkParity.result -ceq "passed" -and
+    [int]$historicalForce.build.sourceWorkParity.checkedFiles -eq 6 -and
+    [int]$historicalForce.build.sourceWorkParity.matchedFiles -eq 6 -and
+    @($historicalForce.build.compiledArtifacts.PSObject.Properties).Count -eq 6 -and
+    @($historicalForce.build.compiledArtifacts.PSObject.Properties |
+        Where-Object {
+            [string]::IsNullOrWhiteSpace([string]$_.Value.sha256) -or
+            [long]$_.Value.bytes -le 0
+        }).Count -eq 0 -and
+    -not [string]::IsNullOrWhiteSpace(
+        [string]$historicalForce.build.serverBinary.sha256) -and
+    [string]$historicalForce.deployment.result -ceq "passed" -and
+    [string]$historicalForce.deployment.directSourceCommit -ceq
+        [string]$historicalForce.directSourceCommit -and
+    [bool]$historicalForce.deployment.clusterReadyForPlayers -and
+    [int]$historicalForce.deployment.liveGameProcessCount -gt 0 -and
+    [string]$historicalForce.deployment.postStartLogAudit.result -ceq
+        "passed") `
+    -Name "p14.armor.force-defense.historical-6955-evidence-noncurrent"
+
 if ($Expectation -in @("Build", "Ready"))
 {
     $currentBuild = $force.build

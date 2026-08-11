@@ -55,8 +55,10 @@ function Test-ExactNames($Actual, $Expected)
 $sourceMap = [ordered]@{
     "systems/combat/combat_actions.java" = Join-Path $scriptRoot "systems/combat/combat_actions.java"
     "systems/combat/combat_base.java" = Join-Path $scriptRoot "systems/combat/combat_base.java"
+    "systems/jedi/jedi_base.java" = Join-Path $scriptRoot "systems/jedi/jedi_base.java"
     "library/beast_lib.java" = Join-Path $scriptRoot "library/beast_lib.java"
     "command/command_table.tab" = Join-Path $sharedRoot "command/command_table.tab"
+    "jedi/jedi_actions.tab" = Join-Path $dsrc "sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
     "combat/combat_data.tab" = Join-Path $sharedRoot "combat/combat_data.tab"
     "skill/skills.tab" = Join-Path $sharedRoot "skill/skills.tab"
     "terminal/terminal_character_builder.java" = Join-Path $scriptRoot "terminal/terminal_character_builder.java"
@@ -146,6 +148,22 @@ foreach ($name in @("forceSpeed1", "forceSpeed2"))
         $overrideIndex -gt $delegateIndex -and
         $continueIndex -gt $overrideIndex) `
         "p14.direct-callback.force-speed.$name.exact-delegate"
+}
+foreach ($name in @("stopBleeding", "forceCureDisease", "forceCurePoison"))
+{
+    $body = [string]($directRecords | Where-Object Name -CEQ $name).Body
+    $delegate = 'script.systems.jedi.jedi_base.performPrecuForceCureCommand(self, target, "' +
+        $name + '")'
+    $delegateIndex = $body.IndexOf($delegate, [StringComparison]::Ordinal)
+    $overrideIndex = $body.IndexOf(
+        "return SCRIPT_OVERRIDE;", [StringComparison]::Ordinal)
+    $continueIndex = $body.IndexOf(
+        "return SCRIPT_CONTINUE;", [StringComparison]::Ordinal)
+    Assert-Contract ($delegateIndex -ge 0 -and
+        ([regex]::Matches($body, [regex]::Escape($delegate))).Count -eq 1 -and
+        $overrideIndex -gt $delegateIndex -and
+        $continueIndex -gt $overrideIndex) `
+        "p14.direct-callback.force-cure.$name.exact-delegate"
 }
 
 $commandRows = @(Import-Csv -Delimiter "`t" -LiteralPath $sourceMap["command/command_table.tab"] | Select-Object -Skip 1)
@@ -258,12 +276,16 @@ if ($Expectation -in @("Build", "Ready"))
     $currentBuild = $contract.currentBuildEvidence
     $canonicalArtifactPaths = [ordered]@{
         "combat_actions.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class"
+        "jedi_base.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.class"
         "command_table.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
+        "jedi_actions.iff" = "/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
     }
     $parityPaths = @(
         "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
         "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
-        "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+        "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.java",
+        "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+        "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
     )
     $artifactProperties = @($currentBuild.compiledArtifacts.PSObject.Properties)
     $artifactNames = @($artifactProperties | ForEach-Object { [string]$_.Name })
@@ -283,8 +305,8 @@ if ($Expectation -in @("Build", "Ready"))
         [string]$currentBuild.directSourceCommit -ceq $directCommit -and
         [string]$currentBuild.fullJavaCompile.result -ceq "passed" -and
         [string]$currentBuild.sourceWorkParity.result -ceq "passed" -and
-        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 3 -and
-        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 3 -and
+        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 5 -and
+        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 5 -and
         (Test-ExactNames $currentBuild.sourceWorkParity.files $parityPaths) -and
         @("implemented-build-verified-live-pending", "ready") -ccontains
             [string]$contract.status -and
@@ -399,7 +421,7 @@ if ($Expectation -in @("Build", "Ready"))
             "/swg-precu/$relativePath"
         if ($LASTEXITCODE -eq 0) { ++$parityMatches }
     }
-    $buildReady = $buildReady -and $parityMatches -eq 3
+    $buildReady = $buildReady -and $parityMatches -eq 5
     if ($buildReady)
     {
         & (Join-Path $PSScriptRoot `
@@ -410,19 +432,22 @@ if ($Expectation -in @("Build", "Ready"))
             Join-Path $restorationRoot (
                 [string]$manifest.contracts.p14NonstandardProfessionMatrixClosure)
         ) -Raw | ConvertFrom-Json
-        $ownerArtifact = $nonstandardContract.forceDefenseRestorationEvidence.
-            build.compiledArtifacts."command_table.iff"
-        $directArtifact = $currentBuild.compiledArtifacts."command_table.iff"
         $buildReady =
             @("implemented-build-verified-live-pending", "ready") -ccontains
                 [string]$nonstandardContract.status -and
             [string]$nonstandardContract.forceDefenseRestorationEvidence.
-                build.result -ceq "passed" -and
-            [string]$ownerArtifact.path -ceq
-                [string]$directArtifact.path -and
-            [string]$ownerArtifact.sha256 -ceq
-                [string]$directArtifact.sha256 -and
-            [long]$ownerArtifact.bytes -eq [long]$directArtifact.bytes
+                build.result -ceq "passed"
+        foreach ($artifactName in $canonicalArtifactPaths.Keys)
+        {
+            $ownerArtifact = $nonstandardContract.forceDefenseRestorationEvidence.
+                build.compiledArtifacts.($artifactName)
+            $directArtifact = $currentBuild.compiledArtifacts.($artifactName)
+            $buildReady = $buildReady -and
+                [string]$ownerArtifact.path -ceq [string]$directArtifact.path -and
+                [string]$ownerArtifact.sha256 -ceq
+                    [string]$directArtifact.sha256 -and
+                [long]$ownerArtifact.bytes -eq [long]$directArtifact.bytes
+        }
     }
     if ($buildReady)
     {
@@ -499,9 +524,11 @@ if ($Expectation -in @("Build", "Ready"))
                 "p14-armor-mitigation-ordering" -and
             [string]$deployment.forceSpeedLiveAcceptanceOwner -ceq
                 "p14-nonstandard-profession-matrix-closure" -and
+            [string]$deployment.forceCureLiveAcceptanceOwner -ceq
+                "p14-nonstandard-profession-matrix-closure" -and
             (([string]$contract.status -ceq
                     "implemented-build-verified-live-pending" -and
-                $contract.requiredBeforeReady.Count -eq 2) -or
+                $contract.requiredBeforeReady.Count -eq 3) -or
              ([string]$contract.status -ceq "ready" -and
                 $contract.requiredBeforeReady.Count -eq 0))
     }
@@ -517,13 +544,15 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
             "pending" -and
         [string]$contract.currentBuildEvidence.sourceWorkParity.result -ceq
             "pending" -and
-        [int]$contract.currentBuildEvidence.sourceWorkParity.checkedFiles -eq 3 -and
+        [int]$contract.currentBuildEvidence.sourceWorkParity.checkedFiles -eq 5 -and
         [int]$contract.currentBuildEvidence.sourceWorkParity.matchedFiles -eq 0 -and
         (Test-ExactNames `
             $contract.currentBuildEvidence.sourceWorkParity.files @(
                 "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
                 "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
-                "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+                "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.java",
+                "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+                "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
             )) -and
         @($contract.currentBuildEvidence.compiledArtifacts.PSObject.Properties |
             Where-Object {
@@ -543,13 +572,15 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
             "p14-armor-mitigation-ordering" -and
         [string]$contract.currentDeploymentEvidence.forceSpeedLiveAcceptanceOwner -ceq
             "p14-nonstandard-profession-matrix-closure" -and
+        [string]$contract.currentDeploymentEvidence.forceCureLiveAcceptanceOwner -ceq
+            "p14-nonstandard-profession-matrix-closure" -and
         [string]$contract.currentDeploymentEvidence.containerHealth -ceq
             "pending" -and
         [string]::IsNullOrWhiteSpace(
             [string]$contract.currentDeploymentEvidence.container) -and
         [int]$contract.currentDeploymentEvidence.liveGameProcessCount -eq 0 -and
         -not [bool]$contract.currentDeploymentEvidence.clusterReadyForPlayers -and
-        $contract.requiredBeforeReady.Count -eq 3) `
+        $contract.requiredBeforeReady.Count -eq 4) `
         "p14.direct-callback.pending-evidence-truthful"
 }
 if ($Expectation -eq "Ready")
@@ -645,6 +676,8 @@ if ($Expectation -eq "Ready")
             "p14-armor-mitigation-ordering" -and
         [string]$contract.currentDeploymentEvidence.forceSpeedLiveAcceptanceOwner -ceq
             "p14-nonstandard-profession-matrix-closure" -and
+        [string]$contract.currentDeploymentEvidence.forceCureLiveAcceptanceOwner -ceq
+            "p14-nonstandard-profession-matrix-closure" -and
         [string]$armorContract.status -ceq "ready" -and
         [string]$armorContract.forceDefenseContract.directSourceCommit -ceq
             $directCommit -and
@@ -675,6 +708,11 @@ if ($Expectation -eq "Ready")
             forceSpeedLive.result -ceq "passed" -and
         [string]$nonstandardContract.forceDefenseRestorationEvidence.
             forceSpeedLive.containerStartedAt -ceq
+            [string]$deployment.containerStartedAt -and
+        [string]$nonstandardContract.forceDefenseRestorationEvidence.
+            forceCureLive.result -ceq "passed" -and
+        [string]$nonstandardContract.forceDefenseRestorationEvidence.
+            forceCureLive.containerStartedAt -ceq
             [string]$deployment.containerStartedAt -and
         $contract.requiredBeforeReady.Count -eq 0) "p14.direct-callback.ready-evidence"
 }

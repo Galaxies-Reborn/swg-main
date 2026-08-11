@@ -1338,7 +1338,7 @@ Assert-Contract (
         [int]$grantCrossCheck.registeredActionsAfter.count -and
     (Get-NameSetSha256 $registeredGrantTokens) -ceq
         [string]$grantCrossCheck.registeredActionsAfter.sha256) `
-    "p14.profession-closure.jedi-grants.112-to-6-to-106-command-resolution"
+    "p14.profession-closure.jedi-grants.112-to-9-to-103-command-resolution"
 
 $buffTablePath = Join-Path $dsrc `
     "sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
@@ -1607,14 +1607,18 @@ if ($Expectation -in @("Build", "Ready"))
     $canonicalArtifactPaths = [ordered]@{
         "combat_actions.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.class"
         "jedi.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/library/jedi.class"
+        "jedi_base.class" = "/swg-precu/data/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.class"
         "command_table.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
         "buff.iff" = "/swg-precu/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+        "jedi_actions.iff" = "/swg-precu/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
     }
     $parityPaths = @(
         "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
         "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+        "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.java",
         "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
-        "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+        "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+        "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
     )
     $artifactProperties = @($currentBuild.compiledArtifacts.PSObject.Properties)
     $artifactNames = @($artifactProperties | ForEach-Object { [string]$_.Name })
@@ -1628,8 +1632,8 @@ if ($Expectation -in @("Build", "Ready"))
     $buildReady = (
         [string]$currentBuild.result -ceq "passed" -and
         [string]$currentBuild.sourceWorkParity.result -ceq "passed" -and
-        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 4 -and
-        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 4 -and
+        [int]$currentBuild.sourceWorkParity.checkedFiles -eq 6 -and
+        [int]$currentBuild.sourceWorkParity.matchedFiles -eq 6 -and
         (Test-ExactOrdinalNames $currentBuild.sourceWorkParity.files `
             $parityPaths) -and
         @("implemented-build-verified-live-pending", "ready") -ccontains
@@ -1709,7 +1713,7 @@ if ($Expectation -in @("Build", "Ready"))
             "/swg-precu/$relativePath"
         if ($LASTEXITCODE -eq 0) { ++$parityMatches }
     }
-    $buildReady = $buildReady -and $parityMatches -eq 4
+    $buildReady = $buildReady -and $parityMatches -eq 6
     if ($buildReady)
     {
         & (Join-Path $PSScriptRoot `
@@ -1722,10 +1726,6 @@ if ($Expectation -in @("Build", "Ready"))
                     p14DirectCommandCallbackInventoryClosure)
         ) -Raw | ConvertFrom-Json
         $directBuild = $directContract.currentBuildEvidence
-        $directCommand = $directBuild.compiledArtifacts."command_table.iff"
-        $directActions = $directBuild.compiledArtifacts."combat_actions.class"
-        $professionCommand = $currentBuild.compiledArtifacts."command_table.iff"
-        $professionActions = $currentBuild.compiledArtifacts."combat_actions.class"
         $nonstandardContract = Get-Content -LiteralPath (
             Join-Path $restorationRoot (
                 [string]$manifest.contracts.p14NonstandardProfessionMatrixClosure)
@@ -1737,15 +1737,7 @@ if ($Expectation -in @("Build", "Ready"))
             [string]$directBuild.result -ceq "passed" -and
             @("implemented-build-verified-live-pending", "ready") -ccontains
                 [string]$nonstandardContract.status -and
-            [string]$ownerBuild.result -ceq "passed" -and
-            [string]$directCommand.path -ceq [string]$professionCommand.path -and
-            [string]$directCommand.sha256 -ceq
-                [string]$professionCommand.sha256 -and
-            [long]$directCommand.bytes -eq [long]$professionCommand.bytes -and
-            [string]$directActions.path -ceq [string]$professionActions.path -and
-            [string]$directActions.sha256 -ceq
-                [string]$professionActions.sha256 -and
-            [long]$directActions.bytes -eq [long]$professionActions.bytes
+            [string]$ownerBuild.result -ceq "passed"
         foreach ($artifactName in $canonicalArtifactPaths.Keys)
         {
             $ownerArtifact = $ownerBuild.compiledArtifacts.($artifactName)
@@ -1756,6 +1748,20 @@ if ($Expectation -in @("Build", "Ready"))
                     [string]$professionArtifact.sha256 -and
                 [long]$ownerArtifact.bytes -eq [long]$professionArtifact.bytes
         }
+        foreach ($artifactName in @(
+            "combat_actions.class", "jedi_base.class",
+            "command_table.iff", "jedi_actions.iff"))
+        {
+            $directArtifact = $directBuild.compiledArtifacts.($artifactName)
+            $professionArtifact = $currentBuild.compiledArtifacts.($artifactName)
+            $buildReady = $buildReady -and
+                [string]$directArtifact.path -ceq
+                    [string]$professionArtifact.path -and
+                [string]$directArtifact.sha256 -ceq
+                    [string]$professionArtifact.sha256 -and
+                [long]$directArtifact.bytes -eq
+                    [long]$professionArtifact.bytes
+        }
     }
     Assert-Contract $buildReady `
         "p14.profession-closure.force-defense-cross-check.deployed-artifacts-and-parity"
@@ -1765,14 +1771,16 @@ elseif ([string]$contract.status -ceq "implemented-build-pending")
     Assert-Contract ([string]$currentForceCrossCheck.build.result -ceq "pending" -and
         [string]$currentForceCrossCheck.build.sourceWorkParity.result -ceq
             "pending" -and
-        [int]$currentForceCrossCheck.build.sourceWorkParity.checkedFiles -eq 4 -and
+        [int]$currentForceCrossCheck.build.sourceWorkParity.checkedFiles -eq 6 -and
         [int]$currentForceCrossCheck.build.sourceWorkParity.matchedFiles -eq 0 -and
         (Test-ExactOrdinalNames `
             $currentForceCrossCheck.build.sourceWorkParity.files @(
                 "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_actions.java",
                 "dsrc/sku.0/sys.server/compiled/game/script/library/jedi.java",
+                "dsrc/sku.0/sys.server/compiled/game/script/systems/jedi/jedi_base.java",
                 "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
-                "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab"
+                "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+                "dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
             )) -and
         @($currentForceCrossCheck.build.compiledArtifacts.PSObject.Properties |
             Where-Object {
@@ -1835,7 +1843,7 @@ if ($Expectation -eq "Ready")
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.profession-closure.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.scope -cmatch
-            'Current 6955b771 source hashes authenticate source only' -and
+            'Current 10f2b882 source hashes authenticate source only' -and
         [string]$contract.buildEvidence.scope -cmatch
             'historical proof for direct source 67922cb1dc9416e33f370007b997b165f73e6174' -and
         [string]$contract.buildEvidence.historicalCompiledEvidenceDirectSourceCommit -ceq
@@ -1855,6 +1863,8 @@ if ($Expectation -eq "Ready")
         [string]$directReadyDeployment.forceDefenseLiveAcceptanceOwner -ceq
             "p14-armor-mitigation-ordering" -and
         [string]$directReadyDeployment.forceSpeedLiveAcceptanceOwner -ceq
+            "p14-nonstandard-profession-matrix-closure" -and
+        [string]$directReadyDeployment.forceCureLiveAcceptanceOwner -ceq
             "p14-nonstandard-profession-matrix-closure" -and
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$currentForceCrossCheck.build.result -ceq "passed" -and

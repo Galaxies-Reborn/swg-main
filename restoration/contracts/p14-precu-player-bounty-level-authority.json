@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "feature": "p14-precu-player-bounty-level-authority",
-  "status": "implemented-build-verified-live-pending",
+  "status": "implemented-build-pending",
   "scope": "Restore the Publish 14.1 visibility-driven Jedi player-bounty lifecycle while retaining the later explicitly tagged Smuggler PvP bounty path as a separate reward/provenance channel. Combat level, funded death bounties, and ordinary PvP-kill bounties do not participate.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -15,7 +15,7 @@
     "findings": [
       "The player-bounty Jedi authority is the exact force_title_jedi_rank_02 title skill, not generic force sensitivity or combat level.",
       "Visibility admits normal Jedi bounties at 1500, caps at 8000, decays proportionally over 21 days, and is produced by witnessed Jedi actions with enemy, neutral, and friendly weights of 1.0, 0.5, and 0.25.",
-      "Seven production-reachable visibility call sites are authenticated. An eighth textual call in systems/jedi/jedi_base.java is retained legacy compatibility code with no subclass, caller, script attachment, command hook, template reference, or engine event handler in the source tree.",
+      "Eight production-reachable visibility call sites are authenticated: five library producers, combat resolution, saber equip, and the active Force-cure helper. A ninth textual call remains confined to the retained doJediHealCommand method, which has no caller, hook, or engine event handler.",
       "Publish 14.1 bounty value is derived from spent force_discipline skill points and Force rank, with a 25000 unranked floor and 50000 ranked floor; at most five hunters may hold the target.",
       "Mission creation and acceptance revalidate online, bounty, visibility, title/state provenance, hunter count, recent-kill buffer, hunter-target cooldown, self, and account boundaries; no combat-level band is involved. Publish 14.1's enabled-by-default private-structure mission behavior is preserved.",
       "A successful player bounty pays the snapshotted credit reward and grants bountyhunter XP exactly once at reward divided by 50, without the later faction-standing or PvP-rating adjustment.",
@@ -42,9 +42,10 @@
     "jediLibraryActionProducerCalls": 5,
     "combatResolutionProducerCalls": 1,
     "saberEquipProducerCalls": 1,
-    "activeVisibilityProducerCalls": 7,
+    "forceCureActiveProducerCalls": 1,
+    "activeVisibilityProducerCalls": 8,
     "retainedUnreachableVisibilityProducerCalls": 1,
-    "totalTextualVisibilityProducerCalls": 8,
+    "totalTextualVisibilityProducerCalls": 9,
     "minimumUnrankedReward": 25000,
     "rewardPerForceDisciplinePoint": 1000,
     "minimumRankedReward": 50000,
@@ -120,8 +121,11 @@
     "scriptMethodsJedi": "src/engine/server/library/serverScript/src/shared/ScriptMethodsJedi.cpp"
   },
   "buildEvidence": {
+    "scope": "Current 10f2b882 source hashes authenticate source only. Compiled artifacts and deployment fields below are historical proof for direct source 6955b771580e324b770c1a8d809a5d094e75a75a and do not certify the active Force-cure producer.",
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "6955b771580e324b770c1a8d809a5d094e75a75a",
+    "directSourceGitlink": "10f2b88285969329effcfc3aba975c17118fd0b4",
+    "historicalCompiledEvidenceDirectSourceCommit": "6955b771580e324b770c1a8d809a5d094e75a75a",
+    "historicalCompiledEvidenceOnly": true,
     "nativeSourceCommit": "fea7fb70bfa98db2c1807510d3fdff5de5fa0a5d",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
@@ -135,14 +139,14 @@
       "basePlayer": "1d5553ba298dcaa88ccc1016a1065f0bc7b8abe36de4ca1244c7cebe12ac27ef",
       "combatBase": "5cdeeacad424839de68aa4a5e1be2e7cbb5fac6d5d6ea049639843ae9fdbc514",
       "combatPlayer": "3fbb6927cc30b17c2b52cab05716af3fd5245d3939afe8ceb1bb4b9a8435212a",
-      "combatActions": "09cae22c3126c5a9d8ba5273c0216a7a14af1b6f0499b0556bf232cd488ce0c8",
-      "jediBase": "cd85f3122999a0a3d4efa51447853d08aa20d4c10ce551da3b0f6c9867073efa",
+      "combatActions": "b13c1a307c78e09c4b66731a0c42b16217cd09afb7855035a8b565dd2566897c",
+      "jediBase": "b3ab72431e94a5c6a09e6203a018827d364a18f22a640978201c67f4afc84064",
       "missionDynamic": "9034f47081954e4adcc61bd79439f71e937433bcce95be14dda8b9aa28e860a9",
       "missionPlayer": "32ab4d4b055933721a9475476922064a2db0f05c3cf8268a53658a4d92597d49",
       "missionBounty": "7300c94b3fbc1ad423bbae85a12b0da4a1eaaf4f6c363a2bf234076c65c1e74c",
       "broker4": "e4255e789f39106b12945c33a4b33d3f69f2290dc82e5a997d970fd5cf75b08e",
       "broker5": "3e93960551bc67ccf9786d2e4b04e8c9e042ec04cc0f4afea7e0896895e153f0",
-      "jediActions": "0d7982e85429fd81106c1da0f3541b9facaa9dd1262374fa0ac4d87102acf2b9",
+      "jediActions": "1f6363b77c1878586e7fdc475b398d05593bb4cc779a5d679aa8c629fefae68f",
       "jediCombatData": "b920951a30b85dc8fa7f61d2d9510aae6f33a17117bc040d6b42b8e9a0e0f516",
       "skillTable": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
       "skillObject": "1bff8d120e5b1387ccd297b37190699d39805d753ad791b3d2b3d3cc7a9fd84b",
@@ -263,6 +267,7 @@
     "notClaimedComplete": "Unrelated PRE-CU precedence audit slices and later-content systems outside this producer-consumer-persistence chain."
   },
   "requiredBeforeReady": [
+    "Build and deploy immutable direct source 10f2b88285969329effcfc3aba975c17118fd0b4 and authenticate the active Force-cure visibility producer beside the retained legacy method.",
     "Exercise live normal Jedi and tagged-Smuggler selection, acceptance revalidation, success cleanup/XP behavior, simultaneous-state precedence, and NPC fallback."
   ]
 }
