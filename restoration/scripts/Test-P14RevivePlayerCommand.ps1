@@ -84,11 +84,30 @@ function Get-TableRow
 }
 
 $healing = Get-Content -LiteralPath $paths.healingLibrary -Raw
+$consumable = Get-Content -LiteralPath $paths.consumableLibrary -Raw
 $handler = Get-Content -LiteralPath $paths.handler -Raw
 $fixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 $row = Get-TableRow -Path $paths.commandTable -Key "revivePlayer"
 
 Write-Host "Publish 14.1 Revive Player command checks:"
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract -Condition (
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceCommit) `
+    -Name "p14.revive-player.direct-source-pin"
+foreach ($property in
+    $contract.buildEvidence.currentSourceSha256.psobject.Properties)
+{
+    $actualHash =
+        (Get-FileHash -Algorithm SHA256 `
+            -LiteralPath $paths[[string]$property.Name]).Hash.ToLowerInvariant()
+    Assert-Contract -Condition (
+        [string]$actualHash -ceq [string]$property.Value) `
+        -Name "p14.revive-player.source.$([string]$property.Name).authenticated"
+}
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq
         "b3f81c104acf9851def65bab5f0638e68a0cdede" -and
@@ -164,6 +183,38 @@ Assert-Contract -Condition (
     $healing.Contains("-100,") -and
     $healing.Contains("60.0f")) `
     -Name "p14.revive-player.runtime.six-channel-xp-and-grogginess"
+
+$reviveObserver = $contract.productionContract.campHealingObserver
+$reviveObserverPattern =
+    '(?s)healing\.healDamage\s*\(\s*player\s*,\s*target\s*,\s*attrib_mod\.getAttribute\(\)\s*,\s*attrib_mod\.getValue\(\)\s*,\s*notifyCampHealing\s*\)'
+Assert-Contract -Condition (
+    [int]$reviveObserver.damagePoolNotificationsPerUse -eq 3 -and
+    (@($reviveObserver.notifyingPools) -join ",") -ceq
+        "Health,Action,Mind" -and
+    [int]$reviveObserver.woundHealingNotifications -eq 0 -and
+    [bool]$reviveObserver.eachPositiveAuthoredPoolRequestNotifiesWhenClampedDeltaIsZero -and
+    [regex]::IsMatch(
+        $healing,
+        '(?s)int\[\]\s+primary\s*=\s*\{\s*HEALTH\s*,\s*ACTION\s*,\s*MIND\s*\}') -and
+    $healing.Contains("consumable.consumeItem(") -and
+    $consumable.Contains("boolean revivePack = healing.isRevivePack(item);") -and
+    $consumable.Contains("attrib_mod.getValue() > 0") -and
+    $consumable.Contains("attrib_mod.getDuration() <= 0.0f") -and
+    $consumable.Contains(
+        "(int)attrib_mod.getDecay() == (int)MOD_POOL") -and
+    [regex]::IsMatch(
+        $consumable,
+        '(?s)boolean notifyCampHealing\s*=\s*revivePack\s*\|\|') -and
+    [regex]::Matches($consumable, $reviveObserverPattern).Count -eq 1 -and
+    [regex]::IsMatch(
+        $consumable,
+        '(?s)else\s*\{\s*utils\.addAttribMod\(target, attrib_mod\);') -and
+    $fixture.Contains("attrib_mod[6]") -and
+    $fixture.Contains("modifiers[index * 2] =") -and
+    $fixture.Contains("utils.createHealWoundAttribMod(") -and
+    $fixture.Contains("modifiers[index * 2 + 1] =") -and
+    $fixture.Contains("utils.createHealDamageAttribMod(")) `
+    -Name "p14.revive-player.runtime.three-damage-zero-wound-observer-events"
 
 Assert-Contract -Condition (
     $healing.Contains("attribute_int >= NUM_ATTRIBUTES") -and

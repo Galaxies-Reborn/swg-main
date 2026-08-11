@@ -83,6 +83,62 @@ function Get-BracedBlock
 }
 
 Write-Host "Publish 14.1 Core3 wound checks:"
+$srcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "src"
+})
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract -Condition (
+    $srcPin.Count -eq 1 -and
+    [string]$srcPin[0].commit -ceq
+        [string]$contract.buildEvidence.nativeSourceCommit -and
+    [string]$srcPin[0].commit -ceq
+        "1d891e3f7a543872a5518292a4efa6635129c651") `
+    -Name "p14.wounds.native.committed-source-pin"
+Assert-Contract -Condition (
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.javaSourceCommit) `
+    -Name "p14.wounds.java.committed-source-pin"
+$nativeSourceNames = @(
+    "creatureController",
+    "creatureSource",
+    "creatureHeader",
+    "alterAttributeMessageSource",
+    "alterAttributeMessageHeader",
+    "scriptFunctionTable",
+    "scriptFunctionHeader",
+    "attributeNatives")
+foreach ($nativeSourceName in $nativeSourceNames)
+{
+    $expectedHash =
+        $contract.buildEvidence.nativeSourceSha256.psobject.Properties[
+            $nativeSourceName].Value
+    $actualHash =
+        (Get-FileHash -Algorithm SHA256 `
+            -LiteralPath $paths[$nativeSourceName]).Hash.ToLowerInvariant()
+    Assert-Contract -Condition (
+        [string]$actualHash -ceq [string]$expectedHash) `
+        -Name "p14.wounds.native.source.$nativeSourceName.authenticated"
+}
+$javaSourceNames = @(
+    "baseClass",
+    "healingLibrary",
+    "basePlayer",
+    "eventTool")
+foreach ($javaSourceName in $javaSourceNames)
+{
+    $expectedHash =
+        $contract.buildEvidence.javaSourceSha256.psobject.Properties[
+            $javaSourceName].Value
+    $actualHash =
+        (Get-FileHash -Algorithm SHA256 `
+            -LiteralPath $paths[$javaSourceName]).Hash.ToLowerInvariant()
+    Assert-Contract -Condition (
+        [string]$actualHash -ceq [string]$expectedHash) `
+        -Name "p14.wounds.java.source.$javaSourceName.authenticated"
+}
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq
         "6856f315a80b5250635b2272695caec1d64204ed" -and
@@ -114,18 +170,35 @@ $databaseConfig = Get-Content -LiteralPath $paths.databaseConfig -Raw
 $generatedPackager = Get-Content -LiteralPath $paths.generatedPackager -Raw
 $creatureHeader = Get-Content -LiteralPath $paths.creatureHeader -Raw
 $creatureSource = Get-Content -LiteralPath $paths.creatureSource -Raw
+$creatureController = Get-Content -LiteralPath $paths.creatureController -Raw
 $attributeNatives = Get-Content -LiteralPath $paths.attributeNatives -Raw
+$scriptFunctionHeader = Get-Content -LiteralPath $paths.scriptFunctionHeader -Raw
+$scriptFunctionTable = Get-Content -LiteralPath $paths.scriptFunctionTable -Raw
+$alterAttributeMessageHeader = Get-Content -LiteralPath $paths.alterAttributeMessageHeader -Raw
+$alterAttributeMessageSource = Get-Content -LiteralPath $paths.alterAttributeMessageSource -Raw
 $databaseVersionQuery = Get-Content -LiteralPath $paths.databaseVersionQuery -Raw
 $databaseMigration = Get-Content -LiteralPath $paths.databaseMigration -Raw
 $baseClass = Get-Content -LiteralPath $paths.baseClass -Raw
 $utils = Get-Content -LiteralPath $paths.utils -Raw
+$healingLibrary = Get-Content -LiteralPath $paths.healingLibrary -Raw
 $basePlayer = Get-Content -LiteralPath $paths.basePlayer -Raw
+$eventTool = Get-Content -LiteralPath $paths.eventTool -Raw
 $combatBase = Get-Content -LiteralPath $paths.combatBase -Raw
 $combatPlayer = Get-Content -LiteralPath $paths.combatPlayer -Raw
 $liveFixture = Get-Content -LiteralPath $paths.liveFixture -Raw
 
 $addWound = Get-BracedBlock -Text $creatureSource -Signature "int CreatureObject::addWound("
 $healWound = Get-BracedBlock -Text $creatureSource -Signature "int CreatureObject::healWound("
+$nativeHealDamage = Get-BracedBlock -Text $creatureSource -Signature "int CreatureObject::healDamage("
+$alterAttribute = Get-BracedBlock -Text $creatureSource -Signature "int CreatureObject::alterAttribute("
+$sourceAwareFourArgumentHeal = Get-BracedBlock -Text $healingLibrary `
+    -Signature "public static int healDamage(obj_id source, obj_id target, int attrib, int amount)"
+$sourceLessHeal = Get-BracedBlock -Text $healingLibrary `
+    -Signature "public static boolean healDamage(obj_id player, int attrib, int amt)"
+$avoidIncapRestore = Get-BracedBlock -Text $basePlayer `
+    -Signature "public boolean performCriticalHeal("
+$eventDamageShim = Get-BracedBlock -Text $eventTool `
+    -Signature "public int eventDamage("
 $scriptWounds = Get-BracedBlock -Text $combatBase -Signature "public void applyPrecuWounds("
 $damage = Get-BracedBlock -Text $combatBase -Signature "public void doWrappedDamage(obj_id attacker, obj_id defender, weapon_data weaponData, hit_result hitData, combat_data actionData, int overloadDamage)"
 $exitedCombat = Get-BracedBlock -Text $combatPlayer -Signature "public int OnExitedCombat("
@@ -209,6 +282,71 @@ Assert-Contract -Condition (
     $baseClass.Contains("private static native int _addWound") -and
     $baseClass.Contains("private static native int _healWound")) `
     -Name "p14.wounds.native.script-bridge-and-max-distinction"
+Assert-Contract -Condition (
+    $scriptFunctionHeader.Contains("TRIG_HEALING_RECEIVED = 308,") -and
+    $scriptFunctionTable.Contains('{Scripting::TRIG_HEALING_RECEIVED, "OnHealingReceived", "Oi"}') -and
+    $attributeNatives.Contains('JF("_healDamage", "(JJIIZ)I", healDamage)') -and
+    $attributeNatives.Contains("jint JNICALL ScriptMethodsAttributesNamespace::healDamage") -and
+    $attributeNatives.Contains("Attributes::isAttribPool(attrib)") -and
+    $attributeNatives.Contains("amount <= 0") -and
+    $attributeNatives.Contains("creature->healDamage") -and
+    $attributeNatives.Contains("notifyHealingReceived != JNI_FALSE") -and
+    $creatureHeader.Contains("healDamage               (Attributes::Enumerator attribute, int amount, NetworkId const & healer, bool notifyHealingReceived)") -and
+    $nativeHealDamage.Contains("Attributes::isAttribPool(attribute)") -and
+    $nativeHealDamage.Contains("amount <= 0 || !healer.isValid()") -and
+    $nativeHealDamage.Contains("return alterAttribute(attribute, amount, true, healer, false,") -and
+    $baseClass.Contains("private static native int _healDamage(long target, long healer, int attrib, int amount, boolean notifyHealingReceived);") -and
+    $baseClass.Contains("public static int applyDamageHealing(obj_id target, obj_id healer, int attrib, int amount, boolean notifyHealingReceived)")) `
+    -Name "p14.wounds.native.explicit-healing-observer-jni-and-trigger"
+Assert-Contract -Condition (
+    $creatureHeader.Contains("bool notifyHealingReceived = false") -and
+    $alterAttribute.Contains("notifyHealingReceived && delta > 0 && source.isValid()") -and
+    $alterAttribute.Contains("int const appliedDelta = delta + attribModChange + regenChange;") -and
+    $alterAttribute.Contains("ServerWorld::findObjectByNetworkId(source)") -and
+    $alterAttribute.Contains("params.addParam(healer->getNetworkId());") -and
+    $alterAttribute.Contains("params.addParam(appliedDelta);") -and
+    $alterAttribute.Contains("Scripting::TRIG_HEALING_RECEIVED") -and
+    -not $alterAttribute.Contains("appliedDelta > 0") -and
+    $alterAttribute.IndexOf("int const appliedDelta", [StringComparison]::Ordinal) -lt
+        $alterAttribute.IndexOf("Scripting::TRIG_HEALING_RECEIVED", [StringComparison]::Ordinal)) `
+    -Name "p14.wounds.native.post-mutation-observer-including-zero-applied-delta"
+Assert-Contract -Condition (
+    $alterAttributeMessageHeader.Contains("bool notifyHealingReceived = false") -and
+    $alterAttributeMessageHeader.Contains("bool              getNotifyHealingReceived() const;") -and
+    $alterAttributeMessageHeader.Contains("NetworkId         m_source;") -and
+    -not $alterAttributeMessageHeader.Contains("const NetworkId & m_source;") -and
+    $alterAttributeMessageHeader.Contains("bool              m_notifyHealingReceived;") -and
+    $alterAttributeMessageSource.Contains("Archive::put(target, msg->m_notifyHealingReceived);") -and
+    $alterAttributeMessageSource.Contains("Archive::get(source, notifyHealingReceived);") -and
+    $alterAttributeMessageSource.Contains("attacker, notifyHealingReceived)") -and
+    $creatureController.Contains("msg->getNotifyHealingReceived()")) `
+    -Name "p14.wounds.native-controller-message-preserves-healer-and-notify-flag"
+$javaObserverRouting = $contract.nativeContract.javaObserverRouting
+Assert-Contract -Condition (
+    [bool]$javaObserverRouting.sourceAwareFourArgumentDefaultNotifies -and
+    [int]$javaObserverRouting.sourceAwareFourArgumentBattleFatigueCreditsPerPositiveHeal -eq 1 -and
+    -not [bool]$javaObserverRouting.sourceLessAttributeHelpersNotify -and
+    -not [bool]$javaObserverRouting.avoidIncapRestoreNotifies -and
+    -not [bool]$javaObserverRouting.eventToolAdminShimNotifies -and
+    -not [string]::IsNullOrEmpty($sourceAwareFourArgumentHeal) -and
+    $sourceAwareFourArgumentHeal.Contains(
+        "healDamage(source, target, attrib, amount, true)") -and
+    [regex]::Matches(
+        $sourceAwareFourArgumentHeal,
+        'pvp\.bfCreditForHealing\s*\(\s*source\s*,\s*delta\s*\)').Count -eq 1 -and
+    -not [string]::IsNullOrEmpty($sourceLessHeal) -and
+    $sourceLessHeal.Contains(
+        "return addAttribModifier(player, attrib, amt, 0, 0, MOD_POOL);") -and
+    -not $sourceLessHeal.Contains("applyDamageHealing") -and
+    -not [string]::IsNullOrEmpty($avoidIncapRestore) -and
+    [regex]::Matches(
+        $avoidIncapRestore,
+        '(?s)healing\.healDamage\s*\(\s*self\s*,\s*self\s*,\s*HEALTH\s*,\s*\(int\)\s*value\s*,\s*false\s*\)').Count -eq 1 -and
+    -not [string]::IsNullOrEmpty($eventDamageShim) -and
+    [regex]::Matches(
+        $eventDamageShim,
+        '(?s)healing\.healDamage\s*\(\s*self\s*,\s*myTarget\s*,\s*HEALTH\s*,\s*damage\s*,\s*false\s*\)').Count -eq 1) `
+    -Name "p14.wounds.java-default-and-explicit-silent-observer-routing"
 Assert-Contract -Condition (
     $utils.Contains("litmus = healWound(target, attrib, amt) != ATTRIB_ERROR;") -and
     $utils.Contains("else if (am.getDecay() == MOD_WOUND)") -and

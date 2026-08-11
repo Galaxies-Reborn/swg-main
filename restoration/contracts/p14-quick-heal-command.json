@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "quick-heal-command",
-  "status": "ready",
+  "status": "implemented-build-pending",
   "scope": "Authentic Publish 14.1 Medic Quick Heal command admission and server behavior, including optional targeting, the Focus-adjusted Mind cost, shared random Health/Action healing, Focus and Willpower wounds, zero medicine, zero XP, and reversible live execution.",
   "sourceFiles": {
     "handler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/quick_heal.java",
@@ -49,7 +49,15 @@
     "focusWoundCost": 10,
     "willpowerWoundCost": 10,
     "medicineConsumed": false,
-    "medicalXpGranted": false
+    "medicalXpGranted": false,
+    "campHealingObserver": {
+      "notificationsPerUse": 2,
+      "notifyingPools": [
+        "Health",
+        "Action"
+      ],
+      "eachAuthoredRequestNotifiesWhenClampedDeltaIsZero": true
+    }
   },
   "liveFixture": {
     "playerOid": 39008597,
@@ -76,6 +84,10 @@
     "cleanupPolicy": "Restore command ownership, medical XP, and the exact max/current/wound preimage for Health, Action, Mind, Focus, and Willpower, remove the fixture-owned Focus modifier, then remove the fixture root. Recovery is identity-bound and only resurrects/refills the fixed fixture player when no lifecycle is active."
   },
   "buildEvidence": {
+    "directSourceCommit": "ebaf48f8f434d18f0c9e0e655b81fc51244bda7d",
+    "currentSourceSha256": {
+      "handler": "972bf3529a047a382de7539355fe3a5d0c070b93981b4c154f36e6de8dcc1f3e"
+    },
     "result": "passed",
     "target": "compile_java and compile_tab",
     "patchSha256": "5fba6bea8922316d662541ae24b3825ec0eb113e72c1ecb7449b4c21459542de",
@@ -140,7 +152,9 @@
     "oracleHealthyAfterCleanup": true,
     "clientSha256": "186017debf54371f1533e6ed499727f0150f368e4dae610b4f0b8a4dc4b87084"
   },
-  "requiredBeforeReady": [],
+  "requiredBeforeReady": [
+    "Pass the clean canonical Docker x86-64 build, cumulative artifact probe, restart, and player-readiness validation."
+  ],
   "narrowBoundary": {
     "included": [
       "authentic optional-target nonqueued command row",

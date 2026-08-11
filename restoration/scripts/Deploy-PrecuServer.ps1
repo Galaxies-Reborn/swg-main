@@ -59,6 +59,24 @@ Write-Host "Verifying the data-grant and persistence closure before build..."
 & (Join-Path $PSScriptRoot "Test-P14DataGrantPersistenceClosure.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying authentic Publish 14 camp XP routing before build..."
+& (Join-Path $PSScriptRoot "Test-P14ExplicitXpRouting.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
+Write-Host "Verifying the native healing-received observer and wound authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14Wounds.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
+Write-Host "Verifying camp-observer cardinality across PRE-CU medical actions before build..."
+& (Join-Path $PSScriptRoot "Test-P14HealDamageCommand.ps1") -SourceRoot $repositoryRoot -Expectation Build
+& (Join-Path $PSScriptRoot "Test-P14MedicineConsumption.ps1") -SourceRoot $repositoryRoot -Expectation Build
+& (Join-Path $PSScriptRoot "Test-P14TendingCommands.ps1") -SourceRoot $repositoryRoot -Expectation Build
+& (Join-Path $PSScriptRoot "Test-P14QuickHealCommand.ps1") -SourceRoot $repositoryRoot -Expectation Build
+& (Join-Path $PSScriptRoot "Test-P14RevivePlayerCommand.ps1") -SourceRoot $repositoryRoot -Expectation Build
+& (Join-Path $PSScriptRoot "Test-P14HealMindCommand.ps1") -SourceRoot $repositoryRoot -Expectation Build
+& (Join-Path $PSScriptRoot "Test-P14PrecuAuthoredHealingBuffAuthority.ps1") -SourceRoot $repositoryRoot -Expectation Source
+Write-Host "Verifying camp control-panel faction isolation and owner disband continuity before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuFactionPerkAuthority.ps1") -SourceRoot $repositoryRoot
 Write-Host "Verifying PRE-CU Force-sensitive Village quest authority before build..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuVillageQuestAuthority.ps1") `
     -SourceRoot $repositoryRoot `
@@ -374,10 +392,20 @@ source_tangible_conversation="$SWG_SOURCE_DIR/src/engine/server/library/serverGa
 work_tangible_conversation="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp"
 source_player_controller="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
 work_player_controller="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
+source_creature_controller="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/controller/CreatureController.cpp"
+work_creature_controller="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/controller/CreatureController.cpp"
 source_script_methods_pvp="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
 work_script_methods_pvp="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
 source_script_methods_attributes="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp"
 work_script_methods_attributes="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp"
+source_script_function_header="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptFunctionTable.h"
+work_script_function_header="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptFunctionTable.h"
+source_script_function_table="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptFunctionTable.cpp"
+work_script_function_table="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptFunctionTable.cpp"
+source_alter_attribute_message_header="$SWG_SOURCE_DIR/src/engine/server/library/serverNetworkMessages/src/shared/gameGameServer/MessageQueueAlterAttribute.h"
+work_alter_attribute_message_header="$SWG_WORK_DIR/src/engine/server/library/serverNetworkMessages/src/shared/gameGameServer/MessageQueueAlterAttribute.h"
+source_alter_attribute_message="$SWG_SOURCE_DIR/src/engine/server/library/serverNetworkMessages/src/shared/gameGameServer/MessageQueueAlterAttribute.cpp"
+work_alter_attribute_message="$SWG_WORK_DIR/src/engine/server/library/serverNetworkMessages/src/shared/gameGameServer/MessageQueueAlterAttribute.cpp"
 source_client="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 work_client="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 source_creature="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
@@ -575,6 +603,10 @@ source_regional_mission_terminal_template="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server
 work_regional_mission_terminal_template="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/tangible/gcw/flip_terminal_spawner.tpf"
 source_camp_controlpanel="$source_script/systems/camping/camp_controlpanel.java"
 work_camp_controlpanel="$work_script/systems/camping/camp_controlpanel.java"
+source_camp_master="$source_script/systems/camping/camp_master.java"
+work_camp_master="$work_script/systems/camping/camp_master.java"
+source_camping_library="$source_script/library/camping.java"
+work_camping_library="$work_script/library/camping.java"
 source_pclib_library="$source_script/library/pclib.java"
 work_pclib_library="$work_script/library/pclib.java"
 source_group_library="$source_script/library/group.java"
@@ -627,6 +659,16 @@ source_skill_mod_listing="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/da
 work_skill_mod_listing="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/expertise/skill_mod_listing.tab"
 source_healing_library="$source_script/library/healing.java"
 work_healing_library="$work_script/library/healing.java"
+source_consumable_library="$source_script/library/consumable.java"
+work_consumable_library="$work_script/library/consumable.java"
+source_quick_heal_command="$source_script/player/cmd/quick_heal.java"
+work_quick_heal_command="$work_script/player/cmd/quick_heal.java"
+source_classic_stimpack="$source_script/item/medicine/stimpack.java"
+work_classic_stimpack="$work_script/item/medicine/stimpack.java"
+source_crafted_stimpack="$source_script/item/medicine/stimpack_crafted.java"
+work_crafted_stimpack="$work_script/item/medicine/stimpack_crafted.java"
+source_other_stimpack="$source_script/item/medicine/stimpack_other.java"
+work_other_stimpack="$work_script/item/medicine/stimpack_other.java"
 source_dot_library="$source_script/library/dot.java"
 work_dot_library="$work_script/library/dot.java"
 source_smuggler_library="$source_script/library/smuggler.java"
@@ -729,6 +771,8 @@ source_ai="$source_script/ai/ai.java"
 work_ai="$work_script/ai/ai.java"
 source_base_player="$source_script/player/base/base_player.java"
 work_base_player="$work_script/player/base/base_player.java"
+source_event_tool="$source_script/event/event_tool.java"
+work_event_tool="$work_script/event/event_tool.java"
 source_pgc_library="$source_script/library/pgc_quests.java"
 work_pgc_library="$work_script/library/pgc_quests.java"
 source_player_saga="$source_script/player/player_saga_quest.java"
@@ -783,6 +827,8 @@ work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
 binary="$SWG_WORK_DIR/build/bin/SwgGameServer"
 server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/libserverGame.a"
+server_script_archive="$SWG_WORK_DIR/build/engine/server/library/serverScript/src/libserverScript.a"
+server_network_messages_archive="$SWG_WORK_DIR/build/engine/server/library/serverNetworkMessages/src/libserverNetworkMessages.a"
 
 cmp -s "$source_outdoorsman" "$work_outdoorsman"
 cmp -s "$source_corpse" "$work_corpse"
@@ -804,8 +850,13 @@ cmp -s "$source_commands_header" "$work_commands_header"
 cmp -s "$source_connection_server" "$work_connection_server"
 cmp -s "$source_tangible_conversation" "$work_tangible_conversation"
 cmp -s "$source_player_controller" "$work_player_controller"
+cmp -s "$source_creature_controller" "$work_creature_controller"
 cmp -s "$source_script_methods_pvp" "$work_script_methods_pvp"
 cmp -s "$source_script_methods_attributes" "$work_script_methods_attributes"
+cmp -s "$source_script_function_header" "$work_script_function_header"
+cmp -s "$source_script_function_table" "$work_script_function_table"
+cmp -s "$source_alter_attribute_message_header" "$work_alter_attribute_message_header"
+cmp -s "$source_alter_attribute_message" "$work_alter_attribute_message"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
 cmp -s "$source_creature_header" "$work_creature_header"
@@ -997,6 +1048,8 @@ cmp -s "$source_faction_recruiter_rebel_conversation" "$work_faction_recruiter_r
 cmp -s "$source_regional_mission_terminal_spawner" "$work_regional_mission_terminal_spawner"
 cmp -s "$source_regional_mission_terminal_template" "$work_regional_mission_terminal_template"
 cmp -s "$source_camp_controlpanel" "$work_camp_controlpanel"
+cmp -s "$source_camp_master" "$work_camp_master"
+cmp -s "$source_camping_library" "$work_camping_library"
 cmp -s "$source_pclib_library" "$work_pclib_library"
 cmp -s "$source_group_library" "$work_group_library"
 cmp -s "$source_skill_library" "$work_skill_library"
@@ -1163,6 +1216,11 @@ grep -Fq 'ATTACK_NAME_BASE_AREA = "co_ae_hw_dot_"' "$work_heavyweapons_library"
 cmp -s "$source_reverse_engineering_library" "$work_reverse_engineering_library"
 cmp -s "$source_skill_mod_listing" "$work_skill_mod_listing"
 cmp -s "$source_healing_library" "$work_healing_library"
+cmp -s "$source_consumable_library" "$work_consumable_library"
+cmp -s "$source_quick_heal_command" "$work_quick_heal_command"
+cmp -s "$source_classic_stimpack" "$work_classic_stimpack"
+cmp -s "$source_crafted_stimpack" "$work_crafted_stimpack"
+cmp -s "$source_other_stimpack" "$work_other_stimpack"
 cmp -s "$source_dot_library" "$work_dot_library"
 dot_immunity_source="$(sed -n '/public static boolean checkForDotImmunity/,/public static int getElementalGroupResist/p' "$work_dot_library")"
 dot_immunity_player_guard_line="$(printf '%s\n' "$dot_immunity_source" | grep -Fn 'if (isPlayer(target))' | head -1 | cut -d: -f1)"
@@ -1469,6 +1527,7 @@ cmp -s "$source_mission_escort" "$work_mission_escort"
 cmp -s "$source_player_utility" "$work_player_utility"
 cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
+cmp -s "$source_event_tool" "$work_event_tool"
 cmp -s "$source_pgc_library" "$work_pgc_library"
 cmp -s "$source_player_saga" "$work_player_saga"
 cmp -s "$source_storyteller_commands" "$work_storyteller_commands"
@@ -5381,6 +5440,108 @@ do
     cmp -s "$source_script/$crafting_gate_file" "$work_script/$crafting_gate_file"
     ! grep -Fq 'class_' "$work_script/$crafting_gate_file"
 done
+# Camp XP is granted only from compiled Publish 14.1 camp lifecycle classes,
+# and healing credit reaches it only through the explicit native observer seam.
+for camp_xp_class in \
+    script/base_class.class \
+    script/library/camping.class \
+    script/library/healing.class \
+    script/library/consumable.class \
+    script/player/base/base_player.class \
+    script/player/cmd/quick_heal.class \
+    script/systems/buff/buff_handler.class \
+    script/systems/camping/camp_master.class \
+    script/systems/camping/camp_controlpanel.class \
+    script/event/event_tool.class \
+    script/item/medicine/stimpack.class \
+    script/item/medicine/stimpack_crafted.class \
+    script/item/medicine/stimpack_other.class
+do
+    test -f "$class_root/$camp_xp_class"
+done
+base_class_camp_signatures="$(javap -classpath "$class_root" -constants -p script.base_class)"
+printf '%s\n' "$base_class_camp_signatures" | grep -Fq 'TRIG_HEALING_RECEIVED = 308'
+printf '%s\n' "$base_class_camp_signatures" | grep -Fq '_healDamage(long, long, int, int, boolean)'
+printf '%s\n' "$base_class_camp_signatures" | grep -Fq 'applyDamageHealing(script.obj_id, script.obj_id, int, int, boolean)'
+
+camping_constants="$(javap -classpath "$class_root" -constants -p script.library.camping)"
+printf '%s\n' "$camping_constants" | grep -Fq 'HEARTBEAT_RESTORE = 60.0f'
+printf '%s\n' "$camping_constants" | grep -Fq 'CAMP_NATURAL_EXPIRY = 3300.0f'
+printf '%s\n' "$camping_constants" | grep -Fq 'CAMP_XP_DURATION = 3600'
+printf '%s\n' "$camping_constants" | grep -Fq 'CAMP_XP_FULL_DURATION = 900'
+printf '%s\n' "$camping_constants" | grep -Fq 'registerCampVisitor(script.obj_id, script.obj_id)'
+printf '%s\n' "$camping_constants" | grep -Fq 'recordCampHealingEvent(script.obj_id)'
+printf '%s\n' "$camping_constants" | grep -Fq 'calculateCampExperience(script.obj_id)'
+printf '%s\n' "$camping_constants" | grep -Fq 'claimCampExperience(script.obj_id)'
+printf '%s\n' "$camping_constants" | grep -Fq 'awardCampExperienceAndNuke(script.obj_id)'
+camping_verbose="$(javap -classpath "$class_root" -v script.library.camping)"
+for camp_state_marker in \
+    camp.healingXp camp.uniqueVisitors camp.xpClaimed \
+    camp.abandonSequence camp.abandonPending
+do
+    printf '%s\n' "$camping_verbose" | grep -Fq "$camp_state_marker"
+done
+camping_code="$(javap -classpath "$class_root" -c -p script.library.camping)"
+record_camp_healing_code="$(printf '%s\n' "$camping_code" | sed -n '/recordCampHealingEvent/,/calculateCampExperience/p')"
+calculate_camp_xp_code="$(printf '%s\n' "$camping_code" | sed -n '/calculateCampExperience/,/claimCampExperience/p')"
+claim_camp_xp_code="$(printf '%s\n' "$camping_code" | sed -n '/claimCampExperience/,/awardCampExperienceAndNuke/p')"
+printf '%s\n' "$record_camp_healing_code" | grep -Eq 'sipush[[:space:]]+180'
+printf '%s\n' "$calculate_camp_xp_code" | grep -Eq 'bipush[[:space:]]+30'
+printf '%s\n' "$calculate_camp_xp_code" | grep -Eq 'ldc.*float 900\.0f'
+printf '%s\n' "$claim_camp_xp_code" | grep -Fq 'script/library/pclib.msgGrantXP'
+printf '%s\n' "$claim_camp_xp_code" | grep -Fq 'String camp'
+! printf '%s\n' "$claim_camp_xp_code" | grep -Fq 'script/library/group.'
+
+camp_master_code="$(javap -classpath "$class_root" -c -p script.systems.camping.camp_master)"
+camp_panel_code="$(javap -classpath "$class_root" -c -p script.systems.camping.camp_controlpanel)"
+printf '%s\n' "$camp_master_code" | grep -Fq 'handleCampNaturalExpiry'
+printf '%s\n' "$camp_master_code" | grep -Fq 'handleCampHealingReceived'
+printf '%s\n' "$camp_master_code" | grep -Fq 'handleCampRestoreHeartbeat'
+test "$(printf '%s\n' "$camp_master_code" | grep -Fc 'script/library/camping.nukeCamp')" -eq 12
+test "$(printf '%s\n' "$camp_master_code" | grep -Fc 'script/library/camping.awardCampExperienceAndNuke')" -eq 1
+test "$(printf '%s\n' "$camp_panel_code" | grep -Fc 'script/library/camping.awardCampExperienceAndNuke')" -eq 1
+! printf '%s\n' "$camp_panel_code" | grep -Fq 'script/library/camping.nukeCamp'
+
+base_player_camp_code="$(javap -classpath "$class_root" -c -p script.player.base.base_player)"
+printf '%s\n' "$base_player_camp_code" | grep -Fq 'OnHealingReceived'
+printf '%s\n' "$base_player_camp_code" | grep -Fq 'handleHealOverTimeTick'
+printf '%s\n' "$base_player_camp_code" | grep -Fq 'script/library/camping.getCurrentCamp'
+printf '%s\n' "$base_player_camp_code" | grep -Fq 'handleCampHealingReceived'
+printf '%s\n' "$base_player_camp_code" | grep -Fq 'notifyCampHealing'
+
+healing_camp_code="$(javap -classpath "$class_root" -c -p script.library.healing)"
+printf '%s\n' "$healing_camp_code" | grep -Fq 'applyDamageHealing'
+printf '%s\n' "$healing_camp_code" | grep -Fq 'performHealDamage'
+printf '%s\n' "$healing_camp_code" | grep -Fq 'startHealOverTime'
+printf '%s\n' "$healing_camp_code" | grep -Fq 'useHealDamageItem'
+source_aware_heal_code="$(printf '%s\n' "$healing_camp_code" | sed -n '/healDamage(script.obj_id, script.obj_id, int, int);/,/healDamage(script.obj_id, script.obj_id, int, int, boolean);/p')"
+test "$(printf '%s\n' "$source_aware_heal_code" | grep -Fc 'healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
+test "$(printf '%s\n' "$source_aware_heal_code" | grep -Fc 'script/library/pvp.bfCreditForHealing')" -eq 1
+classic_stim_heal_code="$(printf '%s\n' "$healing_camp_code" | sed -n '/useHealDamageItem(script.obj_id, script.obj_id, script.obj_id, int)/,/useChannelHealItem/p')"
+test "$(printf '%s\n' "$classic_stim_heal_code" | grep -Fc 'healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
+test "$(printf '%s\n' "$classic_stim_heal_code" | grep -Fc 'script/library/pvp.bfCreditForHealing')" -eq 1
+
+consumable_camp_code="$(javap -classpath "$class_root" -c -p script.library.consumable)"
+printf '%s\n' "$consumable_camp_code" | grep -Fq 'script/library/healing.isRevivePack'
+printf '%s\n' "$consumable_camp_code" | grep -Fq 'script/library/healing.isMedicine'
+printf '%s\n' "$consumable_camp_code" | grep -Fq 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I'
+quick_heal_code="$(javap -classpath "$class_root" -c -p script.player.cmd.quick_heal)"
+test "$(printf '%s\n' "$quick_heal_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 2
+heal_mind_code="$(printf '%s\n' "$base_player_camp_code" | sed -n '/public int healMind(/,/private boolean isPrecuHealMindFixture/p')"
+test "$(printf '%s\n' "$heal_mind_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;II)I')" -eq 1
+avoid_incap_heal_code="$(printf '%s\n' "$base_player_camp_code" | sed -n '/public boolean performCriticalHeal(/,/public void sendSmugglerSystemBootstrap/p')"
+test "$(printf '%s\n' "$avoid_incap_heal_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
+healing_buff_code="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler | sed -n '/public int healEffectAddBuffHandler(/,/public int healEffectRemoveBuffHandler/p')"
+test "$(printf '%s\n' "$healing_buff_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
+event_damage_code="$(javap -classpath "$class_root" -c -p script.event.event_tool | sed -n '/public int eventDamageTarget(/,/public int eventMoveToMe/p')"
+test "$(printf '%s\n' "$event_damage_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
+for classic_stim_class in \
+    script.item.medicine.stimpack \
+    script.item.medicine.stimpack_crafted \
+    script.item.medicine.stimpack_other
+do
+    javap -classpath "$class_root" -c -p "$classic_stim_class" | grep -Fq 'script/library/healing.useHealDamageItem'
+done
 # Publish 14.1 crafting Luck is a skill-modifier roll, not the later generic
 # player-level-capped primary-stat proc or its forced critical-success path.
 javap -classpath "$class_root" -v script.library.luck | grep -Fq 'getPrecuCraftingLuckRoll'
@@ -8253,6 +8414,27 @@ test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/mob/precu_
 test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_xp.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/pvp/force_rank.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/pvp/force_rank_dark.iff"
+test -f "$server_script_archive"
+test -f "$server_network_messages_archive"
+grep -Fq 'TRIG_HEALING_RECEIVED = 308' "$work_script_function_header"
+grep -Fq '{Scripting::TRIG_HEALING_RECEIVED, "OnHealingReceived", "Oi"}' "$work_script_function_table"
+grep -Fq 'JF("_healDamage", "(JJIIZ)I", healDamage)' "$work_script_methods_attributes"
+grep -Fq 'CreatureObject::healDamage(Attributes::Enumerator attribute, int amount' "$work_creature"
+grep -Fq 'notifyHealingReceived && delta > 0 && source.isValid()' "$work_creature"
+grep -Fq 'params.addParam(appliedDelta);' "$work_creature"
+! grep -Fq 'appliedDelta > 0' "$work_creature"
+grep -Fq 'bool notifyHealingReceived = false' "$work_creature_header"
+grep -Fq 'NetworkId         m_source;' "$work_alter_attribute_message_header"
+grep -Fq 'bool              m_notifyHealingReceived;' "$work_alter_attribute_message_header"
+grep -Fq 'Archive::put(target, msg->m_notifyHealingReceived);' "$work_alter_attribute_message"
+grep -Fq 'Archive::get(source, notifyHealingReceived);' "$work_alter_attribute_message"
+grep -Fq 'msg->getNotifyHealingReceived()' "$work_creature_controller"
+nm -C "$server_game_archive" | grep -Fq 'CreatureObject::healDamage(Attributes::Enumerator, int, NetworkId const&, bool)'
+nm -C "$server_game_archive" | grep -Fq 'CreatureObject::alterAttribute(Attributes::Enumerator, int, bool, NetworkId const&, bool, bool)'
+nm -C "$server_script_archive" | grep -Fq 'ScriptMethodsAttributesNamespace::healDamage'
+nm -C "$server_network_messages_archive" | grep -Fq 'MessageQueueAlterAttribute::MessageQueueAlterAttribute(int, int, bool, NetworkId const&, bool)'
+strings "$binary" | grep -Fq '_healDamage'
+strings "$binary" | grep -Fq 'OnHealingReceived'
 nm -C "$server_game_archive" | grep -Fq 'WeaponObjectNamespace::normalizePrecuAttackSpeed'
 nm -C "$server_game_archive" | grep -Fq 'WeaponObject::getAttackTime() const'
 nm -C "$server_game_archive" | grep -Fq 'CreatureObject::processExpertiseRequest'

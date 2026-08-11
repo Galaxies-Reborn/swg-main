@@ -220,6 +220,11 @@ $respec = [string]$texts["respec.java"]
 $xpPurchase = [string]$texts["xp_purchase.java"]
 $lootSchematic = [string]$texts["loot_schematic.java"]
 $buffHandler = [string]$texts["buff_handler.java"]
+Assert-Contract ([bool]$contract.expected.campExperiencePoolPreservedAcrossLogin -and
+    -not [bool]$contract.expected.campExperienceConvertedToScoutAtLogin -and
+    -not $basePlayer.Contains('grantExperiencePoints(self, "scout", campXp)') -and
+    -not $basePlayer.Contains('grantExperiencePoints(self, "camp", 0 - campXp)')) `
+    "p14.data-grant.camp-xp-pool-preserved-across-login"
 Assert-Contract ($basePlayer.Contains("pgc_quests.retireChroniclesPlayerProgressionState(self);") -and
     $collection.Contains("if (grantCommand(player, command1))") -and
     $collection.Contains("was rejected by PRE-CU progression authority") -and

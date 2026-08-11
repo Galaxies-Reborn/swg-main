@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-data-grant-persistence-closure",
-  "status": "ready",
-  "scope": "Close the final stale player data-grant and persistence audit across skill, command, Chronicles XP, stored Chronicle rewards, delayed progression callbacks, and non-skill command objvars; prevent retained collections from creating an independent meditate command outside combat_unarmed_novice while preserving Publish 14.1 skill-box progression and retained quest, badge, faction, pilot, entertainer, item, and expansion-content rewards.",
+  "status": "implemented-build-pending",
+  "scope": "Close the final stale player data-grant and persistence audit across skill, command, Chronicles XP, stored Chronicle rewards, delayed progression callbacks, non-skill command objvars, and camping XP; prevent retained collections from creating an independent meditate command outside combat_unarmed_novice while preserving Publish 14.1 skill-box progression, the authored camp XP pool across login, and retained quest, badge, faction, pilot, entertainer, item, and expansion-content rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -17,7 +17,7 @@
     "grantSkillSourceFiles": 44,
     "grantCommandSourceLines": 31,
     "grantCommandSourceFiles": 19,
-    "normalizedInventorySha256": "a6212ee60131b90e92c5480dc44d2cd71887d37fcef7f6b713b141f1eef74e20",
+    "normalizedInventorySha256": "a0033b388e291feadd3b84a604f9bd03d721a5d51d3eb45880f115f9050d3ecd",
     "excludedFixtureDirectories": [
       "test",
       "working",
@@ -46,20 +46,22 @@
     "storytellerStoredRewardClaimsRejected": true,
     "nonPlayerExpansionCompatibilityPreserved": true,
     "preCuSkillBoxAndXpProgressionPreserved": true,
-    "retainedQuestBadgeFactionPilotEntertainerAndItemRewardsPreserved": true
+    "retainedQuestBadgeFactionPilotEntertainerAndItemRewardsPreserved": true,
+    "campExperiencePoolPreservedAcrossLogin": true,
+    "campExperienceConvertedToScoutAtLogin": false
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "dsrcSourceCommit": "a67641a286f845e9dc86e580d02f2499254316c7",
-    "nativeSourceCommit": "12a63c9773ba29eb2fb9685e43bfac5727d4cf21",
+    "dsrcSourceCommit": "ebaf48f8f434d18f0c9e0e655b81fc51244bda7d",
+    "nativeSourceCommit": "1d891e3f7a543872a5518292a4efa6635129c651",
     "hostMaterializationWorkflow": "retired; no host artifact, staging, or generated overlay tree",
     "sourceSha256": {
-      "CreatureObject.cpp": "a584fda631f7c88e1e9fe74e385452625f18f1b3223581c82e23d302a928aef3",
-      "CreatureObject.h": "654838fe8cc7225673f68eed4bd744b97757da06d7a7a0bee054e70e458113ea",
+      "CreatureObject.cpp": "35f0b329afe7518ecae161789c8fd9a1b55b62a750738478e778983c2da561a4",
+      "CreatureObject.h": "ef7dc88078594d1de3f9d63516b60cca90ec5294aa33ccb7ee3c0f1899c3cbca",
       "skill.java": "603782376baf5726222e0f70a7309955da7e3b97a94e295b50d581248a9d41d7",
       "xp.java": "334b46d42814fc36138089f4e5a7958cdf0eb9aee079f19ae28a34a14778060a",
       "pgc_quests.java": "114ae751e742f71c5887b922aed91485af9ed2be95d75ccf0df4fcf86e44d423",
-      "base_player.java": "948a98c31f471d84ffbc7ae4357a277bb76a4c74c8531247e075e62da521afc6",
+      "base_player.java": "3abaf1e71c1e5c2375ba57dc97a84a986ee65b17168bac8827285283efd91abd",
       "player_saga_quest.java": "b544b0185f1621dacbb0ea69342857705e99b656a2add3f9432ed14c662d1dd8",
       "storyteller_commands.java": "1e7be916cd5ac7124b51b0b6b7fd60e0c5349c6d03616b42419084eaafe8600a",
       "collection.java": "a4da8b416f8aaed91e3c8953fb925a6525f6c421c269ff0254a48c2be5393172",
@@ -67,7 +69,7 @@
       "respec.java": "b24248616509197101c86b837c641500ffc0f186115c0c76e410a8289f6ce33b",
       "xp_purchase.java": "46dbf986116233dd256e9bf16083f6432191a278ca348099891dbb1ac8b83385",
       "loot_schematic.java": "1fa8a878010238eb6ec7f7bb3920168b858749bdf7dabb1c6c79ee4aff0d7b9f",
-      "buff_handler.java": "471d1cfa3dad3414af75981f67687ec53b564835787f0f2e195802560ccbaa3f"
+      "buff_handler.java": "83acdb0173e3c543035961ea1a6a12bcc2090e1c5ef76cdcdeaacc8b4fd9e1d0"
     },
     "focusedJavaCompile": "passed pgc_quests.java with Java 8 source/target, debug metadata, and implicit compilation disabled against the canonical deployed package root; emitted a 60,211-byte class and removed the exact ephemeral /dev/shm output directory",
     "focusedClassSha256": {
@@ -139,5 +141,7 @@
     "devShmResidueEntries": 0,
     "postStartLogAudit": "357 lines since current container start; one exact player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "Pass the clean canonical Docker x86-64 build, cumulative artifact probe, restart, and player-readiness validation."
+  ]
 }

@@ -47,15 +47,26 @@ foreach ($property in $contract.sourceFiles.PSObject.Properties)
     Assert-Contract ($hash -ceq $expectedHash) `
         "p14.authored-healing-buff.source.$($property.Name).authenticated"
 }
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract ($dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceGitlink) `
+    "p14.authored-healing-buff.direct-source-pin"
 
 $combat = [string]$texts.combat
 $healing = [string]$texts.healing
+$buffHandler = [string]$texts.buffHandler
 $combatBuffs = Get-SourceSlice $combat "public static boolean applyDefenderCombatBuffs(" `
     "public static boolean applyCombatMovementModifier("
 $healingActions = Get-SourceSlice $healing "public static boolean performHealDamage(" `
     "public static boolean canUseAbility("
 $lifeSiphon = Get-SourceSlice $healing "public static void applyLifeSiphonHeal(" `
     "public static int doDiminishingReturns("
+$healingEffect = Get-SourceSlice $buffHandler `
+    "public int healEffectAddBuffHandler(" `
+    "public int healEffectRemoveBuffHandler("
 
 $forbiddenCombatAuthority = @(
     "expertiseRandomBuffChance",
@@ -111,17 +122,22 @@ Assert-Contract ($healingActions.Contains("int toHeal = action_data.addedDamage;
 Assert-Contract ($lifeSiphon.Contains("Math.round(damage * percentToHeal)") -and
     $lifeSiphon.Contains("healDamage(attacker, attacker, HEALTH, damageToHeal)")) `
     "p14.authored-healing-buff.life-siphon.preserved"
+Assert-Contract (-not [bool]$contract.expected.healingHealthBuffObserverNotifies -and
+    $healingEffect.Contains('subtype.equals("healing_health")') -and
+    [regex]::Matches(
+        $healingEffect,
+        '(?s)healing\.healDamage\s*\(\s*caster\s*,\s*self\s*,\s*HEALTH\s*,\s*\(int\)value\s*,\s*false\s*\)').Count -eq 1 -and
+    -not [regex]::IsMatch(
+        $healingEffect,
+        '(?s)subtype\.equals\("healing_health"\).*?healing\.healDamage\s*\([^;]+?\btrue\s*\);')) `
+    "p14.authored-healing-buff.healing-health-observer-silent"
 
 if ($Expectation -eq "Ready")
 {
-    $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
     Assert-Contract ([string]$contract.status -ceq "ready" -and
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed") `
         "p14.authored-healing-buff.ready-evidence"
-    Assert-Contract ($dsrcPin.Count -eq 1 -and
-        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
-        "p14.authored-healing-buff.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.combat -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.healing -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and

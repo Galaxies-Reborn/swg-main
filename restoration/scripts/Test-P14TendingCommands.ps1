@@ -81,6 +81,41 @@ function Get-TableRow
     }
 }
 
+function Get-BracedBlock
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Signature
+    )
+    $start = $Text.IndexOf($Signature, [StringComparison]::Ordinal)
+    if ($start -lt 0)
+    {
+        return ""
+    }
+    $open = $Text.IndexOf("{", $start, [StringComparison]::Ordinal)
+    if ($open -lt 0)
+    {
+        return ""
+    }
+    $depth = 0
+    for ($index = $open; $index -lt $Text.Length; ++$index)
+    {
+        if ($Text[$index] -eq '{')
+        {
+            ++$depth
+        }
+        elseif ($Text[$index] -eq '}')
+        {
+            --$depth
+            if ($depth -eq 0)
+            {
+                return $Text.Substring($start, $index - $start + 1)
+            }
+        }
+    }
+    return ""
+}
+
 function Test-TendingCommandRow
 {
     param(
@@ -116,8 +151,30 @@ $damageRow = Get-TableRow -Path $paths.commandTable -Key "tendDamage"
 $woundRow = Get-TableRow -Path $paths.commandTable -Key "tendWound"
 $skillRow =
     Get-TableRow -Path $paths.skillTable -Key "science_medic_novice"
+$tendDamage = Get-BracedBlock -Text $healing `
+    -Signature "public static boolean performTendDamage("
+$tendWound = Get-BracedBlock -Text $healing `
+    -Signature "public static boolean performTendWound("
 
 Write-Host "Publish 14.1 tending command checks:"
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract -Condition (
+    $dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceCommit) `
+    -Name "p14.tending.direct-source-pin"
+foreach ($property in
+    $contract.buildEvidence.currentSourceSha256.psobject.Properties)
+{
+    $actualHash =
+        (Get-FileHash -Algorithm SHA256 `
+            -LiteralPath $paths[[string]$property.Name]).Hash.ToLowerInvariant()
+    Assert-Contract -Condition (
+        [string]$actualHash -ceq [string]$property.Value) `
+        -Name "p14.tending.source.$([string]$property.Name).authenticated"
+}
 Assert-Contract -Condition (
     [string]$contract.semanticReference.pinnedCommit -ceq
         "6856f315a80b5250635b2272695caec1d64204ed" -and
@@ -178,10 +235,34 @@ Assert-Contract -Condition (
     $healing.Contains(
         "Math.round(applyShockWoundModifier(power, target))") -and
     $healing.Contains(
-        "utils.createHealDamageAttribMod(HEALTH, power)") -and
+        "int healthHealed = healDamage(") -and
     $healing.Contains(
-        "utils.createHealDamageAttribMod(ACTION, power)")) `
+        "int actionHealed = healDamage(")) `
     -Name "p14.tending.runtime.skill-power-battle-fatigue-and-ha"
+
+$tendingObserver = $contract.productionContract.campHealingObserver
+$tendHealthPattern =
+    '(?s)healDamage\s*\(\s*medic\s*,\s*target\s*,\s*HEALTH\s*,\s*power\s*,\s*true\s*\)'
+$tendActionPattern =
+    '(?s)healDamage\s*\(\s*medic\s*,\s*target\s*,\s*ACTION\s*,\s*power\s*,\s*false\s*\)'
+Assert-Contract -Condition (
+    [int]$tendingObserver.tendDamageNotificationsPerUse -eq 1 -and
+    [string]$tendingObserver.tendDamageNotifyingPool -ceq
+        "Health request" -and
+    -not [bool]$tendingObserver.tendDamageActionPoolNotifies -and
+    -not [bool]$tendingObserver.tendWoundNotifies -and
+    [bool]$tendingObserver.clampedHealthDeltaZeroStillNotifies -and
+    -not [string]::IsNullOrEmpty($tendDamage) -and
+    [regex]::Matches($tendDamage, $tendHealthPattern).Count -eq 1 -and
+    [regex]::Matches($tendDamage, $tendActionPattern).Count -eq 1 -and
+    [regex]::Matches(
+        $tendDamage,
+        'healDamage\s*\(').Count -eq 2 -and
+    -not [string]::IsNullOrEmpty($tendWound) -and
+    $tendWound.Contains(
+        "healWound(target, attribute, Math.min(power, woundBefore));") -and
+    -not [regex]::IsMatch($tendWound, 'healDamage\s*\(')) `
+    -Name "p14.tending.runtime.exact-damage-and-wound-observer-cardinality"
 
 Assert-Contract -Condition (
     $healing.Contains(

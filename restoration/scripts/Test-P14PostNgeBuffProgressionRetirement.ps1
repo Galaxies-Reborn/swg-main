@@ -593,7 +593,7 @@ $healEffectActionWriter = $healEffectAddBody.IndexOf(
     "healing.healDamage(self, ACTION, (int)value);",
     [StringComparison]::Ordinal)
 $healEffectHealthWriter = $healEffectAddBody.IndexOf(
-    "healing.healDamage(caster, self, HEALTH, (int)value);",
+    "healing.healDamage(caster, self, HEALTH, (int)value, false);",
     [StringComparison]::Ordinal)
 $professionImmunityHandlerGuard = $immunityAddBody.IndexOf(
     "if (isPlayer(self) && buff.isRetiredPostNgePlayerProfessionImmunityBuffName(buffName))",

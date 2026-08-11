@@ -1,8 +1,11 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-authored-healing-buff-authority",
-  "status": "ready",
-  "scope": "Remove active NGE expertise chance, duration, healing, target, reduction, HOT, and aggro authority from retained combat/healing actions while preserving authored action values, buff-table fallback durations, medical hate, PvP help, effects, and lifecycle.",
+  "status": "implemented-build-pending",
+  "requiredBeforeReady": [
+    "Pass the clean canonical Docker x86-64 build, cumulative artifact probe, restart, and player-readiness validation."
+  ],
+  "scope": "Remove active NGE expertise chance, duration, healing, target, reduction, HOT, and aggro authority from retained combat/healing actions while preserving authored action values, buff-table fallback durations, medical hate, PvP help, effects, lifecycle, and the silent non-damage healing-health buff path.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -20,7 +23,7 @@
     ]
   },
   "expected": {
-    "changedGameplaySourceFiles": 2,
+    "changedGameplaySourceFiles": 3,
     "historicalExecutableExpertiseReads": 12,
     "remainingBoundedExpertiseReads": 0,
     "remainingHealingExpertiseReads": 0,
@@ -37,19 +40,22 @@
     "medicalHateFormula": "delta / HEALING_AGGRO_REDUCER",
     "lifeSiphonFormula": "round(damage * percentToHeal)",
     "precuSkillAndMedicineAuthorityPreserved": true,
-    "retainedEffectsAndLifecyclePreserved": true
+    "retainedEffectsAndLifecyclePreserved": true,
+    "healingHealthBuffObserverNotifies": false
   },
   "sourceFiles": {
     "combat": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
-    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java"
+    "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "buffHandler": "dsrc/sku.0/sys.server/compiled/game/script/systems/buff/buff_handler.java"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "a67641a286f845e9dc86e580d02f2499254316c7",
+    "directSourceGitlink": "ebaf48f8f434d18f0c9e0e655b81fc51244bda7d",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "combat": "48510810c4794beb95de1954f0dbb516fa15ed7bea73f9bf1380633ded3ca910",
-      "healing": "54bf0b4020c35f864fbe28a9f399171ff33806055bfa14d46cd2d255d927d451"
+      "healing": "c2a5c827e1755e61d4ff22b209d0445e01cec05a0ea44e34eda224849b8a6f66",
+      "buffHandler": "83acdb0173e3c543035961ea1a6a12bcc2090e1c5ef76cdcdeaacc8b4fd9e1d0"
     },
     "compiledClassSha256": {
       "combat": "f80271507ca8490d94f42003604a0f622b9d4a5b9b9a1f4dfe99baf342851c9e",
@@ -98,6 +104,5 @@
     "closedInThisMilestone": "the active expertise chance/duration surface shared by retained combat and healing buffs plus all direct expertise healing, HOT, target, reduction, and medical-hate calculations in library/healing.java",
     "preserved": "authored combat-data values, buff-table default durations, direct and over-time healing, medical hate, PvP help, defender/medic buffs, DOT resistance, life siphon, medical spam, particles, and existing PRE-CU medicine/skill authority",
     "notClaimedComplete": "other combat expertise calculations, reverse engineering, armor, movement, performance compatibility, and content-specific expertise references remain subject to later reachability audits"
-  },
-  "requiredBeforeReady": []
+  }
 }

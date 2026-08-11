@@ -62,6 +62,13 @@ foreach ($name in $paths.Keys)
             "p14.faction-perk.source.$name.authenticated"
     }
 }
+$dsrcPin = @($manifest.gitlinks | Where-Object {
+    [string]$_.name -ceq "dsrc"
+})
+Assert-Contract ($dsrcPin.Count -eq 1 -and
+    [string]$dsrcPin[0].commit -ceq
+        [string]$contract.buildEvidence.directSourceGitlink) `
+    "p14.faction-perk.direct-source-pin"
 
 $factions = [string]$texts["script.library.factions"]
 $perk = [string]$texts["script.library.faction_perk"]
@@ -182,8 +189,12 @@ Assert-Contract (-not $camp.Contains("faction_perk") -and
     -not $camp.Contains("msgFactionItemPurchaseSelected") -and
     -not $camp.Contains("requisition") -and
     $camp.Contains("showStatus(self, player)") -and
-    $camp.Contains("SID_MNU_DISBAND")) `
-    "p14.faction-perk.camp-field-requisition-retired"
+    $camp.Contains("SID_MNU_DISBAND") -and
+    $camp.Contains("if (owner == player)") -and
+    $camp.Contains("camping.awardCampExperienceAndNuke(master);") -and
+    -not $camp.Contains("camping.nukeCamp(master);") -and
+    [bool]$contract.expected.ownerRadialCampDisbandPreserved) `
+    "p14.faction-perk.camp-field-requisition-retired-owner-disband-preserved"
 Assert-Contract (-not $patchText.Contains("/mission/") -and
     -not $patchText.Contains("missions.java") -and
     -not $patchText.Contains("mission_terminal")) `

@@ -1,10 +1,15 @@
 {
   "schemaVersion": 1,
-  "status": "ready",
-  "requiredBeforeReady": [],
+  "status": "implemented-build-pending",
+  "requiredBeforeReady": [
+    "Pass the clean canonical Docker x86-64 build, cumulative artifact probe, restart, and player-readiness validation."
+  ],
   "sourceFiles": {
     "consumable": "dsrc/sku.0/sys.server/compiled/game/script/library/consumable.java",
     "healing": "dsrc/sku.0/sys.server/compiled/game/script/library/healing.java",
+    "classicStimpack": "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack.java",
+    "craftedStimpack": "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_crafted.java",
+    "otherStimpack": "dsrc/sku.0/sys.server/compiled/game/script/item/medicine/stimpack_other.java",
     "commandHandler": "dsrc/sku.0/sys.server/compiled/game/script/player/cmd/heal_damage.java",
     "liveFixture": "dsrc/sku.0/sys.server/compiled/game/script/test/precu_heal_damage_command_fixture.java",
     "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
@@ -49,6 +54,20 @@
     "medicalXpGrant": "xp.grant",
     "medicalXpOtherPlayerOnly": true,
     "medicalXpExcludesSelfAndPets": true,
+    "campHealingObserver": {
+      "notificationsPerSuccessfulStimUse": 1,
+      "notifyingPool": "first authored positive instant MOD_POOL entry (Health)",
+      "laterActionAndMindEntriesNotify": false,
+      "clampedHealthDeltaZeroStillNotifies": true,
+      "woundBuffAndNonDamageModifiersNotify": false,
+      "classicUseHealDamageItemNotificationsPerSuccessfulUse": 1,
+      "classicUseHealDamageItemBattleFatigueCreditsPerPositiveHeal": 1,
+      "classicProducerScripts": [
+        "item.medicine.stimpack",
+        "item.medicine.stimpack_crafted",
+        "item.medicine.stimpack_other"
+      ]
+    },
     "fixtureTelemetryRequiresFixtureRoot": true
   },
   "liveFixture": {
@@ -79,6 +98,14 @@
     "cleanupPolicy": "restore healer Mind, shock, medical XP, skills, command, and cooldown; destroy fixture patient and medicine"
   },
   "buildEvidence": {
+    "directSourceCommit": "ebaf48f8f434d18f0c9e0e655b81fc51244bda7d",
+    "currentSourceSha256": {
+      "consumable": "20c78a62670ce462f1bdc2c561f63536fd09bf192d5de28c5954e8caef3a201d",
+      "healing": "c2a5c827e1755e61d4ff22b209d0445e01cec05a0ea44e34eda224849b8a6f66",
+      "classicStimpack": "af5716db282dcbca8b3ae318ff349dbc0a686f3cfb4f3206dd5915305f144250",
+      "craftedStimpack": "7de135de42a653524f3f7d1e83f3e652f007e5e083d3a3724a9592e29fe261d1",
+      "otherStimpack": "b2b9751f3cbdf67b068a7fb802b6627d07d1a1694e2e3e9907013de76ccb2564"
+    },
     "result": "passed",
     "target": "compile_java and compile_tab",
     "patchSha256": "1a2e95b4943dd44b74dc5aed3b527ccbf796625d6d6e7e12a323a85f05cb952e",
