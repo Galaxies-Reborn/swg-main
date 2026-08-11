@@ -354,7 +354,7 @@ if ($Expectation -ceq "Build")
         [string]$contract.buildEvidence.staticContract -like "passed source-level*" -and
         [string]$contract.buildEvidence.result -ceq "implemented-build-pending" -and
         $contract.requiredBeforeReady.Count -gt 0 -and
-        [string]$contract.buildEvidence.fullJavaCompile -like "*current*a67641a286f845e9dc86e580d02f2499254316c7*pending" -and
+        [string]$contract.buildEvidence.fullJavaCompile -like "*current*$([string]$dsrcGitlink[0].commit)*pending*" -and
         [string]$contract.buildEvidence.directSourceBuild -like "pending for current*" -and
         [string]$contract.buildEvidence.deploymentProbe -like "pending current*" -and
         -not [bool]$contract.runtimeEvidence.currentSourceDeployed
@@ -372,7 +372,7 @@ if ($Expectation -ceq "Build")
         [string]$contract.runtimeEvidence.result -ceq "passed"
     )
     Assert-Contract (
-        [string]$contract.buildEvidence.directSourceCommit -ceq "a67641a286f845e9dc86e580d02f2499254316c7" -and
+        [string]$contract.buildEvidence.directSourceCommit -ceq [string]$dsrcGitlink[0].commit -and
         ($sourceBuildPending -or $liveVerificationPending)
     ) "p14.player-migration.build-or-live-verification-pending-contract"
 }
