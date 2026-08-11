@@ -3499,7 +3499,7 @@ profession_heal_spy_predicate_line="$(printf '%s\n' "$profession_heal_add_source
 profession_heal_spy_cleanup_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'retirePostNgeSpyPlayerState' | head -1 | cut -d: -f1)"
 profession_heal_spy_return_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'return SCRIPT_OVERRIDE;' | awk -F: -v cleanup="$profession_heal_spy_cleanup_line" '$1 > cleanup { print $1; exit }')"
 profession_heal_action_writer_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'healing.healDamage(self, ACTION, (int)value);' | head -1 | cut -d: -f1)"
-profession_heal_health_writer_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'healing.healDamage(caster, self, HEALTH, (int)value);' | head -1 | cut -d: -f1)"
+profession_heal_health_writer_line="$(printf '%s\n' "$profession_heal_add_source" | grep -Fn 'healing.healDamage(caster, self, HEALTH, (int)value, false);' | head -1 | cut -d: -f1)"
 for profession_heal_source_line in "$profession_heal_player_guard_line" "$profession_heal_inspiration_predicate_line" "$profession_heal_inspiration_cleanup_line" "$profession_heal_inspiration_return_line" "$profession_heal_proxy_predicate_line" "$profession_heal_proxy_cleanup_line" "$profession_heal_proxy_return_line" "$profession_heal_spy_predicate_line" "$profession_heal_spy_cleanup_line" "$profession_heal_spy_return_line" "$profession_heal_action_writer_line" "$profession_heal_health_writer_line"; do
     test -n "$profession_heal_source_line"
 done
