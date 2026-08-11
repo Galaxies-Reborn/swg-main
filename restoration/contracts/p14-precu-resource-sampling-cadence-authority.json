@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-resource-sampling-cadence-authority",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Restore Publish 14.1 resource sampling authority: the fixed 25-second cadence, Quickness-derived base Action cost, two-choice concentrated-node and gamble events, and 300-Action optional gamble, without later Beast Master or Collection choices and rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
@@ -42,6 +42,8 @@
   "buildEvidence": {
     "sourceMode": "direct-branch",
     "directSourceGitlink": "88c62817fe66432772c3cab08a25ca45d946e3d8",
+    "nativeSourceGitlink": "2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "parentCommitAtDeployment": "00021910f891095b3e610f746ed0074a756603ce",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
       "surveyTool": "adc3cec743a187a3a49dbe4c58fd5227fd333dc6e4a4000e0fbd94ce3be12380",
@@ -49,14 +51,14 @@
       "basePlayer": "770c3d914518631e5bd11ba05a6e343e798adba1c4b0e8416b65fd6d8d094923"
     },
     "compiledClassSha256": {
-      "surveyTool": null,
-      "resourceLibrary": null,
-      "basePlayer": null
+      "surveyTool": "f000baf40c6b0861712e27c8e172a2abccda8df870846996b953f4d9e4abd872",
+      "resourceLibrary": "849dc9c34b46ab523985be387add4a57014ed8eeda936bb31aeb376c2a641972",
+      "basePlayer": "878cb4a7f87e8999f13ba32e01e32b1a6d5b4283d7dbf114a1aba4d182ee34a7"
     },
     "compiledClassBytes": {
-      "surveyTool": null,
-      "resourceLibrary": null,
-      "basePlayer": null
+      "surveyTool": 24699,
+      "resourceLibrary": 29536,
+      "basePlayer": 314263
     },
     "sourceTest": "passed; fixed 25-second cadence and Quickness cost remain, both concentrated-resource events expose only the two Publish 14.1 choices, the gamble costs 300 Action, and Beast Master, Collection, third-choice, values 3/4/5, and params-derived player authority are absent",
     "focusedJavaCompile": "passed OpenJDK Java 8-target compilation of resource.java and base_player.java against the deployed x64 class tree in an isolated /dev/shm directory removed immediately",
@@ -68,30 +70,58 @@
       "resourceLibrary": 26286,
       "basePlayer": 268993
     },
-    "fullJavaCompile": "pending canonical clean x64 deployment",
-    "fullServerBuild": "pending canonical clean x64 deployment",
-    "architecture": "pending canonical x64 verification",
-    "serverBinarySha256": null,
-    "serverBinaryBuildId": null,
-    "sourceWorkParity": "pending canonical direct-source/work parity gate",
-    "bytecodeAudit": "pending canonical deployed-class audit",
-    "deploymentProbe": "pending canonical restart/readiness and live mapped-binary verification",
-    "result": "source-passed-build-pending"
+    "fullJavaCompile": "passed canonical exact zero-class x64 rebuild in 1,403.6 seconds; 5,717 Java sources emitted 5,751 classes with zero shared-memory residue",
+    "fullServerBuild": "passed from pushed parent 00021910f891095b3e610f746ed0074a756603ce, direct dsrc 88c62817fe66432772c3cab08a25ca45d946e3d8, and native src 2e64bf715fb14463570f39dd71c7db15f3aefa01",
+    "architecture": "ELF 64-bit LSB x86-64",
+    "serverBinarySha256": "9f022e9273f5cf53595b0d976d40f38dea80077b4c4279fb42be2b58617ba6d7",
+    "serverBinaryBuildId": "3bc114af0d3c0d0555b166752473e1389c567b8a",
+    "sourceWorkParity": "passed byte-for-byte for survey_tool_script.java, resource.java, and base_player.java through the canonical mandatory direct-source/work parity gate",
+    "bytecodeAudit": "deployed resource.class retains both two-choice event dispatches without Beast or Collection calls; base_player.class charges 300 Action without params-derived player, Collection, or 2000-Action paths; survey_tool_script.class retains the fixed 25-second cadence",
+    "deploymentProbe": "passed canonical preflight, zero-class Java/data/native x64 build, controlled restart, player-readiness, live mapped-binary, source/work parity, and deployed-class authentication gates",
+    "result": "passed"
   },
   "runtimeEvidence": {
     "container": "swg-precu",
-    "currentSourceDeployed": false,
+    "currentSourceDeployed": true,
     "previousDeploymentSuperseded": true,
-    "result": "build-pending"
+    "sourceMountReadOnly": true,
+    "dockerWorkVolume": "swg-precu-work-x64",
+    "containerStartedAt": "2026-08-11T02:27:33.112611392Z",
+    "containerHealth": "healthy",
+    "clusterReadyForPlayers": true,
+    "javaSources": 5717,
+    "javaClasses": 5751,
+    "liveProcessMappedBuiltBinary": true,
+    "liveGameProcessPid": 374,
+    "liveGameProcessCount": 15,
+    "liveGameProcessesMappedBuiltBinary": 15,
+    "liveBinaryPath": "/swg-precu/build/bin/SwgGameServer",
+    "liveBinarySha256": "9f022e9273f5cf53595b0d976d40f38dea80077b4c4279fb42be2b58617ba6d7",
+    "liveBinaryBuildId": "3bc114af0d3c0d0555b166752473e1389c567b8a",
+    "liveBinaryInode": 12141658,
+    "liveBinarySize": 22561640,
+    "liveBinaryMapEntries": 30,
+    "processCounts": {
+      "LoginServer": 1,
+      "TaskManager": 1,
+      "ConnectionServer": 1,
+      "SwgDatabaseServer": 1,
+      "ChatServer": 1,
+      "CentralServer": 1,
+      "TransferServer": 1,
+      "PlanetServer": 15,
+      "SwgGameServer": 15
+    },
+    "postStartLogLines": 357,
+    "playerReadyMarkers": 1,
+    "postStartLogAudit": "357 fresh-start lines; one exact final player-ready marker; zero fatal, severe, exception, error, empty ConGenericMessage, undefined-symbol, ABI, Oracle-error, segmentation-fault, or core-dump matches",
+    "structuredLogFatalSevereExceptionCount": 0,
+    "result": "passed"
   },
   "auditBoundary": {
     "closedInThisMilestone": "the active NGE expertise-derived cadence plus the Beast Master, Collection, third-choice, 2000-Action, values 3/4/5, and params-derived-player additions to concentrated-resource callbacks",
     "preserved": "the 25-second Publish 14.1 schedule, Quickness base cost, two-choice concentrated-node and gamble events, 300-Action optional gamble, pause/resume loop, node waypoint/recovery, ordinary and critical results, containers, effects, radioactive handling, XP chance, and helper ABI",
     "notClaimedComplete": "reverse engineering, retained vendor maintenance, armor, healing, movement, performance, and other content-specific expertise references remain subject to later reachability audits"
   },
-  "requiredBeforeReady": [
-    "canonical clean x64 Java/server build",
-    "deployed resource, base-player, and survey-tool class authentication",
-    "healthy restart, source/work parity, and live mapped-binary proof"
-  ]
+  "requiredBeforeReady": []
 }

@@ -171,12 +171,20 @@ if ((Test-Path -LiteralPath $surveyPath -PathType Leaf) -and
 if ($Expectation -eq "Ready")
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+    $srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
+    $dsrcCommit = (& git -C (Join-Path $source "dsrc") rev-parse HEAD).Trim()
+    $srcCommit = (& git -C (Join-Path $source "src") rev-parse HEAD).Trim()
     Assert-Contract ([string]$contract.status -ceq "ready" -and
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.result -ceq "passed") `
         "p14.resource-sampling-cadence.ready-evidence"
     Assert-Contract ($dsrcPin.Count -eq 1 -and
-        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
+        $srcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq $dsrcCommit -and
+        [string]$srcPin[0].commit -ceq $srcCommit -and
+        $dsrcCommit -ceq [string]$contract.buildEvidence.directSourceGitlink -and
+        $srcCommit -ceq [string]$contract.buildEvidence.nativeSourceGitlink -and
+        [string]$contract.buildEvidence.parentCommitAtDeployment -match '^[a-f0-9]{40}$') `
         "p14.resource-sampling-cadence.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.surveyTool -match '^[a-f0-9]{64}$' -and
         [string]$contract.buildEvidence.compiledClassSha256.resourceLibrary -match '^[a-f0-9]{64}$' -and
@@ -186,9 +194,70 @@ if ($Expectation -eq "Ready")
         "p14.resource-sampling-cadence.live-evidence"
 
     $container = [string]$contract.runtimeEvidence.container
-    $health = (& docker inspect $container --format '{{.State.Health.Status}}').Trim()
-    Assert-Contract ($LASTEXITCODE -eq 0 -and $health -ceq "healthy") `
+    $containerState = (& docker inspect $container --format `
+        '{{.State.StartedAt}}|{{.State.Status}}|{{.State.Health.Status}}').Trim()
+    Assert-Contract ($LASTEXITCODE -eq 0 -and
+        $containerState -ceq (([string]$contract.runtimeEvidence.containerStartedAt) +
+            "|running|healthy")) `
         "p14.resource-sampling-cadence.live-container-health"
+
+    $sourceCount = [int]((& docker exec $container sh -lc `
+        "find /swg-precu-source/dsrc/sku.0/sys.server/compiled/game/script -type f -name '*.java' | wc -l").Trim())
+    $classCount = [int]((& docker exec $container sh -lc `
+        "find /swg-precu/data/sku.0/sys.server/compiled/game/script -type f -name '*.class' | wc -l").Trim())
+    Assert-Contract ($sourceCount -eq [int]$contract.runtimeEvidence.javaSources -and
+        $classCount -eq [int]$contract.runtimeEvidence.javaClasses) `
+        "p14.resource-sampling-cadence.live-java-inventory"
+
+    $binaryPath = [string]$contract.runtimeEvidence.liveBinaryPath
+    $binaryHash = ((& docker exec $container sha256sum $binaryPath).Trim() -split '\s+')[0]
+    $binaryStat = ((& docker exec $container stat -c '%s|%i' $binaryPath).Trim() -split '\|')
+    $binaryNotes = (& docker exec $container readelf -n $binaryPath | Out-String)
+    Assert-Contract ($LASTEXITCODE -eq 0 -and
+        $binaryHash -ceq [string]$contract.buildEvidence.serverBinarySha256 -and
+        $binaryHash -ceq [string]$contract.runtimeEvidence.liveBinarySha256 -and
+        [int64]$binaryStat[0] -eq [int64]$contract.runtimeEvidence.liveBinarySize -and
+        [int64]$binaryStat[1] -eq [int64]$contract.runtimeEvidence.liveBinaryInode -and
+        $binaryNotes.Contains([string]$contract.buildEvidence.serverBinaryBuildId) -and
+        $binaryNotes.Contains([string]$contract.runtimeEvidence.liveBinaryBuildId)) `
+        "p14.resource-sampling-cadence.live-binary"
+
+    $gamePids = @(& docker exec $container pgrep -x SwgGameServer |
+        Where-Object { $_ -match '^\d+$' })
+    $planetPids = @(& docker exec $container pgrep -x PlanetServer |
+        Where-Object { $_ -match '^\d+$' })
+    $mappedGameProcesses = 0
+    $mapEntries = 0
+    foreach ($gamePid in $gamePids)
+    {
+        $mappedPath = (& docker exec $container readlink "/proc/$gamePid/exe").Trim()
+        if ($mappedPath -ceq $binaryPath) { $mappedGameProcesses++ }
+        $entries = (& docker exec $container sh -lc `
+            "grep -Fc '$binaryPath' /proc/$gamePid/maps").Trim()
+        if ($entries -match '^\d+$') { $mapEntries += [int]$entries }
+    }
+    Assert-Contract ($gamePids.Count -eq
+            [int]$contract.runtimeEvidence.processCounts.SwgGameServer -and
+        $planetPids.Count -eq [int]$contract.runtimeEvidence.processCounts.PlanetServer -and
+        $mappedGameProcesses -eq
+            [int]$contract.runtimeEvidence.liveGameProcessesMappedBuiltBinary -and
+        $mapEntries -eq [int]$contract.runtimeEvidence.liveBinaryMapEntries -and
+        $gamePids -contains ([string]$contract.runtimeEvidence.liveGameProcessPid)) `
+        "p14.resource-sampling-cadence.live-process-topology"
+
+    $freshLogs = @(& docker logs --since `
+        ([string]$contract.runtimeEvidence.containerStartedAt) $container 2>&1)
+    $readyMarkers = @($freshLogs | Where-Object {
+        $_ -match '^\s*\[exec\] Cluster swg is ready for players\.\s*$'
+    })
+    $flaggedLogs = @($freshLogs | Where-Object {
+        $_ -match '(?i)fatal|severe|exception|\berror\b|ConGenericMessage constructed with empty message|undefined symbol|ABI|ORA-[0-9]+|segmentation fault|core dump'
+    })
+    Assert-Contract ($freshLogs.Count -ge [int]$contract.runtimeEvidence.postStartLogLines -and
+        $readyMarkers.Count -eq [int]$contract.runtimeEvidence.playerReadyMarkers -and
+        $flaggedLogs.Count -eq
+            [int]$contract.runtimeEvidence.structuredLogFatalSevereExceptionCount) `
+        "p14.resource-sampling-cadence.post-start-log-audit"
 
     foreach ($property in $contract.sourceFiles.PSObject.Properties)
     {
