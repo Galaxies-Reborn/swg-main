@@ -895,6 +895,9 @@ server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/li
 server_script_archive="$SWG_WORK_DIR/build/engine/server/library/serverScript/src/libserverScript.a"
 server_network_messages_archive="$SWG_WORK_DIR/build/engine/server/library/serverNetworkMessages/src/libserverNetworkMessages.a"
 shared_skill_system_archive="$SWG_WORK_DIR/build/engine/shared/library/sharedSkillSystem/src/libsharedSkillSystem.a"
+swg_creature_object="$SWG_WORK_DIR/build/game/server/application/SwgGameServer/src/CMakeFiles/SwgGameServer.dir/shared/object/SwgCreatureObject.cpp.o"
+swg_player_object="$SWG_WORK_DIR/build/game/server/application/SwgGameServer/src/CMakeFiles/SwgGameServer.dir/shared/object/SwgPlayerObject.cpp.o"
+jedi_manager_object="$SWG_WORK_DIR/build/game/server/application/SwgGameServer/src/CMakeFiles/SwgGameServer.dir/shared/object/JediManagerObject.cpp.o"
 
 cmp -s "$source_bounty_jedi" "$work_bounty_jedi"
 cmp -s "$source_bounty_hunter" "$work_bounty_hunter"
@@ -8659,7 +8662,7 @@ for bounty_broker in "$work_bounty_broker_4" "$work_bounty_broker_5"; do
     grep -Fq 'updateJediScriptData(player, "smugglerBountyValue", mission_bounty)' "$bounty_broker"
     ! grep -Fq 'bounty.amount' "$bounty_broker"
 done
-grep -Fq 'updateJediScriptData(self, "smugglerBountyValue", 0)' "$work_bounty_smuggler"
+grep -Fq 'updateJediScriptData(target, "smugglerBountyValue", 0)' "$work_bounty_smuggler"
 grep -Fq 'PLAYER_BOUNTY_PROVENANCE_SMUGGLER' "$work_bounty_smuggler"
 grep -Fq 'bounty_hunter.notifyPlayerBountyMissionsIncomplete' "$work_bounty_smuggler"
 ! grep -Fq 'removeAllJediBounties' "$work_bounty_smuggler"
@@ -8791,21 +8794,25 @@ grep -Fq 'jediCreature->synchronizeJediBountyRegistry();' "$work_bounty_script_m
 ! grep -Fq 'bounty.amount' "$work_bounty_script_methods_jedi"
 
 test -f "$shared_skill_system_archive"
+test -f "$swg_creature_object"
+test -f "$swg_player_object"
+test -f "$jedi_manager_object"
 nm -C "$shared_skill_system_archive" | grep -Fq 'SkillObject::getSkillPointCost() const'
 nm -C "$server_script_archive" | grep -Fq 'ScriptMethodsJediNamespace::setJediBountyValue'
 nm -C "$server_script_archive" | grep -Fq 'ScriptMethodsJediNamespace::requestJediBounty'
-nm -C "$binary" | grep -Fq 'SwgCreatureObject::synchronizeJediBountyRegistry()'
-nm -C "$binary" | grep -Fq 'SwgCreatureObject::getBountyValue() const'
-nm -C "$binary" | grep -Fq 'SwgCreatureObject::grantSkill(SkillObject const&)'
-nm -C "$binary" | grep -Fq 'SwgCreatureObject::revokeSkill(SkillObject const&, bool)'
-nm -C "$binary" | grep -Fq 'SkillObject::getSkillPointCost() const'
-nm -C "$binary" | grep -Fq 'SwgPlayerObject::setJediVisibility(int)'
-nm -C "$binary" | grep -Fq 'SwgPlayerObject::setJediState(JediState)'
-nm -C "$binary" | grep -Fq 'SwgPlayerObject::virtualOnSetAuthority()'
-nm -C "$binary" | grep -Fq 'JediManagerObject::getSmugglerBountyValue(int) const'
-nm -C "$binary" | grep -Fq 'JediManagerObject::isAvailableBountyTarget(int) const'
+nm -C "$swg_creature_object" | grep -Fq 'SwgCreatureObject::synchronizeJediBountyRegistry()'
+nm -C "$swg_creature_object" | grep -Fq 'SwgCreatureObject::getBountyValue() const'
+nm -C "$swg_creature_object" | grep -Fq 'SwgCreatureObject::grantSkill(SkillObject const&)'
+nm -C "$swg_creature_object" | grep -Fq 'SwgCreatureObject::revokeSkill(SkillObject const&, bool)'
+nm -C "$swg_player_object" | grep -Fq 'SwgPlayerObject::setJediVisibility(int)'
+nm -C "$swg_player_object" | grep -Fq 'SwgPlayerObject::setJediState(JediState)'
+nm -C "$swg_player_object" | grep -Fq 'SwgPlayerObject::virtualOnSetAuthority()'
+nm -C "$jedi_manager_object" | grep -Fq 'JediManagerObject::getSmugglerBountyValue(int) const'
+nm -C "$jedi_manager_object" | grep -Fq 'JediManagerObject::isAvailableBountyTarget(int) const'
 strings "$binary" | grep -Fq 'force_title_jedi_rank_02'
-strings "$binary" | grep -Fq 'force_rank.council'
+# GCC materializes this hot-path key as a 16-byte constant plus an immediate
+# tail, so the stripped ELF retains only the stable first 16 bytes for strings.
+strings "$binary" | grep -Fq 'force_rank.counc'
 strings "$binary" | grep -Fq 'smugglerBountyValue'
 strings "$binary" | grep -Fq 'POINTS_REQUIRED'
 file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
