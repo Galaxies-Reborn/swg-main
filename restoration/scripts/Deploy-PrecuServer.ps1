@@ -9004,8 +9004,8 @@ NR > 2 && ($1 == "stopBleeding" || $1 == "forceCureDisease" ||
         $(field["intVisibilityValue"]) != 10 ||
         $(field["intVisibilityRange"]) != 32 ||
         $(field["fltRange"]) != 32 ||
-        $(field["actionCost"]) != 0 ||
-        $(field["mindCost"]) != 0) exit 2
+        $(field["actionCost"]) != "" ||
+        $(field["mindCost"]) != "") exit 2
 }
 END { if (found != 3) exit 3 }
 ' "$work_bounty_jedi_actions"
