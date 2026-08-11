@@ -307,9 +307,19 @@ foreach ($dependencyKey in @($contract.requiredReadyContractKeys))
         & (Join-Path $PSScriptRoot "Test-P14PrecuCombatXpAuthority.ps1") `
             -SourceRoot $root
     }
+    $playerMigrationBuildPending = ($Expectation -ceq "Build" -and
+        $dependencyKey -ceq "p14PostNgePlayerMigrationAuthorityRetirement" -and
+        $dependencyStatus -ceq "implemented-build-pending")
+    if ($playerMigrationBuildPending)
+    {
+        & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1") `
+            -SourceRoot $root `
+            -Expectation Build
+    }
     Assert-Contract ($dependencyStatus -ceq "ready" -or
         ($dependencyKey -ceq "p14PrecuCombatXpAuthority" -and
-            $dependencyStatus -ceq "implemented-build-pending")) `
+            $dependencyStatus -ceq "implemented-build-pending") -or
+        $playerMigrationBuildPending) `
         "Required dependency is not Ready: $dependencyKey"
 }
 

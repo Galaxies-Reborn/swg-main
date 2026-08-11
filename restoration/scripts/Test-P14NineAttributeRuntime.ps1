@@ -192,6 +192,62 @@ Assert-Contract `
     -Condition ((($messageMembers -join ",") -ceq ($expectedMembers -join ",")) -and $text.statMessageCpp.Contains("currentTargets[Attributes::Strength]") -and $text.statMessageCpp.Contains("currentTargets[Attributes::Quickness]") -and $text.statMessageCpp.Contains("currentTargets[Attributes::Focus]")) `
     -Name "p14.nine-attribute.stat-migration-message.exact-wire-order"
 
+$ctsGetter = Get-BracedBlock -Text $text.commandCpp -Signature "bool CommandCppFuncs::getPrecuCtsStatAllocation("
+$ctsApplier = Get-BracedBlock -Text $text.commandCpp -Signature "bool CommandCppFuncs::applyPrecuCtsStatAllocation("
+$ctsSharedApply = Get-BracedBlock -Text $text.commandCpp -Signature "void applyStatMigration(CreatureObject & creature, std::vector<int> const & targets)"
+$ctsJniGetter = Get-BracedBlock -Text $text.scriptMethodsAttributes -Signature "jintArray JNICALL ScriptMethodsAttributesNamespace::getPrecuCtsStatAllocation("
+$ctsJniApplier = Get-BracedBlock -Text $text.scriptMethodsAttributes -Signature "jboolean JNICALL ScriptMethodsAttributesNamespace::applyPrecuCtsStatAllocation("
+$ctsUpload = Get-BracedBlock -Text $text.basePlayerScript -Signature "public int OnUploadCharacter("
+$ctsDownload = Get-BracedBlock -Text $text.basePlayerScript -Signature "public int OnDownloadCharacter("
+
+$ctsContractReady = `
+    [int]$contract.ctsAllocation.version -eq 1 -and `
+    [string]$contract.ctsAllocation.versionKey -ceq "precuCtsStatAllocationVersion" -and `
+    [string]$contract.ctsAllocation.allocationKey -ceq "precuCtsStatAllocation" -and `
+    [int]$contract.ctsAllocation.attributeCount -eq 9 -and `
+    [string]$contract.ctsAllocation.nativeGetterDescriptor -ceq "(J)[I" -and `
+    [string]$contract.ctsAllocation.nativeApplierDescriptor -ceq "(J[I)Z"
+Assert-Contract -Condition $ctsContractReady -Name "p14.nine-attribute.cts.versioned-exact-nine-contract"
+
+$ctsNativeReady = `
+    $text.commandHeader.Contains("getPrecuCtsStatAllocation(NetworkId const & actor, std::vector<int> & allocation)") -and `
+    $text.commandHeader.Contains("applyPrecuCtsStatAllocation(NetworkId const & actor, std::vector<int> const & allocation)") -and `
+    $ctsGetter.Contains("Attributes::NumberOfAttributes") -and `
+    $ctsGetter.Contains("getUnmodifiedMaxAttribute(attribute)") -and `
+    $ctsGetter.Contains("validateStatMigrationTargets(*creature, currentAllocation)") -and `
+    $ctsGetter.Contains("isPlayerControlled()") -and `
+    $ctsApplier.Contains("validateStatMigrationTargets(*creature, allocation)") -and `
+    $ctsApplier.Contains("isPlayerControlled()") -and `
+    ([regex]::Matches($ctsApplier, [regex]::Escape("applyStatMigration(*creature, allocation)")).Count -eq 1) -and `
+    $ctsSharedApply.Contains("int const delta = targets[attribute] - oldMaximum;") -and `
+    $ctsSharedApply.Contains("std::max(0, oldCurrent + delta)")
+Assert-Contract -Condition $ctsNativeReady -Name "p14.nine-attribute.cts.validated-unmodified-maxima-and-one-atomic-apply"
+
+$ctsBridgeReady = `
+    $text.baseClass.Contains("private static native int[] _getPrecuCtsStatAllocation(long target);") -and `
+    $text.baseClass.Contains("private static native boolean _applyPrecuCtsStatAllocation(long target, int[] allocation);") -and `
+    $text.scriptMethodsAttributes.Contains('JF("_getPrecuCtsStatAllocation", "(J)[I", getPrecuCtsStatAllocation)') -and `
+    $text.scriptMethodsAttributes.Contains('JF("_applyPrecuCtsStatAllocation", "(J[I)Z", applyPrecuCtsStatAllocation)') -and `
+    $ctsJniGetter.Contains("allocation.size()) != Attributes::NumberOfAttributes") -and `
+    $ctsJniGetter.Contains("createNewIntArray(Attributes::NumberOfAttributes)") -and `
+    $ctsJniApplier.Contains("GetArrayLength(allocation) != Attributes::NumberOfAttributes") -and `
+    $ctsJniApplier.Contains("GetIntArrayRegion(allocation, 0, Attributes::NumberOfAttributes, values)") -and `
+    ([regex]::Matches($ctsJniApplier, [regex]::Escape("CommandCppFuncs::applyPrecuCtsStatAllocation")).Count -eq 1)
+Assert-Contract -Condition $ctsBridgeReady -Name "p14.nine-attribute.cts.exact-int-array-native-bridge"
+
+$ctsApplyAt = $ctsDownload.IndexOf("applyPrecuCtsStatAllocation(self, precuStatAllocation)", [StringComparison]::Ordinal)
+$ctsFlagAt = $ctsDownload.IndexOf('utils.setLocalVar(self, "ctsBeingUnpacked", true)', [StringComparison]::Ordinal)
+$ctsTransferredAt = $ctsDownload.IndexOf('setObjVar(self, "hasTransferred", 1)', [StringComparison]::Ordinal)
+$ctsSkillAt = $ctsDownload.IndexOf('characterData.getStringArray("skills")', [StringComparison]::Ordinal)
+$ctsScriptReady = `
+    $ctsUpload.Contains("getPrecuCtsStatAllocation(self)") -and `
+    $ctsUpload.Contains("precuStatAllocation.length != NUM_ATTRIBUTES") -and `
+    $ctsUpload.Contains("characterData.put(PRECU_CTS_STAT_ALLOCATION_KEY, precuStatAllocation)") -and `
+    $ctsDownload.Contains("precuStatAllocation.length != NUM_ATTRIBUTES") -and `
+    $ctsApplyAt -ge 0 -and $ctsApplyAt -lt $ctsFlagAt -and `
+    $ctsFlagAt -lt $ctsTransferredAt -and $ctsTransferredAt -lt $ctsSkillAt
+Assert-Contract -Condition $ctsScriptReady -Name "p14.nine-attribute.cts.exact-nine-applied-before-transfer-replay"
+
 $bonusNamesReady = [regex]::IsMatch($text.tangibleCpp, '(?s)s_attributeBonusNames\[\].*?"health".*?"strength".*?"constitution".*?"action".*?"quickness".*?"stamina".*?"mind".*?"focus".*?"willpower"')
 Assert-Contract -Condition $bonusNamesReady -Name "p14.nine-attribute.item-bonus.names-match-wire-order"
 

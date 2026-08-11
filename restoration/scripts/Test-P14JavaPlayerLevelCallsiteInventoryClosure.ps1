@@ -226,7 +226,17 @@ foreach ($dependencyName in @($contract.requiredReadyContracts))
     Assert-Contract (Test-Path -LiteralPath $dependencyPath -PathType Leaf) `
         "Required Ready contract is missing: $dependencyName"
     $dependency = Get-Content -LiteralPath $dependencyPath -Raw | ConvertFrom-Json
-    Assert-Contract ([string]$dependency.status -ceq "ready") `
+    $dependencyStatus = [string]$dependency.status
+    $playerMigrationBuildPending = ($Expectation -ceq "Build" -and
+        [string]$dependencyName -ceq "p14-post-nge-player-migration-authority-retirement.json" -and
+        $dependencyStatus -ceq "implemented-build-pending")
+    if ($playerMigrationBuildPending)
+    {
+        & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1") `
+            -SourceRoot $root `
+            -Expectation Build
+    }
+    Assert-Contract ($dependencyStatus -ceq "ready" -or $playerMigrationBuildPending) `
         "Required dependency is not Ready: $dependencyName"
 }
 

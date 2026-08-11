@@ -12,7 +12,10 @@ $contractPath = Join-Path $restorationRoot "contracts\p14-character-creation.jso
 $contract = Get-Content -LiteralPath $contractPath -Raw | ConvertFrom-Json
 $source = (Resolve-Path -LiteralPath $SourceRoot).Path
 
-$gameServerPath = Join-Path $source "src\engine\server\library\serverGame\src\shared\core\GameServer.cpp"
+$connectionServerPath = Join-Path $source ([string]$contract.ctsTransferProfessionSelection.connectionServerSource)
+$pseudoClientPath = Join-Path $source ([string]$contract.ctsTransferProfessionSelection.pseudoClientSource)
+$centralServerPath = Join-Path $source ([string]$contract.ctsTransferProfessionSelection.centralServerSource)
+$gameServerPath = Join-Path $source ([string]$contract.ctsTransferProfessionSelection.gameServerSource)
 $creationPath = Join-Path $source "src\engine\server\library\serverGame\src\shared\core\PlayerCreationManagerServer.cpp"
 $tutorialCppPath = Join-Path $source "src\engine\server\library\serverGame\src\shared\core\NewbieTutorial.cpp"
 $basePlayerPath = Join-Path $source "dsrc\sku.0\sys.server\compiled\game\script\player\base\base_player.java"
@@ -24,7 +27,7 @@ $newbiePath = Join-Path $newbieRoot "newbie.java"
 $skillPath = Join-Path $source "dsrc\sku.0\sys.server\compiled\game\script\library\skill.java"
 $skillTeacherPath = Join-Path $source "dsrc\sku.0\sys.server\compiled\game\script\npc\skillteacher\skillteacher.java"
 
-$requiredPaths = @($gameServerPath, $creationPath, $tutorialCppPath, $basePlayerPath, $liveConversionsPath, $sagaQuestPath, $respecPath, $newbieRoot, $newbiePath, $skillPath, $skillTeacherPath)
+$requiredPaths = @($connectionServerPath, $pseudoClientPath, $centralServerPath, $gameServerPath, $creationPath, $tutorialCppPath, $basePlayerPath, $liveConversionsPath, $sagaQuestPath, $respecPath, $newbieRoot, $newbiePath, $skillPath, $skillTeacherPath)
 foreach ($path in $requiredPaths)
 {
     if (-not (Test-Path -LiteralPath $path))
@@ -33,6 +36,9 @@ foreach ($path in $requiredPaths)
     }
 }
 
+$connectionServer = Get-Content -LiteralPath $connectionServerPath -Raw
+$pseudoClient = Get-Content -LiteralPath $pseudoClientPath -Raw
+$centralServer = Get-Content -LiteralPath $centralServerPath -Raw
 $gameServer = Get-Content -LiteralPath $gameServerPath -Raw
 $creation = Get-Content -LiteralPath $creationPath -Raw
 $tutorialCpp = Get-Content -LiteralPath $tutorialCppPath -Raw
@@ -105,6 +111,29 @@ function Get-ScriptHandlerText
     return $Text.Substring($start, $next - $start)
 }
 
+function Get-SourceSlice
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [Parameter(Mandatory = $true)][string]$StartMarker,
+        [Parameter(Mandatory = $true)][string]$EndMarker
+    )
+
+    $start = $Text.IndexOf($StartMarker, [StringComparison]::Ordinal)
+    if ($start -lt 0)
+    {
+        return ""
+    }
+
+    $end = $Text.IndexOf($EndMarker, $start + $StartMarker.Length, [StringComparison]::Ordinal)
+    if ($end -lt 0)
+    {
+        return $Text.Substring($start)
+    }
+
+    return $Text.Substring($start, $end - $start)
+}
+
 Write-Host "Publish 14.1 character-creation checks:"
 foreach ($property in $contract.professionSkills.psobject.Properties)
 {
@@ -114,6 +143,150 @@ foreach ($property in $contract.professionSkills.psobject.Properties)
         -Condition ($creation.Contains("profession == `"$profession`"") -and $creation.Contains("return `"$skill`"")) `
         -Name "p14.creation.$profession.$skill"
 }
+
+$professionTable = Get-SourceSlice `
+    -Text (Get-SourceSlice -Text $connectionServer -StartMarker 'case constcrc("RequestTransferData") :' -EndMarker 'case constcrc("ApplyTransferData") :') `
+    -StartMarker "static PrecuStartingProfession const s_precuStartingProfessions[]" `
+    -EndMarker "std::string professionName;"
+$professionSelection = Get-SourceSlice `
+    -Text $connectionServer `
+    -StartMarker 'case constcrc("RequestTransferData") :' `
+    -EndMarker 'case constcrc("ApplyTransferData") :'
+$professionSearch = Get-SourceSlice `
+    -Text $professionSelection `
+    -StartMarker "std::string professionName;" `
+    -EndMarker "if (professionName.empty())"
+$actualPriority = @(
+    [regex]::Matches($professionTable, '\{\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\}') |
+        ForEach-Object { "$($_.Groups[1].Value)|$($_.Groups[2].Value)" }
+)
+$expectedPriority = @(
+    $contract.ctsTransferProfessionSelection.priority |
+        ForEach-Object { "$([string]$_.noviceSkill)|$([string]$_.profession)" }
+)
+Assert-Contract `
+    -Condition (
+        [int]$contract.ctsTransferProfessionSelection.exactPriorityEntries -eq 6 -and
+        $actualPriority.Count -eq 6 -and
+        (($actualPriority -join "`n") -ceq ($expectedPriority -join "`n")) -and
+        @($contract.professionSkills.psobject.Properties).Count -eq 6 -and
+        @($contract.ctsTransferProfessionSelection.priority | Where-Object {
+            [string]$contract.professionSkills.($_.profession) -cne [string]$_.noviceSkill
+        }).Count -eq 0
+    ) `
+    -Name "p14.creation.cts-profession.fixed-six-priority"
+
+$ownedSkillAt = $professionSearch.IndexOf('CreatureObject::SkillList const & skills = character->getSkillList();', [StringComparison]::Ordinal)
+$directCompareAt = $professionSearch.IndexOf('(*skill)->getSkillName() == s_precuStartingProfessions[professionIndex].noviceSkill', [StringComparison]::Ordinal)
+$assignAt = $professionSearch.IndexOf('professionName = s_precuStartingProfessions[professionIndex].profession;', [StringComparison]::Ordinal)
+$breakAt = if ($assignAt -ge 0) { $professionSearch.IndexOf('break;', $assignAt, [StringComparison]::Ordinal) } else { -1 }
+Assert-Contract `
+    -Condition (
+        [bool]$contract.ctsTransferProfessionSelection.ownedNoviceComparisonIsDirect -and
+        $ownedSkillAt -ge 0 -and
+        $directCompareAt -gt $ownedSkillAt -and
+        $assignAt -gt $directCompareAt -and
+        $breakAt -gt $assignAt -and
+        $professionSearch.Contains('professionIndex < sizeof(s_precuStartingProfessions) / sizeof(s_precuStartingProfessions[0]) && professionName.empty()') -and
+        [regex]::Matches($professionSearch, [regex]::Escape('break;')).Count -eq 1 -and
+        [regex]::Matches($professionSelection, 'professionName\s*=').Count -eq 1 -and
+        -not [regex]::IsMatch($professionSelection, 'professionName\s*=\s*"')
+    ) `
+    -Name "p14.creation.cts-profession.direct-owned-novice-first-match"
+
+foreach ($marker in @($contract.ctsTransferProfessionSelection.forbiddenConnectionServerMarkers))
+{
+    Assert-Contract `
+        -Condition (-not $professionSelection.Contains([string]$marker)) `
+        -Name "p14.creation.cts-profession.no-fallback.$marker"
+}
+Assert-Contract `
+    -Condition (-not $connectionServer.Contains('#include "sharedGame/PlayerCreationManager.h"')) `
+    -Name "p14.creation.cts-profession.no-legacy-profession-manager-include"
+
+$missingProfessionAt = $professionSelection.IndexOf('if (professionName.empty())', [StringComparison]::Ordinal)
+$failureLogAt = $professionSelection.IndexOf('owns none of the six direct PRE-CU novice profession skills', [StringComparison]::Ordinal)
+$playerBranchAt = $professionSelection.IndexOf('else if (playerObject)', [StringComparison]::Ordinal)
+$uploadAt = $professionSelection.IndexOf('character->uploadCharacterData(', [StringComparison]::Ordinal)
+$setProfessionAt = $professionSelection.IndexOf('replyData.setProfession(professionName);', [StringComparison]::Ordinal)
+$succeededFalseAt = $professionSelection.IndexOf('bool succeeded = false;', [StringComparison]::Ordinal)
+$succeededTrueAt = $professionSelection.IndexOf('succeeded = true;', [StringComparison]::Ordinal)
+$failureTailAt = $professionSelection.IndexOf('if(! succeeded)', [StringComparison]::Ordinal)
+Assert-Contract `
+    -Condition (
+        [bool]$contract.ctsTransferProfessionSelection.missingOwnedNoviceFailsBeforeUpload -and
+        $missingProfessionAt -ge 0 -and
+        $failureLogAt -gt $missingProfessionAt -and
+        $playerBranchAt -gt $failureLogAt -and
+        $uploadAt -gt $playerBranchAt -and
+        $setProfessionAt -gt $uploadAt -and
+        $succeededFalseAt -ge 0 -and
+        $succeededFalseAt -lt $missingProfessionAt -and
+        $succeededTrueAt -gt $setProfessionAt -and
+        $failureTailAt -gt $succeededTrueAt -and
+        -not $professionSelection.Substring($missingProfessionAt, $playerBranchAt - $missingProfessionAt).Contains('uploadCharacterData(') -and
+        [regex]::Matches($professionSelection, [regex]::Escape('uploadCharacterData(')).Count -eq 1 -and
+        $professionSelection.Contains('if(! succeeded)') -and
+        $professionSelection.Contains('GenericValueTypeMessage<TransferCharacterData> reply("ReplyTransferDataFail"')
+    ) `
+    -Name "p14.creation.cts-profession.missing-skill-fails-before-upload"
+
+$pseudoCreate = Get-SourceSlice `
+    -Text $pseudoClient `
+    -StartMarker 'case constcrc("TransferLoginCharacterToDestinationServer") :' `
+    -EndMarker 'case constcrc("CtsSrcCharWrongPlanet") :'
+$centralCreate = Get-SourceSlice `
+    -Text $centralServer `
+    -StartMarker "void CharacterCreationTracker::handleCreateNewCharacter" `
+    -EndMarker "void CharacterCreationTracker::handleDatabaseCreateCharacterSuccess"
+$gameCreate = Get-SourceSlice `
+    -Text $gameServer `
+    -StartMarker "void GameServer::handleCharacterCreateNameVerification" `
+    -EndMarker "void GameServer::handleVerifyAndLockNameVerification"
+$gameProfessionGateAt = $gameCreate.IndexOf('isValidStartingProfession(createMessage->getProfession())', [StringComparison]::Ordinal)
+$gameAllocationAt = $gameCreate.IndexOf('TangibleObject *newCharacterObject', [StringComparison]::Ordinal)
+$gameSetupProfessionAt = $gameCreate.IndexOf('PlayerCreationManagerServer::setupPlayer(*creature, createMessage->getProfession()', [StringComparison]::Ordinal)
+Assert-Contract `
+    -Condition (
+        [bool]$contract.ctsTransferProfessionSelection.professionForwardedUnchanged -and
+        $setProfessionAt -ge 0 -and
+        [regex]::Matches($pseudoCreate, [regex]::Escape('m_transferCharacterData.getProfession()')).Count -eq 1 -and
+        -not $pseudoCreate.Contains('setProfession(') -and
+        -not $pseudoCreate.Contains('professionName') -and
+        [regex]::IsMatch($pseudoCreate, 'm_transferCharacterData\.getHairAppearanceData\(\),\s*m_transferCharacterData\.getProfession\(\),\s*false,', [Text.RegularExpressions.RegexOptions]::Singleline) -and
+        [regex]::Matches($centralCreate, [regex]::Escape('msg.getProfession()')).Count -eq 1 -and
+        [regex]::IsMatch($centralCreate, 'msg\.getHairAppearanceData\(\),\s*msg\.getProfession\(\),\s*msg\.getBiography\(\)', [Text.RegularExpressions.RegexOptions]::Singleline) -and
+        [bool]$contract.ctsTransferProfessionSelection.strictGameServerAdmissionAndSetup -and
+        $gameProfessionGateAt -ge 0 -and
+        $gameProfessionGateAt -lt $gameAllocationAt -and
+        $gameSetupProfessionAt -gt $gameAllocationAt
+    ) `
+    -Name "p14.creation.cts-profession.forwarded-unchanged-through-strict-game-gate"
+
+$strictCreationMap = Get-SourceSlice `
+    -Text $creation `
+    -StartMarker "char const * getStartingSkill" `
+    -EndMarker "using namespace PlayerCreationManagerServerNamespace;"
+$actualCreationMap = @(
+    [regex]::Matches($strictCreationMap, 'if\s*\(profession\s*==\s*"([^"]+)"\)\s*return\s*"([^"]+)";', [Text.RegularExpressions.RegexOptions]::Singleline) |
+        ForEach-Object { "$($_.Groups[2].Value)|$($_.Groups[1].Value)" }
+)
+$creationAdmission = Get-SourceSlice `
+    -Text $creation `
+    -StartMarker "bool PlayerCreationManagerServer::isValidStartingProfession" `
+    -EndMarker "void PlayerCreationManagerServer::remove"
+Assert-Contract `
+    -Condition (
+        $actualCreationMap.Count -eq 6 -and
+        (($actualCreationMap -join "`n") -ceq ($expectedPriority -join "`n")) -and
+        $strictCreationMap.Contains('return 0;') -and
+        $creationAdmission.Contains('return getStartingSkill(profession) != 0;') -and
+        $creationAdmission.Contains('char const * const expectedStartingSkill = getStartingSkill(profession);') -and
+        $creationAdmission.Contains('if (!expectedStartingSkill)') -and
+        $creationAdmission.Contains('skills->size() != 1') -and
+        $creationAdmission.Contains('skills->front() != expectedStartingSkill')
+    ) `
+    -Name "p14.creation.cts-profession.strict-six-map-and-setup-revalidation"
 
 $validateAt = $gameServer.IndexOf("isValidStartingProfession(createMessage->getProfession())", [StringComparison]::Ordinal)
 $characterAt = $gameServer.IndexOf("TangibleObject *newCharacterObject", [StringComparison]::Ordinal)
@@ -192,6 +365,7 @@ $chroniclesScript = [string]$contract.ngeCreationResidue.chroniclesScript
 $chroniclesGrantHandler = [string]$contract.ngeCreationResidue.chroniclesGrantHandler
 $sagaAttachHandler = Get-ScriptHandlerText -Text $sagaQuest -HandlerName "OnAttach"
 $sagaInitializeHandler = Get-ScriptHandlerText -Text $sagaQuest -HandlerName "OnInitialize"
+$sagaRetirementHelper = Get-SourceSlice -Text $sagaQuest -StartMarker "public void retireChroniclesPlayerCallback" -EndMarker "public int OnAttach"
 $liveAttachHandler = Get-ScriptHandlerText -Text $liveConversions -HandlerName "OnAttach"
 $liveInitializeHandler = Get-ScriptHandlerText -Text $liveConversions -HandlerName "OnInitialize"
 $attachRequiredMarker = [string]$contract.ngeCreationResidue.chroniclesLifecycle.onAttachRequiredMarker
@@ -203,7 +377,15 @@ foreach ($marker in @($contract.ngeCreationResidue.chroniclesLifecycle.onAttachF
 {
     Assert-Contract -Condition (-not $sagaAttachHandler.Contains([string]$marker)) -Name "p14.login.chronicles-on-attach-absent.$marker"
 }
-Assert-Contract -Condition ($sagaInitializeHandler.Contains($initializeRequiredMarker) -and -not $sagaInitializeHandler.Contains($chroniclesGrantHandler)) -Name "p14.login.chronicles-on-initialize-self-retires"
+$sagaRetirementHelperReady = $true
+foreach ($marker in @($contract.ngeCreationResidue.chroniclesLifecycle.retirementHelperRequiredMarkers))
+{
+    if (-not $sagaRetirementHelper.Contains([string]$marker))
+    {
+        $sagaRetirementHelperReady = $false
+    }
+}
+Assert-Contract -Condition ($sagaInitializeHandler.Contains($initializeRequiredMarker) -and $sagaRetirementHelperReady -and -not $sagaInitializeHandler.Contains($chroniclesGrantHandler)) -Name "p14.login.chronicles-on-initialize-self-retires"
 Assert-Contract -Condition (-not $sagaQuest.Contains($queuedChroniclesGrant)) -Name "p14.login.no-queued-$([string]$contract.ngeCreationResidue.chroniclesStartingSkill)-grant"
 
 $liveAttachRequiredMarker = [string]$contract.ngeCreationResidue.liveConversionsLifecycle.onAttachRequiredMarker

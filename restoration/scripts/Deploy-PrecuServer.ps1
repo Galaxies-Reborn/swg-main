@@ -305,7 +305,8 @@ Write-Host "Verifying Java player-level table service retirement before build...
     -SourceRoot $repositoryRoot `
     -Expectation Build
 & (Join-Path $PSScriptRoot "Test-P14PostNgePlayerMigrationAuthorityRetirement.ps1") `
-    -SourceRoot $repositoryRoot
+    -SourceRoot $repositoryRoot `
+    -Expectation Build
 Write-Host "Verifying native NGE skill and blank-ability command admission retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14NativeNgeSkillAdmissionRetirement.ps1") `
     -SourceRoot $repositoryRoot `
@@ -365,12 +366,18 @@ source_queue_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/sh
 work_queue_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandQueue.h"
 source_commands="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp"
 work_commands="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp"
+source_commands_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h"
+work_commands_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.h"
+source_connection_server="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/network/ConnectionServerConnection.cpp"
+work_connection_server="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/network/ConnectionServerConnection.cpp"
 source_tangible_conversation="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp"
 work_tangible_conversation="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject_Conversation.cpp"
 source_player_controller="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
 work_player_controller="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/controller/PlayerCreatureController.cpp"
 source_script_methods_pvp="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
 work_script_methods_pvp="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsPvp.cpp"
+source_script_methods_attributes="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp"
+work_script_methods_attributes="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsAttributes.cpp"
 source_client="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 work_client="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/core/Client.cpp"
 source_creature="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
@@ -793,9 +800,12 @@ cmp -s "$source_weapon_profiles" "$work_weapon_profiles"
 cmp -s "$source_queue" "$work_queue"
 cmp -s "$source_queue_header" "$work_queue_header"
 cmp -s "$source_commands" "$work_commands"
+cmp -s "$source_commands_header" "$work_commands_header"
+cmp -s "$source_connection_server" "$work_connection_server"
 cmp -s "$source_tangible_conversation" "$work_tangible_conversation"
 cmp -s "$source_player_controller" "$work_player_controller"
 cmp -s "$source_script_methods_pvp" "$work_script_methods_pvp"
+cmp -s "$source_script_methods_attributes" "$work_script_methods_attributes"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
 cmp -s "$source_creature_header" "$work_creature_header"
@@ -6543,14 +6553,50 @@ test "$(printf '%s' "$trap_admission_bytecode" | grep -Fc 'outdoors_scout_novice
 printf '%s' "$trap_admission_bytecode" | grep -Fq 'Method hasSkill'
 printf '%s' "$trap_admission_bytecode" | grep -Fq '88718951'
 javap -classpath "$class_root" -c script.library.skill | grep -Fq 'isRetiredNgeProgressionSkillName'
+grep -Fq '{ "crafting_artisan_novice", "crafting_artisan" }' "$work_connection_server"
+grep -Fq '{ "combat_brawler_novice", "combat_brawler" }' "$work_connection_server"
+grep -Fq '{ "social_entertainer_novice", "social_entertainer" }' "$work_connection_server"
+grep -Fq '{ "combat_marksman_novice", "combat_marksman" }' "$work_connection_server"
+grep -Fq '{ "science_medic_novice", "science_medic" }' "$work_connection_server"
+grep -Fq '{ "outdoors_scout_novice", "outdoors_scout" }' "$work_connection_server"
+grep -Fq 'owns none of the six direct PRE-CU novice profession skills' "$work_connection_server"
+! grep -Fq 'findProfessionForSkill' "$work_connection_server"
+! grep -Fq 'PlayerCreationManager::getProfessionVector' "$work_connection_server"
+grep -Fq 'getPrecuCtsStatAllocation(NetworkId const & actor, std::vector<int> & allocation)' "$work_commands_header"
+grep -Fq 'applyPrecuCtsStatAllocation(NetworkId const & actor, std::vector<int> const & allocation)' "$work_commands_header"
+cts_native_source="$(sed -n '/bool CommandCppFuncs::getPrecuCtsStatAllocation/,/bool CommandCppFuncs::canCommitStatMigration/p' "$work_commands")"
+test "$(printf '%s' "$cts_native_source" | grep -Fc '!creature->isPlayerControlled()')" -eq 2
+test "$(printf '%s' "$cts_native_source" | grep -Fc 'CommandCppFuncsNamespace::cms_statMigrationObjVarRoot')" -eq 2
+printf '%s' "$cts_native_source" | grep -Fq 'CommandCppFuncsNamespace::validateStatMigrationTargets(*creature, currentAllocation)'
+printf '%s' "$cts_native_source" | grep -Fq 'CommandCppFuncsNamespace::validateStatMigrationTargets(*creature, allocation)'
+test "$(printf '%s' "$cts_native_source" | grep -Fc 'CommandCppFuncsNamespace::applyStatMigration(*creature, allocation)')" -eq 1
+grep -Fq 'JF("_getPrecuCtsStatAllocation", "(J)[I", getPrecuCtsStatAllocation)' "$work_script_methods_attributes"
+grep -Fq 'JF("_applyPrecuCtsStatAllocation", "(J[I)Z", applyPrecuCtsStatAllocation)' "$work_script_methods_attributes"
+grep -Fq 'GetArrayLength(allocation) != Attributes::NumberOfAttributes' "$work_script_methods_attributes"
+grep -Fq 'GetIntArrayRegion(allocation, 0, Attributes::NumberOfAttributes, values)' "$work_script_methods_attributes"
+javap -classpath "$class_root" -p -s script.base_class | grep -Fq '_getPrecuCtsStatAllocation'
+javap -classpath "$class_root" -p -s script.base_class | grep -Fq 'descriptor: (J)[I'
+javap -classpath "$class_root" -p -s script.base_class | grep -Fq '_applyPrecuCtsStatAllocation'
+javap -classpath "$class_root" -p -s script.base_class | grep -Fq 'descriptor: (J[I)Z'
+nm -C "$server_game_archive" | grep -Fq 'CommandCppFuncs::getPrecuCtsStatAllocation'
+nm -C "$server_game_archive" | grep -Fq 'CommandCppFuncs::applyPrecuCtsStatAllocation'
+strings "$binary" | grep -Fq '_getPrecuCtsStatAllocation'
+strings "$binary" | grep -Fq '_applyPrecuCtsStatAllocation'
 cts_upload_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/OnUploadCharacter/,/OnDownloadCharacter/p')"
 printf '%s' "$cts_upload_bytecode" | grep -Fq 'using PRE-CU skill-box authority'
+printf '%s' "$cts_upload_bytecode" | grep -Fq 'precu.statMigration'
+printf '%s' "$cts_upload_bytecode" | grep -Fq 'precuCtsStatAllocationVersion'
+printf '%s' "$cts_upload_bytecode" | grep -Fq 'precuCtsStatAllocation'
+printf '%s' "$cts_upload_bytecode" | grep -Fq 'getPrecuCtsStatAllocation'
 ! printf '%s' "$cts_upload_bytecode" | grep -Fq 'getSkillTemplate'
 ! printf '%s' "$cts_upload_bytecode" | grep -Fq 'getWorkingSkill'
 ! printf '%s' "$cts_upload_bytecode" | grep -Fq 'getCommandListingForPlayer'
 cts_download_bytecode="$(javap -classpath "$class_root" -c script.player.base.base_player | sed -n '/OnDownloadCharacter/,/OnSkillModDone/p')"
 printf '%s' "$cts_download_bytecode" | grep -Fq 'isRetiredNgeProgressionSkillName'
 printf '%s' "$cts_download_bytecode" | grep -Fq 'reattachQuestScripts'
+printf '%s' "$cts_download_bytecode" | grep -Fq 'precuCtsStatAllocationVersion'
+printf '%s' "$cts_download_bytecode" | grep -Fq 'precuCtsStatAllocation'
+printf '%s' "$cts_download_bytecode" | grep -Fq 'applyPrecuCtsStatAllocation'
 ! printf '%s' "$cts_download_bytecode" | grep -Fq 'setSkillTemplate'
 ! printf '%s' "$cts_download_bytecode" | grep -Fq 'grantCommand'
 javap -classpath "$class_root" -v script.systems.battlefield.player_battlefield | grep -Fq 'addFactionStanding'

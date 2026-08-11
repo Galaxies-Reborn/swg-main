@@ -8,6 +8,50 @@
     "science_medic": "science_medic_novice",
     "outdoors_scout": "outdoors_scout_novice"
   },
+  "ctsTransferProfessionSelection": {
+    "connectionServerSource": "src/engine/server/library/serverGame/src/shared/network/ConnectionServerConnection.cpp",
+    "pseudoClientSource": "src/engine/server/application/ConnectionServer/src/shared/PseudoClientConnection.cpp",
+    "centralServerSource": "src/engine/server/application/CentralServer/src/shared/CharacterCreationTracker.cpp",
+    "gameServerSource": "src/engine/server/library/serverGame/src/shared/core/GameServer.cpp",
+    "priority": [
+      {
+        "noviceSkill": "crafting_artisan_novice",
+        "profession": "crafting_artisan"
+      },
+      {
+        "noviceSkill": "combat_brawler_novice",
+        "profession": "combat_brawler"
+      },
+      {
+        "noviceSkill": "social_entertainer_novice",
+        "profession": "social_entertainer"
+      },
+      {
+        "noviceSkill": "combat_marksman_novice",
+        "profession": "combat_marksman"
+      },
+      {
+        "noviceSkill": "science_medic_novice",
+        "profession": "science_medic"
+      },
+      {
+        "noviceSkill": "outdoors_scout_novice",
+        "profession": "outdoors_scout"
+      }
+    ],
+    "exactPriorityEntries": 6,
+    "ownedNoviceComparisonIsDirect": true,
+    "firstPriorityMatchWins": true,
+    "missingOwnedNoviceFailsBeforeUpload": true,
+    "professionForwardedUnchanged": true,
+    "strictGameServerAdmissionAndSetup": true,
+    "forbiddenConnectionServerMarkers": [
+      "findProfessionForSkill",
+      "PlayerCreationManager::StringVector professions",
+      "PlayerCreationManager::getProfessionVector",
+      "professions[0]"
+    ]
+  },
   "tutorial": {
     "buildingTemplate": "object/building/general/newbie_hall.iff",
     "skippedBuildingTemplate": "object/building/general/newbie_hall_skipped.iff",
@@ -42,7 +86,11 @@
         "attachScript(",
         "grantSkill("
       ],
-      "onInitializeRequiredMarker": "detachScript(self, \"player.player_saga_quest\");"
+        "onInitializeRequiredMarker": "retireChroniclesPlayerCallback(self);",
+        "retirementHelperRequiredMarkers": [
+          "pgc_quests.retireChroniclesPlayerProgressionState(self);",
+          "detachScript(self, \"player.player_saga_quest\");"
+        ]
     },
     "liveConversionsLifecycle": {
       "onAttachRequiredMarker": "return SCRIPT_CONTINUE;",
