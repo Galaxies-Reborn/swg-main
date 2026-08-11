@@ -718,7 +718,7 @@ if ($Expectation -in @("Build", "Ready"))
         [string]$contract.runtimeEvidence.result -ceq "passed" -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers) `
         "p14.player-bounty.container-runtime-evidence"
-    $gamePids = @(& docker exec $container pgrep -f "bin/SwgGameServer")
+    $gamePids = @(& docker exec $container pgrep -x SwgGameServer)
     $mappedCount = 0
     foreach ($gamePidValue in $gamePids)
     {

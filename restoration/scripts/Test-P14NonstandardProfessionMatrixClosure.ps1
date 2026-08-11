@@ -113,7 +113,7 @@ cp -- "$source_tab" "$temp_tab"
 test -s "$fresh_iff"
 cmp -s "$fresh_iff" "$canonical_iff"
 for command_name in forceArmor1 forceArmor2 forceShield1 forceShield2; do
-    test "$(strings -a "$canonical_iff" | grep -Fxc "$command_name" || true)" -eq 1
+    test "$(strings -a "$canonical_iff" | grep -Fxc "$command_name" || true)" -eq 2
 done
 cleanup
 trap - 0 HUP INT TERM

@@ -883,7 +883,7 @@ strings "$binary" | grep -Fq 'crafting_components.armor_mind_encumbrance'
             [bool]$contract.runtimeEvidence.clusterReadyForPlayers) `
         -Name "p14.nine-attribute.armor.deployed-container-ready"
 
-    $gamePids = @(& docker exec $container pgrep -f "bin/SwgGameServer")
+    $gamePids = @(& docker exec $container pgrep -x SwgGameServer)
     $mappedCount = 0
     foreach ($gamePidValue in $gamePids)
     {

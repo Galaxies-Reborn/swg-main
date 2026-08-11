@@ -233,7 +233,7 @@ if ($Expectation -in @("Build", "Ready"))
         [string]$contract.deploymentEvidence.result -ceq "passed" -and
         [bool]$contract.deploymentEvidence.clusterReadyForPlayers) `
         "p14.weapon-speed.container-runtime-evidence"
-    $gamePids = @(& docker exec $container pgrep -f "bin/SwgGameServer")
+    $gamePids = @(& docker exec $container pgrep -x SwgGameServer)
     $mappedCount = 0
     foreach ($gamePidValue in $gamePids)
     {

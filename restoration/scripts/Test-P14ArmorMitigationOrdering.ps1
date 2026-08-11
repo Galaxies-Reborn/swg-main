@@ -812,7 +812,7 @@ if ($Expectation -ceq "Ready")
 
     $binary = $currentBuild.serverBinary
     $binaryPath = "/swg-precu/build/bin/SwgGameServer"
-    $pidOutput = (& docker exec $container pgrep -f "bin/SwgGameServer" `
+    $pidOutput = (& docker exec $container pgrep -x SwgGameServer `
         2>&1 | Out-String).Trim()
     $gamePids = @($pidOutput -split '\s+' |
         Where-Object { [string]$_ -cmatch '^[0-9]+$' })

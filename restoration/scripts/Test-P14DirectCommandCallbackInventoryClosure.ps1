@@ -454,7 +454,7 @@ if ($Expectation -eq "Ready")
     $container = [string]$deployment.container
     $inspection = @((& docker inspect $container 2>&1 | Out-String) |
         ConvertFrom-Json)[0]
-    $pidOutput = (& docker exec $container pgrep -f "bin/SwgGameServer" `
+    $pidOutput = (& docker exec $container pgrep -x SwgGameServer `
         2>&1 | Out-String).Trim()
     $gamePids = @($pidOutput -split '\s+' |
         Where-Object { [string]$_ -cmatch '^[0-9]+$' })

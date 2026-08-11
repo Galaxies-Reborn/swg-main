@@ -9334,7 +9334,7 @@ Write-Host "Verifying one stable TransferServer owns native port 50005..."
 Invoke-DockerScript -ContainerName $Container -Script $runtimeTransferServerProbe
 
 Write-Host "Verifying every live game process mapped the newly built server binary..."
-$gamePids = @(& docker exec $Container pgrep -f "bin/SwgGameServer")
+$gamePids = @(& docker exec $Container pgrep -x SwgGameServer)
 if ($LASTEXITCODE -ne 0 -or $gamePids.Count -ne 15)
 {
     throw "Expected exactly 15 live SwgGameServer processes in '$Container'; found $($gamePids.Count)."
