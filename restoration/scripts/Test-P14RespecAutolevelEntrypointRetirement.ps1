@@ -412,6 +412,35 @@ if ($Expectation -eq "Ready")
             throw "Legacy NGE progression compiled-class evidence mismatch: $($property.Name)"
         }
     }
+    $basePlayerClassPath = "$classRoot/script/player/base/base_player.class"
+    $basePlayerHashOutput = (& docker exec $Container sha256sum $basePlayerClassPath).Trim()
+    $basePlayerClassBytes = [int64]((& docker exec $Container stat -c "%s" $basePlayerClassPath).Trim())
+    if ($LASTEXITCODE -ne 0 -or
+        ($basePlayerHashOutput -split '\s+')[0] -cne
+            [string]$contract.buildEvidence.classSha256."base_player.class" -or
+        $basePlayerClassBytes -ne [int64]$contract.buildEvidence.basePlayerClassBytes)
+    {
+        throw "Deployed base-player class evidence mismatch."
+    }
+    $basePlayerBytecode = (& docker exec $Container javap -classpath $classRoot -c -p `
+        script.player.base.base_player | Out-String)
+    $respecBytecodeStart = $basePlayerBytecode.IndexOf(
+        "public int delayRespecInstructions", [StringComparison]::Ordinal)
+    $removingBytecodeStart = $basePlayerBytecode.IndexOf(
+        "public int OnRemovingFromWorld", $respecBytecodeStart,
+        [StringComparison]::Ordinal)
+    if ($LASTEXITCODE -ne 0 -or $respecBytecodeStart -lt 0 -or
+        $removingBytecodeStart -le $respecBytecodeStart)
+    {
+        throw "Deployed click-respec callback bytecode boundary is missing."
+    }
+    $respecBytecode = $basePlayerBytecode.Substring(
+        $respecBytecodeStart, $removingBytecodeStart - $respecBytecodeStart)
+    if ($respecBytecode -notmatch 'Code:\s+0:\s+iconst_1\s+1:\s+ireturn\s*$' -or
+        $respecBytecode -match '\binvoke(?:dynamic|interface|special|static|virtual)\b')
+    {
+        throw "Deployed click-respec callback still has presentation or mutation bytecode."
+    }
     $classNames = [ordered]@{
         "legacyDwhiteTest" = "script.test.dwhite_test"
         "legacyThicksTest" = "script.test.thicks_test"

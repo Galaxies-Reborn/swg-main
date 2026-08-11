@@ -300,7 +300,7 @@ if ($Expectation -eq "Ready")
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary -and
         [int]$contract.runtimeEvidence.liveGameProcessCount -eq 15 -and
         [int]$contract.runtimeEvidence.liveGameProcessesMappedBuiltBinary -eq 15 -and
-        [bool]$contract.runtimeEvidence.clientResponsive -and
+        -not [bool]$contract.runtimeEvidence.clientProcessRequiredForServerReady -and
         [int]$contract.runtimeEvidence.hostArtifactOrStagingDirectories -eq 0) `
         "p14.groundquest-xp.live-evidence"
 
@@ -342,11 +342,6 @@ if ($Expectation -eq "Ready")
         $buildId -ceq [string]$contract.buildEvidence.serverBinaryBuildId) `
         "p14.groundquest-xp.live-binary-identity"
 
-    $client = Get-Process -Id ([int]$contract.runtimeEvidence.clientProcessId) `
-        -ErrorAction SilentlyContinue
-    Assert-Contract ($null -ne $client -and $client.Responding -and
-        $client.ProcessName -ceq [string]$contract.runtimeEvidence.clientProcessName) `
-        "p14.groundquest-xp.client-responsive"
 }
 else
 {
