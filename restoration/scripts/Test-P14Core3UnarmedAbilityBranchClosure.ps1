@@ -215,7 +215,7 @@ if ($Expectation -ceq "Ready") {
         [string]$runtime.result -ceq "passed" -and
         @($contract.requiredBeforeReady).Count -eq 0) "Unarmed ability branch lacks ready live evidence"
     Assert ([string]$contract.buildEvidence.directSourceCommit -ceq
-            "7dab96a595ee5f24166da6241f603e238116d226" -and
+            "ebaf48f8f434d18f0c9e0e655b81fc51244bda7d" -and
         [string]$contract.buildEvidence.compiledClassSha256.'combat_actions.class' -ceq
             "a50d4207df6b1924f43c01802833133329bfa943e80f7ad4cea99bf43c50f5c2" -and
         [string]$contract.buildEvidence.compiledClassSha256.'combat_base.class' -ceq
@@ -223,9 +223,9 @@ if ($Expectation -ceq "Ready") {
         [string]$contract.buildEvidence.compiledClassSha256.'precu_unarmed_ability_runtime.class' -ceq
             "89a10f5588b38ad663b02cd49fac11808d1997acad0775f0738b787e3b409bd7" -and
         [string]$contract.buildEvidence.x64ServerBuild -match
-            'e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8' -and
+            '833f654838826bb894778e644781c2af095d2b98d1cd4cac9c0250f206af4f44' -and
         [string]$contract.buildEvidence.x64ServerBuild -match
-            '0ac0c8a439a388150c4a0f687874d1b38edc9eed') `
+            '93fc0a7b6d6c5d8aebb7705e901510ac83959e1f') `
         "Unarmed ability build identity is not pinned"
     Assert ([bool]$runtime.containerHealthy -and
         [bool]$runtime.clusterReadyForPlayers -and

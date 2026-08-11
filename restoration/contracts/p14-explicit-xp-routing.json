@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "feature": "explicit-precu-xp-routing",
-  "status": "implemented-build-pending",
+  "status": "ready",
   "scope": "Route active combat, social, crafting, and camping rewards to their explicit Publish 14 XP pools, keep skill-box acquisition separate from XP accumulation, and preserve the authentic owner-only camp lifecycle instead of converting camp XP into scout XP at login.",
   "sourceFiles": {
     "xpLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/xp.java",
@@ -85,8 +85,8 @@
       "quickHealCommand": "972bf3529a047a382de7539355fe3a5d0c070b93981b4c154f36e6de8dcc1f3e"
     },
     "overlayPatch": "restoration/patches/dsrc/139-p14-explicit-xp-routing.patch",
-    "overlayPatchBytes": 19844,
-    "overlayPatchSha256": "f7bc7f26db4564907190cb297a09b5600c55995bc575fee4e12ee558e96af2dd",
+    "overlayPatchBytes": 19659,
+    "overlayPatchSha256": "795d45bd74643a552ef3bae70286caf22785f843152ba093c8686974dc4823e6",
     "cleanApplyCheck": "passed",
     "sourceSha256": {
       "xp.java": "42064d788a93530e7334e82a05bb48169e2342913923168047dd717d4ba72f8a",
@@ -101,14 +101,46 @@
     "javaCompile": {
       "result": "passed",
       "xp.class": {
-        "sha256": "e71c41d627203e905e0e8ef39ab5add18e9c41d5be20ba994d2f14d2c4f63c3c"
+        "sha256": "96c9b0f4fbc669d91362945b8d1535665d138c495776d14feb4b8abed1c5eae8"
       },
       "base_player.class": {
-        "sha256": "42712e823d2e246384993bf25d90a5fc51ad4a42e238d5c314b7a5ea017097ee"
+        "sha256": "3680a4169a75c53ac1261b05e00390e17481c6055517f5ae4d77a78d50aa3448"
       },
       "precu_xp_routing_runtime.class": {
         "sha256": "b5fd73858e7c5217285b9b5ba3c17de2b14347f163ce10ebc5269904b4f8225c"
+      },
+      "base_class.class": {
+        "sha256": "180e57eeef563ceb826bf7130b30d6726ecfba5ad1b198d15d4196700413a682"
+      },
+      "camping.class": {
+        "sha256": "652cec50af7293b83c87c91fa9a3c407c61f183e6d8d7c925d1e31b3252b9a85"
+      },
+      "healing.class": {
+        "sha256": "6525d260ac14a31810be4b17f4a3bc331d6e5de52a083438192b672f248fc358"
+      },
+      "consumable.class": {
+        "sha256": "4a31083cd8bd63f3c1f871eab59f02ee69496be1a04b4fcae5eb1e8477fff8c2"
+      },
+      "camp_master.class": {
+        "sha256": "c58d5e7af5ed02245a52e49ab052b12cd336f2e3a6160b743297615cc63c5b51"
+      },
+      "camp_controlpanel.class": {
+        "sha256": "e4a6d6ef978ca9e7f91af510e4d192052680eaf5ae6599d5b3e9a00f1791ab32"
+      },
+      "quick_heal.class": {
+        "sha256": "4400ff3419c7012f61a6b25915e84e96e670f3d5c7825918dbaf07552cbcec38"
       }
+    },
+    "canonicalDeployment": {
+      "parentCommit": "26f5e73340004121a891238c0a78d9710288e8e8",
+      "nativeSourceCommit": "1d891e3f7a543872a5518292a4efa6635129c651",
+      "durationSeconds": 708.8,
+      "javaSourcesCompiled": 5717,
+      "javaClassesEmitted": 5751,
+      "serverBinarySha256": "833f654838826bb894778e644781c2af095d2b98d1cd4cac9c0250f206af4f44",
+      "serverBinaryBuildId": "93fc0a7b6d6c5d8aebb7705e901510ac83959e1f",
+      "serverGameArchiveSha256": "1fdde15af6ab010f9a29b23fbfe8a8723c76122d7c3b5403f9736c2085f4f0db",
+      "artifactProbe": "passed exact camp formula, duration, visitor, healing-event, at-most-once claim, two award paths, twelve no-award paths, native observer ABI, Java notification cardinality, source/work parity, archives, and linked binary"
     }
   },
   "runtimeBoundary": {
@@ -172,10 +204,18 @@
     "allRoutesKeptSkillCountStable": true,
     "allRoutesRestoredOriginalXp": true,
     "serverHealthy": true,
-    "fatalOrExceptionCount": 0
+    "fatalOrExceptionCount": 0,
+    "canonicalRestart": {
+      "containerStartedAt": "2026-08-11T07:29:20.510359393Z",
+      "containerHealth": "healthy",
+      "clusterReadyForPlayers": true,
+      "liveGameProcesses": 15,
+      "liveGameProcessesMappedBuiltBinary": 15,
+      "liveBinaryInode": 12141865,
+      "liveBinarySize": 22567912,
+      "liveBinaryMapEntries": 30,
+      "postStartLogAudit": "357 lines; one exact player-ready marker; all prohibited fatal/error/ABI/JNI/Oracle/crash patterns zero"
+    }
   },
-  "requiredBeforeReady": [
-    "Pass a clean canonical Docker x86-64 Java/native build and cumulative artifact probe.",
-    "Restart the canonical x64 server and capture healthy player-readiness evidence for the rebuilt binaries."
-  ]
+  "requiredBeforeReady": []
 }

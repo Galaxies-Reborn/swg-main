@@ -302,9 +302,9 @@ if ($Expectation -ceq "Ready")
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$contract.buildEvidence.architecture -like "ELF 64-bit*" -and
         [string]$contract.buildEvidence.serverBinarySha256 -ceq
-            "e126d8f5b0ff65bb908d2bce7922282aaceb4d2eaf454adbeb3eb51ff61720f8" -and
+            "833f654838826bb894778e644781c2af095d2b98d1cd4cac9c0250f206af4f44" -and
         [string]$contract.buildEvidence.serverBinaryBuildId -ceq
-            "0ac0c8a439a388150c4a0f687874d1b38edc9eed" -and
+            "93fc0a7b6d6c5d8aebb7705e901510ac83959e1f" -and
         [string]$contract.runtimeEvidence.result -ceq "passed" -and
         [string]$contract.runtimeEvidence.containerHealth -ceq "healthy" -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
