@@ -1,13 +1,56 @@
 {
-  "schemaVersion": 1,
-  "status": "ready",
-  "scope": "Atomic server/client restoration of the Publish 14 nine-attribute persistence and replication layout.",
+  "schemaVersion": 2,
+  "feature": "p14-nine-attribute-runtime",
+  "status": "implemented-build-pending",
+  "scope": "Restore the Publish 14 nine-attribute persistence and replication layout and make authored PRE-CU armor Health, Action, and Mind encumbrance authoritative for player equipment without applying cosmetic appearance-inventory contents or changing retained later armor content.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "commit": "6856f315a80b5250635b2272695caec1d64204ed",
     "attributeDefinition": "MMOCoreORB/src/server/zone/objects/creature/variables/CreatureAttribute.cpp",
     "regeneration": "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
     "replication": "MMOCoreORB/src/server/zone/packets/scene/CreatureObjectMessage6.h"
+  },
+  "armorEncumbranceReference": {
+    "repository": "https://github.com/swgemu/Core3",
+    "commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "files": {
+      "playerContainer": {
+        "path": "MMOCoreORB/src/server/zone/objects/player/components/PlayerContainerComponent.cpp",
+        "blob": "2dfdae1b4f08b0793911438cacc97ccf50ddfa2b",
+        "slices": ["18-25 direct player slotted admission", "57-64 armor encumbrance rejection", "118-128 insertion apply", "176-186 removal"]
+      },
+      "playerManager": {
+        "path": "MMOCoreORB/src/server/zone/managers/player/PlayerManagerImplementation.cpp",
+        "blob": "bbc07b8266b762e8484781d0dfd140a848dd1170",
+        "slices": ["2376-2393 six adjusted secondary reads and positive cost >= either paired secondary rejection", "2450-2475 H to Strength/Constitution, A to Quickness/Stamina, M to Focus/Willpower", "2478-2503 exact reversal"]
+      },
+      "creatureAggregate": {
+        "path": "MMOCoreORB/src/server/zone/objects/creature/CreatureObjectImplementation.cpp",
+        "blob": "4806c0cb5f0c85e6c9eea7996f23169d2fa43382",
+        "slices": ["1471-1512 armor encumbrance totals"]
+      },
+      "armorTemplate": {
+        "path": "MMOCoreORB/src/templates/tangible/ArmorObjectTemplate.h",
+        "blob": "2274158a22ae1e09a3a9d1214da47ac2c4b672a0",
+        "slices": ["14-17 fields", "41-44 zero defaults", "74-76 template reads", "97-135 getters"]
+      },
+      "armorObject": {
+        "path": "MMOCoreORB/src/server/zone/objects/tangible/wearables/ArmorObject.idl",
+        "blob": "6118215912f14bd8f7ff03a892fdd841be1fc3ba",
+        "slices": ["16-19 fields", "211-243 getters and setters"]
+      },
+      "armorRuntime": {
+        "path": "MMOCoreORB/src/server/zone/objects/tangible/wearables/ArmorObjectImplementation.cpp",
+        "blob": "12a3f626e4090eb7397e41cc29cda5b655db79e6",
+        "slices": ["31-33 template copy", "379-386 nonnegative crafted values"]
+      }
+    },
+    "playerContainerTemplates": {
+      "count": 20,
+      "pathInventorySha256": "473b721ead08450db8cb2081837a49b9973ea6facbd8301efaa36777934dffab",
+      "pathBlobInventorySha256": "38f5f9d26c6899b53f718b8d02a6c6367de7814f22f303f5488edab95048fae9",
+      "nonPlayerAssignments": 0
+    }
   },
   "wireOrder": [
     "Health",
@@ -20,30 +63,11 @@
     "Focus",
     "Willpower"
   ],
-  "primaryPools": [
-    "Health",
-    "Action",
-    "Mind"
-  ],
-  "regenerationGovernors": [
-    "Constitution",
-    "Stamina",
-    "Willpower"
-  ],
-  "costGovernors": [
-    "Strength",
-    "Quickness",
-    "Focus"
-  ],
+  "primaryPools": ["Health", "Action", "Mind"],
+  "regenerationGovernors": ["Constitution", "Stamina", "Willpower"],
+  "costGovernors": ["Strength", "Quickness", "Focus"],
   "legacySixAttributeMigration": {
-    "oldOrder": [
-      "Health",
-      "HealthRegenSlot",
-      "Action",
-      "ActionRegenSlot",
-      "Mind",
-      "MindRegenSlot"
-    ],
+    "oldOrder": ["Health", "HealthRegenSlot", "Action", "ActionRegenSlot", "Mind", "MindRegenSlot"],
     "poolSource": "old current vector",
     "constitutionStaminaWillpowerSource": "old maximum vector",
     "strengthQuicknessFocusDefault": 300
@@ -58,10 +82,50 @@
     "nativeApplierDescriptor": "(J[I)Z",
     "application": "validate every value and the racial total before one atomic base-allocation mutation"
   },
+  "armorEncumbrance": {
+    "persistedRoot": "crafting_components",
+    "persistedKeys": ["armor_health_encumbrance", "armor_action_encumbrance", "armor_mind_encumbrance"],
+    "producerFormula": "(maxValue + minValue) - currentValue",
+    "numericPolicy": "The complete crafted triple is atomic, has precedence even when all three values are zero, accepts persisted int or float values, rejects NaN, clamps nonpositive values to zero, clamps positive infinity or overflow to INT_MAX, and truncates positive in-range floats toward zero to the Core3 integer representation.",
+    "authorityPrecedence": ["complete crafted persisted triple", "positive static ServerArmorTemplate triple", "retained later armor objvar/datatable schema", "static zero triple"],
+    "mapping": {
+      "Health": ["Strength", "Constitution"],
+      "Action": ["Quickness", "Stamina"],
+      "Mind": ["Focus", "Willpower"]
+    },
+    "admission": "For authoritative player-controlled direct equipment only, each positive incoming group cost must be strictly less than both current adjusted paired secondaries; equality rejects without mutation.",
+    "aggregate": "A dedicated plain nonpersistent three-value accumulator is rebuilt from the player's immediate equipment container on authority, database load, direct gain, and direct loss. It is not m_attribBonus and never scans child inventory or appearance_inventory contents.",
+    "appearanceBoundary": "SlottedContainmentProperty::isInAppearanceSlot identifies ordinary client-visible hardpoint wearables and must not gate encumbrance. Cosmetic A-tab items are excluded structurally because they are children of the separate appearance_inventory object.",
+    "schematicProducerBoundary": {
+      "candidateServerTemplates": 112,
+      "candidateNovice": 27,
+      "candidateClothing": 85,
+      "exactTripleTemplates": 110,
+      "exactTripleNovice": 27,
+      "exactTripleClothing": 83,
+      "partialOrDuplicateTriples": 0,
+      "excludedCompatibilityTemplates": [
+        "dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/clothing/clothing_armor_ubese_bandolier.tpf",
+        "dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/clothing/clothing_armor_ubese_shirt.tpf"
+      ],
+      "candidatePathInventorySha256": "f0a5b1055ee90ebc3d64baa6188e431e69ef174405c4d902816a5635def20427",
+      "excludedPairInventorySha256": "bc6bc013a349d936980826024230625b34a0d86785bd48722d56b4dbb437e02b",
+      "tripleServerPathInventorySha256": "515a8e427dc26308d1692b6c9a9ff1ddde5abe74cd4b8d6312a0ea372076cb7e",
+      "tripleSharedPathInventorySha256": "eb251598a30b264ef1023dcbd4bde43a8b70029d782163801e113f22d5eb8442",
+      "triplePairInventorySha256": "313b185633d0150af77c35a78eff93504597255eecb69a794b455d0f9071a977",
+      "serverSourceContentSha256": "aef786a418d2fc1df85906624814776dae37e7647bb08a3d3feb2d4c9111621f",
+      "sharedSourceContentSha256": "5ac28a8b23cc4fdc3c59e0d0d376d4205fddf2a11a797147b602b8b2c700c2f0",
+      "combinedPathInventorySha256": "eab139b264f17ac4bf255100b7d5a1a60f5926f0175e0c256ff63cf2cdc09eaf",
+      "combinedSourceContentSha256": "746c7e68dc3a90165f9484885e9d17954973a79434c6c52cf795056e38437c57",
+      "compiledServerPathInventorySha256": "4956976eec8d30b06bd8749971f817ba6c102087fc41c395d9d341733ca93982",
+      "compiledSharedPathInventorySha256": "1d089acd1f51513b911d58ef9e568f29adfa50cb4ca5022d60e28968dbfe5ee2",
+      "compiledCombinedPathInventorySha256": "2a67a50bcdc4316223025a4cb08ca36a3c0f4769c0c4a1677f209b29ccf9955d"
+    }
+  },
   "sourceFiles": {
     "tdf": "dsrc/sku.0/sys.server/compiled/game/object/object_template.tdf",
     "baseClass": "dsrc/sku.0/sys.server/compiled/game/script/base_class.java",
-   "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
+    "combatLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/combat.java",
     "skillLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/skill.java",
     "basePlayerScript": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
     "commandCpp": "src/engine/server/library/serverGame/src/shared/command/CommandCppFuncs.cpp",
@@ -82,11 +146,87 @@
     "tangibleCpp": "src/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp",
     "playerCreation": "src/engine/shared/library/sharedGame/src/shared/core/PlayerCreationManager.cpp",
     "statMessageHeader": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.h",
-    "statMessageCpp": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.cpp"
+    "statMessageCpp": "src/engine/shared/library/sharedNetworkMessages/src/shared/clientGameServer/StatMigrationTargetsMessage.cpp",
+    "craftingLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/craftinglib.java",
+    "craftingBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/crafting_base.java",
+    "craftingBaseClothing": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/clothing/crafting_base_clothing.java",
+    "craftingArmorNovice": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/clothing/crafting_armor_novice.java",
+    "craftingArmorClothing": "dsrc/sku.0/sys.server/compiled/game/script/systems/crafting/clothing/crafting_armor_clothing.java",
+    "serverArmorTemplateHeader": "src/engine/server/library/serverGame/src/shared/objectTemplate/ServerArmorTemplate.h",
+    "serverArmorTemplateCpp": "src/engine/server/library/serverGame/src/shared/objectTemplate/ServerArmorTemplate.cpp",
+    "serverTangibleTemplateHeader": "src/engine/server/library/serverGame/src/shared/objectTemplate/ServerTangibleObjectTemplate.h",
+    "serverTangibleTemplateCpp": "src/engine/server/library/serverGame/src/shared/objectTemplate/ServerTangibleObjectTemplate.cpp"
+  },
+  "buildEvidence": {
+    "sourceMode": "direct-branch",
+    "dsrcSourceCommit": "93878e4b3350f1e9391cd2bde25b3727243b6608",
+    "nativeSourceCommit": "b2a14e04c2c15f3b3f38a6375d84268ee600176e",
+    "armorSourceSha256": {
+      "craftingLibrary": "cba3f9eaa647f7070786eba53b8b34f3252d62717d11979f79825b639e9f335d",
+      "craftingBase": "2bb19cbc14f76a87c0ae58a8b43f17eea7deee8084d9e4f54386fc33ef5544c6",
+      "craftingBaseClothing": "98aacc82f55f570d4c579b17a7e2396289caed6ecd8e8f9de7e4502fbae3b108",
+      "craftingArmorNovice": "5ebdd44f8dae3208e3e4d6898059cf3891a57b38d111751ca695faabfabc9f15",
+      "craftingArmorClothing": "afd1dcacf47e1123daae375b3fee69b00a9ec4633362b3ff61ede123d48b7fa5",
+      "creatureHeader": "0ce57e5a1eccbe5dae444fe2c896e3b19c47726d6b227dbc5ff046815ae97747",
+      "creatureCpp": "d7323bd782c1a10c3a7d41fe9b870df739f6d61e4d813fc445fef64933d1f667",
+      "tangibleCpp": "49a49e0957546aa6fac6b344ad09abfcccdb0dc3851ddc0d71a381eb1dd5e31a",
+      "serverArmorTemplateHeader": "22100e56d62fd81443993cc8fcc45a608bf3d35c7ac59b3ae97192e4454df026",
+      "serverArmorTemplateCpp": "e8387ca8d567b67420563e41653ecc2783488b04a540bf431358d6097842460f",
+      "serverTangibleTemplateHeader": "ed2a791ea5f27015cd04d4978284d5062e241b6e33d7ee03f68eef6f9147e0f2",
+      "serverTangibleTemplateCpp": "78e6400242e616d495ac4d98952c3e3108dd51507c26264141ac7bfd58f4c7fd"
+    },
+    "armorDirectSourceAggregateSha256": "bafaaef5ab7c94ef330f549fbb3abdd3fabe68d3d8291a9fcf816ffea03f7d91",
+    "sourceVerification": "passed: exact source hashes, Core3 pins, 112 to 110 plus 2 producer boundary, crafted/static/later authority, player-only direct-container admission, nonpersistent full rescan, and six-secondary mapping",
+    "sourceWorkParity": {
+      "result": "pending",
+      "directCheckedFiles": 8,
+      "schematicCheckedFiles": 224,
+      "matchedFiles": 0
+    },
+    "fullJavaCompile": {
+      "result": "pending",
+      "zeroClassDependencyClean": false,
+      "expectedSourceCount": 5717,
+      "expectedClassCount": 5751,
+      "sourceCount": 0,
+      "classCount": 0
+    },
+    "compiledJavaArtifacts": {"result": "pending", "artifacts": {}},
+    "compiledDataArtifacts": {
+      "result": "pending",
+      "serverCount": 110,
+      "sharedCount": 110,
+      "combinedCount": 220,
+      "artifactInventorySha256": "pending",
+      "totalBytes": 0
+    },
+    "nativeObjectArtifacts": {"result": "pending", "artifacts": {}},
+    "nativeArchiveArtifacts": {"result": "pending", "artifacts": {}},
+    "serverBinary": {"result": "pending"},
+    "fullX64Build": "pending",
+    "result": "pending"
+  },
+  "runtimeEvidence": {
+    "result": "pending",
+    "container": "swg-precu",
+    "containerHealth": "pending",
+    "containerStartedAt": "pending",
+    "clusterReadyForPlayers": false,
+    "liveGameProcessCount": 0,
+    "mappedLiveGameProcessCount": 0,
+    "liveBinaryInode": 0,
+    "liveBinarySizeBytes": 0,
+    "allLiveGameProcessesMatchBinary": false,
+    "postStartLogAudit": {"result": "pending"},
+    "liveArmorEncumbranceTest": "pending"
   },
   "knownLimitations": {
     "statMigrationImageDesignerCommit": "The client mediator and server-owned allocation session are restored by the p14-stat-migration contract; the normal-world Image Designer commit boundary remains a separate slice.",
     "persistedItemBonuses": "The dedicated fresh shard is the supported deployment. Numeric six-layout attribute bonuses from an imported NGE database are not automatically remapped.",
     "stanceRegeneration": "Core3 stance-specific regeneration modifiers remain later combat-balance work."
-  }
+  },
+  "requiredBeforeReady": [
+    "Run the canonical zero-class x64 build/deploy and capture exact source/work parity, four crafting classes, 220 compiled schematic IFFs, CreatureObject.cpp.o, TangibleObject.cpp.o, libserverGame.a, SwgGameServer ELF64 identity, clean readiness logs, and every live SwgGameServer mapping.",
+    "Live-test crafted, static-template, and retained later-schema armor: paired current/max reductions, additive stacking, equality/insufficient rejection without mutation, exact unequip reversal, inventory and A-tab exclusion, and one-time relog recomputation without double application."
+  ]
 }

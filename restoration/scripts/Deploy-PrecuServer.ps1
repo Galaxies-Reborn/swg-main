@@ -336,6 +336,10 @@ Write-Host "Verifying native NGE skill and blank-ability command admission retir
 & (Join-Path $PSScriptRoot "Test-P14NativeNgeSkillAdmissionRetirement.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build
+Write-Host "Verifying Publish 14 nine-attribute and armor encumbrance authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14NineAttributeRuntime.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -419,6 +423,8 @@ source_creature="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared
 work_creature="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.cpp"
 source_creature_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.h"
 work_creature_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/CreatureObject.h"
+source_armor_tangible="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp"
+work_armor_tangible="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/TangibleObject.cpp"
 source_group="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp"
 work_group="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/GroupObject.cpp"
 source_player="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/shared/object/PlayerObject.cpp"
@@ -652,6 +658,12 @@ source_player_structure_library="$source_script/library/player_structure.java"
 work_player_structure_library="$work_script/library/player_structure.java"
 source_crafting_base="$source_script/systems/crafting/crafting_base.java"
 work_crafting_base="$work_script/systems/crafting/crafting_base.java"
+source_crafting_base_clothing="$source_script/systems/crafting/clothing/crafting_base_clothing.java"
+work_crafting_base_clothing="$work_script/systems/crafting/clothing/crafting_base_clothing.java"
+source_crafting_armor_novice="$source_script/systems/crafting/clothing/crafting_armor_novice.java"
+work_crafting_armor_novice="$work_script/systems/crafting/clothing/crafting_armor_novice.java"
+source_crafting_armor_clothing="$source_script/systems/crafting/clothing/crafting_armor_clothing.java"
+work_crafting_armor_clothing="$work_script/systems/crafting/clothing/crafting_armor_clothing.java"
 source_cybernetic_crafting="$source_script/systems/crafting/armor/crafting_new_cybernetics_final.java"
 work_cybernetic_crafting="$work_script/systems/crafting/armor/crafting_new_cybernetics_final.java"
 source_survey_tool="$source_script/item/survey_tool/survey_tool_script.java"
@@ -892,6 +904,8 @@ work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
 binary="$SWG_WORK_DIR/build/bin/SwgGameServer"
 server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/libserverGame.a"
+creature_object="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/CMakeFiles/serverGame.dir/shared/object/CreatureObject.cpp.o"
+tangible_object="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/CMakeFiles/serverGame.dir/shared/object/TangibleObject.cpp.o"
 server_script_archive="$SWG_WORK_DIR/build/engine/server/library/serverScript/src/libserverScript.a"
 server_network_messages_archive="$SWG_WORK_DIR/build/engine/server/library/serverNetworkMessages/src/libserverNetworkMessages.a"
 shared_skill_system_archive="$SWG_WORK_DIR/build/engine/shared/library/sharedSkillSystem/src/libsharedSkillSystem.a"
@@ -958,6 +972,20 @@ cmp -s "$source_alter_attribute_message" "$work_alter_attribute_message"
 cmp -s "$source_client" "$work_client"
 cmp -s "$source_creature" "$work_creature"
 cmp -s "$source_creature_header" "$work_creature_header"
+for armor_parity_pair in \
+    "$source_creature|$work_creature" \
+    "$source_creature_header|$work_creature_header" \
+    "$source_armor_tangible|$work_armor_tangible" \
+    "$source_crafting_library|$work_crafting_library" \
+    "$source_crafting_base|$work_crafting_base" \
+    "$source_crafting_base_clothing|$work_crafting_base_clothing" \
+    "$source_crafting_armor_novice|$work_crafting_armor_novice" \
+    "$source_crafting_armor_clothing|$work_crafting_armor_clothing"
+do
+    armor_source="${armor_parity_pair%%|*}"
+    armor_work="${armor_parity_pair#*|}"
+    cmp -s "$armor_source" "$armor_work"
+done
 cmp -s "$source_group" "$work_group"
 cmp -s "$source_player" "$work_player"
 cmp -s "$source_player_header" "$work_player_header"
@@ -6866,6 +6894,148 @@ printf '%s' "$cts_download_bytecode" | grep -Fq 'precuCtsStatAllocation'
 printf '%s' "$cts_download_bytecode" | grep -Fq 'applyPrecuCtsStatAllocation'
 ! printf '%s' "$cts_download_bytecode" | grep -Fq 'setSkillTemplate'
 ! printf '%s' "$cts_download_bytecode" | grep -Fq 'grantCommand'
+
+# Publish 14 crafted armor encumbrance is selected by the two direct armor
+# crafting scripts. Authenticate the complete source/work boundary and every
+# compiled server/shared IFF without writing an intermediate inventory file.
+armor_candidate_count=0
+armor_candidate_novice=0
+armor_candidate_clothing=0
+armor_triple_count=0
+armor_triple_novice=0
+armor_triple_clothing=0
+armor_excluded_count=0
+armor_compiled_server_count=0
+armor_compiled_shared_count=0
+armor_compiled_server_paths=""
+armor_compiled_shared_paths=""
+armor_draft_root="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/clothing"
+armor_source_paths="$(find "$armor_draft_root" -type f -name '*.tpf' -print | LC_ALL=C sort)"
+test -n "$armor_source_paths"
+while IFS= read -r source_armor_server
+do
+    test -n "$source_armor_server"
+    armor_manufacture_count="$(grep -Ec '^manufactureScripts[[:space:]]*=[[:space:]]*\[[[:space:]]*"systems[.]crafting[.]clothing[.]crafting_armor_(novice|clothing)"[[:space:]]*\][[:space:]]*$' "$source_armor_server" || true)"
+    if [ "$armor_manufacture_count" -eq 0 ]; then
+        continue
+    fi
+    test "$armor_manufacture_count" -eq 1
+
+    armor_script="$(grep -Eo 'crafting_armor_(novice|clothing)' "$source_armor_server")"
+    test "$(printf '%s\n' "$armor_script" | sed '/^$/d' | wc -l)" -eq 1
+    armor_candidate_count=$((armor_candidate_count + 1))
+    case "$armor_script" in
+        crafting_armor_novice) armor_candidate_novice=$((armor_candidate_novice + 1)) ;;
+        crafting_armor_clothing) armor_candidate_clothing=$((armor_candidate_clothing + 1)) ;;
+        *) exit 31 ;;
+    esac
+
+    armor_server_rel="${source_armor_server#"$SWG_SOURCE_DIR/"}"
+    work_armor_server="$SWG_WORK_DIR/$armor_server_rel"
+    cmp -s "$source_armor_server" "$work_armor_server"
+    test "$(grep -Ec '^[[:space:]]*sharedTemplate[[:space:]]*=[[:space:]]*"[^"[:space:]]+[.]iff"[[:space:]]*$' "$source_armor_server" || true)" -eq 1
+    test "$(grep -Ec '^[[:space:]]*craftedObjectTemplate[[:space:]]*=[[:space:]]*"[^"[:space:]]+[.]iff"[[:space:]]*$' "$source_armor_server" || true)" -eq 1
+    armor_shared_iff="$(sed -n 's/^[[:space:]]*sharedTemplate[[:space:]]*=[[:space:]]*"\([^"[:space:]]*[.]iff\)"[[:space:]]*$/\1/p' "$source_armor_server")"
+    test -n "$armor_shared_iff"
+    armor_shared_rel="dsrc/sku.0/sys.shared/compiled/game/${armor_shared_iff%.iff}.tpf"
+    source_armor_shared="$SWG_SOURCE_DIR/$armor_shared_rel"
+    work_armor_shared="$SWG_WORK_DIR/$armor_shared_rel"
+    test -f "$source_armor_shared"
+    cmp -s "$source_armor_shared" "$work_armor_shared"
+
+    armor_health_count="$(grep -Fc 'armor_health_encumbrance' "$source_armor_shared" || true)"
+    armor_action_count="$(grep -Fc 'armor_action_encumbrance' "$source_armor_shared" || true)"
+    armor_mind_count="$(grep -Fc 'armor_mind_encumbrance' "$source_armor_shared" || true)"
+    armor_shape="$armor_health_count,$armor_action_count,$armor_mind_count"
+    if [ "$armor_shape" = "1,1,1" ]; then
+        armor_triple_count=$((armor_triple_count + 1))
+        case "$armor_script" in
+            crafting_armor_novice) armor_triple_novice=$((armor_triple_novice + 1)) ;;
+            crafting_armor_clothing) armor_triple_clothing=$((armor_triple_clothing + 1)) ;;
+        esac
+
+        armor_server_compiled_rel="data/${armor_server_rel#dsrc/}"
+        armor_server_compiled_rel="${armor_server_compiled_rel%.tpf}.iff"
+        armor_shared_compiled_rel="data/${armor_shared_rel#dsrc/}"
+        armor_shared_compiled_rel="${armor_shared_compiled_rel%.tpf}.iff"
+        test -f "$SWG_WORK_DIR/$armor_server_compiled_rel"
+        test -f "$SWG_WORK_DIR/$armor_shared_compiled_rel"
+        armor_compiled_server_count=$((armor_compiled_server_count + 1))
+        armor_compiled_shared_count=$((armor_compiled_shared_count + 1))
+        armor_compiled_server_paths="$armor_compiled_server_paths$armor_server_compiled_rel
+"
+        armor_compiled_shared_paths="$armor_compiled_shared_paths$armor_shared_compiled_rel
+"
+    elif [ "$armor_shape" = "0,0,0" ]; then
+        case "$armor_server_rel" in
+            dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/clothing/clothing_armor_ubese_bandolier.tpf|dsrc/sku.0/sys.server/compiled/game/object/draft_schematic/clothing/clothing_armor_ubese_shirt.tpf)
+                armor_excluded_count=$((armor_excluded_count + 1))
+                ;;
+            *) exit 32 ;;
+        esac
+    else
+        exit 33
+    fi
+done <<ARMOR_SOURCE_PATHS_EOF
+$armor_source_paths
+ARMOR_SOURCE_PATHS_EOF
+test "$armor_candidate_count" -eq 112
+test "$armor_candidate_novice" -eq 27
+test "$armor_candidate_clothing" -eq 85
+test "$armor_triple_count" -eq 110
+test "$armor_triple_novice" -eq 27
+test "$armor_triple_clothing" -eq 83
+test "$armor_excluded_count" -eq 2
+test "$armor_compiled_server_count" -eq 110
+test "$armor_compiled_shared_count" -eq 110
+test "$(printf '%s' "$armor_compiled_server_paths" | LC_ALL=C sort | sha256sum | awk '{print $1}')" = '4956976eec8d30b06bd8749971f817ba6c102087fc41c395d9d341733ca93982'
+test "$(printf '%s' "$armor_compiled_shared_paths" | LC_ALL=C sort | sha256sum | awk '{print $1}')" = '1d089acd1f51513b911d58ef9e568f29adfa50cb4ca5022d60e28968dbfe5ee2'
+test "$(printf '%s%s' "$armor_compiled_server_paths" "$armor_compiled_shared_paths" | LC_ALL=C sort | sha256sum | awk '{print $1}')" = '2a67a50bcdc4316223025a4cb08ca36a3c0f4769c0c4a1677f209b29ccf9955d'
+
+for armor_class in \
+    "$class_root/script/library/craftinglib.class" \
+    "$class_root/script/systems/crafting/clothing/crafting_base_clothing.class" \
+    "$class_root/script/systems/crafting/clothing/crafting_armor_novice.class" \
+    "$class_root/script/systems/crafting/clothing/crafting_armor_clothing.class"
+do
+    test -f "$armor_class"
+done
+craftinglib_constants="$(javap -classpath "$class_root" -constants -p script.library.craftinglib)"
+printf '%s' "$craftinglib_constants" | grep -Fq 'COMPONENT_ATTRIBUTE_OBJVAR_NAME'
+printf '%s' "$craftinglib_constants" | grep -Fq 'crafting_components'
+armor_base_bytecode="$(javap -classpath "$class_root" -c -p script.systems.crafting.crafting_base)"
+printf '%s' "$armor_base_bytecode" | grep -Fq 'calcAndSetPrototypeProperties'
+armor_producer_bytecode="$(javap -classpath "$class_root" -c -p script.systems.crafting.clothing.crafting_base_clothing)"
+for armor_key in armor_health_encumbrance armor_action_encumbrance armor_mind_encumbrance
+do
+    test "$(printf '%s' "$armor_producer_bytecode" | grep -Fc "$armor_key")" -eq 1
+done
+test "$(printf '%s' "$armor_producer_bytecode" | grep -Fc 'fadd')" -eq 3
+test "$(printf '%s' "$armor_producer_bytecode" | grep -Fc 'fsub')" -eq 3
+javap -classpath "$class_root" -p script.systems.crafting.clothing.crafting_armor_novice | grep -Fq 'extends script.systems.crafting.clothing.crafting_base_clothing'
+javap -classpath "$class_root" -p script.systems.crafting.clothing.crafting_armor_clothing | grep -Fq 'extends script.systems.crafting.clothing.crafting_base_clothing'
+
+test -f "$creature_object"
+test -f "$tangible_object"
+for armor_symbol_artifact in "$creature_object" "$server_game_archive"
+do
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::recomputePreCuArmorEncumbrances()'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getPreCuArmorEncumbrance(int) const'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getAdjustedAttribute(int, int) const'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::getMaxAttribute(int, bool) const'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::onContainerAboutToGainItem('
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::onLoadedFromDatabase()'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::onContainerGainItem('
+    nm -C "$armor_symbol_artifact" | grep -Fq 'CreatureObject::onContainerLostItem('
+done
+for armor_symbol_artifact in "$tangible_object" "$server_game_archive"
+do
+    nm -C "$armor_symbol_artifact" | grep -Fq 'TangibleObject::getEncumbrances(std::vector<int, std::allocator<int> >&) const'
+    nm -C "$armor_symbol_artifact" | grep -Fq 'TangibleObject::hasEncumbrances() const'
+done
+strings "$binary" | grep -Fq 'crafting_components.armor_health_encumbrance'
+strings "$binary" | grep -Fq 'crafting_components.armor_action_encumbrance'
+strings "$binary" | grep -Fq 'crafting_components.armor_mind_encumbrance'
 javap -classpath "$class_root" -v script.systems.battlefield.player_battlefield | grep -Fq 'addFactionStanding'
 gcw_static_retired_bytecode="$(javap -classpath "$class_root" -c script.library.gcw | sed -n '/isPostNgeFixedStaticBaseRetired/,/getPub30StaticBaseControllerId/p')"
 printf '%s' "$gcw_static_retired_bytecode" | grep -Fq 'iconst_1'
@@ -8816,6 +8986,8 @@ strings "$binary" | grep -Fq 'force_rank.counc'
 strings "$binary" | grep -Fq 'smugglerBountyValue'
 strings "$binary" | grep -Fq 'POINTS_REQUIRED'
 file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
+file -L "$binary" | grep -F 'x86-64' >/dev/null
+readelf -n "$binary" | grep -Eq 'Build ID: [0-9a-f]{40}'
 '@
 
 Write-Host "Verifying synchronized sources, PRE-CU GCW retirement, Scout bytecode, native NGE retirement, authoritative weapon cadence, and x64 architecture..."
@@ -8904,9 +9076,9 @@ Invoke-DockerScript -ContainerName $Container -Script $runtimeTransferServerProb
 
 Write-Host "Verifying every live game process mapped the newly built server binary..."
 $gamePids = @(& docker exec $Container pgrep -f "bin/SwgGameServer")
-if ($LASTEXITCODE -ne 0 -or $gamePids.Count -eq 0)
+if ($LASTEXITCODE -ne 0 -or $gamePids.Count -ne 15)
 {
-    throw "No live SwgGameServer process was found in '$Container'."
+    throw "Expected exactly 15 live SwgGameServer processes in '$Container'; found $($gamePids.Count)."
 }
 $workDir = (& docker exec $Container printenv SWG_WORK_DIR).Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($workDir))
