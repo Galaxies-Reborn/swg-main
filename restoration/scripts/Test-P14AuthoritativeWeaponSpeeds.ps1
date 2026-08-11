@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [string]$SourceRoot
+    [string]$SourceRoot,
+
+    [ValidateSet("Source", "Ready")]
+    [string]$Expectation = "Source"
 )
 
 Set-StrictMode -Version Latest
@@ -28,14 +31,31 @@ function Assert-Contract
     }
 }
 
+function Get-FunctionSlice
+{
+    param([string]$Text, [string]$Start, [string]$Next)
+    $startIndex = $Text.IndexOf($Start, [System.StringComparison]::Ordinal)
+    if ($startIndex -lt 0) { return "" }
+    $nextIndex = $Text.IndexOf($Next, $startIndex + $Start.Length, [System.StringComparison]::Ordinal)
+    if ($nextIndex -lt 0) { return $Text.Substring($startIndex) }
+    return $Text.Substring($startIndex, $nextIndex - $startIndex)
+}
+
 $paths = @{}
 foreach ($property in $contract.sourceFiles.psobject.Properties)
 {
     $paths[[string]$property.Name] = Join-Path $source ([string]$property.Value)
 }
-foreach ($path in $paths.Values)
+foreach ($property in $contract.sourceFiles.psobject.Properties)
 {
+    $path = $paths[[string]$property.Name]
     Assert-Contract (Test-Path -LiteralPath $path -PathType Leaf) "p14.weapon-speed.source.$([IO.Path]::GetFileName($path))"
+    if (Test-Path -LiteralPath $path -PathType Leaf)
+    {
+        $sourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+        Assert-Contract ($sourceHash -ceq [string]$contract.buildEvidence.sourceSha256.([string]$property.Name)) `
+            "p14.weapon-speed.source.$([string]$property.Name).authenticated"
+    }
 }
 
 $speedRows = @(Import-SwgTab -Path $paths.weaponSpeeds)
@@ -44,7 +64,8 @@ $exactRows = @($speedRows | Where-Object { [string]$_.templateName -notlike "__f
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $paths.weaponSpeeds).Hash.ToLowerInvariant()
 
 Write-Host "Publish 14 authoritative weapon-speed checks:"
-Assert-Contract (@("implemented-build-pending", "ready") -contains [string]$contract.status) "p14.weapon-speed.status"
+Assert-Contract ([int]$contract.schemaVersion -eq 2 -and [string]$contract.feature -ceq "p14-authoritative-weapon-speeds") `
+    "p14.weapon-speed.contract-identity"
 Assert-Contract ([string]$contract.semanticReference.weaponDataPinnedCommit -ceq "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8") "p14.weapon-speed.core3-data-pin"
 Assert-Contract ($exactRows.Count -eq 342 -and $familyRows.Count -eq 13 -and $speedRows.Count -eq 355) "p14.weapon-speed.row-cardinality"
 Assert-Contract (($speedRows.templateName | Sort-Object -Unique).Count -eq $speedRows.Count) "p14.weapon-speed.unique-templates"
@@ -59,6 +80,9 @@ foreach ($expected in $contract.representativeSpeeds.psobject.Properties)
 $weaponObject = Get-Content -LiteralPath $paths.weaponObject -Raw
 $weaponHeader = Get-Content -LiteralPath $paths.weaponHeader -Raw
 $commandQueue = Get-Content -LiteralPath $paths.commandQueue -Raw
+$unarmedDefaultPlayer = Get-Content -LiteralPath $paths.unarmedDefaultPlayer -Raw
+$basePlayer = Get-Content -LiteralPath $paths.basePlayer -Raw
+$onInitialize = Get-FunctionSlice $basePlayer "public int OnInitialize(" "public int handleJediVisibilityDecay("
 $generator = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Export-P14WeaponSpeeds.ps1") -Raw
 
 Assert-Contract ($generator.Contains('6ea64f60ef33b89121c2a8d188b93f4bc6f158e8') -and
@@ -84,6 +108,49 @@ Assert-Contract ($commandQueue.Contains('(1.0f - static_cast<float>(speedModifie
 Assert-Contract ($commandQueue.Contains('if (!owner.isPlayerControlled())') -and
     $commandQueue.Contains('return 2.0f;') -and
     [string]$contract.queuePolicy.aiAttack -match 'two-second Core3') "p14.weapon-speed.core3-ai-two-second-interval"
+Assert-Contract (
+    [regex]::Matches($unarmedDefaultPlayer, '(?m)^\s*attackSpeed\s*=\s*2\.0\s*$').Count -eq 1 -and
+    [regex]::Matches($unarmedDefaultPlayer, '(?m)^\s*attackSpeed\s*=\s*0\.5(?:0)?\s*$').Count -eq 0 -and
+    [double]$contract.authoredDefaultPolicy.unarmedTemplateAttackSpeed -eq 2.0) `
+    "p14.weapon-speed.authored-default-unarmed-two-seconds"
+Assert-Contract (
+    $onInitialize.Contains('object/weapon/melee/unarmed/unarmed_default_player.iff') -and
+    -not $onInitialize.Contains('float fltWeaponSpeed = getWeaponAttackSpeed(objWeapon)') -and
+    -not $onInitialize.Contains('setWeaponAttackSpeed(objWeapon, 0.50f)') -and
+    -not $onInitialize.Contains('fltWeaponSpeed != 0.50f') -and
+    -not [bool]$contract.authoredDefaultPolicy.playerInitializationNgeRewrite) `
+    "p14.weapon-speed.player-initialization-does-not-rewrite-unarmed-to-nge-speed"
+
+if ($Expectation -eq "Ready")
+{
+    $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+    $srcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "src" })
+    Assert-Contract (
+        [string]$contract.status -ceq "ready" -and
+        [string]$contract.buildEvidence.result -ceq "passed" -and
+        [string]$contract.liveAfterEvidence.result -ceq "passed" -and
+        $contract.requiredBeforeReady.Count -eq 0) `
+        "p14.weapon-speed.ready-evidence"
+    Assert-Contract (
+        $dsrcPin.Count -eq 1 -and
+        $srcPin.Count -eq 1 -and
+        [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink -and
+        [string]$srcPin[0].commit -ceq [string]$contract.buildEvidence.nativeSourceCommit) `
+        "p14.weapon-speed.ready-source-pins"
+}
+else
+{
+    Assert-Contract (@("implemented-build-pending", "implemented-build-verified-live-pending", "ready") -contains [string]$contract.status) `
+        "p14.weapon-speed.source-status"
+    if ([string]$contract.status -ceq "implemented-build-pending")
+    {
+        Assert-Contract (
+            [string]$contract.buildEvidence.result -ceq "pending" -and
+            [string]$contract.liveAfterEvidence.result -ceq "pending" -and
+            $contract.requiredBeforeReady.Count -gt 0) `
+            "p14.weapon-speed.pending-evidence-truthful"
+    }
+}
 
 if ($failures.Count -gt 0)
 {

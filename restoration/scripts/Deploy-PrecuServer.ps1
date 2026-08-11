@@ -47,6 +47,13 @@ if ($LASTEXITCODE -ne 0)
 }
 
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+Write-Host "Verifying Publish 14 authoritative weapon speeds and authored default-unarmed cadence before build..."
+& (Join-Path $PSScriptRoot "Test-P14AuthoritativeWeaponSpeeds.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
+Write-Host "Verifying Publish 14 PRE-CU faction and cloning authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuFactionCloningAuthority.ps1") `
+    -SourceRoot $repositoryRoot
 Write-Host "Verifying direct-source post-NGE Beast Master player-runtime retirement before build..."
 & (Join-Path $PSScriptRoot "Test-P14PostNgeBeastMasterPlayerRuntimeRetirement.ps1") `
     -SourceRoot $repositoryRoot `
@@ -424,6 +431,8 @@ source_weapon_header="$SWG_SOURCE_DIR/src/engine/server/library/serverGame/src/s
 work_weapon_header="$SWG_WORK_DIR/src/engine/server/library/serverGame/src/shared/object/WeaponObject.h"
 source_speeds="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
 work_speeds="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
+source_unarmed_default="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/object/weapon/melee/unarmed/unarmed_default_player.tpf"
+work_unarmed_default="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/object/weapon/melee/unarmed/unarmed_default_player.tpf"
 source_travel="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/travel.java"
 work_travel="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/travel.java"
 source_player_travel="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/player_travel.java"
@@ -822,6 +831,62 @@ precu_droid_detonation_paths="ai/pet.java ai/pet_control_device.java library/pet
 post_nge_beast_creation_paths="ai/pet_control_device.java library/beast_lib.java library/incubator.java npc/pet_deed/pet_deed.java player/base/base_player.java player/player_utility.java systems/beast/base_incubator.java systems/beast/beast_dye.java systems/beast/beast_egg.java systems/beast/beast_food.java systems/beast/beast_steroid_injector.java systems/beast/decoration_item.java systems/beast/enzyme_crafting_base.java systems/beast/enzyme_crafting_centrifuge.java systems/beast/enzyme_crafting_combiner.java systems/beast/enzyme_crafting_processor.java systems/beast/enzyme_extractor.java"
 post_nge_beast_runtime_paths="ai/beast.java ai/beast_control_device.java ai/creature_combat.java conversation/trainer_beast_master.java item/loot_schematic/loot_schematic.java library/beast_lib.java player/base/base_player.java player/live_conversions.java player/player_beastmaster.java systems/combat/combat_actions.java systems/combat/combat_base.java"
 post_nge_officer_runtime_paths="ai/officer_pet.java systems/combat/combat_base.java systems/combat/combat_actions.java systems/combat/combat_supply_drop_controller.java systems/combat/combat_supply_drop_crate.java"
+source_bounty_jedi="$source_script/library/jedi.java"
+work_bounty_jedi="$work_script/library/jedi.java"
+source_bounty_hunter="$source_script/library/bounty_hunter.java"
+work_bounty_hunter="$work_script/library/bounty_hunter.java"
+source_bounty_pclib="$source_script/library/pclib.java"
+work_bounty_pclib="$work_script/library/pclib.java"
+source_bounty_pvp="$source_script/library/pvp.java"
+work_bounty_pvp="$work_script/library/pvp.java"
+source_bounty_smuggler="$source_script/library/smuggler.java"
+work_bounty_smuggler="$work_script/library/smuggler.java"
+source_bounty_force_rank="$source_script/library/force_rank.java"
+work_bounty_force_rank="$work_script/library/force_rank.java"
+source_bounty_player_force_rank="$source_script/systems/gcw/player_force_rank.java"
+work_bounty_player_force_rank="$work_script/systems/gcw/player_force_rank.java"
+source_bounty_base_player="$source_script/player/base/base_player.java"
+work_bounty_base_player="$work_script/player/base/base_player.java"
+source_bounty_combat_base="$source_script/systems/combat/combat_base.java"
+work_bounty_combat_base="$work_script/systems/combat/combat_base.java"
+source_bounty_combat_player="$source_script/systems/combat/combat_player.java"
+work_bounty_combat_player="$work_script/systems/combat/combat_player.java"
+source_bounty_combat_actions="$source_script/systems/combat/combat_actions.java"
+work_bounty_combat_actions="$work_script/systems/combat/combat_actions.java"
+source_bounty_jedi_base="$source_script/systems/jedi/jedi_base.java"
+work_bounty_jedi_base="$work_script/systems/jedi/jedi_base.java"
+source_bounty_mission_dynamic="$source_script/systems/missions/base/mission_dynamic_base.java"
+work_bounty_mission_dynamic="$work_script/systems/missions/base/mission_dynamic_base.java"
+source_bounty_mission_player="$source_script/systems/missions/base/mission_player.java"
+work_bounty_mission_player="$work_script/systems/missions/base/mission_player.java"
+source_bounty_mission_bounty="$source_script/systems/missions/dynamic/mission_bounty.java"
+work_bounty_mission_bounty="$work_script/systems/missions/dynamic/mission_bounty.java"
+source_bounty_broker_4="$source_script/conversation/generic_broker_4.java"
+work_bounty_broker_4="$work_script/conversation/generic_broker_4.java"
+source_bounty_broker_5="$source_script/conversation/generic_broker_5.java"
+work_bounty_broker_5="$work_script/conversation/generic_broker_5.java"
+source_bounty_jedi_actions="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
+work_bounty_jedi_actions="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.tab"
+source_bounty_jedi_combat_data="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_combat_data.tab"
+work_bounty_jedi_combat_data="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/datatables/jedi/jedi_combat_data.tab"
+source_bounty_skills="$SWG_SOURCE_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+work_bounty_skills="$SWG_WORK_DIR/dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+source_bounty_skill_object="$SWG_SOURCE_DIR/src/engine/shared/library/sharedSkillSystem/src/shared/SkillObject.cpp"
+work_bounty_skill_object="$SWG_WORK_DIR/src/engine/shared/library/sharedSkillSystem/src/shared/SkillObject.cpp"
+source_bounty_skill_object_header="$SWG_SOURCE_DIR/src/engine/shared/library/sharedSkillSystem/src/shared/SkillObject.h"
+work_bounty_skill_object_header="$SWG_WORK_DIR/src/engine/shared/library/sharedSkillSystem/src/shared/SkillObject.h"
+source_bounty_swg_creature="$SWG_SOURCE_DIR/src/game/server/application/SwgGameServer/src/shared/object/SwgCreatureObject.cpp"
+work_bounty_swg_creature="$SWG_WORK_DIR/src/game/server/application/SwgGameServer/src/shared/object/SwgCreatureObject.cpp"
+source_bounty_swg_creature_header="$SWG_SOURCE_DIR/src/game/server/application/SwgGameServer/src/shared/object/SwgCreatureObject.h"
+work_bounty_swg_creature_header="$SWG_WORK_DIR/src/game/server/application/SwgGameServer/src/shared/object/SwgCreatureObject.h"
+source_bounty_swg_player="$SWG_SOURCE_DIR/src/game/server/application/SwgGameServer/src/shared/object/SwgPlayerObject.cpp"
+work_bounty_swg_player="$SWG_WORK_DIR/src/game/server/application/SwgGameServer/src/shared/object/SwgPlayerObject.cpp"
+source_bounty_jedi_manager="$SWG_SOURCE_DIR/src/game/server/application/SwgGameServer/src/shared/object/JediManagerObject.cpp"
+work_bounty_jedi_manager="$SWG_WORK_DIR/src/game/server/application/SwgGameServer/src/shared/object/JediManagerObject.cpp"
+source_bounty_jedi_manager_header="$SWG_SOURCE_DIR/src/game/server/application/SwgGameServer/src/shared/object/JediManagerObject.h"
+work_bounty_jedi_manager_header="$SWG_WORK_DIR/src/game/server/application/SwgGameServer/src/shared/object/JediManagerObject.h"
+source_bounty_script_methods_jedi="$SWG_SOURCE_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsJedi.cpp"
+work_bounty_script_methods_jedi="$SWG_WORK_DIR/src/engine/server/library/serverScript/src/shared/ScriptMethodsJedi.cpp"
 source_local_options="$SWG_SOURCE_DIR/exe/linux/localOptions.cfg"
 work_local_options="$SWG_WORK_DIR/exe/linux/localOptions.cfg"
 class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
@@ -829,6 +894,36 @@ binary="$SWG_WORK_DIR/build/bin/SwgGameServer"
 server_game_archive="$SWG_WORK_DIR/build/engine/server/library/serverGame/src/libserverGame.a"
 server_script_archive="$SWG_WORK_DIR/build/engine/server/library/serverScript/src/libserverScript.a"
 server_network_messages_archive="$SWG_WORK_DIR/build/engine/server/library/serverNetworkMessages/src/libserverNetworkMessages.a"
+shared_skill_system_archive="$SWG_WORK_DIR/build/engine/shared/library/sharedSkillSystem/src/libsharedSkillSystem.a"
+
+cmp -s "$source_bounty_jedi" "$work_bounty_jedi"
+cmp -s "$source_bounty_hunter" "$work_bounty_hunter"
+cmp -s "$source_bounty_pclib" "$work_bounty_pclib"
+cmp -s "$source_bounty_pvp" "$work_bounty_pvp"
+cmp -s "$source_bounty_smuggler" "$work_bounty_smuggler"
+cmp -s "$source_bounty_force_rank" "$work_bounty_force_rank"
+cmp -s "$source_bounty_player_force_rank" "$work_bounty_player_force_rank"
+cmp -s "$source_bounty_base_player" "$work_bounty_base_player"
+cmp -s "$source_bounty_combat_base" "$work_bounty_combat_base"
+cmp -s "$source_bounty_combat_player" "$work_bounty_combat_player"
+cmp -s "$source_bounty_combat_actions" "$work_bounty_combat_actions"
+cmp -s "$source_bounty_jedi_base" "$work_bounty_jedi_base"
+cmp -s "$source_bounty_mission_dynamic" "$work_bounty_mission_dynamic"
+cmp -s "$source_bounty_mission_player" "$work_bounty_mission_player"
+cmp -s "$source_bounty_mission_bounty" "$work_bounty_mission_bounty"
+cmp -s "$source_bounty_broker_4" "$work_bounty_broker_4"
+cmp -s "$source_bounty_broker_5" "$work_bounty_broker_5"
+cmp -s "$source_bounty_jedi_actions" "$work_bounty_jedi_actions"
+cmp -s "$source_bounty_jedi_combat_data" "$work_bounty_jedi_combat_data"
+cmp -s "$source_bounty_skills" "$work_bounty_skills"
+cmp -s "$source_bounty_skill_object" "$work_bounty_skill_object"
+cmp -s "$source_bounty_skill_object_header" "$work_bounty_skill_object_header"
+cmp -s "$source_bounty_swg_creature" "$work_bounty_swg_creature"
+cmp -s "$source_bounty_swg_creature_header" "$work_bounty_swg_creature_header"
+cmp -s "$source_bounty_swg_player" "$work_bounty_swg_player"
+cmp -s "$source_bounty_jedi_manager" "$work_bounty_jedi_manager"
+cmp -s "$source_bounty_jedi_manager_header" "$work_bounty_jedi_manager_header"
+cmp -s "$source_bounty_script_methods_jedi" "$work_bounty_script_methods_jedi"
 
 cmp -s "$source_outdoorsman" "$work_outdoorsman"
 cmp -s "$source_corpse" "$work_corpse"
@@ -866,6 +961,7 @@ cmp -s "$source_player_header" "$work_player_header"
 cmp -s "$source_weapon" "$work_weapon"
 cmp -s "$source_weapon_header" "$work_weapon_header"
 cmp -s "$source_speeds" "$work_speeds"
+cmp -s "$source_unarmed_default" "$work_unarmed_default"
 cmp -s "$source_travel" "$work_travel"
 cmp -s "$source_player_travel" "$work_player_travel"
 cmp -s "$source_command_table" "$work_command_table"
@@ -1527,6 +1623,13 @@ cmp -s "$source_mission_escort" "$work_mission_escort"
 cmp -s "$source_player_utility" "$work_player_utility"
 cmp -s "$source_ai" "$work_ai"
 cmp -s "$source_base_player" "$work_base_player"
+grep -Eq '^attackSpeed[[:space:]]*=[[:space:]]*2\.0[[:space:]]*$' "$work_unarmed_default"
+! grep -Eq '^attackSpeed[[:space:]]*=[[:space:]]*0\.5(0)?[[:space:]]*$' "$work_unarmed_default"
+base_player_initialize_source="$(sed -n '/public int OnInitialize(/,/public int handleJediVisibilityDecay(/p' "$work_base_player")"
+printf '%s\n' "$base_player_initialize_source" | grep -Fq 'object/weapon/melee/unarmed/unarmed_default_player.iff'
+! printf '%s\n' "$base_player_initialize_source" | grep -Fq 'float fltWeaponSpeed = getWeaponAttackSpeed(objWeapon)'
+! printf '%s\n' "$base_player_initialize_source" | grep -Fq 'setWeaponAttackSpeed(objWeapon, 0.50f)'
+! printf '%s\n' "$base_player_initialize_source" | grep -Fq 'fltWeaponSpeed != 0.50f'
 cmp -s "$source_event_tool" "$work_event_tool"
 cmp -s "$source_pgc_library" "$work_pgc_library"
 cmp -s "$source_player_saga" "$work_player_saga"
@@ -8404,6 +8507,7 @@ awk -F '	' '$1 == "wookieeRoar" { found++; if ($5 != "NO_ATTRIBUTE" || $11 != "I
 awk -F '	' '$1 ~ /^kreetle$/ { found=1; if ($3 != 3 || $5 != 35 || $6 != 45 || $8 != 90 || $9 != 110) exit 2 } END { if (!found) exit 3 }' "$work_creature_profiles"
 awk -F '	' '$1 ~ /^lesser_desert_womprat$/ { found=1; if ($2 !~ /^lesser_desert_womp_rat$/ || $3 != 5 || $5 != 45 || $6 != 50) exit 2 } END { if (!found) exit 3 }' "$work_creature_profiles"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.iff"
+test -f "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/object/weapon/melee/unarmed/unarmed_default_player.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_profiles.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/skill/skills.iff"
 test -f "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff"
@@ -8450,6 +8554,260 @@ strings "$server_game_archive" | grep -Fq 'recover stale-session player=%s previ
 strings "$server_game_archive" | grep -Fq 'request actor=%s target=%s sequence=%u clientItems=%u'
 strings "$server_game_archive" | grep -Fq 'ignored as a retired NGE progression command'
 strings "$binary" | grep -Fq '_pvpSetPrecuFactionRank'
+
+# Publish 14.1 player bounties are produced by witnessed exact-title Jedi
+# visibility and a canonical skill/rank reward.  The retained later Smuggler
+# path is explicitly tagged and carries a separate reward/provenance channel.
+awk -F '\t' '
+NR == 1 {
+    for (column = 1; column <= NF; column++) field[$column] = column
+    next
+}
+NR > 2 {
+    found++
+    if ($(field["intVisibilityValue"]) != 10 || $(field["intVisibilityRange"]) != 32) exit 2
+}
+END { if (found != 49) exit 3 }
+' "$work_bounty_jedi_actions"
+awk -F '\t' '
+NR == 1 {
+    for (column = 1; column <= NF; column++) field[$column] = column
+    next
+}
+NR > 2 {
+    found++
+    if ($(field["intVisibilityValue"]) != 25 || $(field["intVisibilityRange"]) != 32) exit 2
+}
+END { if (found != 59) exit 3 }
+' "$work_bounty_jedi_combat_data"
+awk -F '\t' '$1 == "combat_bountyhunter_investigation_03" { found++; if ($0 !~ /combat_bountyhunter_investigation_02/ || $0 !~ /droid_track/) exit 2 } END { if (found != 1) exit 3 }' "$work_bounty_skills"
+
+grep -Fq 'JEDI_BOUNTY_TITLE_SKILL = "force_title_jedi_rank_02"' "$work_bounty_jedi"
+grep -Fq 'MAX_JEDI_VISIBILITY = 8000' "$work_bounty_jedi"
+grep -Fq 'BOUNTY_VISIBILITY_THRESHHOLD = 1500' "$work_bounty_jedi"
+grep -Fq 'VISIBILITY_DECAY_TIME_SECONDS = 21 * 24 * 60 * 60' "$work_bounty_jedi"
+grep -Fq 'VISIBILITY_DECAY_TICK_SECONDS = 60 * 60' "$work_bounty_jedi"
+grep -Fq 'ENEMY_VISIBILITY_MULTIPLIER = 1.0f' "$work_bounty_jedi"
+grep -Fq 'NEUTRAL_VISIBILITY_MULTIPLIER = 0.5f' "$work_bounty_jedi"
+grep -Fq 'FRIENDLY_VISIBILITY_MULTIPLIER = 0.25f' "$work_bounty_jedi"
+test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_jedi")" -eq 5
+test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_combat_base")" -eq 1
+test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_combat_player")" -eq 1
+test "$(grep -Fc 'jedi.jediActionPerformed(' "$work_bounty_jedi_base")" -eq 1
+test "$(grep -R -F --include='*.java' 'jedi.jediActionPerformed(' "$work_script" | wc -l)" -eq 8
+test "$(grep -R -E --include='*.java' --include='*.tab' --include='*.tpf' 'doJediHealCommand' "$SWG_WORK_DIR/dsrc/sku.0" | wc -l)" -eq 1
+! grep -R -E --include='*.java' --include='*.tab' --include='*.tpf' 'systems[./]jedi[./]jedi_base|extends[[:space:]]+([^[:space:]]*[.])?jedi_base' "$SWG_WORK_DIR/dsrc/sku.0"
+grep -Fq 'MAX_ACTIVE_PLAYER_BOUNTIES = 5' "$work_bounty_hunter"
+grep -Fq 'PLAYER_BOUNTY_PROVENANCE_JEDI = 1' "$work_bounty_hunter"
+grep -Fq 'PLAYER_BOUNTY_PROVENANCE_SMUGGLER = 2' "$work_bounty_hunter"
+grep -Fq 'PLAYER_BOUNTY_KILL_BUFFER_SECONDS = 30 * 60' "$work_bounty_hunter"
+grep -Fq 'PLAYER_BOUNTY_MISSION_COOLDOWN_SECONDS = 24 * 60 * 60' "$work_bounty_hunter"
+grep -Fq 'int smugglerReward = targetData.getInt("smugglerBountyValue")' "$work_bounty_hunter"
+grep -Fq 'recordPlayerBountyKill(target)' "$work_bounty_hunter"
+grep -Fq 'recordPlayerBountyMissionCooldown' "$work_bounty_hunter"
+grep -Fq 'getPlayerStationId(existingHunter)' "$work_bounty_hunter"
+grep -Fq 'hasCurrentPlayerBountyProvenance(target, provenance)' "$work_bounty_hunter"
+grep -Fq 'notifyPlayerBountyMissionsIncomplete(target, provenance)' "$work_bounty_hunter"
+grep -Fq 'failInvalidPlayerBountyMission(hunter, target, mission)' "$work_bounty_hunter"
+grep -Fq 'xp.grant(hunter, xp.BOUNTYHUNTER, bountyValue / 50)' "$work_bounty_hunter"
+grep -Fq 'messageTo(hunter1, "handleBountyMissionIncomplete"' "$work_bounty_hunter"
+grep -Fq 'setJediVisibility(target, 0)' "$work_bounty_hunter"
+grep -Fq '(long)bountyValue * 2L' "$work_bounty_hunter"
+! grep -Fq 'getBountyFactionPointAdjustment' "$work_bounty_hunter"
+! grep -Fq 'pvp.getCurrentPvPRating' "$work_bounty_hunter"
+grep -Fq 'removeAllJediBounties(target)' "$work_bounty_hunter"
+grep -Fq 'obj_id mission = getBountyMission(hunter, target)' "$work_bounty_hunter"
+grep -Fq 'requestJedi(jedi.BOUNTY_VISIBILITY_THRESHHOLD' "$work_bounty_mission_dynamic"
+grep -Fq 'IGNORE_JEDI_STAT, -5, bounty_hunter.PLAYER_BOUNTY_JEDI_STATE_MASK' "$work_bounty_mission_dynamic"
+grep -Fq 'IGNORE_JEDI_STAT, -5,' "$work_bounty_mission_dynamic"
+grep -Fq 'getIntArray("smugglerBountyValue")' "$work_bounty_mission_dynamic"
+grep -Fq 'getIntArray(bounty_hunter.DATA_PLAYER_BOUNTY_KILL_BUFFER_UNTIL)' "$work_bounty_mission_dynamic"
+grep -Fq 'bounty_hunter.isPlayerBountyMissionCooldownActive' "$work_bounty_mission_dynamic"
+grep -Fq 'bounty_hunter.hasPlayerBountyAccountConflict' "$work_bounty_mission_dynamic"
+grep -Fq 'PLAYER_BOUNTY_PROVENANCE_SMUGGLER' "$work_bounty_mission_dynamic"
+grep -Fq 'PLAYER_BOUNTY_PROVENANCE_JEDI' "$work_bounty_mission_dynamic"
+test "$(grep -Fc 'rand(0, SamePlanetCounter - 1)' "$work_bounty_mission_dynamic")" -eq 2
+! grep -Fq 'SamePlanetObjId.length - 1' "$work_bounty_mission_dynamic"
+! grep -Fq 'requestJedi(IGNORE_JEDI_STAT, 15000' "$work_bounty_mission_dynamic"
+! grep -Fq 'IGNORE_JEDI_STAT, -3)' "$work_bounty_mission_dynamic"
+grep -Fq 'bounty_hunter.isValidPlayerBountyTarget(self, target, provenance)' "$work_bounty_mission_player"
+grep -Fq 'bounty_hunter.isValidPlayerBountyTarget(self, target, provenance, true)' "$work_bounty_mission_player"
+grep -Fq 'if (!requestJediBounty(target, self,' "$work_bounty_mission_player"
+grep -Fq 'utils.hasScriptVar(self, "bounty_hunter.jedi_mission")' "$work_bounty_mission_player"
+grep -Fq 'params.getObjId("jedi")' "$work_bounty_mission_player"
+grep -Fq 'confirmedTarget != target' "$work_bounty_mission_player"
+grep -Fq 'createDynamicBountyMission' "$work_bounty_mission_player"
+grep -Fq 'setObjVar(jedi_mission, bounty_hunter.VAR_PLAYER_BOUNTY_ASSIGNMENT_ACCEPTED, 1)' "$work_bounty_mission_player"
+grep -Fq 'bounty_hunter.recordPlayerBountyMissionCooldown' "$work_bounty_mission_player"
+grep -Fq 'bounty_hunter.VAR_PLAYER_BOUNTY_ASSIGNMENT_ACCEPTED' "$work_bounty_mission_bounty"
+grep -Fq 'bounty_hunter.recordPlayerBountyMissionCooldown' "$work_bounty_mission_bounty"
+confirmed_bounty_assignment_source="$(sed -n '/public int msgJediMissionStartConfirmed(/,/public int msgJediMissionStartFailed(/p' "$work_bounty_mission_player")"
+test "$(printf '%s\n' "$confirmed_bounty_assignment_source" | grep -Fc 'clearPlayerBountyPersonalEnemyFlags')" -eq 3
+test "$(printf '%s\n' "$confirmed_bounty_assignment_source" | grep -Fc 'removeJediBounty')" -eq 3
+grep -Fq 'migrateLegacySmugglerBounty(self);' "$work_bounty_base_player"
+grep -Fq 'groundquests.isQuestActive(self, "quest/smuggle_pvp_4")' "$work_bounty_base_player"
+grep -Fq 'groundquests.isQuestActive(self, "quest/smuggle_pvp_5")' "$work_bounty_base_player"
+grep -Fq 'questMaximum = tierFiveActive ? 22000 : 17000' "$work_bounty_base_player"
+grep -Fq 'updateJediScriptData(self, "smugglerBountyValue", smugglerBounty)' "$work_bounty_base_player"
+grep -Fq 'bounty_hunter.notifyPlayerBountyMissionsIncomplete(self,' "$work_bounty_base_player"
+migration_line="$(grep -Fn 'migrateLegacySmugglerBounty(self);' "$work_bounty_base_player" | head -1 | cut -d: -f1)"
+aggregate_purge_line="$(grep -Fn 'removeObjVar(self, "bounty.amount");' "$work_bounty_base_player" | head -1 | cut -d: -f1)"
+test "$migration_line" -lt "$aggregate_purge_line"
+for bounty_broker in "$work_bounty_broker_4" "$work_bounty_broker_5"; do
+    grep -Fq 'setObjVar(player, "smuggler.bounty", mission_bounty)' "$bounty_broker"
+    grep -Fq 'updateJediScriptData(player, "smuggler", 1)' "$bounty_broker"
+    grep -Fq 'updateJediScriptData(player, "smugglerBountyValue", mission_bounty)' "$bounty_broker"
+    ! grep -Fq 'bounty.amount' "$bounty_broker"
+done
+grep -Fq 'updateJediScriptData(self, "smugglerBountyValue", 0)' "$work_bounty_smuggler"
+grep -Fq 'PLAYER_BOUNTY_PROVENANCE_SMUGGLER' "$work_bounty_smuggler"
+grep -Fq 'bounty_hunter.notifyPlayerBountyMissionsIncomplete' "$work_bounty_smuggler"
+! grep -Fq 'removeAllJediBounties' "$work_bounty_smuggler"
+! grep -Fq 'bounty.amount' "$work_bounty_smuggler"
+grep -Fq 'getIntObjVar(mission, bounty_hunter.VAR_PLAYER_BOUNTY_PROVENANCE) != provenance' "$work_bounty_base_player"
+player_bounty_callback_source="$(sed -n '/public int handleAwardedPlayerBounty(/,/public int handleSurveyToolbarSetup(/p' "$work_bounty_base_player")"
+! printf '%s\n' "$player_bounty_callback_source" | grep -Eq 'xp\.grant|grantCombatFaction|incrementGCWStanding|pvpModifyCurrentGcwPoints'
+grep -Fq 'dictionary bountyData = requestJedi(infoTarget)' "$work_bounty_combat_actions"
+grep -Fq 'bountyData.getInt("bountyValue")' "$work_bounty_combat_actions"
+! grep -Fq 'getIntObjVar(infoTarget, "bounty.amount")' "$work_bounty_combat_actions"
+! grep -R -Eq --include='*.java' 'setObjVar\([^;]*"bounty\.amount"' "$work_script"
+! grep -R -Fq --include='*.java' 'pvp.incrementPlayerDeathBounty(' "$work_script"
+! grep -R -Fq --include='*.java' 'bounty_hunter.showSetBountySUI(' "$work_script"
+
+for bounty_class in \
+    script/library/jedi.class \
+    script/library/bounty_hunter.class \
+    script/library/pclib.class \
+    script/library/pvp.class \
+    script/library/smuggler.class \
+    script/library/force_rank.class \
+    script/systems/gcw/player_force_rank.class \
+    script/player/base/base_player.class \
+    script/systems/combat/combat_base.class \
+    script/systems/combat/combat_player.class \
+    script/systems/combat/combat_actions.class \
+    script/systems/jedi/jedi_base.class \
+    script/systems/missions/base/mission_dynamic_base.class \
+    script/systems/missions/base/mission_player.class \
+    script/systems/missions/dynamic/mission_bounty.class \
+    script/conversation/generic_broker_4.class \
+    script/conversation/generic_broker_5.class
+do
+    test -f "$class_root/$bounty_class"
+done
+weapon_base_player_bytecode="$(javap -classpath "$class_root" -c -p script.player.base.base_player)"
+weapon_base_player_initialize_bytecode="$(printf '%s\n' "$weapon_base_player_bytecode" | awk '
+/^  public int OnInitialize\(/ { capture = 1; print; next }
+capture && /^  (public|private|protected)/ { exit }
+capture { print }
+')"
+printf '%s\n' "$weapon_base_player_initialize_bytecode" | grep -Fq 'object/weapon/melee/unarmed/unarmed_default_player.iff'
+! printf '%s\n' "$weapon_base_player_initialize_bytecode" | grep -Fq 'getWeaponAttackSpeed'
+! printf '%s\n' "$weapon_base_player_initialize_bytecode" | grep -Fq 'setWeaponAttackSpeed'
+test -f "$class_root/datatables/jedi/jedi_actions.iff"
+test -f "$class_root/datatables/jedi/jedi_combat_data.iff"
+bounty_jedi_constants="$(javap -classpath "$class_root" -constants -p script.library.jedi)"
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'JEDI_BOUNTY_TITLE_SKILL = "force_title_jedi_rank_02"'
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'MAX_JEDI_VISIBILITY = 8000'
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'BOUNTY_VISIBILITY_THRESHHOLD = 1500'
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'VISIBILITY_DECAY_TIME_SECONDS = 1814400'
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'VISIBILITY_DECAY_TICK_SECONDS = 3600'
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'NONCOMBAT_VISIBILITY = 10'
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'COMBAT_VISIBILITY = 25'
+printf '%s\n' "$bounty_jedi_constants" | grep -Fq 'SABER_EQUIP_VISIBILITY = 10'
+bounty_jedi_bytecode="$(javap -classpath "$class_root" -c -p script.library.jedi)"
+printf '%s\n' "$bounty_jedi_bytecode" | grep -Fq 'hasPlayerBountyJediProvenance'
+printf '%s\n' "$bounty_jedi_bytecode" | grep -Fq 'getJediActionVisibilityValue'
+printf '%s\n' "$bounty_jedi_bytecode" | grep -Fq 'decayJediVisibility'
+bounty_hunter_constants="$(javap -classpath "$class_root" -constants -p script.library.bounty_hunter)"
+printf '%s\n' "$bounty_hunter_constants" | grep -Fq 'MAX_ACTIVE_PLAYER_BOUNTIES = 5'
+printf '%s\n' "$bounty_hunter_constants" | grep -Fq 'PLAYER_BOUNTY_PROVENANCE_JEDI = 1'
+printf '%s\n' "$bounty_hunter_constants" | grep -Fq 'PLAYER_BOUNTY_PROVENANCE_SMUGGLER = 2'
+printf '%s\n' "$bounty_hunter_constants" | grep -Fq 'PLAYER_BOUNTY_KILL_BUFFER_SECONDS = 1800'
+printf '%s\n' "$bounty_hunter_constants" | grep -Fq 'PLAYER_BOUNTY_MISSION_COOLDOWN_SECONDS = 86400'
+bounty_hunter_bytecode="$(javap -classpath "$class_root" -c -p script.library.bounty_hunter)"
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'isValidPlayerBountyTarget'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'applyJediBountyExperienceLoss'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'recordPlayerBountyKill'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'recordPlayerBountyMissionCooldown'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'hasPlayerBountyAccountConflict'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'hasCurrentPlayerBountyProvenance'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'notifyPlayerBountyMissionsIncomplete'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'failInvalidPlayerBountyMission'
+printf '%s\n' "$bounty_hunter_bytecode" | grep -Fq 'script/library/xp.grant'
+! javap -classpath "$class_root" -v script.library.bounty_hunter | grep -Fq 'getBountyFactionPointAdjustment'
+! javap -classpath "$class_root" -v script.library.bounty_hunter | grep -Fq 'bounty.amount'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'smugglerBountyValue'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'quest/smuggle_pvp_4'
+javap -classpath "$class_root" -v script.player.base.base_player | grep -Fq 'quest/smuggle_pvp_5'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_dynamic_base | grep -Fq 'bounty.precuProvenance'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_dynamic_base | grep -Fq 'smugglerBountyValue'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_dynamic_base | grep -Fq 'precuBountyKillBufferUntil'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_dynamic_base | grep -Fq 'isPlayerBountyMissionCooldownActive'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'isValidPlayerBountyTarget'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'bounty.precuAssignmentAccepted'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'bounty_hunter.jedi_mission'
+javap -classpath "$class_root" -v script.systems.missions.base.mission_player | grep -Fq 'recordPlayerBountyMissionCooldown'
+javap -classpath "$class_root" -v script.systems.missions.dynamic.mission_bounty | grep -Fq 'bounty.precuAssignmentAccepted'
+javap -classpath "$class_root" -v script.systems.missions.dynamic.mission_bounty | grep -Fq 'recordPlayerBountyMissionCooldown'
+javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'requestJedi'
+! javap -classpath "$class_root" -v script.systems.combat.combat_actions | grep -Fq 'bounty.amount'
+javap -classpath "$class_root" -v script.systems.jedi.jedi_base | grep -Fq 'doJediHealCommand'
+javap -classpath "$class_root" -v script.systems.jedi.jedi_base | grep -Fq 'jediActionPerformed'
+
+grep -Fq 'ms_skillPointCostLabel               = "POINTS_REQUIRED"' "$work_bounty_skill_object"
+grep -Fq 'int SkillObject::getSkillPointCost() const' "$work_bounty_skill_object"
+grep -Fq 'findColumnNumber(SkillObject::ms_skillPointCostLabel)' "$work_bounty_skill_object"
+grep -Fq 'skillData.skillPointCost = dataTable.getIntValue' "$work_bounty_skill_object"
+grep -Fq 'getSkillPointCost' "$work_bounty_skill_object_header"
+grep -Fq 'cms_jediTitleSkill = "force_title_jedi_rank_02"' "$work_bounty_swg_creature"
+grep -Fq 'cms_jediDisciplinePrefix = "force_discipline"' "$work_bounty_swg_creature"
+grep -Fq 'cms_forceRankObjvar = "force_rank.rank"' "$work_bounty_swg_creature"
+grep -Fq 'cms_forceRankCouncilObjvar = "force_rank.council"' "$work_bounty_swg_creature"
+grep -Fq 'forceRank >= 0 && forceRank <= 11' "$work_bounty_swg_creature"
+grep -Fq 'forceRankCouncil == 1 || forceRankCouncil == 2' "$work_bounty_swg_creature"
+grep -Fq 'return JS_jedi;' "$work_bounty_swg_creature"
+grep -Fq 'getSpentJediSkillPoints()) * 1000LL' "$work_bounty_swg_creature"
+grep -Fq 'static_cast<long long>(forceRank) * 100000LL' "$work_bounty_swg_creature"
+grep -Fq 'std::max(25000LL' "$work_bounty_swg_creature"
+grep -Fq 'std::max(50000LL' "$work_bounty_swg_creature"
+grep -Fq 'titleJedi ? getBountyValue() : smugglerBounty' "$work_bounty_swg_creature"
+grep -Fq 'cms_smugglerBountyScriptData, smugglerBounty' "$work_bounty_swg_creature"
+grep -Fq 'affectsPreCuJediRegistry(newSkill.getSkillName())' "$work_bounty_swg_creature"
+grep -Fq 'affectsPreCuJediRegistry(oldSkill.getSkillName())' "$work_bounty_swg_creature"
+grep -Fq 'synchronizeJediBountyRegistry' "$work_bounty_swg_creature_header"
+grep -Fq 'owner->synchronizeJediBountyRegistry();' "$work_bounty_swg_player"
+grep -Fq 'visibility > 8000' "$work_bounty_swg_player"
+grep -Fq 'cms_minimumJediBountyVisibility = 1500' "$work_bounty_jedi_manager"
+grep -Fq 'cms_maximumActiveHunters = 5' "$work_bounty_jedi_manager"
+grep -Fq 'getSmugglerBountyValue' "$work_bounty_jedi_manager"
+grep -Fq 'cms_smugglerBountyValueScriptData' "$work_bounty_jedi_manager"
+grep -Fq 'isAvailableBountyTarget(index)' "$work_bounty_jedi_manager"
+grep -Fq 'hunterStationId == targetStationId' "$work_bounty_jedi_manager"
+grep -Fq 'getSmugglerBountyValue' "$work_bounty_jedi_manager_header"
+grep -Fq 'jediCreature->synchronizeJediBountyRegistry();' "$work_bounty_script_methods_jedi"
+! grep -Fq 'bounty.amount' "$work_bounty_swg_creature"
+! grep -Fq 'bounty.amount' "$work_bounty_jedi_manager"
+! grep -Fq 'bounty.amount' "$work_bounty_script_methods_jedi"
+
+test -f "$shared_skill_system_archive"
+nm -C "$shared_skill_system_archive" | grep -Fq 'SkillObject::getSkillPointCost() const'
+nm -C "$server_script_archive" | grep -Fq 'ScriptMethodsJediNamespace::setJediBountyValue'
+nm -C "$server_script_archive" | grep -Fq 'ScriptMethodsJediNamespace::requestJediBounty'
+nm -C "$binary" | grep -Fq 'SwgCreatureObject::synchronizeJediBountyRegistry()'
+nm -C "$binary" | grep -Fq 'SwgCreatureObject::getBountyValue() const'
+nm -C "$binary" | grep -Fq 'SwgCreatureObject::grantSkill(SkillObject const&)'
+nm -C "$binary" | grep -Fq 'SwgCreatureObject::revokeSkill(SkillObject const&, bool)'
+nm -C "$binary" | grep -Fq 'SkillObject::getSkillPointCost() const'
+nm -C "$binary" | grep -Fq 'SwgPlayerObject::setJediVisibility(int)'
+nm -C "$binary" | grep -Fq 'SwgPlayerObject::setJediState(JediState)'
+nm -C "$binary" | grep -Fq 'SwgPlayerObject::virtualOnSetAuthority()'
+nm -C "$binary" | grep -Fq 'JediManagerObject::getSmugglerBountyValue(int) const'
+nm -C "$binary" | grep -Fq 'JediManagerObject::isAvailableBountyTarget(int) const'
+strings "$binary" | grep -Fq 'force_title_jedi_rank_02'
+strings "$binary" | grep -Fq 'force_rank.council'
+strings "$binary" | grep -Fq 'smugglerBountyValue'
+strings "$binary" | grep -Fq 'POINTS_REQUIRED'
 file -L "$binary" | grep -F 'ELF 64-bit' >/dev/null
 '@
 
@@ -8537,24 +8895,44 @@ printf '%s\n' "$transfer_listener" | grep -Fq "pid=$transfer_pid,"
 Write-Host "Verifying one stable TransferServer owns native port 50005..."
 Invoke-DockerScript -ContainerName $Container -Script $runtimeTransferServerProbe
 
-Write-Host "Verifying a live game process mapped the newly built server binary..."
+Write-Host "Verifying every live game process mapped the newly built server binary..."
 $gamePids = @(& docker exec $Container pgrep -f "bin/SwgGameServer")
 if ($LASTEXITCODE -ne 0 -or $gamePids.Count -eq 0)
 {
     throw "No live SwgGameServer process was found in '$Container'."
 }
-$gamePid = [string]($gamePids | Select-Object -First 1)
 $workDir = (& docker exec $Container printenv SWG_WORK_DIR).Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($workDir))
 {
     throw "Unable to resolve SWG_WORK_DIR in '$Container'."
 }
-$processInode = (& docker exec $Container stat -Lc "%i" "/proc/$gamePid/exe").Trim()
 $binaryInode = (& docker exec $Container stat -Lc "%i" "$workDir/build/bin/SwgGameServer").Trim()
-$processSize = (& docker exec $Container stat -Lc "%s" "/proc/$gamePid/exe").Trim()
-$binarySize = (& docker exec $Container stat -Lc "%s" "$workDir/build/bin/SwgGameServer").Trim()
-if ($LASTEXITCODE -ne 0 -or $processInode -cne $binaryInode -or $processSize -cne $binarySize)
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($binaryInode))
 {
-    throw "Live SwgGameServer process $gamePid does not map the newly built binary."
+    throw "Unable to authenticate the newly built SwgGameServer inode."
 }
+$binarySize = (& docker exec $Container stat -Lc "%s" "$workDir/build/bin/SwgGameServer").Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($binarySize))
+{
+    throw "Unable to authenticate the newly built SwgGameServer size."
+}
+foreach ($gamePidValue in $gamePids)
+{
+    $gamePid = ([string]$gamePidValue).Trim()
+    if ([string]::IsNullOrWhiteSpace($gamePid))
+    {
+        throw "The live SwgGameServer process inventory contained an empty PID."
+    }
+    $processInode = (& docker exec $Container stat -Lc "%i" "/proc/$gamePid/exe").Trim()
+    if ($LASTEXITCODE -ne 0)
+    {
+        throw "Unable to authenticate live SwgGameServer process $gamePid."
+    }
+    $processSize = (& docker exec $Container stat -Lc "%s" "/proc/$gamePid/exe").Trim()
+    if ($LASTEXITCODE -ne 0 -or $processInode -cne $binaryInode -or $processSize -cne $binarySize)
+    {
+        throw "Live SwgGameServer process $gamePid does not map the newly built binary."
+    }
+}
+Write-Host "Verified $($gamePids.Count) live SwgGameServer process(es) against the newly built binary."
 Write-Host "PRE-CU server deployment passed: synchronized, x64, healthy, and ready for players."

@@ -135,7 +135,7 @@ Assert-Contract ($cloneCure.Contains("return 0;") -and
     "p14.faction-cloning.nge-sickness-cure-price-inert"
 Assert-Contract (-not $deathblow.Contains("releaseGcwPointCredit") -and
     $playerDeath.Contains("if (!dueling)") -and
-    $playerDeath.Contains("skill.getPrecuEncounterDifficulty(killer) >= 20") -and
+    $playerDeath.Contains("factions.grantCombatFaction(killer, player, 1.0f)") -and
     -not $playerDeath.Contains("getLevel(killer)")) `
     "p14.faction-cloning.pvp-death-boundary"
 

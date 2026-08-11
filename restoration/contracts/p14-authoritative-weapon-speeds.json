@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "feature": "p14-authoritative-weapon-speeds",
-  "status": "ready",
-  "scope": "Make Publish 14 weapon attack speeds authoritative for player cadence and weapon presentation while preserving legitimate crafted variation and retaining expansion-only weapons through PRE-CU family fallbacks; AI cadence uses Core3's separate two-second queue interval.",
+  "status": "implemented-build-pending",
+  "scope": "Make Publish 14 weapon attack speeds authoritative for player cadence, authored default weapons, and weapon presentation while preserving legitimate crafted variation and retaining expansion-only weapons through PRE-CU family fallbacks; the base unarmed template is authored at 2.0 seconds and player initialization must not rewrite it to the NGE 0.50-second value. AI cadence uses Core3's separate two-second queue interval.",
   "semanticReference": {
     "repository": "https://github.com/swgemu/Core3",
     "weaponDataPinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -18,7 +18,9 @@
     "commandQueue": "src/engine/server/library/serverGame/src/shared/command/CommandQueue.cpp",
     "combatData": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/combat_data.tab",
     "combatOverrides": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_combat_overrides.tab",
-    "weaponSpeeds": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab"
+    "weaponSpeeds": "dsrc/sku.0/sys.shared/compiled/game/datatables/combat/precu_weapon_speeds.tab",
+    "unarmedDefaultPlayer": "dsrc/sku.0/sys.server/compiled/game/object/weapon/melee/unarmed/unarmed_default_player.tpf",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
   },
   "migrationPolicy": {
     "thresholdFactor": 0.5,
@@ -26,6 +28,12 @@
     "runtimeFallback": "The combat-facing getter returns the authoritative speed for any stale default or lazily loaded weapon that bypassed object-load normalization.",
     "craftedVariation": "Values at or above the threshold remain untouched.",
     "expansionOnlyWeapons": "Use the median PRE-CU cadence for the weapon family."
+  },
+  "authoredDefaultPolicy": {
+    "unarmedTemplateAttackSpeed": 2.0,
+    "playerInitializationNgeRewrite": false,
+    "playerInitializationTemplate": "object/weapon/melee/unarmed/unarmed_default_player.iff",
+    "combatFacingFallbackPreserved": true
   },
   "queuePolicy": {
     "primaryAttack": "live normalized weapon speed with neutral multiplier",
@@ -61,7 +69,7 @@
     },
     "diagnosis": "NGE-scaled persisted/template speeds collapse to the queue's one-second minimum and make player and creature combat execute at NGE cadence."
   },
-  "buildEvidence": {
+  "priorBuildEvidence": {
     "date": "2026-08-01",
     "result": "passed",
     "deploymentSeconds": 378.5,
@@ -84,7 +92,28 @@
       "x64 SwgGameServer binary"
     ]
   },
-  "liveAfterEvidence": {
+  "buildEvidence": {
+    "directSourceGitlink": "93878e4b3350f1e9391cd2bde25b3727243b6608",
+    "nativeSourceCommit": "a3c6478673377c7aa2dcc00194af63ee56ee7425",
+    "sourceSha256": {
+      "weaponObject": "b2482a9e992c431219277288bf046b9819ee6b1c83d890e4893e59186e438865",
+      "weaponHeader": "c84bafa80d9ab4648f02fc494b1e4ab6e03b627822d8d68f12dd76edfbaec559",
+      "commandQueue": "1c936045b7a6ebc193798c03709371c43ce603eb75341cc0fff445e86e3640ba",
+      "combatData": "01b94f81ade187ed55137e34d52c79412cec10622a7646a9dff15e34c41fda8e",
+      "combatOverrides": "ed4d713f9902f7f3775ef90f6173e0b09b5a35b104d4d9d581b9e942f48cccba",
+      "weaponSpeeds": "a36da969b7ece20cad36c1e61c241ff39fb93b7ccb92284f82fb66d0def4ee0f",
+      "unarmedDefaultPlayer": "0395c2b919d5f55903ecfcdcb5b25b215e0a8014e6a5fd27ac93c4d34ab9efa0",
+      "basePlayer": "1d5553ba298dcaa88ccc1016a1065f0bc7b8abe36de4ca1244c7cebe12ac27ef"
+    },
+    "focusedBasePlayerJavaCompile": "passed (exact source, Java 8 target)",
+    "unarmedTemplateSource": "authenticated attackSpeed 2.0; compiled IFF pending",
+    "fullJavaCompile": "pending",
+    "compiledUnarmedDefaultIff": "pending",
+    "fullX64Build": "pending",
+    "architecture": "pending x64 verification",
+    "result": "pending"
+  },
+  "priorLiveAfterEvidence": {
     "date": "2026-08-01",
     "character": "Eteb Eso",
     "characterObject": 1433054682,
@@ -99,7 +128,21 @@
       "woodenStaff": 4.75,
       "heavyDutyAxe": 5.0
     },
-    "staleDefaultWeaponCoverage": "The persisted unarmed row remains 0.5 until rewritten, while the compiled combat-facing accessor returns the authoritative 2.0-second value immediately."
+    "staleDefaultWeaponCoverage": "The persisted unarmed row remained 0.5 in this historical run, while the compiled combat-facing accessor returned the authoritative 2.0-second value immediately. This gap is the source defect closed by direct-source commit 93878e4b3350f1e9391cd2bde25b3727243b6608."
   },
-  "requiredBeforeReady": []
+  "liveAfterEvidence": {
+    "result": "pending",
+    "worldEntryConfirmed": false,
+    "authoredDefaultUnarmedSpeed": 2.0,
+    "persistedDefaultUnarmedSpeed": null,
+    "livePlayerCadenceConfirmed": false,
+    "liveAiCadenceConfirmed": false
+  },
+  "requiredBeforeReady": [
+    "Materialize source/work parity for the authenticated default-unarmed template and base_player source.",
+    "Run the zero-class full Java build and compile object/weapon/melee/unarmed/unarmed_default_player.iff from the authenticated template.",
+    "Run the full x64 server build and deployment probes, including base_player bytecode, compiled default-unarmed IFF, WeaponObject archive symbols, and the mapped ELF64 SwgGameServer binary.",
+    "Perform a controlled restart and prove every live process maps the newly built binary.",
+    "Live-test a fresh/default weapon and a persisted player: stored unarmed speed is 2.0, player cadence follows the authenticated formula, and AI retains its separate two-second queue interval."
+  ]
 }

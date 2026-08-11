@@ -94,7 +94,7 @@ Assert-Contract -Condition (
     [string]$srcPin[0].commit -ceq
         [string]$contract.buildEvidence.nativeSourceCommit -and
     [string]$srcPin[0].commit -ceq
-        "1d891e3f7a543872a5518292a4efa6635129c651") `
+        "a3c6478673377c7aa2dcc00194af63ee56ee7425") `
     -Name "p14.wounds.native.committed-source-pin"
 Assert-Contract -Condition (
     $dsrcPin.Count -eq 1 -and
