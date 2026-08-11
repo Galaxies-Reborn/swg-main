@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "feature": "p14-precu-resource-sampling-cadence-authority",
-  "status": "ready",
-  "scope": "Restore the Publish 14.1 fixed 25-second resource-sampling cadence while preserving the existing Quickness-derived Action cost, sampling loop, resource result calculation, effects, and retained content.",
+  "status": "implemented-build-pending",
+  "scope": "Restore Publish 14.1 resource sampling authority: the fixed 25-second cadence, Quickness-derived base Action cost, two-choice concentrated-node and gamble events, and 300-Action optional gamble, without later Beast Master or Collection choices and rewards.",
   "eraEvidence": {
     "core3Repository": "swgemu/Core3",
     "core3Commit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
@@ -11,7 +11,10 @@
       "The pinned Publish 14.1 implementation schedules each sample task at 25000 milliseconds.",
       "Publish 14.1 uses current Quickness only for the sampling Action cost formula 124 - Quickness / 12.5.",
       "The inherited survey tool retained an NGE expertise_resource_sampling_time_decrease modifier that could reduce the cadence from 25 seconds to a 10-second floor.",
-      "The existing getSurveyToolDelay ABI is retained so every current loop and watchdog caller receives the fixed Publish 14.1 cadence."
+      "The existing getSurveyToolDelay ABI is retained so every current loop and watchdog caller receives the fixed Publish 14.1 cadence.",
+      "The pinned Publish 14.1 concentrated-node and gamble SUIs each expose exactly two choices; neither path reads Beast Master state or awards Collection progress.",
+      "The pinned Publish 14.1 optional recovery gamble costs 300 Action, while the inherited later-era callback charged 2000 Action.",
+      "The authentic concentrated-resource event, pause/resume loop, waypoint, critical result, and standard sampling results remain; only later Beast, Collection, third-choice, and stale callback authority is removed."
     ]
   },
   "expected": {
@@ -20,64 +23,75 @@
     "samplingCadenceExpertiseReads": 0,
     "delayHelperCallSites": 7,
     "actionCostFormula": "max(0, 124 - currentQuickness / 12.5)",
+    "precuGambleActionCost": 300,
+    "nodeChoiceCount": 2,
+    "gambleChoiceCount": 2,
+    "samplePauseReferences": 4,
+    "beastSamplingReads": 0,
+    "collectionSamplingChoices": 0,
+    "paramsDerivedPlayerAuthority": 0,
     "samplingLoopPreserved": true,
     "resourceResultCalculationPreserved": true,
     "samplingEffectsPreserved": true
   },
   "sourceFiles": {
-    "surveyTool": "dsrc/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java"
+    "surveyTool": "dsrc/sku.0/sys.server/compiled/game/script/item/survey_tool/survey_tool_script.java",
+    "resourceLibrary": "dsrc/sku.0/sys.server/compiled/game/script/library/resource.java",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java"
   },
   "buildEvidence": {
     "sourceMode": "direct-branch",
-    "directSourceGitlink": "d3e26516f9180e802ff4e7fb3a15bbdd8c150349",
+    "directSourceGitlink": "88c62817fe66432772c3cab08a25ca45d946e3d8",
     "dockerWorkVolume": "swg-precu-work-x64",
     "sourceSha256": {
-      "surveyTool": "adc3cec743a187a3a49dbe4c58fd5227fd333dc6e4a4000e0fbd94ce3be12380"
+      "surveyTool": "adc3cec743a187a3a49dbe4c58fd5227fd333dc6e4a4000e0fbd94ce3be12380",
+      "resourceLibrary": "bfdbd15eb09a50ba9624d272c49db863a8c63b2d0f079c6d9ac0ebeb69cd6069",
+      "basePlayer": "770c3d914518631e5bd11ba05a6e343e798adba1c4b0e8416b65fd6d8d094923"
     },
     "compiledClassSha256": {
-      "surveyTool": "f000baf40c6b0861712e27c8e172a2abccda8df870846996b953f4d9e4abd872"
+      "surveyTool": null,
+      "resourceLibrary": null,
+      "basePlayer": null
     },
-    "sourceTest": "passed; the retained helper returns the fixed 25-second cadence, the NGE expertise modifier and 10-second floor are absent, all seven loop/watchdog callers remain, and the Quickness-derived Action cost and resource-result route are preserved",
-    "fullJavaCompile": "passed after deleting every compiled Java class; 5713 sources produced 5747 classes, and survey_tool_script.class was emitted 2026-08-04T20:13:53Z",
-    "fullServerBuild": "passed in 718.9 seconds from pushed parent 120d870 and direct dsrc 4c2da2e17",
-    "architecture": "ELF 64-bit LSB x86-64",
-    "serverBinarySha256": "90785bc6cbaf63c04171d070d0670d4a4e02d939442754f4971eddbbb5211fb4",
-    "serverBinaryBuildId": "a933ee5a29e0046f291d92108b39b95c33d282dd",
-    "sourceWorkParity": "passed byte-for-byte for survey_tool_script.java against the read-only direct-source mount",
-    "bytecodeAudit": "passed; survey_tool_script.class exposes SURVEY_TOOL_DELAY = 25 and contains neither expertise_resource_sampling_time_decrease nor MIN_SURVEY_TOOL_DELAY",
-    "deploymentProbe": "passed all nine direct-source preflight contracts, mandatory source/work parity, focused sampling source and bytecode gates, cumulative PRE-CU data and bytecode gates, x64 architecture, restart/readiness, and live mapped-binary verification",
-    "result": "passed"
+    "compiledClassBytes": {
+      "surveyTool": null,
+      "resourceLibrary": null,
+      "basePlayer": null
+    },
+    "sourceTest": "passed; fixed 25-second cadence and Quickness cost remain, both concentrated-resource events expose only the two Publish 14.1 choices, the gamble costs 300 Action, and Beast Master, Collection, third-choice, values 3/4/5, and params-derived player authority are absent",
+    "focusedJavaCompile": "passed OpenJDK Java 8-target compilation of resource.java and base_player.java against the deployed x64 class tree in an isolated /dev/shm directory removed immediately",
+    "focusedClassSha256": {
+      "resourceLibrary": "76f7d69fdfb2c20145d04e3c0eeecef69e1f2f293c61002b308193ea876ea499",
+      "basePlayer": "1c83e4492f93645b0d4a6eabedd22764a5297250a46ad8101ebbef3dcf79aaa4"
+    },
+    "focusedClassBytes": {
+      "resourceLibrary": 26286,
+      "basePlayer": 268993
+    },
+    "fullJavaCompile": "pending canonical clean x64 deployment",
+    "fullServerBuild": "pending canonical clean x64 deployment",
+    "architecture": "pending canonical x64 verification",
+    "serverBinarySha256": null,
+    "serverBinaryBuildId": null,
+    "sourceWorkParity": "pending canonical direct-source/work parity gate",
+    "bytecodeAudit": "pending canonical deployed-class audit",
+    "deploymentProbe": "pending canonical restart/readiness and live mapped-binary verification",
+    "result": "source-passed-build-pending"
   },
   "runtimeEvidence": {
-    "date": "2026-08-04",
     "container": "swg-precu",
-    "sourceMountReadOnly": true,
-    "dockerWorkVolume": "swg-precu-work-x64",
-    "containerStartedAt": "2026-08-04T20:20:11.295955075Z",
-    "containerHealth": "healthy",
-    "clusterReadyForPlayers": true,
-    "compiledClassPresent": true,
-    "compiledClassSize": 24699,
-    "liveProcessMappedBuiltBinary": true,
-    "liveGameProcessPid": 363,
-    "liveBinaryInode": 12110805,
-    "liveBinarySize": 22601480,
-    "liveBinaryMapEntries": 2,
-    "processCounts": {
-      "LoginServer": 1,
-      "TaskManager": 1,
-      "ConnectionServer": 1,
-      "SwgDatabaseServer": 1,
-      "PlanetServer": 14,
-      "SwgGameServer": 14
-    },
-    "postStartLogAudit": "344 lines; one player-ready marker; zero fatal, severe, exception, mission error, empty ConGenericMessage, undefined-symbol, or Oracle error matches",
-    "result": "passed"
+    "currentSourceDeployed": false,
+    "previousDeploymentSuperseded": true,
+    "result": "build-pending"
   },
   "auditBoundary": {
-    "closedInThisMilestone": "the active NGE expertise-derived resource-sampling cadence and its 10-second floor",
-    "preserved": "the 25-second Publish 14.1 sample schedule, Quickness-derived Action cost, sampling admission and cancellation, result quantity and quality, resource containers, effects, radioactive handling, concentrated-resource content, XP chance, and the existing helper ABI",
+    "closedInThisMilestone": "the active NGE expertise-derived cadence plus the Beast Master, Collection, third-choice, 2000-Action, values 3/4/5, and params-derived-player additions to concentrated-resource callbacks",
+    "preserved": "the 25-second Publish 14.1 schedule, Quickness base cost, two-choice concentrated-node and gamble events, 300-Action optional gamble, pause/resume loop, node waypoint/recovery, ordinary and critical results, containers, effects, radioactive handling, XP chance, and helper ABI",
     "notClaimedComplete": "reverse engineering, retained vendor maintenance, armor, healing, movement, performance, and other content-specific expertise references remain subject to later reachability audits"
   },
-  "requiredBeforeReady": []
+  "requiredBeforeReady": [
+    "canonical clean x64 Java/server build",
+    "deployed resource, base-player, and survey-tool class authentication",
+    "healthy restart, source/work parity, and live mapped-binary proof"
+  ]
 }

@@ -24,15 +24,31 @@ function Assert-Contract([bool]$Condition, [string]$Name)
     else { Write-Host "  [FAIL] $Name"; $failures.Add($Name) }
 }
 
+function Get-SourceSlice([string]$Text, [string]$StartMarker, [string]$EndMarker)
+{
+    $start = $Text.IndexOf($StartMarker, [StringComparison]::Ordinal)
+    if ($start -lt 0) { return "" }
+    $end = $Text.IndexOf($EndMarker, $start + $StartMarker.Length,
+        [StringComparison]::Ordinal)
+    if ($end -lt 0) { return "" }
+    return $Text.Substring($start, $end - $start)
+}
+
 $surveyPath = Join-Path $source ([string]$contract.sourceFiles.surveyTool)
+$resourcePath = Join-Path $source ([string]$contract.sourceFiles.resourceLibrary)
+$basePlayerPath = Join-Path $source ([string]$contract.sourceFiles.basePlayer)
 Assert-Contract (Test-Path -LiteralPath $surveyPath -PathType Leaf) `
-    "p14.resource-sampling-cadence.source.exists"
+    "p14.resource-sampling-cadence.source.survey-tool.exists"
+Assert-Contract (Test-Path -LiteralPath $resourcePath -PathType Leaf) `
+    "p14.resource-sampling-cadence.source.resource-library.exists"
+Assert-Contract (Test-Path -LiteralPath $basePlayerPath -PathType Leaf) `
+    "p14.resource-sampling-cadence.source.base-player.exists"
 if (Test-Path -LiteralPath $surveyPath -PathType Leaf)
 {
     $survey = Get-Content -LiteralPath $surveyPath -Raw
     $hash = (Get-FileHash -LiteralPath $surveyPath -Algorithm SHA256).Hash.ToLowerInvariant()
     Assert-Contract ($hash -ceq [string]$contract.buildEvidence.sourceSha256.surveyTool) `
-        "p14.resource-sampling-cadence.source.authenticated"
+        "p14.resource-sampling-cadence.source.survey-tool.authenticated"
 
     $fixedDelayPattern = '(?s)public int getSurveyToolDelay\(obj_id player\).*?\{\s*return SURVEY_TOOL_DELAY;\s*\}'
     Assert-Contract ($survey.Contains("public static final int SURVEY_TOOL_DELAY = 25;") -and
@@ -57,6 +73,101 @@ if (Test-Path -LiteralPath $surveyPath -PathType Leaf)
         "p14.resource-sampling-cadence.precu-action-and-results-preserved"
 }
 
+if ((Test-Path -LiteralPath $surveyPath -PathType Leaf) -and
+    (Test-Path -LiteralPath $resourcePath -PathType Leaf) -and
+    (Test-Path -LiteralPath $basePlayerPath -PathType Leaf))
+{
+    $resourceSource = Get-Content -LiteralPath $resourcePath -Raw
+    $basePlayer = Get-Content -LiteralPath $basePlayerPath -Raw
+    $resourceHash = (Get-FileHash -LiteralPath $resourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $basePlayerHash = (Get-FileHash -LiteralPath $basePlayerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Assert-Contract ($resourceHash -ceq
+            [string]$contract.buildEvidence.sourceSha256.resourceLibrary) `
+        "p14.resource-sampling-cadence.source.resource-library.authenticated"
+    Assert-Contract ($basePlayerHash -ceq
+            [string]$contract.buildEvidence.sourceSha256.basePlayer) `
+        "p14.resource-sampling-cadence.source.base-player.authenticated"
+
+    $getSample = Get-SourceSlice $resourceSource `
+        "public static int getSample(obj_id user, obj_id tool, String type)" `
+        "public static String getResourceContainerTemplate(obj_id typeId)"
+    $nodeHandler = Get-SourceSlice $basePlayer `
+        "public int handleSurveyNodeChoice(obj_id self, dictionary params)" `
+        "public int handleSurveyGambleChoice(obj_id self, dictionary params)"
+    $gambleHandler = Get-SourceSlice $basePlayer `
+        "public int handleSurveyGambleChoice(obj_id self, dictionary params)" `
+        "public int cmdHarvestDNA(obj_id self, obj_id target, String params"
+    Assert-Contract (-not [string]::IsNullOrEmpty($getSample) -and
+        -not [string]::IsNullOrEmpty($nodeHandler) -and
+        -not [string]::IsNullOrEmpty($gambleHandler)) `
+        "p14.resource-sampling-cadence.event-method-boundaries"
+
+    Assert-Contract ($resourceSource.Contains(
+            "public static final int PRECU_GAMBLE_ACTION_COST = 300;") -and
+        ([regex]::Matches($getSample, 'new String\[2\]')).Count -eq 2 -and
+        ([regex]::Matches($getSample, 'new String\[3\]')).Count -eq 0 -and
+        ([regex]::Matches($getSample, '"handleSurveyNodeChoice"')).Count -eq 1 -and
+        ([regex]::Matches($getSample, '"handleSurveyGambleChoice"')).Count -eq 1 -and
+        ([regex]::Matches($getSample, 'return SAMPLE_PAUSE_LOOP_EVENT;')).Count -eq 2) `
+        "p14.resource-sampling-cadence.precu-two-choice-event-shape"
+
+    $laterEventTokens = @(
+        "beast_lib.getBeastOnPlayer",
+        "hasCompletedCollectionSlot",
+        "modifyCollectionSlotValue",
+        "cnode_collection",
+        "gnode_collection",
+        "sampling_pet_collection",
+        "col_pet_resource_sampling",
+        "col_resource_",
+        "SID_PET_SEARCH_SUCCESS",
+        "SID_PET_SEARCH_FAIL",
+        "SID_GAMBLE_RARE",
+        "gamble == 3",
+        "gamble == 4",
+        "gamble == 5"
+    )
+    $laterGetSampleMatches = @($laterEventTokens | Where-Object {
+        $getSample.Contains($_)
+    })
+    Assert-Contract ($laterGetSampleMatches.Count -eq 0) `
+        "p14.resource-sampling-cadence.nge-resource-event-authority-retired"
+
+    Assert-Contract ($nodeHandler.Contains("idx != 1") -and
+        -not $nodeHandler.Contains("sui.getPlayerId") -and
+        -not $nodeHandler.Contains("modifyCollectionSlotValue") -and
+        -not $nodeHandler.Contains("hasCompletedCollection") -and
+        -not $nodeHandler.Contains("survey_event.gamble") -and
+        $nodeHandler.Contains('messageTo(tool, "continueSampleLoop"') -and
+        $nodeHandler.Contains('messageTo(tool, "stopSampleEvent"') -and
+        $nodeHandler.Contains('utils.setScriptVar(self, "survey_event.location", point)')) `
+        "p14.resource-sampling-cadence.precu-node-callback"
+
+    Assert-Contract ($gambleHandler.Contains("idx != 1") -and
+        $gambleHandler.Contains(
+            "drainAttributes(self, resource.PRECU_GAMBLE_ACTION_COST, 0)") -and
+        -not $gambleHandler.Contains("sui.getPlayerId") -and
+        -not $gambleHandler.Contains("2000") -and
+        -not $gambleHandler.Contains("modifyCollectionSlotValue") -and
+        -not $gambleHandler.Contains("hasCompletedCollection") -and
+        -not $gambleHandler.Contains("col_resource_") -and
+        $gambleHandler.Contains('utils.setScriptVar(self, "survey_event.gamble", 1)') -and
+        $gambleHandler.Contains('utils.setScriptVar(self, "survey_event.gamble", 2)')) `
+        "p14.resource-sampling-cadence.precu-gamble-callback"
+
+    $eventSurface = $resourceSource + "`n" + $basePlayer + "`n" + $survey
+    Assert-Contract (([regex]::Matches($eventSurface,
+            'SAMPLE_PAUSE_LOOP_EVENT')).Count -eq
+            [int]$contract.expected.samplePauseReferences -and
+        ([regex]::Matches($eventSurface, '"handleSurveyNodeChoice"')).Count -eq 1 -and
+        ([regex]::Matches($eventSurface, '"handleSurveyGambleChoice"')).Count -eq 1 -and
+        ([regex]::Matches($basePlayer,
+            'public int handleSurveyNodeChoice\(')).Count -eq 1 -and
+        ([regex]::Matches($basePlayer,
+            'public int handleSurveyGambleChoice\(')).Count -eq 1) `
+        "p14.resource-sampling-cadence.complete-event-callback-inventory"
+}
+
 if ($Expectation -eq "Ready")
 {
     $dsrcPin = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
@@ -68,9 +179,68 @@ if ($Expectation -eq "Ready")
         [string]$dsrcPin[0].commit -ceq [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.resource-sampling-cadence.direct-source-pin"
     Assert-Contract ([string]$contract.buildEvidence.compiledClassSha256.surveyTool -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.resourceLibrary -match '^[a-f0-9]{64}$' -and
+        [string]$contract.buildEvidence.compiledClassSha256.basePlayer -match '^[a-f0-9]{64}$' -and
         [bool]$contract.runtimeEvidence.clusterReadyForPlayers -and
         [bool]$contract.runtimeEvidence.liveProcessMappedBuiltBinary) `
         "p14.resource-sampling-cadence.live-evidence"
+
+    $container = [string]$contract.runtimeEvidence.container
+    $health = (& docker inspect $container --format '{{.State.Health.Status}}').Trim()
+    Assert-Contract ($LASTEXITCODE -eq 0 -and $health -ceq "healthy") `
+        "p14.resource-sampling-cadence.live-container-health"
+
+    foreach ($property in $contract.sourceFiles.PSObject.Properties)
+    {
+        $relativePath = ([string]$property.Value).Replace("\", "/")
+        & docker exec $container cmp -s "/swg-precu-source/$relativePath" `
+            "/swg-precu/$relativePath"
+        Assert-Contract ($LASTEXITCODE -eq 0) `
+            "p14.resource-sampling-cadence.source-work-parity.$($property.Name)"
+    }
+
+    $classRoot = "/swg-precu/data/sku.0/sys.server/compiled/game"
+    $classPaths = [ordered]@{
+        surveyTool = "$classRoot/script/item/survey_tool/survey_tool_script.class"
+        resourceLibrary = "$classRoot/script/library/resource.class"
+        basePlayer = "$classRoot/script/player/base/base_player.class"
+    }
+    foreach ($name in $classPaths.Keys)
+    {
+        $classHash = ((& docker exec $container sha256sum $classPaths[$name]).Trim() -split '\s+')[0]
+        $classBytes = [int64]((& docker exec $container stat -c '%s' $classPaths[$name]).Trim())
+        Assert-Contract ($LASTEXITCODE -eq 0 -and
+            $classHash -ceq [string]$contract.buildEvidence.compiledClassSha256.$name -and
+            $classBytes -eq [int64]$contract.buildEvidence.compiledClassBytes.$name) `
+            "p14.resource-sampling-cadence.live-bytecode.$name"
+    }
+
+    $resourceBytecode = (& docker exec $container javap -classpath $classRoot -c -p `
+        script.library.resource | Out-String)
+    $sampleBytecode = Get-SourceSlice $resourceBytecode `
+        "public static int getSample(script.obj_id, script.obj_id, java.lang.String)" `
+        "public static java.lang.String getResourceContainerTemplate(script.obj_id)"
+    Assert-Contract (-not [string]::IsNullOrEmpty($sampleBytecode) -and
+        $sampleBytecode.Contains("handleSurveyNodeChoice") -and
+        $sampleBytecode.Contains("handleSurveyGambleChoice") -and
+        -not $sampleBytecode.Contains("beast_lib") -and
+        -not $sampleBytecode.Contains("hasCompletedCollectionSlot") -and
+        -not $sampleBytecode.Contains("SID_PET_SEARCH") -and
+        -not $sampleBytecode.Contains("SID_GAMBLE_RARE")) `
+        "p14.resource-sampling-cadence.deployed-resource-event-bytecode"
+
+    $baseBytecode = (& docker exec $container javap -classpath $classRoot -c -p `
+        script.player.base.base_player | Out-String)
+    $callbackBytecode = Get-SourceSlice $baseBytecode `
+        "public int handleSurveyNodeChoice(script.obj_id, script.dictionary)" `
+        "public int cmdHarvestDNA(script.obj_id, script.obj_id, java.lang.String, float)"
+    Assert-Contract (-not [string]::IsNullOrEmpty($callbackBytecode) -and
+        $callbackBytecode -match '\bsipush\s+300\b' -and
+        $callbackBytecode -notmatch '\bsipush\s+2000\b' -and
+        -not $callbackBytecode.Contains("getPlayerId") -and
+        -not $callbackBytecode.Contains("modifyCollectionSlotValue") -and
+        -not $callbackBytecode.Contains("hasCompletedCollection")) `
+        "p14.resource-sampling-cadence.deployed-callback-bytecode"
 }
 else
 {
