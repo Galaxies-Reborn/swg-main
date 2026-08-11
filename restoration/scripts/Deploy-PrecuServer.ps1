@@ -5514,7 +5514,7 @@ printf '%s\n' "$healing_camp_code" | grep -Fq 'applyDamageHealing'
 printf '%s\n' "$healing_camp_code" | grep -Fq 'performHealDamage'
 printf '%s\n' "$healing_camp_code" | grep -Fq 'startHealOverTime'
 printf '%s\n' "$healing_camp_code" | grep -Fq 'useHealDamageItem'
-source_aware_heal_code="$(printf '%s\n' "$healing_camp_code" | sed -n '/healDamage(script.obj_id, script.obj_id, int, int);/,/healDamage(script.obj_id, script.obj_id, int, int, boolean);/p')"
+source_aware_heal_code="$(printf '%s\n' "$healing_camp_code" | sed -n '/public static int healDamage(script.obj_id, script.obj_id, int, int) throws/,/public static int healDamage(script.obj_id, script.obj_id, int, int, boolean) throws/p')"
 test "$(printf '%s\n' "$source_aware_heal_code" | grep -Fc 'healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
 test "$(printf '%s\n' "$source_aware_heal_code" | grep -Fc 'script/library/pvp.bfCreditForHealing')" -eq 1
 classic_stim_heal_code="$(printf '%s\n' "$healing_camp_code" | sed -n '/useHealDamageItem(script.obj_id, script.obj_id, script.obj_id, int)/,/useChannelHealItem/p')"
@@ -5533,7 +5533,7 @@ avoid_incap_heal_code="$(printf '%s\n' "$base_player_camp_code" | sed -n '/publi
 test "$(printf '%s\n' "$avoid_incap_heal_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
 healing_buff_code="$(javap -classpath "$class_root" -c -p script.systems.buff.buff_handler | sed -n '/public int healEffectAddBuffHandler(/,/public int healEffectRemoveBuffHandler/p')"
 test "$(printf '%s\n' "$healing_buff_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
-event_damage_code="$(javap -classpath "$class_root" -c -p script.event.event_tool | sed -n '/public int eventDamageTarget(/,/public int eventMoveToMe/p')"
+event_damage_code="$(javap -classpath "$class_root" -c -p script.event.event_tool | sed -n '/public int eventDamage(/,/public int eventMoveToMe/p')"
 test "$(printf '%s\n' "$event_damage_code" | grep -Fc 'script/library/healing.healDamage:(Lscript/obj_id;Lscript/obj_id;IIZ)I')" -eq 1
 for classic_stim_class in \
     script.item.medicine.stimpack \
@@ -8429,8 +8429,8 @@ grep -Fq 'bool              m_notifyHealingReceived;' "$work_alter_attribute_mes
 grep -Fq 'Archive::put(target, msg->m_notifyHealingReceived);' "$work_alter_attribute_message"
 grep -Fq 'Archive::get(source, notifyHealingReceived);' "$work_alter_attribute_message"
 grep -Fq 'msg->getNotifyHealingReceived()' "$work_creature_controller"
-nm -C "$server_game_archive" | grep -Fq 'CreatureObject::healDamage(Attributes::Enumerator, int, NetworkId const&, bool)'
-nm -C "$server_game_archive" | grep -Fq 'CreatureObject::alterAttribute(Attributes::Enumerator, int, bool, NetworkId const&, bool, bool)'
+nm -C "$server_game_archive" | grep -Fq 'CreatureObject::healDamage(int, int, NetworkId const&, bool)'
+nm -C "$server_game_archive" | grep -Fq 'CreatureObject::alterAttribute(int, int, bool, NetworkId const&, bool, bool)'
 nm -C "$server_script_archive" | grep -Fq 'ScriptMethodsAttributesNamespace::healDamage'
 nm -C "$server_network_messages_archive" | grep -Fq 'MessageQueueAlterAttribute::MessageQueueAlterAttribute(int, int, bool, NetworkId const&, bool)'
 strings "$binary" | grep -Fq '_healDamage'
