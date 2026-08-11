@@ -703,6 +703,7 @@ done
 strings "$binary" | grep -Fq 'crafting_components.armor_health_encumbrance'
 strings "$binary" | grep -Fq 'crafting_components.armor_action_encumbrance'
 strings "$binary" | grep -Fq 'crafting_components.armor_mind_encumbrance'
+# Keep the final PowerShell native-pipeline CR on a shell comment, not a probe argument.
 '@
     $focusedArtifactProbe | docker exec -i $container bash
     Assert-Contract ($LASTEXITCODE -eq 0) "p14.nine-attribute.armor.focused-class-native-binary-probes"
