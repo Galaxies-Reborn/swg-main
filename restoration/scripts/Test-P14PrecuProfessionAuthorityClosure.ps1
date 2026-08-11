@@ -1644,7 +1644,12 @@ if ($Expectation -in @("Build", "Ready"))
             "p14-direct-command-callback-inventory-closure" -and
         [string]$currentBuild.readyOwner -ceq
             "p14-direct-command-callback-inventory-closure" -and
-        -not [string]::IsNullOrWhiteSpace($container)
+        -not [string]::IsNullOrWhiteSpace($container) -and
+        (([string]$contract.status -ceq
+                "implemented-build-verified-live-pending" -and
+            @($contract.requiredBeforeReady).Count -eq 1) -or
+         ([string]$contract.status -ceq "ready" -and
+            @($contract.requiredBeforeReady).Count -eq 0))
     )
     foreach ($entry in $canonicalArtifactPaths.GetEnumerator())
     {

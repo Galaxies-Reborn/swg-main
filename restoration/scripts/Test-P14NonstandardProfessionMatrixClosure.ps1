@@ -203,7 +203,7 @@ function Assert-JediGrant
     else { Write-Host "  [FAIL] $Name"; $grantFailures.Add($Name) }
 }
 
-$skillRows = @(Import-SwgTab -Path $skillPath)
+$skillRows = @(Restoration.Common\Import-SwgTab -Path $skillPath)
 $jediRows = @($skillRows | Where-Object {
     [string]$_.NAME -cmatch [string]$grant.selector
 })
@@ -254,7 +254,7 @@ $residualGap = @(Get-OrdinalNames ($actionableGap | Where-Object {
 }))
 
 $commandLines = @(Get-Content -LiteralPath $commandPath)
-$commandRows = @(Import-SwgTab -Path $commandPath)
+$commandRows = @(Restoration.Common\Import-SwgTab -Path $commandPath)
 $registeredCommandSet = [Collections.Generic.HashSet[string]]::new(
     [StringComparer]::Ordinal)
 foreach ($row in $commandRows)
@@ -374,7 +374,7 @@ Assert-JediGrant ((Test-Path -LiteralPath $legacyTable -PathType Leaf) -and
 
 $forceSpeed = $contract.forceDefenseRestorationEvidence.forceSpeed
 $buffLines = @(Get-Content -LiteralPath $buffPath)
-$buffRows = @(Import-SwgTab -Path $buffPath)
+$buffRows = @(Restoration.Common\Import-SwgTab -Path $buffPath)
 $speedRowsExact = $true
 foreach ($rank in $forceSpeed.ranks)
 {
@@ -716,6 +716,53 @@ if ($Expectation -in @("Build", "Ready"))
     if ($buildReady)
     {
         $buildReady = Test-ForceTablesFreshRecompile -Container $container
+    }
+    if ($buildReady)
+    {
+        & (Join-Path $PSScriptRoot "Test-P14ArmorMitigationOrdering.ps1") `
+            -SourceRoot $source `
+            -Expectation Build
+        $armorContract = Get-Content -LiteralPath (
+            Join-Path $restorationRoot `
+                ([string]$manifest.contracts.p14ArmorMitigationOrdering)
+        ) -Raw | ConvertFrom-Json
+        $armorForce = $armorContract.forceDefenseContract
+        $buildReady =
+            @("implemented-build-verified-live-pending", "ready") -ccontains
+                [string]$armorContract.status -and
+            [string]$armorForce.directSourceCommit -ceq
+                [string]$forceEvidence.directSourceCommit -and
+            [string]$armorForce.build.result -ceq "passed" -and
+            [string]$armorForce.build.container -ceq $container -and
+            [string]$armorForce.build.validatedContainerStartedAt -ceq
+                [string]$currentBuild.validatedContainerStartedAt -and
+            [string]$armorForce.build.serverBinary.sha256 -cmatch
+                '^[a-f0-9]{64}$' -and
+            [string]$armorForce.deployment.result -ceq "passed" -and
+            [string]$armorForce.deployment.containerStartedAt -ceq
+                [string]$currentBuild.validatedContainerStartedAt -and
+            [bool]$armorForce.deployment.allLiveGameProcessesMatchBinary -and
+            (([string]$contract.status -ceq
+                    "implemented-build-verified-live-pending" -and
+                [string]$forceEvidence.live.result -ceq "pending" -and
+                [string]$forceEvidence.forceSpeedLive.result -ceq "pending" -and
+                @($contract.requiredBeforeReady).Count -eq 2) -or
+             ([string]$contract.status -ceq "ready" -and
+                [string]$forceEvidence.live.result -ceq "passed" -and
+                [string]$forceEvidence.forceSpeedLive.result -ceq "passed" -and
+                @($contract.requiredBeforeReady).Count -eq 0))
+        foreach ($artifactName in @(
+            "buff.iff", "jedi.class", "combat_actions.class"))
+        {
+            $ownerArtifact = $currentBuild.compiledArtifacts.($artifactName)
+            $armorArtifact = $armorForce.build.compiledArtifacts.($artifactName)
+            $buildReady = $buildReady -and
+                [string]$ownerArtifact.path -ceq
+                    [string]$armorArtifact.path -and
+                [string]$ownerArtifact.sha256 -ceq
+                    [string]$armorArtifact.sha256 -and
+                [long]$ownerArtifact.bytes -eq [long]$armorArtifact.bytes
+        }
     }
     if (-not $buildReady)
     {

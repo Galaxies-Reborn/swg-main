@@ -424,6 +424,87 @@ if ($Expectation -in @("Build", "Ready"))
                 [string]$directArtifact.sha256 -and
             [long]$ownerArtifact.bytes -eq [long]$directArtifact.bytes
     }
+    if ($buildReady)
+    {
+        $deployment = $contract.currentDeploymentEvidence
+        $inspection = @((& docker inspect $container 2>&1 | Out-String) |
+            ConvertFrom-Json)[0]
+        $pidOutput = (& docker exec $container pgrep -x SwgGameServer `
+            2>&1 | Out-String).Trim()
+        $pidExit = $LASTEXITCODE
+        $gamePids = @($pidOutput -split '\s+' |
+            Where-Object { [string]$_ -cmatch '^[0-9]+$' })
+        $mappedCount = 0
+        foreach ($gamePid in $gamePids)
+        {
+            $mappedPath = (& docker exec $container readlink -f `
+                "/proc/$gamePid/exe" 2>&1 | Out-String).Trim()
+            $mappedStat = (& docker exec $container stat -Lc "%i|%s" `
+                "/proc/$gamePid/exe" 2>&1 | Out-String).Trim()
+            if ($LASTEXITCODE -eq 0 -and
+                $mappedPath -ceq $binaryPath -and
+                $mappedStat -ceq "$($binary.inode)|$($binary.bytes)")
+            {
+                ++$mappedCount
+            }
+        }
+        $logs = (& docker logs --since `
+            ([string]$deployment.containerStartedAt) $container 2>&1 |
+            Out-String)
+        $logExit = $LASTEXITCODE
+        $logLines = @($logs -split "`n" | Where-Object {
+            -not [string]::IsNullOrWhiteSpace([string]$_)
+        })
+        $badLogLines = @($logLines | Select-String -Pattern (
+            "FATAL|SEVERE|Exception|\bERROR\b|database conversion|" +
+            "undefined symbol|ORA-|" +
+            "ConGenericMessage constructed with empty message"))
+        $readyMarkers = @($logLines | Select-String `
+            -Pattern "Cluster swg is ready for players." -SimpleMatch)
+        $buildReady = $buildReady -and
+            [string]$deployment.result -ceq "passed" -and
+            [string]$deployment.directSourceCommit -ceq $directCommit -and
+            [string]$deployment.container -ceq $container -and
+            [string]$inspection.Id -ceq [string]$deployment.containerId -and
+            [string]$inspection.Config.Image -ceq
+                [string]$deployment.containerImage -and
+            [string]$inspection.Image -ceq
+                [string]$deployment.containerImageId -and
+            [string]$inspection.State.Status -ceq "running" -and
+            [string]$inspection.State.Health.Status -ceq "healthy" -and
+            [string]$deployment.containerHealth -ceq "healthy" -and
+            [string]$inspection.State.StartedAt -ceq
+                [string]$deployment.containerStartedAt -and
+            [string]$deployment.containerStartedAt -ceq
+                [string]$currentBuild.validatedContainerStartedAt -and
+            [bool]$deployment.clusterReadyForPlayers -and
+            $pidExit -eq 0 -and $gamePids.Count -gt 0 -and
+            $gamePids.Count -eq [int]$deployment.liveGameProcessCount -and
+            (Test-ExactNames $gamePids $deployment.liveGameProcessPids) -and
+            $mappedCount -eq $gamePids.Count -and
+            [bool]$deployment.allLiveGameProcessesMatchBinary -and
+            [string]$deployment.liveBinaryPath -ceq $binaryPath -and
+            [long]$deployment.liveBinaryInode -eq [long]$binary.inode -and
+            [long]$deployment.liveBinarySizeBytes -eq [long]$binary.bytes -and
+            $logExit -eq 0 -and
+            [string]$deployment.postStartLogAudit.result -ceq "passed" -and
+            [int]$deployment.postStartLogAudit.lineCount -gt 0 -and
+            $logLines.Count -ge
+                [int]$deployment.postStartLogAudit.lineCount -and
+            [int]$deployment.postStartLogAudit.
+                fatalSevereExceptionErrorDatabaseConversionUndefinedSymbolOracleOrEmptyGenericMessageMatches -eq 0 -and
+            [int]$deployment.postStartLogAudit.playerReadyMarkerCount -ge 1 -and
+            $badLogLines.Count -eq 0 -and $readyMarkers.Count -ge 1 -and
+            [string]$deployment.forceDefenseLiveAcceptanceOwner -ceq
+                "p14-armor-mitigation-ordering" -and
+            [string]$deployment.forceSpeedLiveAcceptanceOwner -ceq
+                "p14-nonstandard-profession-matrix-closure" -and
+            (([string]$contract.status -ceq
+                    "implemented-build-verified-live-pending" -and
+                $contract.requiredBeforeReady.Count -eq 2) -or
+             ([string]$contract.status -ceq "ready" -and
+                $contract.requiredBeforeReady.Count -eq 0))
+    }
     Assert-Contract $buildReady "p14.direct-callback.current-build-and-parity"
 }
 elseif ([string]$contract.status -ceq "implemented-build-pending")
@@ -521,8 +602,8 @@ if ($Expectation -eq "Ready")
         "FATAL|SEVERE|Exception|\bERROR\b|database conversion|" +
         "undefined symbol|ORA-|" +
         "ConGenericMessage constructed with empty message"))
-    $readyMarkers = @($logLines | Select-String -SimpleMatch
-        "Cluster swg is ready for players.")
+    $readyMarkers = @($logLines | Select-String `
+        -Pattern "Cluster swg is ready for players." -SimpleMatch)
     Assert-Contract (
         [string]$deployment.result -ceq "passed" -and
         [string]$deployment.directSourceCommit -ceq $directCommit -and
