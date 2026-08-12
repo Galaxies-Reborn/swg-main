@@ -874,7 +874,7 @@ function Assert-PreparedRelation
         [int]$prepared.Credits -ne ([int]$baseline.Credits + $trainerCost) -or
         [int]$prepared.Cash -ne [int]$baseline.Cash -or
         [int]$prepared.Bank -ne ([int]$baseline.Bank + $trainerCost) -or
-        [int]$prepared.Cap -ne 1500)
+        [int]$prepared.Cap -ne [int]$runtimeContract.prerequisiteXpCap)
     {
         throw "Prepared lifecycle does not contain the exact XP/bank-funded credit setup."
     }
@@ -893,7 +893,17 @@ function Assert-PreparedRelation
         throw "Prepared lifecycle marker/nonces are not exact."
     }
     $commands = Convert-IdentityMap -Text ([string]$prepared.VectorCommands) -ExpectedKeys $expectedCommands -ValueType Boolean -Context "prepared commands"
-    if (-not [bool]$commands[$expectedCommands[0]] -or [bool]$commands[$expectedCommands[1]])
+    $preparedCommandsReady = $true
+    foreach ($name in $expectedCommands)
+    {
+        $shouldOwn = $name -cne $engineeringSkill
+        if ([bool]$commands[$name] -ne $shouldOwn)
+        {
+            $preparedCommandsReady = $false
+            break
+        }
+    }
+    if (-not $preparedCommandsReady)
     {
         throw "Prepared command identities are not exact novice-only ownership."
     }
@@ -919,7 +929,7 @@ function Assert-PreparedRelation
         if ($preparedExpected -eq $absolute) { $preparedModsMatched++ }
     }
     if ($prepared.VectorComplete -or $prepared.NewbieFreeTrainingRouteActive -or
-        [int]$prepared.VectorCommandsOwned -ne 1 -or
+        [int]$prepared.VectorCommandsOwned -ne ($expectedCommands.Count - 1) -or
         [int]$prepared.VectorCommandsExpected -ne $expectedCommands.Count -or
         [int]$prepared.VectorModsMatched -ne $preparedModsMatched -or
         [int]$prepared.VectorModsExpected -ne $expectedMods.Count -or
@@ -3302,9 +3312,9 @@ function New-OfflineState
         LifecycleMarkerState = $(if ($Lifecycle -ceq "none") { "none" } else { "complete" })
         LifecycleBaselineComplete = ($Lifecycle -cne "none")
         HasNovice = $true; HasSkill = $false; HasCommand = $false; HasSchematic = $false
-        SkillCost = 0; Points = 250; Xp = 0; Cap = 1500; SkillModValue = 0
+        SkillCost = 0; Points = 250; Xp = 0; Cap = [int]$runtimeContract.prerequisiteXpCap; SkillModValue = 0
         Cash = 0; Bank = 0; Credits = 0
-        VectorCommandsOwned = 1; VectorCommandsExpected = $expectedCommands.Count
+        VectorCommandsOwned = $expectedCommands.Count - 1; VectorCommandsExpected = $expectedCommands.Count
         VectorModsMatched = 0; VectorModsExpected = $expectedMods.Count
         VectorSchematicsOwned = 0; VectorSchematicsExpected = $expectedSchematics.Count
         VectorComplete = $false; VectorCommands = $commandVector; VectorMods = $modVector; VectorSchematics = $schematicVector
@@ -3356,9 +3366,9 @@ function New-OfflinePreparedState
     param([object]$Lifecycle)
     $state = New-OfflineState -Lifecycle $Lifecycle.lifecycleId
     $state.Xp = $xpCost; $state.Cash = 0; $state.Bank = $trainerCost; $state.Credits = $trainerCost
-    $state.Cap = 1500; $state.SkillModValue = 20
-    $commandMap = @($expectedCommands | ForEach-Object { "$_`:" + $(if ($_ -ceq $expectedCommands[0]) { "true" } else { "false" }) })
-    $state.VectorCommands = $commandMap -join ","; $state.VectorCommandsOwned = 1
+    $state.Cap = [int]$runtimeContract.prerequisiteXpCap; $state.SkillModValue = 20
+    $commandMap = @($expectedCommands | ForEach-Object { "$_`:" + $(if ($_ -cne $engineeringSkill) { "true" } else { "false" }) })
+    $state.VectorCommands = $commandMap -join ","; $state.VectorCommandsOwned = $expectedCommands.Count - 1
     $modEntries = @(); $matched = 0
     foreach ($name in $expectedMods)
     {

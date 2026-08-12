@@ -14,9 +14,9 @@ $skills = Read-DataRows (Join-Path $root "dsrc/sku.0/sys.shared/compiled/game/da
 $artisan = @($skills | Where-Object NAME -ceq "crafting_artisan_novice")
 if ($artisan.Count -ne 1) { throw "Artisan novice row is not unique." }
 $row = $artisan[0]
-if ($row.GRAPH_TYPE -cne "fourByFour" -or $row.XP_TYPE -cne "crafting_general" -or
-    $row.XP_COST -cne "100" -or $row.XP_CAP -cne "1500" -or
-    $row.COMMANDS -cne "private_artisan_novice" -or
+if ($row.GRAPH_TYPE -cne "fourByFour" -or $row.XP_TYPE -cne "" -or
+    $row.XP_COST -cne "0" -or $row.XP_CAP -cne "0" -or
+    (([string]$row.COMMANDS).Split(",") -join ",") -cne "private_artisan_novice,sample,survey" -or
     ([string]$row.SKILL_MODS).Split(",") -cnotcontains "slope_move=25") {
     throw "Server-authoritative Artisan novice progression drifted."
 }
@@ -61,7 +61,11 @@ if (-not $runner.Contains("Adopted the exact terminal trainer callback after int
 }
 if ($Expectation -eq "Ready") {
     $contract = Get-Content -LiteralPath (Join-Path $restorationRoot "contracts/p14-phase-a-runtime-closure.json") -Raw | ConvertFrom-Json
-    if ($contract.status -cne "ready" -or $contract.runtimeEvidence.result -cne "passed" -or
+    if ($contract.status -cne "ready" -or
+        $contract.evidenceRole -cne "historical-publish14-phase-a-snapshot" -or
+        $contract.currentAuthority.ownerContract -cne "contracts/p14-precu-base-novice-learning.json" -or
+        $contract.currentAuthority.directSourceCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        $contract.runtimeEvidence.result -cne "passed" -or
         $contract.runtimeEvidence.accountingOutcome -cne "SUCCESS" -or
         $contract.runtimeEvidence.sameProcessRelogBoundary -cne "passed" -or
         $contract.runtimeEvidence.serverRestartBoundary -cne "passed" -or

@@ -164,6 +164,7 @@ foreach ($pin in @($sourcePins))
 }
 
 $skillTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab"
+$xpLimitTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/xp_limits.tab"
 $commandTablePath = Join-Path $source "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
 $schematicGroupTablePath = Join-Path $source ([string]$contract.sourceFiles.schematicGroupTable)
 $tatooineBuildoutPath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_6_2.tab"
@@ -171,6 +172,7 @@ $creaturesTablePath = Join-Path $source "dsrc/sku.0/sys.server/compiled/game/dat
 $localOptionsPath = Join-Path $source "exe/linux/localOptions.cfg"
 $execPath = Join-Path $source "exec.sh"
 $skills = @(Import-SwgTab -Path $skillTablePath)
+$xpLimits = @(Import-SwgTab -Path $xpLimitTablePath)
 $commands = @(Import-SwgTab -Path $commandTablePath)
 $schematicGroups = @(Import-SwgTab -Path $schematicGroupTablePath)
 $tatooineBuildout = @(Import-SwgTab -Path $tatooineBuildoutPath)
@@ -715,8 +717,9 @@ $runtimeSchematicGroup = [string]$runtimeSlice.schematicGroup
 $runtimeSchematic = [string]$runtimeSlice.schematic
 $runtimeRows = @($skills | Where-Object { $_.NAME -ceq $runtimeSkillName })
 $runtimePrerequisiteRows = @($skills | Where-Object { $_.NAME -ceq [string]$runtimeSlice.prerequisiteSkill })
+$runtimeXpLimitRows = @($xpLimits | Where-Object { $_.NAME -ceq [string]$runtimeSlice.xpType })
 $runtimeSkillContractReady = $false
-if ($runtimeRows.Count -eq 1 -and $runtimePrerequisiteRows.Count -eq 1)
+if ($runtimeRows.Count -eq 1 -and $runtimePrerequisiteRows.Count -eq 1 -and $runtimeXpLimitRows.Count -eq 1)
 {
     $runtimeCommands = @(([string]$runtimeRows[0].COMMANDS).Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
     $runtimeSkillMods = @(([string]$runtimeRows[0].SKILL_MODS).Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_.Length -gt 0 })
@@ -727,7 +730,10 @@ if ($runtimeRows.Count -eq 1 -and $runtimePrerequisiteRows.Count -eq 1)
         ([int]$runtimeRows[0].MONEY_REQUIRED -eq [int]$runtimeSlice.moneyCost) -and
         ([int]$runtimeRows[0].XP_COST -eq [int]$runtimeSlice.xpCost) -and
         ([int]$runtimeRows[0].POINTS_REQUIRED -eq [int]$runtimeSlice.skillPointCost) -and
-        ([int]$runtimePrerequisiteRows[0].XP_CAP -eq [int]$runtimeSlice.prerequisiteXpCap) -and
+        ([string]$runtimePrerequisiteRows[0].XP_TYPE -ceq "") -and
+        ([int]$runtimePrerequisiteRows[0].XP_COST -eq 0) -and
+        ([int]$runtimePrerequisiteRows[0].XP_CAP -eq 0) -and
+        ([int]$runtimeXpLimitRows[0].LIMIT -eq [int]$runtimeSlice.prerequisiteXpCap) -and
         ([int]$runtimeRows[0].XP_CAP -eq [int]$runtimeSlice.trainedXpCap) -and
         ($runtimeCommand -cin $runtimeCommands) -and
         (("$runtimeSkillModName=$runtimeSkillModDelta") -cin $runtimeSkillMods) -and
@@ -742,7 +748,7 @@ $runtimeSchematicMappings = @(
         }
 )
 $runtimeSkillContractReady = $runtimeSkillContractReady -and ($runtimeSchematicMappings.Count -eq 1)
-Add-PhaseCheck -Id "phaseA.runtime.crafting-contract" -Passed $runtimeSkillContractReady -Detail "Artisan engineering cost, prerequisite/trained XP caps, command, skill-mod delta, and concrete group-derived schematic must resolve from authoritative tables"
+Add-PhaseCheck -Id "phaseA.runtime.crafting-contract" -Passed $runtimeSkillContractReady -Detail "Artisan novice must require no XP, while the default/prepurchase and Engineering I XP caps, cost, command, skill-mod delta, and concrete schematic resolve from authoritative tables"
 
 $completeVectorReady = $false
 if ($runtimeRows.Count -eq 1 -and $runtimePrerequisiteRows.Count -eq 1)
@@ -869,7 +875,7 @@ if ($runtimeRows.Count -eq 1 -and $runtimePrerequisiteRows.Count -eq 1)
         ($concreteSchematics.Count -eq [int]$runtimeSlice.completeGrantVector.concreteSchematicCount)
     )
 }
-Add-PhaseCheck -Id "phaseA.runtime.complete-vector" -Passed $completeVectorReady -Detail "Novice plus Engineering I must resolve to the complete two-command, six-mod, 35-concrete-schematic authoritative vector"
+Add-PhaseCheck -Id "phaseA.runtime.complete-vector" -Passed $completeVectorReady -Detail "Novice plus Engineering I must resolve to the complete four-command, six-mod, 35-concrete-schematic authoritative vector"
 
 $runtimeProbeReady = (
     ($runtimeProbe -match "class\s+precu_phase_a_runtime\s+extends\s+script\.base_script") -and
@@ -1250,7 +1256,7 @@ $phaseAPurchaseProtocolContractReady = (
     [int]$purchaseProtocol.protocolVersion -eq 64 -and
     [string]$purchaseProtocol.authoritativeVectors.PRE -ceq "full-lifecycle-relative-bank-funded-preimage-plus-exact-prepared-command-mod-35-schematic-vector-no-target-grant" -and
     [string]$purchaseProtocol.authoritativeVectors.DEBIT -ceq "exact-bank-first-post-debit-plus-exact-prepared-command-mod-35-schematic-vector-no-target-grant" -and
-    [string]$purchaseProtocol.authoritativeVectors.HELD -ceq "exact-post-debit-complete-two-command-six-mod-35-schematic-grant-trained-cap-2000" -and
+    [string]$purchaseProtocol.authoritativeVectors.HELD -ceq "exact-post-debit-complete-four-command-six-mod-35-schematic-grant-trained-cap-2000" -and
     [string]$purchaseProtocol.authoritativeVectors.REFUND -ceq "exact-restored-pre-balances-plus-exact-prepared-command-mod-35-schematic-vector-no-target-grant" -and
     [string]$trainerCallbackPolicy.requiredEnvelope.handler -ceq "attemptedPayment" -and
     [string]$trainerCallbackPolicy.requiredEnvelope.payHandler -ceq "attemptedPayment" -and
@@ -1435,7 +1441,7 @@ $phaseAExactBalancesReady = (
     ($purchaseStageWindow -match '(?s)PRECU_VECTOR_PRE\.equals\s*\(\s*expectedVector\s*\)\s*\|\|\s*PRECU_VECTOR_DEBIT\.equals\s*\(\s*expectedVector\s*\).*?getExperiencePoints\s*\(\s*self\s*,\s*PRECU_CRAFTING_XP_TYPE\s*\)\s*==\s*preXp.*?skill\.getAvailableSkillPoints\s*\(\s*self\s*\)\s*==\s*prePoints.*?getExperienceCap\s*\(\s*self\s*,\s*PRECU_CRAFTING_XP_TYPE\s*\)\s*==\s*preCap.*?\(hasSkill\s*\(\s*self\s*,\s*PRECU_CRAFTING_NOVICE_SKILL\s*\)\s*\?\s*1\s*:\s*0\s*\)\s*==\s*preNovice.*?\(hasSkill\s*\(\s*self\s*,\s*PRECU_CRAFTING_SKILL\s*\)\s*\?\s*1\s*:\s*0\s*\)\s*==\s*preSkill.*?hasExactPreparedPhaseACraftingVector') -and
     ($purchaseStageWindow -match '(?s)getCashBalance\s*\(\s*self\s*\)\s*==\s*\(\s*debit\s*\?\s*preCash\s*-\s*cashDebit\s*:\s*preCash\s*\).*?getBankBalance\s*\(\s*self\s*\)\s*==\s*\(\s*debit\s*\?\s*preBank\s*-\s*bankDebit\s*:\s*preBank\s*\).*?getTotalMoney\s*\(\s*self\s*\)\s*==\s*\(\s*debit\s*\?\s*preCredits\s*-\s*cost\s*:\s*preCredits\s*\)') -and
     ($purchaseStageWindow -match '(?s)return\s+getCashBalance\s*\(\s*self\s*\)\s*==\s*preCash\s*-\s*cashDebit.*?getBankBalance\s*\(\s*self\s*\)\s*==\s*preBank\s*-\s*bankDebit.*?getTotalMoney\s*\(\s*self\s*\)\s*==\s*preCredits\s*-\s*cost.*?getExperiencePoints.*?preXp\s*-\s*PRECU_CRAFTING_XP_COST.*?skill\.getAvailableSkillPoints.*?prePoints\s*-\s*targetPointCost.*?PRECU_TRAINED_XP_CAP.*?hasExactHeldPhaseACraftingVector') -and
-    ($purchaseLineageWindow -match '(?s)preCash\s*==\s*baseCash.*?preBank\s*==\s*\(long\)baseBank\s*\+\s*\(long\)cost.*?preXp\s*==\s*\(long\)baseXp\s*\+\s*\(long\)CRAFTING_XP_COST.*?preCap\s*==\s*1500.*?preNovice\s*==\s*1\s*&&\s*preSkill\s*==\s*0') -and
+    ($purchaseLineageWindow -match '(?s)preCash\s*==\s*baseCash.*?preBank\s*==\s*\(long\)baseBank\s*\+\s*\(long\)cost.*?preXp\s*==\s*\(long\)baseXp\s*\+\s*\(long\)CRAFTING_XP_COST.*?preCap\s*==\s*1000.*?preNovice\s*==\s*1\s*&&\s*preSkill\s*==\s*0') -and
     ($purchasePreVectorWindow -match '(?s)hasExactPurchasePreimageLineage.*?OP_PRE_CASH.*?OP_PRE_BANK.*?OP_PRE_CREDITS.*?hasExactPurchasePreGameplayVector.*?!utils\.hasScriptVar\s*\(\s*player\s*,\s*RELOG_NONCE') -and
     ($purchaseDebitVectorWindow -match '(?s)hasExactPurchasePreimageLineage.*?OP_PRE_CASH\s*\)\s*-\s*cashDebit.*?preBank\s*-\s*bankDebit.*?OP_PRE_CREDITS\s*\)\s*-\s*cost.*?hasExactPurchasePreGameplayVector') -and
     ($purchaseRefundVectorWindow -match 'return\s+hasExactPurchasePreVector\s*\(\s*player\s*\)') -and
@@ -2030,7 +2036,7 @@ $runtimeSmokeReady = (
     ($runtimeSmoke -match 'ContainerName\s*=\s*"swg-precu"') -and
     ($runtimeSmoke -match '\[switch\]\$ExerciseSurrender') -and
     ($runtimeSmoke -match 'game\s+tatooine\s+runScript') -and
-    ($runtimeSmoke -match "printf\s+'%-1024s'") -and
+    ($runtimeSmoke -match "printf\s+'%-1023s\\0'") -and
     ($runtimeSmoke -match 'craftingStatus\s+\$PlayerOid') -and
     ($runtimeSmoke -match 'queueSurrender\s+\$PlayerOid\s+\$engineeringSkill') -and
     ($runtimeSmoke -match 'verifySurrender\s+\$PlayerOid\s+\$engineeringSkill') -and

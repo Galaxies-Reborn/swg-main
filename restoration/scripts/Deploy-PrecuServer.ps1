@@ -47,6 +47,18 @@ if ($LASTEXITCODE -ne 0)
 }
 
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$deploymentHead = (& git -C $repositoryRoot rev-parse HEAD 2>&1 | Out-String).Trim()
+$deploymentManifest = Get-Content -LiteralPath (Join-Path $repositoryRoot "restoration/manifest.json") -Raw | ConvertFrom-Json
+$deploymentDsrcPin = @($deploymentManifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
+$committedDsrcTree = (& git -C $repositoryRoot ls-tree HEAD -- dsrc 2>&1 | Out-String).Trim()
+$committedDsrcParts = @($committedDsrcTree -split "\s+")
+if ($LASTEXITCODE -ne 0 -or $deploymentHead -cnotmatch '^[0-9a-f]{40}$' -or
+    $deploymentDsrcPin.Count -ne 1 -or $committedDsrcParts.Count -lt 4 -or
+    $committedDsrcParts[0] -cne "160000" -or $committedDsrcParts[1] -cne "commit" -or
+    $committedDsrcParts[2] -cne [string]$deploymentDsrcPin[0].commit)
+{
+    throw "Canonical deployment requires the manifest dsrc pin to match the committed HEAD gitlink. Commit the pending-evidence integration before building."
+}
 Write-Host "Verifying the immutable PRE-CU planetary-map trainer population before build..."
 & (Join-Path $PSScriptRoot "Test-P14PlanetMapTrainerPopulation.ps1") `
     -SourceRoot $repositoryRoot `
@@ -368,6 +380,11 @@ Write-Host "Verifying immutable universal PRE-CU Burst Run authority before buil
 & (Join-Path $PSScriptRoot "Test-P14PrecuBurstRunAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying immutable PRE-CU base novice learning authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14BaseNoviceLearning.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source `
+    -Container $Container
 
 if (-not $SkipBuild)
 {
@@ -386,6 +403,7 @@ fi
 for precu_dependency_iff in \
     "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff" \
     "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/skill/skills.iff" \
     "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/movement/movement.iff" \
     "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
 do
@@ -412,7 +430,7 @@ do
     test ! -e "$trainer_iff"
 done
 '@
-    Write-Host "Removing compiled Java classes plus exact Force-defense, Burst Run command/buff/movement, and trainer IFF targets to enforce a complete dependency rebuild..."
+    Write-Host "Removing compiled Java classes plus exact Force-defense, Burst Run command/buff/movement, base-novice skills, and trainer IFF targets to enforce a complete dependency rebuild..."
     Invoke-DockerScript -ContainerName $Container -Script $javaDependencyClean
     Write-Host "Synchronizing the read-only source mount and building the writable server volume..."
     Invoke-Docker -Arguments @("exec", $Container, "/usr/local/bin/swg-entrypoint", "build")
@@ -9558,6 +9576,11 @@ Write-Host "Verifying synchronized sources, PRE-CU GCW retirement, Scout bytecod
 Invoke-DockerScript -ContainerName $Container -Script $artifactProbe
 Write-Host "Verifying current Burst Run source/work parity, Java bytecode, and deterministic command/buff/movement IFF artifacts..."
 & (Join-Path $PSScriptRoot "Test-P14PrecuBurstRunAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build `
+    -Container $Container
+Write-Host "Verifying current base novice source/work parity and exact compiled server skills artifacts..."
+& (Join-Path $PSScriptRoot "Test-P14BaseNoviceLearning.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Build `
     -Container $Container

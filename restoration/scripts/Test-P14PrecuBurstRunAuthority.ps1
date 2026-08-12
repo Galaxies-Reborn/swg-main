@@ -198,6 +198,28 @@ function Test-JsonExact($Left, $Right)
         ($Right | ConvertTo-Json -Depth 8 -Compress)
 }
 
+function Test-CommitInputParity([string]$EvidenceCommit, [string]$CurrentCommit,
+    [string[]]$RelativePaths)
+{
+    if ($EvidenceCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        $CurrentCommit -cnotmatch '^[0-9a-f]{40}$')
+    {
+        return $false
+    }
+    $type = (& git -C $dsrc cat-file -t $EvidenceCommit 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or $type -cne "commit") { return $false }
+    & git -C $dsrc merge-base --is-ancestor $EvidenceCommit $CurrentCommit
+    if ($LASTEXITCODE -ne 0) { return $false }
+    foreach ($path in $RelativePaths)
+    {
+        $evidenceBlob = (& git -C $dsrc rev-parse "${EvidenceCommit}:$path" 2>&1 | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0 -or $evidenceBlob -cnotmatch '^[0-9a-f]{40}$') { return $false }
+        $currentBlob = (& git -C $dsrc rev-parse "${CurrentCommit}:$path" 2>&1 | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0 -or $currentBlob -cne $evidenceBlob) { return $false }
+    }
+    return $true
+}
+
 Write-Host "Verifying the immutable universal PRE-CU Burst Run source owner..."
 $paths = @{}
 foreach ($property in $contract.sourceFiles.psobject.Properties)
@@ -229,9 +251,11 @@ Assert-Contract ($LASTEXITCODE -eq 0 -and [string]::IsNullOrEmpty($worktreeStatu
     "p14.burst-run.pin.clean-dsrc-worktree"
 if ($pinReady)
 {
-    $commitFiles = @(& git -C $dsrc show --format= --name-only $expectedCommit 2>&1 |
+    $implementationCommit = [string]$contract.buildEvidence.implementationCommit
+    $commitFiles = @(& git -C $dsrc show --format= --name-only $implementationCommit 2>&1 |
         Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     Assert-Contract ($LASTEXITCODE -eq 0 -and
+        (Test-CommitInputParity $implementationCommit $expectedCommit @($contract.expected.directSourceChangedFiles)) -and
         (Test-ExactOrdinalList $commitFiles @($contract.expected.directSourceChangedFiles))) `
         "p14.burst-run.pin.exact-four-file-owner"
 }
@@ -468,8 +492,12 @@ $requiredClassPaths = @(
 $java8PreflightPaths = @($java8Preflight.artifacts | ForEach-Object {
     [string]$_.path
 })
+$javaInputPaths = @(
+    ([string]$contract.sourceFiles.basePlayer).Substring("dsrc/".Length),
+    ([string]$contract.sourceFiles.combatBase).Substring("dsrc/".Length)
+)
 Assert-Contract ([string]$java8Preflight.result -ceq "passed" -and
-    [string]$java8Preflight.sourceCommit -ceq $expectedCommit -and
+    (Test-CommitInputParity ([string]$java8Preflight.sourceCommit) $expectedCommit $javaInputPaths) -and
     [int]$java8Preflight.classMajorVersion -eq 52 -and
     @($java8Preflight.artifacts).Count -eq 2 -and
     (Test-ExactOrdinalList $java8PreflightPaths $requiredClassPaths) -and
@@ -554,13 +582,20 @@ if ($Expectation -in @("Build", "Ready"))
     $canonicalIffIdentityExact = Test-ArtifactIdentitySet `
         -Actual @($canonical.deterministicIffRecompile.artifacts) `
         -Expected $iffExpectedMap
+    $canonicalInputPaths = @(
+        ([string]$contract.sourceFiles.commandTable).Substring("dsrc/".Length),
+        ([string]$contract.sourceFiles.buffTable).Substring("dsrc/".Length),
+        ([string]$contract.sourceFiles.movementTable).Substring("dsrc/".Length),
+        ([string]$contract.sourceFiles.basePlayer).Substring("dsrc/".Length),
+        ([string]$contract.sourceFiles.combatBase).Substring("dsrc/".Length)
+    )
     Assert-Contract ($currentParentResolved -and
         [string]$contract.buildEvidence.result -ceq "passed" -and
         [string]$canonical.result -ceq "passed" -and
         $recordedDeploymentCommitReady -and
         $recordedDeploymentCommitExists -and
         $recordedDeploymentIsAncestor -and
-        [string]$canonical.sourceCommit -ceq $expectedCommit -and
+        (Test-CommitInputParity ([string]$canonical.sourceCommit) $expectedCommit $canonicalInputPaths) -and
         [string]$canonical.mode -ceq "canonical-no-skip-build" -and
         [bool]$canonical.skipBuild -eq $false -and
         (Test-IsoTimestamp ([string]$canonical.completedAt)) -and
