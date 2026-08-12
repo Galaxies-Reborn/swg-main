@@ -164,7 +164,7 @@ $retiredCyberneticPlayerCommands = @($contract.diagnosis.retiredCyberneticPlayer
 $retainedPreCuExceptions = @($contract.diagnosis.retainedPreCuExceptions | ForEach-Object { [string]$_ } | Sort-Object)
 $classifiedBlankAbilityNames = @(($retiredPlayerCommands + $retainedPreCuExceptions) | Sort-Object)
 if ([int]$contract.diagnosis.retiredSkillCommands -ne 535 -or
-    [int]$contract.diagnosis.retainedSkillCommands -ne 1000 -or
+    [int]$contract.diagnosis.retainedSkillCommands -ne 1002 -or
     [int]$contract.diagnosis.retiredOnlyCommands -ne 464 -or
     [int]$contract.diagnosis.retiredOnlyBlankAbilityCommands -ne 11 -or
     $retiredCommands.Count -ne [int]$contract.diagnosis.retiredSkillCommands -or
