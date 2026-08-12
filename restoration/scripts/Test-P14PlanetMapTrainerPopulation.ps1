@@ -249,7 +249,7 @@ if ($Expectation -in @("Build", "Ready"))
         Assert-Contract ([string]$artifact.sha256 -cmatch '^[0-9a-f]{64}$' -and [long]$artifact.bytes -gt 0) `
             "Compiled artifact evidence is incomplete: $relativePath"
         $artifactPath = "/swg-precu/data/$relativePath"
-        $identity = (& docker exec $Container sh -lc `
+        $identity = (& docker exec $Container sh -c `
             "test -s '$artifactPath' && printf '%s|%s' `$(sha256sum '$artifactPath' | cut -d' ' -f1) `$(stat -Lc %s '$artifactPath')" 2>&1 | Out-String).Trim()
         Assert-Contract ($LASTEXITCODE -eq 0 -and
             $identity -ceq "$([string]$artifact.sha256)|$([long]$artifact.bytes)") `
