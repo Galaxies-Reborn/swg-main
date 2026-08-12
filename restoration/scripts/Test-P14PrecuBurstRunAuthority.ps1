@@ -670,7 +670,7 @@ test "$(sha256sum "$movement_iff" | awk '{print $1}')" = "__MOVEMENT_IFF_SHA__"
 test "$(strings -a "$command_iff" | grep -Fxc burstRun || true)" -eq 2
 test "$(strings -a "$buff_iff" | grep -Fxc burstRun || true)" -eq 1
 test "$(strings -a "$movement_iff" | grep -Fxc burstRun || true)" -eq 1
-test "$(strings -a "$movement_iff" | grep -Fxc boost || true)" -ge 1
+test "$(strings -a "$movement_iff" | grep -Fxc 'e(boost=1,snare=2,permaboost=3,permasnare=4,root=5,stun=6)[root]' || true)" -eq 1
 temp_root="$(mktemp -d /dev/shm/precu-burst-run-iff.XXXXXX)"
 cleanup_burst_run_iff() {
   case "${temp_root:-}" in /dev/shm/precu-burst-run-iff.*) ;; *) return 97 ;; esac
