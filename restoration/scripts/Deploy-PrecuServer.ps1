@@ -441,14 +441,14 @@ for trainer_relative in \
 do
     cmp -s "$trainer_source_root/$trainer_relative" "$trainer_work_root/$trainer_relative"
 done
-trainer_class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/script"
+trainer_class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game"
 for trainer_class in \
-    npc.skillteacher.combat_trainer_spawner \
-    npc.skillteacher.commerce_trainer_spawner \
-    npc.skillteacher.hospital_02_trainer_spawner \
-    npc.skillteacher.hospital_trainer_spawner \
-    npc.skillteacher.theater_trainer_spawner \
-    space.content_tools.npc_spawner
+    script.npc.skillteacher.combat_trainer_spawner \
+    script.npc.skillteacher.commerce_trainer_spawner \
+    script.npc.skillteacher.hospital_02_trainer_spawner \
+    script.npc.skillteacher.hospital_trainer_spawner \
+    script.npc.skillteacher.theater_trainer_spawner \
+    script.space.content_tools.npc_spawner
 do
     javap -classpath "$trainer_class_root" "$trainer_class" >/dev/null
 done
