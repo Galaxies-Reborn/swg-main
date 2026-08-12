@@ -766,6 +766,20 @@ if ($Expectation -ceq "Ready")
     $processPids = @($deployment.liveGameProcessPids)
     $deploymentArtifactIdentityExact = Test-ArtifactIdentitySet `
         -Actual @($deployment.artifactIdentities) -Expected $expectedArtifactMap
+    $deploymentArtifactMetadataExact = $true
+    foreach ($artifact in @($deployment.artifactIdentities))
+    {
+        if ([int64]$artifact.inode -le 0)
+        {
+            $deploymentArtifactMetadataExact = $false
+        }
+        if ([string]$artifact.path -in $requiredClassPaths -and
+            [int]$artifact.classMajorVersion -ne
+                [int]$canonical.freshClassBytecode.classMajorVersion)
+        {
+            $deploymentArtifactMetadataExact = $false
+        }
+    }
     Assert-Contract ([int]$deployment.liveGameProcessCount -eq 15 -and
         $processPids.Count -eq 15 -and
         @($processPids | Where-Object { [int]$_ -le 0 }).Count -eq 0 -and
@@ -777,7 +791,8 @@ if ($Expectation -ceq "Ready")
         [string]$deployment.serverBinary.buildIdSha1 -cmatch '^[0-9a-f]{40}$' -and
         [int64]$deployment.serverBinary.bytes -gt 0 -and
         [int64]$deployment.serverBinary.inode -gt 0 -and
-        $deploymentArtifactIdentityExact) `
+        [int64]$deployment.serverBinary.device -gt 0 -and
+        $deploymentArtifactIdentityExact -and $deploymentArtifactMetadataExact) `
         "p14.burst-run.ready.current-process-binary-and-artifact-identities"
     Assert-Contract ([string]$deployment.postStartLogAudit.result -ceq "passed" -and
         (Test-IsoTimestamp ([string]$deployment.postStartLogAudit.capturedAt)) -and
@@ -957,11 +972,6 @@ if ($Expectation -ceq "Ready")
         [bool]$live.serverHealthyAfterCleanup) `
         "p14.burst-run.ready.live-summary-linkage"
 
-    if ($failures.Count -gt 0)
-    {
-        throw "Publish 14.1 Burst Run Ready evidence failed: $($failures -join ', ')"
-    }
-
     $actualContainerId = (& docker inspect --format "{{.Id}}" $Container 2>&1 |
         Out-String).Trim()
     $actualImageId = (& docker inspect --format "{{.Image}}" $Container 2>&1 |
@@ -982,7 +992,9 @@ if ($Expectation -ceq "Ready")
 
     $mountsJson = (& docker inspect --format "{{json .Mounts}}" $Container 2>&1 |
         Out-String).Trim()
-    $mounts = @($mountsJson | ConvertFrom-Json)
+    $parsedMounts = $mountsJson | ConvertFrom-Json
+    $mounts = @()
+    foreach ($mount in $parsedMounts) { $mounts += $mount }
     $sourceMount = @($mounts | Where-Object {
         [string]$_.Destination -ceq "/swg-precu-source"
     })
@@ -1000,28 +1012,64 @@ if ($Expectation -ceq "Ready")
         [string]$_
     })) "p14.burst-run.ready.live-pid-inventory-current"
     $actualArtifacts = [Collections.Generic.List[object]]::new()
+    $classBinaryNames = @{
+        "sku.0/sys.server/compiled/game/script/player/base/base_player.class" =
+            "script.player.base.base_player"
+        "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.class" =
+            "script.systems.combat.combat_base"
+    }
     foreach ($path in @($expectedArtifactMap.Keys))
     {
         $absolute = "/swg-precu/data/$path"
-        $bytes = (& docker exec $Container stat -Lc "%s" $absolute 2>&1 |
+        $statOutput = (& docker exec $Container stat -Lc "%s|%i" $absolute 2>&1 |
             Out-String).Trim()
+        $statParts = $statOutput -split '\|'
         $hashOutput = (& docker exec $Container sha256sum $absolute 2>&1 |
             Out-String).Trim()
         $hash = ($hashOutput -split '\s+')[0]
-        $actualArtifacts.Add([pscustomobject]@{
+        $actualArtifact = [ordered]@{
             path = [string]$path
-            bytes = [int64]$bytes
+            bytes = [int64]$statParts[0]
             sha256 = [string]$hash
-        })
+            inode = [int64]$statParts[1]
+        }
+        if ($classBinaryNames.ContainsKey([string]$path))
+        {
+            $verbose = (& docker exec $Container javap -classpath `
+                "/swg-precu/data/sku.0/sys.server/compiled/game" -verbose `
+                $classBinaryNames[[string]$path] 2>&1 | Out-String)
+            $majorMatch = [regex]::Match($verbose, 'major version:\s+([0-9]+)')
+            $actualArtifact.classMajorVersion = if ($majorMatch.Success) {
+                [int]$majorMatch.Groups[1].Value
+            } else { -1 }
+        }
+        $actualArtifacts.Add([pscustomobject]$actualArtifact)
     }
     $liveArtifactIdentityExact = Test-ArtifactIdentitySet `
         -Actual @($actualArtifacts) -Expected $expectedArtifactMap
-    Assert-Contract $liveArtifactIdentityExact `
+    $liveArtifactMetadataExact = $true
+    foreach ($recorded in @($deployment.artifactIdentities))
+    {
+        $actual = @($actualArtifacts | Where-Object {
+            [string]$_.path -ceq [string]$recorded.path
+        })
+        if ($actual.Count -ne 1 -or
+            [int64]$actual[0].inode -ne [int64]$recorded.inode -or
+            ([string]$recorded.path -in $requiredClassPaths -and
+                [int]$actual[0].classMajorVersion -ne
+                    [int]$recorded.classMajorVersion))
+        {
+            $liveArtifactMetadataExact = $false
+        }
+    }
+    Assert-Contract ($liveArtifactIdentityExact -and $liveArtifactMetadataExact) `
         "p14.burst-run.ready.live-artifacts-still-current"
     $binaryPath = [string]$deployment.serverBinary.path
     $actualBinaryBytes = (& docker exec $Container stat -Lc "%s" $binaryPath 2>&1 |
         Out-String).Trim()
     $actualBinaryInode = (& docker exec $Container stat -Lc "%i" $binaryPath 2>&1 |
+        Out-String).Trim()
+    $actualBinaryDevice = (& docker exec $Container stat -Lc "%d" $binaryPath 2>&1 |
         Out-String).Trim()
     $actualBinaryHashOutput = (& docker exec $Container sha256sum $binaryPath 2>&1 |
         Out-String).Trim()
@@ -1031,20 +1079,48 @@ if ($Expectation -ceq "Ready")
     Assert-Contract ([int64]$actualBinaryBytes -eq
             [int64]$deployment.serverBinary.bytes -and
         [int64]$actualBinaryInode -eq [int64]$deployment.serverBinary.inode -and
+        [int64]$actualBinaryDevice -eq [int64]$deployment.serverBinary.device -and
         $actualBinaryHash -ceq [string]$deployment.serverBinary.sha256 -and
         $buildIdMatch.Success -and $buildIdMatch.Groups[1].Value -ceq
             [string]$deployment.serverBinary.buildIdSha1) `
         "p14.burst-run.ready.live-server-binary-still-current"
-    foreach ($pid in $actualPids)
+    foreach ($gamePid in $actualPids)
     {
-        $processBytes = (& docker exec $Container stat -Lc "%s" "/proc/$pid/exe" 2>&1 |
+        $processPath = (& docker exec $Container readlink -f "/proc/$gamePid/exe" 2>&1 |
             Out-String).Trim()
-        $processInode = (& docker exec $Container stat -Lc "%i" "/proc/$pid/exe" 2>&1 |
+        $processBytes = (& docker exec $Container stat -Lc "%s" "/proc/$gamePid/exe" 2>&1 |
             Out-String).Trim()
-        Assert-Contract ([int64]$processBytes -eq [int64]$actualBinaryBytes -and
-            [int64]$processInode -eq [int64]$actualBinaryInode) `
-            "p14.burst-run.ready.live-process-$pid-binary-identity"
+        $processInode = (& docker exec $Container stat -Lc "%i" "/proc/$gamePid/exe" 2>&1 |
+            Out-String).Trim()
+        $processDevice = (& docker exec $Container stat -Lc "%d" "/proc/$gamePid/exe" 2>&1 |
+            Out-String).Trim()
+        Assert-Contract ($processPath -ceq $binaryPath -and
+            [int64]$processBytes -eq [int64]$actualBinaryBytes -and
+            [int64]$processInode -eq [int64]$actualBinaryInode -and
+            [int64]$processDevice -eq [int64]$actualBinaryDevice) `
+            "p14.burst-run.ready.live-process-$gamePid-binary-identity"
     }
+
+    $logLines = @(& docker logs --since ([string]$deployment.containerStartedAt) `
+        $Container 2>&1 | ForEach-Object { [string]$_ } |
+        Where-Object { $_.Trim().Length -gt 0 })
+    $readyMarkers = @($logLines | Where-Object {
+        $_ -match 'Cluster swg is ready for players\.'
+    })
+    $prohibitedLogPattern =
+        '(?i)(fatal|severe|exception|undefined symbol|unsatisfiedlink|' +
+        'ORA-[0-9]+|segmentation fault|core dump|' +
+        'ConGenericMessage\s*\(\s*\)|' +
+        'ConGenericMessage constructed with empty message|\[exec\]\s*error)'
+    $prohibitedLogMatches = @($logLines | Where-Object {
+        $_ -match $prohibitedLogPattern
+    })
+    Assert-Contract ($logLines.Count -ge
+            [int]$deployment.postStartLogAudit.lineCount -and
+        $readyMarkers.Count -ge
+            [int]$deployment.postStartLogAudit.playerReadyMarkerCount -and
+        $prohibitedLogMatches.Count -eq 0) `
+        "p14.burst-run.ready.live-post-start-log-audit-current"
 }
 
 if ($failures.Count -gt 0)
