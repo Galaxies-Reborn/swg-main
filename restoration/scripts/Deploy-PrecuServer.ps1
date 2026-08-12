@@ -47,6 +47,10 @@ if ($LASTEXITCODE -ne 0)
 }
 
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+Write-Host "Verifying the immutable PRE-CU planetary-map trainer population before build..."
+& (Join-Path $PSScriptRoot "Test-P14PlanetMapTrainerPopulation.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 Write-Host "Verifying Publish 14 authoritative weapon speeds and authored default-unarmed cadence before build..."
 & (Join-Path $PSScriptRoot "Test-P14AuthoritativeWeaponSpeeds.ps1") `
     -SourceRoot $repositoryRoot `
@@ -379,8 +383,27 @@ do
     rm -f -- "$force_defense_iff"
     test ! -e "$force_defense_iff"
 done
+for trainer_iff in \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/space_content/npc_spawners.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_2_3_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_3_6_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_6_7_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_2_7.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_7_2_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_7_8_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_2_3_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_3_6_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_5_6_ws.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_6_2_ws.iff"
+do
+    rm -f -- "$trainer_iff"
+    test ! -e "$trainer_iff"
+done
 '@
-    Write-Host "Removing compiled Java classes and the three exact Force-defense IFF targets to enforce a complete dependency rebuild..."
+    Write-Host "Removing compiled Java classes plus exact Force-defense and trainer IFF targets to enforce a complete dependency rebuild..."
     Invoke-DockerScript -ContainerName $Container -Script $javaDependencyClean
     Write-Host "Synchronizing the read-only source mount and building the writable server volume..."
     Invoke-Docker -Arguments @("exec", $Container, "/usr/local/bin/swg-entrypoint", "build")
@@ -392,6 +415,53 @@ else
 
 $artifactProbe = @'
 set -eu
+trainer_source_root="$SWG_SOURCE_DIR/dsrc"
+trainer_work_root="$SWG_WORK_DIR/dsrc"
+for trainer_relative in \
+    .gitattributes \
+    sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_2_3_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_3_6_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/corellia/corellia_6_7_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_5_6_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_7_2_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/naboo/naboo_7_8_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/rori/rori_2_3_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/talus/talus_5_3_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_3_6_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_4_3_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_5_6_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/buildout/tatooine/tatooine_6_2_ws.tab \
+    sku.0/sys.server/compiled/game/datatables/space_content/npc_spawners.tab \
+    sku.0/sys.server/compiled/game/script/npc/skillteacher/combat_trainer_spawner.java \
+    sku.0/sys.server/compiled/game/script/npc/skillteacher/commerce_trainer_spawner.java \
+    sku.0/sys.server/compiled/game/script/npc/skillteacher/hospital_02_trainer_spawner.java \
+    sku.0/sys.server/compiled/game/script/npc/skillteacher/hospital_trainer_spawner.java \
+    sku.0/sys.server/compiled/game/script/npc/skillteacher/theater_trainer_spawner.java \
+    sku.0/sys.server/compiled/game/script/space/content_tools/npc_spawner.java
+do
+    cmp -s "$trainer_source_root/$trainer_relative" "$trainer_work_root/$trainer_relative"
+done
+trainer_class_root="$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/script"
+for trainer_class in \
+    npc.skillteacher.combat_trainer_spawner \
+    npc.skillteacher.commerce_trainer_spawner \
+    npc.skillteacher.hospital_02_trainer_spawner \
+    npc.skillteacher.hospital_trainer_spawner \
+    npc.skillteacher.theater_trainer_spawner \
+    space.content_tools.npc_spawner
+do
+    javap -classpath "$trainer_class_root" "$trainer_class" >/dev/null
+done
+test -s "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/space_content/npc_spawners.iff"
+for trainer_buildout in \
+    corellia/corellia_2_3_ws.iff corellia/corellia_3_6_ws.iff corellia/corellia_6_7_ws.iff \
+    naboo/naboo_2_7.iff naboo/naboo_5_6_ws.iff naboo/naboo_7_2_ws.iff naboo/naboo_7_8_ws.iff \
+    rori/rori_2_3_ws.iff talus/talus_5_3_ws.iff \
+    tatooine/tatooine_3_6_ws.iff tatooine/tatooine_4_3_ws.iff \
+    tatooine/tatooine_5_6_ws.iff tatooine/tatooine_6_2_ws.iff
+do
+    test -s "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/buildout/$trainer_buildout"
+done
 source_outdoorsman="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java"
 work_outdoorsman="$SWG_WORK_DIR/dsrc/sku.0/sys.server/compiled/game/script/player/skill/outdoorsman.java"
 source_corpse="$SWG_SOURCE_DIR/dsrc/sku.0/sys.server/compiled/game/script/library/corpse.java"
