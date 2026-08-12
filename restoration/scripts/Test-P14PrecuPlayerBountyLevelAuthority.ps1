@@ -679,7 +679,7 @@ if ($Expectation -in @("Build", "Ready"))
             [string]$contract.buildEvidence.directSourceGitlink) `
         "p14.player-bounty.current-build-evidence-not-historical"
     Assert-Contract (
-        [string]$contract.buildEvidence.deploymentParentCommit -ceq "4fd53029ef9fe8dc7863325adb3ec30793980478" -and
+        [string]$contract.buildEvidence.deploymentParentCommit -ceq "1fc87afc626a9905bf6e0480fcbfca767702c012" -and
         [string]$contract.buildEvidence.fullJavaCompile.result -ceq "passed" -and
         [int]$contract.buildEvidence.fullJavaCompile.sourceCount -eq 5717 -and
         [int]$contract.buildEvidence.fullJavaCompile.classCount -eq 5751 -and
