@@ -56,7 +56,8 @@ function Test-ExactOrdinalList($Actual, $Expected)
         (($actualList -join "`n") -ceq ($expectedList -join "`n"))
 }
 
-$expectedCommit = "9ddd463d0effcadb33c60c7b27b26cd568192e8a"
+$expectedCommit = "71e282de93d2c0abf9e087d91130dad8805701e0"
+$trainerCommit = "9ddd463d0effcadb33c60c7b27b26cd568192e8a"
 $dsrcPins = @($manifest.gitlinks | Where-Object { [string]$_.name -ceq "dsrc" })
 Assert-Contract ($dsrcPins.Count -eq 1 -and [string]$dsrcPins[0].commit -ceq $expectedCommit) `
     "Manifest must pin the immutable planetary-map trainer dsrc commit."
@@ -66,7 +67,7 @@ $actualCommit = (& git -C $dsrc rev-parse HEAD 2>&1 | Out-String).Trim()
 Assert-Contract ($LASTEXITCODE -eq 0 -and $actualCommit -ceq $expectedCommit) `
     "Checked-out dsrc is not the contracted planetary-map trainer commit."
 
-$commitFiles = @(& git -C $dsrc show --format= --name-only $expectedCommit 2>&1 |
+$commitFiles = @(& git -C $dsrc show --format= --name-only $trainerCommit 2>&1 |
     Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 Assert-Contract ($LASTEXITCODE -eq 0 -and
     (Test-ExactOrdinalList $commitFiles @($contract.expected.directSourceChangedFiles))) `
@@ -117,7 +118,7 @@ foreach ($entry in $spawnContracts.GetEnumerator())
     }
 }
 $addedSpawnerCalls = [Collections.Generic.List[string]]::new()
-foreach ($line in @(& git -C $dsrc show --format= --unified=0 $expectedCommit -- `
+foreach ($line in @(& git -C $dsrc show --format= --unified=0 $trainerCommit -- `
     "sku.0/sys.server/compiled/game/script/npc/skillteacher/*_trainer_spawner.java" 2>&1))
 {
     if ($line -cmatch '^\+\s+(spawn[A-Za-z0-9_]+\(self\);)\s*$')

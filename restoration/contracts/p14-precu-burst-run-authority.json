@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 1,
+  "feature": "p14-precu-burst-run-authority",
+  "status": "implemented-build-pending-live-pending",
+  "scope": "Restore Publish 14.1 Burst Run as a universal on-foot command with no skill-box grant, strict three-pool HAM admission and atomic drain, a persistent 30-second 1.822 movement lifecycle, and a 300-second post-effect recovery window.",
+  "semanticReference": {
+    "repository": "swgemu/Core3",
+    "pinnedCommit": "6ea64f60ef33b89121c2a8d188b93f4bc6f158e8",
+    "commandSource": "MMOCoreORB/src/server/zone/objects/creature/commands/BurstRunCommand.h",
+    "buffSource": "MMOCoreORB/src/server/zone/objects/creature/buffs/StaticBuffImplementation.cpp",
+    "publish14CommandArchive": "Source/legacy/precu-restore/precu_client_command_table.tab",
+    "authority": "The command is granted by a blank characterAbility rather than a skill box. Strength, Quickness, and Focus independently adjust the base 100 Health, Action, and Mind costs; burst_run reduces each adjusted cost; all three current primary pools must remain strictly above their integer costs. The effect lasts 30 seconds at 1.822 movement and acceleration, followed by 300 seconds of recovery.",
+    "deliberatePersistence": "Effect and recovery timestamps survive relog to prevent relog-based effect or cooldown bypass."
+  },
+  "sourceFiles": {
+    "commandTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/command/command_table.tab",
+    "buffTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+    "movementTable": "dsrc/sku.0/sys.server/compiled/game/datatables/movement/movement.tab",
+    "skillTable": "dsrc/sku.0/sys.shared/compiled/game/datatables/skill/skills.tab",
+    "basePlayer": "dsrc/sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+    "combatBase": "dsrc/sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java"
+  },
+  "expected": {
+    "directSourceChangedFiles": [
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.java",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.java",
+      "sku.0/sys.shared/compiled/game/datatables/buff/buff.tab",
+      "sku.0/sys.shared/compiled/game/datatables/command/command_table.tab"
+    ],
+    "command": {
+      "name": "burstRun",
+      "columns": 94,
+      "tableRows": 2108,
+      "rawRowBytes": 228,
+      "rawRowSha256": "aab3d331e9d5acb0b448e76854deebe4b2e536f5a16bd88aeb26053f567497d1",
+      "characterAbility": "",
+      "defaultPriority": "front",
+      "scriptHook": "burstRun",
+      "defaultTime": "1",
+      "target": "other",
+      "targetType": "none",
+      "visible": "3",
+      "disabled": "0",
+      "addToCombatQueue": "0",
+      "validWeapon": "ALL",
+      "invalidWeapon": "NONE",
+      "warmupTime": "0",
+      "executeTime": "1",
+      "cooldownTime": "0",
+      "toolbarOnly": "0",
+      "fromServerOnly": "0"
+    },
+    "buff": {
+      "name": "burstRun",
+      "columns": 34,
+      "tableRows": 1993,
+      "rawRowBytes": 126,
+      "rawRowSha256": "be305991b6a357b5fd6962948aa2c630bf6b14db49a01063ef6606f6ab167bb7",
+      "duration": "30",
+      "effect": "movement",
+      "value": "82.2",
+      "callback": "removeBurstRun",
+      "visible": "1",
+      "debuff": "0",
+      "removeOnDeath": "1",
+      "playerRemovable": "0",
+      "persistent": "1",
+      "decayOnPvpDeath": "0"
+    },
+    "authoredMovement": {
+      "name": "burstRun",
+      "type": "boost",
+      "strength": "75",
+      "rawRowBytes": 38,
+      "rawRowSha256": "364bce8e5475715b798ac13ff453bbf70df09e4aecba8c4097b6a763946c527a",
+      "boundary": "movement.tab remains the authored Publish 14 value 75; runtime 1.822 is supplied only by the custom buff value and acceleration multiplier."
+    },
+    "baseCost": 100,
+    "durationSeconds": 30,
+    "recoverySeconds": 300,
+    "firstLegalRecastSeconds": 330,
+    "speedStrength": 82.2,
+    "accelerationMultiplier": 1.822,
+    "conflicts": ["burstRun", "retreat", "forceRun", "forceRunDeprecated", "forceRun_1", "forceRun_2", "forceRun_3", "fs_force_run"],
+    "messages": [
+      "cbt_spam:no_burst",
+      "combat_effects:burst_run_no",
+      "combat_effects:burst_run_space_dungeon",
+      "combat_effects:burst_run_wait",
+      "combat_effects:burst_run_not_tired",
+      "cbt_spam:burstrun_start_single",
+      "cbt_spam:burstrun_start",
+      "cbt_spam:burstrun_stop_single",
+      "cbt_spam:burstrun_stop"
+    ]
+  },
+  "buildEvidence": {
+    "result": "pending",
+    "sourceMode": "direct-branch",
+    "directSourceCommit": "71e282de93d2c0abf9e087d91130dad8805701e0",
+    "deploymentParentCommit": "pending",
+    "deploymentMode": "canonical zero-class Deploy-PrecuServer.ps1 run without SkipBuild",
+    "sourceSha256": {
+      "commandTable": "2349ca3f4db04568e4d57d34d5512a440fe74f6a5072f14f485a980ba95fc7de",
+      "buffTable": "ba786e08cafac4f027d5cb93102eaaeb3b66e2bd59543187ef5fb55ba50cce2d",
+      "movementTable": "47c71f95deb97b117e09830e089b9410bc1826d6a54dc9bdc499290b27f10fff",
+      "skillTable": "cac3de0cd803f7c2794e43eb44ca6836e8ec123fa0f2c258f1187cac70a90c57",
+      "basePlayer": "d0676b00e6d6ec49d6ae0254367e8a3030a1f88cb600a2777cfe991cf3570671",
+      "combatBase": "153647766c1aa03beeeaa351e83a7b4ec3c9295fe1ca6afd261fa2f03877500a"
+    },
+    "requiredCompiledArtifacts": [
+      "sku.0/sys.server/compiled/game/script/player/base/base_player.class",
+      "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.class",
+      "sku.0/sys.server/compiled/game/datatables/movement/movement.iff",
+      "sku.0/sys.shared/compiled/game/datatables/command/command_table.iff",
+      "sku.0/sys.shared/compiled/game/datatables/buff/buff.iff"
+    ],
+    "deterministicIff": {
+      "commandTable": {
+        "path": "sku.0/sys.shared/compiled/game/datatables/command/command_table.iff",
+        "bytes": 883736,
+        "sha256": "b025729c5f2fd7d817e6619c3d8ac8079e0dd049365a94acdf320f61702dc342"
+      },
+      "buffTable": {
+        "path": "sku.0/sys.shared/compiled/game/datatables/buff/buff.iff",
+        "bytes": 366646,
+        "sha256": "49b6633a078881bbbec92902089c724af1c697cbb12fbd0ee60fce3c6ad58b54"
+      },
+      "movementTable": {
+        "path": "sku.0/sys.server/compiled/game/datatables/movement/movement.iff",
+        "bytes": 8892,
+        "sha256": "cfcac24a10339582859c21144115603550cc80f9e7b9e6019321e1f76667cfd0",
+        "encodedBoundary": "The deterministic IFF contains exactly one burstRun row compiled from type boost, strength 75, and blank affects_onfoot, affects_vehicle, and affects_mount fields."
+      }
+    },
+    "canonicalBuild": {
+      "result": "pending",
+      "sourceCommit": "71e282de93d2c0abf9e087d91130dad8805701e0",
+      "deploymentParentCommit": "pending",
+      "mode": "pending",
+      "skipBuild": null,
+      "completedAt": "pending",
+      "container": "pending",
+      "zeroClassDependencyClean": {
+        "result": "pending",
+        "deletionScope": "all server Java classes plus the exact command, buff, movement, Jedi-action, and trainer IFF dependency targets declared by Deploy-PrecuServer.ps1",
+        "classCountBeforeDelete": -1,
+        "classCountAfterDelete": -1,
+        "rebuiltClassCount": 0
+      },
+      "sourceWorkParity": {
+        "result": "pending",
+        "checkedFiles": 0,
+        "matchedFiles": 0
+      },
+      "freshClassBytecode": {
+        "result": "pending",
+        "classMajorVersion": 0,
+        "artifacts": []
+      },
+      "deterministicIffRecompile": {
+        "result": "pending",
+        "artifacts": []
+      },
+      "artifactProbe": {
+        "result": "pending",
+        "capturedAt": "pending"
+      }
+    },
+    "java8Preflight": {
+      "result": "passed",
+      "sourceCommit": "71e282de93d2c0abf9e087d91130dad8805701e0",
+      "classMajorVersion": 52,
+      "artifacts": [
+        {
+          "path": "sku.0/sys.server/compiled/game/script/player/base/base_player.class",
+          "bytes": 277102,
+          "sha256": "7f8ef97769e1ccbbbf407503fa7375fa694b60d10f46fa57fffc8e6767eb3d46"
+        },
+        {
+          "path": "sku.0/sys.server/compiled/game/script/systems/combat/combat_base.class",
+          "bytes": 132193,
+          "sha256": "512d5d98712ac4d6572709b8482ddb370f3b2df465a9503db8c17307076bfcd7"
+        }
+      ]
+    }
+  },
+  "deploymentEvidence": {
+    "result": "pending",
+    "deploymentParentCommit": "pending",
+    "directSourceCommit": "71e282de93d2c0abf9e087d91130dad8805701e0",
+    "container": "pending",
+    "containerId": "pending",
+    "containerImage": "pending",
+    "containerImageId": "pending",
+    "containerStartedAt": "pending",
+    "sourceMountReadOnly": false,
+    "dockerWorkVolume": "pending",
+    "containerHealth": "pending",
+    "clusterReadyForPlayers": false,
+    "clusterReadyMarkerCount": 0,
+    "liveGameProcessCount": 0,
+    "liveGameProcessPids": [],
+    "allLiveGameProcessesMatchBinary": false,
+    "serverBinary": {
+      "path": "/swg-precu/build/bin/SwgGameServer",
+      "sha256": "pending",
+      "buildIdSha1": "pending",
+      "bytes": 0,
+      "inode": 0
+    },
+    "artifactIdentities": [],
+    "postStartLogAudit": {
+      "result": "pending",
+      "capturedAt": "pending",
+      "lineCount": 0,
+      "fatalSevereExceptionUndefinedSymbolOracleOrEmptyGenericMessageMatches": -1,
+      "playerReadyMarkerCount": 0
+    }
+  },
+  "liveAcceptancePayload": {
+    "id": "p14-burst-run-single-player-reversible-v1",
+    "result": "pending",
+    "boundedSeconds": 360,
+    "identityBound": true,
+    "skillMutationAllowed": false,
+    "preconditions": "One identified on-foot player in a non-dungeon scene, with no Burst Run, Retreat, Force Run, mount, or owned precu.burstRun state and with each primary HAM pool strictly above its computed cost.",
+    "steps": [
+      "Capture current/max nine-attribute values, movement, acceleration, posture, scene, owned buff state, and exact owned ObjVars.",
+      "Queue /burstRun and prove one accepted handler call, exact Strength/Quickness/Focus-adjusted integer H/A/M costs, one atomic three-pool drain, a visible 30-second buff, movement 1.822, and acceleration 1.822.",
+      "Queue one immediate recast and prove combat_effects:burst_run_wait with no second HAM drain or timer extension.",
+      "Relog during the effect and prove the remaining effect and 330-second activation-to-ready boundary survive without recharging HAM.",
+      "Observe natural stop feedback, base movement/acceleration restoration, retained recovery denial, and one burst_run_not_tired message at recovery completion."
+    ],
+    "actor": {
+      "playerOid": 0,
+      "stationId": 0,
+      "characterName": "pending"
+    },
+    "observedAt": "pending",
+    "deploymentContainerId": "pending",
+    "preflightCapture": {
+      "result": "pending",
+      "nineAttributes": [],
+      "movementPercent": 0,
+      "accelerationPercent": 0,
+      "posture": -1,
+      "scene": "pending",
+      "locationFingerprint": "pending",
+      "unrelatedBuffFingerprint": "pending",
+      "skillFingerprint": "pending",
+      "inventoryFingerprint": "pending",
+      "ownedBuffCount": -1,
+      "ownedObjVarCount": -1
+    },
+    "activation": {
+      "result": "pending",
+      "activationGameTime": 0,
+      "effectExpiresAt": 0,
+      "cooldownUntil": 0,
+      "handlerCalls": 0,
+      "burstRunSkillMod": 0,
+      "strength": 0,
+      "quickness": 0,
+      "focus": 0,
+      "healthBefore": 0,
+      "actionBefore": 0,
+      "mindBefore": 0,
+      "healthCost": 0,
+      "actionCost": 0,
+      "mindCost": 0,
+      "healthAfter": 0,
+      "actionAfter": 0,
+      "mindAfter": 0,
+      "visibleBuffCount": 0,
+      "buffDurationSeconds": 0,
+      "activeMovementPercent": 0,
+      "baseAccelerationPercent": 0,
+      "activeAccelerationPercent": 0,
+      "startSingleMessageCount": 0,
+      "startBroadcastMessageCount": 0
+    },
+    "immediateRecast": {
+      "result": "pending",
+      "attempts": 0,
+      "waitMessageCount": 0,
+      "healthBefore": 0,
+      "actionBefore": 0,
+      "mindBefore": 0,
+      "healthAfter": 0,
+      "actionAfter": 0,
+      "mindAfter": 0,
+      "effectExpiresAtBefore": 0,
+      "effectExpiresAtAfter": 0,
+      "cooldownUntilBefore": 0,
+      "cooldownUntilAfter": 0
+    },
+    "relog": {
+      "result": "pending",
+      "disconnectGameTime": 0,
+      "reconnectGameTime": 0,
+      "effectExpiresAtBefore": 0,
+      "effectExpiresAtAfter": 0,
+      "cooldownUntilBefore": 0,
+      "cooldownUntilAfter": 0,
+      "healthBefore": 0,
+      "actionBefore": 0,
+      "mindBefore": 0,
+      "healthAfter": 0,
+      "actionAfter": 0,
+      "mindAfter": 0,
+      "remainingEffectSecondsAfter": 0,
+      "activeMovementPercentAfter": 0,
+      "activeAccelerationPercentAfter": 0,
+      "hamRechargedByRelog": null
+    },
+    "expiry": {
+      "result": "pending",
+      "observedGameTime": 0,
+      "stopSingleMessageCount": 0,
+      "stopBroadcastMessageCount": 0,
+      "buffCountAfter": -1,
+      "effectObjVarCountAfter": -1,
+      "movementPercentAfter": 0,
+      "accelerationPercentAfter": 0,
+      "cooldownUntilAfter": 0
+    },
+    "recovery": {
+      "result": "pending",
+      "observedGameTime": 0,
+      "activationToReadySeconds": 0,
+      "readyMessageCount": 0,
+      "cooldownObjVarCountAfter": -1,
+      "firstLegalRecastConfirmed": false
+    },
+    "cleanup": {
+      "result": "pending",
+      "ownedStateOnly": ["buff:burstRun", "objvar:precu.burstRun.effect", "objvar:precu.burstRun.cooldownUntil"],
+      "procedure": "Remove only the owned buff and ObjVars, restore the captured nine attributes and acceleration if they differ, relog once, and prove the owned state is absent while all unrelated buffs, skills, inventory, posture, and location are unchanged.",
+      "nineAttributesAfter": [],
+      "movementPercentAfter": 0,
+      "accelerationPercentAfter": 0,
+      "postureAfter": -1,
+      "locationFingerprintAfter": "pending",
+      "unrelatedBuffFingerprintAfter": "pending",
+      "skillFingerprintAfter": "pending",
+      "inventoryFingerprintAfter": "pending",
+      "ownedBuffCountAfter": -1,
+      "ownedObjVarCountAfter": -1,
+      "relogVerified": false,
+      "serverHealthy": false
+    }
+  },
+  "liveEvidence": {
+    "result": "pending",
+    "payloadId": "p14-burst-run-single-player-reversible-v1",
+    "playerOid": 0,
+    "stationId": 0,
+    "characterName": "pending",
+    "observedAt": "pending",
+    "deploymentContainerId": "pending",
+    "serverHealthyAfterCleanup": false
+  },
+  "requiredBeforeReady": [
+    "Run the single identity-bound reversible Burst Run acceptance payload and record exact activation, HAM, movement, relog, expiry, recovery, and cleanup evidence."
+  ]
+}

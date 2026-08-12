@@ -364,6 +364,10 @@ Write-Host "Re-verifying the PRE-CU species-innate Constitution path against the
 & (Join-Path $PSScriptRoot "Test-P14PrecuSpeciesInnateAuthority.ps1") `
     -SourceRoot $repositoryRoot `
     -Expectation Source
+Write-Host "Verifying immutable universal PRE-CU Burst Run authority before build..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuBurstRunAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Source
 
 if (-not $SkipBuild)
 {
@@ -375,13 +379,18 @@ if [ -d "$class_root" ]; then
     find "$class_root" -type f -name '*.class' -delete
     test "$(find "$class_root" -type f -name '*.class' -print -quit)" = ""
 fi
-for force_defense_iff in \
+# Keep the dependency deletion list exact: command_table.iff and buff.iff are
+# shared Force-defense/Burst-Run owners, movement.iff is consumed by the live
+# movement manager despite retaining its authored Burst Run strength of 75,
+# and jedi_actions.iff remains the bounded Force-defense owner.
+for precu_dependency_iff in \
     "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/command/command_table.iff" \
     "$SWG_WORK_DIR/data/sku.0/sys.shared/compiled/game/datatables/buff/buff.iff" \
+    "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/movement/movement.iff" \
     "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/jedi/jedi_actions.iff"
 do
-    rm -f -- "$force_defense_iff"
-    test ! -e "$force_defense_iff"
+    rm -f -- "$precu_dependency_iff"
+    test ! -e "$precu_dependency_iff"
 done
 for trainer_iff in \
     "$SWG_WORK_DIR/data/sku.0/sys.server/compiled/game/datatables/space_content/npc_spawners.iff" \
@@ -403,7 +412,7 @@ do
     test ! -e "$trainer_iff"
 done
 '@
-    Write-Host "Removing compiled Java classes plus exact Force-defense and trainer IFF targets to enforce a complete dependency rebuild..."
+    Write-Host "Removing compiled Java classes plus exact Force-defense, Burst Run command/buff/movement, and trainer IFF targets to enforce a complete dependency rebuild..."
     Invoke-DockerScript -ContainerName $Container -Script $javaDependencyClean
     Write-Host "Synchronizing the read-only source mount and building the writable server volume..."
     Invoke-Docker -Arguments @("exec", $Container, "/usr/local/bin/swg-entrypoint", "build")
@@ -9547,6 +9556,11 @@ readelf -n "$binary" | grep -Eq 'Build ID: [0-9a-f]{40}'
 
 Write-Host "Verifying synchronized sources, PRE-CU GCW retirement, Scout bytecode, native NGE retirement, authoritative weapon cadence, and x64 architecture..."
 Invoke-DockerScript -ContainerName $Container -Script $artifactProbe
+Write-Host "Verifying current Burst Run source/work parity, Java bytecode, and deterministic command/buff/movement IFF artifacts..."
+& (Join-Path $PSScriptRoot "Test-P14PrecuBurstRunAuthority.ps1") `
+    -SourceRoot $repositoryRoot `
+    -Expectation Build `
+    -Container $Container
 
 $restartAt = [DateTimeOffset]::UtcNow.ToString("o")
 Write-Host "Restarting '$Container' only after artifact verification..."
