@@ -180,7 +180,7 @@ if ($Expectation -in @("Build", "Ready")) {
     foreach ($key in $parityKeys) {
         $sourceRelative = [string]$contract.sourceFiles.$key
         $workRelative = $sourceRelative.Substring("dsrc/".Length)
-        $workPath = "$workDir/data/$workRelative"
+        $workPath = "$workDir/dsrc/$workRelative"
         $workEvidence = Get-ContainerEvidence $workPath
         $parity = $null -ne $workEvidence -and $workEvidence.Sha256 -ceq (Get-Sha256 $paths[$key])
         if ($parity) { $matched++ }
